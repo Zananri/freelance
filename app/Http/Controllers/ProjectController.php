@@ -551,10 +551,26 @@ class ProjectController extends Controller
 
             $query = Project::where('status', '!=', 'DELETED');
 
-            if ($sortBy === 'asc') {
-                $query = $query->orderBy('projects.created_at', 'asc');
-            } else {
-                $query = $query->orderBy('projects.created_at', 'desc');
+            // Handle sorting options
+            switch ($sortBy) {
+                case 'title_asc':
+                    $query = $query->orderBy('projects.title', 'asc');
+                    break;
+                case 'title_desc':
+                    $query = $query->orderBy('projects.title', 'desc');
+                    break;
+                case 'date_asc':
+                case 'oldest':
+                case 'asc':
+                    $query = $query->orderBy('projects.created_at', 'asc');
+                    break;
+                case 'date_desc':
+                case 'newest':
+                case 'desc':
+                    $query = $query->orderBy('projects.created_at', 'desc');
+                    break;
+                default:
+                    $query = $query->orderBy('projects.title', 'asc');
             }
 
             if ($taskScope !== 'all') {
@@ -646,9 +662,6 @@ class ProjectController extends Controller
                 // Expecting YYYY-MM-DD; apply safe match against project start_date only
                 $query->whereDate('projects.start_date', $dateFilter);
             }
-
-            // Default ordering
-            $query = $query->orderBy('projects.created_at', 'desc');
 
             $projects = $query
                 ->with([

@@ -173,8 +173,7 @@
                         <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown">
                             <div class="dropdown-filter-body">
                                 <div class="mb-2">
-                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by
-                                        Status</label>
+                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by Status</label>
                                     <select id="filterProjectStatus" class="form-select label-custom-filter">
                                         <option value="">All Status</option>
                                         <option value="ongoing">Not Started</option>
@@ -183,43 +182,21 @@
                                     </select>
                                 </div>
 
-                                <hr class="my-2">
-                                <div class="mb-2">
-                                    <label class="form-label d-block mb-1 label-custom-filter">Filter Mode</label>
-                                    <div class="btn-group" role="group" aria-label="Filter Mode">
-                                        <input type="radio" class="btn-check" name="filterMode" id="modeByProject"
-                                            autocomplete="off" value="by_project" checked>
-                                        <label class="btn btn-outline-secondary label-custom-filter"
-                                            for="modeByProject">By
-                                            Project</label>
-
-                                        <input type="radio" class="btn-check" name="filterMode" id="modeSortBy"
-                                            autocomplete="off" value="sort_by">
-                                        <label class="btn btn-outline-secondary label-custom-filter"
-                                            for="modeSortBy">Sort By</label>
-                                    </div>
-                                </div>
-                                <div class="mb-3" id="byProjectContainer">
-                                    <label for="filterProjectSelect"
-                                        class="form-label label-custom-filter">Project</label>
+                                <div class="mb-3">
+                                    <label for="filterProjectSelect" class="form-label label-custom-filter">Filter by Project</label>
                                     <select id="filterProjectSelect" class="form-select label-custom-filter">
                                         <option value="">All Projects</option>
                                     </select>
                                 </div>
-                                <div class="mb-3 d-none" id="byDateContainer">
-                                    <label for="filterProjectDateSelect"
-                                        class="form-label label-custom-filter">Date</label>
-                                    <select id="filterProjectDateSelect" class="form-select label-custom-filter">
-                                        <option value="">All Dates</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3 d-none" id="sortByContainer">
+
+                                <div class="mb-3">
                                     <label for="filterSortBy" class="form-label label-custom-filter">Sort By</label>
                                     <select id="filterSortBy" class="form-select label-custom-filter">
-                                        <option value="asc">Newest ↑</option>
-                                        <option value="desc">Oldest ↓</option>
+                                    <option value="title_asc">Title A-Z</option>
+                                    <option value="title_desc">Title Z-A</option>
+                                    <option value="date_desc">Newest ↑</option>
+                                    <option value="date_asc">Oldest ↓</option>
                                     </select>
-
                                 </div>
                             </div>
                             <div class="dropdown-filter-footer">
