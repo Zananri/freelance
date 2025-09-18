@@ -1758,4 +1758,5 @@
 .modal-footer-custom .btn-custom-close {
     background-color: #e3e4ee  !important;
     color: #444444;
+    font-size: 14px;
 }
