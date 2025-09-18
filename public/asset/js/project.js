@@ -8299,23 +8299,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    let allProjectsCache = [];
-
-    function loadProjects(filter = null) {
-        $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            data: { task_scope: "me", filter: filter },
-            success: function (data) {
-                loadProjectCardData(filter, 1);
-            },
-            error: function () {
-                console.error("Failed to load project cards (index)");
-            },
-        });
-    }
-
     function loadCardProjects(page = 1) {
         $.ajax({
             url: appUrl + "/project/get-all-projects",
@@ -8486,38 +8469,48 @@ document.addEventListener("DOMContentLoaded", function () {
     let lastRefresh = 0;
     let feedbackCache = {};
 
-    function fetchLatestFeedbackForProject(projectId) {
-        if (!projectId) return Promise.resolve();
+    function fetchLatestFeedbackForProject(projectIds) {
+        if (!projectIds?.length) return Promise.resolve();
 
-        const pid = String(projectId);
         const now = Date.now();
-        const cached = feedbackCache[pid];
+        const fresh = [];
+        const needFetch = [];
 
-        if (cached && (now - cached.time < 60000)) {
-            setProjectLatestFeedbackSnippet(pid, cached.data);
-            return Promise.resolve(cached.data);
-        }
+        projectIds.forEach(pid => {
+            const cached = feedbackCache[pid];
+            if (cached && (now - cached.time < 60000)) {
+                setProjectLatestFeedbackSnippet(pid, cached.data);
+                fresh.push(cached.data);
+            } else {
+                needFetch.push(pid);
+            }
+        });
 
-        const seq = (window.latestProjectSnippetSeq[pid] =
-            (window.latestProjectSnippetSeq[pid] || 0) + 1);
+        if (!needFetch.length) return Promise.resolve(fresh);
+
+        const query = needFetch.join(",");
 
         return $.ajax({
-            url: appUrl + `/project-feedbacks/latest/${pid}`,
+            url: appUrl + "/project-feedbacks/latest?ids=" + query,
             type: "GET",
             dataType: "json",
         })
-            .then((res) => {
-                if (window.latestProjectSnippetSeq[pid] !== seq) return;
-                const data = res && res.data ? res.data : null;
+        .then(res => {
+            const map = res?.data || {};
+            Object.entries(map).forEach(([pid, data]) => {
                 feedbackCache[pid] = { time: now, data };
                 setProjectLatestFeedbackSnippet(pid, data);
-                return data;
-            })
-            .catch(() => {
-                if (window.latestProjectSnippetSeq[pid] !== seq) return;
-                feedbackCache[pid] = { time: now, data: null };
             });
+            return map;
+        })
+        .catch(() => {
+            needFetch.forEach(pid => {
+                feedbackCache[pid] = { time: now, data: null };
+                setProjectLatestFeedbackSnippet(pid, null);
+            });
+        });
     }
+
 
     function refreshAllProjectLatestFeedbackSnippets() {
         const now = Date.now();
@@ -8527,12 +8520,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const projectIds = [
             ...new Set(
                 [...document.querySelectorAll("[data-project-id]")]
-                    .map((el) => el.getAttribute("data-project-id"))
+                    .map(el => el.getAttribute("data-project-id"))
                     .filter(Boolean)
             ),
         ];
 
-        Promise.all(projectIds.map((pid) => fetchLatestFeedbackForProject(pid)));
+        fetchLatestFeedbackForProject(projectIds);
     }
 
     // New implementation for co-author input with checkbox multi-select and search
@@ -11394,107 +11387,64 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-function hideProjectLatestFeedbackSnippet(projectId) {
+function stripTags(s) {
     try {
-        const els = document.querySelectorAll(
-            `.latest-feedback-snippet[data-project-id="${projectId}"]`
-        );
-        if (!els) return;
-        els.forEach((el) => {
+        return String(s || "").replace(/<[^>]*>/g, "");
+    } catch {
+        return String(s || "");
+    }
+}
+
+function hideProjectLatestFeedbackSnippet(projectId) {
+    document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`)
+        .forEach(el => {
             el.classList.add("d-none");
-            // clear avatar and text to avoid broken images/alt
             const avatar = el.querySelector(".latest-feedback-avatar");
             if (avatar) avatar.src = appUrl + "/asset/img/avatar.png";
             const textEl = el.querySelector(".latest-feedback-text");
             if (textEl) textEl.textContent = "";
         });
-    } catch (_) {}
 }
 
 function setProjectLatestFeedbackSnippet(projectId, data) {
-    try {
-        const els = document.querySelectorAll(
-            `.latest-feedback-snippet[data-project-id="${projectId}"]`
-        );
-        if (!els || els.length === 0) return;
-        if (!data) {
-            hideProjectLatestFeedbackSnippet(projectId);
-            return;
-        }
+    const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+    if (!els.length) return;
 
-        // Cache latest payload for deep-linking
-        try {
-            window.__projectLatest = window.__projectLatest || {};
-            window.__projectLatest[String(projectId)] = data;
-        } catch (_) {}
-
-        const photo =
-            data.employee && data.employee.photo
-                ? data.employee.photo
-                : appUrl + "/asset/img/avatar.png";
-        data.employee &&
-        (data.employee.photo ||
-            data.employee.user_photo ||
-            data.employee.profile_picture_url)
-            ? buildAvatarUrl(
-                  data.employee.photo ||
-                      data.employee.user_photo ||
-                      data.employee.profile_picture_url
-              )
-            : appUrl + "/asset/img/avatar.png";
-
-        // sanitize feedback_comment: strip HTML tags so any embedded <img> or markup
-        // will be shown as text-free preview instead of raw HTML.
-        const raw = String(data.feedback_comment || "");
-        function stripTags(s) {
-            try {
-                return String(s).replace(/<[^>]*>/g, "");
-            } catch (e) {
-                return String(s);
-            }
-        }
-        const plain = stripTags(raw).trim();
-        let truncated = "";
-        if (plain.length > 0) {
-            truncated = plain.length > 30 ? plain.slice(0, 30) + "..." : plain;
-        } else {
-            // If there's no textual comment, show a small hint if there's an attachment/image
-            if (
-                data.image ||
-                data.reference_file ||
-                (Array.isArray(data.reference_files) &&
-                    data.reference_files.length)
-            ) {
-                truncated = "[attachment]";
-            } else {
-                truncated = "";
-            }
-        }
-
-        els.forEach((el) => {
-            const avatar = el.querySelector(".latest-feedback-avatar");
-            const textEl = el.querySelector(".latest-feedback-text");
-            if (avatar)
-                avatar.src =
-                    photo && photo.startsWith("http")
-                        ? photo
-                        : appUrl + "/" + String(photo).replace(/^\//, "");
-            if (textEl) textEl.textContent = truncated;
-
-            // Only show snippet if there's actually meaningful content to display
-            if (truncated && truncated.trim() !== "") {
-                el.classList.remove("d-none");
-                el.style.removeProperty("display");
-            } else {
-                // Hide snippet if no meaningful content
-                el.classList.add("d-none");
-                el.style.display = "none";
-            }
-        });
-    } catch (e) {
-        console.warn("setProjectLatestFeedbackSnippet error", e);
+    if (!data) {
+        hideProjectLatestFeedbackSnippet(projectId);
+        return;
     }
+
+    try {
+        window.__projectLatest = window.__projectLatest || {};
+        window.__projectLatest[String(projectId)] = data;
+    } catch {}
+
+    const rawPhoto = data.employee?.photo || data.employee?.user_photo || data.employee?.profile_picture_url;
+    const photo = rawPhoto ? buildAvatarUrl(rawPhoto) : appUrl + "/asset/img/avatar.png";
+
+    let plain = stripTags(data.feedback_comment).trim();
+    let truncated = plain
+        ? (plain.length > 30 ? plain.slice(0, 30) + "..." : plain)
+        : (data.image || data.reference_file || (data.reference_files?.length) ? "[attachment]" : "");
+
+    els.forEach(el => {
+        const avatar = el.querySelector(".latest-feedback-avatar");
+        const textEl = el.querySelector(".latest-feedback-text");
+
+        if (avatar) avatar.src = photo.startsWith("http") ? photo : appUrl + "/" + photo.replace(/^\//, "");
+        if (textEl) textEl.textContent = truncated;
+
+        if (truncated) {
+            el.classList.remove("d-none");
+            el.style.removeProperty("display");
+        } else {
+            el.classList.add("d-none");
+            el.style.display = "none";
+        }
+    });
 }
+
 
 // === Global Unread Badge Refresher ===
 function refreshAllProjectUnreadBadges() {
