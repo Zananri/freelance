@@ -344,6 +344,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch(_) {}
 
+    // If user picks start_at first, update the day-of-week selection to match that date.
+    // Use safe date parsing to avoid timezone shifts (parse components explicitly).
+    function parseDateLocal(dateStr){
+        if(!dateStr) return null;
+        const parts = String(dateStr).split('-');
+        if(parts.length !== 3) return null;
+        const y = parseInt(parts[0],10), m = parseInt(parts[1],10), d = parseInt(parts[2],10);
+        if(Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return null;
+        return new Date(y, m-1, d);
+    }
+
+    function syncWeeklyDayFromStart(startInputId, weeklySelectId){
+        const startInput = document.getElementById(startInputId);
+        const weeklySelect = document.getElementById(weeklySelectId);
+        if(!startInput || !weeklySelect) return;
+        startInput.addEventListener('change', function(){
+            const val = this.value;
+            const dt = parseDateLocal(val);
+            if(!dt) return;
+            const dow = dt.getDay(); // 0=Sun
+            // Set weekly select value but do not dispatch change event so we don't trigger
+            // updateWeeklyStartDate which would overwrite start_at based on selectedDow.
+            try { weeklySelect.value = String(dow); } catch(e) {}
+            // If recurrence type is weekly and UI is visible, ensure required and UI sync
+            const typeSelEl = document.getElementById('schedule_recurrence_type');
+            if(typeSelEl && typeSelEl.value === 'weekly'){
+                // keep UI consistent; do not call updateWeeklyStartDate here (we preserve chosen start_at)
+            }
+        });
+    }
+
+    // Attach sync for create modal
+    syncWeeklyDayFromStart('schedule_start_at','schedule_recurrence_day_of_week');
+    // Attach sync for edit modal (if present)
+    syncWeeklyDayFromStart('edit_schedule_start_at','edit_schedule_recurrence_day_of_week');
+
     form.addEventListener('submit', e=>{
         e.preventDefault();
         if(!form.checkValidity()){ e.stopPropagation(); form.classList.add('was-validated'); return; }
