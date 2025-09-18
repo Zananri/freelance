@@ -8364,7 +8364,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const prevLi = document.createElement("li");
         prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
         const prevBtn = document.createElement("button");
-        prevBtn.className = "page-link";
+        prevBtn.className = "page-link";1
         prevBtn.textContent = "Previous";
         prevBtn.addEventListener("click", function (e) {
             e.preventDefault();
@@ -11197,14 +11197,12 @@ function buildTimelineFromProjects(projects) {
     if (!Array.isArray(projects)) return;
 
     projects.forEach((p, idx) => {
-        // parse dates as local (avoid timezone shifts from Date(string))
         function parseLocal(dateStr, fallback) {
             const src = (dateStr || "").toString().trim();
             if (!src) {
                 if (fallback) return parseLocal(fallback);
                 return null;
             }
-            // extract YYYY-MM-DD using regex to be robust against ' ' or 'T' separators and time parts
             const m = src.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
             if (m) {
                 const y = parseInt(m[1], 10);
@@ -11216,10 +11214,7 @@ function buildTimelineFromProjects(projects) {
         }
 
         let start = p.start_date ? parseLocal(p.start_date) : new Date();
-        let due = p.due_date
-            ? parseLocal(p.due_date, p.start_date)
-            : new Date(start);
-        // normalize to day boundaries (start at 00:00:00, due at 23:59:59)
+        let due = p.due_date ? parseLocal(p.due_date, p.start_date) : new Date(start);
         if (start) start.setHours(0, 0, 0, 0);
         if (due) due.setHours(23, 59, 59, 999);
 
@@ -11232,7 +11227,6 @@ function buildTimelineFromProjects(projects) {
         });
     });
 
-    // debug: print timeline entries used for rendering
     try {
         console.debug(
             "timelineData built:",
@@ -11289,24 +11283,15 @@ function renderTimeline(
         timelineData.forEach((proj) => {
             const startDay = Math.max(
                 1,
-                proj.start_date.getMonth() === month
-                    ? proj.start_date.getDate()
-                    : 1
+                proj.start_date.getMonth() === month ? proj.start_date.getDate() : 1
             );
             const endDay = Math.min(
                 daysInMonth,
-                proj.due_date.getMonth() === month
-                    ? proj.due_date.getDate()
-                    : daysInMonth
+                proj.due_date.getMonth() === month ? proj.due_date.getDate() : daysInMonth
             );
-            if (
-                proj.start_date.getMonth() > month ||
-                proj.due_date.getMonth() < month
-            )
-                return;
+            if (proj.start_date.getMonth() > month || proj.due_date.getMonth() < month) return;
             const tr = document.createElement("tr");
-            for (let i = 1; i < startDay; i++)
-                tr.appendChild(document.createElement("td"));
+            for (let i = 1; i < startDay; i++) tr.appendChild(document.createElement("td"));
             if (endDay >= startDay) {
                 const barTd = document.createElement("td");
                 barTd.colSpan = endDay - startDay + 1;
@@ -11314,8 +11299,7 @@ function renderTimeline(
                 barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
             }
-            for (let i = endDay + 1; i <= daysInMonth; i++)
-                tr.appendChild(document.createElement("td"));
+            for (let i = endDay + 1; i <= daysInMonth; i++) tr.appendChild(document.createElement("td"));
             rowsContainer.appendChild(tr);
         });
         const titleEl = document.getElementById("timelineModalTitle");
@@ -11326,15 +11310,7 @@ function renderTimeline(
     }
 
     let totalCells = 7;
-    const headerLabels = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ];
+    const headerLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     headerLabels.forEach((label) => {
         const th = document.createElement("th");
         th.textContent = label;
@@ -11345,8 +11321,7 @@ function renderTimeline(
         const today = new Date();
         if (today.getMonth() === month && today.getFullYear() === year) {
             const firstOfMonth = new Date(year, month, 1);
-            const offset =
-                firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+            const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
             weekIndex = Math.ceil((today.getDate() + offset) / 7) - 1;
         } else {
             weekIndex = 0;
@@ -11355,7 +11330,9 @@ function renderTimeline(
 
     const firstOfMonth = new Date(year, month, 1);
     let weekStartDate = new Date(firstOfMonth);
-    weekStartDate.setDate(firstOfMonth.getDate() + weekIndex * 7);
+    let day = weekStartDate.getDay();
+    let diff = (day === 0 ? -6 : 1) - day;
+    weekStartDate.setDate(weekStartDate.getDate() + diff + (weekIndex * 7));
 
     let weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekStartDate.getDate() + 6);
@@ -11376,8 +11353,7 @@ function renderTimeline(
         const projStartIdx = Math.max(0, rawStart);
         const projEndIdx = Math.min(6, rawEnd);
 
-        for (let i = 0; i < projStartIdx; i++)
-            tr.appendChild(document.createElement("td"));
+        for (let i = 0; i < projStartIdx; i++) tr.appendChild(document.createElement("td"));
 
         if (projEndIdx >= projStartIdx) {
             const barTd = document.createElement("td");
@@ -11387,19 +11363,18 @@ function renderTimeline(
             tr.appendChild(barTd);
         }
 
-        for (let i = projEndIdx + 1; i < totalCells; i++)
-            tr.appendChild(document.createElement("td"));
+        for (let i = projEndIdx + 1; i < totalCells; i++) tr.appendChild(document.createElement("td"));
 
         rowsContainer.appendChild(tr);
     });
 
     const titleEl = document.getElementById("timelineTitle");
     if (titleEl) {
-        const weekNum = getWeekOfMonth(weekStartDate);
-        const monthShort = months[weekStartDate.getMonth()];
-        titleEl.textContent = `${monthShort} Week ${weekNum}`;
+        const monthShort = months[month];
+        titleEl.textContent = `${monthShort} Week ${weekIndex + 1}`;
     }
 }
+
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
     if (currentWeek > 0) {
