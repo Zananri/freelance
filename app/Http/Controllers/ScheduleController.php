@@ -90,7 +90,9 @@ trait ScheduleImmediateGeneration
         switch ($s->recurrence_type) {
             case 'weekly':
                 $dow = (int) ($s->recurrence_day_of_week ?? $start->dayOfWeek);
-                $next = $start->copy()->addDay(); // start from tomorrow
+                // Start searching from the recurrence_start_date itself so if start_at
+                // falls on the desired weekday we return that date (initial occurrence).
+                $next = $start->copy();
                 while ((int) $next->dayOfWeek !== $dow) {
                     $next->addDay();
                 }
@@ -175,9 +177,9 @@ trait ScheduleImmediateGeneration
             }
         }
 
-        // Start date is always the run day for tasks generated from schedules
-        $startDate = $today;
-        // Compute due date preference: due_in_days if provided; else legacy due_date rules
+        // Determine task start date: prefer the schedule's recurrence_start_date when present
+        $startDate = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->toDateString() : $today;
+        // Compute due date: prefer due_in_days if provided; else fall back to legacy rules
         if (!is_null($s->due_in_days)) {
             $dueDate = Carbon::parse($startDate)->addDays((int) $s->due_in_days)->toDateString();
         } else if ($s->recurrence_type === 'daily' && $s->due_date && $s->recurrence_start_date) {
@@ -547,6 +549,18 @@ class ScheduleController extends Controller
             } else {
                 if (empty($data['recurrence_start_date'])) {
                     $data['recurrence_start_date'] = Carbon::today()->toDateString();
+                }
+            }
+            // For weekly recurrence, use recurrence_start_date as the schedule's start_date
+            if (($data['recurrence_type'] ?? '') === 'weekly') {
+                $data['start_date'] = $data['recurrence_start_date'] ?? Carbon::today()->toDateString();
+                if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
+                    try {
+                        $start = Carbon::parse($data['start_date'])->startOfDay();
+                        $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
+                    } catch (\Throwable $e) {
+                        $data['due_date'] = null;
+                    }
                 }
             }
             $data['recurrence_interval'] = (int)($data['recurrence_interval'] ?? 1) ?: 1;
