@@ -20,9 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $schedule->command('schedules:generate --type=weekly --lead-days=6')
             ->weeklyOn(1, '00:10') 
+            ->onOneServer()
             ->withoutOverlapping();
 
-        $schedule->command('schedules:generate --type=monthly')
+        $schedule->command('schedules:generate --type=monthly --to-end-of-month')
             ->monthlyOn(1, '00:15') 
             ->onOneServer()
             ->withoutOverlapping();

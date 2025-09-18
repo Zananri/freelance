@@ -18,7 +18,7 @@ class GenerateTasksFromSchedules extends Command
      *
      * @var string
      */
-    protected $signature = 'schedules:generate {--dry-run : Only show what would be generated} {--type= : Limit to recurrence type: daily, weekly, or monthly} {--lead-days=0 : Look ahead N days and generate schedules up to now + N days}';
+    protected $signature = 'schedules:generate {--dry-run : Only show what would be generated} {--type= : Limit to recurrence type: daily, weekly, or monthly} {--lead-days=0 : Look ahead N days and generate schedules up to now + N days} {--to-end-of-month : Look ahead until the end of current month}';
 
     /**
      * The console command description.
@@ -31,8 +31,15 @@ class GenerateTasksFromSchedules extends Command
     {
     $now = Carbon::now();
     $dryRun = (bool) $this->option('dry-run');
-    $leadDays = max(0, (int) $this->option('lead-days'));
-    $windowEnd = $now->copy()->addDays($leadDays);
+        $leadDays = max(0, (int) $this->option('lead-days'));
+        $toEndOfMonth = (bool) $this->option('to-end-of-month');
+
+        if ($toEndOfMonth) {
+            // look ahead to the end of current month
+            $windowEnd = $now->copy()->endOfMonth()->startOfDay();
+        } else {
+            $windowEnd = $now->copy()->addDays($leadDays);
+        }
         $type = $this->option('type');
         if ($type !== null) {
             $type = strtolower(trim($type));
@@ -192,12 +199,16 @@ class GenerateTasksFromSchedules extends Command
                 }
                 return $candidate->startOfDay();
             case 'monthly':
-                $base = $start ?? $now->copy()->startOfDay();
+                // Prefer explicit start_at chosen in modal; fall back to recurrence_start_date or today
+                $base = $s->start_at ? Carbon::parse($s->start_at)->startOfDay() : ($start ?? $now->copy()->startOfDay());
+                // day of month to use: explicit recurrence_day_of_month if set, otherwise day of start_at/base
                 $dom = (int) ($s->recurrence_day_of_month ?: $base->day);
-                // Choose the next occurrence: if base day already passed this month, go to next month
+                // Candidate is the nearest occurrence on or after base: try this month first
                 $candidate = $this->safeMonthlyDate($base->year, $base->month, $dom, $base);
                 if ($candidate->lt($now->copy()->startOfDay())) {
-                    $candidate = $this->safeMonthlyDate($base->copy()->addMonth()->year, $base->copy()->addMonth()->month, $dom, $base);
+                    // move to next month
+                    $nextMonth = $base->copy()->addMonthNoOverflow();
+                    $candidate = $this->safeMonthlyDate($nextMonth->year, $nextMonth->month, $dom, $base);
                 }
                 return $candidate->startOfDay();
             case 'daily':
@@ -231,10 +242,10 @@ class GenerateTasksFromSchedules extends Command
                 }
                 return $next->startOfDay();
         case 'monthly':
-            // Add N months and clamp to chosen DOM
+            // Add N months and clamp to chosen DOM. Keep the same day of month (or clamp to last day if month too short).
             $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
             $next->addMonthsNoOverflow($interval);
-            return $this->safeMonthlyDate($next->year, $next->month, $dom, $next)->addDay(); // Generate the day after the recurrence date
+            return $this->safeMonthlyDate($next->year, $next->month, $dom, $next)->startOfDay();
             case 'daily':
             default:
                 // For daily recurrence, next run is current + interval days
