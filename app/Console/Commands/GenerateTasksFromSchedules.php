@@ -46,6 +46,9 @@ class GenerateTasksFromSchedules extends Command
             ->where(function ($q) use ($now) {
                 $q->whereNull('next_run_at')
                     ->orWhere('next_run_at', '<=', $now);
+            })
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'DELETED');
             });
 
         if ($type) {
