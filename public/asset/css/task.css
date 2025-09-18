@@ -353,7 +353,7 @@
 }
 
 .modal-footer-custom .btn-custom-close {
-    background-color: #ebecf2;
+    background-color: #e3e4ee  !important;
     color: #444444;
 }
 
