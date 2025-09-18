@@ -551,10 +551,26 @@ class ProjectController extends Controller
 
             $query = Project::where('status', '!=', 'DELETED');
 
-            if ($sortBy === 'asc') {
-                $query = $query->orderBy('projects.created_at', 'asc');
-            } else {
-                $query = $query->orderBy('projects.created_at', 'desc');
+            // Handle sorting options
+            switch ($sortBy) {
+                case 'title_asc':
+                    $query = $query->orderBy('projects.title', 'asc');
+                    break;
+                case 'title_desc':
+                    $query = $query->orderBy('projects.title', 'desc');
+                    break;
+                case 'date_asc':
+                case 'oldest':
+                case 'asc':
+                    $query = $query->orderBy('projects.created_at', 'asc');
+                    break;
+                case 'date_desc':
+                case 'newest':
+                case 'desc':
+                    $query = $query->orderBy('projects.created_at', 'desc');
+                    break;
+                default:
+                    $query = $query->orderBy('projects.title', 'asc');
             }
 
             if ($taskScope !== 'all') {
@@ -646,9 +662,6 @@ class ProjectController extends Controller
                 // Expecting YYYY-MM-DD; apply safe match against project start_date only
                 $query->whereDate('projects.start_date', $dateFilter);
             }
-
-            // Default ordering
-            $query = $query->orderBy('projects.created_at', 'desc');
 
             $projects = $query
                 ->with([
@@ -779,9 +792,9 @@ class ProjectController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 // Allow multiple reference files (both new and legacy keys) with Task's whitelist and 5MB limit
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'reference_file' => 'nullable|array',
-                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
 
             ]);
 
@@ -1230,9 +1243,9 @@ class ProjectController extends Controller
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'reference_file' => 'nullable|array',
-                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'co_author' => 'nullable|array',
                 'co_author.*' => 'nullable|exists:employees,id',
                 'contributors' => 'nullable|array',

@@ -617,39 +617,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
-            function getDivision(emp) {
-                try {
-                    // Try common fields first, then nested structures
-                    return (
-                        emp?.division_name ||
-                        emp?.division ||
-                        emp?.division_title ||
-                        // backend now also provides 'division' as name string and duplicate 'division_name'
-                        (typeof emp?.division === "string"
-                            ? emp?.division
-                            : null) ||
-                        (typeof emp?.division === "object" &&
-                            (emp.division?.name || emp.division?.title)) ||
-                        emp?.employee_division ||
-                        (emp?.employee &&
-                            (emp.employee.division_name ||
-                                (emp.employee.division &&
-                                    (emp.employee.division.name ||
-                                        emp.employee.division.title)))) ||
-                        "-"
-                    );
-                } catch (_) {
-                    return "-";
-                }
-            }
-
             if (!items.length) {
                 return '<div class="text-muted small">No collaborators</div>';
             }
 
             const rows = items.map(({ role, emp }) => {
                 const name = getName(emp);
-                const division = getDivision(emp);
                 // Use global resolver for photo (includes cache busting and onerror handling)
                 const photo = resolvePhotoHtml(emp, 36, 0, role);
                 return (
@@ -662,7 +635,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     (name || "Unknown") +
                     "</div>" +
                     '<div class="collab-division text-muted">' +
-                    (division || "-") +
+                    (role || "-") +
                     "</div>" +
                     "</div>" +
                     "</div>"
@@ -6107,6 +6080,41 @@ document.addEventListener("DOMContentLoaded", function () {
                                 )}</div>`;
                             }
 
+                                function _getDeptText(val) {
+                                    try {
+                                        if (!val) return "-";
+                                        if (typeof val === "string") return val;
+                                        if (typeof val === "object") {
+                                            return (
+                                                val.name_department ||
+                                                val.name_division ||
+                                                val.name ||
+                                                val.title ||
+                                                "-"
+                                            );
+                                        }
+                                        return "-";
+                                    } catch (_) {
+                                        return "-";
+                                    }
+                                }
+
+                                const deptRaw =
+                                    project.department ??
+                                    project.department_name ??
+                                    project.dept ??
+                                    project.departmentTitle ??
+                                    project.department_obj;
+                                const divRaw =
+                                    project.division ??
+                                    project.division_name ??
+                                    project.div ??
+                                    project.divisionTitle ??
+                                    project.division_obj;
+                                const deptText = _getDeptText(deptRaw);
+                                const divText = _getDeptText(divRaw);
+
+
                             const parentTitle = project?.part_of_project_title
                                 ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>`
                                 : "";
@@ -6131,6 +6139,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                             : ""
                                     }
                                     <hr class="task-separator rounded-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
+                                        <div>
+                                            <span style="color:#797E91;">Priority: </span>
+                                            <span style="color:${
+                                                (project.priority || "").toUpperCase() ===
+                                                "HIGH"
+                                                    ? "red"
+                                                    : "#4B4F5E"
+                                            }">${project.priority || "-"}</span>
+                                        </div>
+                                        <div>
+                                            <span style="color:#797E91;">Deadline: </span>
+                                            <span style="color:#4B4F5E;">${
+                                                project.due_date || "-"
+                                            }</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                        <span class="text-muted">Department:</span>
+                                        <span>${deptText}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                        <span class="text-muted">Division:</span>
+                                        <span>${divText}</span>
+                                    </div>
                                 </div>`;
 
                             contentEl.innerHTML = cardHtml;
@@ -8364,7 +8397,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const prevLi = document.createElement("li");
         prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
         const prevBtn = document.createElement("button");
-        prevBtn.className = "page-link";
+        prevBtn.className = "page-link";1
         prevBtn.textContent = "Previous";
         prevBtn.addEventListener("click", function (e) {
             e.preventDefault();
@@ -10465,36 +10498,21 @@ document.addEventListener("DOMContentLoaded", function () {
         const applyFilterBtn = document.getElementById("applyProjectFilterBtn");
         const resetFilterBtn = document.getElementById("resetProjectFilterBtn");
         const filterStatus = document.getElementById("filterProjectStatus");
-        // removed: filterSort (Sort By UI)
-        // New: By Project / By Date controls
-        const modeByProject = document.getElementById("modeByProject");
-        const modeByDate = document.getElementById("modeByDate");
-        const byProjectContainer =
-            document.getElementById("byProjectContainer");
-        const byDateContainer = document.getElementById("byDateContainer");
         const projectSelect = document.getElementById("filterProjectSelect");
-        const dateSelect = document.getElementById("filterProjectDateSelect");
         const sortBySelect = document.getElementById("filterSortBy");
 
         if (!openFilterBtn || !filterDropdown) return;
 
-        // Remove any existing event listeners to prevent duplicates
+        // Remove dup event listener
         openFilterBtn.replaceWith(openFilterBtn.cloneNode(true));
-        const newOpenFilterBtn = document.getElementById(
-            "openProjectFilterBtn"
-        );
+        const newOpenFilterBtn = document.getElementById("openProjectFilterBtn");
 
-        // Toggle dropdown visibility with improved event handling
         newOpenFilterBtn.addEventListener("click", function (e) {
             e.preventDefault();
             e.stopPropagation();
 
-            // Close any other open dropdowns first
-            document
-                .querySelectorAll(".dropdown-menu:not(#projectFilterDropdown)")
-                .forEach((menu) => {
-                    menu.classList.add("d-none");
-                });
+            document.querySelectorAll(".dropdown-menu:not(#projectFilterDropdown)")
+                .forEach((menu) => menu.classList.add("d-none"));
 
             const isVisible =
                 filterDropdown.style.display === "block" ||
@@ -10506,10 +10524,12 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 filterDropdown.style.display = "block";
                 filterDropdown.classList.remove("d-none");
+
+                // <-- panggil populate project setiap buka dropdown
+                populateProjectOptions();
             }
         });
 
-        // Helpers: populate options for project and date selects
         function populateProjectOptions() {
             if (!projectSelect) return;
             projectSelect.innerHTML = '<option value="">All Projects</option>';
@@ -10531,136 +10551,28 @@ document.addEventListener("DOMContentLoaded", function () {
                         opt.textContent = p.title || "Project #" + p.id;
                         projectSelect.appendChild(opt);
                     });
-                    // Restore previously selected value if any
                     try {
-                        const prev =
-                            typeof window.currentProjectId !== "undefined"
-                                ? window.currentProjectId
-                                : "";
-                        if (prev) projectSelect.value = String(prev);
-                    } catch (_) {}
-                })
-                .fail(function () {
-                    /* noop */
-                });
-        }
-
-        function populateDateOptions() {
-            if (!dateSelect) return;
-            dateSelect.innerHTML = '<option value="">All Dates</option>';
-            $.ajax({
-                url: appUrl + "/project/index",
-                type: "GET",
-                dataType: "json",
-                data: { task_scope: "me" },
-            })
-                .done(function (res) {
-                    const arr = Array.isArray(res)
-                        ? res
-                        : Array.isArray(res?.data)
-                        ? res.data
-                        : [];
-                    const s = new Set();
-                    arr.forEach(function (p) {
-                        const sd = (p.start_date || "").slice(0, 10);
-                        if (/^\d{4}-\d{2}-\d{2}$/.test(sd)) s.add(sd);
-                    });
-                    const list = Array.from(s).sort();
-                    // Helper: format YYYY-MM-DD to "DD Month YYYY" (e.g., 13 September 2025)
-                    function formatDateLabel(ymd) {
-                        try {
-                            const parts = String(ymd).split("-");
-                            if (parts.length !== 3) return ymd;
-                            const y = parseInt(parts[0], 10);
-                            const m = parseInt(parts[1], 10);
-                            const d = parseInt(parts[2], 10);
-                            if (!y || !m || !d) return ymd;
-                            const months = [
-                                "Januari",
-                                "Februari",
-                                "Maret",
-                                "April",
-                                "Mei",
-                                "Juni",
-                                "Juli",
-                                "Agustus",
-                                "September",
-                                "Oktober",
-                                "November",
-                                "Desember",
-                            ];
-                            const monthName = months[m - 1] || parts[1];
-                            return d + " " + monthName + " " + y;
-                        } catch (_) {
-                            return ymd;
+                        if (window.currentProjectId) {
+                            projectSelect.value = String(window.currentProjectId);
                         }
-                    }
-                    list.forEach(function (d) {
-                        const opt = document.createElement("option");
-                        opt.value = d;
-                        opt.textContent = formatDateLabel(d);
-                        dateSelect.appendChild(opt);
-                    });
-                    // Restore previously selected value if any
-                    try {
-                        const prev =
-                            typeof window.currentFilterDate === "string"
-                                ? window.currentFilterDate
-                                : "";
-                        if (prev) dateSelect.value = prev;
                     } catch (_) {}
-                })
-                .fail(function () {
-                    /* noop */
                 });
         }
 
-        function applyModeVisibility() {
-            const byProject = !!(modeByProject && modeByProject.checked);
-            if (byProject) {
-                if (byProjectContainer)
-                    byProjectContainer.classList.remove("d-none");
-                if (byDateContainer) byDateContainer.classList.add("d-none");
-                populateProjectOptions();
-            } else {
-                if (byProjectContainer)
-                    byProjectContainer.classList.add("d-none");
-                if (byDateContainer) byDateContainer.classList.remove("d-none");
-                populateDateOptions();
-            }
-        }
-
-        // Bind mode toggles
-        if (modeByProject)
-            modeByProject.addEventListener("change", applyModeVisibility);
-        if (modeByDate)
-            modeByDate.addEventListener("change", applyModeVisibility);
-        // Initialize mode UI on load
-        applyModeVisibility();
-
-        // Handle apply filter button
         if (applyFilterBtn) {
-            // Remove existing listeners
             applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
-            const newApplyFilterBtn = document.getElementById(
-                "applyProjectFilterBtn"
-            );
-
+            const newApplyFilterBtn = document.getElementById("applyProjectFilterBtn");
             newApplyFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
 
                 const selectedStatus = filterStatus ? filterStatus.value : "";
-
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add("d-none");
 
-                // Map UI filter values to backend filter parameters
                 let filterParam = null;
                 let sortBy = "asc";
-                if (selectedStatus === "") {
-                    filterParam = null;
-                } else if (selectedStatus === "ongoing") {
+                if (selectedStatus === "ongoing") {
                     filterParam = "not_started";
                 } else if (selectedStatus === "completed") {
                     filterParam = "completed";
@@ -10672,82 +10584,47 @@ document.addEventListener("DOMContentLoaded", function () {
                     sortBy = sortBySelect.value || "desc";
                 }
 
-                // Reload project cards with current filters, keep current search
                 const q =
                     typeof window.currentSearch === "string"
                         ? window.currentSearch
                         : "";
 
-                // Read By Project/By Date values
-                const isByProject = !!(modeByProject && modeByProject.checked);
-                const selectedProjectId =
-                    projectSelect && isByProject ? projectSelect.value : "";
-                const selectedDate =
-                    !isByProject && dateSelect ? dateSelect.value : "";
-                // Persist these states on window and locals
+                const selectedProjectId = projectSelect ? projectSelect.value : "";
                 try {
                     window.currentProjectId = selectedProjectId || "";
                 } catch (_) {}
-                try {
-                    window.currentFilterDate = selectedDate || "";
-                } catch (_) {}
                 currentProjectId = selectedProjectId || "";
-                currentFilterDate = selectedDate || "";
-                loadProjectCardData(
-                    filterParam,
-                    1,
-                    typeof q === "string" ? q : "",
-                    sortBy
-                );
+
+                loadProjectCardData(filterParam, 1, q, sortBy);
             });
         }
 
-        // Handle reset filter button
         if (resetFilterBtn) {
-            // Remove existing listeners
             resetFilterBtn.replaceWith(resetFilterBtn.cloneNode(true));
-            const newResetFilterBtn = document.getElementById(
-                "resetProjectFilterBtn"
-            );
-
+            const newResetFilterBtn = document.getElementById("resetProjectFilterBtn");
             newResetFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Reset the filter dropdown to default
-                if (filterStatus) {
-                    filterStatus.value = "";
-                }
+                if (filterStatus) filterStatus.value = "";
                 if (projectSelect) projectSelect.value = "";
-                if (dateSelect) dateSelect.value = "";
-                if (modeByProject) modeByProject.checked = true;
-                if (modeByDate) modeByDate.checked = false;
-                applyModeVisibility();
 
-                // Close the dropdown
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add("d-none");
 
-                // Reset states
                 try {
                     window.currentProjectId = "";
                 } catch (_) {}
-                try {
-                    window.currentFilterDate = "";
-                } catch (_) {}
                 currentProjectId = "";
-                currentFilterDate = "";
 
-                // Reload project cards without filter (show all) and no sort, keep current search
                 const q =
                     typeof window.currentSearch === "string"
                         ? window.currentSearch
                         : "";
-                loadProjectCardData(null, 1, typeof q === "string" ? q : "");
+                loadProjectCardData(null, 1, q);
             });
         }
 
-        // Handle dropdown item clicks
         filterDropdown.addEventListener("click", function (e) {
             e.stopPropagation();
         });
@@ -11197,14 +11074,12 @@ function buildTimelineFromProjects(projects) {
     if (!Array.isArray(projects)) return;
 
     projects.forEach((p, idx) => {
-        // parse dates as local (avoid timezone shifts from Date(string))
         function parseLocal(dateStr, fallback) {
             const src = (dateStr || "").toString().trim();
             if (!src) {
                 if (fallback) return parseLocal(fallback);
                 return null;
             }
-            // extract YYYY-MM-DD using regex to be robust against ' ' or 'T' separators and time parts
             const m = src.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
             if (m) {
                 const y = parseInt(m[1], 10);
@@ -11216,10 +11091,7 @@ function buildTimelineFromProjects(projects) {
         }
 
         let start = p.start_date ? parseLocal(p.start_date) : new Date();
-        let due = p.due_date
-            ? parseLocal(p.due_date, p.start_date)
-            : new Date(start);
-        // normalize to day boundaries (start at 00:00:00, due at 23:59:59)
+        let due = p.due_date ? parseLocal(p.due_date, p.start_date) : new Date(start);
         if (start) start.setHours(0, 0, 0, 0);
         if (due) due.setHours(23, 59, 59, 999);
 
@@ -11232,7 +11104,6 @@ function buildTimelineFromProjects(projects) {
         });
     });
 
-    // debug: print timeline entries used for rendering
     try {
         console.debug(
             "timelineData built:",
@@ -11289,24 +11160,15 @@ function renderTimeline(
         timelineData.forEach((proj) => {
             const startDay = Math.max(
                 1,
-                proj.start_date.getMonth() === month
-                    ? proj.start_date.getDate()
-                    : 1
+                proj.start_date.getMonth() === month ? proj.start_date.getDate() : 1
             );
             const endDay = Math.min(
                 daysInMonth,
-                proj.due_date.getMonth() === month
-                    ? proj.due_date.getDate()
-                    : daysInMonth
+                proj.due_date.getMonth() === month ? proj.due_date.getDate() : daysInMonth
             );
-            if (
-                proj.start_date.getMonth() > month ||
-                proj.due_date.getMonth() < month
-            )
-                return;
+            if (proj.start_date.getMonth() > month || proj.due_date.getMonth() < month) return;
             const tr = document.createElement("tr");
-            for (let i = 1; i < startDay; i++)
-                tr.appendChild(document.createElement("td"));
+            for (let i = 1; i < startDay; i++) tr.appendChild(document.createElement("td"));
             if (endDay >= startDay) {
                 const barTd = document.createElement("td");
                 barTd.colSpan = endDay - startDay + 1;
@@ -11314,8 +11176,7 @@ function renderTimeline(
                 barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
             }
-            for (let i = endDay + 1; i <= daysInMonth; i++)
-                tr.appendChild(document.createElement("td"));
+            for (let i = endDay + 1; i <= daysInMonth; i++) tr.appendChild(document.createElement("td"));
             rowsContainer.appendChild(tr);
         });
         const titleEl = document.getElementById("timelineModalTitle");
@@ -11326,15 +11187,7 @@ function renderTimeline(
     }
 
     let totalCells = 7;
-    const headerLabels = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ];
+    const headerLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     headerLabels.forEach((label) => {
         const th = document.createElement("th");
         th.textContent = label;
@@ -11345,8 +11198,7 @@ function renderTimeline(
         const today = new Date();
         if (today.getMonth() === month && today.getFullYear() === year) {
             const firstOfMonth = new Date(year, month, 1);
-            const offset =
-                firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+            const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
             weekIndex = Math.ceil((today.getDate() + offset) / 7) - 1;
         } else {
             weekIndex = 0;
@@ -11355,7 +11207,9 @@ function renderTimeline(
 
     const firstOfMonth = new Date(year, month, 1);
     let weekStartDate = new Date(firstOfMonth);
-    weekStartDate.setDate(firstOfMonth.getDate() + weekIndex * 7);
+    let day = weekStartDate.getDay();
+    let diff = (day === 0 ? -6 : 1) - day;
+    weekStartDate.setDate(weekStartDate.getDate() + diff + (weekIndex * 7));
 
     let weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekStartDate.getDate() + 6);
@@ -11376,8 +11230,7 @@ function renderTimeline(
         const projStartIdx = Math.max(0, rawStart);
         const projEndIdx = Math.min(6, rawEnd);
 
-        for (let i = 0; i < projStartIdx; i++)
-            tr.appendChild(document.createElement("td"));
+        for (let i = 0; i < projStartIdx; i++) tr.appendChild(document.createElement("td"));
 
         if (projEndIdx >= projStartIdx) {
             const barTd = document.createElement("td");
@@ -11387,19 +11240,18 @@ function renderTimeline(
             tr.appendChild(barTd);
         }
 
-        for (let i = projEndIdx + 1; i < totalCells; i++)
-            tr.appendChild(document.createElement("td"));
+        for (let i = projEndIdx + 1; i < totalCells; i++) tr.appendChild(document.createElement("td"));
 
         rowsContainer.appendChild(tr);
     });
 
     const titleEl = document.getElementById("timelineTitle");
     if (titleEl) {
-        const weekNum = getWeekOfMonth(weekStartDate);
-        const monthShort = months[weekStartDate.getMonth()];
-        titleEl.textContent = `${monthShort} Week ${weekNum}`;
+        const monthShort = months[month];
+        titleEl.textContent = `${monthShort} Week ${weekIndex + 1}`;
     }
 }
+
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
     if (currentWeek > 0) {
@@ -11487,20 +11339,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search_filter");
     if (!searchInput) return;
 
-    // Simple debounce helper
-    function debounce(fn, wait) {
-        let t;
-        return function (...args) {
-            clearTimeout(t);
-            t = setTimeout(() => fn.apply(this, args), wait);
-        };
-    }
-
-    const doSearch = debounce(function () {
+    function doSearch() {
         const raw = searchInput.value || "";
         const q = raw.trim();
 
-        // During active search, hide latest feedback snippets to reduce clutter
         if (q !== "") {
             document
                 .querySelectorAll(".latest-feedback-snippet")
@@ -11510,7 +11352,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         }
 
-        // Reload cards from backend with search param
         try {
             if (typeof window.loadProjectCardData === "function") {
                 window.loadProjectCardData(null, 1, q);
@@ -11523,7 +11364,6 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn("Search reload failed", e);
         }
 
-        // When search is cleared, restore feedback snippets (if any meaningful content)
         if (q === "") {
             document
                 .querySelectorAll(".latest-feedback-snippet")
@@ -11544,10 +11384,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
         }
-    }, 350);
+    }
 
-    // Bind input event
-    searchInput.addEventListener("input", doSearch);
+    searchInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            doSearch();
+        }
+    });
 });
 
 function hideProjectLatestFeedbackSnippet(projectId) {
@@ -11708,31 +11552,3 @@ function handleResponsiveTooltipUpdate() {
 // Listen for resize and orientation change events
 window.addEventListener("resize", handleResponsiveTooltipUpdate);
 window.addEventListener("orientationchange", handleResponsiveTooltipUpdate);
-
-// Toggle filter containers based on filter mode
-document.addEventListener("DOMContentLoaded", function () {
-    const modeByProject = document.getElementById("modeByProject");
-    const modeSortBy = document.getElementById("modeSortBy");
-    const byProjectContainer = document.getElementById("byProjectContainer");
-    const byDateContainer = document.getElementById("byDateContainer");
-    const sortByContainer = document.getElementById("sortByContainer");
-
-    function toggleContainers() {
-        if (modeByProject.checked) {
-            byProjectContainer.classList.remove("d-none");
-            byDateContainer.classList.add("d-none");
-            sortByContainer.classList.add("d-none");
-        } else if (modeSortBy.checked) {
-            byProjectContainer.classList.add("d-none");
-            byDateContainer.classList.add("d-none");
-            sortByContainer.classList.remove("d-none");
-        }
-    }
-
-    if (modeByProject)
-        modeByProject.addEventListener("change", toggleContainers);
-    if (modeSortBy) modeSortBy.addEventListener("change", toggleContainers);
-
-    // Initial call
-    toggleContainers();
-});
