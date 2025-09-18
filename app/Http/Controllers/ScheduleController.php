@@ -639,8 +639,15 @@ class ScheduleController extends Controller
                 }
                 $schedule->save();
             } else {
-                // For non-monthly, preserve previous behavior: possibly generate immediately
-                $this->maybeGenerateNow($schedule);
+                // For non-monthly schedules we MUST NOT create a Task immediately even if
+                // the recurrence falls on today. Instead initialize `next_run_at` so the
+                // background generator/command will create the Task when it runs.
+                try {
+                    $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
+                } catch (\Throwable $e) {
+                    $schedule->next_run_at = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->startOfDay() : null;
+                }
+                $schedule->save();
             }
 
             DB::commit();
