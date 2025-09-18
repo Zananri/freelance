@@ -1754,3 +1754,8 @@
     opacity: 0.3;
     cursor: not-allowed;
 }
+
+.modal-footer-custom .btn-custom-close {
+    background-color: #e3e4ee  !important;
+    color: #444444;
+}

@@ -6080,6 +6080,41 @@ document.addEventListener("DOMContentLoaded", function () {
                                 )}</div>`;
                             }
 
+                                function _getDeptText(val) {
+                                    try {
+                                        if (!val) return "-";
+                                        if (typeof val === "string") return val;
+                                        if (typeof val === "object") {
+                                            return (
+                                                val.name_department ||
+                                                val.name_division ||
+                                                val.name ||
+                                                val.title ||
+                                                "-"
+                                            );
+                                        }
+                                        return "-";
+                                    } catch (_) {
+                                        return "-";
+                                    }
+                                }
+
+                                const deptRaw =
+                                    project.department ??
+                                    project.department_name ??
+                                    project.dept ??
+                                    project.departmentTitle ??
+                                    project.department_obj;
+                                const divRaw =
+                                    project.division ??
+                                    project.division_name ??
+                                    project.div ??
+                                    project.divisionTitle ??
+                                    project.division_obj;
+                                const deptText = _getDeptText(deptRaw);
+                                const divText = _getDeptText(divRaw);
+
+
                             const parentTitle = project?.part_of_project_title
                                 ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>`
                                 : "";
@@ -6104,6 +6139,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                             : ""
                                     }
                                     <hr class="task-separator rounded-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
+                                        <div>
+                                            <span style="color:#797E91;">Priority: </span>
+                                            <span style="color:${
+                                                (project.priority || "").toUpperCase() ===
+                                                "HIGH"
+                                                    ? "red"
+                                                    : "#4B4F5E"
+                                            }">${project.priority || "-"}</span>
+                                        </div>
+                                        <div>
+                                            <span style="color:#797E91;">Deadline: </span>
+                                            <span style="color:#4B4F5E;">${
+                                                project.due_date || "-"
+                                            }</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                        <span class="text-muted">Department:</span>
+                                        <span>${deptText}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                        <span class="text-muted">Division:</span>
+                                        <span>${divText}</span>
+                                    </div>
                                 </div>`;
 
                             contentEl.innerHTML = cardHtml;

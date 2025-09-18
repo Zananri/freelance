@@ -515,7 +515,6 @@
         </div>
     </div>
 
-
     <!-- Project Reference Files Modal (exactly like Task modal) -->
     <div class="modal fade modal-custom" id="projectFilesModal" tabindex="-1"
         aria-labelledby="projectFilesModalLabel" aria-hidden="true">
@@ -564,15 +563,11 @@
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header border-0">
-                    <h5 class="modal-title fs-5" id="deleteProjectModalLabel">Delete Project</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
                 <div class="modal-body modal-body-custom">
                     <div id="deleteProjectContent"></div>
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-submit-black" id="confirmDeleteProjectBtn">Delete</button>
                 </div>
             </div>
