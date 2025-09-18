@@ -89,10 +89,10 @@ Route::middleware('auth')->group(function () {
     // === Project feedback routes ===
     Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
     Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
+    Route::get('/project-feedbacks/latest', [ProjectController::class, 'getProjectsLatestFeedback'])
+        ->name('project-feedbacks.latest');
     Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
     Route::get('/project-feedbacks', [ProjectController::class, 'getAllProjectFeedbacks'])->name('project-feedbacks.all');
-
-    // 🔥 Global unread counts (semua project) — ganti prefix agar tidak tabrakan
     Route::get('/projects/feedbacks/unread-counts', [ProjectController::class, 'getAllUnreadCounts'])
         ->name('project-feedbacks.unread-counts');
 
@@ -101,8 +101,6 @@ Route::middleware('auth')->group(function () {
         ->name('project-feedbacks.unread-count');
     Route::post('/project/{id}/feedbacks/mark-read', [ProjectController::class, 'markProjectFeedbacksRead'])
         ->name('project-feedbacks.mark-read');
-    Route::get('/project-feedbacks/latest/{projectId}', [ProjectController::class, 'getProjectLatestFeedback'])
-        ->name('project-feedbacks.latest');
 
     // === Project update & delete ===
     Route::put('/project/{id}', [ProjectController::class, 'update'])->name('project.update');
@@ -188,11 +186,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/attendance', [AttendanceController::class, 'showAttendancePage'])->name('attendance');
     Route::get('/attendance/get-attendance-employee-by-month', [AttendanceController::class, 'getAttendanceEmployeeByMonth'])->name('attendance.getAttendanceEmployeeByMonth');
-    
+
     Route::post('/attendance/submit-checkin', [AttendanceController::class, 'submitCheckin'])->name('attendance.submitCheckin');
     Route::post('/attendance/submit-checkout', [AttendanceController::class, 'submitCheckout'])->name('attendance.submitCheckout');
 
-    Route::get('/employee-time-off/all-request', [EmployeeTimeOffController::class, 'allRequest'])->name('employee-time-off.allRequest');    
+    Route::get('/employee-time-off/all-request', [EmployeeTimeOffController::class, 'allRequest'])->name('employee-time-off.allRequest');
     Route::post('/employee-time-off/submit-new-request', [EmployeeTimeOffController::class, 'submitNewRequest'])->name('employee-time-off.submitNewRequest');
     Route::post('/employee-time-off/edit-time-off', [EmployeeTimeOffController::class, 'editTimeOff'])->name('employee-time-off.editTimeOff');
     Route::post('/employee-time-off/delete-time-off', [EmployeeTimeOffController::class, 'deleteTimeOff'])->name('employee-time-off.deleteTimeOff');

@@ -41,6 +41,12 @@
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
                             </div>
+                            <div class="custom-form-employee d-none" id="schedule_include_weekend_div">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1" id="schedule_include_weekend" name="include_weekend">
+                                    <label class="form-check-label" for="schedule_include_weekend">Include Weekend</label>
+                                </div>
+                            </div>
                             <div class="custom-form-employee d-none" id="schedule_weekly_opts">
                                 <label for="schedule_recurrence_day_of_week" class="form-label">Day of Week</label>
                                 <select class="form-select input-select" id="schedule_recurrence_day_of_week" name="recurrence_day_of_week">

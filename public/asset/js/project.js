@@ -617,39 +617,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
-            function getDivision(emp) {
-                try {
-                    // Try common fields first, then nested structures
-                    return (
-                        emp?.division_name ||
-                        emp?.division ||
-                        emp?.division_title ||
-                        // backend now also provides 'division' as name string and duplicate 'division_name'
-                        (typeof emp?.division === "string"
-                            ? emp?.division
-                            : null) ||
-                        (typeof emp?.division === "object" &&
-                            (emp.division?.name || emp.division?.title)) ||
-                        emp?.employee_division ||
-                        (emp?.employee &&
-                            (emp.employee.division_name ||
-                                (emp.employee.division &&
-                                    (emp.employee.division.name ||
-                                        emp.employee.division.title)))) ||
-                        "-"
-                    );
-                } catch (_) {
-                    return "-";
-                }
-            }
-
             if (!items.length) {
                 return '<div class="text-muted small">No collaborators</div>';
             }
 
             const rows = items.map(({ role, emp }) => {
                 const name = getName(emp);
-                const division = getDivision(emp);
                 // Use global resolver for photo (includes cache busting and onerror handling)
                 const photo = resolvePhotoHtml(emp, 36, 0, role);
                 return (
@@ -662,7 +635,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     (name || "Unknown") +
                     "</div>" +
                     '<div class="collab-division text-muted">' +
-                    (division || "-") +
+                    (role || "-") +
                     "</div>" +
                     "</div>" +
                     "</div>"
@@ -6107,6 +6080,41 @@ document.addEventListener("DOMContentLoaded", function () {
                                 )}</div>`;
                             }
 
+                                function _getDeptText(val) {
+                                    try {
+                                        if (!val) return "-";
+                                        if (typeof val === "string") return val;
+                                        if (typeof val === "object") {
+                                            return (
+                                                val.name_department ||
+                                                val.name_division ||
+                                                val.name ||
+                                                val.title ||
+                                                "-"
+                                            );
+                                        }
+                                        return "-";
+                                    } catch (_) {
+                                        return "-";
+                                    }
+                                }
+
+                                const deptRaw =
+                                    project.department ??
+                                    project.department_name ??
+                                    project.dept ??
+                                    project.departmentTitle ??
+                                    project.department_obj;
+                                const divRaw =
+                                    project.division ??
+                                    project.division_name ??
+                                    project.div ??
+                                    project.divisionTitle ??
+                                    project.division_obj;
+                                const deptText = _getDeptText(deptRaw);
+                                const divText = _getDeptText(divRaw);
+
+
                             const parentTitle = project?.part_of_project_title
                                 ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>`
                                 : "";
@@ -6131,6 +6139,31 @@ document.addEventListener("DOMContentLoaded", function () {
                                             : ""
                                     }
                                     <hr class="task-separator rounded-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
+                                        <div>
+                                            <span style="color:#797E91;">Priority: </span>
+                                            <span style="color:${
+                                                (project.priority || "").toUpperCase() ===
+                                                "HIGH"
+                                                    ? "red"
+                                                    : "#4B4F5E"
+                                            }">${project.priority || "-"}</span>
+                                        </div>
+                                        <div>
+                                            <span style="color:#797E91;">Deadline: </span>
+                                            <span style="color:#4B4F5E;">${
+                                                project.due_date || "-"
+                                            }</span>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                        <span class="text-muted">Department:</span>
+                                        <span>${deptText}</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                        <span class="text-muted">Division:</span>
+                                        <span>${divText}</span>
+                                    </div>
                                 </div>`;
 
                             contentEl.innerHTML = cardHtml;
@@ -8266,23 +8299,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    let allProjectsCache = [];
-
-    function loadProjects(filter = null) {
-        $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            data: { task_scope: "me", filter: filter },
-            success: function (data) {
-                loadProjectCardData(filter, 1);
-            },
-            error: function () {
-                console.error("Failed to load project cards (index)");
-            },
-        });
-    }
-
     function loadCardProjects(page = 1) {
         $.ajax({
             url: appUrl + "/project/get-all-projects",
@@ -8364,7 +8380,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const prevLi = document.createElement("li");
         prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
         const prevBtn = document.createElement("button");
-        prevBtn.className = "page-link";
+        prevBtn.className = "page-link";1
         prevBtn.textContent = "Previous";
         prevBtn.addEventListener("click", function (e) {
             e.preventDefault();
@@ -8453,38 +8469,48 @@ document.addEventListener("DOMContentLoaded", function () {
     let lastRefresh = 0;
     let feedbackCache = {};
 
-    function fetchLatestFeedbackForProject(projectId) {
-        if (!projectId) return Promise.resolve();
+    function fetchLatestFeedbackForProject(projectIds) {
+        if (!projectIds?.length) return Promise.resolve();
 
-        const pid = String(projectId);
         const now = Date.now();
-        const cached = feedbackCache[pid];
+        const fresh = [];
+        const needFetch = [];
 
-        if (cached && (now - cached.time < 60000)) {
-            setProjectLatestFeedbackSnippet(pid, cached.data);
-            return Promise.resolve(cached.data);
-        }
+        projectIds.forEach(pid => {
+            const cached = feedbackCache[pid];
+            if (cached && (now - cached.time < 60000)) {
+                setProjectLatestFeedbackSnippet(pid, cached.data);
+                fresh.push(cached.data);
+            } else {
+                needFetch.push(pid);
+            }
+        });
 
-        const seq = (window.latestProjectSnippetSeq[pid] =
-            (window.latestProjectSnippetSeq[pid] || 0) + 1);
+        if (!needFetch.length) return Promise.resolve(fresh);
+
+        const query = needFetch.join(",");
 
         return $.ajax({
-            url: appUrl + `/project-feedbacks/latest/${pid}`,
+            url: appUrl + "/project-feedbacks/latest?ids=" + query,
             type: "GET",
             dataType: "json",
         })
-            .then((res) => {
-                if (window.latestProjectSnippetSeq[pid] !== seq) return;
-                const data = res && res.data ? res.data : null;
+        .then(res => {
+            const map = res?.data || {};
+            Object.entries(map).forEach(([pid, data]) => {
                 feedbackCache[pid] = { time: now, data };
                 setProjectLatestFeedbackSnippet(pid, data);
-                return data;
-            })
-            .catch(() => {
-                if (window.latestProjectSnippetSeq[pid] !== seq) return;
-                feedbackCache[pid] = { time: now, data: null };
             });
+            return map;
+        })
+        .catch(() => {
+            needFetch.forEach(pid => {
+                feedbackCache[pid] = { time: now, data: null };
+                setProjectLatestFeedbackSnippet(pid, null);
+            });
+        });
     }
+
 
     function refreshAllProjectLatestFeedbackSnippets() {
         const now = Date.now();
@@ -8494,12 +8520,12 @@ document.addEventListener("DOMContentLoaded", function () {
         const projectIds = [
             ...new Set(
                 [...document.querySelectorAll("[data-project-id]")]
-                    .map((el) => el.getAttribute("data-project-id"))
+                    .map(el => el.getAttribute("data-project-id"))
                     .filter(Boolean)
             ),
         ];
 
-        Promise.all(projectIds.map((pid) => fetchLatestFeedbackForProject(pid)));
+        fetchLatestFeedbackForProject(projectIds);
     }
 
     // New implementation for co-author input with checkbox multi-select and search
@@ -10465,36 +10491,21 @@ document.addEventListener("DOMContentLoaded", function () {
         const applyFilterBtn = document.getElementById("applyProjectFilterBtn");
         const resetFilterBtn = document.getElementById("resetProjectFilterBtn");
         const filterStatus = document.getElementById("filterProjectStatus");
-        // removed: filterSort (Sort By UI)
-        // New: By Project / By Date controls
-        const modeByProject = document.getElementById("modeByProject");
-        const modeByDate = document.getElementById("modeByDate");
-        const byProjectContainer =
-            document.getElementById("byProjectContainer");
-        const byDateContainer = document.getElementById("byDateContainer");
         const projectSelect = document.getElementById("filterProjectSelect");
-        const dateSelect = document.getElementById("filterProjectDateSelect");
         const sortBySelect = document.getElementById("filterSortBy");
 
         if (!openFilterBtn || !filterDropdown) return;
 
-        // Remove any existing event listeners to prevent duplicates
+        // Remove dup event listener
         openFilterBtn.replaceWith(openFilterBtn.cloneNode(true));
-        const newOpenFilterBtn = document.getElementById(
-            "openProjectFilterBtn"
-        );
+        const newOpenFilterBtn = document.getElementById("openProjectFilterBtn");
 
-        // Toggle dropdown visibility with improved event handling
         newOpenFilterBtn.addEventListener("click", function (e) {
             e.preventDefault();
             e.stopPropagation();
 
-            // Close any other open dropdowns first
-            document
-                .querySelectorAll(".dropdown-menu:not(#projectFilterDropdown)")
-                .forEach((menu) => {
-                    menu.classList.add("d-none");
-                });
+            document.querySelectorAll(".dropdown-menu:not(#projectFilterDropdown)")
+                .forEach((menu) => menu.classList.add("d-none"));
 
             const isVisible =
                 filterDropdown.style.display === "block" ||
@@ -10506,10 +10517,12 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 filterDropdown.style.display = "block";
                 filterDropdown.classList.remove("d-none");
+
+                // <-- panggil populate project setiap buka dropdown
+                populateProjectOptions();
             }
         });
 
-        // Helpers: populate options for project and date selects
         function populateProjectOptions() {
             if (!projectSelect) return;
             projectSelect.innerHTML = '<option value="">All Projects</option>';
@@ -10531,136 +10544,28 @@ document.addEventListener("DOMContentLoaded", function () {
                         opt.textContent = p.title || "Project #" + p.id;
                         projectSelect.appendChild(opt);
                     });
-                    // Restore previously selected value if any
                     try {
-                        const prev =
-                            typeof window.currentProjectId !== "undefined"
-                                ? window.currentProjectId
-                                : "";
-                        if (prev) projectSelect.value = String(prev);
-                    } catch (_) {}
-                })
-                .fail(function () {
-                    /* noop */
-                });
-        }
-
-        function populateDateOptions() {
-            if (!dateSelect) return;
-            dateSelect.innerHTML = '<option value="">All Dates</option>';
-            $.ajax({
-                url: appUrl + "/project/index",
-                type: "GET",
-                dataType: "json",
-                data: { task_scope: "me" },
-            })
-                .done(function (res) {
-                    const arr = Array.isArray(res)
-                        ? res
-                        : Array.isArray(res?.data)
-                        ? res.data
-                        : [];
-                    const s = new Set();
-                    arr.forEach(function (p) {
-                        const sd = (p.start_date || "").slice(0, 10);
-                        if (/^\d{4}-\d{2}-\d{2}$/.test(sd)) s.add(sd);
-                    });
-                    const list = Array.from(s).sort();
-                    // Helper: format YYYY-MM-DD to "DD Month YYYY" (e.g., 13 September 2025)
-                    function formatDateLabel(ymd) {
-                        try {
-                            const parts = String(ymd).split("-");
-                            if (parts.length !== 3) return ymd;
-                            const y = parseInt(parts[0], 10);
-                            const m = parseInt(parts[1], 10);
-                            const d = parseInt(parts[2], 10);
-                            if (!y || !m || !d) return ymd;
-                            const months = [
-                                "Januari",
-                                "Februari",
-                                "Maret",
-                                "April",
-                                "Mei",
-                                "Juni",
-                                "Juli",
-                                "Agustus",
-                                "September",
-                                "Oktober",
-                                "November",
-                                "Desember",
-                            ];
-                            const monthName = months[m - 1] || parts[1];
-                            return d + " " + monthName + " " + y;
-                        } catch (_) {
-                            return ymd;
+                        if (window.currentProjectId) {
+                            projectSelect.value = String(window.currentProjectId);
                         }
-                    }
-                    list.forEach(function (d) {
-                        const opt = document.createElement("option");
-                        opt.value = d;
-                        opt.textContent = formatDateLabel(d);
-                        dateSelect.appendChild(opt);
-                    });
-                    // Restore previously selected value if any
-                    try {
-                        const prev =
-                            typeof window.currentFilterDate === "string"
-                                ? window.currentFilterDate
-                                : "";
-                        if (prev) dateSelect.value = prev;
                     } catch (_) {}
-                })
-                .fail(function () {
-                    /* noop */
                 });
         }
 
-        function applyModeVisibility() {
-            const byProject = !!(modeByProject && modeByProject.checked);
-            if (byProject) {
-                if (byProjectContainer)
-                    byProjectContainer.classList.remove("d-none");
-                if (byDateContainer) byDateContainer.classList.add("d-none");
-                populateProjectOptions();
-            } else {
-                if (byProjectContainer)
-                    byProjectContainer.classList.add("d-none");
-                if (byDateContainer) byDateContainer.classList.remove("d-none");
-                populateDateOptions();
-            }
-        }
-
-        // Bind mode toggles
-        if (modeByProject)
-            modeByProject.addEventListener("change", applyModeVisibility);
-        if (modeByDate)
-            modeByDate.addEventListener("change", applyModeVisibility);
-        // Initialize mode UI on load
-        applyModeVisibility();
-
-        // Handle apply filter button
         if (applyFilterBtn) {
-            // Remove existing listeners
             applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
-            const newApplyFilterBtn = document.getElementById(
-                "applyProjectFilterBtn"
-            );
-
+            const newApplyFilterBtn = document.getElementById("applyProjectFilterBtn");
             newApplyFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
 
                 const selectedStatus = filterStatus ? filterStatus.value : "";
-
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add("d-none");
 
-                // Map UI filter values to backend filter parameters
                 let filterParam = null;
                 let sortBy = "asc";
-                if (selectedStatus === "") {
-                    filterParam = null;
-                } else if (selectedStatus === "ongoing") {
+                if (selectedStatus === "ongoing") {
                     filterParam = "not_started";
                 } else if (selectedStatus === "completed") {
                     filterParam = "completed";
@@ -10672,82 +10577,47 @@ document.addEventListener("DOMContentLoaded", function () {
                     sortBy = sortBySelect.value || "desc";
                 }
 
-                // Reload project cards with current filters, keep current search
                 const q =
                     typeof window.currentSearch === "string"
                         ? window.currentSearch
                         : "";
 
-                // Read By Project/By Date values
-                const isByProject = !!(modeByProject && modeByProject.checked);
-                const selectedProjectId =
-                    projectSelect && isByProject ? projectSelect.value : "";
-                const selectedDate =
-                    !isByProject && dateSelect ? dateSelect.value : "";
-                // Persist these states on window and locals
+                const selectedProjectId = projectSelect ? projectSelect.value : "";
                 try {
                     window.currentProjectId = selectedProjectId || "";
                 } catch (_) {}
-                try {
-                    window.currentFilterDate = selectedDate || "";
-                } catch (_) {}
                 currentProjectId = selectedProjectId || "";
-                currentFilterDate = selectedDate || "";
-                loadProjectCardData(
-                    filterParam,
-                    1,
-                    typeof q === "string" ? q : "",
-                    sortBy
-                );
+
+                loadProjectCardData(filterParam, 1, q, sortBy);
             });
         }
 
-        // Handle reset filter button
         if (resetFilterBtn) {
-            // Remove existing listeners
             resetFilterBtn.replaceWith(resetFilterBtn.cloneNode(true));
-            const newResetFilterBtn = document.getElementById(
-                "resetProjectFilterBtn"
-            );
-
+            const newResetFilterBtn = document.getElementById("resetProjectFilterBtn");
             newResetFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
 
-                // Reset the filter dropdown to default
-                if (filterStatus) {
-                    filterStatus.value = "";
-                }
+                if (filterStatus) filterStatus.value = "";
                 if (projectSelect) projectSelect.value = "";
-                if (dateSelect) dateSelect.value = "";
-                if (modeByProject) modeByProject.checked = true;
-                if (modeByDate) modeByDate.checked = false;
-                applyModeVisibility();
 
-                // Close the dropdown
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add("d-none");
 
-                // Reset states
                 try {
                     window.currentProjectId = "";
                 } catch (_) {}
-                try {
-                    window.currentFilterDate = "";
-                } catch (_) {}
                 currentProjectId = "";
-                currentFilterDate = "";
 
-                // Reload project cards without filter (show all) and no sort, keep current search
                 const q =
                     typeof window.currentSearch === "string"
                         ? window.currentSearch
                         : "";
-                loadProjectCardData(null, 1, typeof q === "string" ? q : "");
+                loadProjectCardData(null, 1, q);
             });
         }
 
-        // Handle dropdown item clicks
         filterDropdown.addEventListener("click", function (e) {
             e.stopPropagation();
         });
@@ -11197,14 +11067,12 @@ function buildTimelineFromProjects(projects) {
     if (!Array.isArray(projects)) return;
 
     projects.forEach((p, idx) => {
-        // parse dates as local (avoid timezone shifts from Date(string))
         function parseLocal(dateStr, fallback) {
             const src = (dateStr || "").toString().trim();
             if (!src) {
                 if (fallback) return parseLocal(fallback);
                 return null;
             }
-            // extract YYYY-MM-DD using regex to be robust against ' ' or 'T' separators and time parts
             const m = src.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
             if (m) {
                 const y = parseInt(m[1], 10);
@@ -11216,10 +11084,7 @@ function buildTimelineFromProjects(projects) {
         }
 
         let start = p.start_date ? parseLocal(p.start_date) : new Date();
-        let due = p.due_date
-            ? parseLocal(p.due_date, p.start_date)
-            : new Date(start);
-        // normalize to day boundaries (start at 00:00:00, due at 23:59:59)
+        let due = p.due_date ? parseLocal(p.due_date, p.start_date) : new Date(start);
         if (start) start.setHours(0, 0, 0, 0);
         if (due) due.setHours(23, 59, 59, 999);
 
@@ -11232,7 +11097,6 @@ function buildTimelineFromProjects(projects) {
         });
     });
 
-    // debug: print timeline entries used for rendering
     try {
         console.debug(
             "timelineData built:",
@@ -11279,58 +11143,35 @@ function renderTimeline(
     year = year ?? new Date().getFullYear();
 
     if (mode === "month") {
-        // Modal: tampilkan tanggal sebulan penuh
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        // Header: tanggal 1..N
         for (let d = 1; d <= daysInMonth; d++) {
             const th = document.createElement("th");
             th.textContent = d;
             headerRow.appendChild(th);
         }
 
-        // Render bar untuk setiap project
         timelineData.forEach((proj) => {
-            // Cek apakah project overlap dengan bulan ini
             const startDay = Math.max(
                 1,
-                proj.start_date.getMonth() === month
-                    ? proj.start_date.getDate()
-                    : 1
+                proj.start_date.getMonth() === month ? proj.start_date.getDate() : 1
             );
             const endDay = Math.min(
                 daysInMonth,
-                proj.due_date.getMonth() === month
-                    ? proj.due_date.getDate()
-                    : daysInMonth
+                proj.due_date.getMonth() === month ? proj.due_date.getDate() : daysInMonth
             );
-
-            // Jika tidak overlap, skip
-            if (
-                proj.start_date.getMonth() > month ||
-                proj.due_date.getMonth() < month
-            )
-                return;
-
+            if (proj.start_date.getMonth() > month || proj.due_date.getMonth() < month) return;
             const tr = document.createElement("tr");
-            // Kosong sebelum bar
-            for (let i = 1; i < startDay; i++)
-                tr.appendChild(document.createElement("td"));
-            // Bar project
+            for (let i = 1; i < startDay; i++) tr.appendChild(document.createElement("td"));
             if (endDay >= startDay) {
                 const barTd = document.createElement("td");
                 barTd.colSpan = endDay - startDay + 1;
-                const titleText = `${
-                    proj.name
-                } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
                 barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
             }
-            // Kosong setelah bar
-            for (let i = endDay + 1; i <= daysInMonth; i++)
-                tr.appendChild(document.createElement("td"));
+            for (let i = endDay + 1; i <= daysInMonth; i++) tr.appendChild(document.createElement("td"));
             rowsContainer.appendChild(tr);
         });
-        // Title modal: Timeline Sep 2025
         const titleEl = document.getElementById("timelineModalTitle");
         if (titleEl) {
             titleEl.textContent = `Timeline ${months[month]} ${year}`;
@@ -11338,29 +11179,19 @@ function renderTimeline(
         return;
     }
 
-    // ...existing code for week mode (tidak diubah)...
     let totalCells = 7;
-    const headerLabels = [
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-        "Sunday",
-    ];
+    const headerLabels = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
     headerLabels.forEach((label) => {
         const th = document.createElement("th");
         th.textContent = label;
         headerRow.appendChild(th);
     });
 
-    if (weekIndex === null) {
+    if (weekIndex == null) {
         const today = new Date();
         if (today.getMonth() === month && today.getFullYear() === year) {
             const firstOfMonth = new Date(year, month, 1);
-            const offset =
-                firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+            const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
             weekIndex = Math.ceil((today.getDate() + offset) / 7) - 1;
         } else {
             weekIndex = 0;
@@ -11369,10 +11200,10 @@ function renderTimeline(
 
     const firstOfMonth = new Date(year, month, 1);
     let weekStartDate = new Date(firstOfMonth);
-    weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
-    while (weekStartDate.getDay() !== 1) {
-        weekStartDate.setDate(weekStartDate.getDate() - 1);
-    }
+    let day = weekStartDate.getDay();
+    let diff = (day === 0 ? -6 : 1) - day;
+    weekStartDate.setDate(weekStartDate.getDate() + diff + (weekIndex * 7));
+
     let weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekStartDate.getDate() + 6);
 
@@ -11392,33 +11223,28 @@ function renderTimeline(
         const projStartIdx = Math.max(0, rawStart);
         const projEndIdx = Math.min(6, rawEnd);
 
-        for (let i = 0; i < projStartIdx; i++)
-            tr.appendChild(document.createElement("td"));
+        for (let i = 0; i < projStartIdx; i++) tr.appendChild(document.createElement("td"));
 
-        // Bar project
         if (projEndIdx >= projStartIdx) {
             const barTd = document.createElement("td");
             barTd.colSpan = projEndIdx - projStartIdx + 1;
-            const titleText = `${
-                proj.name
-            } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+            const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
             barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
             tr.appendChild(barTd);
         }
 
-        for (let i = projEndIdx + 1; i < totalCells; i++)
-            tr.appendChild(document.createElement("td"));
+        for (let i = projEndIdx + 1; i < totalCells; i++) tr.appendChild(document.createElement("td"));
 
         rowsContainer.appendChild(tr);
     });
 
     const titleEl = document.getElementById("timelineTitle");
     if (titleEl) {
-        const weekNum = getWeekOfMonth(weekStartDate);
-        const monthShort = months[weekStartDate.getMonth()];
-        titleEl.textContent = `${monthShort} Week ${weekNum}`;
+        const monthShort = months[month];
+        titleEl.textContent = `${monthShort} Week ${weekIndex + 1}`;
     }
 }
+
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
     if (currentWeek > 0) {
@@ -11429,7 +11255,8 @@ document.getElementById("prevTimeline").addEventListener("click", () => {
             currentMonth = 11;
             currentYear--;
         }
-        currentWeek = getWeeksInMonth(currentYear, currentMonth) - 1;
+        const maxWeek = getWeeksInMonth(currentYear, currentMonth);
+        currentWeek = maxWeek > 0 ? maxWeek - 1 : 0;
     }
     renderTimeline(
         "#timelineHeader",
@@ -11505,20 +11332,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search_filter");
     if (!searchInput) return;
 
-    // Simple debounce helper
-    function debounce(fn, wait) {
-        let t;
-        return function (...args) {
-            clearTimeout(t);
-            t = setTimeout(() => fn.apply(this, args), wait);
-        };
-    }
-
-    const doSearch = debounce(function () {
+    function doSearch() {
         const raw = searchInput.value || "";
         const q = raw.trim();
 
-        // During active search, hide latest feedback snippets to reduce clutter
         if (q !== "") {
             document
                 .querySelectorAll(".latest-feedback-snippet")
@@ -11528,7 +11345,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         }
 
-        // Reload cards from backend with search param
         try {
             if (typeof window.loadProjectCardData === "function") {
                 window.loadProjectCardData(null, 1, q);
@@ -11541,7 +11357,6 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn("Search reload failed", e);
         }
 
-        // When search is cleared, restore feedback snippets (if any meaningful content)
         if (q === "") {
             document
                 .querySelectorAll(".latest-feedback-snippet")
@@ -11562,113 +11377,74 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
         }
-    }, 350);
+    }
 
-    // Bind input event
-    searchInput.addEventListener("input", doSearch);
+    searchInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            doSearch();
+        }
+    });
 });
 
-function hideProjectLatestFeedbackSnippet(projectId) {
+function stripTags(s) {
     try {
-        const els = document.querySelectorAll(
-            `.latest-feedback-snippet[data-project-id="${projectId}"]`
-        );
-        if (!els) return;
-        els.forEach((el) => {
+        return String(s || "").replace(/<[^>]*>/g, "");
+    } catch {
+        return String(s || "");
+    }
+}
+
+function hideProjectLatestFeedbackSnippet(projectId) {
+    document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`)
+        .forEach(el => {
             el.classList.add("d-none");
-            // clear avatar and text to avoid broken images/alt
             const avatar = el.querySelector(".latest-feedback-avatar");
             if (avatar) avatar.src = appUrl + "/asset/img/avatar.png";
             const textEl = el.querySelector(".latest-feedback-text");
             if (textEl) textEl.textContent = "";
         });
-    } catch (_) {}
 }
 
 function setProjectLatestFeedbackSnippet(projectId, data) {
-    try {
-        const els = document.querySelectorAll(
-            `.latest-feedback-snippet[data-project-id="${projectId}"]`
-        );
-        if (!els || els.length === 0) return;
-        if (!data) {
-            hideProjectLatestFeedbackSnippet(projectId);
-            return;
-        }
+    const els = document.querySelectorAll(`.latest-feedback-snippet[data-project-id="${projectId}"]`);
+    if (!els.length) return;
 
-        // Cache latest payload for deep-linking
-        try {
-            window.__projectLatest = window.__projectLatest || {};
-            window.__projectLatest[String(projectId)] = data;
-        } catch (_) {}
-
-        const photo =
-            data.employee && data.employee.photo
-                ? data.employee.photo
-                : appUrl + "/asset/img/avatar.png";
-        data.employee &&
-        (data.employee.photo ||
-            data.employee.user_photo ||
-            data.employee.profile_picture_url)
-            ? buildAvatarUrl(
-                  data.employee.photo ||
-                      data.employee.user_photo ||
-                      data.employee.profile_picture_url
-              )
-            : appUrl + "/asset/img/avatar.png";
-
-        // sanitize feedback_comment: strip HTML tags so any embedded <img> or markup
-        // will be shown as text-free preview instead of raw HTML.
-        const raw = String(data.feedback_comment || "");
-        function stripTags(s) {
-            try {
-                return String(s).replace(/<[^>]*>/g, "");
-            } catch (e) {
-                return String(s);
-            }
-        }
-        const plain = stripTags(raw).trim();
-        let truncated = "";
-        if (plain.length > 0) {
-            truncated = plain.length > 30 ? plain.slice(0, 30) + "..." : plain;
-        } else {
-            // If there's no textual comment, show a small hint if there's an attachment/image
-            if (
-                data.image ||
-                data.reference_file ||
-                (Array.isArray(data.reference_files) &&
-                    data.reference_files.length)
-            ) {
-                truncated = "[attachment]";
-            } else {
-                truncated = "";
-            }
-        }
-
-        els.forEach((el) => {
-            const avatar = el.querySelector(".latest-feedback-avatar");
-            const textEl = el.querySelector(".latest-feedback-text");
-            if (avatar)
-                avatar.src =
-                    photo && photo.startsWith("http")
-                        ? photo
-                        : appUrl + "/" + String(photo).replace(/^\//, "");
-            if (textEl) textEl.textContent = truncated;
-
-            // Only show snippet if there's actually meaningful content to display
-            if (truncated && truncated.trim() !== "") {
-                el.classList.remove("d-none");
-                el.style.removeProperty("display");
-            } else {
-                // Hide snippet if no meaningful content
-                el.classList.add("d-none");
-                el.style.display = "none";
-            }
-        });
-    } catch (e) {
-        console.warn("setProjectLatestFeedbackSnippet error", e);
+    if (!data) {
+        hideProjectLatestFeedbackSnippet(projectId);
+        return;
     }
+
+    try {
+        window.__projectLatest = window.__projectLatest || {};
+        window.__projectLatest[String(projectId)] = data;
+    } catch {}
+
+    const rawPhoto = data.employee?.photo || data.employee?.user_photo || data.employee?.profile_picture_url;
+    const photo = rawPhoto ? buildAvatarUrl(rawPhoto) : appUrl + "/asset/img/avatar.png";
+
+    let plain = stripTags(data.feedback_comment).trim();
+    let truncated = plain
+        ? (plain.length > 30 ? plain.slice(0, 30) + "..." : plain)
+        : (data.image || data.reference_file || (data.reference_files?.length) ? "[attachment]" : "");
+
+    els.forEach(el => {
+        const avatar = el.querySelector(".latest-feedback-avatar");
+        const textEl = el.querySelector(".latest-feedback-text");
+
+        if (avatar) avatar.src = photo.startsWith("http") ? photo : appUrl + "/" + photo.replace(/^\//, "");
+        if (textEl) textEl.textContent = truncated;
+
+        if (truncated) {
+            el.classList.remove("d-none");
+            el.style.removeProperty("display");
+        } else {
+            el.classList.add("d-none");
+            el.style.display = "none";
+        }
+    });
 }
+
 
 // === Global Unread Badge Refresher ===
 function refreshAllProjectUnreadBadges() {
@@ -11726,31 +11502,3 @@ function handleResponsiveTooltipUpdate() {
 // Listen for resize and orientation change events
 window.addEventListener("resize", handleResponsiveTooltipUpdate);
 window.addEventListener("orientationchange", handleResponsiveTooltipUpdate);
-
-// Toggle filter containers based on filter mode
-document.addEventListener("DOMContentLoaded", function () {
-    const modeByProject = document.getElementById("modeByProject");
-    const modeSortBy = document.getElementById("modeSortBy");
-    const byProjectContainer = document.getElementById("byProjectContainer");
-    const byDateContainer = document.getElementById("byDateContainer");
-    const sortByContainer = document.getElementById("sortByContainer");
-
-    function toggleContainers() {
-        if (modeByProject.checked) {
-            byProjectContainer.classList.remove("d-none");
-            byDateContainer.classList.add("d-none");
-            sortByContainer.classList.add("d-none");
-        } else if (modeSortBy.checked) {
-            byProjectContainer.classList.add("d-none");
-            byDateContainer.classList.add("d-none");
-            sortByContainer.classList.remove("d-none");
-        }
-    }
-
-    if (modeByProject)
-        modeByProject.addEventListener("change", toggleContainers);
-    if (modeSortBy) modeSortBy.addEventListener("change", toggleContainers);
-
-    // Initial call
-    toggleContainers();
-});

@@ -551,10 +551,26 @@ class ProjectController extends Controller
 
             $query = Project::where('status', '!=', 'DELETED');
 
-            if ($sortBy === 'asc') {
-                $query = $query->orderBy('projects.created_at', 'asc');
-            } else {
-                $query = $query->orderBy('projects.created_at', 'desc');
+            // Handle sorting options
+            switch ($sortBy) {
+                case 'title_asc':
+                    $query = $query->orderBy('projects.title', 'asc');
+                    break;
+                case 'title_desc':
+                    $query = $query->orderBy('projects.title', 'desc');
+                    break;
+                case 'date_asc':
+                case 'oldest':
+                case 'asc':
+                    $query = $query->orderBy('projects.created_at', 'asc');
+                    break;
+                case 'date_desc':
+                case 'newest':
+                case 'desc':
+                    $query = $query->orderBy('projects.created_at', 'desc');
+                    break;
+                default:
+                    $query = $query->orderBy('projects.title', 'asc');
             }
 
             if ($taskScope !== 'all') {
@@ -646,9 +662,6 @@ class ProjectController extends Controller
                 // Expecting YYYY-MM-DD; apply safe match against project start_date only
                 $query->whereDate('projects.start_date', $dateFilter);
             }
-
-            // Default ordering
-            $query = $query->orderBy('projects.created_at', 'desc');
 
             $projects = $query
                 ->with([
@@ -779,9 +792,9 @@ class ProjectController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 // Allow multiple reference files (both new and legacy keys) with Task's whitelist and 5MB limit
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'reference_file' => 'nullable|array',
-                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
 
             ]);
 
@@ -1230,9 +1243,9 @@ class ProjectController extends Controller
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'reference_file' => 'nullable|array',
-                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
                 'co_author' => 'nullable|array',
                 'co_author.*' => 'nullable|exists:employees,id',
                 'contributors' => 'nullable|array',
@@ -1907,74 +1920,79 @@ class ProjectController extends Controller
     /**
      * Get the latest single feedback for a project
      */
-    public function getProjectLatestFeedback($projectId)
+    public function getProjectsLatestFeedback(Request $request)
     {
         try {
             $employeeId = auth()->user()?->employee?->id;
+            $ids = explode(',', $request->query('ids', ''));
+            $ids = array_filter(array_map('trim', $ids));
 
-            // Apply unread window using project read_markers (per-employee last_read_at)
-            $lastReadAt = null;
-            if ($employeeId) {
-                $project = Project::find($projectId);
-                if (!$project || ($project->status ?? null) === 'DELETED') {
-                    return response()->json([
-                        'code' => 200,
-                        'status' => 'success',
-                        'data' => null
-                    ]);
-                }
-
-                if (!empty($project->read_markers)) {
-                    $markers = is_array($project->read_markers) ? $project->read_markers : (json_decode($project->read_markers, true) ?: []);
-                    $lastReadAt = $markers[(string) $employeeId] ?? null;
-                }
-            }
-
-            $latest = ProjectFeedback::with(['employee.user'])
-                ->where('project_id', $projectId)
-                // Only show if not authored by current user
-                ->when($employeeId, function ($q) use ($employeeId) {
-                    $q->where('employee_id', '!=', $employeeId);
-                })
-                // Only show if it's newer than last read
-                ->when($lastReadAt, function ($q) use ($lastReadAt) {
-                    $q->where('created_at', '>', $lastReadAt);
-                })
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            if (!$latest) {
+            if (empty($ids)) {
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
-                    'data' => null
+                    'data' => []
                 ]);
             }
 
-            $payload = [
-                'id' => $latest->id,
-                'parent_id' => $latest->parent_id,
-                'feedback_comment' => $latest->feedback_comment,
-                'created_at' => $latest->created_at,
-                'employee' => null,
-            ];
-            if ($latest->employee) {
-                $e = $latest->employee;
-                $avatar = $this->resolveEmployeeAvatar($e);
-                $payload['employee'] = [
-                    'id' => $e->id,
-                    'name' => $e->name,
-                    'photo' => $avatar,
-                    'user_photo' => $avatar,
-                    'profile_picture' => $avatar,
-                    'profile_picture_url' => $avatar,
+            $projects = Project::whereIn('id', $ids)->get()->keyBy('id');
+            $results = [];
+
+            foreach ($ids as $pid) {
+                $project = $projects[$pid] ?? null;
+                if (!$project || ($project->status ?? null) === 'DELETED') {
+                    $results[$pid] = null;
+                    continue;
+                }
+
+                $lastReadAt = null;
+                if ($employeeId && !empty($project->read_markers)) {
+                    $markers = is_array($project->read_markers)
+                        ? $project->read_markers
+                        : (json_decode($project->read_markers, true) ?: []);
+                    $lastReadAt = $markers[(string) $employeeId] ?? null;
+                }
+
+                $latest = ProjectFeedback::with(['employee.user'])
+                    ->where('project_id', $pid)
+                    ->when($employeeId, fn($q) => $q->where('employee_id', '!=', $employeeId))
+                    ->when($lastReadAt, fn($q) => $q->where('created_at', '>', $lastReadAt))
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if (!$latest) {
+                    $results[$pid] = null;
+                    continue;
+                }
+
+                $payload = [
+                    'id' => $latest->id,
+                    'parent_id' => $latest->parent_id,
+                    'feedback_comment' => $latest->feedback_comment,
+                    'created_at' => $latest->created_at,
+                    'employee' => null,
                 ];
+
+                if ($latest->employee) {
+                    $e = $latest->employee;
+                    $avatar = $this->resolveEmployeeAvatar($e);
+                    $payload['employee'] = [
+                        'id' => $e->id,
+                        'name' => $e->name,
+                        'photo' => $avatar,
+                        'user_photo' => $avatar,
+                        'profile_picture' => $avatar,
+                        'profile_picture_url' => $avatar,
+                    ];
+                }
+
+                $results[$pid] = $payload;
             }
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $payload,
+                'data' => $results
             ]);
         } catch (\Exception $e) {
             $status = $this->deriveHttpStatusFromException($e);

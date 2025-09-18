@@ -147,8 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Recurrence toggle logic (reuse simplified logic from task.js schedule section)
     (function recurrenceToggles(){
         const typeSel = document.getElementById('schedule_recurrence_type');
+        const editTypeSel = document.getElementById('edit_schedule_recurrence_type');
         const weekly = document.getElementById('schedule_weekly_opts');
         const monthly = document.getElementById('schedule_monthly_opts');
+        const includeWeekendDiv = document.getElementById('schedule_include_weekend_div');
+        const editIncludeWeekendDiv = document.getElementById('edit_schedule_include_weekend_div');
         const dateOpts = document.getElementById('schedule_date_opts');
         const startAtDiv = document.getElementById('schedule_start_at_div');
         const monthlyDateInput = document.getElementById('schedule_monthly_date');
@@ -162,11 +165,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if(isNaN(selectedDow)) return;
             const today = new Date();
             const currentDow = today.getDay();
+            // If the selected day is the same as today, the requirement is to set
+            // start_at to the same weekday in the next week (not today). Therefore
+            // compute daysToAdd so that when selectedDow === currentDow we add 7.
             let daysToAdd = selectedDow - currentDow;
-            if(daysToAdd < 0) daysToAdd += 7;
+            if(daysToAdd <= 0) daysToAdd += 7; // <=0 ensures today maps to next week
             const newDate = new Date(today);
             newDate.setDate(today.getDate() + daysToAdd);
             startAt.value = newDate.toISOString().split('T')[0];
+            // small debug hook (silent in production unless console is open)
+            if(window.__scheduleDebug) console.log('updateWeeklyStartDate:', { selectedDow, currentDow, daysToAdd, startAt: startAt.value });
         }
 
         function sync(){
@@ -176,36 +184,43 @@ document.addEventListener('DOMContentLoaded', () => {
             if(weekly) weekly.classList.toggle('d-none', v !== 'weekly');
             if(monthly) monthly.classList.toggle('d-none', v !== 'monthly');
 
-            // date options hanya muncul kalau weekly atau monthly, tapi untuk daily hanya end_at
+            // date options: show for daily, weekly, monthly
             if(dateOpts){
-                if(v === 'daily' || v === 'weekly'){
+                if(v === 'daily' || v === 'weekly' || v === 'monthly'){
                     dateOpts.classList.remove('d-none');
                 } else {
-                    dateOpts.classList.toggle('d-none', !(v === 'monthly'));
+                    dateOpts.classList.add('d-none');
                 }
             }
 
-            // hide start_at for daily and weekly
+            // show include weekend only for daily recurrence
+            if(includeWeekendDiv){ includeWeekendDiv.classList.toggle('d-none', v !== 'daily'); }
+            if(editIncludeWeekendDiv){ editIncludeWeekendDiv.classList.toggle('d-none', (editTypeSel?.value !== 'daily')); }
+
+            // show start_at for daily, weekly, monthly. (User asked: daily should allow choosing start date)
             if(startAtDiv){
-                startAtDiv.classList.toggle('d-none', v === 'daily' || v === 'weekly');
+                startAtDiv.classList.toggle('d-none', !(v === 'daily' || v === 'weekly' || v === 'monthly'));
             }
 
-            // adjust end_at width
-            const endAtDiv = document.querySelector('#schedule_date_opts .d-flex > div:nth-child(2)');
-            if(endAtDiv){
-                if(v === 'monthly'){
-                    endAtDiv.classList.remove('w-100');
-                    endAtDiv.classList.add('w-50');
+            // ensure both Start At and End At use equal width when visible
+            const startAtDivElem = document.getElementById('schedule_start_at_div');
+            const endAtDivElem = document.getElementById('schedule_end_at_div') || document.querySelector('#schedule_date_opts .d-flex > div:nth-child(2)');
+            if(startAtDivElem && endAtDivElem){
+                if(v === 'daily' || v === 'weekly' || v === 'monthly'){
+                    startAtDivElem.classList.remove('w-100'); startAtDivElem.classList.add('w-50');
+                    endAtDivElem.classList.remove('w-100'); endAtDivElem.classList.add('w-50');
                 } else {
-                    endAtDiv.classList.remove('w-50');
-                    endAtDiv.classList.add('w-100');
+                    // default: end at takes full width
+                    startAtDivElem.classList.remove('w-50'); startAtDivElem.classList.add('w-100');
+                    endAtDivElem.classList.remove('w-50'); endAtDivElem.classList.add('w-100');
                 }
             }
 
             // required rules
             const startAt = document.getElementById('schedule_start_at');
             if(startAt){
-                startAt.required = (v === 'monthly');
+                // start_at is required for daily, weekly and monthly (user should pick when the recurrence starts)
+                startAt.required = (v === 'daily' || v === 'weekly' || v === 'monthly');
             }
             const endAt = document.getElementById('schedule_end_at');
             if(endAt){
@@ -244,6 +259,8 @@ document.addEventListener('DOMContentLoaded', () => {
             typeSel.addEventListener('change', sync);
             sync();
         }
+
+        if(editTypeSel){ editTypeSel.addEventListener('change', sync); }
 
         // Add listener for weekly day change
         const weeklyDay = document.getElementById('schedule_recurrence_day_of_week');
@@ -294,23 +311,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     container.innerHTML = "<div class=\"d-flex gap-2 align-items-center\"><input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-submit-black add-ref-url' aria-label='Add URL'><span class='material-symbols-outlined'>add</span></button></div>";
                 }
             } catch(_) {}
-            // Reset recurrence toggles
+            // Reset recurrence toggles - set to default and trigger change to re-sync UI
             try {
                 const typeSel = document.getElementById('schedule_recurrence_type');
-                const weekly = document.getElementById('schedule_weekly_opts');
-                const monthly = document.getElementById('schedule_monthly_opts');
-                const dow = document.getElementById('schedule_recurrence_day_of_week');
+                if (typeSel) {
+                    typeSel.value = '';
+                    // trigger change to let recurrenceToggles sync UI (if handler exists)
+                    const ev = new Event('change', { bubbles: true });
+                    typeSel.dispatchEvent(ev);
+                }
                 const monthlyDateInput = document.getElementById('schedule_monthly_date');
                 const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
-                if (typeSel) typeSel.value = '';
-                if (weekly) weekly.classList.add('d-none');
-                if (monthly) monthly.classList.add('d-none');
-                if (dow) dow.required = false;
                 if (monthlyDateInput) {
                     const def = monthlyDateInput.getAttribute('data-initial-display');
                     monthlyDateInput.value = def || '';
                 }
                 if (monthlyDayHidden) monthlyDayHidden.value = (new Date()).getDate();
+                // ensure start_at isn't required and cleared
+                const startAt = document.getElementById('schedule_start_at');
+                if (startAt) { startAt.required = false; startAt.value = '' }
+                const weekly = document.getElementById('schedule_weekly_opts');
+                if (weekly) weekly.classList.add('d-none');
+                const monthly = document.getElementById('schedule_monthly_opts');
+                if (monthly) monthly.classList.add('d-none');
+                const dow = document.getElementById('schedule_recurrence_day_of_week');
+                if (dow) dow.required = false;
             } catch(_) {}
             // Reset project selection to default (No Project)
             try {
@@ -328,9 +353,70 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch(_) {}
 
+    // If user picks start_at first, update the day-of-week selection to match that date.
+    // Use safe date parsing to avoid timezone shifts (parse components explicitly).
+    function parseDateLocal(dateStr){
+        if(!dateStr) return null;
+        const parts = String(dateStr).split('-');
+        if(parts.length !== 3) return null;
+        const y = parseInt(parts[0],10), m = parseInt(parts[1],10), d = parseInt(parts[2],10);
+        if(Number.isNaN(y) || Number.isNaN(m) || Number.isNaN(d)) return null;
+        return new Date(y, m-1, d);
+    }
+
+    function syncWeeklyDayFromStart(startInputId, weeklySelectId){
+        const startInput = document.getElementById(startInputId);
+        const weeklySelect = document.getElementById(weeklySelectId);
+        if(!startInput || !weeklySelect) return;
+        startInput.addEventListener('change', function(){
+            const val = this.value;
+            const dt = parseDateLocal(val);
+            if(!dt) return;
+            const dow = dt.getDay(); // 0=Sun
+            // Set weekly select value but do not dispatch change event so we don't trigger
+            // updateWeeklyStartDate which would overwrite start_at based on selectedDow.
+            try { weeklySelect.value = String(dow); } catch(e) {}
+            // If recurrence type is weekly and UI is visible, ensure required and UI sync
+            const typeSelEl = document.getElementById('schedule_recurrence_type');
+            if(typeSelEl && typeSelEl.value === 'weekly'){
+                // keep UI consistent; do not call updateWeeklyStartDate here (we preserve chosen start_at)
+            }
+        });
+    }
+
+    // Attach sync for create modal
+    syncWeeklyDayFromStart('schedule_start_at','schedule_recurrence_day_of_week');
+    // Attach sync for edit modal (if present)
+    syncWeeklyDayFromStart('edit_schedule_start_at','edit_schedule_recurrence_day_of_week');
+
     form.addEventListener('submit', e=>{
         e.preventDefault();
         if(!form.checkValidity()){ e.stopPropagation(); form.classList.add('was-validated'); return; }
+        // Frontend validation: if daily recurrence and include_weekend not checked but date range crosses weekend -> require include weekend
+        try {
+            const recType = document.getElementById('schedule_recurrence_type')?.value;
+            if(recType === 'daily'){
+                const includeChk = document.getElementById('schedule_include_weekend');
+                const startAt = document.getElementById('schedule_start_at')?.value;
+                const endAt = document.getElementById('schedule_end_at')?.value;
+                // If endAt empty, treat single-day or open ended; only check startAt
+                if(includeChk && !includeChk.checked && startAt){
+                    const start = new Date(startAt + 'T00:00:00');
+                    const end = endAt ? new Date(endAt + 'T00:00:00') : start;
+                    let cur = new Date(start);
+                    let hitsWeekend = false;
+                    while(cur <= end){
+                        const d = cur.getDay(); // 0=Sun,6=Sat
+                        if(d === 0 || d === 6){ hitsWeekend = true; break; }
+                        cur.setDate(cur.getDate() + 1);
+                    }
+                    if(hitsWeekend){
+                        showScheduleAlert('Include Weekend Required','danger',3500);
+                        return; // prevent submit
+                    }
+                }
+            }
+        } catch(e) { /* ignore validation errors and continue */ }
         form.classList.remove('was-validated');
         if(loader) loader.classList.remove('d-none');
         const submitBtn = form.querySelector('button[type=submit]'); if(submitBtn) submitBtn.disabled=true;

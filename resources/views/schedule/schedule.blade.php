@@ -111,6 +111,12 @@
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
                             </div>
+                            <div class="custom-form-employee d-none" id="schedule_include_weekend_div">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1" id="schedule_include_weekend" name="include_weekend">
+                                    <label class="form-check-label" for="schedule_include_weekend">Include Weekend</label>
+                                </div>
+                            </div>
 
                             <!-- Weekly options -->
                             <div class="custom-form-employee d-none" id="schedule_weekly_opts">
@@ -139,9 +145,8 @@
                                             class="form-control input-text" required>
                                         <div class="invalid-feedback">Start date is required.</div>
                                     </div>
-
                                     <!-- End Date -->
-                                    <div class="w-100">
+                                    <div class="w-50" id="schedule_end_at_div">
                                         <label for="schedule_end_at" class="form-label label-custom">End At</label>
                                         <input type="date" id="schedule_end_at" name="end_at"
                                             class="form-control input-text">
@@ -347,6 +352,12 @@
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
                             </div>
+                            <div class="custom-form-employee d-none" id="edit_schedule_include_weekend_div">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1" id="edit_schedule_include_weekend" name="include_weekend">
+                                    <label class="form-check-label" for="edit_schedule_include_weekend">Include Weekend</label>
+                                </div>
+                            </div>
 
                             <!-- Weekly options -->
                             <div class="custom-form-employee d-none" id="edit_schedule_weekly_opts">
@@ -377,7 +388,7 @@
                                     </div>
 
                                     <!-- End Date -->
-                                    <div class="w-100">
+                                    <div class="w-100" id="edit_schedule_end_at_div">
                                         <label for="edit_schedule_end_at" class="form-label label-custom">End Date</label>
                                         <input type="date" id="edit_schedule_end_at" name="end_at"
                                             class="form-control input-text">
@@ -493,10 +504,6 @@
     <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h6 class="modal-title">Konfirmasi Hapus</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
 
                 <div class="modal-body modal-body-custom text-center">
                     <p style="font-size: 14px; color: #555;">

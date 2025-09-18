@@ -18,7 +18,7 @@ class GenerateTasksFromSchedules extends Command
      *
      * @var string
      */
-    protected $signature = 'schedules:generate {--dry-run : Only show what would be generated} {--type= : Limit to recurrence type: daily, weekly, or monthly}';
+    protected $signature = 'schedules:generate {--dry-run : Only show what would be generated} {--type= : Limit to recurrence type: daily, weekly, or monthly} {--lead-days=0 : Look ahead N days and generate schedules up to now + N days} {--to-end-of-month : Look ahead until the end of current month}';
 
     /**
      * The console command description.
@@ -29,8 +29,17 @@ class GenerateTasksFromSchedules extends Command
 
     public function handle()
     {
-        $now = Carbon::now();
-        $dryRun = (bool) $this->option('dry-run');
+    $now = Carbon::now();
+    $dryRun = (bool) $this->option('dry-run');
+        $leadDays = max(0, (int) $this->option('lead-days'));
+        $toEndOfMonth = (bool) $this->option('to-end-of-month');
+
+        if ($toEndOfMonth) {
+            // look ahead to the end of current month
+            $windowEnd = $now->copy()->endOfMonth()->startOfDay();
+        } else {
+            $windowEnd = $now->copy()->addDays($leadDays);
+        }
         $type = $this->option('type');
         if ($type !== null) {
             $type = strtolower(trim($type));
@@ -40,12 +49,15 @@ class GenerateTasksFromSchedules extends Command
             }
         }
 
-        // Fetch active schedules where next_run_at is due OR needs initialization
+        // Fetch active schedules where next_run_at is due OR within lookahead window OR needs initialization
         $schedulesQuery = TaskSchedule::query()
             ->where('is_active', true)
-            ->where(function ($q) use ($now) {
+            ->where(function ($q) use ($now, $windowEnd) {
                 $q->whereNull('next_run_at')
-                    ->orWhere('next_run_at', '<=', $now);
+                    ->orWhere('next_run_at', '<=', $windowEnd);
+            })
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'DELETED');
             });
 
         if ($type) {
@@ -71,11 +83,7 @@ class GenerateTasksFromSchedules extends Command
                 DB::beginTransaction();
 
                 // Determine the run time to use (initialize from recurrence_start_date if next_run_at is null and start_date is in the past or today)
-                $runAt = $schedule->next_run_at ? Carbon::parse($schedule->next_run_at) : null;
-                if (!$runAt) {
-                    // Initialize based on recurrence settings
-                    $runAt = $this->calculateInitialRunAt($schedule, $now);
-                }
+                $runAt = $schedule->next_run_at ? Carbon::parse($schedule->next_run_at) : $this->calculateInitialRunAt($schedule, $now);
 
                 if (!$runAt) {
                     \Log::info('[schedules:generate] Skip (no runAt)', ['id' => $schedule->id]);
@@ -83,34 +91,70 @@ class GenerateTasksFromSchedules extends Command
                     continue;
                 }
 
-                // Respect end date
+                // Respect end date (treat recurrence_end_date as exclusive: when runAt >= end, do not run)
                 if ($schedule->recurrence_end_date) {
-                    $end = Carbon::parse($schedule->recurrence_end_date)->endOfDay();
-                    if ($runAt->greaterThan($end)) {
-                        // Past end; deactivate
+                    $end = Carbon::parse($schedule->recurrence_end_date)->startOfDay();
+                    if ($runAt->greaterThanOrEqualTo($end)) {
+                        // At or past end (exclusive) -> deactivate
                         $schedule->is_active = false;
                         $schedule->save();
-                        \Log::info('[schedules:generate] Deactivated past end date', ['id' => $schedule->id]);
+                        \Log::info('[schedules:generate] Deactivated at/after end date (exclusive)', ['id' => $schedule->id]);
                         DB::commit();
                         continue;
                     }
                 }
 
-                // If due now or in the past, generate the task
-                if ($runAt->lessThanOrEqualTo($now)) {
+                // Iterate occurrences up to window end (handles multiple occurrences inside lookahead)
+                $firstPostWindow = null;
+                while ($runAt && $runAt->lessThanOrEqualTo($windowEnd)) {
+                    // If occurrence is in the future/past relative to now, it's still allowed (we're generating up to window end)
                     if ($dryRun) {
                         $this->line("[DRY] Would create task from schedule #{$schedule->id} for runAt {$runAt}");
                         \Log::info('[schedules:generate] DRY create', ['id' => $schedule->id, 'runAt' => $runAt]);
                     } else {
-                        $task = $this->createTaskFromSchedule($schedule);
-                        $this->line("Created task #{$task->id} from schedule #{$schedule->id}");
-                        \Log::info('[schedules:generate] Created task', ['schedule_id' => $schedule->id, 'task_id' => $task->id]);
+                        // Basic idempotency: skip if a task already exists for this schedule and start_date
+                        $exists = Task::where('start_date', $runAt->toDateString())
+                            ->where('title', $schedule->title)
+                            ->exists();
+                        if ($exists) {
+                            \Log::info('[schedules:generate] Skip create - task exists', ['schedule_id' => $schedule->id, 'runAt' => $runAt]);
+                        } else {
+                            $task = $this->createTaskFromSchedule($schedule, $runAt);
+                            $this->line("Created task #{$task->id} from schedule #{$schedule->id} for {$runAt->toDateString()}");
+                            \Log::info('[schedules:generate] Created task', ['schedule_id' => $schedule->id, 'task_id' => $task->id]);
+                        }
                     }
 
-                    // Advance next_run_at
+                    // compute next occurrence
                     $next = $this->calculateNextRunAt($schedule, $runAt);
+
+                    // If we have an end date, and the computed next is at-or-after the end (exclusive), then deactivate instead of scheduling further runs
+                    if ($schedule->recurrence_end_date && $next->greaterThanOrEqualTo(Carbon::parse($schedule->recurrence_end_date)->startOfDay())) {
+                        $schedule->last_generated_at = $now;
+                        $schedule->next_run_at = null;
+                        $schedule->is_active = false;
+                        $schedule->save();
+                        \Log::info('[schedules:generate] Deactivated because next run reaches/exceeds end date', [
+                            'id' => $schedule->id,
+                            'next_run_at' => $schedule->next_run_at,
+                            'last_generated_at' => $schedule->last_generated_at,
+                        ]);
+                        DB::commit();
+                        continue 2; // move to next schedule
+                    }
+
+                    // move to next occurrence
+                    $runAt = $next;
+                    // remember the first occurrence after window to set as next_run_at later
+                    if ($runAt && $runAt->greaterThan($windowEnd) && !$firstPostWindow) {
+                        $firstPostWindow = $runAt->copy();
+                    }
+                }
+
+                // If we've exited loop, set next_run_at to first occurrence after windowEnd (or keep existing behavior)
+                if ($firstPostWindow) {
                     $schedule->last_generated_at = $now;
-                    $schedule->next_run_at = $next;
+                    $schedule->next_run_at = $firstPostWindow->startOfDay();
                     $schedule->save();
                     \Log::info('[schedules:generate] Advanced schedule', [
                         'id' => $schedule->id,
@@ -136,24 +180,57 @@ class GenerateTasksFromSchedules extends Command
 
     private function calculateInitialRunAt(TaskSchedule $s, Carbon $now): ?Carbon
     {
-        // Default to start date if set and in the future or today; otherwise bring it forward to the next valid occurrence
-        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
+        // Use recurrence_start_date (which should reflect start_at if provided by user)
+        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : null;
 
         switch ($s->recurrence_type) {
             case 'weekly':
-                $dow = is_null($s->recurrence_day_of_week) ? (int) $start->dayOfWeek : (int) $s->recurrence_day_of_week; // 0=Sun
-                $candidate = $start->copy();
-                // Move to the next matching DOW
+                // If start not provided, fallback to today
+                $base = $start ?? $now->copy()->startOfDay();
+                $dow = is_null($s->recurrence_day_of_week) ? (int) $base->dayOfWeek : (int) $s->recurrence_day_of_week; // 0=Sun
+                $candidate = $base->copy();
+                // If base is before today, start from today
+                if ($candidate->lt($now->copy()->startOfDay())) {
+                    $candidate = $now->copy()->startOfDay();
+                }
+                // Move forward to the next matching DOW (including today if matches)
                 while ((int) $candidate->dayOfWeek !== $dow) {
                     $candidate->addDay();
                 }
-                return $candidate;
-        case 'monthly':
-            $dom = (int) ($s->recurrence_day_of_month ?: $start->day);
-            return $this->safeMonthlyDate($start->year, $start->month, $dom, $start)->addDay();
+                return $candidate->startOfDay();
+            case 'monthly':
+                // Prefer explicit start_at chosen in modal; fall back to recurrence_start_date or today
+                $base = $s->start_at ? Carbon::parse($s->start_at)->startOfDay() : ($start ?? $now->copy()->startOfDay());
+                // day of month to use: explicit recurrence_day_of_month if set, otherwise day of start_at/base
+                $dom = (int) ($s->recurrence_day_of_month ?: $base->day);
+                // Candidate is the nearest occurrence on or after base: try this month first
+                $candidate = $this->safeMonthlyDate($base->year, $base->month, $dom, $base);
+                if ($candidate->lt($now->copy()->startOfDay())) {
+                    // move to next month
+                    $nextMonth = $base->copy()->addMonthNoOverflow();
+                    $candidate = $this->safeMonthlyDate($nextMonth->year, $nextMonth->month, $dom, $base);
+                }
+                return $candidate->startOfDay();
             case 'daily':
             default:
-                return $start;
+                $candidate = null;
+                if ($start) {
+                    if ($start->lte($now->copy()->startOfDay())) {
+                        $candidate = $now->copy()->addDay()->startOfDay();
+                    } else {
+                        $candidate = $start->startOfDay();
+                    }
+                } else {
+                    $candidate = $now->copy()->addDay()->startOfDay();
+                }
+
+                // If schedule disables weekends and candidate falls on weekend, advance to next non-weekend
+                if (empty($s->include_weekend) || !$s->include_weekend) {
+                    while (in_array((int)$candidate->dayOfWeek, [0,6], true)) {
+                        $candidate->addDay();
+                    }
+                }
+                return $candidate;
         }
     }
 
@@ -173,13 +250,19 @@ class GenerateTasksFromSchedules extends Command
                 }
                 return $next->startOfDay();
         case 'monthly':
-            // Add N months and clamp to chosen DOM
+            // Add N months and clamp to chosen DOM. Keep the same day of month (or clamp to last day if month too short).
             $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
             $next->addMonthsNoOverflow($interval);
-            return $this->safeMonthlyDate($next->year, $next->month, $dom, $next)->addDay(); // Generate the day after the recurrence date
+            return $this->safeMonthlyDate($next->year, $next->month, $dom, $next)->startOfDay();
             case 'daily':
             default:
-                return $next->addDays($interval)->startOfDay();
+                $candidate = $next->addDays($interval)->startOfDay();
+                if (empty($s->include_weekend) || !$s->include_weekend) {
+                    while (in_array((int)$candidate->dayOfWeek, [0,6], true)) {
+                        $candidate->addDay();
+                    }
+                }
+                return $candidate;
         }
     }
 
@@ -191,7 +274,7 @@ class GenerateTasksFromSchedules extends Command
         return Carbon::create($year, $month, $day, 0, 0, 0);
     }
 
-    private function createTaskFromSchedule(TaskSchedule $s): Task
+    private function createTaskFromSchedule(TaskSchedule $s, Carbon $runAt = null): Task
     {
         // Copy image to task directory if present
         $taskImage = null;
@@ -220,8 +303,9 @@ class GenerateTasksFromSchedules extends Command
             }
         }
 
-        // Compute dates: start = run day; if due_in_days provided, due = start + due_in_days; else legacy behavior
-        $runDay = Carbon::now()->toDateString();
+        // Compute dates: start = run day (the $runAt passed from generator);
+        // due = start + due_in_days if provided; else try to compute offset from configured recurrence_start_date->due_date mapping; fallback to run day.
+        $runDay = $runAt ? $runAt->toDateString() : Carbon::now()->toDateString();
         $startDate = $runDay;
         if (!is_null($s->due_in_days)) {
             $dueDate = Carbon::parse($runDay)->addDays((int) $s->due_in_days)->toDateString();
@@ -258,7 +342,7 @@ class GenerateTasksFromSchedules extends Command
             'deleted_by' => null,
         ];
 
-        $task = Task::create($data);
+    $task = Task::create($data);
 
         // Create PIC assignment from schedule creator if has employee (auto-accept like Add Task modal)
         $picUserId = $s->created_by;

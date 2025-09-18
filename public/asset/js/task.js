@@ -424,9 +424,7 @@
                     <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
                             <div class="modal-content modal-content-custom">
-                                <div class="modal-header border-0">
-                                    <h5 class="modal-title fs-5">Reject Task</h5>
-                                </div>
+                               
                                 <div class="modal-body modal-body-custom">
                                     <div class="d-flex">
                                         <div class="me-3">
@@ -1117,21 +1115,29 @@
                 }
             } catch(_) { monthlyDayHidden.value = ''; if (monthlyDateInput) monthlyDateInput.value = ''; }
 
-        // Toggle default dates: hide start date for all repeat types; allow optional due date
+        // Toggle default dates: show start date when a recurrence type is chosen so user can pick when the schedule starts.
             if (defaultDatesSection) {
                 // Always show the container so due date can be set
                 defaultDatesSection.classList.remove('d-none');
-                if (defaultStart) { defaultStart.required = false; }
+                if (defaultStart) { /* we'll control required below */ }
                 if (defaultDue) { defaultDue.required = false; }
 
-                // Hide only the start date input when daily
                 const startWrapper = defaultStart ? defaultStart.closest('.date-form') : null;
                 const dueWrapper = defaultDue ? defaultDue.closest('.date-form') : null;
+
+                // Show start date input for daily, weekly or monthly recurrences
                 if (startWrapper) {
-            // Hide for all recurrence types; tasks' start date equals render day
-            startWrapper.classList.add('d-none');
-            defaultStart.value = '';
+                    if (isDaily || isWeekly || isMonthly) {
+                        startWrapper.classList.remove('d-none');
+                        // make start date required so recurrence has a defined start
+                        if (defaultStart) defaultStart.required = true;
+                    } else {
+                        // hide when no recurrence selected
+                        startWrapper.classList.add('d-none');
+                        if (defaultStart) { defaultStart.required = false; defaultStart.value = ''; }
+                    }
                 }
+
                 // For all recurrence types we prefer Due In Days input; hide legacy date field
                 if (dueDaysWrapper) dueDaysWrapper.classList.remove('d-none');
                 if (dueDateWrapper) dueDateWrapper.classList.add('d-none');

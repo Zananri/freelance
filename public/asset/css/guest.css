@@ -4,6 +4,19 @@ body {
     background-attachment: fixed;
 }
 
+.btn-custom-close {
+    background-color: #ebecf2;
+    color: #444;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.btn-custom-close:hover {
+    background-color: #d6d8e7;
+}
+
 #backgroundCanvas {
     position: fixed;
     top: 0;

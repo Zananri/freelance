@@ -353,6 +353,30 @@ document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener("submit", function (e) {
         if (e.target.id === "scheduleEditForm") {
             e.preventDefault();
+            // Frontend validation: require include_weekend when daily schedule range contains Sat/Sun
+            try {
+                const recType = document.getElementById('edit_schedule_recurrence_type')?.value;
+                if(recType === 'daily'){
+                    const includeChk = document.getElementById('edit_schedule_include_weekend');
+                    const startAt = document.getElementById('edit_schedule_start_at')?.value;
+                    const endAt = document.getElementById('edit_schedule_end_at')?.value;
+                    if(includeChk && !includeChk.checked && startAt){
+                        const start = new Date(startAt + 'T00:00:00');
+                        const end = endAt ? new Date(endAt + 'T00:00:00') : start;
+                        let cur = new Date(start);
+                        let hitsWeekend = false;
+                        while(cur <= end){
+                            const d = cur.getDay();
+                            if(d === 0 || d === 6){ hitsWeekend = true; break; }
+                            cur.setDate(cur.getDate() + 1);
+                        }
+                        if(hitsWeekend){
+                            showFloatingAlert('Include Weekend Required','danger',3500);
+                            return; // prevent submit
+                        }
+                    }
+                }
+            } catch(e) { /* ignore validation errors and continue */ }
 
             const form = e.target;
             const formData = new FormData(form);
@@ -477,6 +501,18 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.recurrence_day_of_month
         );
 
+        // Populate include_weekend checkbox and ensure visibility for daily
+        try {
+            const includeChk = document.getElementById('edit_schedule_include_weekend');
+            const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
+            if (includeChk) {
+                includeChk.checked = !!schedule.include_weekend;
+            }
+            if (includeDiv) {
+                includeDiv.classList.toggle('d-none', (schedule.recurrence_type !== 'daily'));
+            }
+        } catch (e) { /* ignore */ }
+
         // Handle image
         if (schedule.image) {
             $("#editScheduleImageLabel").css(
@@ -596,6 +632,12 @@ document.addEventListener("DOMContentLoaded", function () {
             monthlyOpts.classList.add("d-none");
             startAtDiv.classList.add("d-none");
         }
+
+        // Toggle include_weekend visibility for edit modal
+        try {
+            const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
+            if (includeDiv) includeDiv.classList.toggle('d-none', recurrenceType !== 'daily');
+        } catch (e) { /* ignore */ }
     }
 
     function populateEditReferenceUrls(urls) {
@@ -883,6 +925,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             } else {
             }
+
+            // Toggle include_weekend visibility in edit modal
+            try {
+                const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
+                if (includeDiv) includeDiv.classList.toggle('d-none', v !== 'daily');
+            } catch (e) {}
         }
 
         typeSel.addEventListener("change", sync);

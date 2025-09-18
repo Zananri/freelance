@@ -34,7 +34,7 @@ class ForgotController extends Controller
             return back()->with(['status' => __($status)]);
         }
 
-        return back()->withErrors(['email' => __($status)]);
+        return back()->withInput()->withErrors(['email' => __($status)]);
     }
 
     public function index()
