@@ -111,6 +111,12 @@
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
                             </div>
+                            <div class="custom-form-employee d-none" id="schedule_include_weekend_div">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1" id="schedule_include_weekend" name="include_weekend">
+                                    <label class="form-check-label" for="schedule_include_weekend">Include Weekend</label>
+                                </div>
+                            </div>
 
                             <!-- Weekly options -->
                             <div class="custom-form-employee d-none" id="schedule_weekly_opts">
@@ -345,6 +351,12 @@
                                     <option value="monthly">Every Month</option>
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
+                            </div>
+                            <div class="custom-form-employee d-none" id="edit_schedule_include_weekend_div">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" value="1" id="edit_schedule_include_weekend" name="include_weekend">
+                                    <label class="form-check-label" for="edit_schedule_include_weekend">Include Weekend</label>
+                                </div>
                             </div>
 
                             <!-- Weekly options -->

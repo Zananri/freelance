@@ -68,6 +68,11 @@ trait ScheduleImmediateGeneration
                 }
         }
 
+            // If schedule is daily but should not include weekends, then if today is Sat/Sun mark not due
+            if (($s->recurrence_type === 'daily' || $s->recurrence_type === null) && empty($s->include_weekend) && in_array((int)$today->dayOfWeek, [0,6], true)) {
+                $dueToday = false;
+            }
+
         if (!$dueToday) {
             // Not due; initialize next_run_at so the scheduler can pick it up
             $s->next_run_at = $this->calcInitialRunAt($s, $now);
@@ -433,6 +438,7 @@ class ScheduleController extends Controller
                 'recurrence_start_date' => 'nullable|date',
                 'recurrence_end_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'executor_ids' => 'nullable',
+                'include_weekend' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -483,6 +489,13 @@ class ScheduleController extends Controller
             // Updated by
             if ($request->user()) {
                 $data['updated_by'] = $request->user()->id;
+            }
+
+            // include_weekend normalize
+            if ($request->has('include_weekend')) {
+                $data['include_weekend'] = filter_var($request->input('include_weekend'), FILTER_VALIDATE_BOOLEAN);
+            } else {
+                $data['include_weekend'] = false;
             }
 
             // Normalize executor_ids
@@ -721,6 +734,7 @@ class ScheduleController extends Controller
                 'recurrence_start_date' => 'nullable|date',
                 'recurrence_end_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'executor_ids' => 'nullable',
+                'include_weekend' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -852,6 +866,11 @@ class ScheduleController extends Controller
                     }
                 }
                 $data['recurrence_end_date'] = null;
+            }
+
+            // include_weekend normalize for updates
+            if (array_key_exists('include_weekend', $data)) {
+                $data['include_weekend'] = (bool)$data['include_weekend'];
             }
 
             // Update schedule
