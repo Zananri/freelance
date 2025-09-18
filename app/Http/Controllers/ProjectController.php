@@ -1920,74 +1920,79 @@ class ProjectController extends Controller
     /**
      * Get the latest single feedback for a project
      */
-    public function getProjectLatestFeedback($projectId)
+    public function getProjectsLatestFeedback(Request $request)
     {
         try {
             $employeeId = auth()->user()?->employee?->id;
+            $ids = explode(',', $request->query('ids', ''));
+            $ids = array_filter(array_map('trim', $ids));
 
-            // Apply unread window using project read_markers (per-employee last_read_at)
-            $lastReadAt = null;
-            if ($employeeId) {
-                $project = Project::find($projectId);
-                if (!$project || ($project->status ?? null) === 'DELETED') {
-                    return response()->json([
-                        'code' => 200,
-                        'status' => 'success',
-                        'data' => null
-                    ]);
-                }
-
-                if (!empty($project->read_markers)) {
-                    $markers = is_array($project->read_markers) ? $project->read_markers : (json_decode($project->read_markers, true) ?: []);
-                    $lastReadAt = $markers[(string) $employeeId] ?? null;
-                }
-            }
-
-            $latest = ProjectFeedback::with(['employee.user'])
-                ->where('project_id', $projectId)
-                // Only show if not authored by current user
-                ->when($employeeId, function ($q) use ($employeeId) {
-                    $q->where('employee_id', '!=', $employeeId);
-                })
-                // Only show if it's newer than last read
-                ->when($lastReadAt, function ($q) use ($lastReadAt) {
-                    $q->where('created_at', '>', $lastReadAt);
-                })
-                ->orderBy('created_at', 'desc')
-                ->first();
-
-            if (!$latest) {
+            if (empty($ids)) {
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
-                    'data' => null
+                    'data' => []
                 ]);
             }
 
-            $payload = [
-                'id' => $latest->id,
-                'parent_id' => $latest->parent_id,
-                'feedback_comment' => $latest->feedback_comment,
-                'created_at' => $latest->created_at,
-                'employee' => null,
-            ];
-            if ($latest->employee) {
-                $e = $latest->employee;
-                $avatar = $this->resolveEmployeeAvatar($e);
-                $payload['employee'] = [
-                    'id' => $e->id,
-                    'name' => $e->name,
-                    'photo' => $avatar,
-                    'user_photo' => $avatar,
-                    'profile_picture' => $avatar,
-                    'profile_picture_url' => $avatar,
+            $projects = Project::whereIn('id', $ids)->get()->keyBy('id');
+            $results = [];
+
+            foreach ($ids as $pid) {
+                $project = $projects[$pid] ?? null;
+                if (!$project || ($project->status ?? null) === 'DELETED') {
+                    $results[$pid] = null;
+                    continue;
+                }
+
+                $lastReadAt = null;
+                if ($employeeId && !empty($project->read_markers)) {
+                    $markers = is_array($project->read_markers)
+                        ? $project->read_markers
+                        : (json_decode($project->read_markers, true) ?: []);
+                    $lastReadAt = $markers[(string) $employeeId] ?? null;
+                }
+
+                $latest = ProjectFeedback::with(['employee.user'])
+                    ->where('project_id', $pid)
+                    ->when($employeeId, fn($q) => $q->where('employee_id', '!=', $employeeId))
+                    ->when($lastReadAt, fn($q) => $q->where('created_at', '>', $lastReadAt))
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if (!$latest) {
+                    $results[$pid] = null;
+                    continue;
+                }
+
+                $payload = [
+                    'id' => $latest->id,
+                    'parent_id' => $latest->parent_id,
+                    'feedback_comment' => $latest->feedback_comment,
+                    'created_at' => $latest->created_at,
+                    'employee' => null,
                 ];
+
+                if ($latest->employee) {
+                    $e = $latest->employee;
+                    $avatar = $this->resolveEmployeeAvatar($e);
+                    $payload['employee'] = [
+                        'id' => $e->id,
+                        'name' => $e->name,
+                        'photo' => $avatar,
+                        'user_photo' => $avatar,
+                        'profile_picture' => $avatar,
+                        'profile_picture_url' => $avatar,
+                    ];
+                }
+
+                $results[$pid] = $payload;
             }
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $payload,
+                'data' => $results
             ]);
         } catch (\Exception $e) {
             $status = $this->deriveHttpStatusFromException($e);
