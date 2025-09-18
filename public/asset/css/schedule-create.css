@@ -188,3 +188,8 @@
     position: sticky;
     z-index: 1050;
 }
+
+.form-check-label {
+    font-size: 14px;
+    color: #555;
+}
