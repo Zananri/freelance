@@ -19,6 +19,23 @@ class ResetPasswordController extends Controller
         // token and email will be provided as route parameter and query param
         $token = request()->route('token');
         $email = request()->query('email');
+
+        if (!$email || !$token) {
+            return view('reset-password.expired');
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            return view('reset-password.expired');
+        }
+
+        $tokenValid = Password::tokenExists($user, $token);
+
+        if (!$tokenValid) {
+            return view('reset-password.expired');
+        }
+
         return view('reset-password.reset', compact('token', 'email'));
     }
 
