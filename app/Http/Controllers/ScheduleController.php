@@ -25,6 +25,10 @@ trait ScheduleImmediateGeneration
 
     private function maybeGenerateNow(TaskSchedule $s): void
     {
+        // Do not generate for schedules that were marked deleted
+        if (strtoupper(trim((string)($s->status ?? ''))) === 'DELETED') {
+            return;
+        }
         $now = Carbon::now();
         $today = $now->copy()->startOfDay();
 
@@ -265,9 +269,29 @@ trait ScheduleImmediateGeneration
 class ScheduleController extends Controller
 {
     use ScheduleImmediateGeneration;
+    /**
+     * Safely derive a proper HTTP status code from an exception.
+     * Falls back to 500 when the exception code is non-numeric or out of valid HTTP range.
+     */
+    private function deriveHttpStatusFromException(\Throwable $e): int
+    {
+        $raw = $e->getCode();
+        if (is_numeric($raw)) {
+            $code = (int)$raw;
+            if ($code >= 100 && $code <= 599) {
+                return $code;
+            }
+        }
+        return 500;
+    }
     public function index(Request $request)
     {
-        $query = TaskSchedule::with('project')->orderByDesc('created_at');
+        // Exclude schedules that have been soft-deleted via status="DELETED"
+        $query = TaskSchedule::with('project')
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'DELETED');
+            })
+            ->orderByDesc('created_at');
 
         // Only show schedules where current user is PIC (creator) or is listed as an executor
         $currentUser = $request->user();
@@ -282,8 +306,8 @@ class ScheduleController extends Controller
             }
         });
 
-        // Do not show schedules that have not yet run the generate command (next_run_at is null)
-        $query->whereNotNull('next_run_at');
+    // Do not show schedules that have not yet run the generate command (next_run_at is null)
+    $query->whereNotNull('next_run_at');
 
         // Apply recurrence_type filter if provided
         $recurrenceType = $request->input('recurrence_type');
@@ -316,6 +340,14 @@ class ScheduleController extends Controller
                 'project.division'
             ])->findOrFail($id);
 
+            if (strtoupper(trim((string)($schedule->status ?? ''))) === 'DELETED') {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Schedule not found',
+                ], 404);
+            }
+
             $executors = [];
             if (!empty($schedule->executor_ids)) {
                 $executors = Employee::whereIn('id', $schedule->executor_ids)
@@ -346,11 +378,16 @@ class ScheduleController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
+            $rawCode = $e->getCode();
+            $status = is_numeric($rawCode) ? (int) $rawCode : 0;
+            if ($status < 100 || $status > 599) {
+                $status = 500;
+            }
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -553,11 +590,12 @@ class ScheduleController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -573,11 +611,12 @@ class ScheduleController extends Controller
                 'data' => $schedule,
             ]);
         } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -761,11 +800,12 @@ class ScheduleController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 
@@ -775,9 +815,14 @@ class ScheduleController extends Controller
         try {
             $schedule = TaskSchedule::findOrFail($id);
 
-            // soft delete
-            // Delete the schedule
-            $schedule->delete();
+            // Mark schedule as deleted instead of removing DB row
+            $schedule->status = 'DELETED';
+            $schedule->is_active = false;
+            $schedule->next_run_at = null; // ensure scheduler won't pick it up
+            if ($request->user()) {
+                $schedule->deleted_by = $request->user()->id;
+            }
+            $schedule->save();
 
             DB::commit();
 
@@ -788,11 +833,16 @@ class ScheduleController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+            $rawCode = $e->getCode();
+            $status = is_numeric($rawCode) ? (int) $rawCode : 0;
+            if ($status < 100 || $status > 599) {
+                $status = 500;
+            }
             return response()->json([
-                'code' => $e->getCode() ?: 500,
+                'code' => $status,
                 'status' => 'error',
                 'message' => $e->getMessage(),
-            ], $e->getCode() ?: 500);
+            ], $status);
         }
     }
 }
