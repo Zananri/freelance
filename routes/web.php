@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\JobController;
+use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeTimeOffController;
 use App\Http\Controllers\UserController;
@@ -278,7 +279,8 @@ Route::middleware('auth', 'management')->group(function () {
     Route::get('/settings/get-all-User', [SettingsController::class, 'getAllUser'])->name('settings.getAllUser');
     Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');
 
-
+    Route::get('/leave', [LeaveController::class, 'showLeavePage'])->name('leave');
+    Route::get('/leave/employee-leave-by-year', [LeaveController::class, 'getEmployeeLeaveByYear'])->name('leave.getEmployeeLeaveByYear');
 
 });
 
