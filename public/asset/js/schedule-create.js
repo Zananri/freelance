@@ -162,11 +162,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if(isNaN(selectedDow)) return;
             const today = new Date();
             const currentDow = today.getDay();
+            // If the selected day is the same as today, the requirement is to set
+            // start_at to the same weekday in the next week (not today). Therefore
+            // compute daysToAdd so that when selectedDow === currentDow we add 7.
             let daysToAdd = selectedDow - currentDow;
-            if(daysToAdd < 0) daysToAdd += 7;
+            if(daysToAdd <= 0) daysToAdd += 7; // <=0 ensures today maps to next week
             const newDate = new Date(today);
             newDate.setDate(today.getDate() + daysToAdd);
             startAt.value = newDate.toISOString().split('T')[0];
+            // small debug hook (silent in production unless console is open)
+            if(window.__scheduleDebug) console.log('updateWeeklyStartDate:', { selectedDow, currentDow, daysToAdd, startAt: startAt.value });
         }
 
         function sync(){
