@@ -11435,20 +11435,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search_filter");
     if (!searchInput) return;
 
-    // Simple debounce helper
-    function debounce(fn, wait) {
-        let t;
-        return function (...args) {
-            clearTimeout(t);
-            t = setTimeout(() => fn.apply(this, args), wait);
-        };
-    }
-
-    const doSearch = debounce(function () {
+    function doSearch() {
         const raw = searchInput.value || "";
         const q = raw.trim();
 
-        // During active search, hide latest feedback snippets to reduce clutter
         if (q !== "") {
             document
                 .querySelectorAll(".latest-feedback-snippet")
@@ -11458,7 +11448,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         }
 
-        // Reload cards from backend with search param
         try {
             if (typeof window.loadProjectCardData === "function") {
                 window.loadProjectCardData(null, 1, q);
@@ -11471,7 +11460,6 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn("Search reload failed", e);
         }
 
-        // When search is cleared, restore feedback snippets (if any meaningful content)
         if (q === "") {
             document
                 .querySelectorAll(".latest-feedback-snippet")
@@ -11492,10 +11480,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
         }
-    }, 350);
+    }
 
-    // Bind input event
-    searchInput.addEventListener("input", doSearch);
+    searchInput.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            doSearch();
+        }
+    });
 });
 
 function hideProjectLatestFeedbackSnippet(projectId) {
