@@ -451,18 +451,51 @@ class ScheduleController extends Controller
                 $data['executor_ids'] = array_values($execIds);
             }
 
-            // Default start_date ke today kalau kosong
-            if (empty($data['start_date'])) {
-                $data['start_date'] = Carbon::today()->toDateString();
-            }
+            // For daily recurrence we prefer to derive schedule start_date from start_at (user intent)
+            if (($data['recurrence_type'] ?? '') === 'daily') {
+                if (!empty($data['start_at'])) {
+                    try {
+                        // Use only the date portion of start_at as the recurrence start_date
+                        $data['recurrence_start_date'] = Carbon::parse($data['start_at'])->toDateString();
+                        // Also set schedule-level start_date to match start_at date so created tasks pick same start_date
+                        $data['start_date'] = Carbon::parse($data['start_at'])->toDateString();
+                    } catch (\Throwable $e) {
+                        $data['recurrence_start_date'] = Carbon::today()->toDateString();
+                        $data['start_date'] = Carbon::today()->toDateString();
+                    }
+                } else {
+                    // fallback to today
+                    if (empty($data['recurrence_start_date'])) {
+                        $data['recurrence_start_date'] = Carbon::today()->toDateString();
+                    }
+                    if (empty($data['start_date'])) {
+                        $data['start_date'] = Carbon::today()->toDateString();
+                    }
+                }
 
-            // Hitung due_date dari start_date + due_in_days
-            if (!empty($data['due_in_days'])) {
-                try {
-                    $start = Carbon::parse($data['start_date'])->startOfDay();
-                    $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
-                } catch (\Throwable $e) {
-                    $data['due_date'] = null; // fallback
+                // If due_in_days provided, compute due_date from the start_date derived above
+                if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
+                    try {
+                        $start = Carbon::parse($data['start_date'])->startOfDay();
+                        $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
+                    } catch (\Throwable $e) {
+                        $data['due_date'] = null;
+                    }
+                }
+            } else {
+                // Default start_date ke today kalau kosong for non-daily
+                if (empty($data['start_date'])) {
+                    $data['start_date'] = Carbon::today()->toDateString();
+                }
+
+                // Hitung due_date dari start_date + due_in_days for non-daily
+                if (!empty($data['due_in_days'])) {
+                    try {
+                        $start = Carbon::parse($data['start_date'])->startOfDay();
+                        $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
+                    } catch (\Throwable $e) {
+                        $data['due_date'] = null; // fallback
+                    }
                 }
             }
 
@@ -642,18 +675,49 @@ class ScheduleController extends Controller
                 }
             }
 
-            // Default start_date kalau kosong
-            if (empty($data['start_date']) && !$schedule->start_date) {
-                $data['start_date'] = Carbon::today()->toDateString();
-            }
+            // Recurrence-aware start_date/due_date handling on update
+            if (!empty($data['recurrence_type']) && $data['recurrence_type'] === 'daily') {
+                // If start_at provided in update, set recurrence_start_date and start_date to its date
+                if (array_key_exists('start_at', $data) && !empty($data['start_at'])) {
+                    try {
+                        $data['recurrence_start_date'] = Carbon::parse($data['start_at'])->toDateString();
+                        $data['start_date'] = Carbon::parse($data['start_at'])->toDateString();
+                    } catch (\Throwable $e) {
+                        $data['recurrence_start_date'] = $schedule->recurrence_start_date ?? Carbon::today()->toDateString();
+                        $data['start_date'] = $schedule->start_date ?? Carbon::today()->toDateString();
+                    }
+                } else {
+                    if (empty($data['recurrence_start_date'])) {
+                        $data['recurrence_start_date'] = $schedule->recurrence_start_date ?? Carbon::today()->toDateString();
+                    }
+                    if (empty($data['start_date'])) {
+                        $data['start_date'] = $schedule->start_date ?? Carbon::today()->toDateString();
+                    }
+                }
 
-            // Hitung due_date dari start_date + due_in_days
-            if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
-                try {
-                    $start = Carbon::parse($data['start_date'] ?? $schedule->start_date)->startOfDay();
-                    $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
-                } catch (\Throwable $e) {
-                    $data['due_date'] = null;
+                // Recompute due_date from start_date + due_in_days when due_in_days is provided in payload
+                if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
+                    try {
+                        $start = Carbon::parse($data['start_date'])->startOfDay();
+                        $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
+                    } catch (\Throwable $e) {
+                        $data['due_date'] = null;
+                    }
+                }
+            } else {
+                // Default start_date kalau kosong
+                if (empty($data['start_date']) && !$schedule->start_date) {
+                    $data['start_date'] = Carbon::today()->toDateString();
+                }
+
+                // Hitung due_date dari start_date + due_in_days
+                if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
+                    try {
+                        $start = Carbon::parse($data['start_date'] ?? $schedule->start_date)->startOfDay();
+                        $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
+                    } catch (\Throwable $e) {
+                        $data['due_date'] = null;
+                    }
                 }
             }
 
