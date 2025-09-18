@@ -427,7 +427,7 @@
                     <div id="deleteTaskContent"></div>
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-submit-black" id="confirmDeleteTaskBtn">Delete</button>
                 </div>
             </div>
