@@ -98,8 +98,13 @@ trait ScheduleImmediateGeneration
                 }
                 return $next;
             case 'monthly':
-                $dom = (int) ($s->recurrence_day_of_month ?? $start->day);
-                return $start->copy()->addDay(); // generate the day after start_at
+                $base = $s->start_at ? Carbon::parse($s->start_at)->startOfDay() : $start;
+                $dom = (int) ($s->recurrence_day_of_month ?? $base->day);
+                $candidate = $this->safeMonthly($base->year, $base->month, $dom);
+                if ($candidate->lt($now->copy()->startOfDay())) {
+                    $candidate = $this->safeMonthly($base->copy()->addMonthNoOverflow()->year, $base->copy()->addMonthNoOverflow()->month, $dom);
+                }
+                return $candidate->startOfDay();
             case 'daily':
             default:
                 return $start->addDay(); // tomorrow
@@ -121,7 +126,7 @@ trait ScheduleImmediateGeneration
             case 'monthly':
                 $dom = (int) ($s->recurrence_day_of_month ?? $current->day);
                 $next->addMonthsNoOverflow($interval);
-                return $this->safeMonthly($next->year, $next->month, $dom)->addDay();
+                return $this->safeMonthly($next->year, $next->month, $dom)->startOfDay();
             case 'daily':
             default:
                 return $next->addDays($interval)->startOfDay();
@@ -308,8 +313,9 @@ class ScheduleController extends Controller
             }
         });
 
-    // Do not show schedules that have not yet run the generate command (next_run_at is null)
-    $query->whereNotNull('next_run_at');
+    // Show all schedules (including newly created ones). Tasks for monthly schedules
+    // are still only created by the scheduled generator, so no task card will appear
+    // until generation runs.
 
         // Apply recurrence_type filter if provided
         $recurrenceType = $request->input('recurrence_type');
@@ -537,6 +543,18 @@ class ScheduleController extends Controller
                     }
                 }
             }
+            // For monthly recurrence, ensure schedule.start_date follows the chosen start_at (recurrence_start_date)
+            if (($data['recurrence_type'] ?? '') === 'monthly') {
+                $data['start_date'] = $data['recurrence_start_date'] ?? Carbon::today()->toDateString();
+                if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
+                    try {
+                        $start = Carbon::parse($data['start_date'])->startOfDay();
+                        $data['due_date'] = $start->copy()->addDays((int) $data['due_in_days'])->toDateString();
+                    } catch (\Throwable $e) {
+                        $data['due_date'] = null;
+                    }
+                }
+            }
 
             // Prepare recurrence defaults
             // If start_at provided, prefer it as recurrence_start_date (user intent)
@@ -591,8 +609,46 @@ class ScheduleController extends Controller
 
             $schedule = TaskSchedule::create($data);
 
-            // Generate task langsung kalau emang due hari ini
-            $this->maybeGenerateNow($schedule);
+            // Ensure monthly schedules have their start/due/next fields initialized but do NOT
+            // create tasks immediately. The scheduled generator is responsible for creating tasks.
+            if (($data['recurrence_type'] ?? '') === 'monthly') {
+                // Ensure start_date follows recurrence_start_date
+                try {
+                    $schedule->start_date = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->toDateString() : $schedule->start_date;
+                } catch (\Throwable $e) {
+                    $schedule->start_date = $schedule->start_date ?? Carbon::today()->toDateString();
+                }
+
+                // Recompute due_date from start_date + due_in_days when applicable
+                if (!is_null($schedule->due_in_days)) {
+                    try {
+                        $sdate = Carbon::parse($schedule->start_date)->startOfDay();
+                        $schedule->due_date = $sdate->copy()->addDays((int) $schedule->due_in_days)->toDateString();
+                    } catch (\Throwable $e) {
+                        // ignore, leave due_date as is
+                    }
+                }
+
+                // Initialize next_run_at to the first occurrence (calculated by helper) so
+                // the scheduler command can pick it up. Do NOT call maybeGenerateNow to avoid
+                // creating a Task immediately on creation.
+                try {
+                    $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
+                } catch (\Throwable $e) {
+                    $schedule->next_run_at = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->startOfDay() : null;
+                }
+                $schedule->save();
+            } else {
+                // For non-monthly schedules we MUST NOT create a Task immediately even if
+                // the recurrence falls on today. Instead initialize `next_run_at` so the
+                // background generator/command will create the Task when it runs.
+                try {
+                    $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
+                } catch (\Throwable $e) {
+                    $schedule->next_run_at = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->startOfDay() : null;
+                }
+                $schedule->save();
+            }
 
             DB::commit();
 
@@ -803,6 +859,30 @@ class ScheduleController extends Controller
                 $schedule->update($data);
             }
             $schedule->refresh();
+
+            // If updated schedule is monthly, ensure its start_date/due_date/next_run_at
+            // are consistent with recurrence_start_date and due_in_days.
+            if ($schedule->recurrence_type === 'monthly') {
+                try {
+                    $schedule->start_date = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->toDateString() : $schedule->start_date;
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+                if (!is_null($schedule->due_in_days)) {
+                    try {
+                        $sdate = Carbon::parse($schedule->start_date)->startOfDay();
+                        $schedule->due_date = $sdate->copy()->addDays((int) $schedule->due_in_days)->toDateString();
+                    } catch (\Throwable $e) {
+                        // ignore
+                    }
+                }
+                try {
+                    $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
+                } catch (\Throwable $e) {
+                    // leave as-is
+                }
+                $schedule->save();
+            }
 
             DB::commit();
 

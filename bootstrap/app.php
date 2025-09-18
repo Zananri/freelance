@@ -13,12 +13,20 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withSchedule(function (Schedule $schedule) {
-        // Run schedule generators by recurrence type at sensible intervals
-        $schedule->command('schedules:generate --type=daily')->dailyAt('00:05')->onOneServer();
+        $schedule->command('schedules:generate --type=daily')
+            ->dailyAt('00:05')
+            ->onOneServer()
+            ->withoutOverlapping();
 
-        $schedule->command('schedules:generate --type=weekly')->dailyAt('00:10')->onOneServer();
+        $schedule->command('schedules:generate --type=weekly --lead-days=6')
+            ->weeklyOn(1, '00:10') 
+            ->onOneServer()
+            ->withoutOverlapping();
 
-        $schedule->command('schedules:generate --type=monthly')->dailyAt('00:15')->onOneServer();
+        $schedule->command('schedules:generate --type=monthly --to-end-of-month')
+            ->monthlyOn(1, '00:15') 
+            ->onOneServer()
+            ->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
