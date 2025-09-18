@@ -176,36 +176,39 @@ document.addEventListener('DOMContentLoaded', () => {
             if(weekly) weekly.classList.toggle('d-none', v !== 'weekly');
             if(monthly) monthly.classList.toggle('d-none', v !== 'monthly');
 
-            // date options hanya muncul kalau weekly atau monthly, tapi untuk daily hanya end_at
+            // date options: show for daily, weekly, monthly
             if(dateOpts){
-                if(v === 'daily' || v === 'weekly'){
+                if(v === 'daily' || v === 'weekly' || v === 'monthly'){
                     dateOpts.classList.remove('d-none');
                 } else {
-                    dateOpts.classList.toggle('d-none', !(v === 'monthly'));
+                    dateOpts.classList.add('d-none');
                 }
             }
 
-            // hide start_at for daily and weekly
+            // show start_at for daily, weekly, monthly. (User asked: daily should allow choosing start date)
             if(startAtDiv){
-                startAtDiv.classList.toggle('d-none', v === 'daily' || v === 'weekly');
+                startAtDiv.classList.toggle('d-none', !(v === 'daily' || v === 'weekly' || v === 'monthly'));
             }
 
-            // adjust end_at width
-            const endAtDiv = document.querySelector('#schedule_date_opts .d-flex > div:nth-child(2)');
-            if(endAtDiv){
-                if(v === 'monthly'){
-                    endAtDiv.classList.remove('w-100');
-                    endAtDiv.classList.add('w-50');
+            // ensure both Start At and End At use equal width when visible
+            const startAtDivElem = document.getElementById('schedule_start_at_div');
+            const endAtDivElem = document.getElementById('schedule_end_at_div') || document.querySelector('#schedule_date_opts .d-flex > div:nth-child(2)');
+            if(startAtDivElem && endAtDivElem){
+                if(v === 'daily' || v === 'weekly' || v === 'monthly'){
+                    startAtDivElem.classList.remove('w-100'); startAtDivElem.classList.add('w-50');
+                    endAtDivElem.classList.remove('w-100'); endAtDivElem.classList.add('w-50');
                 } else {
-                    endAtDiv.classList.remove('w-50');
-                    endAtDiv.classList.add('w-100');
+                    // default: end at takes full width
+                    startAtDivElem.classList.remove('w-50'); startAtDivElem.classList.add('w-100');
+                    endAtDivElem.classList.remove('w-50'); endAtDivElem.classList.add('w-100');
                 }
             }
 
             // required rules
             const startAt = document.getElementById('schedule_start_at');
             if(startAt){
-                startAt.required = (v === 'monthly');
+                // start_at is required for daily, weekly and monthly (user should pick when the recurrence starts)
+                startAt.required = (v === 'daily' || v === 'weekly' || v === 'monthly');
             }
             const endAt = document.getElementById('schedule_end_at');
             if(endAt){
@@ -294,23 +297,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     container.innerHTML = "<div class=\"d-flex gap-2 align-items-center\"><input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-submit-black add-ref-url' aria-label='Add URL'><span class='material-symbols-outlined'>add</span></button></div>";
                 }
             } catch(_) {}
-            // Reset recurrence toggles
+            // Reset recurrence toggles - set to default and trigger change to re-sync UI
             try {
                 const typeSel = document.getElementById('schedule_recurrence_type');
-                const weekly = document.getElementById('schedule_weekly_opts');
-                const monthly = document.getElementById('schedule_monthly_opts');
-                const dow = document.getElementById('schedule_recurrence_day_of_week');
+                if (typeSel) {
+                    typeSel.value = '';
+                    // trigger change to let recurrenceToggles sync UI (if handler exists)
+                    const ev = new Event('change', { bubbles: true });
+                    typeSel.dispatchEvent(ev);
+                }
                 const monthlyDateInput = document.getElementById('schedule_monthly_date');
                 const monthlyDayHidden = document.getElementById('schedule_recurrence_day_of_month');
-                if (typeSel) typeSel.value = '';
-                if (weekly) weekly.classList.add('d-none');
-                if (monthly) monthly.classList.add('d-none');
-                if (dow) dow.required = false;
                 if (monthlyDateInput) {
                     const def = monthlyDateInput.getAttribute('data-initial-display');
                     monthlyDateInput.value = def || '';
                 }
                 if (monthlyDayHidden) monthlyDayHidden.value = (new Date()).getDate();
+                // ensure start_at isn't required and cleared
+                const startAt = document.getElementById('schedule_start_at');
+                if (startAt) { startAt.required = false; startAt.value = '' }
+                const weekly = document.getElementById('schedule_weekly_opts');
+                if (weekly) weekly.classList.add('d-none');
+                const monthly = document.getElementById('schedule_monthly_opts');
+                if (monthly) monthly.classList.add('d-none');
+                const dow = document.getElementById('schedule_recurrence_day_of_week');
+                if (dow) dow.required = false;
             } catch(_) {}
             // Reset project selection to default (No Project)
             try {

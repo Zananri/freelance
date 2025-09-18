@@ -26,29 +26,42 @@ trait ScheduleImmediateGeneration
     private function maybeGenerateNow(TaskSchedule $s): void
     {
         $now = Carbon::now();
-        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
-        if ($now->lt($start)) {
-            // Initialize next_run_at to first occurrence in the future
+        $today = $now->copy()->startOfDay();
+
+        // Determine recurrence_start base (prefer recurrence_start_date which is set from start_at during creation)
+        $base = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : null;
+
+        // If recurrence_start_date is in the future, initialize next_run_at to the initial and return
+        if ($base && $today->lt($base)) {
             $s->next_run_at = $this->calcInitialRunAt($s, $now);
             $s->save();
             return;
         }
 
         // Determine if today is a due date
-        $today = $now->copy()->startOfDay();
         $dueToday = false;
         switch ($s->recurrence_type) {
             case 'weekly':
-                $dow = (int) ($s->recurrence_day_of_week ?? $today->dayOfWeek);
-                $dueToday = ((int) $today->dayOfWeek === $dow);
+                $dow = (int) ($s->recurrence_day_of_week ?? ($base?->dayOfWeek ?? $today->dayOfWeek));
+                // due if today matches DOW and today >= base (if base set)
+                $dueToday = ((int) $today->dayOfWeek === $dow) && (!$base || $today->gte($base));
                 break;
             case 'monthly':
-                $dom = (int) ($s->recurrence_day_of_month ?? $today->day);
-                $dueToday = false;
+                $dom = (int) ($s->recurrence_day_of_month ?? ($base?->day ?? $today->day));
+                // due if day of month matches and today >= base (if base set)
+                $dueToday = ($today->day === $dom) && (!$base || $today->gte($base));
                 break;
             case 'daily':
             default:
-                $dueToday = false;
+                // daily: due if today >= base and ((today - base) % interval) == 0
+                if (!$base) {
+                    // if no base, use tomorrow as start so today is not due
+                    $dueToday = false;
+                } else {
+                    $diff = $base->diffInDays($today, false);
+                    $interval = max((int) $s->recurrence_interval, 1);
+                    $dueToday = ($diff >= 0) && (($diff % $interval) === 0);
+                }
         }
 
         if (!$dueToday) {
@@ -58,7 +71,7 @@ trait ScheduleImmediateGeneration
             return;
         }
 
-        // Create the task now
+        // Create the task now using today's occurrence (start date derived from today)
         $task = $this->createTaskFromScheduleNow($s);
 
         // Advance next run
@@ -454,8 +467,17 @@ class ScheduleController extends Controller
             }
 
             // Prepare recurrence defaults
-            if (empty($data['recurrence_start_date'])) {
-                $data['recurrence_start_date'] = Carbon::today()->toDateString();
+            // If start_at provided, prefer it as recurrence_start_date (user intent)
+            if (!empty($data['start_at'])) {
+                try {
+                    $data['recurrence_start_date'] = Carbon::parse($data['start_at'])->toDateString();
+                } catch (\Throwable $e) {
+                    $data['recurrence_start_date'] = Carbon::today()->toDateString();
+                }
+            } else {
+                if (empty($data['recurrence_start_date'])) {
+                    $data['recurrence_start_date'] = Carbon::today()->toDateString();
+                }
             }
             $data['recurrence_interval'] = (int)($data['recurrence_interval'] ?? 1) ?: 1;
             if (($data['recurrence_type'] ?? '') !== 'weekly') {

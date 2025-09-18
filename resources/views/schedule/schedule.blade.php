@@ -139,9 +139,8 @@
                                             class="form-control input-text" required>
                                         <div class="invalid-feedback">Start date is required.</div>
                                     </div>
-
                                     <!-- End Date -->
-                                    <div class="w-100">
+                                    <div class="w-50" id="schedule_end_at_div">
                                         <label for="schedule_end_at" class="form-label label-custom">End At</label>
                                         <input type="date" id="schedule_end_at" name="end_at"
                                             class="form-control input-text">
@@ -377,7 +376,7 @@
                                     </div>
 
                                     <!-- End Date -->
-                                    <div class="w-100">
+                                    <div class="w-100" id="edit_schedule_end_at_div">
                                         <label for="edit_schedule_end_at" class="form-label label-custom">End Date</label>
                                         <input type="date" id="edit_schedule_end_at" name="end_at"
                                             class="form-control input-text">
