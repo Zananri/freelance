@@ -617,39 +617,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             }
 
-            function getDivision(emp) {
-                try {
-                    // Try common fields first, then nested structures
-                    return (
-                        emp?.division_name ||
-                        emp?.division ||
-                        emp?.division_title ||
-                        // backend now also provides 'division' as name string and duplicate 'division_name'
-                        (typeof emp?.division === "string"
-                            ? emp?.division
-                            : null) ||
-                        (typeof emp?.division === "object" &&
-                            (emp.division?.name || emp.division?.title)) ||
-                        emp?.employee_division ||
-                        (emp?.employee &&
-                            (emp.employee.division_name ||
-                                (emp.employee.division &&
-                                    (emp.employee.division.name ||
-                                        emp.employee.division.title)))) ||
-                        "-"
-                    );
-                } catch (_) {
-                    return "-";
-                }
-            }
-
             if (!items.length) {
                 return '<div class="text-muted small">No collaborators</div>';
             }
 
             const rows = items.map(({ role, emp }) => {
                 const name = getName(emp);
-                const division = getDivision(emp);
                 // Use global resolver for photo (includes cache busting and onerror handling)
                 const photo = resolvePhotoHtml(emp, 36, 0, role);
                 return (
@@ -662,7 +635,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     (name || "Unknown") +
                     "</div>" +
                     '<div class="collab-division text-muted">' +
-                    (division || "-") +
+                    (role || "-") +
                     "</div>" +
                     "</div>" +
                     "</div>"
