@@ -11279,18 +11279,14 @@ function renderTimeline(
     year = year ?? new Date().getFullYear();
 
     if (mode === "month") {
-        // Modal: tampilkan tanggal sebulan penuh
         const daysInMonth = new Date(year, month + 1, 0).getDate();
-        // Header: tanggal 1..N
         for (let d = 1; d <= daysInMonth; d++) {
             const th = document.createElement("th");
             th.textContent = d;
             headerRow.appendChild(th);
         }
 
-        // Render bar untuk setiap project
         timelineData.forEach((proj) => {
-            // Cek apakah project overlap dengan bulan ini
             const startDay = Math.max(
                 1,
                 proj.start_date.getMonth() === month
@@ -11303,34 +11299,25 @@ function renderTimeline(
                     ? proj.due_date.getDate()
                     : daysInMonth
             );
-
-            // Jika tidak overlap, skip
             if (
                 proj.start_date.getMonth() > month ||
                 proj.due_date.getMonth() < month
             )
                 return;
-
             const tr = document.createElement("tr");
-            // Kosong sebelum bar
             for (let i = 1; i < startDay; i++)
                 tr.appendChild(document.createElement("td"));
-            // Bar project
             if (endDay >= startDay) {
                 const barTd = document.createElement("td");
                 barTd.colSpan = endDay - startDay + 1;
-                const titleText = `${
-                    proj.name
-                } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
                 barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
                 tr.appendChild(barTd);
             }
-            // Kosong setelah bar
             for (let i = endDay + 1; i <= daysInMonth; i++)
                 tr.appendChild(document.createElement("td"));
             rowsContainer.appendChild(tr);
         });
-        // Title modal: Timeline Sep 2025
         const titleEl = document.getElementById("timelineModalTitle");
         if (titleEl) {
             titleEl.textContent = `Timeline ${months[month]} ${year}`;
@@ -11338,7 +11325,6 @@ function renderTimeline(
         return;
     }
 
-    // ...existing code for week mode (tidak diubah)...
     let totalCells = 7;
     const headerLabels = [
         "Monday",
@@ -11355,7 +11341,7 @@ function renderTimeline(
         headerRow.appendChild(th);
     });
 
-    if (weekIndex === null) {
+    if (weekIndex == null) {
         const today = new Date();
         if (today.getMonth() === month && today.getFullYear() === year) {
             const firstOfMonth = new Date(year, month, 1);
@@ -11369,10 +11355,8 @@ function renderTimeline(
 
     const firstOfMonth = new Date(year, month, 1);
     let weekStartDate = new Date(firstOfMonth);
-    weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
-    while (weekStartDate.getDay() !== 1) {
-        weekStartDate.setDate(weekStartDate.getDate() - 1);
-    }
+    weekStartDate.setDate(firstOfMonth.getDate() + weekIndex * 7);
+
     let weekEndDate = new Date(weekStartDate);
     weekEndDate.setDate(weekStartDate.getDate() + 6);
 
@@ -11395,13 +11379,10 @@ function renderTimeline(
         for (let i = 0; i < projStartIdx; i++)
             tr.appendChild(document.createElement("td"));
 
-        // Bar project
         if (projEndIdx >= projStartIdx) {
             const barTd = document.createElement("td");
             barTd.colSpan = projEndIdx - projStartIdx + 1;
-            const titleText = `${
-                proj.name
-            } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+            const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
             barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
             tr.appendChild(barTd);
         }
@@ -11429,7 +11410,8 @@ document.getElementById("prevTimeline").addEventListener("click", () => {
             currentMonth = 11;
             currentYear--;
         }
-        currentWeek = getWeeksInMonth(currentYear, currentMonth) - 1;
+        const maxWeek = getWeeksInMonth(currentYear, currentMonth);
+        currentWeek = maxWeek > 0 ? maxWeek - 1 : 0;
     }
     renderTimeline(
         "#timelineHeader",

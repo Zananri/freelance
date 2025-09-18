@@ -22,7 +22,8 @@
                             <div class="text-danger fs-12 mt-1">{{ $message }}</div>
                         @enderror
                     </div>
-                    <button type="submit" class="btn btn-submit w-100 mb-5 ">Submit</button>
+                    <button type="submit" class="btn btn-submit w-100 mb-3 ">Submit</button>
+                    <a href="{{ route('login') }}" class="btn btn-submit w-100 mb-5 ">Close</a>
                 </form>
             </div>
 
