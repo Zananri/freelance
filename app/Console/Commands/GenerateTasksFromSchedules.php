@@ -213,16 +213,24 @@ class GenerateTasksFromSchedules extends Command
                 return $candidate->startOfDay();
             case 'daily':
             default:
-                // For daily, prefer recurrence_start_date if present; if recurrence_start_date is today or past, initial run should be tomorrow
+                $candidate = null;
                 if ($start) {
-                    // If start date is today or in past, set initial run to tomorrow; else use start
                     if ($start->lte($now->copy()->startOfDay())) {
-                        return $now->copy()->addDay()->startOfDay();
+                        $candidate = $now->copy()->addDay()->startOfDay();
+                    } else {
+                        $candidate = $start->startOfDay();
                     }
-                    return $start->startOfDay();
+                } else {
+                    $candidate = $now->copy()->addDay()->startOfDay();
                 }
-                // no start provided -> next run is tomorrow
-                return $now->copy()->addDay()->startOfDay();
+
+                // If schedule disables weekends and candidate falls on weekend, advance to next non-weekend
+                if (empty($s->include_weekend) || !$s->include_weekend) {
+                    while (in_array((int)$candidate->dayOfWeek, [0,6], true)) {
+                        $candidate->addDay();
+                    }
+                }
+                return $candidate;
         }
     }
 
@@ -248,8 +256,13 @@ class GenerateTasksFromSchedules extends Command
             return $this->safeMonthlyDate($next->year, $next->month, $dom, $next)->startOfDay();
             case 'daily':
             default:
-                // For daily recurrence, next run is current + interval days
-                return $next->addDays($interval)->startOfDay();
+                $candidate = $next->addDays($interval)->startOfDay();
+                if (empty($s->include_weekend) || !$s->include_weekend) {
+                    while (in_array((int)$candidate->dayOfWeek, [0,6], true)) {
+                        $candidate->addDay();
+                    }
+                }
+                return $candidate;
         }
     }
 
