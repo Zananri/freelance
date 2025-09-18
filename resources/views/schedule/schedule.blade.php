@@ -493,10 +493,6 @@
     <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h6 class="modal-title">Konfirmasi Hapus</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
 
                 <div class="modal-body modal-body-custom text-center">
                     <p style="font-size: 14px; color: #555;">
