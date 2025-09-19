@@ -193,3 +193,15 @@
     font-size: 14px;
     color: #555;
 }
+
+/* Weekday picker selected style */
+.weekday-selected {
+    background-color: #5770d5 !important;
+    border-color: #5770d5 !important;
+    color: #ffffff !important;
+}
+
+/* Keep small button look but with selected color */
+.weekday-btn, .edit-weekday-btn {
+    min-width: 84px;
+}

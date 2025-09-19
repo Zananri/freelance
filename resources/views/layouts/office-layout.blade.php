@@ -312,6 +312,12 @@
                             <span class="text-menu">Attendance Tracking</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('leave') }}" class="{{ $menu_active == 'leave' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">free_cancellation</span>
+                            <span class="text-menu">Leave</span>
+                        </a>
+                    </li>
                     
                     {{-- <li>
                         <a href="#">

@@ -213,22 +213,25 @@ class GenerateTasksFromSchedules extends Command
                 return $candidate->startOfDay();
             case 'daily':
             default:
-                $candidate = null;
-                if ($start) {
-                    if ($start->lte($now->copy()->startOfDay())) {
-                        $candidate = $now->copy()->addDay()->startOfDay();
-                    } else {
-                        $candidate = $start->startOfDay();
-                    }
-                } else {
+                // Start from provided start or tomorrow
+                $candidate = $start ? $start->startOfDay() : $now->copy()->addDay()->startOfDay();
+                if ($candidate->lte($now->copy()->startOfDay())) {
                     $candidate = $now->copy()->addDay()->startOfDay();
                 }
-
                 // If schedule disables weekends and candidate falls on weekend, advance to next non-weekend
-                if (empty($s->include_weekend) || !$s->include_weekend) {
-                    while (in_array((int)$candidate->dayOfWeek, [0,6], true)) {
-                        $candidate->addDay();
+                // If recurrence_days_of_week is provided, ensure the initial candidate falls on one of them.
+                $allowed = null;
+                if (!empty($s->recurrence_days_of_week) && is_array($s->recurrence_days_of_week)) {
+                    $allowed = array_map('intval', $s->recurrence_days_of_week);
+                }
+                $tries = 0;
+                while (true) {
+                    $dow = (int)$candidate->dayOfWeek;
+                    if (is_null($allowed) || in_array($dow, $allowed, true)) {
+                        break;
                     }
+                    $candidate->addDay();
+                    $tries++; if ($tries > 366) break; // safety
                 }
                 return $candidate;
         }
@@ -256,13 +259,30 @@ class GenerateTasksFromSchedules extends Command
             return $this->safeMonthlyDate($next->year, $next->month, $dom, $next)->startOfDay();
             case 'daily':
             default:
-                $candidate = $next->addDays($interval)->startOfDay();
-                if (empty($s->include_weekend) || !$s->include_weekend) {
-                    while (in_array((int)$candidate->dayOfWeek, [0,6], true)) {
-                        $candidate->addDay();
-                    }
+                // move forward by interval days, but respect allowed weekdays if provided
+                $candidate = $next->copy();
+                $tries = 0;
+                do {
+                    $candidate->addDay();
+                    $tries++;
+                } while ($tries < 366 && $candidate->diffInDays($next, false) < $interval);
+
+                // After moving at least interval days forward, ensure weekday is allowed and weekends respected
+                $allowed = null;
+                if (!empty($s->recurrence_days_of_week) && is_array($s->recurrence_days_of_week)) {
+                    $allowed = array_map('intval', $s->recurrence_days_of_week);
                 }
-                return $candidate;
+                $safety = 0;
+                while (true) {
+                    $dow = (int)$candidate->dayOfWeek;
+                    if (!is_null($allowed) && !in_array($dow, $allowed, true)) {
+                        $candidate->addDay();
+                    } else {
+                        break;
+                    }
+                    $safety++; if ($safety > 366) break;
+                }
+                return $candidate->startOfDay();
         }
     }
 

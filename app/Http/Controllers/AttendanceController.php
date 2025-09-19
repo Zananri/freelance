@@ -127,7 +127,7 @@ class AttendanceController extends Controller
             ->where('date_attendance', $rangeStart->addHours(2)->toDateString())
         ->first();
 
-        $todayDate = $rangeStart->format('l, j F Y');
+        $todayDate = $rangeStart->format('j F Y');
 
 
         if($attendance){
@@ -374,8 +374,8 @@ class AttendanceController extends Controller
                     'time_in' => $now->format('H:i'),
                     'status'    => $statusAttendance,
                     'time_late' => $timeLate,
-                    'shift_time_start' => $shifTimeStart->format('H:i'),
-                    'shift_time_end' => $shifTimeEnd->format('H:i'),
+                    'shift_time_start' => $timeStart->format('H:i'),
+                    'shift_time_end' => $timeEnd->format('H:i'),
                     'updated_by' => $userId
                 ]);
             }else{
@@ -552,6 +552,23 @@ class AttendanceController extends Controller
                 ->where('date_attendance', $dateAttendance)
             ->first();
 
+            if($attendance){
+                
+                $attendanceId = $attendance->id;
+
+                $attendanceTrackingCheckIn = AttendanceTracking::where('attendance_id', $attendanceId)
+                    ->where('type', 'check_in')
+                ->first();
+
+                if(!$attendanceTrackingCheckIn){
+                    throw new \Exception('Please Check in first');
+                }
+                
+            }else{
+                throw new \Exception('Please Check in first');
+            }
+            
+
             $imageArray = [];
 
             if ($request->hasFile('photo_checkout')) {
@@ -577,6 +594,16 @@ class AttendanceController extends Controller
                 
                 $attendanceId = $attendance->id;
 
+
+                $attendanceTrackingCheckIn = AttendanceTracking::where('attendance_id', $attendanceId)
+                    ->where('type', 'check_in')
+                ->first();
+
+                if(!$attendanceTrackingCheckIn){
+                    throw new \Exception('Check in first');
+                }
+                
+                
                 $attendance->update([
                     'time_out' => $now->format('H:i'),
                     'updated_by' => $userId
