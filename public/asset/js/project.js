@@ -6114,6 +6114,62 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const deptText = _getDeptText(deptRaw);
                                 const divText = _getDeptText(divRaw);
 
+                                function getTaskByDueDate(projectId, callback) {
+                                    $.ajax({
+                                        url: appUrl + "/projects/" + projectId + "/tasks",
+                                        type: "GET",
+                                        dataType: "json",
+                                        success: function (response) {
+                                            if (response.data && response.data.length > 0) {
+                                                const tasksWithDue = response.data.filter(t => t.due_date);
+                                                if (tasksWithDue.length === 0) return callback(null);
+
+                                                const maxTask = tasksWithDue.reduce((latest, t) => {
+                                                    return new Date(t.due_date) > new Date(latest.due_date) ? t : latest;
+                                                });
+
+                                                callback(maxTask);
+                                            } else {
+                                                callback(null);
+                                            }
+                                        },
+                                        error: function (xhr, status, err) {
+                                            console.error("Error fetch tasks:", err);
+                                            callback(null);
+                                        }
+                                    });
+                                }
+
+                                function formatTaskDate(date) {
+                                    if (!date) return "-";
+                                    const d = new Date(date);
+
+                                    const year = d.getFullYear();
+                                    const month = String(d.getMonth() + 1).padStart(2, "0");
+                                    const day = String(d.getDate()).padStart(2, "0");
+
+                                    return `${year}-${month}-${day}`;
+                                }
+
+
+                                getTaskByDueDate(project.id, function(maxTask) {
+                                    const deadlineEl = document.getElementById("deadline-" + project.id);
+                                    if (!deadlineEl) return;
+
+                                    const projectDue = project.due_date ? new Date(project.due_date) : null;
+
+                                    if (maxTask && maxTask.due_date) {
+                                        const taskDue = new Date(maxTask.due_date);
+
+                                        if (!projectDue || taskDue > projectDue) {
+                                            deadlineEl.textContent = formatTaskDate(taskDue);
+                                        } else {
+                                            deadlineEl.textContent = formatTaskDate(projectDue);
+                                        }
+                                    } else {
+                                        deadlineEl.textContent = projectDue ? formatTaskDate(projectDue) : "-";
+                                    }
+                                });
 
                             const parentTitle = project?.part_of_project_title
                                 ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>`
@@ -6139,21 +6195,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             : ""
                                     }
                                     <hr class="task-separator rounded-4">
-                                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
-                                        <div>
-                                            <span style="color:#797E91;">Priority: </span>
-                                            <span style="color:${
-                                                (project.priority || "").toUpperCase() ===
-                                                "HIGH"
-                                                    ? "red"
-                                                    : "#4B4F5E"
-                                            }">${project.priority || "-"}</span>
-                                        </div>
-                                        <div>
-                                            <span style="color:#797E91;">Deadline: </span>
-                                            <span style="color:#4B4F5E;">${
-                                                project.due_date || "-"
-                                            }</span>
+                                    <div id="project-${project.id}" class="project-card">
+                                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
+                                            <div>
+                                                <span style="color:#797E91;">Deadline: </span>
+                                                <span id="deadline-${project.id}" style="color:#4B4F5E;">
+                                                    ${project.due_date || "-"}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -6383,6 +6432,63 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const deptText = _getDeptText(deptRaw);
                                 const divText = _getDeptText(divRaw);
 
+                                                                function getTaskByDueDate(projectId, callback) {
+                                    $.ajax({
+                                        url: appUrl + "/projects/" + projectId + "/tasks",
+                                        type: "GET",
+                                        dataType: "json",
+                                        success: function (response) {
+                                            if (response.data && response.data.length > 0) {
+                                                const tasksWithDue = response.data.filter(t => t.due_date);
+                                                if (tasksWithDue.length === 0) return callback(null);
+
+                                                const maxTask = tasksWithDue.reduce((latest, t) => {
+                                                    return new Date(t.due_date) > new Date(latest.due_date) ? t : latest;
+                                                });
+
+                                                callback(maxTask);
+                                            } else {
+                                                callback(null);
+                                            }
+                                        },
+                                        error: function (xhr, status, err) {
+                                            console.error("Error fetch tasks:", err);
+                                            callback(null);
+                                        }
+                                    });
+                                }
+
+                                function formatTaskDate(date) {
+                                    if (!date) return "-";
+                                    const d = new Date(date);
+
+                                    const year = d.getFullYear();
+                                    const month = String(d.getMonth() + 1).padStart(2, "0");
+                                    const day = String(d.getDate()).padStart(2, "0");
+
+                                    return `${year}-${month}-${day}`;
+                                }
+
+
+                                getTaskByDueDate(project.id, function(maxTask) {
+                                    const deadlineEl = document.getElementById("deadline-" + project.id);
+                                    if (!deadlineEl) return;
+
+                                    const projectDue = project.due_date ? new Date(project.due_date) : null;
+
+                                    if (maxTask && maxTask.due_date) {
+                                        const taskDue = new Date(maxTask.due_date);
+
+                                        if (!projectDue || taskDue > projectDue) {
+                                            deadlineEl.textContent = formatTaskDate(taskDue);
+                                        } else {
+                                            deadlineEl.textContent = formatTaskDate(projectDue);
+                                        }
+                                    } else {
+                                        deadlineEl.textContent = projectDue ? formatTaskDate(projectDue) : "-";
+                                    }
+                                });
+
                                 const detailHtml = `
                 <div class="custom-card-detail rounded-4 p-3 border-0" data-project-id="${pid}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
@@ -6411,19 +6517,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     <hr class="task-separator rounded-4">
                     <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
                         <div>
-                            <span style="color:#797E91;">Priority: </span>
-                            <span style="color:${
-                                (project.priority || "").toUpperCase() ===
-                                "HIGH"
-                                    ? "red"
-                                    : "#4B4F5E"
-                            }">${project.priority || "-"}</span>
-                        </div>
-                        <div>
                             <span style="color:#797E91;">Deadline: </span>
-                            <span style="color:#4B4F5E;">${
-                                project.due_date || "-"
-                            }</span>
+                            <span id="deadline-${project.id}" style="color:#4B4F5E;">
+                                ${project.due_date || "-"}
+                            </span>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -9236,7 +9333,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 divisionSelect.innerHTML =
                     '<option value="" disabled selected>Select Division</option>';
                 loadDepartments();
-                loadProjects();
 
                 // Close modal after short delay to show alert
                 setTimeout(() => {
@@ -10629,7 +10725,6 @@ document.addEventListener("DOMContentLoaded", function () {
         loadDepartments();
         divisionSelect.innerHTML =
             '<option value="" disabled selected>Select Division</option>';
-        loadProjects();
 
         // Clear selected reference files and preview
         try {
