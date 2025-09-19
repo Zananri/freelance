@@ -267,7 +267,7 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="description" name="description" rows="3"></textarea>
+                            <textarea class="form-control input-text" id="description" name="description" required rows="3"></textarea>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="department" class="form-label label-custom">Department</label>
@@ -400,7 +400,7 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="edit_description" name="description" rows="3"></textarea>
+                            <textarea class="form-control input-text" id="edit_description" name="description" required rows="3"></textarea>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_department" class="form-label label-custom">Department</label>
