@@ -68,10 +68,7 @@ trait ScheduleImmediateGeneration
                 }
         }
 
-            // If schedule is daily but should not include weekends, then if today is Sat/Sun mark not due
-            if (($s->recurrence_type === 'daily' || $s->recurrence_type === null) && empty($s->include_weekend) && in_array((int)$today->dayOfWeek, [0,6], true)) {
-                $dueToday = false;
-            }
+            // include_weekend removed: weekend exclusion handled via recurrence_days_of_week if needed
 
         if (!$dueToday) {
             // Not due; initialize next_run_at so the scheduler can pick it up
@@ -91,28 +88,59 @@ trait ScheduleImmediateGeneration
 
     private function calcInitialRunAt(TaskSchedule $s, Carbon $now): Carbon
     {
-        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
+        // Use recurrence_start_date (which should reflect start_at if provided by user)
+        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : null;
+
         switch ($s->recurrence_type) {
             case 'weekly':
-                $dow = (int) ($s->recurrence_day_of_week ?? $start->dayOfWeek);
-                // Start searching from the recurrence_start_date itself so if start_at
-                // falls on the desired weekday we return that date (initial occurrence).
-                $next = $start->copy();
-                while ((int) $next->dayOfWeek !== $dow) {
-                    $next->addDay();
+                // If start not provided, fallback to today
+                $base = $start ?? $now->copy()->startOfDay();
+                $dow = is_null($s->recurrence_day_of_week) ? (int) $base->dayOfWeek : (int) $s->recurrence_day_of_week; // 0=Sun
+                $candidate = $base->copy();
+                // If base is before today, start from today
+                if ($candidate->lt($now->copy()->startOfDay())) {
+                    $candidate = $now->copy()->startOfDay();
                 }
-                return $next;
+                // Move forward to the next matching DOW (including today if matches)
+                while ((int) $candidate->dayOfWeek !== $dow) {
+                    $candidate->addDay();
+                }
+                return $candidate->startOfDay();
             case 'monthly':
-                $base = $s->start_at ? Carbon::parse($s->start_at)->startOfDay() : $start;
-                $dom = (int) ($s->recurrence_day_of_month ?? $base->day);
+                // Prefer explicit start_at chosen in modal; fall back to recurrence_start_date or today
+                $base = $s->start_at ? Carbon::parse($s->start_at)->startOfDay() : ($start ?? $now->copy()->startOfDay());
+                // day of month to use: explicit recurrence_day_of_month if set, otherwise day of start_at/base
+                $dom = (int) ($s->recurrence_day_of_month ?: $base->day);
+                // Candidate is the nearest occurrence on or after base: try this month first
                 $candidate = $this->safeMonthly($base->year, $base->month, $dom);
                 if ($candidate->lt($now->copy()->startOfDay())) {
-                    $candidate = $this->safeMonthly($base->copy()->addMonthNoOverflow()->year, $base->copy()->addMonthNoOverflow()->month, $dom);
+                    // move to next month
+                    $nextMonth = $base->copy()->addMonthNoOverflow();
+                    $candidate = $this->safeMonthly($nextMonth->year, $nextMonth->month, $dom);
                 }
                 return $candidate->startOfDay();
             case 'daily':
             default:
-                return $start->addDay(); // tomorrow
+                // Start from provided start or tomorrow
+                $candidate = $start ? $start->startOfDay() : $now->copy()->addDay()->startOfDay();
+                if ($candidate->lte($now->copy()->startOfDay())) {
+                    $candidate = $now->copy()->addDay()->startOfDay();
+                }
+                // If recurrence_days_of_week is provided, ensure the initial candidate falls on one of them.
+                $allowed = null;
+                if (!empty($s->recurrence_days_of_week) && is_array($s->recurrence_days_of_week)) {
+                    $allowed = array_map('intval', $s->recurrence_days_of_week);
+                }
+                $tries = 0;
+                while (true) {
+                    $dow = (int)$candidate->dayOfWeek;
+                    if (is_null($allowed) || in_array($dow, $allowed, true)) {
+                        break;
+                    }
+                    $candidate->addDay();
+                    $tries++; if ($tries > 366) break; // safety
+                }
+                return $candidate;
         }
     }
 
@@ -434,11 +462,12 @@ class ScheduleController extends Controller
                 'recurrence_type' => 'required|in:daily,weekly,monthly',
                 'recurrence_interval' => 'nullable|integer|min:1',
                 'recurrence_day_of_week' => 'required_if:recurrence_type,weekly|nullable|integer|min:0|max:6',
+                'recurrence_days_of_week' => 'nullable',
                 'recurrence_day_of_month' => 'nullable|integer|min:1|max:31',
+                'recurrence_days_of_week' => 'nullable',
                 'recurrence_start_date' => 'nullable|date',
                 'recurrence_end_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'executor_ids' => 'nullable',
-                'include_weekend' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -491,12 +520,7 @@ class ScheduleController extends Controller
                 $data['updated_by'] = $request->user()->id;
             }
 
-            // include_weekend normalize
-            if ($request->has('include_weekend')) {
-                $data['include_weekend'] = filter_var($request->input('include_weekend'), FILTER_VALIDATE_BOOLEAN);
-            } else {
-                $data['include_weekend'] = false;
-            }
+            // include_weekend removed
 
             // Normalize executor_ids
             $execIds = $request->input('executor_ids');
@@ -507,6 +531,23 @@ class ScheduleController extends Controller
                 }
             } elseif (is_array($execIds)) {
                 $data['executor_ids'] = array_values($execIds);
+            }
+
+            // Normalize recurrence_days_of_week (may be JSON string)
+            $daysInput = $request->input('recurrence_days_of_week');
+            if (is_string($daysInput)) {
+                $decoded = json_decode($daysInput, true);
+                if (is_array($decoded)) {
+                    $vals = array_map('intval', $decoded);
+                    $vals = array_values(array_unique($vals));
+                    sort($vals, SORT_NUMERIC);
+                    $data['recurrence_days_of_week'] = array_values($vals);
+                }
+            } elseif (is_array($daysInput)) {
+                $vals = array_map('intval', $daysInput);
+                $vals = array_values(array_unique($vals));
+                sort($vals, SORT_NUMERIC);
+                $data['recurrence_days_of_week'] = array_values($vals);
             }
 
             // For daily recurrence we prefer to derive schedule start_date from start_at (user intent)
@@ -596,6 +637,10 @@ class ScheduleController extends Controller
             }
             $data['recurrence_interval'] = (int)($data['recurrence_interval'] ?? 1) ?: 1;
             if (($data['recurrence_type'] ?? '') !== 'weekly') {
+                $data['recurrence_day_of_week'] = null;
+            }
+            // If daily recurrence was provided with recurrence_days_of_week, keep it and clear single-day field
+            if (!empty($data['recurrence_days_of_week'])) {
                 $data['recurrence_day_of_week'] = null;
             }
             if (($data['recurrence_type'] ?? '') !== 'monthly') {
@@ -734,7 +779,6 @@ class ScheduleController extends Controller
                 'recurrence_start_date' => 'nullable|date',
                 'recurrence_end_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'executor_ids' => 'nullable',
-                'include_weekend' => 'nullable|boolean',
             ]);
 
             if ($validator->fails()) {
@@ -868,10 +912,28 @@ class ScheduleController extends Controller
                 $data['recurrence_end_date'] = null;
             }
 
-            // include_weekend normalize for updates
-            if (array_key_exists('include_weekend', $data)) {
-                $data['include_weekend'] = (bool)$data['include_weekend'];
+            // Normalize recurrence_days_of_week input for update: integers, unique, sorted
+            $daysInput = $request->input('recurrence_days_of_week');
+            if (is_string($daysInput)) {
+                $decoded = json_decode($daysInput, true);
+                if (is_array($decoded)) {
+                    $vals = array_map('intval', $decoded);
+                    $vals = array_values(array_unique($vals));
+                    sort($vals, SORT_NUMERIC);
+                    $data['recurrence_days_of_week'] = array_values($vals);
+                }
+            } elseif (is_array($daysInput)) {
+                $vals = array_map('intval', $daysInput);
+                $vals = array_values(array_unique($vals));
+                sort($vals, SORT_NUMERIC);
+                $data['recurrence_days_of_week'] = array_values($vals);
             }
+
+            if (!empty($data['recurrence_days_of_week'])) {
+                $data['recurrence_day_of_week'] = null;
+            }
+
+            // include_weekend removed
 
             // Update schedule
             if (!empty($data)) {
