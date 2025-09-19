@@ -9,6 +9,7 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Employee;
 use App\Models\EmployeeLeave;
+use App\Models\EmployeeLeaveRequest;
 
 class LeaveController extends Controller
 {
@@ -64,12 +65,13 @@ class LeaveController extends Controller
 
         $employeeActive = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')
-            ->where('employees.status',"ACTIVE")
+            ->whereIn('employees.status',["ACTIVE","RESIGN"])
             ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
             ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 
-        $employeeLeaveRequest = EmployeeLeaveRequest::with('employee')->whereIn('employee_id',$employeeActive->pluck('id'))
+        $employeeLeaveRequest = EmployeeLeaveRequest::with('employee')
+            ->whereIn('employee_id',$employeeActive->pluck('id'))
             ->whereIn('status',['REQUEST','APPROVED','REJECTED'])
             ->orderBy('created_at','desc')
         ->get();

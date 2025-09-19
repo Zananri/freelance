@@ -279,6 +279,7 @@ Route::middleware('auth', 'management')->group(function () {
 
     Route::get('/leave', [LeaveController::class, 'showLeavePage'])->name('leave');
     Route::get('/leave/employee-leave-by-year', [LeaveController::class, 'getEmployeeLeaveByYear'])->name('leave.getEmployeeLeaveByYear');
+    Route::get('/leave/all-employee-leave-request', [LeaveController::class, 'allEmployeeLeaveRequest'])->name('leave.allEmployeeLeaveRequest');
 
 });
 

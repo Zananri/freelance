@@ -25,9 +25,9 @@
     <div class="leave-container">
         <div class="row">
 
-            <di class="col-12 col-md-4 col-leave-request mb-4 p-0"> 
+            <di class="col-12 col-md-6 col-leave-request mb-4 p-0"> 
 
-                <div class="card-content overflow-hidden">
+                <div class="card-content">
 
                     <div class="header-leave">
 
@@ -53,7 +53,7 @@
 
             </di>
 
-            <di class="col-12 col-md-8 col-leave mb-4"> 
+            <di class="col-12 col-md-6 col-leave mb-4"> 
 
                 <div class="card-content overflow-hidden">
                     <div class="header-leave">

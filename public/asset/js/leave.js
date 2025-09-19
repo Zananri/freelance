@@ -139,6 +139,10 @@ function getAttendanceDetail(employeeId,dateAttendance)
 
 //LEAVE REQUEST
 
+let SEARCH_QUERY_LEAVE_REQUEST = '';
+let DATA_LEAVE_REQUEST = [];
+let PAGE_LEAVE_REQUEST = 1;
+
 function htmlDataRequestTimeOff(dataRow){
 
     let leaveType = capitalizeFirstLetter(dataRow.leave_type);
@@ -167,11 +171,25 @@ function htmlDataRequestTimeOff(dataRow){
             <div class="item-header mb-2">
                 <div class="mb-0">
                     <div class="d-flex align-items-center justify-content-between">
-                        <div class="col-title">
-                            <div class="item-title me-2">${leaveType}</div>
+                        <div class="col-employee">
+                            <div class="box-employee">
+                                <div class="d-flex align-items-center">
+                                    <div class="col-photo">
+                                        <div class="employee-photo">
+                                            <img src="${appUrl}/${dataRow.employee.photo}" class="rounded-circle w-100 h-100 object-fit-cover" alt="">
+                                        </div>
+                                    </div>
+                                    <div class="col-name w-100">
+                                        <div class="employee-name">
+                                            ${dataRow.employee.name}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-day-status">
                             <div class="item-day">${dataRow.day_amount} Day</div>
+                            <div class="item-type me-2">${leaveType}</div>
                         </div>
                     </div>
                 </div>
@@ -213,6 +231,7 @@ function htmlDataRequestTimeOff(dataRow){
                             <div class="btn-action edit-time-off">
                                 <span class="material-symbols-outlined">edit</span>
                             </div>
+
                             <div class="btn-action delete-time-off">
                                 <span class="material-symbols-outlined">delete</span>
                             </div>
@@ -226,6 +245,48 @@ function htmlDataRequestTimeOff(dataRow){
     return rowItem;
 }
 
+function getAllEmployeeLeaveRequest()
+{
+
+    $.ajax({
+        url: appUrl + "/leave/all-employee-leave-request",
+        type: "GET",
+        data:{
+            'SEARCH_QUERY_LEAVE_REQUEST' : SEARCH_QUERY_LEAVE_REQUEST,
+            'page' : PAGE_LEAVE_REQUEST,
+        },
+        beforeSend:function(){
+            //$('.col-user-management .loader').fadeIn('fast');
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            //$('.loader').fadeOut('fast');
+            //$('.col-user-management .loader').fadeOut('fast');
+        },
+        success: function(response) {
+            
+            DATA_LEAVE_REQUEST = response.data.employeeLeaveRequest;
+
+            let rowItem = '';
+                
+            for (let i = 0; i < DATA_LEAVE_REQUEST.length; i++) {
+                rowItem += htmlDataRequestTimeOff(DATA_LEAVE_REQUEST[i]);
+            }
+
+            $('.col-leave-request .box-data').html(rowItem);
+
+            //attendance-checkin attendance-checkout attendance-work-duration
+
+            //modalAttendance.show();
+        
+        }
+         
+    });
+
+}
+
+getAllEmployeeLeaveRequest();
 //END LEAVE REQUEST
 
 
