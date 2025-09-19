@@ -111,11 +111,19 @@ trait ScheduleImmediateGeneration
                 $base = $s->start_at ? Carbon::parse($s->start_at)->startOfDay() : ($start ?? $now->copy()->startOfDay());
                 // day of month to use: explicit recurrence_day_of_month if set, otherwise day of start_at/base
                 $dom = (int) ($s->recurrence_day_of_month ?: $base->day);
-                // Candidate is the nearest occurrence on or after base: try this month first
-                $candidate = $this->safeMonthly($base->year, $base->month, $dom);
-                if ($candidate->lt($now->copy()->startOfDay())) {
-                    // move to next month
-                    $nextMonth = $base->copy()->addMonthNoOverflow();
+                // Determine a reference date: prefer the provided base, but if base is in the past
+                // relative to now, use today as the reference. This ensures we find the next
+                // occurrence on or after the user's intended start (or today when start is past).
+                $ref = $base->copy();
+                if ($ref->lt($now->copy()->startOfDay())) {
+                    $ref = $now->copy()->startOfDay();
+                }
+                // Candidate is the day-of-month in the reference month
+                $candidate = $this->safeMonthly($ref->year, $ref->month, $dom);
+                // If that candidate is before the reference (e.g. user chose day 25 but base is day 5),
+                // advance to next month
+                if ($candidate->lt($ref)) {
+                    $nextMonth = $ref->copy()->addMonthNoOverflow();
                     $candidate = $this->safeMonthly($nextMonth->year, $nextMonth->month, $dom);
                 }
                 return $candidate->startOfDay();
@@ -941,6 +949,36 @@ class ScheduleController extends Controller
             }
             $schedule->refresh();
 
+            // Ensure start_date and due_date are recomputed to follow any changed start_at
+            // or due_in_days. This applies for daily, weekly and monthly schedules.
+            try {
+                // If the payload provided a start_at or start_date, normalize start_date
+                if (array_key_exists('start_at', $data) && !empty($data['start_at'])) {
+                    $sdate = Carbon::parse($data['start_at'])->toDateString();
+                    $schedule->start_date = $sdate;
+                    // If recurrence exists, also sync recurrence_start_date for user intent
+                    if (!empty($schedule->recurrence_type)) {
+                        $schedule->recurrence_start_date = $sdate;
+                    }
+                } elseif (array_key_exists('start_date', $data) && !empty($data['start_date'])) {
+                    $schedule->start_date = Carbon::parse($data['start_date'])->toDateString();
+                }
+
+                // If due_in_days provided in payload or schedule already has it, recompute due_date
+                if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
+                    $base = Carbon::parse($schedule->start_date ?? Carbon::today()->toDateString())->startOfDay();
+                    $schedule->due_date = $base->copy()->addDays((int)$data['due_in_days'])->toDateString();
+                } elseif (!is_null($schedule->due_in_days)) {
+                    // ensure existing due_in_days remains honored if start_date changed
+                    $base = Carbon::parse($schedule->start_date ?? Carbon::today()->toDateString())->startOfDay();
+                    $schedule->due_date = $base->copy()->addDays((int)$schedule->due_in_days)->toDateString();
+                }
+            } catch (\Throwable $e) {
+                // ignore and keep existing values
+            }
+            // Persist intermediate changes before recurrence-specific adjustments below
+            $schedule->save();
+
             // If updated schedule is monthly, ensure its start_date/due_date/next_run_at
             // are consistent with recurrence_start_date and due_in_days.
             if ($schedule->recurrence_type === 'monthly') {
@@ -958,9 +996,60 @@ class ScheduleController extends Controller
                     }
                 }
                 try {
+                    // If the user changed start_at/start_date, prefer to sync recurrence_day_of_month
+                    // to the chosen start date so next_run_at follows user intent.
+                    if ($schedule->start_date) {
+                        try {
+                            $sdt = Carbon::parse($schedule->start_date)->startOfDay();
+                            $schedule->recurrence_day_of_month = (int) $sdt->day;
+                        } catch (\Throwable $e) {
+                            // ignore parsing errors
+                        }
+                    }
+
+                    // For monthly schedules, next_run_at should be the same day-of-month in the next month
+                    $start = $schedule->start_date ? Carbon::parse($schedule->start_date)->startOfDay() : Carbon::now()->startOfDay();
+                    $nextMonth = $start->copy()->addMonthNoOverflow();
+                    $dom = (int) ($schedule->recurrence_day_of_month ?: $start->day);
+                    $candidate = $this->safeMonthly($nextMonth->year, $nextMonth->month, $dom);
+                    $schedule->next_run_at = $candidate->startOfDay();
+                } catch (\Throwable $e) {
+                    // fallback: compute initial run normally
+                    try {
+                        $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
+                    } catch (\Throwable $e) {
+                        // leave as-is
+                    }
+                }
+                $schedule->save();
+            }
+            // For weekly schedules, ensure recurrence_start_date/start_date follow start_at
+            // and compute next_run_at using the same logic as creation (calcInitialRunAt)
+            if ($schedule->recurrence_type === 'weekly') {
+                try {
+                    // If start_at was provided/updated, use it as recurrence_start_date and start_date
+                    if ($schedule->start_at) {
+                        try {
+                            $rdate = Carbon::parse($schedule->start_at)->toDateString();
+                            $schedule->recurrence_start_date = $rdate;
+                            $schedule->start_date = $rdate;
+                        } catch (\Throwable $e) {
+                            // ignore
+                        }
+                    }
+
+                    // If start_date present, sync recurrence_day_of_week from it (user intent)
+                    if ($schedule->start_date) {
+                        try {
+                            $sdt = Carbon::parse($schedule->start_date)->startOfDay();
+                            $schedule->recurrence_day_of_week = (int) $sdt->dayOfWeek;
+                        } catch (\Throwable $e) { /* ignore */ }
+                    }
+
+                    // Compute next_run_at consistently with creation logic
                     $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
                 } catch (\Throwable $e) {
-                    // leave as-is
+                    // fallback: leave next_run_at as-is
                 }
                 $schedule->save();
             }

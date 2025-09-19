@@ -464,10 +464,162 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.priority || "";
         document.getElementById("edit_schedule_due_in_days").value =
             schedule.due_in_days || "";
-        document.getElementById("edit_schedule_start_at").value =
-            schedule.start_at || "";
-        document.getElementById("edit_schedule_end_at").value =
-            schedule.end_at || "";
+    // Use only start_at/end_at for edit modal (do not fallback to legacy start_date/due_date)
+    const startVal = schedule.start_at ?? "";
+    const endVal = schedule.end_at ?? "";
+    const startEl = document.getElementById("edit_schedule_start_at");
+    const endEl = document.getElementById("edit_schedule_end_at");
+
+    // Early-parse recurrence days so we can decide whether to touch start_at
+    let parsedDays = schedule.recurrence_days_of_week ?? schedule.recurrence_days_of_week_raw ?? null;
+    if (!Array.isArray(parsedDays) && typeof parsedDays === 'string') {
+        try {
+            parsedDays = JSON.parse(parsedDays);
+        } catch (e) {
+            parsedDays = parsedDays.split(',').map(s => s.trim()).filter(Boolean).map(Number);
+        }
+    }
+    if (!Array.isArray(parsedDays)) parsedDays = [];
+
+    function toLocalDateInput(val) {
+        if (!val) return "";
+        const s = String(val).trim();
+        // If it's already in YYYY-MM-DD form, return it
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        // Try to extract a YYYY-MM-DD substring first
+        const m = s.match(/\d{4}-\d{2}-\d{2}/);
+        // Try to parse into Date and use local components to avoid timezone shift
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return (m && m[0]) || "";
+    }
+
+    try {
+        const newStart = toLocalDateInput(startVal);
+        const newEnd = toLocalDateInput(endVal);
+        // Debug log to help trace unexpected date shifts (can be removed later)
+        if (window.__scheduleDebug) console.debug('populateEditModal: startVal, endVal, parsedDays', startVal, endVal, parsedDays);
+
+        // If recurrence is daily and user already selected weekdays (parsedDays non-empty),
+        // avoid overwriting an existing start_at value to prevent repeat-adjust behavior.
+        const isDailyWithDays = (schedule.recurrence_type === 'daily' && parsedDays.length > 0);
+        if (startEl) {
+            const shouldSetStart = !isDailyWithDays || !startEl.value;
+            if (shouldSetStart) startEl.value = newStart;
+            else if (window.__scheduleDebug) console.debug('populateEditModal: skip setting start_at because daily with selected weekdays and input already has value');
+        }
+        if (endEl) endEl.value = newEnd;
+    } catch (e) {
+        if (startEl) startEl.value = (startVal || "").toString().slice(0, 10);
+        if (endEl) endEl.value = (endVal || "").toString().slice(0, 10);
+    }
+
+    // Sync hidden recurrence start/end fields and compute next run date when start_at or due_in_days changes
+    function computeEditDerivedDates(){
+        try{
+            const startInput = document.getElementById('edit_schedule_start_at');
+            const dueInDaysInput = document.getElementById('edit_schedule_due_in_days');
+            const hiddenStart = document.getElementById('edit_schedule_recurrence_start_date');
+            const hiddenEnd = document.getElementById('edit_schedule_recurrence_end_date');
+            const hiddenNext = document.getElementById('edit_schedule_next_run_at');
+            if(!startInput || !hiddenStart || !hiddenEnd) return;
+            // Set recurrence_start_date = start_at
+            hiddenStart.value = startInput.value || '';
+            // Compute end date = start_at + due_in_days (if provided)
+            const days = parseInt(dueInDaysInput?.value || '0',10);
+            if(startInput.value){
+                const parts = startInput.value.split('-').map(n=>parseInt(n,10));
+                if(parts.length===3 && !parts.some(isNaN)){
+                    const d = new Date(parts[0], parts[1]-1, parts[2]);
+                    if(!isNaN(d.getTime())){
+                        if(!Number.isNaN(days) && days>0){
+                            const endDate = new Date(d);
+                            endDate.setDate(d.getDate() + days);
+                            hiddenEnd.value = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`;
+                        } else {
+                            hiddenEnd.value = '';
+                        }
+                    }
+                }
+            } else {
+                hiddenEnd.value = '';
+            }
+
+            // compute next_run_at based on recurrence type
+            try {
+                if(!hiddenNext) return;
+                const recurrenceType = document.getElementById('edit_schedule_recurrence_type')?.value || '';
+                const daysJson = document.getElementById('edit_schedule_recurrence_days_of_week')?.value || '[]';
+                let daysArr = [];
+                try{ daysArr = JSON.parse(daysJson||'[]'); }catch(e){ daysArr = []; }
+
+                function isoDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+                const parseYMD = (s)=>{ if(!s) return null; const p = s.split('-').map(n=>parseInt(n,10)); if(p.length!==3 || p.some(isNaN)) return null; return new Date(p[0], p[1]-1, p[2]); };
+                const startDate = parseYMD(startInput.value);
+                const today = new Date();
+                let nextRun = null;
+
+                if(recurrenceType === 'daily'){
+                    if(Array.isArray(daysArr) && daysArr.length>0){
+                        const base = startDate || today;
+                        for(let i=0;i<14;i++){
+                            const cand = new Date(base);
+                            cand.setDate(base.getDate()+i);
+                            if(daysArr.includes(cand.getDay())){ nextRun = cand; break; }
+                        }
+                    } else {
+                        nextRun = startDate || today;
+                    }
+                } else if(recurrenceType === 'weekly'){
+                    const dow = parseInt(document.getElementById('edit_schedule_recurrence_day_of_week')?.value);
+                    if(!isNaN(dow)){
+                        const base = startDate || today;
+                        for(let i=0;i<14;i++){
+                            const cand = new Date(base);
+                            cand.setDate(base.getDate()+i);
+                            if(cand.getDay() === dow){ nextRun = cand; break; }
+                        }
+                    }
+                } else if(recurrenceType === 'monthly'){
+                    const dom = parseInt(document.getElementById('edit_schedule_recurrence_day_of_month')?.value);
+                    const base = startDate || today;
+                    if(!isNaN(dom) && dom>0){
+                        let cand = null;
+                        for(let i=0;i<12;i++){
+                            const tryDate = new Date(base.getFullYear(), base.getMonth()+i, 1);
+                            const daysInMonth = new Date(tryDate.getFullYear(), tryDate.getMonth()+1, 0).getDate();
+                            const day = Math.min(dom, daysInMonth);
+                            cand = new Date(tryDate.getFullYear(), tryDate.getMonth(), day);
+                            if(startDate){
+                                if(cand.getTime() >= startDate.getTime()){ nextRun = cand; break; }
+                            } else { nextRun = cand; break; }
+                        }
+                    } else if(startDate){
+                        nextRun = startDate;
+                    }
+                }
+
+                if(nextRun){ hiddenNext.value = isoDate(nextRun); }
+                else { hiddenNext.value = ''; }
+            } catch(e){}
+        }catch(e){}
+    }
+
+    // Attach listeners so when user edits start_at or due_in_days in edit modal we recompute derived dates
+    try{
+            const hiddenNext = document.getElementById('edit_schedule_next_run_at');
+        const startInputEdit = document.getElementById('edit_schedule_start_at');
+        const dueInEdit = document.getElementById('edit_schedule_due_in_days');
+        if(startInputEdit) startInputEdit.addEventListener('change', function(){ computeEditDerivedDates(); });
+        if(dueInEdit) dueInEdit.addEventListener('input', function(){ computeEditDerivedDates(); });
+        // run once to initialize
+        computeEditDerivedDates();
+    }catch(e){}
         document.getElementById("edit_schedule_recurrence_type").value =
             schedule.recurrence_type || "";
 
@@ -482,6 +634,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Handle image
         if (schedule.image) {
+            // Set label background and show clear button
             $("#editScheduleImageLabel").css(
                 "background-image",
                 "url(" + appUrl + "/file/schedule/" + schedule.image + ")"
@@ -491,11 +644,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 "background-size": "cover",
                 opacity: "1",
             });
-            $("#editImageClearBtn").removeClass("d-none");
+            // correct clear button id
+            $("#editScheduleImageClearBtn").removeClass("d-none");
         } else {
             $("#editScheduleImageLabel").removeClass("has-image");
             $("#editScheduleImageLabel").css("opacity", "1");
-            $("#editImageClearBtn").addClass("d-none");
+            $("#editScheduleImageClearBtn").addClass("d-none");
         }
 
         // Handle reference URLs
@@ -508,6 +662,17 @@ document.addEventListener("DOMContentLoaded", function () {
         loadProjectsForEdit(schedule.project_id);
 
         // Setup reference URL functionality for edit modal
+            // recompute next_run_at when recurrence type or recurrence day changes
+            try{
+                const recType = document.getElementById('edit_schedule_recurrence_type');
+                const recDow = document.getElementById('edit_schedule_recurrence_day_of_week');
+                const recDays = document.getElementById('edit_schedule_recurrence_days_of_week');
+                const recDom = document.getElementById('edit_schedule_recurrence_day_of_month');
+                if(recType) recType.addEventListener('change', function(){ computeEditDerivedDates(); });
+                if(recDow) recDow.addEventListener('change', function(){ computeEditDerivedDates(); });
+                if(recDays) recDays.addEventListener('change', function(){ computeEditDerivedDates(); });
+                if(recDom) recDom.addEventListener('change', function(){ computeEditDerivedDates(); });
+            }catch(e){}
         setupEditReferenceUrls();
 
         // Setup recurrence toggle functionality for edit modal
@@ -872,6 +1037,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!typeSel || !weekly || !monthly) return;
 
+        function updateEditWeeklyStartDate(){
+            try {
+                const weeklyDay = document.getElementById('edit_schedule_recurrence_day_of_week');
+                const startAt = document.getElementById('edit_schedule_start_at');
+                if(!weeklyDay || !startAt) return;
+                const selectedDow = parseInt(weeklyDay.value);
+                if(Number.isNaN(selectedDow)) return;
+                const today = new Date();
+                const currentDow = today.getDay();
+                let daysToAdd = selectedDow - currentDow;
+                if(daysToAdd <= 0) daysToAdd += 7; // ensure next occurrence (today -> next week)
+                const newDate = new Date(today);
+                newDate.setDate(today.getDate() + daysToAdd);
+                startAt.value = newDate.toISOString().split('T')[0];
+                if(window.__scheduleDebug) console.debug('updateEditWeeklyStartDate', { selectedDow, currentDow, daysToAdd, startAt: startAt.value });
+            } catch(e) {}
+        }
+
         function sync() {
             const v = typeSel.value;
             weekly.classList.toggle("d-none", v !== "weekly");
@@ -896,6 +1079,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     "edit_schedule_recurrence_day_of_week"
                 );
                 if (dayOfWeekSelect) dayOfWeekSelect.required = true;
+                // update start_at to the next occurrence of selected weekday (same behavior as create modal)
+                updateEditWeeklyStartDate();
             } else {
                 const dayOfWeekSelect = document.getElementById(
                     "edit_schedule_recurrence_day_of_week"
@@ -933,6 +1118,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
         typeSel.addEventListener("change", sync);
         sync();
+        // Attach change listener to weekly select so user selection immediately adjusts start_at
+        try {
+            const editWeeklyDay = document.getElementById('edit_schedule_recurrence_day_of_week');
+            if(editWeeklyDay) editWeeklyDay.addEventListener('change', updateEditWeeklyStartDate);
+        } catch(e) {}
     }
 
     // Setup edit modal weekday buttons handler
