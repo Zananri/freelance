@@ -353,30 +353,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener("submit", function (e) {
         if (e.target.id === "scheduleEditForm") {
             e.preventDefault();
-            // Frontend validation: require include_weekend when daily schedule range contains Sat/Sun
-            try {
-                const recType = document.getElementById('edit_schedule_recurrence_type')?.value;
-                if(recType === 'daily'){
-                    const includeChk = document.getElementById('edit_schedule_include_weekend');
-                    const startAt = document.getElementById('edit_schedule_start_at')?.value;
-                    const endAt = document.getElementById('edit_schedule_end_at')?.value;
-                    if(includeChk && !includeChk.checked && startAt){
-                        const start = new Date(startAt + 'T00:00:00');
-                        const end = endAt ? new Date(endAt + 'T00:00:00') : start;
-                        let cur = new Date(start);
-                        let hitsWeekend = false;
-                        while(cur <= end){
-                            const d = cur.getDay();
-                            if(d === 0 || d === 6){ hitsWeekend = true; break; }
-                            cur.setDate(cur.getDate() + 1);
-                        }
-                        if(hitsWeekend){
-                            showFloatingAlert('Include Weekend Required','danger',3500);
-                            return; // prevent submit
-                        }
-                    }
-                }
-            } catch(e) { /* ignore validation errors and continue */ }
+            // include_weekend removed; no frontend validation needed here
 
             const form = e.target;
             const formData = new FormData(form);
@@ -501,17 +478,7 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.recurrence_day_of_month
         );
 
-        // Populate include_weekend checkbox and ensure visibility for daily
-        try {
-            const includeChk = document.getElementById('edit_schedule_include_weekend');
-            const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
-            if (includeChk) {
-                includeChk.checked = !!schedule.include_weekend;
-            }
-            if (includeDiv) {
-                includeDiv.classList.toggle('d-none', (schedule.recurrence_type !== 'daily'));
-            }
-        } catch (e) { /* ignore */ }
+        // include_weekend removed
 
         // Handle image
         if (schedule.image) {
@@ -545,6 +512,38 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Setup recurrence toggle functionality for edit modal
         setupEditRecurrenceToggles();
+
+        // Setup/edit weekday picker state for daily recurrence
+        try {
+            const buttonsContainer = document.getElementById('edit_schedule_daily_weekdays_buttons');
+            const hidden = document.getElementById('edit_schedule_recurrence_days_of_week');
+            if (hidden && buttonsContainer) {
+                    // initialize hidden value from schedule (controller may send recurrence_days_of_week as array or comma string)
+                    let days = schedule.recurrence_days_of_week ?? schedule.recurrence_days_of_week_raw ?? null;
+                    if (!Array.isArray(days) && typeof days === 'string') {
+                        try { days = JSON.parse(days); } catch (e) { days = days.split(',').map(s=>s.trim()).filter(Boolean).map(Number); }
+                    }
+                    if (!Array.isArray(days)) days = [];
+                    hidden.value = JSON.stringify(days);
+                    // Update buttons: use weekday-selected class for consistency with create modal
+                    buttonsContainer.querySelectorAll('.edit-weekday-btn').forEach(btn=>{
+                        const d = parseInt(btn.getAttribute('data-day'));
+                        // initialize accessible pressed state and classes
+                        btn.setAttribute('aria-pressed','false');
+                        if (days.includes(d)) {
+                            btn.classList.add('weekday-selected');
+                            btn.classList.add('active');
+                            btn.classList.remove('btn-outline-secondary');
+                            btn.setAttribute('aria-pressed','true');
+                        } else {
+                            btn.classList.remove('weekday-selected');
+                            btn.classList.remove('active');
+                            btn.classList.add('btn-outline-secondary');
+                            btn.setAttribute('aria-pressed','false');
+                        }
+                    });
+                }
+        } catch(e) { /* ignore */ }
     }
 
     function setupEditReferenceUrls() {
@@ -633,11 +632,7 @@ document.addEventListener("DOMContentLoaded", function () {
             startAtDiv.classList.add("d-none");
         }
 
-        // Toggle include_weekend visibility for edit modal
-        try {
-            const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
-            if (includeDiv) includeDiv.classList.toggle('d-none', recurrenceType !== 'daily');
-        } catch (e) { /* ignore */ }
+        // include_weekend removed
     }
 
     function populateEditReferenceUrls(urls) {
@@ -927,15 +922,50 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             // Toggle include_weekend visibility in edit modal
+            // include_weekend removed
+
+            // Toggle weekday picker visibility for edit modal when daily
             try {
-                const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
-                if (includeDiv) includeDiv.classList.toggle('d-none', v !== 'daily');
+                const editDaily = document.getElementById('edit_schedule_daily_weekdays');
+                if (editDaily) editDaily.classList.toggle('d-none', v !== 'daily');
             } catch (e) {}
         }
 
         typeSel.addEventListener("change", sync);
         sync();
     }
+
+    // Setup edit modal weekday buttons handler
+    (function setupEditWeekdayButtons(){
+        const container = document.getElementById('edit_schedule_daily_weekdays_buttons');
+        const hidden = document.getElementById('edit_schedule_recurrence_days_of_week');
+        if(!container || !hidden) return;
+        function getSel(){ try{ return JSON.parse(hidden.value||'[]').map(d=>parseInt(d)); }catch(e){ return []; } }
+        function setSel(arr){
+            try {
+                const vals = Array.from(new Set((arr||[]).map(Number))).filter(n=>!Number.isNaN(n));
+                hidden.value = JSON.stringify(vals);
+            } catch(e) {
+                hidden.value = JSON.stringify([]);
+            }
+        }
+        container.querySelectorAll('.edit-weekday-btn').forEach(btn=> btn.addEventListener('click', function(){
+            const day = parseInt(this.getAttribute('data-day'));
+            let sel = getSel();
+            if(sel.includes(day)){
+                sel = sel.filter(s=>s!==day);
+                this.classList.remove('weekday-selected'); this.classList.remove('active'); this.classList.add('btn-outline-secondary');
+                this.setAttribute('aria-pressed','false');
+            } else {
+                sel.push(day);
+                this.classList.add('weekday-selected'); this.classList.add('active'); this.classList.remove('btn-outline-secondary');
+                this.setAttribute('aria-pressed','true');
+            }
+            setSel(sel);
+        }));
+        // expose for debug
+        window.__editScheduleWeekdayPicker = { get:getSel, set:setSel };
+    })();
 
     // Handle edit image input change
     document

@@ -111,12 +111,7 @@
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
                             </div>
-                            <div class="custom-form-employee d-none" id="schedule_include_weekend_div">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="1" id="schedule_include_weekend" name="include_weekend">
-                                    <label class="form-check-label" for="schedule_include_weekend">Include Weekend</label>
-                                </div>
-                            </div>
+                            <!-- include_weekend removed -->
 
                             <!-- Weekly options -->
                             <div class="custom-form-employee d-none" id="schedule_weekly_opts">
@@ -132,6 +127,22 @@
                                     <option value="5">Friday</option>
                                     <option value="6">Saturday</option>
                                 </select>
+                            </div>
+
+                            <!-- Weekday picker for Daily: allow selecting multiple weekdays instead of a single date -->
+                            <div class="custom-form-employee d-none" id="schedule_daily_weekdays">
+                                <label class="form-label label-custom">Pick weekdays</label>
+                                <div class="d-flex flex-wrap gap-2" id="schedule_daily_weekdays_buttons">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="0">Sunday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="1">Monday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="2">Tuesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="3">Wednesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="4">Thursday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="5">Friday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="6">Saturday</button>
+                                </div>
+                                <input type="hidden" id="schedule_recurrence_days_of_week" name="recurrence_days_of_week" value="[]">
+                                <div class="form-text">When Daily recurrence is selected you can pick which weekdays the schedule will generate tasks for. Leave empty to mean every day.</div>
                             </div>
 
                             <!-- Date options -->
@@ -352,12 +363,7 @@
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
                             </div>
-                            <div class="custom-form-employee d-none" id="edit_schedule_include_weekend_div">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="1" id="edit_schedule_include_weekend" name="include_weekend">
-                                    <label class="form-check-label" for="edit_schedule_include_weekend">Include Weekend</label>
-                                </div>
-                            </div>
+                            <!-- include_weekend removed -->
 
                             <!-- Weekly options -->
                             <div class="custom-form-employee d-none" id="edit_schedule_weekly_opts">
@@ -374,6 +380,22 @@
                                     <option value="5">Friday</option>
                                     <option value="6">Saturday</option>
                                 </select>
+                            </div>
+
+                            <!-- Weekday picker for Daily in edit modal -->
+                            <div class="custom-form-employee d-none" id="edit_schedule_daily_weekdays">
+                                <label class="form-label">Pick weekdays</label>
+                                <div class="d-flex flex-wrap gap-2" id="edit_schedule_daily_weekdays_buttons">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="0">Sunday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="1">Monday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="2">Tuesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="3">Wednesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="4">Thursday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="5">Friday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="6">Saturday</button>
+                                </div>
+                                <input type="hidden" id="edit_schedule_recurrence_days_of_week" name="recurrence_days_of_week" value="[]">
+                                <div class="form-text">When Daily recurrence is selected you can pick which weekdays the schedule will generate tasks for. Leave empty to mean every day.</div>
                             </div>
 
                             <!-- Monthly options -->
