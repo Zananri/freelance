@@ -10491,7 +10491,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const applyFilterBtn = document.getElementById("applyProjectFilterBtn");
         const resetFilterBtn = document.getElementById("resetProjectFilterBtn");
         const filterStatus = document.getElementById("filterProjectStatus");
-        const projectSelect = document.getElementById("filterProjectSelect");
         const sortBySelect = document.getElementById("filterSortBy");
 
         if (!openFilterBtn || !filterDropdown) return;
@@ -10517,40 +10516,8 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 filterDropdown.style.display = "block";
                 filterDropdown.classList.remove("d-none");
-
-                // <-- panggil populate project setiap buka dropdown
-                populateProjectOptions();
             }
         });
-
-        function populateProjectOptions() {
-            if (!projectSelect) return;
-            projectSelect.innerHTML = '<option value="">All Projects</option>';
-            $.ajax({
-                url: appUrl + "/project/index",
-                type: "GET",
-                dataType: "json",
-                data: { task_scope: "me" },
-            })
-                .done(function (res) {
-                    const arr = Array.isArray(res)
-                        ? res
-                        : Array.isArray(res?.data)
-                        ? res.data
-                        : [];
-                    arr.forEach(function (p) {
-                        const opt = document.createElement("option");
-                        opt.value = p.id;
-                        opt.textContent = p.title || "Project #" + p.id;
-                        projectSelect.appendChild(opt);
-                    });
-                    try {
-                        if (window.currentProjectId) {
-                            projectSelect.value = String(window.currentProjectId);
-                        }
-                    } catch (_) {}
-                });
-        }
 
         if (applyFilterBtn) {
             applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
@@ -10582,12 +10549,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         ? window.currentSearch
                         : "";
 
-                const selectedProjectId = projectSelect ? projectSelect.value : "";
-                try {
-                    window.currentProjectId = selectedProjectId || "";
-                } catch (_) {}
-                currentProjectId = selectedProjectId || "";
-
                 loadProjectCardData(filterParam, 1, q, sortBy);
             });
         }
@@ -10600,15 +10561,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 e.stopPropagation();
 
                 if (filterStatus) filterStatus.value = "";
-                if (projectSelect) projectSelect.value = "";
 
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add("d-none");
-
-                try {
-                    window.currentProjectId = "";
-                } catch (_) {}
-                currentProjectId = "";
 
                 const q =
                     typeof window.currentSearch === "string"

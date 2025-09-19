@@ -213,6 +213,21 @@
     font-weight: 600;
 }
 
+#prevTimeline,
+#nextTimeline,
+#prevTimelineModal,
+#nextTimelineModal,
+#prevTimeline:focus,
+#nextTimeline:focus,
+#nextTimelineModal:focus,
+#prevTimelineModal:focus,
+#prevTimeline:active,
+#nextTimeline:active,
+#nextTimelineModal:active,
+#prevTimelineModal:active {
+    border: none;
+}
+
 @keyframes slideInTop {
     from {
         transform: translateY(-100%) scale(0.8);
@@ -1760,3 +1775,5 @@
     color: #444444;
     font-size: 14px;
 }
+
+
