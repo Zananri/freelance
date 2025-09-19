@@ -3,30 +3,46 @@
     // unified alert helper (Settings style)
     function dashboardNotify(msg, type) {
         try {
-            if (typeof window.showAlertMsg === 'function') {
+            if (typeof window.showAlertMsg === "function") {
                 // Always use light as requested
-                window.showAlertMsg(String(msg || ''), 'light', 2000);
+                window.showAlertMsg(String(msg || ""), "light", 2000);
                 return;
             }
-        } catch(_) {}
+        } catch (_) {}
         // minimal fallback
         try {
-            const el = document.createElement('div');
-            el.className = 'alert alert-' + (type === 'error' ? 'danger' : (type || 'info'));
-            Object.assign(el.style, { position:'fixed', right:'20px', bottom:'20px', zIndex:9999, minWidth:'280px' });
-            el.textContent = String(msg || '');
+            const el = document.createElement("div");
+            el.className =
+                "alert alert-" + (type === "error" ? "danger" : type || "info");
+            Object.assign(el.style, {
+                position: "fixed",
+                right: "20px",
+                bottom: "20px",
+                zIndex: 9999,
+                minWidth: "280px",
+            });
+            el.textContent = String(msg || "");
             document.body.appendChild(el);
-            setTimeout(() => { el.style.opacity = '0'; setTimeout(()=> el.remove(), 400); }, 1600);
-        } catch(_) {}
+            setTimeout(() => {
+                el.style.opacity = "0";
+                setTimeout(() => el.remove(), 400);
+            }, 1600);
+        } catch (_) {}
     }
-    const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+    const appUrl = (
+        document
+            .querySelector('meta[name="app-url"]')
+            ?.getAttribute("content") || ""
+    ).replace(/\/$/, "");
     // State
     let chartInstance = null;
     let projectsCache = [];
 
-    let currentMonthProject = new Date().getMonth(); // 0-11
-    let currentYearProject = new Date().getFullYear();
-    let currentWeekProject = 0; // 0-3
+    const today = new Date();
+    let currentYearProject = today.getFullYear();
+    let currentMonthProject = today.getMonth();
+    let weeksCache = [];
+    let currentWeekProject = 0;
 
     const months = [
         "Jan",
@@ -75,33 +91,70 @@
         let notStarted = Number(chartCounts?.not_started || 0);
 
         const chartData = [notStarted, completed, inProgress, late];
-        const total = chartData.reduce((a,b)=>a+b,0);
+        const total = chartData.reduce((a, b) => a + b, 0);
 
         if (chartInstance) {
             if (total === 0) {
-                chartInstance.data.labels = ["No Data"]; 
+                chartInstance.data.labels = ["No Data"];
                 chartInstance.data.datasets[0].data = [1];
-                chartInstance.data.datasets[0].backgroundColor = [CHART_COLORS[0]];
+                chartInstance.data.datasets[0].backgroundColor = [
+                    CHART_COLORS[0],
+                ];
             } else {
-                chartInstance.data.labels = ["Not Started","Complete","On Progress","Late"]; 
+                chartInstance.data.labels = [
+                    "Not Started",
+                    "Complete",
+                    "On Progress",
+                    "Late",
+                ];
                 chartInstance.data.datasets[0].data = chartData;
                 chartInstance.data.datasets[0].backgroundColor = CHART_COLORS;
             }
-            try { chartInstance.update(); } catch(_) {}
+            try {
+                chartInstance.update();
+            } catch (_) {}
         }
 
         // Labels: Total (projects), Complete, On Progress, Late
         try {
-            const spans = document.querySelectorAll('.chart-labels .text-center span:first-child');
+            const spans = document.querySelectorAll(
+                ".chart-labels .text-center span:first-child"
+            );
             if (spans && spans.length >= 4) {
                 spans[0].textContent = numberOfProjects; // project count (match project.js semantics)
                 spans[1].textContent = completed;
                 spans[2].textContent = inProgress;
                 spans[3].textContent = late;
             }
-        } catch(_) {}
+        } catch (_) {}
     }
 
+    function getCalendarWeeks(year, month) {
+        const firstOfMonth = new Date(year, month, 1);
+        const lastOfMonth = new Date(year, month + 1, 0);
+
+        // Cari Senin pertama sebelum atau sama dengan tanggal 1
+        let firstMonday = new Date(firstOfMonth);
+        while (firstMonday.getDay() !== 1) {
+            firstMonday.setDate(firstMonday.getDate() - 1);
+        }
+
+        // Generate minggu per 7 hari
+        const weeks = [];
+        let start = new Date(firstMonday);
+        while (start <= lastOfMonth || start.getMonth() === month) {
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            weeks.push({ start, end });
+            start = new Date(start);
+            start.setDate(start.getDate() + 7);
+        }
+        return weeks;
+    }
+
+    function getWeekOfDate(date, weeks) {
+        return weeks.findIndex((w) => date >= w.start && date <= w.end);
+    }
 
     // Build timeline data from projects
     function buildTimelineData(projects) {
@@ -111,14 +164,6 @@
         projects.forEach((p, idx) => {
             const name = p.title || `Project ${p.id || idx + 1}`;
             const color = TIMELINE_COLORS[idx % TIMELINE_COLORS.length];
-
-            function parseLocal(d) {
-                const s = (d || "").toString().trim();
-                if (!s) return null;
-                const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                if (m) return new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
-                return new Date(s);
-            }
 
             let start = parseLocal(p.start_date) || new Date();
             let due = parseLocal(p.due_date) || new Date(start);
@@ -149,17 +194,53 @@
         return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
     }
 
-    function renderTimeline(targetRows = "#timelineRows", targetTitle = "#timelineTitle") {
+    function parseLocal(d) {
+        const s = (d || "").toString().trim();
+        if (!s) return null;
+        const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+        if (m)
+            return new Date(
+                parseInt(m[1], 10),
+                parseInt(m[2], 10) - 1,
+                parseInt(m[3], 10)
+            );
+        return new Date(s);
+    }
+
+    function renderTimeline(
+        targetRows = "#timelineRows",
+        targetTitle = "#timelineTitle"
+    ) {
+        // Hitung minggu untuk bulan sekarang jika belum ada atau sudah tidak sesuai
+        if (
+            !weeksCache.length ||
+            weeksCache[0].start.getFullYear() !== currentYearProject ||
+            weeksCache[0].start.getMonth() !== currentMonthProject
+        ) {
+            weeksCache = getCalendarWeeks(currentYearProject, currentMonthProject);
+        }
+        if (weeksCache.length === 0) return;
+
+        // Jangan reset currentWeekProject di sini, gunakan nilai yang sudah ada
+
+        const weekInfo = weeksCache[currentWeekProject];
+        if (!weekInfo) return;
+
         // Title
-        $(targetTitle).text(`${months[currentMonthProject]} week ${currentWeekProject + 1}`);
+        $(targetTitle).text(
+            `${months[currentMonthProject]} Week ${
+                currentWeekProject + 1
+            }`
+        );
 
         const $rows = $(targetRows);
         if (!$rows.length) return;
         $rows.empty();
 
-        const weekStart = getWeekStart(currentYearProject, currentMonthProject, currentWeekProject);
+        const weekStart = weekInfo.start;
+        const weekEnd = weekInfo.end;
 
-    const data = buildTimelineData(projectsCache);
+        const data = buildTimelineData(projectsCache);
         data.forEach((proj) => {
             // Build a 7-day row container
             const $row = $("<div>")
@@ -167,7 +248,11 @@
                 .css("position", "relative");
 
             for (let i = 0; i < 7; i++) {
-                $row.append($("<div>").addClass("timeline-cell").css("position", "relative"));
+                $row.append(
+                    $("<div>")
+                        .addClass("timeline-cell")
+                        .css("position", "relative")
+                );
             }
 
             const rawStart = diffDaysUTC(proj.start, weekStart);
@@ -188,9 +273,16 @@
                         transform: "translateY(-50%)",
                         border: "none",
                     })
-                    .attr("title", `${proj.name}`)
-                    .attr("data-project-id", proj.id || '')
-                    .html(`<span class="circle border-0 ${proj.color}"></span>${proj.name}`);
+                    .attr(
+                        "title",
+                        `${
+                            proj.name
+                        } (${proj.start.toLocaleDateString()} → ${proj.due.toLocaleDateString()})`
+                    )
+                    .attr("data-project-id", proj.id || "")
+                    .html(
+                        `<span class="circle border-0 ${proj.color}"></span>${proj.name}`
+                    );
 
                 $row.append($bar);
             }
@@ -207,17 +299,23 @@
         }
         try {
             // Parallel requests: total, completed, in_progress, not_started (from /project/index filters) and tasks aggregation for LATE
-            const [totalRes, compRes, progRes, notRes, tasksRes] = await Promise.all([
-                fetch(appUrl + '/project/index'),
-                fetch(appUrl + '/project/index?filter=completed'),
-                fetch(appUrl + '/project/index?filter=in_progress'),
-                fetch(appUrl + '/project/index?filter=not_started'),
-                fetch(appUrl + '/task/index/no-pagination'),
-            ]);
+            const [totalRes, compRes, progRes, notRes, tasksRes] =
+                await Promise.all([
+                    fetch(appUrl + "/project/index"),
+                    fetch(appUrl + "/project/index?filter=completed"),
+                    fetch(appUrl + "/project/index?filter=in_progress"),
+                    fetch(appUrl + "/project/index?filter=not_started"),
+                    fetch(appUrl + "/task/index/no-pagination"),
+                ]);
 
-            const [totalJson, compJson, progJson, notJson, tasksJson] = await Promise.all([
-                totalRes.json(), compRes.json(), progRes.json(), notRes.json(), tasksRes.json()
-            ]);
+            const [totalJson, compJson, progJson, notJson, tasksJson] =
+                await Promise.all([
+                    totalRes.json(),
+                    compRes.json(),
+                    progRes.json(),
+                    notRes.json(),
+                    tasksRes.json(),
+                ]);
 
             const projects = normalizeArray(totalJson);
             const completedArr = normalizeArray(compJson);
@@ -225,19 +323,32 @@
             const notStartedArr = normalizeArray(notJson);
 
             // Enrich missing dates for timeline only
-            const needsDetail = projects.filter(p => !(p.start_date && p.due_date));
+            const needsDetail = projects.filter(
+                (p) => !(p.start_date && p.due_date)
+            );
             if (needsDetail.length) {
-                await Promise.all(needsDetail.map(async (p) => {
-                    try {
-                        const r = await fetch(appUrl + '/project/' + p.id);
-                        const d = await r.json();
-                        const data = d.data || d;
-                        if (data) {
-                            p.start_date = p.start_date || data.start_date || data.start || data.startDate;
-                            p.due_date = p.due_date || data.due_date || data.due || data.end_date || data.endDate;
-                        }
-                    } catch(_) {}
-                }));
+                await Promise.all(
+                    needsDetail.map(async (p) => {
+                        try {
+                            const r = await fetch(appUrl + "/project/" + p.id);
+                            const d = await r.json();
+                            const data = d.data || d;
+                            if (data) {
+                                p.start_date =
+                                    p.start_date ||
+                                    data.start_date ||
+                                    data.start ||
+                                    data.startDate;
+                                p.due_date =
+                                    p.due_date ||
+                                    data.due_date ||
+                                    data.due ||
+                                    data.end_date ||
+                                    data.endDate;
+                            }
+                        } catch (_) {}
+                    })
+                );
             }
 
             // Build tasks map and compute LATE per project (Dashboard logic)
@@ -245,39 +356,49 @@
             const tasksByProject = {};
             function collect(arr, statusName) {
                 if (!Array.isArray(arr)) return;
-                arr.forEach(t => {
-                    const pid = t.project_id || t.projectId || (t.project && (t.project.id || t.project.project_id));
+                arr.forEach((t) => {
+                    const pid =
+                        t.project_id ||
+                        t.projectId ||
+                        (t.project && (t.project.id || t.project.project_id));
                     if (!pid) return;
                     if (!tasksByProject[pid]) tasksByProject[pid] = [];
-                    tasksByProject[pid].push(Object.assign({}, t, { __status: statusName }));
+                    tasksByProject[pid].push(
+                        Object.assign({}, t, { __status: statusName })
+                    );
                 });
             }
-            collect(buckets.not_started?.tasks, 'not_started');
-            collect(buckets.in_progress?.tasks, 'in_progress');
-            collect(buckets.completed?.tasks, 'completed');
-            collect(buckets.late?.tasks, 'late');
-            collect(buckets.rejected?.tasks, 'rejected');
-            collect(buckets.new_request?.tasks, 'new_request');
+            collect(buckets.not_started?.tasks, "not_started");
+            collect(buckets.in_progress?.tasks, "in_progress");
+            collect(buckets.completed?.tasks, "completed");
+            collect(buckets.late?.tasks, "late");
+            collect(buckets.rejected?.tasks, "rejected");
+            collect(buckets.new_request?.tasks, "new_request");
 
             function parseDue(dateStr) {
                 if (!dateStr) return null;
                 const s = String(dateStr).trim();
                 const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                if (m) return new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999);
+                if (m)
+                    return new Date(+m[1], +m[2] - 1, +m[3], 23, 59, 59, 999);
                 const d = new Date(s);
                 return isNaN(d.getTime()) ? null : d;
             }
             const now = new Date();
             let countLate = 0;
-            projects.forEach(p => {
+            projects.forEach((p) => {
                 const pid = p.id || p.project_id;
                 const tasks = tasksByProject[pid] || [];
                 if (!tasks.length) return; // no tasks -> not late
-                const hasLate = tasks.some(t => {
-                    if (t.__status === 'late') return true;
+                const hasLate = tasks.some((t) => {
+                    if (t.__status === "late") return true;
                     const dueStr = t.due_date || t.due || t.deadline;
                     const due = parseDue(dueStr);
-                    return !!(due && (due.getTime() < now.getTime()) && t.__status !== 'completed');
+                    return !!(
+                        due &&
+                        due.getTime() < now.getTime() &&
+                        t.__status !== "completed"
+                    );
                 });
                 if (hasLate) countLate++;
             });
@@ -292,12 +413,17 @@
 
             updateChartAndLabels(projects, derivedCounts);
             projectsCache = projects;
-            renderTimeline('#timelineRows', '#timelineTitle');
+            renderTimeline("#timelineRows", "#timelineTitle");
         } catch (e) {
-            console.error('fetchProjectsAndRender error', e);
+            console.error("fetchProjectsAndRender error", e);
             projectsCache = [];
-            updateChartAndLabels([], { completed: 0, in_progress: 0, late: 0, not_started: 0 });
-            renderTimeline('#timelineRows', '#timelineTitle');
+            updateChartAndLabels([], {
+                completed: 0,
+                in_progress: 0,
+                late: 0,
+                not_started: 0,
+            });
+            renderTimeline("#timelineRows", "#timelineTitle");
         }
     }
 
@@ -306,11 +432,20 @@
         const ctx = document.getElementById("doughnutChart");
         if (ctx) chartInstance = createChart(ctx);
 
+        // Calculate weeksCache and set currentWeekProject to current week index by default
+        weeksCache = getCalendarWeeks(currentYearProject, currentMonthProject);
+        currentWeekProject = getWeekOfDate(new Date(), weeksCache);
+        if (currentWeekProject < 0) currentWeekProject = 0;
+
         // Initial render (will update after fetch)
-    updateChartAndLabels([], {completed:0,in_progress:0,late:0,not_started:0});
+        updateChartAndLabels([], {
+            completed: 0,
+            in_progress: 0,
+            late: 0,
+            not_started: 0,
+        });
         renderTimeline("#timelineRows", "#timelineTitle");
 
-        // Navigation buttons
         $("#prevTimeline").on("click", function () {
             if (currentWeekProject > 0) {
                 currentWeekProject--;
@@ -320,13 +455,14 @@
                     currentMonthProject = 11;
                     currentYearProject--;
                 }
-                currentWeekProject = 3;
+                weeksCache = getCalendarWeeks(currentYearProject, currentMonthProject);
+                currentWeekProject = weeksCache.length - 1;
             }
             renderTimeline("#timelineRows", "#timelineTitle");
         });
 
         $("#nextTimeline").on("click", function () {
-            if (currentWeekProject < 3) {
+            if (currentWeekProject < weeksCache.length - 1) {
                 currentWeekProject++;
             } else {
                 currentMonthProject++;
@@ -334,6 +470,7 @@
                     currentMonthProject = 0;
                     currentYearProject++;
                 }
+                weeksCache = getCalendarWeeks(currentYearProject, currentMonthProject);
                 currentWeekProject = 0;
             }
             renderTimeline("#timelineRows", "#timelineTitle");
@@ -341,7 +478,9 @@
 
         // Toggle timeline (fix selector to dashboard DOM)
         $(document).on("click", ".toggle-timeline", function () {
-            const $timelineCard = $(this).closest(".project-card").find(".timeline-card-mobile");
+            const $timelineCard = $(this)
+                .closest(".project-card")
+                .find(".timeline-card-mobile");
             $timelineCard.slideToggle();
             if ($timelineCard.is(":visible")) {
                 renderTimeline("#timelineRows", "#timelineTitle");
@@ -353,49 +492,82 @@
     });
 
     // Open Project Detail modal when clicking a timeline bar (reuse project page endpoint)
-    document.addEventListener('click', async function (e) {
-        const bar = e.target.closest('.timeline-bar[data-project-id]');
+    document.addEventListener("click", async function (e) {
+        const bar = e.target.closest(".timeline-bar[data-project-id]");
         if (!bar) return;
-        const pid = bar.getAttribute('data-project-id');
+        const pid = bar.getAttribute("data-project-id");
         if (!pid) return;
         try {
-            const r = await fetch(appUrl + '/project/' + pid);
+            const r = await fetch(appUrl + "/project/" + pid);
             const response = await r.json();
             const data = response.data || {};
             // Fill fields in a shared Project Detail modal if exists on page
-            const modalEl = document.getElementById('projectDetailModal');
+            const modalEl = document.getElementById("projectDetailModal");
             if (!modalEl) return; // dashboard might not include it
-            const baseFileUrl = appUrl + '/file/project/';
-            const imgEl = document.getElementById('projectDetailImage');
+            const baseFileUrl = appUrl + "/file/project/";
+            const imgEl = document.getElementById("projectDetailImage");
             if (imgEl) {
-                imgEl.src = data.image ? (baseFileUrl + data.image) : (appUrl + '/asset/img/background/add-image.png');
-                imgEl.style.borderRadius = '8px';
+                imgEl.src = data.image
+                    ? baseFileUrl + data.image
+                    : appUrl + "/asset/img/background/add-image.png";
+                imgEl.style.borderRadius = "8px";
             }
-            const titleEl = document.getElementById('projectDetailTitle');
-            if (titleEl) titleEl.textContent = data.title || '';
-            const textSet = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v || ''; };
-            textSet('projectDetailAuthor', (data.author && data.author.name) || 'Unknown');
-            textSet('projectDetailDepartment', data.department);
-            textSet('projectDetailDivision', data.division);
-            textSet('projectDetailDescription', data.description);
-            const refUrlEl = document.getElementById('projectDetailReferenceUrl');
+            const titleEl = document.getElementById("projectDetailTitle");
+            if (titleEl) titleEl.textContent = data.title || "";
+            const textSet = (id, v) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = v || "";
+            };
+            textSet(
+                "projectDetailAuthor",
+                (data.author && data.author.name) || "Unknown"
+            );
+            textSet("projectDetailDepartment", data.department);
+            textSet("projectDetailDivision", data.division);
+            textSet("projectDetailDescription", data.description);
+            const refUrlEl = document.getElementById(
+                "projectDetailReferenceUrl"
+            );
             if (refUrlEl) {
-                if (data.reference_url) { refUrlEl.href = data.reference_url; refUrlEl.textContent = data.reference_url; refUrlEl.style.display = ''; }
-                else refUrlEl.style.display = 'none';
+                if (data.reference_url) {
+                    refUrlEl.href = data.reference_url;
+                    refUrlEl.textContent = data.reference_url;
+                    refUrlEl.style.display = "";
+                } else refUrlEl.style.display = "none";
             }
-            const refFileEl = document.getElementById('projectDetailReferenceFile');
+            const refFileEl = document.getElementById(
+                "projectDetailReferenceFile"
+            );
             if (refFileEl) {
-                if (data.reference_file) { refFileEl.href = baseFileUrl + data.reference_file; refFileEl.style.display = ''; }
-                else refFileEl.style.display = 'none';
+                if (data.reference_file) {
+                    refFileEl.href = baseFileUrl + data.reference_file;
+                    refFileEl.style.display = "";
+                } else refFileEl.style.display = "none";
             }
-            const fmt = (s) => s ? new Date(s).toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'}) : '';
-            textSet('projectDetailStartDate', fmt(data.start_date));
-            textSet('projectDetailDueDate', fmt(data.due_date));
-            textSet('projectDetailCoAuthors', Array.isArray(data.co_authors) && data.co_authors.length ? data.co_authors.map(a=>a.name).join(', ') : 'None');
-            textSet('projectDetailContributors', Array.isArray(data.contributors) && data.contributors.length ? data.contributors.map(a=>a.name).join(', ') : 'None');
+            const fmt = (s) =>
+                s
+                    ? new Date(s).toLocaleDateString(undefined, {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                      })
+                    : "";
+            textSet("projectDetailStartDate", fmt(data.start_date));
+            textSet("projectDetailDueDate", fmt(data.due_date));
+            textSet(
+                "projectDetailCoAuthors",
+                Array.isArray(data.co_authors) && data.co_authors.length
+                    ? data.co_authors.map((a) => a.name).join(", ")
+                    : "None"
+            );
+            textSet(
+                "projectDetailContributors",
+                Array.isArray(data.contributors) && data.contributors.length
+                    ? data.contributors.map((a) => a.name).join(", ")
+                    : "None"
+            );
 
             new bootstrap.Modal(modalEl).show();
-        } catch(_) {}
+        } catch (_) {}
     });
 })();
-

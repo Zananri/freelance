@@ -55,7 +55,6 @@ class EmployeeController extends Controller
         $divisionIds = $request->input('division', []);
         $jobIds = $request->input('job', []);
 
-        // Return JSON for API
         if ($request->wantsJson()) {
             $excludeEmployeeId = $request->input('exclude_employee_id', null);
 
@@ -64,60 +63,62 @@ class EmployeeController extends Controller
                 ->when($query, function ($q) use ($query) {
                     $q->where(function ($q2) use ($query) {
                         $q2->where('name', 'like', '%' . $query . '%')
-                          ->orWhere('email', 'like', '%' . $query . '%')
-                          // search by office name via relation
-                          ->orWhereHas('officeModel', function ($qOffice) use ($query) {
-                              $qOffice->where('name', 'like', '%' . $query . '%');
-                          })
-                          ->orWhereHas('department', function ($q3) use ($query) {
-                              $q3->where('name_department', 'like', '%' . $query . '%');
-                          })
-                          ->orWhereHas('division', function ($q4) use ($query) {
-                              $q4->where('name_division', 'like', '%' . $query . '%');
-                          });
+                            ->orWhere('email', 'like', '%' . $query . '%')
+                            ->orWhereHas('officeModel', function ($qOffice) use ($query) {
+                                $qOffice->where('name', 'like', '%' . $query . '%');
+                            })
+                            ->orWhereHas('department', function ($q3) use ($query) {
+                                $q3->where('name_department', 'like', '%' . $query . '%');
+                            })
+                            ->orWhereHas('division', function ($q4) use ($query) {
+                                $q4->where('name_division', 'like', '%' . $query . '%');
+                            });
                     });
                 })
                 ->when(!empty($departmentIds), function ($q) use ($departmentIds, $divisionIds, $jobIds) {
                     $q->whereIn('department_id', $departmentIds);
 
-                    // Apply division filter only if department filter is present
                     if (!empty($divisionIds)) {
                         $q->whereIn('division_id', $divisionIds);
                     }
 
-                    // Apply job filter only if both department and division filters are present
                     if (!empty($divisionIds) && !empty($jobIds)) {
                         $q->whereIn('job_id', $jobIds);
                     }
                 })
-                // If department filter is empty, do not apply division or job filters
                 ->when($excludeEmployeeId, function ($q) use ($excludeEmployeeId) {
                     $q->where('id', '!=', $excludeEmployeeId);
                 })
+                ->whereHas('user', function ($q) {
+                    $q->where('user_type', '!=', 'ADMINISTRATOR')
+                    ->whereNotIn('user_role', ['GENERAL_MANAGER', 'CEO']);
+                })
                 ->get();
 
-            // Append user photo and first_name, last_name to each employee
             $employees->transform(function ($employee) {
                 $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
                 $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
                 $employee->first_name = $employee->first_name;
                 $employee->last_name = $employee->last_name;
-                // Map office to office name for UI backward-compat
                 $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
-                // Map grade to grade title for UI backward-compat
                 $employee->grade = $employee->grade ? $employee->grade->title : null;
-                // Normalize status to uppercase and map legacy INACTIVE -> RESIGN for UI
                 $status = strtoupper((string)($employee->status ?? ''));
-                if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+                if ($status === 'INACTIVE') {
+                    $status = 'RESIGN';
+                }
                 $employee->status = $status ?: null;
                 return $employee;
             });
 
             return response()->json(['data' => $employees]);
         }
-        // Return view for listing page with employees data
-    $employees = Employee::with(['department', 'division', 'job'])
+
+        $employees = Employee::with(['department', 'division', 'job'])
             ->where('status', '!=', 'DELETED')
+            ->whereHas('user', function ($q) {
+                $q->where('user_type', '!=', 'ADMINISTRATOR')
+                ->whereNotIn('user_role', ['GENERAL_MANAGER', 'CEO']);
+            })
             ->get();
     }
 
@@ -579,8 +580,10 @@ class EmployeeController extends Controller
             $employees = Employee::with(['department', 'division', 'user'])
                 ->where('status', 'ACTIVE')
                 ->whereHas('user', function ($q) {
-                    $q->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-                    ->whereNotIn('users.user_type',["ADMINISTRATOR"]);
+                    $q->whereNotIn('user_role', ["GENERAL_MANAGER","CEO"]);
+                    if (auth()->user() && in_array(auth()->user()->user_role, ['GENERAL_MANAGER', 'CEO'])) {
+                        $q->whereNotIn('user_type', ["ADMINISTRATOR"]);
+                    }
                 })
                 ->when($query, function ($q) use ($query) {
                     $q->where(function ($q2) use ($query) {

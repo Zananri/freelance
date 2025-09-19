@@ -15,6 +15,9 @@
 
                 <form method="POST" action="{{ route('forgot-password.post') }}" autocomplete="off">
                     @csrf
+                    @if(session('success'))
+                        <div class="message-content fs-14 mb-3">{!! session('success') ?? session('status') ?? session('message') ?? '' !!}</div>
+                    @endif
                     <div class="mb-3">
                         <input type="text" name="email" class="form-control form-input bg-white bg-opacity-75"
                             placeholder="Email" autocomplete="false" value="{{ old('email') }}">
@@ -22,8 +25,11 @@
                             <div class="text-danger fs-12 mt-1">{{ $message }}</div>
                         @enderror
                     </div>
-                    <button type="submit" class="btn btn-submit w-100 mb-3 ">Submit</button>
-                    <a href="{{ route('login') }}" class="btn btn-custom-close w-100 mb-5 ">Close</a>
+                    <div class="mb-4 text-end">
+                        <a href="{{ url('login') }}"
+                            class="text-black text-link text-opacity-75 fs-14 text-decoration-none">Go back to login</a>
+                    </div>
+                    <button type="submit" class="btn btn-submit w-100">Submit</button>
                 </form>
             </div>
 
@@ -38,20 +44,5 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.min.js"
         integrity="sha384-RuyvpeZCxMJCqVUGFI0Do1mQrods/hhxYlcVfGPOfQtPJh0JCw12tUAZ/Mv10S7D" crossorigin="anonymous">
     </script>
-    <!-- Guest alert assets: styles and behavior moved to external files -->
-    <link rel="stylesheet" href="{{ asset('asset/css/guest-alert.css') }}">
-
-    <!-- Floating alert markup (data attributes filled from session) -->
-    <div class="box-alert-messages" id="guestFloatingAlert"
-         data-guest-message="{{ e(session('success') ?? session('status') ?? session('message') ?? '') }}"
-         data-guest-type="{{ e(session('status_type') ?? (session('success') ? 'success' : 'light')) }}">
-        <div class="box-message" role="">
-            <div class="message-content fs-14">{!! session('success') ?? session('status') ?? session('message') ?? '' !!}</div>
-            <div class="btn-close-alert-messages" aria-hidden="true"></div>
-        </div>
-    </div>
-
-    <script src="{{ asset('asset/js/guest-alert.js') }}"></script>
-
 
 </x-guest-layout>
