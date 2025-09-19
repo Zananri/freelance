@@ -11153,10 +11153,37 @@ function buildTimelineFromProjects(projects) {
 }
 
 function getWeeksInMonth(year, month) {
-    const first = new Date(year, month, 1);
+const first = new Date(year, month, 1);
     const last = new Date(year, month + 1, 0);
     const used = first.getDay() + last.getDate();
     return Math.ceil(used / 7);
+}
+
+function getCalendarWeeks(year, month) {
+    const firstOfMonth = new Date(year, month, 1);
+    const lastOfMonth = new Date(year, month + 1, 0);
+
+    // Cari Senin pertama sebelum atau sama dengan tanggal 1
+    let firstMonday = new Date(firstOfMonth);
+    while (firstMonday.getDay() !== 1) {
+        firstMonday.setDate(firstMonday.getDate() - 1);
+    }
+
+    // Generate minggu per 7 hari
+    const weeks = [];
+    let start = new Date(firstMonday);
+    while (start <= lastOfMonth || start.getMonth() === month) {
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        weeks.push({ start, end });
+        start = new Date(start);
+        start.setDate(start.getDate() + 7);
+    }
+    return weeks;
+}
+
+function getWeekOfDate(date, weeks) {
+    return weeks.findIndex((w) => date >= w.start && date <= w.end);
 }
 
 function renderTimeline(
@@ -11222,25 +11249,18 @@ function renderTimeline(
         headerRow.appendChild(th);
     });
 
+    const weeks = getCalendarWeeks(year, month);
     if (weekIndex == null) {
         const today = new Date();
-        if (today.getMonth() === month && today.getFullYear() === year) {
-            const firstOfMonth = new Date(year, month, 1);
-            const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
-            weekIndex = Math.ceil((today.getDate() + offset) / 7) - 1;
-        } else {
-            weekIndex = 0;
-        }
+        weekIndex = getWeekOfDate(today, weeks);
+        if (weekIndex < 0) weekIndex = 0;
     }
 
-    const firstOfMonth = new Date(year, month, 1);
-    let weekStartDate = new Date(firstOfMonth);
-    let day = weekStartDate.getDay();
-    let diff = (day === 0 ? -6 : 1) - day;
-    weekStartDate.setDate(weekStartDate.getDate() + diff + (weekIndex * 7));
+    const weekInfo = weeks[weekIndex];
+    if (!weekInfo) return;
 
-    let weekEndDate = new Date(weekStartDate);
-    weekEndDate.setDate(weekStartDate.getDate() + 6);
+    let weekStartDate = weekInfo.start;
+    let weekEndDate = weekInfo.end;
 
     const filteredProjects = timelineData.filter((proj) => {
         return proj.start_date <= weekEndDate && proj.due_date >= weekStartDate;
@@ -11289,10 +11309,10 @@ document.getElementById("prevTimeline").addEventListener("click", () => {
             currentMonth = 11;
             currentYear--;
         }
-        const maxWeek = getWeeksInMonth(currentYear, currentMonth);
-        currentWeek = maxWeek > 0 ? maxWeek - 1 : 0;
+        const weeks = getCalendarWeeks(currentYear, currentMonth);
+        currentWeek = weeks.length > 0 ? weeks.length - 1 : 0;
     }
-    renderTimeline(
+   renderTimeline(
         "#timelineHeader",
         "#timelineRows",
         "week",
@@ -11303,7 +11323,8 @@ document.getElementById("prevTimeline").addEventListener("click", () => {
 });
 
 document.getElementById("nextTimeline").addEventListener("click", () => {
-    const maxWeek = getWeeksInMonth(currentYear, currentMonth) - 1;
+    const weeks = getCalendarWeeks(currentYear, currentMonth);
+    const maxWeek = weeks.length - 1;
     if (currentWeek < maxWeek) {
         currentWeek++;
     } else {
