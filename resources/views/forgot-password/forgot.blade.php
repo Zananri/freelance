@@ -27,8 +27,7 @@
                     </div>
                     <div class="mb-4 text-end">
                         <a href="{{ url('login') }}"
-                            class="text-black text-link text-opacity-75 fs-14 text-decoration-none">Forgot password
-                            ?</a>
+                            class="text-black text-link text-opacity-75 fs-14 text-decoration-none">Go back to login</a>
                     </div>
                     <button type="submit" class="btn btn-submit w-100">Submit</button>
                 </form>
