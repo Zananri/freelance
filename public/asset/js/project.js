@@ -6114,6 +6114,62 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const deptText = _getDeptText(deptRaw);
                                 const divText = _getDeptText(divRaw);
 
+                                function getTaskByDueDate(projectId, callback) {
+                                    $.ajax({
+                                        url: appUrl + "/projects/" + projectId + "/tasks",
+                                        type: "GET",
+                                        dataType: "json",
+                                        success: function (response) {
+                                            if (response.data && response.data.length > 0) {
+                                                const tasksWithDue = response.data.filter(t => t.due_date);
+                                                if (tasksWithDue.length === 0) return callback(null);
+
+                                                const maxTask = tasksWithDue.reduce((latest, t) => {
+                                                    return new Date(t.due_date) > new Date(latest.due_date) ? t : latest;
+                                                });
+
+                                                callback(maxTask);
+                                            } else {
+                                                callback(null);
+                                            }
+                                        },
+                                        error: function (xhr, status, err) {
+                                            console.error("Error fetch tasks:", err);
+                                            callback(null);
+                                        }
+                                    });
+                                }
+
+                                function formatTaskDate(date) {
+                                    if (!date) return "-";
+                                    const d = new Date(date);
+
+                                    const year = d.getFullYear();
+                                    const month = String(d.getMonth() + 1).padStart(2, "0");
+                                    const day = String(d.getDate()).padStart(2, "0");
+
+                                    return `${year}-${month}-${day}`;
+                                }
+
+
+                                getTaskByDueDate(project.id, function(maxTask) {
+                                    const deadlineEl = document.getElementById("deadline-" + project.id);
+                                    if (!deadlineEl) return;
+
+                                    const projectDue = project.due_date ? new Date(project.due_date) : null;
+
+                                    if (maxTask && maxTask.due_date) {
+                                        const taskDue = new Date(maxTask.due_date);
+
+                                        if (!projectDue || taskDue > projectDue) {
+                                            deadlineEl.textContent = formatTaskDate(taskDue);
+                                        } else {
+                                            deadlineEl.textContent = formatTaskDate(projectDue);
+                                        }
+                                    } else {
+                                        deadlineEl.textContent = projectDue ? formatTaskDate(projectDue) : "-";
+                                    }
+                                });
 
                             const parentTitle = project?.part_of_project_title
                                 ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>`
@@ -6139,21 +6195,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             : ""
                                     }
                                     <hr class="task-separator rounded-4">
-                                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
-                                        <div>
-                                            <span style="color:#797E91;">Priority: </span>
-                                            <span style="color:${
-                                                (project.priority || "").toUpperCase() ===
-                                                "HIGH"
-                                                    ? "red"
-                                                    : "#4B4F5E"
-                                            }">${project.priority || "-"}</span>
-                                        </div>
-                                        <div>
-                                            <span style="color:#797E91;">Deadline: </span>
-                                            <span style="color:#4B4F5E;">${
-                                                project.due_date || "-"
-                                            }</span>
+                                    <div id="project-${project.id}" class="project-card">
+                                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
+                                            <div>
+                                                <span style="color:#797E91;">Deadline: </span>
+                                                <span id="deadline-${project.id}" style="color:#4B4F5E;">
+                                                    ${project.due_date || "-"}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -6383,6 +6432,63 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const deptText = _getDeptText(deptRaw);
                                 const divText = _getDeptText(divRaw);
 
+                                function getTaskByDueDate(projectId, callback) {
+                                    $.ajax({
+                                        url: appUrl + "/projects/" + projectId + "/tasks",
+                                        type: "GET",
+                                        dataType: "json",
+                                        success: function (response) {
+                                            if (response.data && response.data.length > 0) {
+                                                const tasksWithDue = response.data.filter(t => t.due_date);
+                                                if (tasksWithDue.length === 0) return callback(null);
+
+                                                const maxTask = tasksWithDue.reduce((latest, t) => {
+                                                    return new Date(t.due_date) > new Date(latest.due_date) ? t : latest;
+                                                });
+
+                                                callback(maxTask);
+                                            } else {
+                                                callback(null);
+                                            }
+                                        },
+                                        error: function (xhr, status, err) {
+                                            console.error("Error fetch tasks:", err);
+                                            callback(null);
+                                        }
+                                    });
+                                }
+
+                                function formatTaskDate(date) {
+                                    if (!date) return "-";
+                                    const d = new Date(date);
+
+                                    const year = d.getFullYear();
+                                    const month = String(d.getMonth() + 1).padStart(2, "0");
+                                    const day = String(d.getDate()).padStart(2, "0");
+
+                                    return `${year}-${month}-${day}`;
+                                }
+
+
+                                getTaskByDueDate(project.id, function(maxTask) {
+                                    const deadlineEl = document.getElementById("deadline-" + project.id);
+                                    if (!deadlineEl) return;
+
+                                    const projectDue = project.due_date ? new Date(project.due_date) : null;
+
+                                    if (maxTask && maxTask.due_date) {
+                                        const taskDue = new Date(maxTask.due_date);
+
+                                        if (!projectDue || taskDue > projectDue) {
+                                            deadlineEl.textContent = formatTaskDate(taskDue);
+                                        } else {
+                                            deadlineEl.textContent = formatTaskDate(projectDue);
+                                        }
+                                    } else {
+                                        deadlineEl.textContent = projectDue ? formatTaskDate(projectDue) : "-";
+                                    }
+                                });
+
                                 const detailHtml = `
                 <div class="custom-card-detail rounded-4 p-3 border-0" data-project-id="${pid}">
                     <div class="d-flex justify-content-between align-items-start mb-2">
@@ -6411,19 +6517,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     <hr class="task-separator rounded-4">
                     <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
                         <div>
-                            <span style="color:#797E91;">Priority: </span>
-                            <span style="color:${
-                                (project.priority || "").toUpperCase() ===
-                                "HIGH"
-                                    ? "red"
-                                    : "#4B4F5E"
-                            }">${project.priority || "-"}</span>
-                        </div>
-                        <div>
                             <span style="color:#797E91;">Deadline: </span>
-                            <span style="color:#4B4F5E;">${
-                                project.due_date || "-"
-                            }</span>
+                            <span id="deadline-${project.id}" style="color:#4B4F5E;">
+                                ${project.due_date || "-"}
+                            </span>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -9236,7 +9333,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 divisionSelect.innerHTML =
                     '<option value="" disabled selected>Select Division</option>';
                 loadDepartments();
-                loadProjects();
 
                 // Close modal after short delay to show alert
                 setTimeout(() => {
@@ -10491,7 +10587,6 @@ document.addEventListener("DOMContentLoaded", function () {
         const applyFilterBtn = document.getElementById("applyProjectFilterBtn");
         const resetFilterBtn = document.getElementById("resetProjectFilterBtn");
         const filterStatus = document.getElementById("filterProjectStatus");
-        const projectSelect = document.getElementById("filterProjectSelect");
         const sortBySelect = document.getElementById("filterSortBy");
 
         if (!openFilterBtn || !filterDropdown) return;
@@ -10517,40 +10612,8 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 filterDropdown.style.display = "block";
                 filterDropdown.classList.remove("d-none");
-
-                // <-- panggil populate project setiap buka dropdown
-                populateProjectOptions();
             }
         });
-
-        function populateProjectOptions() {
-            if (!projectSelect) return;
-            projectSelect.innerHTML = '<option value="">All Projects</option>';
-            $.ajax({
-                url: appUrl + "/project/index",
-                type: "GET",
-                dataType: "json",
-                data: { task_scope: "me" },
-            })
-                .done(function (res) {
-                    const arr = Array.isArray(res)
-                        ? res
-                        : Array.isArray(res?.data)
-                        ? res.data
-                        : [];
-                    arr.forEach(function (p) {
-                        const opt = document.createElement("option");
-                        opt.value = p.id;
-                        opt.textContent = p.title || "Project #" + p.id;
-                        projectSelect.appendChild(opt);
-                    });
-                    try {
-                        if (window.currentProjectId) {
-                            projectSelect.value = String(window.currentProjectId);
-                        }
-                    } catch (_) {}
-                });
-        }
 
         if (applyFilterBtn) {
             applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
@@ -10582,12 +10645,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         ? window.currentSearch
                         : "";
 
-                const selectedProjectId = projectSelect ? projectSelect.value : "";
-                try {
-                    window.currentProjectId = selectedProjectId || "";
-                } catch (_) {}
-                currentProjectId = selectedProjectId || "";
-
                 loadProjectCardData(filterParam, 1, q, sortBy);
             });
         }
@@ -10600,15 +10657,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 e.stopPropagation();
 
                 if (filterStatus) filterStatus.value = "";
-                if (projectSelect) projectSelect.value = "";
 
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add("d-none");
-
-                try {
-                    window.currentProjectId = "";
-                } catch (_) {}
-                currentProjectId = "";
 
                 const q =
                     typeof window.currentSearch === "string"
@@ -10674,7 +10725,6 @@ document.addEventListener("DOMContentLoaded", function () {
         loadDepartments();
         divisionSelect.innerHTML =
             '<option value="" disabled selected>Select Division</option>';
-        loadProjects();
 
         // Clear selected reference files and preview
         try {
@@ -10984,6 +11034,8 @@ function loadTimelineProjects(filter = null) {
             $(".loader").fadeIn("fast");
         },
         success: function (res) {
+            console.log(res);
+            
             const projects = Array.isArray(res)
                 ? res
                 : Array.isArray(res.data)
@@ -11019,6 +11071,8 @@ function loadTimelineProjects(filter = null) {
                         type: "GET",
                         dataType: "json",
                         success: function (resp) {
+                            console.log(resp);
+                            
                             const data = resp.data || resp;
                             p.start_date =
                                 p.start_date || data.start_date || data.start;
@@ -11096,32 +11150,40 @@ function buildTimelineFromProjects(projects) {
             color: TIMELINE_COLORS[idx % TIMELINE_COLORS.length],
         });
     });
-
-    try {
-        console.debug(
-            "timelineData built:",
-            timelineData.map((t) => ({
-                id: t.id,
-                name: t.name,
-                start: t.start_date && t.start_date.toISOString(),
-                due: t.due_date && t.due_date.toISOString(),
-                color: t.color,
-            }))
-        );
-    } catch (e) {}
 }
 
 function getWeeksInMonth(year, month) {
-    const first = new Date(year, month, 1);
+const first = new Date(year, month, 1);
     const last = new Date(year, month + 1, 0);
     const used = first.getDay() + last.getDate();
     return Math.ceil(used / 7);
 }
 
-function getWeekOfMonth(date) {
-    const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
-    return Math.ceil((date.getDate() + offset) / 7);
+function getCalendarWeeks(year, month) {
+    const firstOfMonth = new Date(year, month, 1);
+    const lastOfMonth = new Date(year, month + 1, 0);
+
+    // Cari Senin pertama sebelum atau sama dengan tanggal 1
+    let firstMonday = new Date(firstOfMonth);
+    while (firstMonday.getDay() !== 1) {
+        firstMonday.setDate(firstMonday.getDate() - 1);
+    }
+
+    // Generate minggu per 7 hari
+    const weeks = [];
+    let start = new Date(firstMonday);
+    while (start <= lastOfMonth || start.getMonth() === month) {
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        weeks.push({ start, end });
+        start = new Date(start);
+        start.setDate(start.getDate() + 7);
+    }
+    return weeks;
+}
+
+function getWeekOfDate(date, weeks) {
+    return weeks.findIndex((w) => date >= w.start && date <= w.end);
 }
 
 function renderTimeline(
@@ -11187,25 +11249,18 @@ function renderTimeline(
         headerRow.appendChild(th);
     });
 
+    const weeks = getCalendarWeeks(year, month);
     if (weekIndex == null) {
         const today = new Date();
-        if (today.getMonth() === month && today.getFullYear() === year) {
-            const firstOfMonth = new Date(year, month, 1);
-            const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
-            weekIndex = Math.ceil((today.getDate() + offset) / 7) - 1;
-        } else {
-            weekIndex = 0;
-        }
+        weekIndex = getWeekOfDate(today, weeks);
+        if (weekIndex < 0) weekIndex = 0;
     }
 
-    const firstOfMonth = new Date(year, month, 1);
-    let weekStartDate = new Date(firstOfMonth);
-    let day = weekStartDate.getDay();
-    let diff = (day === 0 ? -6 : 1) - day;
-    weekStartDate.setDate(weekStartDate.getDate() + diff + (weekIndex * 7));
+    const weekInfo = weeks[weekIndex];
+    if (!weekInfo) return;
 
-    let weekEndDate = new Date(weekStartDate);
-    weekEndDate.setDate(weekStartDate.getDate() + 6);
+    let weekStartDate = weekInfo.start;
+    let weekEndDate = weekInfo.end;
 
     const filteredProjects = timelineData.filter((proj) => {
         return proj.start_date <= weekEndDate && proj.due_date >= weekStartDate;
@@ -11245,7 +11300,6 @@ function renderTimeline(
     }
 }
 
-
 document.getElementById("prevTimeline").addEventListener("click", () => {
     if (currentWeek > 0) {
         currentWeek--;
@@ -11255,10 +11309,10 @@ document.getElementById("prevTimeline").addEventListener("click", () => {
             currentMonth = 11;
             currentYear--;
         }
-        const maxWeek = getWeeksInMonth(currentYear, currentMonth);
-        currentWeek = maxWeek > 0 ? maxWeek - 1 : 0;
+        const weeks = getCalendarWeeks(currentYear, currentMonth);
+        currentWeek = weeks.length > 0 ? weeks.length - 1 : 0;
     }
-    renderTimeline(
+   renderTimeline(
         "#timelineHeader",
         "#timelineRows",
         "week",
@@ -11269,7 +11323,8 @@ document.getElementById("prevTimeline").addEventListener("click", () => {
 });
 
 document.getElementById("nextTimeline").addEventListener("click", () => {
-    const maxWeek = getWeeksInMonth(currentYear, currentMonth) - 1;
+    const weeks = getCalendarWeeks(currentYear, currentMonth);
+    const maxWeek = weeks.length - 1;
     if (currentWeek < maxWeek) {
         currentWeek++;
     } else {
@@ -11444,7 +11499,6 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
         }
     });
 }
-
 
 // === Global Unread Badge Refresher ===
 function refreshAllProjectUnreadBadges() {

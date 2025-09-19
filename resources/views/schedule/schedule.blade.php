@@ -59,7 +59,6 @@
             <nav aria-label="...">
                 <ul class="pagination pagination-sm justify-content-center">
                     <li class="page-item active">
-                        <button class="page-link" aria-current="page">1</button>
                     </li>
                 </ul>
             </nav>
@@ -111,12 +110,7 @@
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
                             </div>
-                            <div class="custom-form-employee d-none" id="schedule_include_weekend_div">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="1" id="schedule_include_weekend" name="include_weekend">
-                                    <label class="form-check-label" for="schedule_include_weekend">Include Weekend</label>
-                                </div>
-                            </div>
+                            <!-- include_weekend removed -->
 
                             <!-- Weekly options -->
                             <div class="custom-form-employee d-none" id="schedule_weekly_opts">
@@ -132,6 +126,21 @@
                                     <option value="5">Friday</option>
                                     <option value="6">Saturday</option>
                                 </select>
+                            </div>
+
+                            <!-- Weekday picker for Daily: allow selecting multiple weekdays instead of a single date -->
+                            <div class="custom-form-employee d-none" id="schedule_daily_weekdays">
+                                <label class="form-label label-custom">Pick weekdays</label>
+                                <div class="d-flex flex-wrap gap-2" id="schedule_daily_weekdays_buttons">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="0">Sunday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="1">Monday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="2">Tuesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="3">Wednesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="4">Thursday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="5">Friday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="6">Saturday</button>
+                                </div>
+                                <input type="hidden" id="schedule_recurrence_days_of_week" name="recurrence_days_of_week" value="[]">
                             </div>
 
                             <!-- Date options -->
@@ -177,7 +186,7 @@
 
                             <!-- Due in days -->
                             <div class="custom-form-employee">
-                                <label for="schedule_due_in_days" class="form-label label-custom">Due In
+                                <label for="schedule_due_in_days" class="form-label label-custom">Due date
                                     (days)</label>
                                 <input type="number" min="0" id="schedule_due_in_days" name="due_in_days"
                                     class="form-control input-text" placeholder="e.g. 3">
@@ -201,7 +210,7 @@
                             <!-- Project -->
                             <div class="custom-form-employee">
                                 <label for="schedule_project_id" class="form-label label-custom">Project
-                                    (optional)</label>
+                                    </label>
                                 <select id="schedule_project_id" name="project_id" class="form-select input-select">
                                     <option value="">No Project</option>
                                 </select>
@@ -322,6 +331,7 @@
                                 name="recurrence_start_date" value="{{ now()->toDateString() }}">
                             <input type="hidden" id="edit_schedule_recurrence_end_date" name="recurrence_end_date"
                                 value="">
+                                <input type="hidden" id="edit_schedule_next_run_at" name="next_run_at" value="">
 
                             <!-- Upload Image -->
                             <div class="mb-3">
@@ -352,12 +362,7 @@
                                 </select>
                                 <div class="invalid-feedback">Please select recurrence type.</div>
                             </div>
-                            <div class="custom-form-employee d-none" id="edit_schedule_include_weekend_div">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" value="1" id="edit_schedule_include_weekend" name="include_weekend">
-                                    <label class="form-check-label" for="edit_schedule_include_weekend">Include Weekend</label>
-                                </div>
-                            </div>
+                            <!-- include_weekend removed -->
 
                             <!-- Weekly options -->
                             <div class="custom-form-employee d-none" id="edit_schedule_weekly_opts">
@@ -376,24 +381,46 @@
                                 </select>
                             </div>
 
+                            <!-- Weekday picker for Daily in edit modal -->
+                            <div class="custom-form-employee d-none" id="edit_schedule_daily_weekdays">
+                                <label class="form-label">Pick weekdays</label>
+                                <div class="d-flex flex-wrap gap-2" id="edit_schedule_daily_weekdays_buttons">
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="0">Sunday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="1">Monday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="2">Tuesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="3">Wednesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="4">Thursday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="5">Friday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="6">Saturday</button>
+                                </div>
+                                <input type="hidden" id="edit_schedule_recurrence_days_of_week" name="recurrence_days_of_week" value="[]">
+                            </div>
+
                             <!-- Monthly options -->
                             <div class="custom-form-employee" id="edit_schedule_date_opts">
                                 <div class="d-flex gap-2">
                                     <!-- Start Date -->
                                     <div class="w-50">
                                         <label for="edit_schedule_start_at" class="form-label label-custom">Start
-                                            Date</label>
+                                            At</label>
                                         <input type="date" id="edit_schedule_start_at" name="start_at"
                                             class="form-control input-text">
                                     </div>
 
                                     <!-- End Date -->
                                     <div class="w-100" id="edit_schedule_end_at_div">
-                                        <label for="edit_schedule_end_at" class="form-label label-custom">End Date</label>
+                                        <label for="edit_schedule_end_at" class="form-label label-custom">End
+                                            At</label>
                                         <input type="date" id="edit_schedule_end_at" name="end_at"
                                             class="form-control input-text">
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Monthly options hidden helpers expected by JS -->
+                            <div class="d-none" id="edit_schedule_monthly_opts">
+                                <input type="hidden" id="edit_schedule_recurrence_day_of_month" name="recurrence_day_of_month" value="">
+                                <input type="hidden" id="edit_schedule_monthly_date" name="recurrence_monthly_date" value="">
                             </div>
 
                             <!-- Points -->
@@ -419,7 +446,7 @@
 
                             <!-- Due in days -->
                             <div class="custom-form-employee">
-                                <label for="edit_schedule_due_in_days" class="form-label label-custom">Due In
+                                <label for="edit_schedule_due_in_days" class="form-label label-custom">Due date
                                     (days)</label>
                                 <input type="number" min="0" id="edit_schedule_due_in_days"
                                     name="due_in_days" class="form-control input-text" placeholder="e.g. 3">
@@ -444,7 +471,7 @@
                             <!-- Project -->
                             <div class="custom-form-employee">
                                 <label for="edit_schedule_project_id" class="form-label label-custom">Project
-                                    (optional)</label>
+                                    </label>
                                 <select id="edit_schedule_project_id" name="project_id"
                                     class="form-select input-select">
                                     <option value="">No Project</option>
@@ -494,26 +521,22 @@
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-submit-black">Edit Schedule</button>
+                        <button type="submit" class="btn btn-submit-black">Update Schedule</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-labelledby="deleteScheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
             <div class="modal-content modal-content-custom">
-
-                <div class="modal-body modal-body-custom text-center">
-                    <p style="font-size: 14px; color: #555;">
-                        Are you sure want to delete <strong id="deleteScheduleTitle"></strong> schedule ?
-                    </p>
+                <div class="modal-body modal-body-custom">
+                    <div id="deleteScheduleContent"></div>
                 </div>
-
-                <div class="modal-footer modal-footer-custom d-flex justify-content-end">
-                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Hapus</button>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Delete</button>
                 </div>
             </div>
         </div>

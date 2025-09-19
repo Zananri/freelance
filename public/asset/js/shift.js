@@ -690,7 +690,7 @@ function renderShiftConfigTable(shifts) {
                             data-end="${s.time_end || ""}">
                             <span class="material-symbols-outlined">edit</span>
                         </button>
-                        <button class="btn btn-sm delete-btn" 
+                        <button class="btn btn-sm delete-btn"
                             data-shift-id="${s.id}"
                             data-title="${s.title || ""}"
                             data-start="${s.time_start || ""}"
@@ -739,31 +739,31 @@ document.addEventListener("click", async (e) => {
         const shiftTitle = deleteBtn.dataset.title || "Shift";
         const shiftStart = deleteBtn.dataset.start || "";
         const shiftEnd = deleteBtn.dataset.end || "";
-        
+
         // Close shift config modal first
         const shiftConfigModalEl = document.getElementById("shiftConfigModal");
         const shiftConfigModal = bootstrap.Modal.getInstance(shiftConfigModalEl);
         if (shiftConfigModal) {
             shiftConfigModal.hide();
         }
-        
+
         // Show delete confirmation modal
         const deleteModalEl = document.getElementById("deleteConfigModal");
         const deleteModal = new bootstrap.Modal(deleteModalEl);
-        
+
         // Populate modal with shift details
         deleteModalEl.querySelector("#deleteConfigShiftId").value = shiftId;
         deleteModalEl.querySelector("#deleteShiftTitle").textContent = shiftTitle;
-        
+
         const formatTime = (t) => {
             if (!t) return "--";
             const [h, m] = String(t).split(":");
             return `${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
         };
-        
-        deleteModalEl.querySelector("#deleteShiftTime").textContent = 
+
+        deleteModalEl.querySelector("#deleteShiftTime").textContent =
             `Time: ${formatTime(shiftStart)} - ${formatTime(shiftEnd)}`;
-        
+
         deleteModal.show();
     }
 });
@@ -840,7 +840,7 @@ document.getElementById("saveUpdateShiftConfigBtn").addEventListener("click", as
 document.getElementById("confirmDeleteShiftConfigBtn").addEventListener("click", async () => {
     const deleteModalEl = document.getElementById("deleteConfigModal");
     const shiftId = deleteModalEl.querySelector("#deleteConfigShiftId").value;
-    
+
     if (!shiftId) {
         showFloatingAlert("Shift ID not found", "danger");
         return;
@@ -885,10 +885,10 @@ document.getElementById("confirmDeleteShiftConfigBtn").addEventListener("click",
         // Re-render table without deleted shifts
         const activeShifts = window.shifts.filter(s => !s.deleted_by);
         renderShiftConfigTable(activeShifts);
-        
+
         // Also refresh the filter shift dropdown with updated data
         populateFilterShiftDropdown(activeShifts);
-        
+
         showFloatingAlert("Shift deleted successfully", "success");
 
         // Set flag to prevent re-opening config modal after successful delete
@@ -909,13 +909,13 @@ if (deleteConfigModal) {
     deleteConfigModal.addEventListener('hidden.bs.modal', function () {
         // Check if delete was successful - if so, don't re-open config modal
         const deleteSuccess = this.getAttribute('data-delete-success');
-        
+
         if (deleteSuccess === 'true') {
             // Remove the flag and don't re-open config modal
             this.removeAttribute('data-delete-success');
             return;
         }
-        
+
         // Re-open shift config modal when delete modal is closed (cancelled)
         const shiftConfigModalEl = document.getElementById("shiftConfigModal");
         if (shiftConfigModalEl) {
@@ -1024,7 +1024,7 @@ function setupEventListeners() {
         filterDepartment.addEventListener("change", (e) => {
             const departmentId = e.target.value;
             const filterDivision = document.getElementById("filterDivision");
-            
+
             if (departmentId) {
                 loadDivisions(departmentId);
             } else {
@@ -1035,7 +1035,7 @@ function setupEventListeners() {
                     filterDivision.value = ''; // Reset value
                 }
             }
-            
+
             // Reset division filter in currentFilters when department changes
             if (currentFilters.division) {
                 currentFilters.division = '';
@@ -1061,7 +1061,7 @@ function applyFilters() {
     }
 
     loadEmployeeData(filters);
-    
+
     // Close dropdown after applying filters
     const filterDropdown = document.querySelector('.filter-dropdown .dropdown-toggle');
     if (filterDropdown) {
@@ -1076,14 +1076,14 @@ function resetFilters() {
     document.getElementById("filterDepartment").value = "";
     document.getElementById("filterDivision").value = "";
     document.getElementById("filterShift").value = "";
-    
+
     // Clear division dropdown and disable it
     const filterDivision = document.getElementById("filterDivision");
     if (filterDivision) {
         filterDivision.innerHTML = '<option value="">Select Division</option>';
         filterDivision.disabled = true;
     }
-    
+
     // Reset filters but preserve search
     currentFilters = {
         department: '',
@@ -1091,9 +1091,9 @@ function resetFilters() {
         shift: '',
         search: currentFilters.search || ''
     };
-    
+
     loadEmployeeData(currentFilters);
-    
+
     // Close dropdown after resetting filters
     const filterDropdown = document.querySelector('.filter-dropdown .dropdown-toggle');
     if (filterDropdown) {
@@ -1880,31 +1880,15 @@ $(document).ready(function () {
     });
 });
 
-// Debounce function untuk mencegah too many requests
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
+document.getElementById("search_filter").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+        e.preventDefault();
+        const query = this.value.trim();
 
-// Search with debounce - increased delay to 1000ms (1 second)
-const debouncedSearch = debounce(function(query) {
-    currentFilters.search = query;
-    loadEmployeeData(currentFilters);
-}, 1000);
-
-document.getElementById("search_filter").addEventListener("input", function () {
-    const query = this.value.trim();
-    
-    // Only search if query has at least 2 characters or is empty (to reset)
-    if (query.length >= 2 || query.length === 0) {
-        debouncedSearch(query);
+        if (query.length >= 2 || query.length === 0) {
+            currentFilters.search = query;
+            loadEmployeeData(currentFilters);
+        }
     }
 });
 

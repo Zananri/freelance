@@ -77,7 +77,7 @@
                                         <button class="btn btn-sm me-2" id="prevTimeline">
                                             <span class="material-symbols-outlined">chevron_left</span>
                                         </button>
-                                        <button class="btn btn-sm" id="nextTimeline">
+                                        <button class="btn btn-sm me-2" id="nextTimeline">
                                             <span class="material-symbols-outlined">chevron_right</span>
                                         </button>
                                         <button data-bs-toggle="modal" data-bs-target="#timelineModal"
@@ -183,13 +183,6 @@
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="filterProjectSelect" class="form-label label-custom-filter">Filter by Project</label>
-                                    <select id="filterProjectSelect" class="form-select label-custom-filter">
-                                        <option value="">All Projects</option>
-                                    </select>
-                                </div>
-
-                                <div class="mb-3">
                                     <label for="filterSortBy" class="form-label label-custom-filter">Sort By</label>
                                     <select id="filterSortBy" class="form-select label-custom-filter">
                                     <option value="title_asc">Title A-Z</option>
@@ -201,9 +194,9 @@
                             </div>
                             <div class="dropdown-filter-footer">
                                 <button type="button" class="btn btn-submit-black"
-                                    id="resetProjectFilterBtn">Reset</button>
+                                    id="applyProjectFilterBtn">Apply</button>
                                 <button type="button" class="btn btn-submit-black"
-                                    id="applyProjectFilterBtn">Filter</button>
+                                    id="resetProjectFilterBtn">Reset</button>
                             </div>
                         </div>
                     </div>
@@ -274,7 +267,7 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="description" name="description" rows="3"></textarea>
+                            <textarea class="form-control input-text" id="description" name="description" required rows="3"></textarea>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="department" class="form-label label-custom">Department</label>
@@ -407,7 +400,7 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="edit_description" name="description" rows="3"></textarea>
+                            <textarea class="form-control input-text" id="edit_description" name="description" required rows="3"></textarea>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_department" class="form-label label-custom">Department</label>
@@ -503,12 +496,11 @@
     <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
-                <button type="button" class="btn-close btn-sm position-absolute end-0" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
                 <div class="modal-body modal-body-custom position-relative">
                     <div id="projectDetailContent"></div>
                 </div>
                 <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-submit-black" id="projectDetailDeleteBtn">Delete</button>
                 </div>
             </div>

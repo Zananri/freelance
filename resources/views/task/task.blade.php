@@ -62,7 +62,7 @@
                         </div>
                     </div>
                     <div class="dropdown-filter-footer">
-                        <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtn">Filter</button>
+                        <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtn">Apply</button>
                     </div>
                 </div>
             </div>

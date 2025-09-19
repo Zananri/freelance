@@ -495,6 +495,14 @@ class ProjectController extends Controller
         $coAuthors = $projectAssignments->where('role', 'co_author')->values();
         $contributors = $projectAssignments->where('role', 'contributor')->values();
 
+        // Calculate timeline start and due based on project and tasks
+        $minStart = $project->tasks_min_start_date;
+        $maxDue = $project->tasks_max_due_date;
+        $start = $project->start_date;
+        $due = $project->due_date;
+        if ($minStart && (!$start || $minStart < $start)) $start = $minStart;
+        if ($maxDue && (!$due || $maxDue > $due)) $due = $maxDue;
+
         return [
             'id' => $project->id,
             'title' => $project->title,
@@ -514,8 +522,8 @@ class ProjectController extends Controller
                 'completed' => $project->completed_tasks,
                 'late' => $project->late_tasks,
             ],
-            'start_date' => $project->tasks_min_start_date,
-            'due_date' => $project->tasks_max_due_date,
+            'start_date' => $start,
+            'due_date' => $due,
         ];
     }
 
@@ -773,7 +781,7 @@ class ProjectController extends Controller
 
             $request->validate([
                 'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
+                'description' => 'required|string',
                 'department' => 'required|exists:departments,id',
                 'division' => 'required|exists:divisions,id',
                 'status' => 'string|max:50',
@@ -1230,7 +1238,7 @@ class ProjectController extends Controller
 
             $request->validate([
                 'title' => 'required|string|max:255',
-                'description' => 'nullable|string',
+                'description' => 'required|string',
                 'department' => 'required|exists:departments,id',
                 'division' => 'required|exists:divisions,id',
                 'status' => 'string|max:50',

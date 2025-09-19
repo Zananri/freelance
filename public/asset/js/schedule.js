@@ -353,30 +353,7 @@ document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener("submit", function (e) {
         if (e.target.id === "scheduleEditForm") {
             e.preventDefault();
-            // Frontend validation: require include_weekend when daily schedule range contains Sat/Sun
-            try {
-                const recType = document.getElementById('edit_schedule_recurrence_type')?.value;
-                if(recType === 'daily'){
-                    const includeChk = document.getElementById('edit_schedule_include_weekend');
-                    const startAt = document.getElementById('edit_schedule_start_at')?.value;
-                    const endAt = document.getElementById('edit_schedule_end_at')?.value;
-                    if(includeChk && !includeChk.checked && startAt){
-                        const start = new Date(startAt + 'T00:00:00');
-                        const end = endAt ? new Date(endAt + 'T00:00:00') : start;
-                        let cur = new Date(start);
-                        let hitsWeekend = false;
-                        while(cur <= end){
-                            const d = cur.getDay();
-                            if(d === 0 || d === 6){ hitsWeekend = true; break; }
-                            cur.setDate(cur.getDate() + 1);
-                        }
-                        if(hitsWeekend){
-                            showFloatingAlert('Include Weekend Required','danger',3500);
-                            return; // prevent submit
-                        }
-                    }
-                }
-            } catch(e) { /* ignore validation errors and continue */ }
+            // include_weekend removed; no frontend validation needed here
 
             const form = e.target;
             const formData = new FormData(form);
@@ -487,10 +464,162 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.priority || "";
         document.getElementById("edit_schedule_due_in_days").value =
             schedule.due_in_days || "";
-        document.getElementById("edit_schedule_start_at").value =
-            schedule.start_at || "";
-        document.getElementById("edit_schedule_end_at").value =
-            schedule.end_at || "";
+    // Use only start_at/end_at for edit modal (do not fallback to legacy start_date/due_date)
+    const startVal = schedule.start_at ?? "";
+    const endVal = schedule.end_at ?? "";
+    const startEl = document.getElementById("edit_schedule_start_at");
+    const endEl = document.getElementById("edit_schedule_end_at");
+
+    // Early-parse recurrence days so we can decide whether to touch start_at
+    let parsedDays = schedule.recurrence_days_of_week ?? schedule.recurrence_days_of_week_raw ?? null;
+    if (!Array.isArray(parsedDays) && typeof parsedDays === 'string') {
+        try {
+            parsedDays = JSON.parse(parsedDays);
+        } catch (e) {
+            parsedDays = parsedDays.split(',').map(s => s.trim()).filter(Boolean).map(Number);
+        }
+    }
+    if (!Array.isArray(parsedDays)) parsedDays = [];
+
+    function toLocalDateInput(val) {
+        if (!val) return "";
+        const s = String(val).trim();
+        // If it's already in YYYY-MM-DD form, return it
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+        // Try to extract a YYYY-MM-DD substring first
+        const m = s.match(/\d{4}-\d{2}-\d{2}/);
+        // Try to parse into Date and use local components to avoid timezone shift
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, "0");
+            const dd = String(d.getDate()).padStart(2, "0");
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return (m && m[0]) || "";
+    }
+
+    try {
+        const newStart = toLocalDateInput(startVal);
+        const newEnd = toLocalDateInput(endVal);
+        // Debug log to help trace unexpected date shifts (can be removed later)
+        if (window.__scheduleDebug) console.debug('populateEditModal: startVal, endVal, parsedDays', startVal, endVal, parsedDays);
+
+        // If recurrence is daily and user already selected weekdays (parsedDays non-empty),
+        // avoid overwriting an existing start_at value to prevent repeat-adjust behavior.
+        const isDailyWithDays = (schedule.recurrence_type === 'daily' && parsedDays.length > 0);
+        if (startEl) {
+            const shouldSetStart = !isDailyWithDays || !startEl.value;
+            if (shouldSetStart) startEl.value = newStart;
+            else if (window.__scheduleDebug) console.debug('populateEditModal: skip setting start_at because daily with selected weekdays and input already has value');
+        }
+        if (endEl) endEl.value = newEnd;
+    } catch (e) {
+        if (startEl) startEl.value = (startVal || "").toString().slice(0, 10);
+        if (endEl) endEl.value = (endVal || "").toString().slice(0, 10);
+    }
+
+    // Sync hidden recurrence start/end fields and compute next run date when start_at or due_in_days changes
+    function computeEditDerivedDates(){
+        try{
+            const startInput = document.getElementById('edit_schedule_start_at');
+            const dueInDaysInput = document.getElementById('edit_schedule_due_in_days');
+            const hiddenStart = document.getElementById('edit_schedule_recurrence_start_date');
+            const hiddenEnd = document.getElementById('edit_schedule_recurrence_end_date');
+            const hiddenNext = document.getElementById('edit_schedule_next_run_at');
+            if(!startInput || !hiddenStart || !hiddenEnd) return;
+            // Set recurrence_start_date = start_at
+            hiddenStart.value = startInput.value || '';
+            // Compute end date = start_at + due_in_days (if provided)
+            const days = parseInt(dueInDaysInput?.value || '0',10);
+            if(startInput.value){
+                const parts = startInput.value.split('-').map(n=>parseInt(n,10));
+                if(parts.length===3 && !parts.some(isNaN)){
+                    const d = new Date(parts[0], parts[1]-1, parts[2]);
+                    if(!isNaN(d.getTime())){
+                        if(!Number.isNaN(days) && days>0){
+                            const endDate = new Date(d);
+                            endDate.setDate(d.getDate() + days);
+                            hiddenEnd.value = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`;
+                        } else {
+                            hiddenEnd.value = '';
+                        }
+                    }
+                }
+            } else {
+                hiddenEnd.value = '';
+            }
+
+            // compute next_run_at based on recurrence type
+            try {
+                if(!hiddenNext) return;
+                const recurrenceType = document.getElementById('edit_schedule_recurrence_type')?.value || '';
+                const daysJson = document.getElementById('edit_schedule_recurrence_days_of_week')?.value || '[]';
+                let daysArr = [];
+                try{ daysArr = JSON.parse(daysJson||'[]'); }catch(e){ daysArr = []; }
+
+                function isoDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+                const parseYMD = (s)=>{ if(!s) return null; const p = s.split('-').map(n=>parseInt(n,10)); if(p.length!==3 || p.some(isNaN)) return null; return new Date(p[0], p[1]-1, p[2]); };
+                const startDate = parseYMD(startInput.value);
+                const today = new Date();
+                let nextRun = null;
+
+                if(recurrenceType === 'daily'){
+                    if(Array.isArray(daysArr) && daysArr.length>0){
+                        const base = startDate || today;
+                        for(let i=0;i<14;i++){
+                            const cand = new Date(base);
+                            cand.setDate(base.getDate()+i);
+                            if(daysArr.includes(cand.getDay())){ nextRun = cand; break; }
+                        }
+                    } else {
+                        nextRun = startDate || today;
+                    }
+                } else if(recurrenceType === 'weekly'){
+                    const dow = parseInt(document.getElementById('edit_schedule_recurrence_day_of_week')?.value);
+                    if(!isNaN(dow)){
+                        const base = startDate || today;
+                        for(let i=0;i<14;i++){
+                            const cand = new Date(base);
+                            cand.setDate(base.getDate()+i);
+                            if(cand.getDay() === dow){ nextRun = cand; break; }
+                        }
+                    }
+                } else if(recurrenceType === 'monthly'){
+                    const dom = parseInt(document.getElementById('edit_schedule_recurrence_day_of_month')?.value);
+                    const base = startDate || today;
+                    if(!isNaN(dom) && dom>0){
+                        let cand = null;
+                        for(let i=0;i<12;i++){
+                            const tryDate = new Date(base.getFullYear(), base.getMonth()+i, 1);
+                            const daysInMonth = new Date(tryDate.getFullYear(), tryDate.getMonth()+1, 0).getDate();
+                            const day = Math.min(dom, daysInMonth);
+                            cand = new Date(tryDate.getFullYear(), tryDate.getMonth(), day);
+                            if(startDate){
+                                if(cand.getTime() >= startDate.getTime()){ nextRun = cand; break; }
+                            } else { nextRun = cand; break; }
+                        }
+                    } else if(startDate){
+                        nextRun = startDate;
+                    }
+                }
+
+                if(nextRun){ hiddenNext.value = isoDate(nextRun); }
+                else { hiddenNext.value = ''; }
+            } catch(e){}
+        }catch(e){}
+    }
+
+    // Attach listeners so when user edits start_at or due_in_days in edit modal we recompute derived dates
+    try{
+            const hiddenNext = document.getElementById('edit_schedule_next_run_at');
+        const startInputEdit = document.getElementById('edit_schedule_start_at');
+        const dueInEdit = document.getElementById('edit_schedule_due_in_days');
+        if(startInputEdit) startInputEdit.addEventListener('change', function(){ computeEditDerivedDates(); });
+        if(dueInEdit) dueInEdit.addEventListener('input', function(){ computeEditDerivedDates(); });
+        // run once to initialize
+        computeEditDerivedDates();
+    }catch(e){}
         document.getElementById("edit_schedule_recurrence_type").value =
             schedule.recurrence_type || "";
 
@@ -501,20 +630,11 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.recurrence_day_of_month
         );
 
-        // Populate include_weekend checkbox and ensure visibility for daily
-        try {
-            const includeChk = document.getElementById('edit_schedule_include_weekend');
-            const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
-            if (includeChk) {
-                includeChk.checked = !!schedule.include_weekend;
-            }
-            if (includeDiv) {
-                includeDiv.classList.toggle('d-none', (schedule.recurrence_type !== 'daily'));
-            }
-        } catch (e) { /* ignore */ }
+        // include_weekend removed
 
         // Handle image
         if (schedule.image) {
+            // Set label background and show clear button
             $("#editScheduleImageLabel").css(
                 "background-image",
                 "url(" + appUrl + "/file/schedule/" + schedule.image + ")"
@@ -524,11 +644,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 "background-size": "cover",
                 opacity: "1",
             });
-            $("#editImageClearBtn").removeClass("d-none");
+            // correct clear button id
+            $("#editScheduleImageClearBtn").removeClass("d-none");
         } else {
             $("#editScheduleImageLabel").removeClass("has-image");
             $("#editScheduleImageLabel").css("opacity", "1");
-            $("#editImageClearBtn").addClass("d-none");
+            $("#editScheduleImageClearBtn").addClass("d-none");
         }
 
         // Handle reference URLs
@@ -541,10 +662,53 @@ document.addEventListener("DOMContentLoaded", function () {
         loadProjectsForEdit(schedule.project_id);
 
         // Setup reference URL functionality for edit modal
+            // recompute next_run_at when recurrence type or recurrence day changes
+            try{
+                const recType = document.getElementById('edit_schedule_recurrence_type');
+                const recDow = document.getElementById('edit_schedule_recurrence_day_of_week');
+                const recDays = document.getElementById('edit_schedule_recurrence_days_of_week');
+                const recDom = document.getElementById('edit_schedule_recurrence_day_of_month');
+                if(recType) recType.addEventListener('change', function(){ computeEditDerivedDates(); });
+                if(recDow) recDow.addEventListener('change', function(){ computeEditDerivedDates(); });
+                if(recDays) recDays.addEventListener('change', function(){ computeEditDerivedDates(); });
+                if(recDom) recDom.addEventListener('change', function(){ computeEditDerivedDates(); });
+            }catch(e){}
         setupEditReferenceUrls();
 
         // Setup recurrence toggle functionality for edit modal
         setupEditRecurrenceToggles();
+
+        // Setup/edit weekday picker state for daily recurrence
+        try {
+            const buttonsContainer = document.getElementById('edit_schedule_daily_weekdays_buttons');
+            const hidden = document.getElementById('edit_schedule_recurrence_days_of_week');
+            if (hidden && buttonsContainer) {
+                    // initialize hidden value from schedule (controller may send recurrence_days_of_week as array or comma string)
+                    let days = schedule.recurrence_days_of_week ?? schedule.recurrence_days_of_week_raw ?? null;
+                    if (!Array.isArray(days) && typeof days === 'string') {
+                        try { days = JSON.parse(days); } catch (e) { days = days.split(',').map(s=>s.trim()).filter(Boolean).map(Number); }
+                    }
+                    if (!Array.isArray(days)) days = [];
+                    hidden.value = JSON.stringify(days);
+                    // Update buttons: use weekday-selected class for consistency with create modal
+                    buttonsContainer.querySelectorAll('.edit-weekday-btn').forEach(btn=>{
+                        const d = parseInt(btn.getAttribute('data-day'));
+                        // initialize accessible pressed state and classes
+                        btn.setAttribute('aria-pressed','false');
+                        if (days.includes(d)) {
+                            btn.classList.add('weekday-selected');
+                            btn.classList.add('active');
+                            btn.classList.remove('btn-outline-secondary');
+                            btn.setAttribute('aria-pressed','true');
+                        } else {
+                            btn.classList.remove('weekday-selected');
+                            btn.classList.remove('active');
+                            btn.classList.add('btn-outline-secondary');
+                            btn.setAttribute('aria-pressed','false');
+                        }
+                    });
+                }
+        } catch(e) { /* ignore */ }
     }
 
     function setupEditReferenceUrls() {
@@ -633,11 +797,7 @@ document.addEventListener("DOMContentLoaded", function () {
             startAtDiv.classList.add("d-none");
         }
 
-        // Toggle include_weekend visibility for edit modal
-        try {
-            const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
-            if (includeDiv) includeDiv.classList.toggle('d-none', recurrenceType !== 'daily');
-        } catch (e) { /* ignore */ }
+        // include_weekend removed
     }
 
     function populateEditReferenceUrls(urls) {
@@ -877,6 +1037,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!typeSel || !weekly || !monthly) return;
 
+        function updateEditWeeklyStartDate(){
+            try {
+                const weeklyDay = document.getElementById('edit_schedule_recurrence_day_of_week');
+                const startAt = document.getElementById('edit_schedule_start_at');
+                if(!weeklyDay || !startAt) return;
+                const selectedDow = parseInt(weeklyDay.value);
+                if(Number.isNaN(selectedDow)) return;
+                const today = new Date();
+                const currentDow = today.getDay();
+                let daysToAdd = selectedDow - currentDow;
+                if(daysToAdd <= 0) daysToAdd += 7; // ensure next occurrence (today -> next week)
+                const newDate = new Date(today);
+                newDate.setDate(today.getDate() + daysToAdd);
+                startAt.value = newDate.toISOString().split('T')[0];
+                if(window.__scheduleDebug) console.debug('updateEditWeeklyStartDate', { selectedDow, currentDow, daysToAdd, startAt: startAt.value });
+            } catch(e) {}
+        }
+
         function sync() {
             const v = typeSel.value;
             weekly.classList.toggle("d-none", v !== "weekly");
@@ -901,6 +1079,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     "edit_schedule_recurrence_day_of_week"
                 );
                 if (dayOfWeekSelect) dayOfWeekSelect.required = true;
+                // update start_at to the next occurrence of selected weekday (same behavior as create modal)
+                updateEditWeeklyStartDate();
             } else {
                 const dayOfWeekSelect = document.getElementById(
                     "edit_schedule_recurrence_day_of_week"
@@ -927,15 +1107,55 @@ document.addEventListener("DOMContentLoaded", function () {
             }
 
             // Toggle include_weekend visibility in edit modal
+            // include_weekend removed
+
+            // Toggle weekday picker visibility for edit modal when daily
             try {
-                const includeDiv = document.getElementById('edit_schedule_include_weekend_div');
-                if (includeDiv) includeDiv.classList.toggle('d-none', v !== 'daily');
+                const editDaily = document.getElementById('edit_schedule_daily_weekdays');
+                if (editDaily) editDaily.classList.toggle('d-none', v !== 'daily');
             } catch (e) {}
         }
 
         typeSel.addEventListener("change", sync);
         sync();
+        // Attach change listener to weekly select so user selection immediately adjusts start_at
+        try {
+            const editWeeklyDay = document.getElementById('edit_schedule_recurrence_day_of_week');
+            if(editWeeklyDay) editWeeklyDay.addEventListener('change', updateEditWeeklyStartDate);
+        } catch(e) {}
     }
+
+    // Setup edit modal weekday buttons handler
+    (function setupEditWeekdayButtons(){
+        const container = document.getElementById('edit_schedule_daily_weekdays_buttons');
+        const hidden = document.getElementById('edit_schedule_recurrence_days_of_week');
+        if(!container || !hidden) return;
+        function getSel(){ try{ return JSON.parse(hidden.value||'[]').map(d=>parseInt(d)); }catch(e){ return []; } }
+        function setSel(arr){
+            try {
+                const vals = Array.from(new Set((arr||[]).map(Number))).filter(n=>!Number.isNaN(n));
+                hidden.value = JSON.stringify(vals);
+            } catch(e) {
+                hidden.value = JSON.stringify([]);
+            }
+        }
+        container.querySelectorAll('.edit-weekday-btn').forEach(btn=> btn.addEventListener('click', function(){
+            const day = parseInt(this.getAttribute('data-day'));
+            let sel = getSel();
+            if(sel.includes(day)){
+                sel = sel.filter(s=>s!==day);
+                this.classList.remove('weekday-selected'); this.classList.remove('active'); this.classList.add('btn-outline-secondary');
+                this.setAttribute('aria-pressed','false');
+            } else {
+                sel.push(day);
+                this.classList.add('weekday-selected'); this.classList.add('active'); this.classList.remove('btn-outline-secondary');
+                this.setAttribute('aria-pressed','true');
+            }
+            setSel(sel);
+        }));
+        // expose for debug
+        window.__editScheduleWeekdayPicker = { get:getSel, set:setSel };
+    })();
 
     // Handle edit image input change
     document
@@ -994,14 +1214,151 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let scheduleIdToDelete = null;
 
-    function openDeleteModal(scheduleId, scheduleTitle) {
+    function openDeleteModal(scheduleId, scheduleTitle, imageUrl) {
         scheduleIdToDelete = scheduleId;
-        document.getElementById("deleteScheduleTitle").innerText =
-            scheduleTitle;
-        const modal = new bootstrap.Modal(
-            document.getElementById("deleteScheduleModal")
-        );
-        modal.show();
+
+        // Fetch schedule details and render modal content similar to Task delete modal
+        try {
+            const contentEl = document.getElementById("deleteScheduleContent");
+            // show loader immediately
+            if (contentEl) contentEl.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+
+            // Use the API endpoint that includes department/division info: GET /get-schedule-data/{id}
+            fetch(appUrl + '/get-schedule-data/' + scheduleId, { headers: { 'Accept': 'application/json' } })
+                .then(res => res.ok ? res.json() : Promise.reject(res))
+                .then(data => {
+                    // The controller returns an object with data => { schedule, executors, department, division }
+                    const payload = data.data || data;
+                    const schedule = payload.schedule || payload;
+                    let avatarHtml = '';
+
+                    // Determine image URL similar to task.js logic
+                    if (schedule && schedule.image) {
+                        let imgUrl = String(schedule.image || '');
+                        const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                        const isFile = imgUrl.startsWith('/file/schedule/') || imgUrl.startsWith('file/schedule/');
+                        const isPublic = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+
+                        if (!isAbsolute && !isFile && !isPublic) {
+                            imgUrl = appUrl + '/file/schedule/' + imgUrl;
+                        } else if (!isAbsolute && (isFile || isPublic)) {
+                            imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                        }
+
+                        avatarHtml = `<img src="${imgUrl}" alt="Schedule Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                    } else {
+                        const initials = getInitials(scheduleTitle);
+                        const color = getInitialsColor(scheduleTitle);
+                        avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${initials}</div>`;
+                    }
+
+                    const priority = schedule.priority || '-';
+
+                    // Department/Division: prefer controller-provided strings (payload.department/payload.division)
+                    // or fall back to related project objects (different shapes handled)
+                    let department = '-';
+                    if (payload.department) {
+                        department = payload.department;
+                    } else if (schedule && schedule.project && schedule.project.department) {
+                        const pd = schedule.project.department;
+                        if (typeof pd === 'string') department = pd;
+                        else department = pd.name_department || pd.name || pd.department_name || pd.department || '-';
+                    } else if (schedule && schedule.department) {
+                        department = schedule.department;
+                    }
+
+                    let division = '-';
+                    if (payload.division) {
+                        division = payload.division;
+                    } else if (schedule && schedule.project && schedule.project.division) {
+                        const dv = schedule.project.division;
+                        if (typeof dv === 'string') division = dv;
+                        else division = dv.name_division || dv.name || dv.division_name || dv.division || '-';
+                    } else if (schedule && schedule.division) {
+                        division = schedule.division;
+                    }
+
+                    const description = schedule.description || '';
+
+                    const cardHtml = `
+                        <div class="custom-card rounded-4 position-relative p-3 border-0">
+                            <div class="d-flex align-items-center mb-2">
+                                ${avatarHtml}
+                                <div class="d-flex flex-column">
+                                    ${schedule.project && schedule.project.id ? `<p class="text-muted mb-0" style="line-height:1; font-size: 10px;">${schedule.project.title || '-'}</p>` : ''}
+                                    <h5 class="mb-0" style="line-height:1.2; font-size:16px; font-weight:600;">${scheduleTitle}</h5>
+                                </div>
+                            </div>
+                            ${description ? `<div class="schedule-description-container mb-2"><p class="schedule-description mb-0" style="font-size:14px;">${description}</p></div>` : ''}
+                            <hr class="task-separator rounded-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
+                                <div>
+                                    <span style="color:#797E91;">Priority: </span>
+                                    <span style="color:${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                <span class="text-muted">Department:</span>
+                                <span>${department || '-'}</span>
+                            </div>
+                            <div class="d-flex justify-content-between" style="font-size:12px;">
+                                <span class="text-muted">Division:</span>
+                                <span>${division || '-'}</span>
+                            </div>
+                        </div>
+                    `;
+
+                    if (contentEl) contentEl.innerHTML = cardHtml;
+                })
+                .catch(err => {
+                    // Fallback to simple view if fetch fails
+                    console.error('Failed to fetch schedule for delete modal', err);
+                    try {
+                        const contentEl = document.getElementById('deleteScheduleContent');
+                        if (contentEl) {
+                            let html = '';
+                            if (imageUrl) {
+                                html = `
+                                    <div class="custom-card rounded-4 position-relative p-0 border-0">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <img src="${imageUrl}" alt="Schedule Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                                            <div class="d-flex flex-column">
+                                                <h6 class="mb-0" style="font-size:16px; font-weight:600; line-height:1;">${scheduleTitle}</h6>
+                                                <p class="schedule-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                const initials = getInitials(scheduleTitle);
+                                const color = getInitialsColor(scheduleTitle);
+                                html = `
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${initials}</div>
+                                        </div>
+                                        <div class="custom-card p-0 m-0 border-0">
+                                            <h6 style="font-size:16px; font-weight:600; margin:0;">${scheduleTitle}</h6>
+                                            <div class="schedule-description-container">
+                                                <p class="schedule-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                            contentEl.innerHTML = html;
+                        }
+                    } catch (e) { console.error(e); }
+                })
+                .finally(() => {
+                    const modal = new bootstrap.Modal(document.getElementById('deleteScheduleModal'));
+                    modal.show();
+                });
+        } catch (e) {
+            console.error('Failed to render delete modal content', e);
+            const modal = new bootstrap.Modal(document.getElementById('deleteScheduleModal'));
+            modal.show();
+        }
     }
 
     function deleteSchedule(scheduleId) {
@@ -1073,7 +1430,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 card.querySelector("h6")?.textContent.trim() || "this schedule";
 
             if (scheduleId) {
-                openDeleteModal(scheduleId, scheduleTitle);
+                // try to find an image inside the card (img tag or background-image)
+                let imageUrl = null;
+                try {
+                    const imgEl = card.querySelector('img');
+                    if (imgEl && imgEl.src) {
+                        imageUrl = imgEl.src;
+                    } else {
+                        // attempt to read background-image from element inside card
+                        const bgEl = card.querySelector('.item-card, .custom-card, .project-image, .rounded-circle');
+                        if (bgEl) {
+                            const bg = window.getComputedStyle(bgEl).backgroundImage || '';
+                            const m = bg.match(/url\(["']?(.*?)["']?\)/);
+                            if (m && m[1]) imageUrl = m[1];
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+
+                openDeleteModal(scheduleId, scheduleTitle, imageUrl);
             }
         }
     });

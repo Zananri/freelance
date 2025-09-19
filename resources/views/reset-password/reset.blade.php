@@ -14,52 +14,49 @@
 <body>
 
     <div class="reset-password-page">
-        <div class="card-reset">
-            <div class="login-container">
+        <div class="reset-container">
 
-                <div class="logo-wrap">
-                    <img src="{{ asset('asset/img/logo.png') }}" width="70" alt="LOGO NSA Performance">
+            <div class="logo-wrap">
+                <img src="{{ asset('asset/img/logo.png') }}" width="70" alt="LOGO NSA Performance">
+            </div>
+
+            <div class="login-box-form w-100 mb-5">
+                <div class="mb-3 head-form text-center">
+                    <h2 class="title">Reset Password</h2>
                 </div>
 
-                <div class="login-box-form w-100 mb-5">
-                    <div class="mb-3 head-form">
-                        <h2 class="title">Reset Password</h2>
-                        <p class="fs-14 text-black text-opacity-75">Set a new password for your account</p>
+                <form method="POST" action="{{ url('/reset-password') }}" autocomplete="off">
+                    @csrf
+                    <input type="hidden" name="token" value="{{ $token ?? old('token') }}">
+
+                    <div class="mb-3 d-flex align-items-center">
+                        <div class="email-display">
+                            <span class="text-secondary">Email:</span>
+                            {{ old('email', $email ?? '') }}
+                        </div>
+                        <input type="hidden" name="email" value="{{ old('email', $email ?? '') }}">
                     </div>
 
-                    <form method="POST" action="{{ url('/reset-password') }}" autocomplete="off">
-                        @csrf
-                        <input type="hidden" name="token" value="{{ $token ?? old('token') }}">
+                    <div class="mb-3 input-custom">
+                        <input type="password" name="password" class="form-control form-input"
+                            placeholder="New password" required>
+                        @error('password')
+                            <div class="text-danger fs-12 mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-                        <div class="mb-3 d-flex align-items-center">
-                            <div class="email-display">
-                                <span class="text-secondary">Email:</span>
-                                {{ old('email', $email ?? '') }}
-                            </div>
-                            <input type="hidden" name="email" value="{{ old('email', $email ?? '') }}">
-                        </div>
+                    <div class="mb-3 input-custom">
+                        <input type="password" name="password_confirmation" class="form-control form-input"
+                            placeholder="Confirm password" required>
+                        @error('password_confirmation')
+                            <div class="text-danger fs-12 mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
 
-                        <div class="mb-3 input-custom">
-                            <input type="password" name="password" class="form-control form-input"
-                                placeholder="New password" required>
-                            @error('password')
-                                <div class="text-danger fs-12 mt-1">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <div class="mb-3 input-custom">
-                            <input type="password" name="password_confirmation" class="form-control form-input"
-                                placeholder="Confirm password" required>
-                            @error('password_confirmation')
-                                <div class="text-danger fs-12 mt-1">{{ $message }}</div>
-                            @enderror
-                        </div>
-
-                        <button type="submit" class="btn btn-submit-black w-100 mb-2">Reset Password</button>
-                    </form>
-                </div>
-
+                    <button type="submit" class="btn btn-submit-black w-100 mb-2">Reset Password</button>
+                </form>
             </div>
+
         </div>
     </div>
 

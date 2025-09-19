@@ -193,12 +193,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // show include weekend only for daily recurrence
-            if(includeWeekendDiv){ includeWeekendDiv.classList.toggle('d-none', v !== 'daily'); }
-            if(editIncludeWeekendDiv){ editIncludeWeekendDiv.classList.toggle('d-none', (editTypeSel?.value !== 'daily')); }
+            // include_weekend removed from UI
+
+            // show weekday picker for daily recurrence
+            const dailyWeekdays = document.getElementById('schedule_daily_weekdays');
+            if(dailyWeekdays){ dailyWeekdays.classList.toggle('d-none', v !== 'daily'); }
 
             // show start_at for daily, weekly, monthly. (User asked: daily should allow choosing start date)
             if(startAtDiv){
+                // Show start_at for daily, weekly, monthly so user can pick which date the recurrence starts.
+                // Keep it hidden for other/unset recurrence types.
                 startAtDiv.classList.toggle('d-none', !(v === 'daily' || v === 'weekly' || v === 'monthly'));
             }
 
@@ -219,8 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // required rules
             const startAt = document.getElementById('schedule_start_at');
             if(startAt){
-                // start_at is required for daily, weekly and monthly (user should pick when the recurrence starts)
-                startAt.required = (v === 'daily' || v === 'weekly' || v === 'monthly');
+                // start_at is required only for weekly and monthly in create modal. For daily, we don't require a date.
+                startAt.required = (v === 'weekly' || v === 'monthly');
             }
             const endAt = document.getElementById('schedule_end_at');
             if(endAt){
@@ -389,38 +393,84 @@ document.addEventListener('DOMContentLoaded', () => {
     // Attach sync for edit modal (if present)
     syncWeeklyDayFromStart('edit_schedule_start_at','edit_schedule_recurrence_day_of_week');
 
+    // Weekday picker helpers for create modal
+    (function setupDailyWeekdayPicker(){
+        const container = document.getElementById('schedule_daily_weekdays_buttons');
+        const hidden = document.getElementById('schedule_recurrence_days_of_week');
+        if(!container || !hidden) return;
+        function getSelected(){
+            try{ return JSON.parse(hidden.value || '[]').map(d=>parseInt(d)); }catch(e){ return []; }
+        }
+        function setSelected(arr){
+            try {
+                const vals = Array.from(new Set((arr||[]).map(Number))).filter(n=>!Number.isNaN(n));
+                hidden.value = JSON.stringify(vals);
+            } catch(e){
+                hidden.value = JSON.stringify([]);
+            }
+        }
+        // initialize buttons
+        container.querySelectorAll('.weekday-btn').forEach(btn=>{
+            // ensure accessible pressed state
+            btn.setAttribute('aria-pressed', 'false');
+            btn.addEventListener('click', function(){
+                const day = parseInt(this.getAttribute('data-day'));
+                let sel = getSelected();
+                if(sel.includes(day)){
+                    // unselect
+                    sel = sel.filter(s=>s!==day);
+                    this.classList.remove('weekday-selected');
+                    this.classList.remove('active');
+                    this.classList.add('btn-outline-secondary');
+                    this.setAttribute('aria-pressed','false');
+                } else {
+                    // select
+                    sel.push(day);
+                    this.classList.add('weekday-selected');
+                    this.classList.add('active');
+                    this.classList.remove('btn-outline-secondary');
+                    this.setAttribute('aria-pressed','true');
+                }
+                setSelected(sel);
+            });
+        });
+
+        // Initialize button states from hidden input
+        (function initButtonsFromHidden(){
+            const sel = getSelected();
+            container.querySelectorAll('.weekday-btn').forEach(btn=>{
+                const d = parseInt(btn.getAttribute('data-day'));
+                if(sel.includes(d)){
+                    btn.classList.add('weekday-selected');
+                    btn.classList.add('active');
+                    btn.classList.remove('btn-outline-secondary');
+                    btn.setAttribute('aria-pressed','true');
+                } else {
+                    btn.classList.remove('weekday-selected');
+                    btn.classList.remove('active');
+                    btn.classList.add('btn-outline-secondary');
+                    btn.setAttribute('aria-pressed','false');
+                }
+            });
+        })();
+
+        // expose for external resetting
+        window.__scheduleDailyWeekdayPicker = { set: setSelected, get: getSelected };
+    })();
+
     form.addEventListener('submit', e=>{
         e.preventDefault();
         if(!form.checkValidity()){ e.stopPropagation(); form.classList.add('was-validated'); return; }
-        // Frontend validation: if daily recurrence and include_weekend not checked but date range crosses weekend -> require include weekend
-        try {
-            const recType = document.getElementById('schedule_recurrence_type')?.value;
-            if(recType === 'daily'){
-                const includeChk = document.getElementById('schedule_include_weekend');
-                const startAt = document.getElementById('schedule_start_at')?.value;
-                const endAt = document.getElementById('schedule_end_at')?.value;
-                // If endAt empty, treat single-day or open ended; only check startAt
-                if(includeChk && !includeChk.checked && startAt){
-                    const start = new Date(startAt + 'T00:00:00');
-                    const end = endAt ? new Date(endAt + 'T00:00:00') : start;
-                    let cur = new Date(start);
-                    let hitsWeekend = false;
-                    while(cur <= end){
-                        const d = cur.getDay(); // 0=Sun,6=Sat
-                        if(d === 0 || d === 6){ hitsWeekend = true; break; }
-                        cur.setDate(cur.getDate() + 1);
-                    }
-                    if(hitsWeekend){
-                        showScheduleAlert('Include Weekend Required','danger',3500);
-                        return; // prevent submit
-                    }
-                }
-            }
-        } catch(e) { /* ignore validation errors and continue */ }
+        // include_weekend removed; weekend handling is driven by recurrence_days_of_week
         form.classList.remove('was-validated');
         if(loader) loader.classList.remove('d-none');
         const submitBtn = form.querySelector('button[type=submit]'); if(submitBtn) submitBtn.disabled=true;
         const fd = new FormData(form);
+        // Ensure recurrence_days_of_week hidden field is serialized as JSON
+        try {
+            const hidden = document.getElementById('schedule_recurrence_days_of_week');
+            if (hidden && !hidden.value) hidden.value = '[]';
+        } catch(e) {}
         selectedFiles.forEach(f=> fd.append('reference_files[]', f));
         // Prefer due_in_days over due_date (no due_date field visible anyway)
         fetch(appUrl + '/schedules/create', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: fd })
