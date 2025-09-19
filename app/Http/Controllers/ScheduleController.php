@@ -949,6 +949,36 @@ class ScheduleController extends Controller
             }
             $schedule->refresh();
 
+            // Ensure start_date and due_date are recomputed to follow any changed start_at
+            // or due_in_days. This applies for daily, weekly and monthly schedules.
+            try {
+                // If the payload provided a start_at or start_date, normalize start_date
+                if (array_key_exists('start_at', $data) && !empty($data['start_at'])) {
+                    $sdate = Carbon::parse($data['start_at'])->toDateString();
+                    $schedule->start_date = $sdate;
+                    // If recurrence exists, also sync recurrence_start_date for user intent
+                    if (!empty($schedule->recurrence_type)) {
+                        $schedule->recurrence_start_date = $sdate;
+                    }
+                } elseif (array_key_exists('start_date', $data) && !empty($data['start_date'])) {
+                    $schedule->start_date = Carbon::parse($data['start_date'])->toDateString();
+                }
+
+                // If due_in_days provided in payload or schedule already has it, recompute due_date
+                if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
+                    $base = Carbon::parse($schedule->start_date ?? Carbon::today()->toDateString())->startOfDay();
+                    $schedule->due_date = $base->copy()->addDays((int)$data['due_in_days'])->toDateString();
+                } elseif (!is_null($schedule->due_in_days)) {
+                    // ensure existing due_in_days remains honored if start_date changed
+                    $base = Carbon::parse($schedule->start_date ?? Carbon::today()->toDateString())->startOfDay();
+                    $schedule->due_date = $base->copy()->addDays((int)$schedule->due_in_days)->toDateString();
+                }
+            } catch (\Throwable $e) {
+                // ignore and keep existing values
+            }
+            // Persist intermediate changes before recurrence-specific adjustments below
+            $schedule->save();
+
             // If updated schedule is monthly, ensure its start_date/due_date/next_run_at
             // are consistent with recurrence_start_date and due_in_days.
             if ($schedule->recurrence_type === 'monthly') {
