@@ -10,31 +10,30 @@
         <h2>Master Data</h2>
     </div>
 
-    <!-- Responsive grid: 1 col (xs), 2 cols (sm/md), 4 cols (lg+) -->
-    <div class="row g-4 mt-3">
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="body-content scrollable-container rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
+    <div class="row g-3 mt-3">
+        <div class="col-6 col-sm-6 col-lg-3">
+            <div class="body-content rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
                 <a href="{{ url('department') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center stretched-link">
                     <h5 class="mb-0">Department</h5>
                 </a>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="body-content scrollable-container rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
+        <div class="col-6 col-sm-6 col-lg-3">
+            <div class="body-content rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
                 <a href="{{ url('division') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center stretched-link">
                     <h5 class="mb-0">Division</h5>
                 </a>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="body-content scrollable-container rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
+        <div class="col-6 col-sm-6 col-lg-3">
+            <div class="body-content rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
                 <a href="{{ url('job') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center stretched-link">
                     <h5 class="mb-0">Job</h5>
                 </a>
             </div>
         </div>
-        <div class="col-12 col-sm-6 col-lg-3">
-            <div class="body-content scrollable-container rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
+        <div class="col-6 col-sm-6 col-lg-3">
+            <div class="body-content rounded-4 p-5 d-flex justify-content-center align-items-center h-100 position-relative" style="min-height: 180px;">
                 <a href="{{ url('user') }}" class="text-decoration-none text-dark d-flex flex-column align-items-center stretched-link">
                     <h5 class="mb-0">User</h5>
                 </a>
