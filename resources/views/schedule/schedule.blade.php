@@ -331,6 +331,7 @@
                                 name="recurrence_start_date" value="{{ now()->toDateString() }}">
                             <input type="hidden" id="edit_schedule_recurrence_end_date" name="recurrence_end_date"
                                 value="">
+                                <input type="hidden" id="edit_schedule_next_run_at" name="next_run_at" value="">
 
                             <!-- Upload Image -->
                             <div class="mb-3">
@@ -393,7 +394,6 @@
                                     <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="6">Saturday</button>
                                 </div>
                                 <input type="hidden" id="edit_schedule_recurrence_days_of_week" name="recurrence_days_of_week" value="[]">
-                                <div class="form-text">When Daily recurrence is selected you can pick which weekdays the schedule will generate tasks for. Leave empty to mean every day.</div>
                             </div>
 
                             <!-- Monthly options -->
@@ -402,18 +402,25 @@
                                     <!-- Start Date -->
                                     <div class="w-50">
                                         <label for="edit_schedule_start_at" class="form-label label-custom">Start
-                                            Date</label>
+                                            At</label>
                                         <input type="date" id="edit_schedule_start_at" name="start_at"
                                             class="form-control input-text">
                                     </div>
 
                                     <!-- End Date -->
                                     <div class="w-100" id="edit_schedule_end_at_div">
-                                        <label for="edit_schedule_end_at" class="form-label label-custom">End Date</label>
+                                        <label for="edit_schedule_end_at" class="form-label label-custom">End
+                                            At</label>
                                         <input type="date" id="edit_schedule_end_at" name="end_at"
                                             class="form-control input-text">
                                     </div>
                                 </div>
+                            </div>
+
+                            <!-- Monthly options hidden helpers expected by JS -->
+                            <div class="d-none" id="edit_schedule_monthly_opts">
+                                <input type="hidden" id="edit_schedule_recurrence_day_of_month" name="recurrence_day_of_month" value="">
+                                <input type="hidden" id="edit_schedule_monthly_date" name="recurrence_monthly_date" value="">
                             </div>
 
                             <!-- Points -->
@@ -514,7 +521,7 @@
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-submit-black">Edit Schedule</button>
+                        <button type="submit" class="btn btn-submit-black">Update Schedule</button>
                     </div>
                 </form>
             </div>
