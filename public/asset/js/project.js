@@ -6432,7 +6432,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const deptText = _getDeptText(deptRaw);
                                 const divText = _getDeptText(divRaw);
 
-                                                                function getTaskByDueDate(projectId, callback) {
+                                function getTaskByDueDate(projectId, callback) {
                                     $.ajax({
                                         url: appUrl + "/projects/" + projectId + "/tasks",
                                         type: "GET",
@@ -11034,6 +11034,8 @@ function loadTimelineProjects(filter = null) {
             $(".loader").fadeIn("fast");
         },
         success: function (res) {
+            console.log(res);
+            
             const projects = Array.isArray(res)
                 ? res
                 : Array.isArray(res.data)
@@ -11069,6 +11071,8 @@ function loadTimelineProjects(filter = null) {
                         type: "GET",
                         dataType: "json",
                         success: function (resp) {
+                            console.log(resp);
+                            
                             const data = resp.data || resp;
                             p.start_date =
                                 p.start_date || data.start_date || data.start;
@@ -11146,19 +11150,6 @@ function buildTimelineFromProjects(projects) {
             color: TIMELINE_COLORS[idx % TIMELINE_COLORS.length],
         });
     });
-
-    try {
-        console.debug(
-            "timelineData built:",
-            timelineData.map((t) => ({
-                id: t.id,
-                name: t.name,
-                start: t.start_date && t.start_date.toISOString(),
-                due: t.due_date && t.due_date.toISOString(),
-                color: t.color,
-            }))
-        );
-    } catch (e) {}
 }
 
 function getWeeksInMonth(year, month) {
@@ -11166,12 +11157,6 @@ function getWeeksInMonth(year, month) {
     const last = new Date(year, month + 1, 0);
     const used = first.getDay() + last.getDate();
     return Math.ceil(used / 7);
-}
-
-function getWeekOfMonth(date) {
-    const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-    const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
-    return Math.ceil((date.getDate() + offset) / 7);
 }
 
 function renderTimeline(
@@ -11294,7 +11279,6 @@ function renderTimeline(
         titleEl.textContent = `${monthShort} Week ${weekIndex + 1}`;
     }
 }
-
 
 document.getElementById("prevTimeline").addEventListener("click", () => {
     if (currentWeek > 0) {
@@ -11494,7 +11478,6 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
         }
     });
 }
-
 
 // === Global Unread Badge Refresher ===
 function refreshAllProjectUnreadBadges() {
