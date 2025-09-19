@@ -994,10 +994,59 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let scheduleIdToDelete = null;
 
-    function openDeleteModal(scheduleId, scheduleTitle) {
+    function openDeleteModal(scheduleId, scheduleTitle, imageUrl) {
         scheduleIdToDelete = scheduleId;
-        document.getElementById("deleteScheduleTitle").innerText =
-            scheduleTitle;
+        // Render delete content into the modal body container (matches Task modal structure)
+        try {
+            const contentEl = document.getElementById("deleteScheduleContent");
+            if (contentEl) {
+                let html = '';
+                if (imageUrl) {
+                    // show actual schedule image when available using small avatar layout (same as Task modal)
+                    html = `
+                        <div class="custom-card rounded-4 position-relative p-0 border-0">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="${imageUrl}" alt="Schedule Image"
+                                    class="rounded-circle me-3"
+                                    style="width:34px;height:34px;object-fit:cover;"
+                                    onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                                <div class="d-flex flex-column">
+                                    <h6 class="mb-0" style="font-size:16px; font-weight:600; line-height:1;">${scheduleTitle}</h6>
+                                    <p class="task-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const initials = getInitials(scheduleTitle);
+                    const color = getInitialsColor(scheduleTitle);
+                    html = `
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                     style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">
+                                    ${initials}
+                                </div>
+                            </div>
+                            <div class="custom-card p-0 m-0 border-0">
+                                <h6 style="font-size:16px; font-weight:600; margin:0;">${scheduleTitle}</h6>
+                                <div class="task-description-container">
+                                    <p class="task-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                contentEl.innerHTML = html;
+            } else {
+                // fallback: try legacy element id if present
+                const titleEl = document.getElementById("deleteScheduleTitle");
+                if (titleEl) titleEl.innerText = scheduleTitle;
+            }
+        } catch (e) {
+            console.error('Failed to render delete modal content', e);
+        }
+
         const modal = new bootstrap.Modal(
             document.getElementById("deleteScheduleModal")
         );
@@ -1073,7 +1122,24 @@ document.addEventListener("DOMContentLoaded", function () {
                 card.querySelector("h6")?.textContent.trim() || "this schedule";
 
             if (scheduleId) {
-                openDeleteModal(scheduleId, scheduleTitle);
+                // try to find an image inside the card (img tag or background-image)
+                let imageUrl = null;
+                try {
+                    const imgEl = card.querySelector('img');
+                    if (imgEl && imgEl.src) {
+                        imageUrl = imgEl.src;
+                    } else {
+                        // attempt to read background-image from element inside card
+                        const bgEl = card.querySelector('.item-card, .custom-card, .project-image, .rounded-circle');
+                        if (bgEl) {
+                            const bg = window.getComputedStyle(bgEl).backgroundImage || '';
+                            const m = bg.match(/url\(["']?(.*?)["']?\)/);
+                            if (m && m[1]) imageUrl = m[1];
+                        }
+                    }
+                } catch (e) { /* ignore */ }
+
+                openDeleteModal(scheduleId, scheduleTitle, imageUrl);
             }
         }
     });

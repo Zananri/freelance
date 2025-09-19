@@ -324,3 +324,64 @@
         align-items: flex-start !important;
     }
 }
+
+/* Delete modal image styling to match Task modal */
+.delete-image-confirm {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+}
+
+/* Inline avatar inside delete modal (small) to match Task modal's avatar */
+.modal-body .rounded-circle.me-3 {
+    width: 34px !important;
+    height: 34px !important;
+    object-fit: cover !important;
+    border-radius: 50% !important;
+}
+
+/* Ensure modal visuals match Task modal (buttons, content, sizes) */
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 24px;
+    background: rgb(240, 241, 248);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.modal-body-custom {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.modal-footer-custom button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 14px;
+    height: 45px;
+}
+
+.modal-footer-custom .btn-custom-close {
+    background-color: #e3e4ee !important;
+    color: #444444;
+}
+
+.modal-footer-custom .btn-submit-black {
+    background-color: #313131 !important;
+    color: #F3F3F3 !important;
+    font-size: 14px !important;
+    font-weight: 300 !important;
+    border: 0px !important;
+}
+
+.modal-footer-custom .btn-submit-black:hover,
+.modal-footer-custom .btn-submit-black:active{
+    background-color: #1b1c1d !important;
+    color: #fdfeff !important;
+}

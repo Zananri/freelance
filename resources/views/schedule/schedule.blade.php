@@ -501,19 +501,15 @@
         </div>
     </div>
 
-    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-labelledby="deleteScheduleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
             <div class="modal-content modal-content-custom">
-
-                <div class="modal-body modal-body-custom text-center">
-                    <p style="font-size: 14px; color: #555;">
-                        Are you sure want to delete <strong id="deleteScheduleTitle"></strong> schedule ?
-                    </p>
+                <div class="modal-body modal-body-custom">
+                    <div id="deleteScheduleContent"></div>
                 </div>
-
-                <div class="modal-footer modal-footer-custom d-flex justify-content-end">
-                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Batal</button>
-                    <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Hapus</button>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Delete</button>
                 </div>
             </div>
         </div>
