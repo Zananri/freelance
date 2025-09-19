@@ -385,3 +385,17 @@
     background-color: #1b1c1d !important;
     color: #fdfeff !important;
 }
+
+.task-separator {
+    border: none;
+    height: 3px;
+    background-color: #555;
+}
+
+.schedule-description-container {
+    position: relative;
+    height: auto;
+    max-height: 75px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}

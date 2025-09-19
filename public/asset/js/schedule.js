@@ -996,61 +996,149 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function openDeleteModal(scheduleId, scheduleTitle, imageUrl) {
         scheduleIdToDelete = scheduleId;
-        // Render delete content into the modal body container (matches Task modal structure)
+
+        // Fetch schedule details and render modal content similar to Task delete modal
         try {
             const contentEl = document.getElementById("deleteScheduleContent");
-            if (contentEl) {
-                let html = '';
-                if (imageUrl) {
-                    // show actual schedule image when available using small avatar layout (same as Task modal)
-                    html = `
-                        <div class="custom-card rounded-4 position-relative p-0 border-0">
+            // show loader immediately
+            if (contentEl) contentEl.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+
+            // Use the API endpoint that includes department/division info: GET /get-schedule-data/{id}
+            fetch(appUrl + '/get-schedule-data/' + scheduleId, { headers: { 'Accept': 'application/json' } })
+                .then(res => res.ok ? res.json() : Promise.reject(res))
+                .then(data => {
+                    // The controller returns an object with data => { schedule, executors, department, division }
+                    const payload = data.data || data;
+                    const schedule = payload.schedule || payload;
+                    let avatarHtml = '';
+
+                    // Determine image URL similar to task.js logic
+                    if (schedule && schedule.image) {
+                        let imgUrl = String(schedule.image || '');
+                        const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                        const isFile = imgUrl.startsWith('/file/schedule/') || imgUrl.startsWith('file/schedule/');
+                        const isPublic = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+
+                        if (!isAbsolute && !isFile && !isPublic) {
+                            imgUrl = appUrl + '/file/schedule/' + imgUrl;
+                        } else if (!isAbsolute && (isFile || isPublic)) {
+                            imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                        }
+
+                        avatarHtml = `<img src="${imgUrl}" alt="Schedule Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                    } else {
+                        const initials = getInitials(scheduleTitle);
+                        const color = getInitialsColor(scheduleTitle);
+                        avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${initials}</div>`;
+                    }
+
+                    const priority = schedule.priority || '-';
+
+                    // Department/Division: prefer controller-provided strings (payload.department/payload.division)
+                    // or fall back to related project objects (different shapes handled)
+                    let department = '-';
+                    if (payload.department) {
+                        department = payload.department;
+                    } else if (schedule && schedule.project && schedule.project.department) {
+                        const pd = schedule.project.department;
+                        if (typeof pd === 'string') department = pd;
+                        else department = pd.name_department || pd.name || pd.department_name || pd.department || '-';
+                    } else if (schedule && schedule.department) {
+                        department = schedule.department;
+                    }
+
+                    let division = '-';
+                    if (payload.division) {
+                        division = payload.division;
+                    } else if (schedule && schedule.project && schedule.project.division) {
+                        const dv = schedule.project.division;
+                        if (typeof dv === 'string') division = dv;
+                        else division = dv.name_division || dv.name || dv.division_name || dv.division || '-';
+                    } else if (schedule && schedule.division) {
+                        division = schedule.division;
+                    }
+
+                    const description = schedule.description || '';
+
+                    const cardHtml = `
+                        <div class="custom-card rounded-4 position-relative p-3 border-0">
                             <div class="d-flex align-items-center mb-2">
-                                <img src="${imageUrl}" alt="Schedule Image"
-                                    class="rounded-circle me-3"
-                                    style="width:34px;height:34px;object-fit:cover;"
-                                    onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                                ${avatarHtml}
                                 <div class="d-flex flex-column">
-                                    <h6 class="mb-0" style="font-size:16px; font-weight:600; line-height:1;">${scheduleTitle}</h6>
-                                    <p class="task-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                    ${schedule.project && schedule.project.id ? `<p class="text-muted mb-0" style="line-height:1; font-size: 10px;">${schedule.project.title || '-'}</p>` : ''}
+                                    <h5 class="mb-0" style="line-height:1.2; font-size:16px; font-weight:600;">${scheduleTitle}</h5>
                                 </div>
+                            </div>
+                            ${description ? `<div class="schedule-description-container mb-2"><p class="schedule-description mb-0" style="font-size:14px;">${description}</p></div>` : ''}
+                            <hr class="task-separator rounded-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
+                                <div>
+                                    <span style="color:#797E91;">Priority: </span>
+                                    <span style="color:${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                <span class="text-muted">Department:</span>
+                                <span>${department || '-'}</span>
+                            </div>
+                            <div class="d-flex justify-content-between" style="font-size:12px;">
+                                <span class="text-muted">Division:</span>
+                                <span>${division || '-'}</span>
                             </div>
                         </div>
                     `;
-                } else {
-                    const initials = getInitials(scheduleTitle);
-                    const color = getInitialsColor(scheduleTitle);
-                    html = `
-                        <div class="d-flex">
-                            <div class="me-3">
-                                <div class="rounded-circle d-flex align-items-center justify-content-center"
-                                     style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">
-                                    ${initials}
-                                </div>
-                            </div>
-                            <div class="custom-card p-0 m-0 border-0">
-                                <h6 style="font-size:16px; font-weight:600; margin:0;">${scheduleTitle}</h6>
-                                <div class="task-description-container">
-                                    <p class="task-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }
-                contentEl.innerHTML = html;
-            } else {
-                // fallback: try legacy element id if present
-                const titleEl = document.getElementById("deleteScheduleTitle");
-                if (titleEl) titleEl.innerText = scheduleTitle;
-            }
+
+                    if (contentEl) contentEl.innerHTML = cardHtml;
+                })
+                .catch(err => {
+                    // Fallback to simple view if fetch fails
+                    console.error('Failed to fetch schedule for delete modal', err);
+                    try {
+                        const contentEl = document.getElementById('deleteScheduleContent');
+                        if (contentEl) {
+                            let html = '';
+                            if (imageUrl) {
+                                html = `
+                                    <div class="custom-card rounded-4 position-relative p-0 border-0">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <img src="${imageUrl}" alt="Schedule Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                                            <div class="d-flex flex-column">
+                                                <h6 class="mb-0" style="font-size:16px; font-weight:600; line-height:1;">${scheduleTitle}</h6>
+                                                <p class="schedule-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            } else {
+                                const initials = getInitials(scheduleTitle);
+                                const color = getInitialsColor(scheduleTitle);
+                                html = `
+                                    <div class="d-flex">
+                                        <div class="me-3">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${initials}</div>
+                                        </div>
+                                        <div class="custom-card p-0 m-0 border-0">
+                                            <h6 style="font-size:16px; font-weight:600; margin:0;">${scheduleTitle}</h6>
+                                            <div class="schedule-description-container">
+                                                <p class="schedule-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                            contentEl.innerHTML = html;
+                        }
+                    } catch (e) { console.error(e); }
+                })
+                .finally(() => {
+                    const modal = new bootstrap.Modal(document.getElementById('deleteScheduleModal'));
+                    modal.show();
+                });
         } catch (e) {
             console.error('Failed to render delete modal content', e);
+            const modal = new bootstrap.Modal(document.getElementById('deleteScheduleModal'));
+            modal.show();
         }
-
-        const modal = new bootstrap.Modal(
-            document.getElementById("deleteScheduleModal")
-        );
-        modal.show();
     }
 
     function deleteSchedule(scheduleId) {
