@@ -194,9 +194,9 @@
                             </div>
                             <div class="dropdown-filter-footer">
                                 <button type="button" class="btn btn-submit-black"
-                                    id="resetProjectFilterBtn">Reset</button>
+                                    id="applyProjectFilterBtn">Apply</button>
                                 <button type="button" class="btn btn-submit-black"
-                                    id="applyProjectFilterBtn">Filter</button>
+                                    id="resetProjectFilterBtn">Reset</button>
                             </div>
                         </div>
                     </div>
