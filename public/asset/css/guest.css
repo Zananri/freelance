@@ -4,17 +4,9 @@ body {
     background-attachment: fixed;
 }
 
-.btn-custom-close {
-    background-color: #ebecf2;
-    color: #444;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 10px;
-    cursor: pointer;
-}
-
-.btn-custom-close:hover {
-    background-color: #d6d8e7;
+.go-back-btn:hover {
+    color: #000000;
+    text-decoration: none;
 }
 
 #backgroundCanvas {
@@ -64,9 +56,8 @@ body {
     color: #fff;
 }
 
-
 .login-box-form .btn-submit:active{
-    background-color: #d02e2e;
+    background-color: #000000;
     color: #fff;
 }
 
