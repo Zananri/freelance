@@ -59,7 +59,6 @@
             <nav aria-label="...">
                 <ul class="pagination pagination-sm justify-content-center">
                     <li class="page-item active">
-                        <button class="page-link" aria-current="page">1</button>
                     </li>
                 </ul>
             </nav>
