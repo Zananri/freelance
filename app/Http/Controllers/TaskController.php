@@ -144,7 +144,7 @@ class TaskController extends Controller
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
                         ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
-                    })->orderBy('created_at', 'desc');
+                    })->orderBy('created_at', 'asc');
 
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
@@ -156,7 +156,7 @@ class TaskController extends Controller
                                       $r->whereNull('is_receive')->orWhere('is_receive', false);
                                   });
                             });
-                        }) ->orderBy('complete_date', 'asc');
+                        }) ->orderBy('complete_date', 'desc');
 
                 } else {
                     $query->where('status', $normalizedFilter)
