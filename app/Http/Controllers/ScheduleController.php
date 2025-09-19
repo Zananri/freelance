@@ -88,28 +88,59 @@ trait ScheduleImmediateGeneration
 
     private function calcInitialRunAt(TaskSchedule $s, Carbon $now): Carbon
     {
-        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : $now->copy()->startOfDay();
+        // Use recurrence_start_date (which should reflect start_at if provided by user)
+        $start = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : null;
+
         switch ($s->recurrence_type) {
             case 'weekly':
-                $dow = (int) ($s->recurrence_day_of_week ?? $start->dayOfWeek);
-                // Start searching from the recurrence_start_date itself so if start_at
-                // falls on the desired weekday we return that date (initial occurrence).
-                $next = $start->copy();
-                while ((int) $next->dayOfWeek !== $dow) {
-                    $next->addDay();
+                // If start not provided, fallback to today
+                $base = $start ?? $now->copy()->startOfDay();
+                $dow = is_null($s->recurrence_day_of_week) ? (int) $base->dayOfWeek : (int) $s->recurrence_day_of_week; // 0=Sun
+                $candidate = $base->copy();
+                // If base is before today, start from today
+                if ($candidate->lt($now->copy()->startOfDay())) {
+                    $candidate = $now->copy()->startOfDay();
                 }
-                return $next;
+                // Move forward to the next matching DOW (including today if matches)
+                while ((int) $candidate->dayOfWeek !== $dow) {
+                    $candidate->addDay();
+                }
+                return $candidate->startOfDay();
             case 'monthly':
-                $base = $s->start_at ? Carbon::parse($s->start_at)->startOfDay() : $start;
-                $dom = (int) ($s->recurrence_day_of_month ?? $base->day);
+                // Prefer explicit start_at chosen in modal; fall back to recurrence_start_date or today
+                $base = $s->start_at ? Carbon::parse($s->start_at)->startOfDay() : ($start ?? $now->copy()->startOfDay());
+                // day of month to use: explicit recurrence_day_of_month if set, otherwise day of start_at/base
+                $dom = (int) ($s->recurrence_day_of_month ?: $base->day);
+                // Candidate is the nearest occurrence on or after base: try this month first
                 $candidate = $this->safeMonthly($base->year, $base->month, $dom);
                 if ($candidate->lt($now->copy()->startOfDay())) {
-                    $candidate = $this->safeMonthly($base->copy()->addMonthNoOverflow()->year, $base->copy()->addMonthNoOverflow()->month, $dom);
+                    // move to next month
+                    $nextMonth = $base->copy()->addMonthNoOverflow();
+                    $candidate = $this->safeMonthly($nextMonth->year, $nextMonth->month, $dom);
                 }
                 return $candidate->startOfDay();
             case 'daily':
             default:
-                return $start->addDay(); // tomorrow
+                // Start from provided start or tomorrow
+                $candidate = $start ? $start->startOfDay() : $now->copy()->addDay()->startOfDay();
+                if ($candidate->lte($now->copy()->startOfDay())) {
+                    $candidate = $now->copy()->addDay()->startOfDay();
+                }
+                // If recurrence_days_of_week is provided, ensure the initial candidate falls on one of them.
+                $allowed = null;
+                if (!empty($s->recurrence_days_of_week) && is_array($s->recurrence_days_of_week)) {
+                    $allowed = array_map('intval', $s->recurrence_days_of_week);
+                }
+                $tries = 0;
+                while (true) {
+                    $dow = (int)$candidate->dayOfWeek;
+                    if (is_null($allowed) || in_array($dow, $allowed, true)) {
+                        break;
+                    }
+                    $candidate->addDay();
+                    $tries++; if ($tries > 366) break; // safety
+                }
+                return $candidate;
         }
     }
 
@@ -507,10 +538,16 @@ class ScheduleController extends Controller
             if (is_string($daysInput)) {
                 $decoded = json_decode($daysInput, true);
                 if (is_array($decoded)) {
-                    $data['recurrence_days_of_week'] = array_values(array_map('intval', $decoded));
+                    $vals = array_map('intval', $decoded);
+                    $vals = array_values(array_unique($vals));
+                    sort($vals, SORT_NUMERIC);
+                    $data['recurrence_days_of_week'] = array_values($vals);
                 }
             } elseif (is_array($daysInput)) {
-                $data['recurrence_days_of_week'] = array_values(array_map('intval', $daysInput));
+                $vals = array_map('intval', $daysInput);
+                $vals = array_values(array_unique($vals));
+                sort($vals, SORT_NUMERIC);
+                $data['recurrence_days_of_week'] = array_values($vals);
             }
 
             // For daily recurrence we prefer to derive schedule start_date from start_at (user intent)
@@ -875,15 +912,21 @@ class ScheduleController extends Controller
                 $data['recurrence_end_date'] = null;
             }
 
-            // Normalize recurrence_days_of_week input for update
+            // Normalize recurrence_days_of_week input for update: integers, unique, sorted
             $daysInput = $request->input('recurrence_days_of_week');
             if (is_string($daysInput)) {
                 $decoded = json_decode($daysInput, true);
                 if (is_array($decoded)) {
-                    $data['recurrence_days_of_week'] = array_values(array_map('intval', $decoded));
+                    $vals = array_map('intval', $decoded);
+                    $vals = array_values(array_unique($vals));
+                    sort($vals, SORT_NUMERIC);
+                    $data['recurrence_days_of_week'] = array_values($vals);
                 }
             } elseif (is_array($daysInput)) {
-                $data['recurrence_days_of_week'] = array_values(array_map('intval', $daysInput));
+                $vals = array_map('intval', $daysInput);
+                $vals = array_values(array_unique($vals));
+                sort($vals, SORT_NUMERIC);
+                $data['recurrence_days_of_week'] = array_values($vals);
             }
 
             if (!empty($data['recurrence_days_of_week'])) {

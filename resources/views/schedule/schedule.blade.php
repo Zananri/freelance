@@ -142,7 +142,6 @@
                                     <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="6">Saturday</button>
                                 </div>
                                 <input type="hidden" id="schedule_recurrence_days_of_week" name="recurrence_days_of_week" value="[]">
-                                <div class="form-text">When Daily recurrence is selected you can pick which weekdays the schedule will generate tasks for. Leave empty to mean every day.</div>
                             </div>
 
                             <!-- Date options -->

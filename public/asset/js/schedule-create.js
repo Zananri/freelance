@@ -201,8 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // show start_at for daily, weekly, monthly. (User asked: daily should allow choosing start date)
             if(startAtDiv){
-                // For create modal: hide start_at when selecting daily recurrence (we'll auto-derive start dates from weekdays)
-                startAtDiv.classList.toggle('d-none', v === 'daily');
+                // Show start_at for daily, weekly, monthly so user can pick which date the recurrence starts.
+                // Keep it hidden for other/unset recurrence types.
+                startAtDiv.classList.toggle('d-none', !(v === 'daily' || v === 'weekly' || v === 'monthly'));
             }
 
             // ensure both Start At and End At use equal width when visible
