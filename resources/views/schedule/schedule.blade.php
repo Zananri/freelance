@@ -186,7 +186,7 @@
 
                             <!-- Due in days -->
                             <div class="custom-form-employee">
-                                <label for="schedule_due_in_days" class="form-label label-custom">Due In
+                                <label for="schedule_due_in_days" class="form-label label-custom">Due date
                                     (days)</label>
                                 <input type="number" min="0" id="schedule_due_in_days" name="due_in_days"
                                     class="form-control input-text" placeholder="e.g. 3">
@@ -210,7 +210,7 @@
                             <!-- Project -->
                             <div class="custom-form-employee">
                                 <label for="schedule_project_id" class="form-label label-custom">Project
-                                    (optional)</label>
+                                    </label>
                                 <select id="schedule_project_id" name="project_id" class="form-select input-select">
                                     <option value="">No Project</option>
                                 </select>
