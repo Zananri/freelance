@@ -496,12 +496,11 @@
     <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
-                <button type="button" class="btn-close btn-sm position-absolute end-0" data-bs-dismiss="modal"
-                    aria-label="Close"></button>
                 <div class="modal-body modal-body-custom position-relative">
                     <div id="projectDetailContent"></div>
                 </div>
                 <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-submit-black" id="projectDetailDeleteBtn">Delete</button>
                 </div>
             </div>
