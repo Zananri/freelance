@@ -259,30 +259,33 @@ class GenerateTasksFromSchedules extends Command
             return $this->safeMonthlyDate($next->year, $next->month, $dom, $next)->startOfDay();
             case 'daily':
             default:
-                // move forward by interval days, but respect allowed weekdays if provided
-                $candidate = $next->copy();
-                $tries = 0;
-                do {
-                    $candidate->addDay();
-                    $tries++;
-                } while ($tries < 366 && $candidate->diffInDays($next, false) < $interval);
-
-                // After moving at least interval days forward, ensure weekday is allowed and weekends respected
+                // For daily recurrence, advance by interval in terms of allowed weekdays (if provided).
+                // If recurrence_days_of_week is set, only count days that match that list toward the interval.
                 $allowed = null;
                 if (!empty($s->recurrence_days_of_week) && is_array($s->recurrence_days_of_week)) {
                     $allowed = array_map('intval', $s->recurrence_days_of_week);
                 }
-                $safety = 0;
-                while (true) {
-                    $dow = (int)$candidate->dayOfWeek;
-                    if (!is_null($allowed) && !in_array($dow, $allowed, true)) {
+
+                $candidate = $next->copy();
+
+                // If there are allowed weekdays, advance day-by-day and only increment the counter when
+                // the day matches the allowed list. This ensures next_run_at always lands on an allowed weekday.
+                if (!is_null($allowed)) {
+                    $count = 0;
+                    $safety = 0;
+                    while ($count < $interval) {
                         $candidate->addDay();
-                    } else {
-                        break;
+                        $dow = (int)$candidate->dayOfWeek;
+                        if (in_array($dow, $allowed, true)) {
+                            $count++;
+                        }
+                        $safety++; if ($safety > 366) break; // safety
                     }
-                    $safety++; if ($safety > 366) break;
+                    return $candidate->startOfDay();
                 }
-                return $candidate->startOfDay();
+
+                // No allowed weekdays provided: simply jump forward by interval calendar days
+                return $candidate->addDays($interval)->startOfDay();
         }
     }
 
