@@ -49,6 +49,29 @@ function htmlDataRequestTimeOff(dataRow){
             `;
     }
 
+    let actionButton = '';
+    let rejectText = '';
+
+    if(dataRow.status == 'REQUEST' ){
+        actionButton = `
+            <div class="btn-action edit-time-off">
+                <span class="material-symbols-outlined">edit</span>
+            </div>
+            <div class="btn-action delete-time-off">
+                <span class="material-symbols-outlined">delete</span>
+            </div>
+        `;
+
+        
+    }
+
+    if(dataRow.reject_reason != null && dataRow.reject_reason != '' && dataRow.reject_reason != 'null'){
+        rejectText = `
+            <div class="text-danger fs-12">NOTE : ${dataRow.reject_reason}</div>
+        `;
+    }
+    
+
     var rowItem = `
         <div class="item-time-off mb-3" data-time-off="${dataRow.id}">
             <div class="item-header mb-2">
@@ -70,7 +93,7 @@ function htmlDataRequestTimeOff(dataRow){
                             </div>
                         </div>
                         <div class="col-status">
-                            <div class="item-status">${capitalizeFirstLetter(dataRow.status)}</div>
+                            <div class="item-status ${dataRow.status.toLowerCase()} ">${capitalizeFirstLetter(dataRow.status)}</div>
                         </div>
                     </div>
                 </div>
@@ -89,7 +112,7 @@ function htmlDataRequestTimeOff(dataRow){
                 <div class="d-flex align-items-center justify-content-between">
                     
                     <div class="">
-
+                        ${rejectText}
                     </div>
                     
                     <div class="col-item-action">
@@ -97,12 +120,7 @@ function htmlDataRequestTimeOff(dataRow){
                             ${file1}
                             ${file2}
 
-                            <div class="btn-action edit-time-off">
-                                <span class="material-symbols-outlined">edit</span>
-                            </div>
-                            <div class="btn-action delete-time-off">
-                                <span class="material-symbols-outlined">delete</span>
-                            </div>
+                            ${actionButton}
                         </div>
                     </div>
                 </div>

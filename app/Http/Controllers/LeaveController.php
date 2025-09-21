@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 use Carbon\Carbon;
 
@@ -63,6 +64,12 @@ class LeaveController extends Controller
     public function allEmployeeLeaveRequest(Request $request){
 
 
+        $qrySearch = '';
+
+        if(isset($request->SEARCH_QUERY_LEAVE_REQUEST)){
+            $qrySearch = $request->SEARCH_QUERY_LEAVE_REQUEST;
+        }
+
         $employeeActive = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')
             ->whereIn('employees.status',["ACTIVE","RESIGN"])
@@ -72,8 +79,23 @@ class LeaveController extends Controller
 
         $employeeLeaveRequest = EmployeeLeaveRequest::with('employee')
             ->whereIn('employee_id',$employeeActive->pluck('id'))
-            ->whereIn('status',['REQUEST','APPROVED','REJECTED'])
-            ->orderBy('created_at','desc')
+            ->whereIn('status',['REQUEST','APPROVED','REJECTED']);
+
+        if($qrySearch <> ''){
+
+            $employeeLeaveRequest = $employeeLeaveRequest->where('reason','like','%'.$qrySearch.'%')
+            ->orWhere(function($query) use ($qrySearch){
+                $query->where('reject_reason','like','%'.$qrySearch.'%');
+                $query->orWhere('day_amount','like','%'.$qrySearch.'%');
+                $query->orWhere('start_date','like','%'.$qrySearch.'%');
+                $query->orWhere('end_date','like','%'.$qrySearch.'%');
+                $query->orWhere('leave_type','like','%'.$qrySearch.'%');
+                //->orWhere('category','like','%'.$searchText.'%');
+            });
+
+        }
+
+        $employeeLeaveRequest = $employeeLeaveRequest->orderBy('created_at','desc')
         ->get();
     
         
@@ -85,6 +107,203 @@ class LeaveController extends Controller
             ],
             'message' => 'All request time off'
         ]);
+    }
+
+    public function editEmployeeLeaveByYear(Request $request){
+
+        try{
+
+            DB::beginTransaction();
+            
+            $request->validate([
+                'year' => 'required|integer',
+                'id_employee' => 'required|integer',
+                'annual_leave' => 'required|integer|min:0',
+            ]);
+
+            $userId = auth()->user()->id;
+            $employeeId = $request->id_employee;
+            $yearLeave = $request->year;
+            $annualLeave = $request->annual_leave;
+
+            $employeeLeave = EmployeeLeave::where('employee_id',$employeeId)->where('year',$yearLeave)->first();
+
+            if(!$employeeLeave){
+
+                $newEmployeeLeave = new EmployeeLeave();
+                $newEmployeeLeave->employee_id = $employeeId;
+                $newEmployeeLeave->year = $yearLeave;
+                $newEmployeeLeave->annual_leave = $annualLeave;
+                $newEmployeeLeave->remaining_annual_leave = $annualLeave;
+                $newEmployeeLeave->created_by = $userId;
+                $newEmployeeLeave->save();
+                
+            }else{
+                
+                $remainingAnnualLeave = $employeeLeave->remaining_annual_leave;
+                
+                if($annualLeave > $employeeLeave->annual_leave){
+                    $remainingAnnualLeave = $employeeLeave->remaining_annual_leave + ($annualLeave - $employeeLeave->annual_leave);
+                }
+                
+                if($annualLeave < $employeeLeave->annual_leave){
+                    $remainingAnnualLeave = $employeeLeave->remaining_annual_leave - ($employeeLeave->annual_leave - $annualLeave);
+                }
+
+                $employeeLeave->annual_leave = $annualLeave;
+                $employeeLeave->remaining_annual_leave = $remainingAnnualLeave;
+
+                $employeeLeave->save();
+            }
+ 
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Edit leave request successfully'
+            ]);
+
+        }catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function approveEmployeeLeaveRequest(Request $request){
+
+        try{
+
+            DB::beginTransaction();
+            
+            $request->validate([
+                'id_leave_request' => 'required|integer',
+                'id_employee' => 'required|integer',
+            ]);
+
+            $userId = auth()->user()->id;
+            $employeeId = $request->id_employee;
+            $leaveRequestId = $request->id_leave_request;
+
+            $employeeLeaveRequest = EmployeeLeaveRequest::where('id', $leaveRequestId)
+                ->where('employee_id',$employeeId)
+            ->first();
+
+            if(!$employeeLeaveRequest){
+                throw new \Exception('Time off request not found');
+            }
+
+            $yearLeave = Carbon::parse($employeeLeaveRequest->start_date)->format('Y');
+
+            $employeeLeave = EmployeeLeave::where('employee_id',$employeeId)->where('year',$yearLeave)->first();
+
+            if(!$employeeLeave){
+                throw new \Exception('Employee leave not found');
+            }
+
+            if($employeeLeaveRequest->leave_type == 'ANNUAL_LEAVE'){
+                if($employeeLeave->remaining_annual_leave < $employeeLeaveRequest->day_amount){
+                    throw new \Exception('Annual leave quota is not enough');
+                }
+
+                $employeeLeave->remaining_annual_leave = $employeeLeave->remaining_annual_leave - $employeeLeaveRequest->day_amount;
+                $employeeLeave->save();
+            }
+
+            if($employeeLeaveRequest->leave_type == 'SICK'){
+                $employeeLeave->sick = $employeeLeave->sick + $employeeLeaveRequest->day_amount;
+                $employeeLeave->save();
+            }
+
+            
+            if($employeeLeaveRequest->status != 'REQUEST' ){
+                throw new \Exception('Time off only can be approve when status is REQUEST');
+            }
+            
+            $employeeLeaveRequest->status = 'APPROVED';
+            $employeeLeaveRequest->updated_by = $userId;
+            $employeeLeaveRequest->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Approve leave request successfully'
+            ]);
+
+        }catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function rejectEmployeeLeaveRequest(Request $request){
+
+        try{
+
+            DB::beginTransaction();
+            
+            $request->validate([
+                'id_leave_request' => 'required|integer',
+                'id_employee' => 'required|integer',
+                'reject_reason' => 'required',
+            ]);
+
+
+            $userId = auth()->user()->id;
+            $employeeId = $request->id_employee;
+            $leaveRequestId = $request->id_leave_request;
+             
+
+            $employeeLeaveRequest = EmployeeLeaveRequest::where('id', $leaveRequestId)
+                ->where('employee_id',$employeeId)
+            ->first();
+
+            if(!$employeeLeaveRequest){
+                throw new \Exception('Time off request not found');
+            }
+
+            $employeeLeaveRequest->	reject_reason = $request->reject_reason;
+            $employeeLeaveRequest->status = 'REJECTED';
+            $employeeLeaveRequest->updated_by = $userId;
+            $employeeLeaveRequest->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Reject leave request successfully'
+            ]);
+
+        }catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
 }

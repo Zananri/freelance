@@ -441,7 +441,7 @@ function formateDateNumMonYear(dateString){
     const newDate = new Date(dateString); // Or your specific date object
 
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
     //const dayOfWeek = weekdays[newDate.getDay()];
     const dateNumber = newDate.getDate();

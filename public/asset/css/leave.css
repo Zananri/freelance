@@ -91,6 +91,15 @@
     color: #2f323b !important;
 }
 
+
+.modal .form-select,
+.modal .form-control{
+    font-size: 14px !important;
+    padding : 12px 14px;
+    border-radius: 10px;
+    border:0px;
+}
+
 .text-title-content{
     font-size: 32px;
     font-weight: 300;
@@ -209,12 +218,12 @@
     background-color: #E9EEF4 !important;
 }
 
-.box-data{
+.col-leave .box-data{
     padding: 0px 15px 15px 15px;
 }
 
 .table-container {
-    max-height: calc(100vh - 270px);
+    max-height: calc(100vh - 280px);
     overflow: auto;
     position: relative;
     margin: auto;
@@ -232,12 +241,12 @@
     border-radius: 4px;
 }
 
-.table-attendance {
+.table-leave-employee {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
 }
-.table-attendance td {
+.table-leave-employee td {
     padding: 0;
     text-align: left;
     border: 1px solid #DAE3ED;
@@ -249,7 +258,7 @@
     z-index:0;
 }
 
-.table-attendance thead th {
+.table-leave-employee thead th {
     padding: 8px 16px;
     border: 1px solid #DAE3ED;
     font-weight: 500;
@@ -263,37 +272,50 @@
     z-index: 1;
 }
 
-.table-attendance th:first-child{
+.table-leave-employee th:first-child{
     font-weight: 600;
     vertical-align: middle;
 }
-.table-attendance tbody tr:nth-child(odd) {
+.table-leave-employee tbody tr:nth-child(odd) {
     background-color:  #F0F1F8;
 }
-.table-attendance tbody tr:nth-child(even) {
+.table-leave-employee tbody tr:nth-child(even) {
     background-color: #F0F1F8;
 }
-.table-attendance tbody td {
+.table-leave-employee tbody tr .box-action{
+    display: none;
+}
+
+.table-leave-employee tbody tr:hover .box-action{
+    display: block;
+}
+
+.table-leave-employee tbody tr:hover{
+    cursor: pointer;
+    background-color: #f5f6fc;
+}
+
+.table-leave-employee tbody td {
     background-color: inherit;
     position: relative;
 }
-.table-attendance th:first-child, 
-.table-attendance td:first-child {
+.table-leave-employee th:first-child, 
+.table-leave-employee td:first-child {
     position: sticky;
     left: 0;
 }
 
-.table-attendance thead th:first-child {
+.table-leave-employee thead th:first-child {
     z-index: 2;
 }
 
-.table-attendance td:first-child{
+.table-leave-employee td:first-child{
     z-index:1;
     padding: 0;
     width: 210px;
 }
 
-.table-attendance .employee-photo{
+.table-leave-employee .employee-photo{
     width: 28px;
     height: 28px;
     border-radius: 30px;
@@ -301,7 +323,8 @@
     background-color: #42484F;
     display:inline-block;
 }
-.table-attendance .employee-name{
+
+.table-leave-employee .employee-name{
     font-size: 12px;
     color: #343A41;
     overflow-x: auto;
@@ -311,24 +334,24 @@
 
 
 
-.table-attendance .col-photo{
+.table-leave-employee .col-photo{
     height: 28px;
     width: 28px;
     margin-right: 10px;
 }
-.table-attendance .col-name{
+.table-leave-employee .col-name{
     overflow-x: auto;
 }
 
-.table-attendance .col-day.is-late .time-in{
+.table-leave-employee .col-day.is-late .time-in{
     color:#be3131 !important;
 }
 
-.table-attendance .box-employee {
+.table-leave-employee .box-employee {
     padding: 8px 8px;
     width: 200px;
 }
-.table-attendance .box-attendance{
+.table-leave-employee .box-attendance{
     width: 100%;
     height: 100%;
     position: absolute;
@@ -339,16 +362,85 @@
     text-align: center;
     vertical-align: middle;
 }
-.table-attendance .box-attendance:hover{
+.table-leave-employee .box-attendance:hover{
     cursor: pointer;
     background-color: #fcfcff;
 }
 
-.table-attendance .box-time{
+.table-leave-employee .box-time{
     font-size: 10px;
 }
 
 
+#employeeLeaveModal .employee-photo{
+    height: 28px;
+    width: 28px;
+    margin-right: 10px;
+}
+#employeeLeaveModal .employee-name{
+    font-size: 14px;
+    font-weight: 500;
+    color: #343A41;
+}
+
+.box-loader{
+    background-color: rgba(255, 255, 255,0.3);
+    position: absolute;
+    top:0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.loader{ 
+    display: none;
+    position: absolute;
+    top:0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+.modal .box-loader{
+    display: none;
+}
+
+.modal .btn-close-modal{
+    background-color: #E3E4EE;
+    border: 0px;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 12px 5px;
+    color: #313131;
+}
+
+.modal .btn-close-modal:hover,
+.modal .btn-close-modal:active{
+    background-color: #dedfe9;
+    border: 0px;
+    color: #3a3e42;
+}
+
+
+.modal .btn-submit-modal{
+    background-color: #313131;
+    border: 0px;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 12px 5px;
+    color: #E3E4EE;
+}
+
+.modal .btn-submit-modal:hover,
+.modal .btn-submit-modal:active{
+    background-color: #272727;
+    border: 0px;
+    color: #E3E4EE;
+}
 
 .modal .photo-employee{
     width: 28px;
@@ -359,8 +451,7 @@
 
 
 .col-leave-request .box-data{
-    max-height: calc(100vh - 350px);
-    min-height: 30vh;
+    max-height: calc(100vh - 260px);
     overflow: auto;
 }
 
@@ -370,61 +461,145 @@
     padding: 8px 12px 5px 12px;
 }
 
-.item-header,
-.item-body{
+.item-time-off .h-line{
+    background-color: #dee3e7;
+    height: 2px;
+}
+
+.item-time-off .col-photo {
+    margin-right: 10px;
+}
+
+.item-time-off .employee-photo {
+    width: 28px;
+    height: 28px;
+    border-radius: 30px;
+    overflow: hidden;
+}
+.item-time-off .employee-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #343A41;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    text-overflow: ellipsis;
+}
+
+.item-time-off .item-header,
+.item-time-off .item-body{
     padding: 0px 0px;
 }
 
-.item-title{
+.item-time-off .item-title{
     font-size: 14px;
     font-weight: 500;
     color: #31323a;
 }
 
-.item-day{
-    font-size: 14px;
+.item-time-off .col-day-type{
+    text-align: right;
+}
+
+.item-time-off .item-day,
+.item-time-off .item-type{
+    font-size: 12px;
     font-weight: 600;
     color: #31323a;
     white-space: nowrap; 
 }
 
-.item-date,
-.item-status{
+.item-time-off .item-date{
     font-size: 10px;
-    font-weight: 300;
-    color: #727275;
+    font-weight: 500;
+    color: #707578;
+    white-space: nowrap; 
 }
 
-.item-description {
+.item-time-off .item-status{
+    font-size: 12px;
+    font-weight: 500;
+    color: #53545f;
+    white-space: nowrap; 
+    background-color: #e8ebee;
+    padding: 2px 6px; 
+    border-radius: 10px;
+}
+
+.item-time-off .item-status.rejected{
+    color: #ac4049;
+    background-color: #eee4e4;
+}
+
+.item-time-off .item-status.approved{
+    color: #22854b;
+    background-color: #e6eee9;
+}
+
+.item-time-off .item-description {
     font-size: 12px;
     font-weight: 500;
     color: #53545f;
 }
 
-.item-action{
-    white-space: nowrap;
-} 
 
-.item-action .material-symbols-outlined{                                
-    font-size: 16px;
+.item-time-off .item-action  .btn-action {
+    background-color: #e4e8ec !important;
     color: #42484F;
-    font-variation-settings:
-    'FILL' 1,
-    'wght' 400
-}
-
-.item-action .btn-action {
+    width: 100%;
+    display: flex;
+    padding: 4px 6px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
     text-decoration: none;
-    width: 24px;
-    height: 24px;
-    padding: 2px 0px 0px 4px;
-    border-radius: 50%;
-    display:inline-block;
-    margin-left: 2px;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    justify-content: center;
 }
 
-.item-action .btn-action:hover{
-    background-color: #dbe0e6;
+.item-time-off .item-action  .btn-action:hover {
+    background-color: #ecedf1 !important;
+    color: #2e3338;
 }
+
+
+.item-time-off .item-action  .btn-action.reject {
+    background-color: #e9e0e0 !important;
+    color: #42484F;
+}
+.item-time-off .item-action  .btn-action.reject:hover {
+    background-color: #f0dfdf !important;
+    color: #42484F;
+}
+
+
+
+.item-time-off .item-action  .btn-action.approve {
+    background-color: #e0e9e4 !important;
+    color: #42484F;
+}
+.item-time-off .item-action  .btn-action.approve:hover {
+    background-color: #e1f0e8 !important;
+    color: #42484F;
+}
+
+
+.item-time-off .item-action .btn-action  .material-symbols-outlined{                                
+    font-size: 14px;
+    color: #42484F;
+    font-variation-settings: 'FILL' 1, 'wght' 600;
+}
+
+
+
+.item-time-off .btn-action .text-action{
+    font-size: 12px;
+    font-weight: 500;
+    color: #42484F;
+}
+ 

@@ -122,7 +122,7 @@ function getAttendanceTrackingData(month,year)
                 const timeIn = formatTimeDisplay(attendance.time_in);
                 const timeOut = formatTimeDisplay(attendance.time_out);
 
-                console.log(attendance.time_late);
+                //console.log(attendance.time_late);
 
                 if(attendance.time_late != null && attendance.time_late != '00:00:00'){
                     $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"]').addClass('is-late');   
@@ -225,6 +225,25 @@ function getAttendanceDetail(employeeId,dateAttendance)
 
 }
 
+$('#btn-download-xlsx').on('click',function(){
+    exportTableToExcel();
+});
+
+function exportTableToExcel() {
+     
+    let filename = 'ABSEN NSA PERFORMANCE '+formatDateIDMonthYear(CURRENT_DATE);
+
+    const table = $('#table-attendance-xlsx')[0];
+    
+    // Mengubah tabel HTML menjadi workbook
+    const worksheet = XLSX.utils.table_to_sheet(table);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'ABSENSI');
+
+    // Menulis dan mengunduh file .xlsx
+    XLSX.writeFile(workbook, filename + '.xlsx');
+}
+
 function formatTimeDisplay(timeString) {
 
     if (!timeString) return '--:--';
@@ -283,3 +302,18 @@ function formateDateFull(dateString){
     return formattedDate;
 
 } 
+
+const formatDateIDMonthYear = (date) => {
+
+    
+  const newDate = new Date(date);
+  const monthNames = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+    
+  const m = monthNames[newDate.getMonth()];
+  const y = newDate.getFullYear();
+  
+  return `${m} ${y}`;
+};

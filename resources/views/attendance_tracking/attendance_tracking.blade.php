@@ -15,7 +15,17 @@
                 <h2 class="text-title-content mb-3" >Attendance Tracking</h2>
             </div>
             <div class="col-12 col-md-3">
-                <input type="text" class="input-search-query w-100">
+                <div class="d-flex gap-2 justify-content-end align-items-center">
+                    <div>
+                        <input type="text" class="input-search-query w-100">
+                    </div>
+                    <div>
+                        <button class="btn btn-default" type="button" id="btn-download-xlsx">
+                            <span class="material-symbols-outlined icon download" type="button">download</span>
+                        </button>
+                    </div>
+                </div>
+                
             </div>
         </div>
        
@@ -246,10 +256,89 @@
             </div>
         </div>
         
+
+        <style>
+            .wrapper-export-data{
+                position: absolute;
+                top:150px;
+                left: 0px;
+                width: 100%;
+                height: calc(100vh - 170px);
+                z-index: 1000;
+            }
+
+            .table-export-container{
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+            }
+
+            .table-export-container::-webkit-scrollbar {
+                width: 5px;
+                height: 5px;
+                background-color: #9ca3af19;
+            }
+
+            .table-export-container::-webkit-scrollbar-thumb {
+                background-color:  #9ca3af75;
+                border-radius: 4px;
+            }
+
+        </style>
+        <div class="wrapper-export-data p-3 bg-body rounded-4 d-none">
+            <div class="table-export-container">
+                <table class="table-attendance" id="table-attendance-xlsx">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            @for ($i = 1; $i <= 31 ; $i++)
+                                <th class="col-day" data-day="{{ $i }}">
+                                    
+                                    {{ $i }} <div class="calendar-month-short">{{ date('M') }}</div>
+                                </th>
+                            @endfor
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        @foreach ($employee as $itemEmployee)
+                                
+                            
+                            <tr class="employee-row" data-employee-id="{{ $itemEmployee->id }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
+                                <td>
+                                    <div class="employee-name fs-12 py-2 px-1">
+                                        {{ $itemEmployee->name }}
+                                    </div>
+                                </td>
+
+                                    @for ($j = 1; $j <= 31 ; $j++)
+                                    <td class="col-day" data-day="{{ $j }}">
+                                        <div class="box-attendance">
+                                            <div class="box-time d-flex h-100 w-100 align-items-center justify-content-center">
+                                                <div>
+                                                    <div class="time-in"></div>
+                                                    <div class="time-out"></div>
+                                                </div>
+                                            </div>
+                                            
+                                        </div>
+                                    </td>
+                                @endfor
+                            </tr>
+
+                        @endforeach
+                        <!-- Contoh data (lebih banyak data bisa ditambahkan untuk melihat efek sticky) -->
+                        
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </x-slot>
 
 
     <x-slot name="script_slot"> 
+        <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+
         <script src="{{ asset('asset/js/attendance_tracking.js')}}?v={{ time() }}"></script>
     </x-slot>
 

@@ -449,7 +449,7 @@
  
                                     if($employeeLeave){
                                         $remainingLeave = $employeeLeave->remaining_annual_leave;
-                                        $remainingSick = $employeeLeave->remaining_sick;
+                                        $remainingSick = $employeeLeave->sick;
                                     }
 
                                 @endphp
@@ -771,7 +771,7 @@
             </div>
         </div>
 
-        <!-- Modal edit Time Off -->
+        <!-- Modal delete Time Off -->
         <div class="modal fade" id="deleteTimeOffModal" tabindex="-1" role="dialog" aria-labelledby="deleteTimeOffModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content rounded-4 border-0">
