@@ -826,13 +826,15 @@ document.addEventListener("DOMContentLoaded", function () {
                                     </div>
 
                                     <!-- Description (render only if non-empty) -->
-                                    ${(function () {
-                                        const d = (
-                                            project.description || ""
-                                        ).trim();
-                                        if (!d) return "";
-                                        return `<p class=\"mb-2 small text-muted\" style=\"font-size:12px; line-height:1.4;\">${d}</p>`;
-                                    })()}
+                                    <div class="description-container">
+                                        ${(function () {
+                                            const d = (
+                                                project.description || ""
+                                            ).trim();
+                                            if (!d) return "";
+                                            return `<p class="description mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${d}</p>`;
+                                        })()}
+                                    </div>
 
                                     <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
 
@@ -11065,7 +11067,7 @@ function loadTimelineProjects(filter = null) {
         },
         success: function (res) {
             console.log(res);
-            
+
             const projects = Array.isArray(res)
                 ? res
                 : Array.isArray(res.data)
@@ -11102,7 +11104,7 @@ function loadTimelineProjects(filter = null) {
                         dataType: "json",
                         success: function (resp) {
                             console.log(resp);
-                            
+
                             const data = resp.data || resp;
                             p.start_date =
                                 p.start_date || data.start_date || data.start;

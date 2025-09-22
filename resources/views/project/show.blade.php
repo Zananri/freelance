@@ -40,9 +40,11 @@
                         <img src="{{ $imgUrl }}" alt="project detail image" class="project-detail-image me-3">
                         <h4 class="project-detail-title m-0 d-flex align-items-center">{{ $project->title ?? '-' }}</h4>
                     </div>
-                    <p class="mt-3 description-detail">
-                        {!! nl2br(e($project->description ?? '-')) !!}
-                    </p>
+                    <div class="description-container mb-1">
+                        <p class="description-detail">
+                            {!! nl2br(e($project->description ?? '-')) !!}
+                        </p>
+                    </div>
                     <div class="d-flex justify-content-between">
                         <div class="d-flex">
                             @if (!empty($project->reference_files) || !empty($project->reference_urls))

@@ -30,11 +30,6 @@
     line-height: 1;
 }
 
-.description-detail {
-    font-size: 12px;
-    font-weight: 400;
-}
-
 .detail-icon {
     background: transparent;
     border: none;
@@ -69,6 +64,37 @@
 
 .detail-role p {
     font-size: 10px;
+}
+
+.description-container {
+    max-height: 50px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.description-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.description-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.description-container::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.description-detail {
+    margin-top: 10px;
+    color: #4c5060;
+    font-size: 12px;
+    font-weight: 400;
+    white-space: normal;
+    word-break: break-word;
 }
 
 .detail-project-bottom {
