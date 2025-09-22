@@ -1,0 +1,51 @@
+
+.project-detail-image {
+    border-radius: 50%;
+    width: 64px;
+    height: 64px;
+}
+
+.project-detail-title {
+    font-size: 16px;
+    font-weight: normal;
+}
+
+.description-detail {
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.detail-icon {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.detail-icon span {
+    font-size: 18px;
+}
+
+.icon-fill {
+  font-variation-settings: 'FILL' 1;
+  color: #42484F;
+}
+
+.task-separator {
+    background: #DEDFE7;
+}
+
+.detail-list p{
+    font-size: 10px;
+    font-weight: normal;
+    margin-bottom: 5px;
+}
+
+.user-profile{
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+}
+
+.detail-role p{
+    font-size: 10px;
+}
