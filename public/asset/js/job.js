@@ -270,8 +270,11 @@ $(document).ready(function () {
     addJobModal = new bootstrap.Modal(document.getElementById("addJobModal"));
 
     // Event handler search
-    $("#searchInput").on("input", function () {
-        loadJobs();
+    $("#searchInput").on("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            loadJobs();
+        }
     });
 
     // Event handler filter type (status/department)

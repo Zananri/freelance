@@ -30,7 +30,7 @@
                 <div class="dropdown dropdown-filter-container">
                     <button class="btn btn-icon-toggle dropdown-toggle"
                         type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span class="material-symbols-outlined icon">filter_list</span> Filter
+                        <span class="material-symbols-outlined icon">filter_list</span><span class="btn-text">Filter</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-filter p-2" aria-labelledby="filterDropdown">
                         <li class="mb-3">
@@ -55,7 +55,7 @@
 
                 <button id="btnAddData" class="btn btn-icon-toggle btn-add-custom"
                     data-bs-toggle="modal" data-bs-target="#addDivisionModal">
-                    <span class="material-symbols-outlined icon">add</span> Add Data
+                    <span class="material-symbols-outlined icon">add</span><span class="btn-text">Add Data</span>
                 </button>
             </div>
         </div>
