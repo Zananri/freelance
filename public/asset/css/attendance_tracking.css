@@ -327,6 +327,16 @@
     overflow-x: auto;
 }
 
+.table-attendance thead .col-day.sunday{
+    border: 1px solid #e06c6e;
+    background-color:#e06c6e !important ;
+    color:#ffffff !important;
+}
+
+.table-attendance thead .col-day.sunday .calendar-month-short{
+    color:#ffffff !important;
+}
+
 .table-attendance .col-day.is-late .time-in{
     color:#be3131 !important;
 }

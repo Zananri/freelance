@@ -46,9 +46,23 @@ function renderCalendar(year, month) {
     $('.calendar-year').text(`${year}`);
 
     $('.col-day').removeClass('d-none');
+
     for (let i = totalDays+1; i <= 31; i++) {
         $('.col-day[data-day="' + i + '"]').addClass('d-none');
     }
+
+    $('.table-attendance thead .col-day').removeClass('sunday');
+
+    $('.table-attendance thead .col-day').each(function(){
+        const day = parseInt($(this).attr('data-day'));
+        const newDateDay = new Date(year, month, day).getDay();
+
+        if(newDateDay == 0){
+            $(this).addClass('sunday');
+        }
+
+        //console.log(day+'  '+newDate);
+    });
  
 }
 
