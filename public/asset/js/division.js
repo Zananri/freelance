@@ -361,9 +361,9 @@ $(document).ready(function () {
 
     // Note: Single .btn-edit handler is defined below to avoid duplicates
 
-    
 
-                  
+
+
     function showLoader(modalType, show = true) {
         const loaderId = {
             add: "#addModalLoader",
@@ -701,23 +701,23 @@ $.ajax({
         });
     }
 
-    $("#searchInput").on("input", function () {
-        var query = $(this).val();
-        var filterType = $("#filterTypeSelect").val();
-        if (filterType === "status") {
-            var status =
-                $("#statusFilterOptions .filter-option.active").data(
-                    "status"
-                ) || "ALL";
-            loadDivisions(query, status, "");
-        } else if (filterType === "department") {
-            var departmentId =
-                $(
-                    "#departmentFilterOptions .department-filter-option.active"
-                ).data("department") || "";
-            loadDivisions(query, "ALL", departmentId);
-        } else {
-            loadDivisions(query, "ALL", "");
+    $("#searchInput").on("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            var query = $(this).val();
+            var filterType = $("#filterTypeSelect").val();
+
+            if (filterType === "status") {
+                var status =
+                    $("#statusFilterOptions .filter-option.active").data("status") || "ALL";
+                loadDivisions(query, status, "");
+            } else if (filterType === "department") {
+                var departmentId =
+                    $("#departmentFilterOptions .department-filter-option.active").data("department") || "";
+                loadDivisions(query, "ALL", departmentId);
+            } else {
+                loadDivisions(query, "ALL", "");
+            }
         }
     });
 

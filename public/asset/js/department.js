@@ -586,9 +586,12 @@ $(document).ready(function () {
     }
 
 $(document).ready(function () {
-    $("#searchInput").on("input", function () {
-        var query = $(this).val();
-        loadDepartments(query, selectedStatus);
+    $("#searchInput").on("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            var query = $(this).val();
+            loadDepartments(query, selectedStatus);
+        }
     });
 
     loadDepartments("", selectedStatus);
@@ -601,3 +604,4 @@ $(document).ready(function () {
         loadDepartments($("#searchInput").val(), selectedStatus);
     });
 });
+
