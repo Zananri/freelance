@@ -984,8 +984,14 @@ class ProjectController extends Controller
             $expectsJson = $request->wantsJson() || $request->ajax() || str_contains($request->header('Accept', ''), '/json') || str_contains($request->header('Accept', ''), 'application/json');
 
             if (!$expectsJson) {
-                // Provide the project id to the view; the frontend can request JSON if it needs the data
-                return view('project.show', ['projectId' => $id]);
+                // Render server-side view with full project model so Blade can display data
+                $project = Project::with(['department', 'division', 'projectAssignments.employee.user', 'tasks'])->find($id);
+
+                if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
+                    abort(404);
+                }
+
+                return view('project.show', ['project' => $project]);
             }
 
             // Eager-load employee.user to safely resolve avatars and reduce N+1
