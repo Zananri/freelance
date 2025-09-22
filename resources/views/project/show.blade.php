@@ -19,11 +19,11 @@
     {{-- Above Content --}}
     {{-- Left Above Content --}}
     <div class="row mb-3">
-        <div class="col-md-3 detail-project-card">
+        <div class="col-md-4 detail-project-card">
             <div class="body-content rounded-4 p-3">
-                <div class="d-flex">
-                    <img src="" alt="project detail image" class="project-detail-image me-2">
-                    <p class="project-detail-title">Project Title</p>
+                <div class="d-flex align-items-center">
+                    <img src="{{ asset('asset/img/avatar.png') }}" alt="project detail image" class="project-detail-image me-3">
+                    <h4 class="project-detail-title m-0 d-flex align-items-center">Project title</h4>
                 </div>
                 <p class="mt-3 description-detail">
                     Lorem ipsum dolor sit amet consectetur adipisicing elit. Iure doloribus optio necessitatibus!
@@ -66,10 +66,10 @@
                     <p>Division Name</p>
                 </div>
 
-                <div class="d-flex justify-content-evenly mt-3">
-                    <div class="d-flex align-items-center detail-role">
-                        <img src="" alt="user profile" class="rounded-circle me-2"
-                            width="40" height="40">
+                <div class="d-flex justify-content-start mt-3">
+                    <div class="d-flex align-items-center detail-role me-2">
+                        <img src="" alt="user profile" class="rounded-circle me-2" width="40"
+                            height="40">
                         <div>
                             <p class="m-0 fw-normal">Employee Name</p>
                             <p class="m-0 text-muted small">Co Author</p>
@@ -77,8 +77,8 @@
                     </div>
 
                     <div class="d-flex align-items-center detail-role">
-                        <img src="" alt="user profile" class="rounded-circle me-2"
-                            width="40" height="40">
+                        <img src="" alt="user profile" class="rounded-circle me-2" width="40"
+                            height="40">
                         <div>
                             <p class="m-0 fw-normal">Employee Name</p>
                             <p class="m-0 text-muted small">Author</p>
@@ -89,7 +89,7 @@
         </div>
 
         {{-- Right Above Content --}}
-        <div class="col-md-9 structure-detail">
+        <div class="col-md-8 structure-detail">
             <div class="body-content rounded-4 p-3">
 
             </div>
