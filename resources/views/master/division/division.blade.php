@@ -24,18 +24,17 @@
             <h5 class="mb-0 table-title">List Division</h5>
 
             <div class="d-flex gap-1" style="margin-left: -5px;">
-                <div class="input-group" style="min-width: 200px; height: 38px;">
-                    <input type="text" id="searchInput" class="form-control input-text" placeholder="Search"
-                        style="border: 1px solid #DDDDDD; height: 38px;" />
+                <div class="input-group search-input-container">
+                    <input type="text" id="searchInput" class="form-control input-text" placeholder="Search"/>
                 </div>
-                <div class="dropdown">
-                    <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;"
+                <div class="dropdown dropdown-filter-container">
+                    <button class="btn btn-icon-toggle dropdown-toggle"
                         type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="material-symbols-outlined icon">filter_list</span> Filter
                     </button>
                     <ul class="dropdown-menu p-2" aria-labelledby="filterDropdown"
                         style="min-width: 220px; max-height: 300px; overflow-y: auto;">
-                        <li class="mb-2">
+                        <li class="mb-3">
                             <select class="form-select form-select-sm" id="filterTypeSelect"
                                 aria-label="Select filter type">
                                 <option value="" disabled selected>Select Filter Option</option>
@@ -55,7 +54,7 @@
                 </div>
 
 
-                <button id="btnAddData" class="btn btn-icon-toggle" style="border: 1px solid #DDDDDD;"
+                <button id="btnAddData" class="btn btn-icon-toggle btn-add-custom"
                     data-bs-toggle="modal" data-bs-target="#addDivisionModal">
                     <span class="material-symbols-outlined icon">add</span> Add Data
                 </button>
@@ -98,16 +97,17 @@
                 <form id="addDivisionForm" class="form-custom needs-validation" novalidate
                     enctype="multipart/form-data">
                     <div class="modal-body modal-body-custom">
-                        <div class="mb-3 mt-4">
+                        <div class="mb-3 mt-4 custom-input">
                             <label for="department_id" class="form-label label-custom">Department</label>
-                            <select class="form-select input-select" id="department_id" name="department_id" required>
+                            <select class="form-select input-select" id="department_id" name="department_id"
+                                required>
                                 <option value="" disabled selected>Select Department</option>
                             </select>
                             <div class="invalid-feedback">
                                 Please select a department.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="name_division" class="form-label label-custom">Division Name</label>
                             <input type="text" class="form-control input-text" id="name_division"
                                 name="name_division" placeholder="Input Division Name" required>
@@ -115,7 +115,7 @@
                                 Please enter the division name.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="status" class="form-label label-custom">Status</label>
                             <select class="form-select input-select" id="status" name="status" required>
                                 <option value="" disabled selected>Select Status</option>
@@ -126,7 +126,7 @@
                                 Please select a status.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="description" name="description" placeholder="Input Description"></textarea>
                             <div class="invalid-feedback">
@@ -174,7 +174,7 @@
                     enctype="multipart/form-data">
                     <div class="modal-body modal-body-custom">
                         <input type="hidden" id="edit_division_id" name="division_id">
-                        <div class="mb-3 mt-4">
+                        <div class="mb-3 mt-4 custom-input">
                             <label for="edit_department_id" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="edit_department_id" name="department_id"
                                 required>
@@ -184,7 +184,7 @@
                                 Please select a department.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_name_division" class="form-label label-custom">Division Name</label>
                             <input type="text" class="form-control input-text" id="edit_name_division"
                                 name="name_division" placeholder="Input Division Name" required>
@@ -192,7 +192,7 @@
                                 Please enter the division name.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_status" class="form-label label-custom">Status</label>
                             <select class="form-select input-select" id="edit_status" name="status" required>
                                 <option value="ACTIVE">Active</option>
@@ -202,7 +202,7 @@
                                 Please select a status.
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="edit_description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="edit_description" name="description" placeholder="Input Description"></textarea>
                             <div class="invalid-feedback">

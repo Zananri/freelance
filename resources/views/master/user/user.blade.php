@@ -7,6 +7,15 @@
     </x-slot>
 
     <div class="title-content d-flex align-items-center gap-2">
+        <div class="nav-item d-inline-block">
+            <div class="nav-icon-arrow">
+                <a href="{{ url('master') }}" class="text-decoration-none text-dark d-flex align-items-center">
+                    <div class="d-flex">
+                        <span class="material-symbols-outlined">arrow_back</span>
+                    </div>
+                </a>
+            </div>
+        </div>
         <h2 class="m-0">User</h2>
     </div>
 
@@ -36,28 +45,30 @@
         <div class="modal fade" id="userDetailModal" tabindex="-1" aria-labelledby="userDetailModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable mx-auto" style="">
-                    <div class="modal-content">
-                        <div class="modal-header custom-modal-header">
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body text-center">
-                            <div class="user-photo-name-email">
-                                <img id="detailUserPhoto" src="" alt="User Photo" class="rounded-circle"
-                                    style="width: 150px; height: 150px; object-fit: cover;">
-                                <p class="user-name fw-semibold mt-3 mb-1" id="detailUserName"></p>
-                                <p class="user-email text-muted mb-1" id="detailUserEmail"></p>
+                <div class="modal-content">
+                    <div class="modal-header custom-modal-header">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body text-center">
+                        <div class="user-photo-name-email">
+                            <img id="detailUserPhoto" src="" alt="User Photo" class="rounded-circle"
+                                style="width: 150px; height: 150px; object-fit: cover;">
+                            <p class="user-name fw-semibold mt-3 mb-1" id="detailUserName"></p>
+                            <p class="user-email text-muted mb-1" id="detailUserEmail"></p>
                             <p class="user-division text-muted" id="detailEmployeeDivision"></p>
-                            <button type="button" class="btn btn-reset mt-3" id="btnResetPassword" title="Reset Password">
+                            <button type="button" class="btn btn-reset mt-3" id="btnResetPassword"
+                                title="Reset Password">
                                 <span class="material-symbols-outlined">autorenew</span> Reset Password
                             </button>
                         </div>
                     </div>
                 </div>
-        </div>
+            </div>
         </div>
     </div>
 
-    <div id="resetPasswordAlertContainer" class="position-fixed bottom-0 start-50 translate-middle-x mb-3" style="z-index: 1055; width: auto; max-width: 400px; display:none;">
+    <div id="resetPasswordAlertContainer" class="position-fixed bottom-0 start-50 translate-middle-x mb-3"
+        style="z-index: 1055; width: auto; max-width: 400px; display:none;">
         <!-- Alert will be injected here -->
     </div>
 

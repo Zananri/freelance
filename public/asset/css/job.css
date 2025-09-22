@@ -155,32 +155,6 @@ table.table tbody tr td:last-child {
     font-weight: normal;
 }
 
-.btn-icon-toggle,
-.btn-detail,
-.btn-edit,
-.btn-delete,
-#filterDropdown,
-#btnAddData {
-    background-color: transparent !important;
-    color: #555 !important;
-    border: none !important;
-    transition: background-color 0.3s ease;
-}
-
-#filterDropdown:hover,
-#btnAddData:hover {
-    background-color: #f8f9fa !important;
-    color: inherit !important;
-    border-color: #ccc !important;
-}
-#filterDropdown.active,
-#filterDropdown:focus,
-#filterDropdown.show {
-    background-color: #e9f7ef;
-    border-color: #28a745;
-    color: #28a745;
-}
-
 /* Alert Styling */
 /* Removed to match department alert styling */
 
@@ -228,4 +202,23 @@ table.table tbody tr td:last-child {
         padding: 8px 12px;
         font-size: 13px;
     }
+}
+
+.search-input-container input,
+.btn-add-custom,
+.dropdown-filter-container button,
+.search-input-container input:focus,
+.btn-add-custom:hover,
+.dropdown-filter-container button:hover {
+    background: #e9eef4;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    height: 40px;
+}
+
+.custom-input input,
+.custom-input textarea,
+.custom-input select {
+    border: none;
 }
