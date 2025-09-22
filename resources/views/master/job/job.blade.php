@@ -24,16 +24,15 @@
             <h5 class="mb-0 table-title">List Job</h5>
 
             <div class="d-flex gap-1" style="margin-left: -5px;">
-                <div class="input-group" style="min-width: 200px; height: 38px;">
-                    <input type="text" id="searchInput" class="form-control input-text" placeholder="Search"
-                        style="border: 1px solid #DDDDDD; height: 38px;" />
+                <div class="input-group search-input-container" style="min-width: 200px;">
+                    <input type="text" id="searchInput" class="form-control input-text" placeholder="Search"/>
                 </div>
-                <div class="dropdown">
-                    <button class="btn btn-icon-toggle dropdown-toggle" style="border: 1px solid #DDDDDD;"
+                <div class="dropdown dropdown-filter-container">
+                    <button class="btn btn-icon-toggle dropdown-toggle"
                         type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="material-symbols-outlined icon">filter_list</span> Filter
                     </button>
-                    <ul class="dropdown-menu p-2" aria-labelledby="filterDropdown"
+                    <ul class="dropdown-menu dropdown-menu-filter p-2" aria-labelledby="filterDropdown"
                         style="min-width: 220px; max-height: 300px; overflow-y: auto;">
                         <li class="mb-2">
                             <select class="form-select form-select-sm" id="filterTypeSelect"
@@ -58,8 +57,7 @@
                     </ul>
                 </div>
 
-                <button id="btnAddData" class="btn btn-icon-toggle"
-                    style="border: 1px solid #DDDDDD; min-width: 140px; padding-left: 20px; padding-right: 20px;"
+                <button id="btnAddData" class="btn btn-icon-toggle btn-add-custom"
                     data-bs-toggle="modal" data-bs-target="#addJobModal">
                     <span class="material-symbols-outlined icon">add</span> Add Data
                 </button>
@@ -99,20 +97,22 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <form id="addJobForm" class="form-custom needs-validation" novalidate>
-                    <div class="mb-3 mt-4">
+                    <div class="mb-3 mt-4 custom-input">
                         <label for="department_id" class="form-label label-custom">Department</label>
                         <select id="department_id" name="department_id" class="form-select input-select"
                             required></select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 custom-input">
                         <label for="division_id" class="form-label label-custom">Division</label>
-                        <select id="division_id" name="division_id" class="form-select input-select" required></select>
+                        <select id="division_id" name="division_id" class="form-select input-select"
+                            required></select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 custom-input">
                         <label for="job_name" class="form-label label-custom">Job Name</label>
-                        <input type="text" id="job_name" name="job_name" class="form-control input-text" required>
+                        <input type="text" id="job_name" name="job_name" class="form-control input-text"
+                            required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 custom-input">
                         <label for="status" class="form-label label-custom">Status</label>
                         <select id="status" name="status" class="form-select input-select" required>
                             <option value="" disabled selected>Select Status</option>
@@ -120,7 +120,7 @@
                             <option value="INACTIVE">Inactive</option>
                         </select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 custom-input">
                         <label for="description" class="form-label label-custom">Description</label>
                         <textarea id="description" name="description" class="form-control input-text" rows="2"></textarea>
                     </div>
@@ -147,22 +147,22 @@
                 </div>
                 <form id="editJobForm" class="form-custom needs-validation" novalidate>
                     <input type="hidden" id="edit_job_id" name="edit_job_id">
-                    <div class="mb-3 mt-4">
+                    <div class="mb-3 mt-4 custom-input">
                         <label for="edit_department_id" class="form-label label-custom">Department</label>
                         <select id="edit_department_id" name="edit_department_id" class="form-select input-select"
                             required></select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 custom-input">
                         <label for="edit_division_id" class="form-label label-custom">Division</label>
                         <select id="edit_division_id" name="edit_division_id" class="form-select input-select"
                             required></select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 custom-input">
                         <label for="edit_job_name" class="form-label label-custom">Job Name</label>
                         <input type="text" id="edit_job_name" name="edit_job_name"
                             class="form-control input-text" required>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 custom-input">
                         <label for="edit_status" class="form-label label-custom">Status</label>
                         <select id="edit_status" name="edit_status" class="form-select input-select" required>
                             <option value="" disabled selected>Select Status</option>
@@ -170,7 +170,7 @@
                             <option value="INACTIVE">Inactive</option>
                         </select>
                     </div>
-                    <div class="mb-3">
+                    <div class="mb-3 custom-input">
                         <label for="edit_description" class="form-label label-custom">Description</label>
                         <textarea id="edit_description" name="edit_description" class="form-control input-text" rows="2"></textarea>
                     </div>
@@ -197,25 +197,25 @@
                 </div>
                 <form id="deleteJobForm" class="form-custom">
                     <div class="modal-body modal-body-custom">
-                        <div class="mb-3 mt-4">
+                        <div class="mb-3 mt-3 custom-input">
                             <label class="form-label label-custom">Job Name</label>
-                            <input type="text" id="delete_job_name" class="form-control input-text" readonly>
+                            <input type="text input" id="delete_job_name" class="form-control input-text" readonly>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Status</label>
                             <input type="text" id="delete_status" class="form-control input-text" readonly>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Description</label>
                             <textarea id="delete_description" class="form-control input-text" rows="2" readonly></textarea>
                         </div>
                     </div>
-                    <div class="modal-footer modal-footer-delete">
-                        <button type="submit"
-                            class="btn-submit-black btn-submit-custom btn-delete-modal btn-delete-small btn-delete-red">Delete</button>
+                    <div class="modal-footer modal-footer-custom">
                         <button type="button"
-                            class="btn-cancel-delete btn-submit-black btn-submit-custom btn-cancel-small"
-                            data-bs-dismiss="modal">Cancel</button>
+                        class="btn btn-custom-cancel"
+                        data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit"
+                            class="btn btn-submit-black">Delete</button>
                     </div>
                 </form>
             </div>

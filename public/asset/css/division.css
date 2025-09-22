@@ -137,6 +137,12 @@ table.table tbody tr td:first-child {
 .modal-footer-custom {
     border: 0;
     justify-content: center;
+    width: 100%;
+    padding: 0;
+}
+
+.modal-footer-custom .btn-submit-black {
+    width: 100%;
 }
 
 table.table > thead > tr {
@@ -179,12 +185,6 @@ table.table > tbody > tr > td {
     width: 48px;
     height: 48px;
     animation: spin 1s linear infinite;
-}
-
-.modal-footer-delete {
-    display: flex;
-    justify-content: center !important;
-    gap: 10px;
 }
 
 .btn-delete-small {
@@ -253,3 +253,57 @@ table.table > tbody > tr > td {
     border-color: #28a745 !important;
     box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
 }
+
+.search-input-container input,
+.btn-add-custom,
+.dropdown-filter-container button,
+.search-input-container input:focus,
+.btn-add-custom:hover,
+.dropdown-filter-container button:hover {
+    background: #e9eef4;
+    border: none;
+    box-shadow: none;
+    outline: none;
+    height: 40px;
+}
+
+.dropdown-menu-filter {
+    min-width: 220px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgb(240, 241, 248);
+    border: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu-filter select {
+    border: none;
+}
+
+.custom-input input,
+.custom-input textarea,
+.custom-input select {
+    border: none;
+}
+
+.modal-footer-custom button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    height: 45px;
+}
+
+.modal-footer-custom .btn-submit-black {
+    background-color: #444444 !important;
+    color: #e3e4ee;
+}
+
+.modal-footer-custom .btn-custom-cancel {
+    background-color: #e3e4ee !important;
+    color: #444444;
+    height: 45px;
+}
+
+
