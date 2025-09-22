@@ -907,6 +907,7 @@ class TaskController extends Controller
             }
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
+                'parent_id' => 'nullable|exists:tasks,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -934,6 +935,24 @@ class TaskController extends Controller
             }
 
             $data = $validator->validated();
+
+            // If parent_id provided, ensure parent belongs to same project (or both null)
+            if (!empty($data['parent_id'])) {
+                $parent = Task::find($data['parent_id']);
+                if (!$parent) {
+                    throw new \Exception('Parent task not found');
+                }
+                // Parent must belong to the same project as provided project_id
+                $parentProjectId = $parent->project_id;
+                $incomingProjectId = $data['project_id'] ?? null;
+                if ($parentProjectId != $incomingProjectId) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Selected parent task does not belong to the chosen project.'
+                    ], 422);
+                }
+            }
 
             // Normalize reference URLs into array column reference_urls (preserve single field for legacy)
             $refUrls = [];
@@ -1242,6 +1261,11 @@ class TaskController extends Controller
             'title' => $task->title,
             'description' => $task->description,
             'project_id' => $task->project_id,
+            'parent_id' => $task->parent_id ?? null,
+            'parent' => $task->parent ? [
+                'id' => $task->parent->id,
+                'title' => $task->parent->title ?? ''
+            ] : null,
             'point' => $task->point,
             'priority' => $task->priority,
             'reference_url' => $task->reference_url,
@@ -1291,6 +1315,7 @@ class TaskController extends Controller
             }
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
+                'parent_id' => 'nullable|exists:tasks,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -1316,6 +1341,19 @@ class TaskController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Validate parent belongs to same project if provided
+            if (array_key_exists('parent_id', $data) && !empty($data['parent_id'])) {
+                $parent = Task::find($data['parent_id']);
+                $incomingProjectId = $data['project_id'] ?? $task->project_id;
+                if (!$parent || $parent->project_id != $incomingProjectId) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Selected parent task does not belong to the chosen project.'
+                    ], 422);
+                }
+            }
 
             // Normalize reference URLs
             $refUrls = [];
@@ -1368,7 +1406,7 @@ class TaskController extends Controller
 
             $data['reference_files'] = $referenceFiles;
 
-            // Update task
+            // Update task (including parent_id if set)
             $task->update($data);
 
             // Update executor assignments
@@ -2298,6 +2336,7 @@ class TaskController extends Controller
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
+                    'parent_id' => $task->parent_id ?? null,
                     'description' => $task->description,
                     'image' => $task->image,
                     'created_at' => $task->created_at,

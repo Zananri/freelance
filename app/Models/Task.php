@@ -11,6 +11,7 @@ class Task extends Model
 
     protected $fillable = [
         'project_id',
+        'parent_id',
         'point',
         'title',
         'description',
@@ -38,6 +39,18 @@ class Task extends Model
     public function project()
     {
         return $this->belongsTo(Project::class);
+    }
+
+    // Self-referential parent relationship
+    public function parent()
+    {
+        return $this->belongsTo(Task::class, 'parent_id');
+    }
+
+    // Self-referential children relationship
+    public function children()
+    {
+        return $this->hasMany(Task::class, 'parent_id');
     }
 
     // Define relationship to TaskAssignment

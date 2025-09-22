@@ -174,6 +174,13 @@
                             </select>
                         </div>
                         <div class="mb-3 custom-input">
+                            <label for="edit_task_parent_id" class="form-label label-custom">Related to Task
+                                (optional)</label>
+                            <select class="form-select input-select" id="edit_task_parent_id" name="parent_id">
+                                <option value="">No Parent</option>
+                            </select>
+                        </div>
+                        <div class="mb-3 custom-input">
                             <label for="edit_task_point" class="form-label label-custom">Point</label>
                             <input type="number" class="form-control input-text" id="edit_task_point"
                                 name="point" value="1" min="1" required>
@@ -331,6 +338,13 @@
                             <select class="form-select input-select" id="task_project_id" name="project_id" required>
                                 <option value="">Select Project</option>
                                 <!-- Options to be populated dynamically -->
+                            </select>
+                        </div>
+                        <div class="mb-3 custom-input">
+                            <label for="task_parent_id" class="form-label label-custom">Related to Task
+                                (optional)</label>
+                            <select class="form-select input-select" id="task_parent_id" name="parent_id">
+                                <option value="">No Parent</option>
                             </select>
                         </div>
                         <div class="mb-3 custom-input">
