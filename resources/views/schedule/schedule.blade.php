@@ -610,8 +610,9 @@
                             projectSelect.required = true;
                         }
 
-                        // ensure UI matches validation state right away
-                        updateProjectValidationState();
+                        // Do not force validation state when opening the modal so the
+                        // project select doesn't show as invalid immediately.
+                        // Validation will run on submit via the form submit handler.
                     }
                 });
 
