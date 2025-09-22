@@ -38,6 +38,7 @@
 
 .detail-icon span {
     font-size: 18px;
+    color: #797E91;
 }
 
 .icon-fill {
@@ -129,4 +130,10 @@
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
+}
+
+@media (max-width: 768px) {
+    .detail-project-card {
+        margin-bottom: 16px;
+    }
 }
