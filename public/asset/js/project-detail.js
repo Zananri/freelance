@@ -63,31 +63,55 @@
 
 		actionsContainer.append($edit).append($delete);
 
-		// Delete handler
+		// Delete handler: open modal (modal already contains server-rendered project details)
 		$delete.on('click', function (e) {
 			e.preventDefault();
-			if (!confirm('Are you sure you want to delete this project?')) return;
+			var modalEl = document.getElementById('deleteProjectModal');
+			if (!modalEl) {
+				if (!confirm('Are you sure you want to delete this project?')) return;
+				// fallback delete
+				var appUrlFb = getMeta('app-url') || '';
+				$.ajax({ url: appUrlFb.replace(/\/$/, '') + '/project/' + projectId, method: 'DELETE', headers: { 'X-CSRF-TOKEN': getMeta('csrf-token'), 'Accept':'application/json' }, success: function(){ window.location.href = appUrlFb.replace(/\/$/, '') + '/project'; }, error: function(){ alert('Failed to delete'); } });
+				return;
+			}
+			// ensure confirm button has correct project id (server already set it, but set again for safety)
+			$('#confirmDeleteProjectBtn').attr('data-project-id', projectId);
+			var bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+			bsModal.show();
+		});
+
+		// Confirm delete button handler (delegated in case element created later)
+		$(document).off('click', '#confirmDeleteProjectBtn').on('click', '#confirmDeleteProjectBtn', function (e) {
+			var $btn = $(this);
+			var pid = $btn.attr('data-project-id') || $btn.data('projectId');
+			if (!pid) {
+				alert('Project ID tidak ditemukan');
+				return;
+			}
+			var appUrlLocal = getMeta('app-url') || '';
 			var token = getMeta('csrf-token');
+			// show loader state on button
+			$btn.prop('disabled', true).text('Deleting...');
 			$.ajax({
-				url: appUrl.replace(/\/$/, '') + '/project/' + projectId,
+				url: appUrlLocal.replace(/\/$/, '') + '/project/' + pid,
 				method: 'DELETE',
-				headers: {
-					'X-CSRF-TOKEN': token,
-					'Accept': 'application/json'
-				},
+				headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
 				success: function (res) {
 					if (res && res.status === 'success') {
-						alert(res.message || 'Project deleted');
-						// Redirect back to project list
-						window.location.href = appUrl.replace(/\/$/, '') + '/project';
+						// hide modal and redirect
+						var modalEl = document.getElementById('deleteProjectModal');
+						try { var m = bootstrap.Modal.getInstance(modalEl); if (m) m.hide(); } catch (_) {}
+						window.location.href = appUrlLocal.replace(/\/$/, '') + '/project';
 					} else {
 						alert((res && res.message) || 'Failed to delete project');
+						$btn.prop('disabled', false).text('Delete');
 					}
 				},
 				error: function (xhr) {
 					var msg = 'Failed to delete project';
 					try { msg = xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : msg; } catch (e) {}
 					alert(msg);
+					$btn.prop('disabled', false).text('Delete');
 				}
 			});
 		});
