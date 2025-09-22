@@ -7726,20 +7726,46 @@ document.addEventListener("DOMContentLoaded", function () {
                                 e.stopPropagation();
 
                                 // Clear any timeline reopening flags when opening from dropdown
-                                const detailEl =
-                                    document.getElementById(
-                                        "projectDetailModal"
-                                    );
+                                const detailEl = document.getElementById(
+                                    "projectDetailModal"
+                                );
                                 if (detailEl) {
-                                    detailEl.removeAttribute(
-                                        "data-reopen-timeline"
-                                    );
-                                    detailEl.removeAttribute(
-                                        "data-child-opened"
-                                    );
+                                    detailEl.removeAttribute("data-reopen-timeline");
+                                    detailEl.removeAttribute("data-child-opened");
                                 }
 
-                                fetchAndShowProjectDetail(projectId);
+                                // Redirect to project show page instead of opening modal
+                                // Build a simple slug from project title (fallback to title text if data attribute missing)
+                                function slugify(str) {
+                                    if (!str) return "";
+                                    try {
+                                        return String(str)
+                                            .toLowerCase()
+                                            .normalize('NFD')
+                                            .replace(/\p{Diacritic}/gu, "")
+                                            .replace(/[^a-z0-9\s-]/g, "")
+                                            .trim()
+                                            .replace(/\s+/g, "-")
+                                            .replace(/-+/g, "-");
+                                    } catch (err) {
+                                        return String(str)
+                                            .toLowerCase()
+                                            .replace(/[^a-z0-9\s-]/g, "")
+                                            .trim()
+                                            .replace(/\s+/g, "-")
+                                            .replace(/-+/g, "-");
+                                    }
+                                }
+
+                                var titleAttr = card.getAttribute("data-project-title") || "";
+                                var titleTextEl = card.querySelector('.title-project');
+                                var titleText = titleTextEl ? titleTextEl.textContent.trim() : "";
+                                var slugSource = titleAttr || titleText || projectId;
+                                var slug = slugify(slugSource);
+
+                                var redirectUrl = appUrl + "/project/" + projectId + (slug ? "/" + slug : "");
+                                // perform navigation
+                                window.location.href = redirectUrl;
                             } else if (text === "Task") {
                                 e.preventDefault();
                                 e.stopPropagation();
