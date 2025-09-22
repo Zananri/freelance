@@ -650,6 +650,14 @@ input[type="file"]::file-selector-button {
     color: #727275;
 }
 
+.item-status.rejected{
+    color: #d13b48;
+}
+
+.item-status.approved{
+    color: #21ad60;
+}
+
 .item-description {
     font-size: 12px;
     font-weight: 500;

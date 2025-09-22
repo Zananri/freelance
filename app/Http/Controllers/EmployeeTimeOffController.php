@@ -202,6 +202,21 @@ class EmployeeTimeOffController extends Controller
             $file1 = $employeeLeaveRequest->file_1;
             $file2 = $employeeLeaveRequest->file_2;
 
+            if(!isset($request->old_file_1)){
+                $file1 = '';
+
+                $oldFile1 = public_path($employeeLeaveRequest->file_1);
+                if (file_exists($oldFile1)) { @unlink($oldFile1); }
+            }
+
+            if(!isset($request->old_file_2)){
+                $file2 = '';
+
+                $oldFile2 = public_path($employeeLeaveRequest->file_2);
+                if (file_exists($oldFile2)) { @unlink($oldFile2); }
+            }
+            
+
             $destinationPath = public_path('file/leave_request');
 
             if (!file_exists($destinationPath)) { mkdir($destinationPath, 0777, true); }

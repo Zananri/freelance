@@ -1,10 +1,21 @@
 const appUrl = $('meta[name=app-url]').attr("content");
-
-const modalAttendance = new bootstrap.Modal('#modalAttendance', {
+ 
+const approveLeaveRequestModal = new bootstrap.Modal('#approveLeaveRequestModal', {
   keyboard: false
 });
 
+const rejectLeaveRequestModal = new bootstrap.Modal('#rejectLeaveRequestModal', {
+  keyboard: false
+});
+
+const employeeLeaveModal = new bootstrap.Modal('#employeeLeaveModal', {
+  keyboard: false
+});
+
+// EMPLOYEE LEAVE
+
 let CURRENT_DATE = new Date();
+let DATA_EMPLOYEE_LEAVE = [];
 
 $('.input-search-query').on('keyup',function(){
     let searchQuery = $(this).val();
@@ -28,6 +39,9 @@ $('.input-search-query').on('keyup',function(){
 $(document).on('click','.dropdown-year .year-item',function(){
     let yearChoose = $(this).attr('data-year');
     $('.btn-dropdown-year .text-year').text(yearChoose);
+
+    CURRENT_DATE.setYear(parseInt(yearChoose));
+
     getEmployeeLeaveByYear(yearChoose);
     //$('.dropdown-month.show').removeClass('show');
 });
@@ -61,12 +75,16 @@ function getEmployeeLeaveByYear(year)
           //$('.col-user-management .loader').fadeOut('fast');
         },
         success: function(response) {
-            var resData = response.data;
 
+            DATA_EMPLOYEE_LEAVE = response.data;
             //$('.table-attendance .col-day').removeClass('is-late');
 
-            for (let i = 0; i < resData.length; i++) {
-                const leave = resData[i];   
+            $(`.employee-row .col-annual-leave`).text(0);
+            $(`.employee-row .col-use-annual-leave`).text(0);
+            $(`.employee-row .col-sick`).text(0);
+
+            for (let i = 0; i < DATA_EMPLOYEE_LEAVE.length; i++) {
+                const leave = DATA_EMPLOYEE_LEAVE[i];   
                 
                 $(`.employee-row[data-employee-id="${leave.employee_id}"] .col-annual-leave`).text(leave.annual_leave);
                 $(`.employee-row[data-employee-id="${leave.employee_id}"] .col-use-annual-leave`).text((leave.annual_leave - leave.remaining_annual_leave));
@@ -81,15 +99,255 @@ function getEmployeeLeaveByYear(year)
 
 getEmployeeLeaveByYear(CURRENT_DATE.getFullYear());
 
-function getAttendanceDetail(employeeId,dateAttendance)
-{
+$('#employeeLeaveModal .btn-close-modal').on('click',function(){
+
+    $('#form-edit-employee-leave')[0].reset();
+
+    employeeLeaveModal.hide();
+});
+
+$(document).on('click','.table-leave-employee .employee-row',function(){
+    let employeeId = parseInt($(this).attr('data-employee-id'));
+    let employeeName = $(this).attr('data-employee-name');
+    let employeePhoto = $(this).attr('data-employee-photo');
+
+    if(employeePhoto == '' || employeePhoto == null){
+        employeePhoto = appUrl+'/asset/img/avatar.png';
+    }
+        
+    $('#employeeLeaveModal .employee-photo img').attr('src',employeePhoto);
+    $('#employeeLeaveModal .employee-name').text(employeeName);
+
+    
+    $('#form-edit-employee-leave .year-leave').text(CURRENT_DATE.getFullYear());
+    $('#form-edit-employee-leave [name="year"]').val(CURRENT_DATE.getFullYear());
+    $('#form-edit-employee-leave [name="id_employee"]').val(employeeId);
+
+    
+    let rowItem = DATA_EMPLOYEE_LEAVE.find(item => item.employee_id == employeeId);
+    
+    if(rowItem){
+        
+        $('#form-edit-employee-leave [name="annual_leave"]').val(rowItem.annual_leave);
+        
+        employeeLeaveModal.show();
+    }else{
+        $('#form-edit-employee-leave [name="id_employee"]').val(employeeId);
+        $('#form-edit-employee-leave [name="annual_leave"]').val(0);
+
+        employeeLeaveModal.show();
+    }
+    
+});
+
+function validationFormEmployeeLeave(){
+
+    $('#form-edit-employee-leave').find('[attr-validation="required"]').each(function(){
+        if(!$(this).val()){
+            $(this).addClass('is-invalid');
+        }else{
+            $(this).removeClass('is-invalid');
+        }
+    });
+
+
+    if($('#form-edit-employee-leave [attr-validation="required"]').hasClass('is-invalid')){
+        return false;
+    }else{
+        return true;
+    }
+
+}
+
+$('#employeeLeaveModal .btn-submit-modal').on('click',function(){
+    
+    if(validationFormEmployeeLeave()){
+        editEmployeeLeave();
+    }
+
+});
+
+function editEmployeeLeave(){
+    $.ajax({
+        url: appUrl + "/leave/edit-employee-leave-by-year",
+        type: "POST",
+        data: new FormData($('#form-edit-employee-leave').get(0)) ,
+        cache: false,
+        processData: false,
+        contentType: false,
+        beforeSend:function(){
+            $('#employeeLeaveModal .box-loader').fadeIn();
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('#employeeLeaveModal .box-loader').fadeOut();
+            //$('.loader').fadeOut('fast');
+        },
+        success: function(res) {
+            
+            showAlertMsg(res.message,'success',3000);
+
+            getEmployeeLeaveByYear(CURRENT_DATE.getFullYear());
+
+            employeeLeaveModal.hide();
+            $('#employeeLeaveModal .box-loader').fadeOut();
+            $('#form-edit-employee-leave')[0].reset();
+            
+        }
+    });
+}
+
+// END EMPLOYEE LEAVE
+
+
+
+//LEAVE REQUEST
+
+let SEARCH_QUERY_LEAVE_REQUEST = '';
+let DATA_LEAVE_REQUEST = [];
+let PAGE_LEAVE_REQUEST = 1;
+
+$('.col-leave-request .input-search-query-request').on('keyup',function(){
+    
+    SEARCH_QUERY_LEAVE_REQUEST = $(this).val();
+    getAllEmployeeLeaveRequest();
+
+});
+
+function htmlDataRequestTimeOff(dataRow){
+
+    let leaveType = capitalizeFirstLetter(dataRow.leave_type);
+    
+    let file1 = '';
+    let file2 = '';
+
+    let file1Name = '';
+    let file2Name = '';
+
+    if(dataRow.file_1){
+        file1Name = dataRow.file_1.split('/').pop();
+        file1Name = file1Name.split('_').pop();
+
+        file1 = `
+            <div class="">
+                <a class="btn btn-action" target="_blank" href="${appUrl}/${dataRow.file_1}">
+                    <span class="material-symbols-outlined check-icon">attach_file</span>
+                    ${file1Name}
+                </a>
+            </div>
+            `;
+    }
+
+    if(dataRow.file_2){
+        file2Name = dataRow.file_2.split('/').pop();
+        file2Name = file2Name.split('_').pop();
+
+        file2 = `
+            <div class="">
+                <a class="btn btn-action" target="_blank" href="${appUrl}/${dataRow.file_2}">
+                    <span class="material-symbols-outlined check-icon">attach_file</span>
+                    ${file2Name}
+                </a>
+            </div>
+            `;
+    }
+
+    let actionButton = '';
+
+    if(dataRow.status == 'REQUEST'){
+        actionButton = `
+            <div class="">
+                <button class="btn btn-action reject">
+                    <span class="material-symbols-outlined check-icon">close</span>
+                    Reject
+                </button>
+            </div>
+
+            <div class="">
+                <button class="btn btn-action approve">
+                    <span class="material-symbols-outlined check-icon">check</span>
+                    Approve
+                </button>
+            </div>
+        `;
+    }
+    var rowItem = `
+        <div class="item-time-off mb-3" data-time-off="${dataRow.id}">
+            <div class="item-header mb-2">
+                <div class="mb-0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="col-employee">
+                            <div class="box-employee">
+                                <div class="d-flex align-items-center">
+                                    <div class="col-photo">
+                                        <div class="employee-photo">
+                                            <img src="${appUrl}/${dataRow.employee.photo}" class="rounded-circle w-100 h-100 object-fit-cover" alt="">
+                                        </div>
+                                    </div>
+                                    <div class="col-name w-100">
+                                        <div class="employee-name">
+                                            ${dataRow.employee.name}
+                                        </div>
+                                        <div class="item-date">
+                                            ${formatDateENMedium(dataRow.start_date)} - ${formatDateENMedium(dataRow.end_date)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-day-type">
+                            <div class="item-day">${dataRow.day_amount} Day</div>
+                            <div class="item-type">${leaveType}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-line my-2"></div>
+                
+                <div class="">
+                    <div class="d-flex align-items-start justify-content-between gap-3">
+                        <div class="col-desciption w-100">
+                            <div class="item-description">
+                                ${dataRow.reason}
+                            </div>
+                        </div>
+                        <div class="col-status">
+                            <div class="item-status ${dataRow.status.toLowerCase()}">${capitalizeFirstLetter(dataRow.status)}</div>
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="item-footer ">
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <div class="col-item-action mb-2">
+                        <div class="item-action d-flex gap-3 justify-content-end ">
+                            ${file1}
+                            ${file2}
+                        </div>
+                    </div>                     
+                    <div class="col-item-action mb-2">
+                        <div class="item-action d-flex gap-3 justify-content-end ">
+                            ${actionButton}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return rowItem;
+}
+
+function getAllEmployeeLeaveRequest(){
 
     $.ajax({
-        url: appUrl + "/attendance_tracking/get-attendance-detail",
+        url: appUrl + "/leave/all-employee-leave-request",
         type: "GET",
         data:{
-            'EMPLOYEE_ID' : employeeId,
-            'DATE_ATTENDANCE' : dateAttendance,
+            'SEARCH_QUERY_LEAVE_REQUEST' : SEARCH_QUERY_LEAVE_REQUEST,
+            'page' : PAGE_LEAVE_REQUEST,
         },
         beforeSend:function(){
             //$('.col-user-management .loader').fadeIn('fast');
@@ -101,32 +359,23 @@ function getAttendanceDetail(employeeId,dateAttendance)
             //$('.col-user-management .loader').fadeOut('fast');
         },
         success: function(response) {
-            var resData = response.data;
             
-            let employee = resData.employee;
-            let attendance = resData.attendance;
+            DATA_LEAVE_REQUEST = response.data.employeeLeaveRequest;
 
-            let employeeShift = formatTimeShort(attendance.shift_time_start)+' - '+formatTimeShort(attendance.shift_time_end);
-
-            $('#modalAttendance .attendance-date').text(formateDateFull(attendance.date_attendance));
-            
-            $('#modalAttendance .employee-name').text(employee.name);
-            $('#modalAttendance .employee-shift').text(employeeShift);
-
-            $('#modalAttendance .attendance-late').text(formatTimeShort(attendance.time_late)).removeClass('text-danger');
-
-            if(attendance.time_late != null && attendance.time_late != '00:00:00'){
-                $('#modalAttendance .attendance-late').addClass('text-danger');   
+            let rowItem = '';
+                
+            for (let i = 0; i < DATA_LEAVE_REQUEST.length; i++) {
+                rowItem += htmlDataRequestTimeOff(DATA_LEAVE_REQUEST[i]);
             }
 
-            $('#modalAttendance .attendance-checkin').text(formatTimeShort(attendance.time_in));
-            $('#modalAttendance .attendance-checkout').text(formatTimeShort(attendance.time_out));
-            $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendance.total_work_duration));
+            if(DATA_LEAVE_REQUEST.length < 1){
+                rowItem = `<div class="p-3 fs-12 mb-5 mt-2 border rounded-2">No Data</div>`;
+            }
+            $('.col-leave-request .box-data').html(rowItem);
 
-            
             //attendance-checkin attendance-checkout attendance-work-duration
 
-            modalAttendance.show();
+            //modalAttendance.show();
         
         }
          
@@ -134,180 +383,177 @@ function getAttendanceDetail(employeeId,dateAttendance)
 
 }
 
-
-
-
-//LEAVE REQUEST
-
-function htmlDataRequestTimeOff(dataRow){
-
-    let leaveType = capitalizeFirstLetter(dataRow.leave_type);
-    
-    let file1 = '';
-    let file2 = '';
-
-    if(dataRow.file_1){
-        file1 = `
-            <a class="btn-action" target="_blank" href="${appUrl}/${dataRow.file_1}">
-                <span class="material-symbols-outlined">attach_file</span>
-            </a>
-            `;
-    }
-
-    if(dataRow.file_2){
-        file2 = `
-            <a class="btn-action" target="_blank" href="${appUrl}/${dataRow.file_2}">
-                <span class="material-symbols-outlined">attach_file</span>
-            </a>
-            `;
-    }
-
-    var rowItem = `
-        <div class="item-time-off mb-3" data-time-off="${dataRow.id}">
-            <div class="item-header mb-2">
-                <div class="mb-0">
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="col-title">
-                            <div class="item-title me-2">${leaveType}</div>
-                        </div>
-                        <div class="col-day-status">
-                            <div class="item-day">${dataRow.day_amount} Day</div>
-                        </div>
-                    </div>
-                </div>
-                <div>
-                    <div class="d-flex align-items-center justify-content-between">
-                        <div class="col-date"> 
-                            <div class="item-date">
-                                ${formateDateNumMonYear(dataRow.start_date)} - ${formateDateNumMonYear(dataRow.end_date)}
-                            </div>
-                        </div>
-                        <div class="col-status">
-                            <div class="item-status">${capitalizeFirstLetter(dataRow.status)}</div>
-                        </div>
-                    </div>
-                </div>
-                
-            </div>
-            <div class="item-body mb-2">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div class="col-description">
-                        <div class="item-description">
-                            ${dataRow.reason}
-                        </div>
-                    </div> 
-                </div>
-            </div>
-            <div class="item-footer">
-                <div class="d-flex align-items-center justify-content-between">
-                    
-                    <div class="">
-
-                    </div>
-                    
-                    <div class="col-item-action">
-                        <div class="item-action">
-                            ${file1}
-                            ${file2}
-
-                            <div class="btn-action edit-time-off">
-                                <span class="material-symbols-outlined">edit</span>
-                            </div>
-                            <div class="btn-action delete-time-off">
-                                <span class="material-symbols-outlined">delete</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    return rowItem;
-}
-
+getAllEmployeeLeaveRequest();
 //END LEAVE REQUEST
 
+// REJECT LEAVE REQUEST
+//item-time-off btn-action reject approve
 
+$(document).on('click','.item-time-off .btn-action.reject',function(){
 
-function formatTimeDisplay(timeString) {
+    let timeOffId = $(this).closest('.item-time-off').attr('data-time-off');
 
-    if (!timeString) return '--:--';
+    let rowItem = DATA_LEAVE_REQUEST.find(item => item.id == timeOffId);
 
-    if (typeof timeString === 'string') {
-        const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
-        if (m) return `${m[1]}:${m[2]}`;
-    }
-    
-    let date = new Date(timeString);
-
-    if (isNaN(date.getTime()) && typeof timeString === 'string' && timeString.includes(' ')) {
+    if(rowItem){
         
-        date = new Date(timeString.replace(' ', 'T'));
-    }
-    
-    if (isNaN(date.getTime())) {
-        return '--:--';
+        $('#form-reject-leave-request .box-data').html('');
+
+        $('#form-reject-leave-request [name="id_leave_request"]').val(rowItem.id);
+        $('#form-reject-leave-request [name="id_employee"]').val(rowItem.employee.id);
+        
+        let htmlData = $(htmlDataRequestTimeOff(rowItem));
+        htmlData.find('.item-footer').html(' ');
+
+
+        $('#form-reject-leave-request .box-data').html(htmlData);
+ 
+        rejectLeaveRequestModal.show();
+
+    }else{
+        showAlertMsg(resJson.message,'Not found',5000);
     }
 
-    const hours = date.getHours().toString().padStart(2, '0');
-    const minutes = date.getMinutes().toString().padStart(2, '0');
+});
 
-    return `${hours}:${minutes}`;
+$('#rejectLeaveRequestModal .btn-close-modal').on('click',function(){
+    rejectLeaveRequestModal.hide();
+    $('#form-reject-leave-request')[0].reset();
+});
+
+function validationFormReject(){
+
+    $('#form-reject-leave-request').find('[attr-validation="required"]').each(function(){
+        if(!$(this).val()){
+            $(this).addClass('is-invalid');
+        }else{
+            $(this).removeClass('is-invalid');
+        }
+    });
+
+
+    if($('#form-reject-leave-request [attr-validation="required"]').hasClass('is-invalid')){
+        return false;
+    }else{
+        return true;
+    }
+
 }
 
-function formatTimeShort(timeString) {
-
-    if (!timeString) return '--:--';
-
-    if (typeof timeString === 'string') {
-        const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
-        if (m) return `${m[1]} : ${m[2]}`;
+$('#rejectLeaveRequestModal .btn-submit-modal').on('click',function(){
+    
+    if(validationFormReject()){
+        rejectLeaveRequest();
     }
-    
-    return timeString;
+
+});
+
+function rejectLeaveRequest(){
+    $.ajax({
+        url: appUrl + "/leave/reject-employee-leave-request",
+        type: "POST",
+        data: new FormData($('#form-reject-leave-request').get(0)) ,
+        cache: false,
+        processData: false,
+        contentType: false,
+        beforeSend:function(){
+            $('#rejectLeaveRequestModal .box-loader').fadeIn();
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('#rejectLeaveRequestModal .box-loader').fadeOut();
+            //$('.loader').fadeOut('fast');
+        },
+        success: function(res) {
+            
+            showAlertMsg(res.message,'success',3000);
+
+            getEmployeeLeaveByYear(CURRENT_DATE.getFullYear());
+            getAllEmployeeLeaveRequest();
+
+            rejectLeaveRequestModal.hide();
+            $('#rejectLeaveRequestModal .box-loader').fadeOut();
+            $('#form-reject-leave-request')[0].reset();
+            
+        }
+    });
 }
 
-function formateDateFull(dateString){
+// END REJECT LEAVE REQUEST
 
-    if (!dateString) return '';
 
-    const newDate = new Date(dateString); // Or your specific date object
+// APPROVE LEAVE REQUEST
+//item-time-off btn-action approve
 
-    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+$(document).on('click','.item-time-off .btn-action.approve',function(){
 
-    const dayOfWeek = weekdays[newDate.getDay()];
-    const dateNumber = newDate.getDate();
-    const monthName = months[newDate.getMonth()];
-    const year = newDate.getFullYear();
+    let timeOffId = $(this).closest('.item-time-off').attr('data-time-off');
 
-    const formattedDate = `${dayOfWeek} ${dateNumber} ${monthName} ${year}`;
+    let rowItem = DATA_LEAVE_REQUEST.find(item => item.id == timeOffId);
 
+    if(rowItem){
+        
+        $('#form-approve-leave-request .box-data').html('');
+
+        $('#form-approve-leave-request [name="id_leave_request"]').val(rowItem.id);
+        $('#form-approve-leave-request [name="id_employee"]').val(rowItem.employee.id);
+        
+        let htmlData = $(htmlDataRequestTimeOff(rowItem));
+        htmlData.find('.item-footer').html(' ');
+
+
+        $('#form-approve-leave-request .box-data').html(htmlData);
+ 
+        approveLeaveRequestModal.show();
+
+    }else{
+        showAlertMsg(resJson.message,'Not found',5000);
+    }
+
+});
+
+$('#approveLeaveRequestModal .btn-close-modal').on('click',function(){
+    approveLeaveRequestModal.hide();
+    $('#form-approve-leave-request')[0].reset();
+});
+
+$('#approveLeaveRequestModal .btn-submit-modal').on('click',function(){
     
-    return formattedDate;
+    $.ajax({
+        url: appUrl + "/leave/approve-employee-leave-request",
+        type: "POST",
+        data: new FormData($('#form-approve-leave-request').get(0)) ,
+        cache: false,
+        processData: false,
+        contentType: false,
+        beforeSend:function(){
+            $('#approveLeaveRequestModal .box-loader').fadeIn();
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('#approveLeaveRequestModal .box-loader').fadeOut();
+            //$('.loader').fadeOut('fast');
+        },
+        success: function(res) {
+            
+            showAlertMsg(res.message,'success',3000);
+            getEmployeeLeaveByYear(CURRENT_DATE.getFullYear());
+            getAllEmployeeLeaveRequest();
+            approveLeaveRequestModal.hide();
+            $('#approveLeaveRequestModal .box-loader').fadeOut();
+            $('#form-approve-leave-request')[0].reset();
+            
+        }
+    });
 
-} 
+});
 
-function formateDateNumMonYear(dateString){
 
-    if (!dateString) return '';
+// END APPROVE LEAVE REQUEST
 
-    const newDate = new Date(dateString); // Or your specific date object
 
-    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'];
-
-    //const dayOfWeek = weekdays[newDate.getDay()];
-    const dateNumber = newDate.getDate();
-    const monthName = months[newDate.getMonth()];
-    const year = newDate.getFullYear();
-
-    const formattedDate = `${dateNumber} ${monthName} ${year}`;
-
-    return formattedDate;
-
-}
 
 function capitalizeFirstLetter(str) {
     const formattedStr = str

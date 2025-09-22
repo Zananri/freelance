@@ -278,7 +278,12 @@ Route::middleware('auth', 'management')->group(function () {
     Route::post('/settings/edit-user-role', [SettingsController::class, 'editUserRole'])->name('settings.editUserRole');
 
     Route::get('/leave', [LeaveController::class, 'showLeavePage'])->name('leave');
+    Route::POST('/leave/edit-employee-leave-by-year', [LeaveController::class, 'editEmployeeLeaveByYear'])->name('leave.editEmployeeLeaveByYear');
     Route::get('/leave/employee-leave-by-year', [LeaveController::class, 'getEmployeeLeaveByYear'])->name('leave.getEmployeeLeaveByYear');
+    Route::get('/leave/all-employee-leave-request', [LeaveController::class, 'allEmployeeLeaveRequest'])->name('leave.allEmployeeLeaveRequest');
+
+    Route::post('/leave/approve-employee-leave-request', [LeaveController::class, 'approveEmployeeLeaveRequest'])->name('leave.approveEmployeeLeaveRequest');
+    Route::post('/leave/reject-employee-leave-request', [LeaveController::class, 'rejectEmployeeLeaveRequest'])->name('leave.rejectEmployeeLeaveRequest');
 
 });
 

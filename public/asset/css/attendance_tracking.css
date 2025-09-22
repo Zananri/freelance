@@ -79,6 +79,12 @@
     color: #3C404B;
 }
 
+.btn-default .icon.download{
+    font-size: 18px;
+    margin-right: 0px;
+    color: #3C404B;
+}
+
 .btn-default-dropdown{
     border: 0px;
     white-space: nowrap;

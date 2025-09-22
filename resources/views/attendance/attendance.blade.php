@@ -449,7 +449,7 @@
  
                                     if($employeeLeave){
                                         $remainingLeave = $employeeLeave->remaining_annual_leave;
-                                        $remainingSick = $employeeLeave->remaining_sick;
+                                        $remainingSick = $employeeLeave->sick;
                                     }
 
                                 @endphp
@@ -676,6 +676,8 @@
                                 @csrf
 
                                 <input type="hidden" name="id_time_off" value="">
+                                <input type="hidden" name="old_file_1" value="">
+                                <input type="hidden" name="old_file_2" value="">
 
                                 <div class="mb-3">
                                     <label for="select-type-edit" class="form-label">Leave Type</label>
@@ -709,12 +711,24 @@
 
                                 <div class="mb-3">
                                     <label for="file-1" class="form-label-edit">File 1</label>
+
+                                    <div class="pill-file-1 d-none d-inline-flex rounded-pill bg-light align-items-center px-2 p-1 float-end">
+                                        <a href="#" target="_blank" class="old_file_1_name fs-10"></a>
+                                        <span class="material-symbols-outlined fs-12 ms-2 cursor-pointer remove-file-1" data-bs-toggle="tooltip" data-bs-title="Remove File">close</span>
+                                    </div>
+                                    
                                     <input class="form-control" type="file" name="file_1" id="file-1-edit"  accept="image/*,.pdf">
-                                    <div class="invalid-feedback fs-12">Please add a file</div>
+                                    <div class="invalid-feedback fs-12 ">Please add a file</div>
                                 </div>
 
                                 <div class="mb-3">
                                     <label for="file-2" class="form-label-edit">File 2</label>
+
+                                    <div class="pill-file-2 d-none d-inline-flex rounded-pill bg-light align-items-center px-2 p-1 float-end">
+                                        <a href="#" target="_blank" class="old_file_2_name fs-10"></a>
+                                        <span class="material-symbols-outlined fs-12 ms-2 cursor-pointer remove-file-2" data-bs-toggle="tooltip" data-bs-title="Remove File">close</span>
+                                    </div>
+
                                     <input class="form-control" type="file" name="file_2" id="file-2-edit"  accept="image/*,.pdf">
                                     <div class="invalid-feedback fs-12">Please add a file</div>
                                 </div>
@@ -757,7 +771,7 @@
             </div>
         </div>
 
-        <!-- Modal edit Time Off -->
+        <!-- Modal delete Time Off -->
         <div class="modal fade" id="deleteTimeOffModal" tabindex="-1" role="dialog" aria-labelledby="deleteTimeOffModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content rounded-4 border-0">

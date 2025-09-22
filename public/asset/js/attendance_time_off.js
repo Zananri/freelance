@@ -13,6 +13,9 @@ const deleteTimeOffModal = new bootstrap.Modal('#deleteTimeOffModal', {
   keyboard: false
 });
 
+const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
 function capitalizeFirstLetter(str) {
     const formattedStr = str
     .toLowerCase()
@@ -46,6 +49,29 @@ function htmlDataRequestTimeOff(dataRow){
             `;
     }
 
+    let actionButton = '';
+    let rejectText = '';
+
+    if(dataRow.status == 'REQUEST' ){
+        actionButton = `
+            <div class="btn-action edit-time-off">
+                <span class="material-symbols-outlined">edit</span>
+            </div>
+            <div class="btn-action delete-time-off">
+                <span class="material-symbols-outlined">delete</span>
+            </div>
+        `;
+
+        
+    }
+
+    if(dataRow.reject_reason != null && dataRow.reject_reason != '' && dataRow.reject_reason != 'null'){
+        rejectText = `
+            <div class="text-danger fs-12">NOTE : ${dataRow.reject_reason}</div>
+        `;
+    }
+    
+
     var rowItem = `
         <div class="item-time-off mb-3" data-time-off="${dataRow.id}">
             <div class="item-header mb-2">
@@ -67,7 +93,7 @@ function htmlDataRequestTimeOff(dataRow){
                             </div>
                         </div>
                         <div class="col-status">
-                            <div class="item-status">${capitalizeFirstLetter(dataRow.status)}</div>
+                            <div class="item-status ${dataRow.status.toLowerCase()} ">${capitalizeFirstLetter(dataRow.status)}</div>
                         </div>
                     </div>
                 </div>
@@ -86,7 +112,7 @@ function htmlDataRequestTimeOff(dataRow){
                 <div class="d-flex align-items-center justify-content-between">
                     
                     <div class="">
-
+                        ${rejectText}
                     </div>
                     
                     <div class="col-item-action">
@@ -94,12 +120,7 @@ function htmlDataRequestTimeOff(dataRow){
                             ${file1}
                             ${file2}
 
-                            <div class="btn-action edit-time-off">
-                                <span class="material-symbols-outlined">edit</span>
-                            </div>
-                            <div class="btn-action delete-time-off">
-                                <span class="material-symbols-outlined">delete</span>
-                            </div>
+                            ${actionButton}
                         </div>
                     </div>
                 </div>
@@ -259,12 +280,43 @@ $(document).on('click','.item-action .edit-time-off',function(){
 
 });
 
+$('#form-edit-time-off .remove-file-1').on('click',function(){
+    $('#form-edit-time-off .pill-file-1').addClass('d-none');
+    $('#form-edit-time-off .old_file_1_name').text('').attr('href','');
+    $('#form-edit-time-off [name="old_file_1"]').val('');
+});
+
+$('#form-edit-time-off .remove-file-2').on('click',function(){
+    $('#form-edit-time-off .pill-file-2').addClass('d-none');
+    $('#form-edit-time-off .old_file_2_name').text('').attr('href','');
+    $('#form-edit-time-off [name="old_file_2"]').val('');
+});
+
 function setFormEditValue(rowItem){
+
     $('#form-edit-time-off [name="id_time_off"]').val(rowItem.id);
+    $('#form-edit-time-off [name="old_file_1"]').val(rowItem.file_1);
+    $('#form-edit-time-off [name="old_file_2"]').val(rowItem.file_2);
     $('#form-edit-time-off [name="leave_type"]').val(rowItem.leave_type);
     $('#form-edit-time-off [name="description"]').val(rowItem.reason);
     $('#form-edit-time-off [name="start_date"]').val(rowItem.start_date);
     $('#form-edit-time-off [name="end_date"]').val(rowItem.end_date);    
+    $('#form-edit-time-off .pill-file-1').addClass('d-none');
+    $('#form-edit-time-off .pill-file-2').addClass('d-none');
+
+
+    if(rowItem.file_1){
+        let file1Name = rowItem.file_1.split('/').pop();
+        $('#form-edit-time-off .old_file_1_name').text(file1Name).attr('href',appUrl+'/'+rowItem.file_1);
+        $('#form-edit-time-off .pill-file-1').removeClass('d-none');
+    }
+
+    if(rowItem.file_2){
+        let file2Name = rowItem.file_2.split('/').pop();
+        $('#form-edit-time-off .old_file_2_name').text(file2Name).attr('href',appUrl+'/'+rowItem.file_2);
+        $('#form-edit-time-off .pill-file-2').removeClass('d-none');
+    }
+
 }
 
 function validationFormEditTimeOff(){
@@ -320,6 +372,7 @@ function saveFormEditTimeOff(){
             timeOffModal.show();
             editTimeOffModal.hide();
             $('#editTimeOffModal .box-loader').fadeOut();
+            $('#form-edit-time-off')[0].reset();
             
         }
     });
@@ -386,6 +439,7 @@ $('#deleteTimeOffModal .btn-submit-modal').on('click',function(){
             timeOffModal.show();
             deleteTimeOffModal.hide();
             $('#deleteTimeOffModal .box-loader').fadeOut();
+            $('#form-delete-time-off')[0].reset();
             
         }
     });

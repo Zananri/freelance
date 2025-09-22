@@ -1035,7 +1035,9 @@ td > .btn-delete {
 }
 
 
-
+.cursor-pointer{
+    cursor: pointer;
+}
 
 
 /* Target the entire scrollbar */
