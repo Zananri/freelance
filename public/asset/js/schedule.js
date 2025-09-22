@@ -927,7 +927,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function fetchEmployees(q = "") {
-            fetchEmployeesCached(q)
+            // Backwards-compatible: allow query-based fetch but prefer to load full list once
+            return fetchEmployeesCached(q)
                 .then((d) => {
                     employees = d.data || d || [];
                     // Exclude administrators
@@ -940,6 +941,25 @@ document.addEventListener("DOMContentLoaded", function () {
                     renderDropdown();
                 })
                 .catch(() => showAlertMsg("Failed to load employees", "error"));
+        }
+
+        function fetchAllEmployeesIfNeeded() {
+            if (employees && employees.length > 0) return Promise.resolve(employees);
+            return fetchEmployeesCached("")
+                .then((d) => {
+                    employees = d.data || d || [];
+                    employees = employees.filter(
+                        (emp) =>
+                            String(emp.user_type || "").toUpperCase() !==
+                            "ADMINISTRATOR"
+                    );
+                    filtered = employees;
+                    return employees;
+                })
+                .catch(() => {
+                    showAlertMsg("Failed to load employees", "error");
+                    return [];
+                });
         }
 
         function renderDropdown() {
@@ -1005,12 +1025,20 @@ document.addEventListener("DOMContentLoaded", function () {
             hidden.value = JSON.stringify(selected.map((s) => s.id));
         }
 
+        function filterEmployeesByName(val) {
+            const v = String(val || "").trim().toLowerCase();
+            if (!v) filtered = employees;
+            else filtered = employees.filter((emp) => (emp.name || "").toLowerCase().includes(v));
+            renderDropdown();
+        }
+
         input.addEventListener("input", function () {
-            fetchEmployees(this.value.trim());
+            const q = this.value.trim();
+            fetchAllEmployeesIfNeeded().then(() => filterEmployeesByName(q));
         });
 
         input.addEventListener("focus", function () {
-            fetchEmployees("");
+            fetchAllEmployeesIfNeeded().then(() => filterEmployeesByName(this.value));
         });
 
         document.addEventListener("click", (e) => {

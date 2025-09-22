@@ -112,23 +112,52 @@ document.addEventListener('DOMContentLoaded', () => {
             if(/^https?:/i.test(userPhoto)) return userPhoto; if(userPhoto.startsWith('/')) return appUrl+userPhoto; if(userPhoto.startsWith('file/')||userPhoto.startsWith('asset/')) return appUrl+'/'+userPhoto; return appUrl + '/file/profile_picture/' + userPhoto;
         }
         function fetchEmployees(q=''){
-            fetchEmployeesCached(q)
-                .then(d=>{ employees = (d && (d.data||d)) || [];
-                    // Exclude administrators
-                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
-                    filtered=employees; renderDropdown(); })
-                .catch(()=>showScheduleAlert('Failed load employees','danger'));
+            // Deprecated: keep for compatibility but prefer a single full-load via fetchAllEmployees
+            return fetchEmployeesCached(q).then(d => {
+                employees = (d && (d.data||d)) || [];
+                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                filtered = employees;
+                renderDropdown();
+            }).catch(() => showScheduleAlert('Failed load employees','danger'));
         }
+
+        // Fetch all employees once (no query) and cache locally, then filter client-side
+        function fetchAllEmployeesIfNeeded() {
+            if (employees && employees.length > 0) return Promise.resolve(employees);
+            return fetchEmployeesCached('').then(d => {
+                employees = (d && (d.data||d)) || [];
+                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                filtered = employees;
+                return employees;
+            }).catch(() => { showScheduleAlert('Failed load employees','danger'); return []; });
+        }
+
         function renderDropdown(){
             if(filtered.length===0){ dropdown.innerHTML='<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
             dropdown.innerHTML = filtered.map(emp=>{ const checked = selected.some(s=>s.id===emp.id); const photo=buildPhotoUrl(emp.user_photo); return `<label class='dropdown-item d-flex align-items-center justify-content-between'><div class='d-flex align-items-center'><img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>${emp.name}</div><input type='checkbox' data-id='${emp.id}' ${checked?'checked':''}></label>`; }).join('');
             dropdown.style.display='block';
             dropdown.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', function(){ const id=parseInt(this.getAttribute('data-id')); if(this.checked){ if(!selected.some(s=>s.id===id)){ const emp=employees.find(e=>e.id===id); selected.push({id, name:emp.name, user_photo:emp.user_photo}); } } else { selected = selected.filter(s=>s.id!==id); } renderSelected(); renderDropdown(); updateHidden(); }));
         }
+
+        function filterEmployeesByName(q) {
+            const val = String(q || '').trim().toLowerCase();
+            if (!val) {
+                filtered = employees;
+            } else {
+                filtered = employees.filter(emp => (emp.name || '').toLowerCase().includes(val));
+            }
+            renderDropdown();
+        }
     function renderSelected(){ selectedContainer.innerHTML=''; selected.forEach(emp=>{ const photo=buildPhotoUrl(emp.user_photo); const badge=document.createElement('span'); badge.className='badge bg-primary d-inline-flex align-items-center me-2 mb-2'; badge.innerHTML=`<img src='${photo}' class='rounded-circle me-2' style='width:24px;height:24px;object-fit:cover;'>${emp.name}<button type='button' class='btn-close btn-close-white btn-sm ms-2'></button>`; badge.querySelector('button').addEventListener('click', ()=>{ selected = selected.filter(s=>s.id!==emp.id); renderSelected(); renderDropdown(); updateHidden(); }); selectedContainer.appendChild(badge); }); }
         function updateHidden(){ hidden.value = JSON.stringify(selected.map(s=>s.id)); }
-        input.addEventListener('input', function(){ fetchEmployees(this.value.trim()); });
-        input.addEventListener('focus', function(){ fetchEmployees(''); });
+        input.addEventListener('input', function(){
+            // Ensure we have full employee list loaded before filtering
+            fetchAllEmployeesIfNeeded().then(()=> filterEmployeesByName(this.value));
+        });
+        input.addEventListener('focus', function(){
+            // Load full list once and show filtered results based on current input
+            fetchAllEmployeesIfNeeded().then(()=> filterEmployeesByName(this.value));
+        });
         document.addEventListener('click', e=>{ if(!dropdown.contains(e.target) && e.target!==input){ dropdown.style.display='none'; } });
 
         // Expose a small API to clear selections from outside (e.g., when modal closes)
