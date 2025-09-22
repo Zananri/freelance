@@ -973,9 +973,27 @@ class ProjectController extends Controller
     /**
      * Display the specified project.
      */
-    public function show(string $id)
+    // Accept optional slug parameter for friendly URLs; slug is ignored server-side
+    // If the request expects JSON (AJAX/API), return JSON payload as before.
+    // For normal browser navigation, render the Blade view so the user sees the project page.
+    public function show(Request $request, string $id, $slug = null)
     {
         try {
+            // If the request expects JSON (AJAX / API), return the JSON payload as before.
+            // For normal browser navigation, render the Blade view so the user sees the page.
+            $expectsJson = $request->wantsJson() || $request->ajax() || str_contains($request->header('Accept', ''), '/json') || str_contains($request->header('Accept', ''), 'application/json');
+
+            if (!$expectsJson) {
+                // Render server-side view with full project model so Blade can display data
+                $project = Project::with(['department', 'division', 'projectAssignments.employee.user', 'tasks'])->find($id);
+
+                if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
+                    abort(404);
+                }
+
+                return view('project.show', ['project' => $project]);
+            }
+
             // Eager-load employee.user to safely resolve avatars and reduce N+1
             $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])->find($id);
 

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\TaskFeedback;
+use App\Models\TaskStatusLog;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Employee;
@@ -78,8 +79,8 @@ class TaskController extends Controller
             }
 
             $projectId = $request->input('project');
-            $statusFilter = $request->input('status'); // optional
-            $search = $request->input('search'); // optional search keyword
+            $statusFilter = $request->input('status');
+            $search = $request->input('search');
             $perPage = (int) $request->input('per_page', 7);
             $page = (int) $request->input('page', 1);
 
@@ -89,17 +90,16 @@ class TaskController extends Controller
                     $outer->whereHas('assignments', function ($query) use ($currentEmployeeId) {
                         $query->where(function ($q) use ($currentEmployeeId) {
                             $q->where('employee_id', $currentEmployeeId)
-                                ->where(function ($q2) {
-                                    $q2->where('role', 'PIC')
+                            ->where(function ($q2) {
+                                $q2->where('role', 'PIC')
                                     ->orWhere('role', 'EXECUTOR');
-                                });
+                            });
                         });
                     })
                     ->orWhere(function ($q) use ($currentUserId) {
                         if ($currentUserId) $q->where('created_by', $currentUserId);
                     });
                 })
-                // Exclude tasks marked as DELETED from all listings
                 ->whereRaw('LOWER(status) <> ?', ['deleted']);
 
             if ($projectId) $baseQuery->where('project_id', $projectId);
@@ -114,14 +114,13 @@ class TaskController extends Controller
             }
 
             $response = [];
-
             $currentEmployeePendingAcceptance = function ($q) use ($currentEmployeeId) {
                 $q->whereHas('assignments', function ($a) use ($currentEmployeeId) {
                     $a->where('employee_id', $currentEmployeeId)
-                      ->whereIn('role', ['EXECUTOR','PIC'])
-                      ->where(function ($r) {
-                          $r->whereNull('is_receive')->orWhere('is_receive', false);
-                      });
+                    ->whereIn('role', ['EXECUTOR','PIC'])
+                    ->where(function ($r) {
+                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                    });
                 });
             };
 
@@ -134,39 +133,42 @@ class TaskController extends Controller
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                  ->whereIn('role', ['EXECUTOR','PIC'])
-                                  ->where(function ($r) {
-                                      $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                  });
+                                ->whereIn('role', ['EXECUTOR','PIC'])
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
                             });
-                        })->orderBy('start_date', 'desc');
+                        })
+                        ->orderByRaw("
+                            CASE WHEN LOWER(status) = 'rejected' THEN 0 ELSE 1 END,
+                            start_date DESC
+                        ");
                 } elseif ($normalizedFilter === 'new_request') {
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
                         ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
                     })->orderBy('created_at', 'asc');
-
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                  ->whereIn('role', ['EXECUTOR','PIC'])
-                                  ->where(function ($r) {
-                                      $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                  });
+                                ->whereIn('role', ['EXECUTOR','PIC'])
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
                             });
-                        }) ->orderBy('complete_date', 'desc');
-
+                        })
+                        ->orderBy('complete_date', 'desc');
                 } else {
                     $query->where('status', $normalizedFilter)
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                  ->whereIn('role', ['EXECUTOR','PIC'])
-                                  ->where(function ($r) {
-                                      $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                  });
+                                    ->whereIn('role', ['EXECUTOR','PIC'])
+                                    ->where(function ($r) {
+                                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                    });
                             });
                         });
                 }
@@ -174,7 +176,6 @@ class TaskController extends Controller
                 $paginator = $query->paginate($perPage, ['*'], 'page', $page);
                 $tasks = $paginator->items();
                 $key = strtolower(str_replace(' ', '_', $statusFilter));
-
                 $response[$key] = [
                     'tasks' => $this->mapTasks($tasks),
                     'pagination' => [
@@ -185,7 +186,6 @@ class TaskController extends Controller
                     ]
                 ];
             } else {
-                // ===== NEW_REQUEST =====
                 $newQuery = clone $baseQuery;
                 $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
                     $q->where('status', 'new_request')
@@ -203,18 +203,21 @@ class TaskController extends Controller
                     ]
                 ];
 
-                // ===== IN_PROGRESS =====
                 $progressQuery = clone $baseQuery;
                 $progressQuery->whereIn('status', ['in_progress', 'rejected'])
-                            ->where(function ($q) use ($currentEmployeeId) {
-                                $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
-                                    $a->where('employee_id', $currentEmployeeId)
-                                      ->whereIn('role', ['EXECUTOR','PIC'])
-                                      ->where(function ($r) {
-                                          $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                      });
-                                });
-                            })->orderBy('start_date', 'desc');
+                    ->where(function ($q) use ($currentEmployeeId) {
+                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                            $a->where('employee_id', $currentEmployeeId)
+                            ->whereIn('role', ['EXECUTOR','PIC'])
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
+                        });
+                    })
+                    ->orderByRaw("
+                        CASE WHEN LOWER(status) = 'rejected' THEN 0 ELSE 1 END,
+                        start_date DESC
+                    ");
                 $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'in_progress_page');
                 $response['in_progress'] = [
                     'tasks' => $this->mapTasks($progressPaginator->items()),
@@ -226,18 +229,17 @@ class TaskController extends Controller
                     ]
                 ];
 
-                // ===== COMPLETED =====
                 $completedQuery = clone $baseQuery;
                 $completedQuery->where('status', 'completed')
-                            ->where(function ($q) use ($currentEmployeeId) {
-                                $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
-                                    $a->where('employee_id', $currentEmployeeId)
-                                      ->whereIn('role', ['EXECUTOR','PIC'])
-                                      ->where(function ($r) {
-                                          $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                      });
-                                });
-                            })->orderBy('complete_date', 'asc');
+                    ->where(function ($q) use ($currentEmployeeId) {
+                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                            $a->where('employee_id', $currentEmployeeId)
+                            ->whereIn('role', ['EXECUTOR','PIC'])
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
+                    });
+                    })->orderBy('complete_date', 'asc');
                 $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'completed_page');
                 $response['completed'] = [
                     'tasks' => $this->mapTasks($completedPaginator->items()),
@@ -490,6 +492,51 @@ class TaskController extends Controller
                 }
             }
 
+            // Determine last status change log for this task (most recent)
+            $lastLog = null;
+            try {
+                $lastLog = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'desc')->first();
+            } catch (\Throwable $t) {
+                $lastLog = null;
+            }
+
+            $status_change = null;
+            if ($lastLog) {
+                $employeeName = null;
+                try {
+                    if ($lastLog->employee) $employeeName = $lastLog->employee->name;
+                } catch (\Throwable $t) { $employeeName = null; }
+
+                $label = null;
+                // Map canonical statuses to labels the frontend expects
+                switch ($lastLog->new_status) {
+                    case 'in_progress':
+                        $label = 'In Progress by:';
+                        break;
+                    case 'new_request':
+                        // Distinguish between original new_request and explicit back_to_request
+                        $label = 'Back to request by:';
+                        break;
+                    case 'completed':
+                        $label = 'Completed by:';
+                        break;
+                    case 'rejected':
+                        $label = 'Rejected by:';
+                        break;
+                    default:
+                        $label = ucfirst(str_replace('_', ' ', $lastLog->new_status)) . ' by';
+                }
+
+                $status_change = [
+                    'label' => $label,
+                    'employee_id' => $lastLog->employee_id,
+                    'employee_name' => $employeeName,
+                    'changed_at' => $lastLog->created_at,
+                    'new_status' => $lastLog->new_status,
+                    'old_status' => $lastLog->old_status,
+                ];
+            }
+
             return [
                 'id' => $task->id,
                 'title' => $task->title,
@@ -505,6 +552,8 @@ class TaskController extends Controller
                 'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                 'feedback_comments_count' => $task->feedback_comments?->count() ?? 0,
                 'status' => $task->status,
+                // optional: last status change metadata for frontend to render "In Progress by: Name"
+                'status_change' => $status_change,
             ];
         }, $tasks);
     }
@@ -700,6 +749,32 @@ class TaskController extends Controller
                             'is_receive' => (bool) $ex->is_receive,
                         ];
                     })->values(),
+                    // last status change info
+                    'status_change' => (function () use ($task) {
+                        try {
+                            $last = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'desc')->first();
+                            if (!$last) return null;
+                            $emp = $last->employee;
+                            $name = $emp?->name ?? null;
+                            $label = match($last->new_status) {
+                                'in_progress' => 'In Progress by:',
+                                'new_request' => 'Back to request by:',
+                                'completed' => 'Completed by:',
+                                'rejected' => 'Rejected by:',
+                                default => ucfirst(str_replace('_', ' ', $last->new_status)) . ' by:',
+                            };
+                            return [
+                                'label' => $label,
+                                'employee_id' => $last->employee_id,
+                                'employee_name' => $name,
+                                'changed_at' => $last->created_at,
+                                'new_status' => $last->new_status,
+                                'old_status' => $last->old_status,
+                            ];
+                        } catch (\Throwable $t) {
+                            return null;
+                        }
+                    })(),
                 ];
             })->values();
 
@@ -832,6 +907,7 @@ class TaskController extends Controller
             }
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
+                'parent_id' => 'nullable|exists:tasks,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -859,6 +935,24 @@ class TaskController extends Controller
             }
 
             $data = $validator->validated();
+
+            // If parent_id provided, ensure parent belongs to same project (or both null)
+            if (!empty($data['parent_id'])) {
+                $parent = Task::find($data['parent_id']);
+                if (!$parent) {
+                    throw new \Exception('Parent task not found');
+                }
+                // Parent must belong to the same project as provided project_id
+                $parentProjectId = $parent->project_id;
+                $incomingProjectId = $data['project_id'] ?? null;
+                if ($parentProjectId != $incomingProjectId) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Selected parent task does not belong to the chosen project.'
+                    ], 422);
+                }
+            }
 
             // Normalize reference URLs into array column reference_urls (preserve single field for legacy)
             $refUrls = [];
@@ -991,6 +1085,30 @@ class TaskController extends Controller
                 'assignments.employee.user'
             ])->findOrFail($id);
 
+            // Resolve project image similar to mapTasks so single-task response contains project_image
+            $projectHasImage = false;
+            $projectImageUrl = null;
+            if ($task->project && $task->project->image) {
+                $img = $task->project->image;
+                $normalized = ltrim($img, '/');
+                if (Str::startsWith($img, ['http://', 'https://'])) {
+                    $projectImageUrl = $img;
+                    $projectHasImage = true;
+                } elseif (Str::startsWith($normalized, 'asset/')) {
+                    $projectImageUrl = asset($normalized);
+                    $projectHasImage = true;
+                } else {
+                    if (!Str::startsWith($normalized, 'file/project/')) {
+                        $normalized = 'file/project/' . $normalized;
+                    }
+                    $disk = public_path($normalized);
+                    if (file_exists($disk)) {
+                        $projectImageUrl = asset($normalized);
+                        $projectHasImage = true;
+                    }
+                }
+            }
+
             // Get PIC dan Executors
             $pic = $task->assignments->firstWhere('role', 'PIC');
             $executors = $task->assignments->where('role', 'EXECUTOR');
@@ -1051,11 +1169,17 @@ class TaskController extends Controller
                     'name' => $pic->employee->name ?? '',
                     'user_photo' => $this->resolveEmployeeAvatar($pic->employee),
                     'profile_picture' => $this->resolveEmployeeAvatar($pic->employee),
+                    // include acceptance flag to match shape returned by index() mapTasks
+                    'is_receive' => (bool) ($pic->is_receive ?? false),
+                    // include 'image' field (frontend expects 'image' on assignments)
+                    'image' => $this->resolveEmployeeAvatar($pic->employee),
                 ] : [
                     'id' => null,
                     'name' => 'None',
                     'user_photo' => asset('asset/img/avatar.png'),
                     'profile_picture' => asset('asset/img/avatar.png'),
+                    'is_receive' => false,
+                    'image' => asset('asset/img/avatar.png'),
                 ],
 
                 // Executors dengan default
@@ -1066,9 +1190,45 @@ class TaskController extends Controller
                             'name' => $executor->employee->name ?? '',
                             'user_photo' => $this->resolveEmployeeAvatar($executor->employee),
                             'profile_picture' => $this->resolveEmployeeAvatar($executor->employee),
+                            // include acceptance flag
+                            'is_receive' => (bool) ($executor->is_receive ?? false),
+                            'role' => $executor->role ?? null,
+                            // include 'image' for frontend rendering
+                            'image' => $this->resolveEmployeeAvatar($executor->employee),
                         ];
                     })->values()
                     : [],
+                // top-level project helpers so frontend single-item response matches index() mapping
+                'project_title' => $task->project?->title ?? '',
+                'project_id' => $task->project_id,
+                'project_image' => $projectImageUrl,
+                'project_has_image' => $projectHasImage,
+                // Include last status change metadata
+                'status_change' => (function () use ($task) {
+                    try {
+                        $last = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'desc')->first();
+                        if (!$last) return null;
+                        $emp = $last->employee;
+                        $name = $emp?->name ?? null;
+                        $label = match($last->new_status) {
+                            'in_progress' => 'In Progress by:',
+                            'new_request' => 'Back to request by:',
+                            'completed' => 'Completed by:',
+                            'rejected' => 'Rejected by:',
+                            default => ucfirst(str_replace('_', ' ', $last->new_status)) . ' by:',
+                        };
+                        return [
+                            'label' => $label,
+                            'employee_id' => $last->employee_id,
+                            'employee_name' => $name,
+                            'changed_at' => $last->created_at,
+                            'new_status' => $last->new_status,
+                            'old_status' => $last->old_status,
+                        ];
+                    } catch (\Throwable $t) {
+                        return null;
+                    }
+                })(),
             ];
 
             return response()->json([
@@ -1101,6 +1261,11 @@ class TaskController extends Controller
             'title' => $task->title,
             'description' => $task->description,
             'project_id' => $task->project_id,
+            'parent_id' => $task->parent_id ?? null,
+            'parent' => $task->parent ? [
+                'id' => $task->parent->id,
+                'title' => $task->parent->title ?? ''
+            ] : null,
             'point' => $task->point,
             'priority' => $task->priority,
             'reference_url' => $task->reference_url,
@@ -1150,6 +1315,7 @@ class TaskController extends Controller
             }
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
+                'parent_id' => 'nullable|exists:tasks,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -1175,6 +1341,19 @@ class TaskController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Validate parent belongs to same project if provided
+            if (array_key_exists('parent_id', $data) && !empty($data['parent_id'])) {
+                $parent = Task::find($data['parent_id']);
+                $incomingProjectId = $data['project_id'] ?? $task->project_id;
+                if (!$parent || $parent->project_id != $incomingProjectId) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Selected parent task does not belong to the chosen project.'
+                    ], 422);
+                }
+            }
 
             // Normalize reference URLs
             $refUrls = [];
@@ -1227,7 +1406,7 @@ class TaskController extends Controller
 
             $data['reference_files'] = $referenceFiles;
 
-            // Update task
+            // Update task (including parent_id if set)
             $task->update($data);
 
             // Update executor assignments
@@ -1405,7 +1584,26 @@ class TaskController extends Controller
                 $update['complete_date'] = null;
             }
 
+            $oldStatus = $task->status;
+
             $task->update($update);
+
+            // Record status change log if status actually changed
+            try {
+                $user = $request->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                if ($oldStatus !== $task->status) {
+                    TaskStatusLog::create([
+                        'task_id' => $task->id,
+                        'employee_id' => $employeeId,
+                        'old_status' => $oldStatus,
+                        'new_status' => $task->status,
+                    ]);
+                }
+            } catch (\Throwable $t) {
+                // do not fail the whole request if logging fails
+                \Log::error('Failed to write TaskStatusLog: ' . $t->getMessage());
+            }
 
             DB::commit();
 
@@ -2138,6 +2336,7 @@ class TaskController extends Controller
                 return [
                     'id' => $task->id,
                     'title' => $task->title,
+                    'parent_id' => $task->parent_id ?? null,
                     'description' => $task->description,
                     'image' => $task->image,
                     'created_at' => $task->created_at,

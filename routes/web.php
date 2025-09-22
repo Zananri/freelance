@@ -82,7 +82,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
     Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
-    Route::get('/project/{id}', [ProjectController::class, 'show'])->name('project.show');
+    // Accept optional slug segment for SEO-friendly URLs like /project/12/nama-project-permalink
+    Route::get('/project/{id}/{slug?}', [ProjectController::class, 'show'])->name('project.show');
     Route::get('/projects', [ProjectController::class, 'getProjectsIds'])->name('projects.ids');
     Route::post('/project/store', [ProjectController::class, 'store'])->name('project.store');
 
