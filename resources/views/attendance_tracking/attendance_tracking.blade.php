@@ -337,8 +337,6 @@
 
 
     <x-slot name="script_slot"> 
-        <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-
         <script src="{{ asset('asset/js/attendance_tracking.js')}}?v={{ time() }}"></script>
     </x-slot>
 

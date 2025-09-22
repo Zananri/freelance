@@ -240,23 +240,17 @@ function getAttendanceDetail(employeeId,dateAttendance)
 }
 
 $('#btn-download-xlsx').on('click',function(){
-    exportTableToExcel();
+    
+    const months = ['JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER'];
+    
+    let currentYear = CURRENT_DATE.getFullYear();
+
+    const monthName = months[CURRENT_DATE.getMonth()];
+
+    window.location.href = `${appUrl}/attendance_tracking/export-attendance-monthly/attendance_${currentYear}_${monthName}.xlsx`;
+
 });
 
-function exportTableToExcel() {
-     
-    let filename = 'ABSEN NSA PERFORMANCE '+formatDateIDMonthYear(CURRENT_DATE);
-
-    const table = $('#table-attendance-xlsx')[0];
-    
-    // Mengubah tabel HTML menjadi workbook
-    const worksheet = XLSX.utils.table_to_sheet(table);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'ABSENSI');
-
-    // Menulis dan mengunduh file .xlsx
-    XLSX.writeFile(workbook, filename + '.xlsx');
-}
 
 function formatTimeDisplay(timeString) {
 
