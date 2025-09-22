@@ -19,16 +19,17 @@
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <div class="title-content d-flex align-items-center">
+        <div class="title-content d-flex align-items-center gap-2">
             <div class="nav-item d-inline-block">
                 <div class="nav-icon-arrow">
-                    <a href="{{ url('project') }}"
-                        class="text-decoration-none text-dark d-flex align-items-center me-2">
-                        <span class="material-symbols-outlined">arrow_back</span>
+                    <a href="{{ url('project') }}" class="text-decoration-none text-dark d-flex align-items-center">
+                        <div class="d-flex">
+                            <span class="material-symbols-outlined">arrow_back</span>
+                        </div>
                     </a>
                 </div>
             </div>
-            <h2 class="mb-0">Detail Project</h2>
+            <h2 class="m-0">Project Detail</h2>
         </div>
         <button class="btn-submit-black">
             <span class="material-symbols-outlined me-2">download</span>Report
@@ -120,11 +121,11 @@
             $initials = trim($projTitle) ? strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]/u','',$projTitle),0,2)) : '';
         @endphp
         <div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal-content-custom">
                     <div class="modal-body modal-body-custom">
                         <div id="deleteProjectContent">
-                            <div class="custom-card-delete rounded-4 position-relative p-3 border-0">
+                            <div class="custom-card-delete position-relative p-3 border-0">
                                 <div class="d-flex align-items-center mb-2">
                                     <img src="{{ $projImgUrl }}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;var d=document.createElement('div');d.className='rounded-circle d-flex align-items-center justify-content-center me-3';d.style.width='34px';d.style.height='34px';d.style.background='#FF8A3C';d.style.color='#fff';d.style.fontWeight='600';d.style.fontSize='11px';d.textContent='{{ $initials }}';this.replaceWith(d);">
                                     <div class="d-flex flex-column">
