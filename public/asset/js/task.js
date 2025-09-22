@@ -1912,11 +1912,24 @@ document.addEventListener("click", function (e) {
                 </div>
                 <hr class="task-separator rounded-4">
                 <div class="d-flex justify-content-between align-items-center">
-                    <div style="font-size: 10px; font-weight: 400;">
-                        <span style="color: #797E91;">Priority: </span>
-                        <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">
-                            ${task.priority}
-                        </span>
+                    <div style="font-size: 10px; font-weight: 400; display:flex; flex-direction:column;">
+                        <div>
+                            <span style="color: #797E91;">Priority: </span>
+                            <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">
+                                ${task.priority}
+                            </span>
+                        </div>
+                        ${(function(){
+                            try {
+                                const sc = task.status_change || null;
+                                if (!sc) return '';
+                                const lbl = (sc.label || '').toString();
+                                const name = (sc.employee_name || '').toString();
+                                if (!lbl && !name) return '';
+                                function esc(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+                                return `<div style="font-size:10px;margin-top:4px;color:#454545"><span style="color:#797E91;">${esc(lbl)}</span><span style="margin-left:2px;color:#454545">${esc(name)}</span></div>`;
+                            } catch(e){ return ''; }
+                        })()}
                     </div>
                     <div style="font-size: 10px; font-weight: 400;">
                         <span style="color: #797E91;">Deadline: </span>

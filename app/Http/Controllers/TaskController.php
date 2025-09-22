@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\TaskFeedback;
+use App\Models\TaskStatusLog;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Employee;
@@ -490,6 +491,51 @@ class TaskController extends Controller
                 }
             }
 
+            // Determine last status change log for this task (most recent)
+            $lastLog = null;
+            try {
+                $lastLog = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'desc')->first();
+            } catch (\Throwable $t) {
+                $lastLog = null;
+            }
+
+            $status_change = null;
+            if ($lastLog) {
+                $employeeName = null;
+                try {
+                    if ($lastLog->employee) $employeeName = $lastLog->employee->name;
+                } catch (\Throwable $t) { $employeeName = null; }
+
+                $label = null;
+                // Map canonical statuses to labels the frontend expects
+                switch ($lastLog->new_status) {
+                    case 'in_progress':
+                        $label = 'In Progress by:';
+                        break;
+                    case 'new_request':
+                        // Distinguish between original new_request and explicit back_to_request
+                        $label = 'Back to request by:';
+                        break;
+                    case 'completed':
+                        $label = 'Completed by:';
+                        break;
+                    case 'rejected':
+                        $label = 'Rejected by:';
+                        break;
+                    default:
+                        $label = ucfirst(str_replace('_', ' ', $lastLog->new_status)) . ' by';
+                }
+
+                $status_change = [
+                    'label' => $label,
+                    'employee_id' => $lastLog->employee_id,
+                    'employee_name' => $employeeName,
+                    'changed_at' => $lastLog->created_at,
+                    'new_status' => $lastLog->new_status,
+                    'old_status' => $lastLog->old_status,
+                ];
+            }
+
             return [
                 'id' => $task->id,
                 'title' => $task->title,
@@ -505,6 +551,8 @@ class TaskController extends Controller
                 'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                 'feedback_comments_count' => $task->feedback_comments?->count() ?? 0,
                 'status' => $task->status,
+                // optional: last status change metadata for frontend to render "In Progress by: Name"
+                'status_change' => $status_change,
             ];
         }, $tasks);
     }
@@ -700,6 +748,32 @@ class TaskController extends Controller
                             'is_receive' => (bool) $ex->is_receive,
                         ];
                     })->values(),
+                    // last status change info
+                    'status_change' => (function () use ($task) {
+                        try {
+                            $last = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'desc')->first();
+                            if (!$last) return null;
+                            $emp = $last->employee;
+                            $name = $emp?->name ?? null;
+                            $label = match($last->new_status) {
+                                'in_progress' => 'In Progress by:',
+                                'new_request' => 'Back to request by:',
+                                'completed' => 'Completed by:',
+                                'rejected' => 'Rejected by:',
+                                default => ucfirst(str_replace('_', ' ', $last->new_status)) . ' by:',
+                            };
+                            return [
+                                'label' => $label,
+                                'employee_id' => $last->employee_id,
+                                'employee_name' => $name,
+                                'changed_at' => $last->created_at,
+                                'new_status' => $last->new_status,
+                                'old_status' => $last->old_status,
+                            ];
+                        } catch (\Throwable $t) {
+                            return null;
+                        }
+                    })(),
                 ];
             })->values();
 
@@ -1069,6 +1143,32 @@ class TaskController extends Controller
                         ];
                     })->values()
                     : [],
+                // Include last status change metadata
+                'status_change' => (function () use ($task) {
+                    try {
+                        $last = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'desc')->first();
+                        if (!$last) return null;
+                        $emp = $last->employee;
+                        $name = $emp?->name ?? null;
+                        $label = match($last->new_status) {
+                            'in_progress' => 'In Progress by:',
+                            'new_request' => 'Back to request by:',
+                            'completed' => 'Completed by:',
+                            'rejected' => 'Rejected by:',
+                            default => ucfirst(str_replace('_', ' ', $last->new_status)) . ' by:',
+                        };
+                        return [
+                            'label' => $label,
+                            'employee_id' => $last->employee_id,
+                            'employee_name' => $name,
+                            'changed_at' => $last->created_at,
+                            'new_status' => $last->new_status,
+                            'old_status' => $last->old_status,
+                        ];
+                    } catch (\Throwable $t) {
+                        return null;
+                    }
+                })(),
             ];
 
             return response()->json([
@@ -1405,7 +1505,26 @@ class TaskController extends Controller
                 $update['complete_date'] = null;
             }
 
+            $oldStatus = $task->status;
+
             $task->update($update);
+
+            // Record status change log if status actually changed
+            try {
+                $user = $request->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                if ($oldStatus !== $task->status) {
+                    TaskStatusLog::create([
+                        'task_id' => $task->id,
+                        'employee_id' => $employeeId,
+                        'old_status' => $oldStatus,
+                        'new_status' => $task->status,
+                    ]);
+                }
+            } catch (\Throwable $t) {
+                // do not fail the whole request if logging fails
+                \Log::error('Failed to write TaskStatusLog: ' . $t->getMessage());
+            }
 
             DB::commit();
 
