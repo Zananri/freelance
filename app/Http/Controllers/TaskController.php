@@ -79,8 +79,8 @@ class TaskController extends Controller
             }
 
             $projectId = $request->input('project');
-            $statusFilter = $request->input('status'); // optional
-            $search = $request->input('search'); // optional search keyword
+            $statusFilter = $request->input('status');
+            $search = $request->input('search');
             $perPage = (int) $request->input('per_page', 7);
             $page = (int) $request->input('page', 1);
 
@@ -90,17 +90,16 @@ class TaskController extends Controller
                     $outer->whereHas('assignments', function ($query) use ($currentEmployeeId) {
                         $query->where(function ($q) use ($currentEmployeeId) {
                             $q->where('employee_id', $currentEmployeeId)
-                                ->where(function ($q2) {
-                                    $q2->where('role', 'PIC')
+                            ->where(function ($q2) {
+                                $q2->where('role', 'PIC')
                                     ->orWhere('role', 'EXECUTOR');
-                                });
+                            });
                         });
                     })
                     ->orWhere(function ($q) use ($currentUserId) {
                         if ($currentUserId) $q->where('created_by', $currentUserId);
                     });
                 })
-                // Exclude tasks marked as DELETED from all listings
                 ->whereRaw('LOWER(status) <> ?', ['deleted']);
 
             if ($projectId) $baseQuery->where('project_id', $projectId);
@@ -115,14 +114,13 @@ class TaskController extends Controller
             }
 
             $response = [];
-
             $currentEmployeePendingAcceptance = function ($q) use ($currentEmployeeId) {
                 $q->whereHas('assignments', function ($a) use ($currentEmployeeId) {
                     $a->where('employee_id', $currentEmployeeId)
-                      ->whereIn('role', ['EXECUTOR','PIC'])
-                      ->where(function ($r) {
-                          $r->whereNull('is_receive')->orWhere('is_receive', false);
-                      });
+                    ->whereIn('role', ['EXECUTOR','PIC'])
+                    ->where(function ($r) {
+                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                    });
                 });
             };
 
@@ -135,39 +133,42 @@ class TaskController extends Controller
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                  ->whereIn('role', ['EXECUTOR','PIC'])
-                                  ->where(function ($r) {
-                                      $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                  });
+                                ->whereIn('role', ['EXECUTOR','PIC'])
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
                             });
-                        })->orderBy('start_date', 'desc');
+                        })
+                        ->orderByRaw("
+                            CASE WHEN LOWER(status) = 'rejected' THEN 0 ELSE 1 END,
+                            start_date DESC
+                        ");
                 } elseif ($normalizedFilter === 'new_request') {
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
                         ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
                     })->orderBy('created_at', 'asc');
-
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                  ->whereIn('role', ['EXECUTOR','PIC'])
-                                  ->where(function ($r) {
-                                      $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                  });
+                                ->whereIn('role', ['EXECUTOR','PIC'])
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
                             });
-                        }) ->orderBy('complete_date', 'desc');
-
+                        })
+                        ->orderBy('complete_date', 'desc');
                 } else {
                     $query->where('status', $normalizedFilter)
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                  ->whereIn('role', ['EXECUTOR','PIC'])
-                                  ->where(function ($r) {
-                                      $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                  });
+                                    ->whereIn('role', ['EXECUTOR','PIC'])
+                                    ->where(function ($r) {
+                                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                    });
                             });
                         });
                 }
@@ -175,7 +176,6 @@ class TaskController extends Controller
                 $paginator = $query->paginate($perPage, ['*'], 'page', $page);
                 $tasks = $paginator->items();
                 $key = strtolower(str_replace(' ', '_', $statusFilter));
-
                 $response[$key] = [
                     'tasks' => $this->mapTasks($tasks),
                     'pagination' => [
@@ -186,7 +186,6 @@ class TaskController extends Controller
                     ]
                 ];
             } else {
-                // ===== NEW_REQUEST =====
                 $newQuery = clone $baseQuery;
                 $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
                     $q->where('status', 'new_request')
@@ -204,18 +203,21 @@ class TaskController extends Controller
                     ]
                 ];
 
-                // ===== IN_PROGRESS =====
                 $progressQuery = clone $baseQuery;
                 $progressQuery->whereIn('status', ['in_progress', 'rejected'])
-                            ->where(function ($q) use ($currentEmployeeId) {
-                                $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
-                                    $a->where('employee_id', $currentEmployeeId)
-                                      ->whereIn('role', ['EXECUTOR','PIC'])
-                                      ->where(function ($r) {
-                                          $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                      });
-                                });
-                            })->orderBy('start_date', 'desc');
+                    ->where(function ($q) use ($currentEmployeeId) {
+                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                            $a->where('employee_id', $currentEmployeeId)
+                            ->whereIn('role', ['EXECUTOR','PIC'])
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
+                        });
+                    })
+                    ->orderByRaw("
+                        CASE WHEN LOWER(status) = 'rejected' THEN 0 ELSE 1 END,
+                        start_date DESC
+                    ");
                 $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'in_progress_page');
                 $response['in_progress'] = [
                     'tasks' => $this->mapTasks($progressPaginator->items()),
@@ -227,18 +229,17 @@ class TaskController extends Controller
                     ]
                 ];
 
-                // ===== COMPLETED =====
                 $completedQuery = clone $baseQuery;
                 $completedQuery->where('status', 'completed')
-                            ->where(function ($q) use ($currentEmployeeId) {
-                                $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
-                                    $a->where('employee_id', $currentEmployeeId)
-                                      ->whereIn('role', ['EXECUTOR','PIC'])
-                                      ->where(function ($r) {
-                                          $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                      });
-                                });
-                            })->orderBy('complete_date', 'asc');
+                    ->where(function ($q) use ($currentEmployeeId) {
+                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                            $a->where('employee_id', $currentEmployeeId)
+                            ->whereIn('role', ['EXECUTOR','PIC'])
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
+                    });
+                    })->orderBy('complete_date', 'asc');
                 $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'completed_page');
                 $response['completed'] = [
                     'tasks' => $this->mapTasks($completedPaginator->items()),
