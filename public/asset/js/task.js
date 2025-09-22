@@ -1742,6 +1742,8 @@ document.addEventListener("click", function (e) {
                 if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
                     return null;
                 }
+                // If the backend already provided absolute URL, return it directly.
+                if (/^https?:\/\//i.test(val)) return val;
                 if (val.includes('/file/project/')) {
                     const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
                     if (!fname) return null;
@@ -1800,6 +1802,14 @@ document.addEventListener("click", function (e) {
                 let imgSrc = (executor && executor.image) ? String(executor.image).trim() : '';
                 if (!imgSrc || imgSrc.toLowerCase() === 'null' || imgSrc.toLowerCase() === 'undefined') {
                     imgSrc = fallbackAvatar;
+                } else {
+                    // If executor.image is already absolute, keep it. If it looks like a local path, prefix appUrl.
+                    if (!/^https?:\/\//i.test(imgSrc)) {
+                        // If value contains '/file/profile_picture/' or '/file/photo/' use as-is with appUrl
+                        if (imgSrc.startsWith('/')) imgSrc = appUrl + imgSrc;
+                        else if (imgSrc.indexOf('/') !== -1) imgSrc = appUrl + '/' + imgSrc;
+                        else imgSrc = appUrl + '/file/profile_picture/' + imgSrc;
+                    }
                 }
                 return `
                 <div class="executor-container" style="position: relative; display: inline-block; margin-right: -8px;">
@@ -3180,15 +3190,96 @@ function applyCurrentSearchFilter() {
                 data: { status: newStatus },
                 success: function (response) {
                     const oldStatus = (taskCard && taskCard.getAttribute('data-task-status')) || null;
-                    if (taskCard) {
-                        const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                            const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                            if (tooltipInstance) tooltipInstance.dispose();
-                        });
-                        taskCard.remove();
+                    try {
+                        if (taskCard) {
+                            const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                                const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                                if (tooltipInstance) tooltipInstance.dispose();
+                            });
+                            taskCard.remove();
+                        }
+                    } catch(_) {}
+
+                    // If a bulk operation asked us to suppress intermediate refreshes, let the bulk aggregator handle final refresh.
+                    if (bulkStatusSuppressRefresh) {
+                        // Nothing else to do here for intermediate items
+                    } else {
+                        // Instead of performing a full fetch which only returns first-page items (causing moved
+                        // cards to disappear when they land on a later page), fetch the single updated task and
+                        // insert it directly into the correct destination column. This ensures visibility even
+                        // when pagination is in effect.
+                        (function insertUpdatedTask() {
+                            $.ajax({
+                                url: appUrl + '/task/' + taskId,
+                                type: 'GET',
+                                dataType: 'json'
+                            }).done(function(res) {
+                                const t = (res && (res.data || res)) || null;
+                                if (!t) {
+                                    // fallback to full refresh
+                                    try { fetchAndRenderTasks(); } catch(_) {}
+                                    return;
+                                }
+                                // Normalize destination mapping: rejected tasks should appear in in_progress column
+                                const destKey = (String(newStatus || '').toLowerCase().includes('reject')) ? 'in_progress' : String(newStatus || '').toLowerCase();
+                                const destContainerId = sectionMap[destKey] || sectionMap['in_progress'];
+                                const destContainer = document.getElementById(destContainerId);
+
+                                // Remove any existing duplicate card in DOM
+                                try { document.querySelectorAll('.custom-card[data-task-id="' + taskId + '"]').forEach(n => n.remove()); } catch(_) {}
+
+                                if (destContainer) {
+                                    try {
+                                        // Normalize the API show() response to the shape expected by createTaskCard
+                                        const normalized = Object.assign({}, t);
+                                        try {
+                                            normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                                            normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                                            normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+                                            // ensure pic/executors objects are present (show() already returns compatible shape)
+                                            normalized.pic = t.pic || normalized.pic || null;
+                                            normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
+                                            // counts fallback
+                                            normalized.feedback_comments_count = t.feedback_comments_count || normalized.feedback_comments_count || 0;
+                                            normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
+                                        } catch (_) {}
+
+                                        destContainer.insertAdjacentHTML('afterbegin', createTaskCard(normalized));
+                                    } catch (e) {
+                                        // If insertion fails, fallback to full refresh
+                                        try { fetchAndRenderTasks(); } catch(_) {}
+                                        return;
+                                    }
+                                } else {
+                                    try { fetchAndRenderTasks(); } catch(_) {}
+                                    return;
+                                }
+
+                                // Update client-side cache: remove from old bucket and add to destination at front
+                                try {
+                                    ['new_request','in_progress','completed'].forEach(k => {
+                                        if (allTasksCache[k] && Array.isArray(allTasksCache[k].tasks)) {
+                                            allTasksCache[k].tasks = allTasksCache[k].tasks.filter(x => String(x.id) !== String(taskId));
+                                        }
+                                    });
+                                    if (!allTasksCache[destKey]) allTasksCache[destKey] = { tasks: [], pagination: {} };
+                                    // Prepend updated task to cache
+                                    if (allTasksCache[destKey] && Array.isArray(allTasksCache[destKey].tasks)) {
+                                        allTasksCache[destKey].tasks.unshift(t);
+                                    }
+                                } catch(_) {}
+
+                                // Ensure rejected cards get badge & placement
+                                try { ensureRejectedCardsPlaced(); } catch(_) {}
+                                // Re-init tooltips and other handlers for newly-inserted card
+                                try { initBootstrapTooltips(destContainer); addAttachFileIconListeners(); scheduleRefreshLatestFeedbackSnippets(); } catch(_) {}
+                            }).fail(function(){
+                                // On failure, do full refresh to keep UI consistent
+                                try { fetchAndRenderTasks(); } catch(_) {}
+                            });
+                        })();
                     }
-                    if (!bulkStatusSuppressRefresh) fetchAndRenderTasks();
                     // Mobile dynamic refresh (avoid full reload): if mobile status selector present
                     try {
                         const mobileStatusSel = document.getElementById('taskStatusSelect');

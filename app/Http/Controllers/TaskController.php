@@ -1065,6 +1065,30 @@ class TaskController extends Controller
                 'assignments.employee.user'
             ])->findOrFail($id);
 
+            // Resolve project image similar to mapTasks so single-task response contains project_image
+            $projectHasImage = false;
+            $projectImageUrl = null;
+            if ($task->project && $task->project->image) {
+                $img = $task->project->image;
+                $normalized = ltrim($img, '/');
+                if (Str::startsWith($img, ['http://', 'https://'])) {
+                    $projectImageUrl = $img;
+                    $projectHasImage = true;
+                } elseif (Str::startsWith($normalized, 'asset/')) {
+                    $projectImageUrl = asset($normalized);
+                    $projectHasImage = true;
+                } else {
+                    if (!Str::startsWith($normalized, 'file/project/')) {
+                        $normalized = 'file/project/' . $normalized;
+                    }
+                    $disk = public_path($normalized);
+                    if (file_exists($disk)) {
+                        $projectImageUrl = asset($normalized);
+                        $projectHasImage = true;
+                    }
+                }
+            }
+
             // Get PIC dan Executors
             $pic = $task->assignments->firstWhere('role', 'PIC');
             $executors = $task->assignments->where('role', 'EXECUTOR');
@@ -1125,11 +1149,17 @@ class TaskController extends Controller
                     'name' => $pic->employee->name ?? '',
                     'user_photo' => $this->resolveEmployeeAvatar($pic->employee),
                     'profile_picture' => $this->resolveEmployeeAvatar($pic->employee),
+                    // include acceptance flag to match shape returned by index() mapTasks
+                    'is_receive' => (bool) ($pic->is_receive ?? false),
+                    // include 'image' field (frontend expects 'image' on assignments)
+                    'image' => $this->resolveEmployeeAvatar($pic->employee),
                 ] : [
                     'id' => null,
                     'name' => 'None',
                     'user_photo' => asset('asset/img/avatar.png'),
                     'profile_picture' => asset('asset/img/avatar.png'),
+                    'is_receive' => false,
+                    'image' => asset('asset/img/avatar.png'),
                 ],
 
                 // Executors dengan default
@@ -1140,9 +1170,19 @@ class TaskController extends Controller
                             'name' => $executor->employee->name ?? '',
                             'user_photo' => $this->resolveEmployeeAvatar($executor->employee),
                             'profile_picture' => $this->resolveEmployeeAvatar($executor->employee),
+                            // include acceptance flag
+                            'is_receive' => (bool) ($executor->is_receive ?? false),
+                            'role' => $executor->role ?? null,
+                            // include 'image' for frontend rendering
+                            'image' => $this->resolveEmployeeAvatar($executor->employee),
                         ];
                     })->values()
                     : [],
+                // top-level project helpers so frontend single-item response matches index() mapping
+                'project_title' => $task->project?->title ?? '',
+                'project_id' => $task->project_id,
+                'project_image' => $projectImageUrl,
+                'project_has_image' => $projectHasImage,
                 // Include last status change metadata
                 'status_change' => (function () use ($task) {
                     try {
