@@ -132,6 +132,41 @@
     object-fit: cover;
 }
 
+.modal-content-custom {
+    border-radius: 20px;
+    background-color: rgb(240, 241, 248);
+}
+
+.modal-custom .modal-body-custom {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.modal-footer-custom {
+    width: 100%;
+    border: 0;
+    justify-content: center;
+}
+
+.modal-footer-custom .btn,
+.modal-footer-custom button {
+    border: none;
+    border-radius: 10px;
+    width: auto;
+    min-height: 45px;
+    padding: 10px;
+    box-shadow: none !important;
+    outline: none !important;
+    flex: 1;
+}
+
+.modal-footer-custom .btn-custom-close {
+    background-color: #e3e4ee  !important;
+    color: #444444;
+    font-size: 14px;
+}
+
 @media (max-width: 768px) {
     .detail-project-card {
         margin-bottom: 16px;

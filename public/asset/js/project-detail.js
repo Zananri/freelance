@@ -1,5 +1,3 @@
-// project-detail.js
-// Responsible for fetching project JSON and rendering the project detail page using jQuery.
 (function ($) {
 	'use strict';
 
