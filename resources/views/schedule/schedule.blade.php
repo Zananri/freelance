@@ -211,9 +211,12 @@
                             <div class="custom-form-employee">
                                 <label for="schedule_project_id" class="form-label label-custom">Project
                                     </label>
-                                <select id="schedule_project_id" name="project_id" class="form-select input-select">
+                                <!-- Hidden field to indicate modal opened from a project context -->
+                                <input type="hidden" id="schedule_project_context_id" name="project_context_id" value="">
+                                <select id="schedule_project_id" name="project_id" class="form-select input-select" required>
                                     <option value="">No Project</option>
                                 </select>
+                                <div class="invalid-feedback">Please select a project.</div>
                             </div>
 
                             <!-- Reference URLs -->
@@ -547,6 +550,108 @@
         <script src="{{ asset('asset/js/schedule.js?v=' . time()) }}"></script>
         <script src="{{ asset('asset/js/schedule-create.js?v=' . time()) }}"></script>
 
-        <script></script>
+        <script>
+            (function(){
+                // When opening create modal, allow passing project id via data attribute
+                var scheduleCreateModal = document.getElementById('scheduleCreateModal');
+                if (!scheduleCreateModal) return;
+
+                var projectSelect = document.getElementById('schedule_project_id');
+                var projectContextInput = document.getElementById('schedule_project_context_id');
+
+                function updateProjectValidationState() {
+                    if (!projectSelect) return;
+                    // Only enforce validation classes when the field is required
+                    if (projectSelect.required) {
+                        if (!projectSelect.value || projectSelect.value === '') {
+                            projectSelect.classList.remove('is-valid');
+                            projectSelect.classList.add('is-invalid');
+                        } else {
+                            projectSelect.classList.remove('is-invalid');
+                            projectSelect.classList.add('is-valid');
+                        }
+                    } else {
+                        projectSelect.classList.remove('is-invalid');
+                        projectSelect.classList.remove('is-valid');
+                    }
+                }
+
+                scheduleCreateModal.addEventListener('show.bs.modal', function (event) {
+                    // triggering element (button) may have data-project-id attribute
+                    var trigger = event.relatedTarget || document.activeElement;
+                    var projectId = null;
+                    if (trigger && trigger.getAttribute) {
+                        projectId = trigger.getAttribute('data-project-id') || (trigger.dataset && trigger.dataset.projectId) || null;
+                    }
+
+                    // clear previous state
+                    if (projectContextInput) projectContextInput.value = '';
+
+                    if (projectSelect) {
+                        // Reset any previous temporary validation classes first
+                        projectSelect.classList.remove('is-valid');
+                        projectSelect.classList.remove('is-invalid');
+
+                        if (projectId) {
+                            // set hidden context id
+                            projectContextInput.value = projectId;
+                            // if option exists, select it; otherwise add a temporary option then select
+                            var opt = projectSelect.querySelector('option[value="' + projectId + '"]');
+                            if (!opt) {
+                                opt = document.createElement('option');
+                                opt.value = projectId;
+                                // use a friendly label if possible; fallback to id
+                                opt.text = 'Project #' + projectId;
+                                projectSelect.appendChild(opt);
+                            }
+                            projectSelect.value = projectId;
+                            // Keep the project select required by default so its validation
+                            // visuals match other required fields (e.g., Title).
+                            projectSelect.required = true;
+                        }
+
+                        // ensure UI matches validation state right away
+                        updateProjectValidationState();
+                    }
+                });
+
+                // update validation state when user changes selection
+                if (projectSelect) {
+                    projectSelect.addEventListener('change', function () {
+                        updateProjectValidationState();
+                    });
+                }
+
+                // Reset state when modal hidden
+                scheduleCreateModal.addEventListener('hidden.bs.modal', function () {
+                    if (projectSelect) {
+                        projectSelect.classList.remove('is-invalid');
+                        projectSelect.classList.remove('is-valid');
+                        // keep required true so validation matches other required fields
+                    }
+                    if (projectContextInput) projectContextInput.value = '';
+                    var form = document.getElementById('scheduleCreateForm');
+                    if (form) {
+                        form.classList.remove('was-validated');
+                        // reset form if desired: do not clear user input automatically to avoid data loss; only remove validation
+                    }
+                });
+
+                // Basic bootstrap validation on submit (also respects required attributes set above)
+                var form = document.getElementById('scheduleCreateForm');
+                if (form) {
+                    form.addEventListener('submit', function(e){
+                        // ensure project validation reflects current value before checkValidity
+                        updateProjectValidationState();
+
+                        if (!form.checkValidity()) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    });
+                }
+            })();
+        </script>
     </x-slot>
 </x-office-layout>

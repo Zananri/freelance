@@ -450,7 +450,7 @@ class ScheduleController extends Controller
         DB::beginTransaction();
         try {
             $validator = \Validator::make($request->all(), [
-                'project_id' => 'nullable|exists:projects,id',
+                'project_id' => 'required|exists:projects,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
