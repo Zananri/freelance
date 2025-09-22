@@ -585,6 +585,78 @@
             });
     }
 
+    // Load related tasks for a given project into an element (select). excludeTaskId optional to avoid listing self as parent
+    function loadRelatedTasks(projectId, selectElement, excludeTaskId, selectedParentId) {
+        if (!selectElement) return;
+        // Clear
+        selectElement.innerHTML = '<option value="">No Parent</option>';
+        if (!projectId) return;
+        fetch(appUrl + '/projects/' + encodeURIComponent(projectId) + '/tasks')
+            .then(r => r.json())
+            .then(res => {
+                if (!res || !res.data) return;
+                const tasks = Array.isArray(res.data) ? res.data : [];
+                tasks.forEach(t => {
+                    if (excludeTaskId && String(t.id) === String(excludeTaskId)) return;
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.title;
+                    selectElement.appendChild(opt);
+                });
+                // If caller requested a selected value, set it now (after options appended)
+                try {
+                    if (selectedParentId != null && selectedParentId !== '') {
+                        const found = selectElement.querySelector('option[value="' + String(selectedParentId) + '"]');
+                        if (found) {
+                            selectElement.value = String(selectedParentId);
+                        } else {
+                            // Option not found in project task list — try to fetch the single task by id and append
+                            fetch(appUrl + '/task/' + encodeURIComponent(String(selectedParentId)))
+                                .then(r => r.ok ? r.json() : Promise.reject('Not found'))
+                                .then(resSingle => {
+                                    const taskSingle = (resSingle && (resSingle.data || resSingle)) || null;
+                                    if (taskSingle && taskSingle.id) {
+                                        const opt2 = document.createElement('option');
+                                        opt2.value = taskSingle.id;
+                                        opt2.textContent = taskSingle.title || ('Task #' + taskSingle.id);
+                                        // Append at end and select
+                                        selectElement.appendChild(opt2);
+                                        selectElement.value = String(taskSingle.id);
+                                    }
+                                })
+                                .catch(err => { console.warn('Related parent not in project list and single fetch failed', err); });
+                        }
+                    }
+                } catch (e) { console.warn('Failed to set selected parent', e); }
+            })
+            .catch(err => { console.error('Failed to load related tasks', err); });
+    }
+
+    // Ensure a parent option exists in select by fetching single task and appending if missing
+    function ensureParentOption(selectElement, parentId) {
+        if (!selectElement || !parentId) return;
+        try {
+            const found = selectElement.querySelector('option[value="' + String(parentId) + '"]');
+            if (found) {
+                selectElement.value = String(parentId);
+                return;
+            }
+            fetch(appUrl + '/task/' + encodeURIComponent(String(parentId)))
+                .then(r => r.ok ? r.json() : Promise.reject('Not found'))
+                .then(res => {
+                    const taskSingle = (res && (res.data || res)) || null;
+                    if (taskSingle && taskSingle.id) {
+                        const opt2 = document.createElement('option');
+                        opt2.value = taskSingle.id;
+                        opt2.textContent = taskSingle.title || ('Task #' + taskSingle.id);
+                        selectElement.appendChild(opt2);
+                        selectElement.value = String(taskSingle.id);
+                    }
+                })
+                .catch(err => { console.warn('ensureParentOption fetch failed', err); });
+        } catch (e) { console.warn('ensureParentOption error', e); }
+    }
+
     if (imageInput && imageLabel && imageClearBtn) {
         setupImageInput(imageInput, imageLabel, imageClearBtn);
     }
@@ -659,6 +731,11 @@
             } catch(_) {}
 
             const formData = new FormData(addTaskForm);
+            // Ensure parent_id is appended even if empty
+            try {
+                const parentSel = document.getElementById('task_parent_id');
+                if (parentSel) formData.set('parent_id', parentSel.value || null);
+            } catch(_) {}
             // Append all selected reference files to formData
             selectedFiles.forEach((file) => {
                 formData.append("reference_files[]", file);
@@ -909,6 +986,25 @@
     setupEditReferenceFilesInput();
 
     loadProjects();
+    // Wire project selects to load related tasks for parent selection
+    try {
+        const addProjectSel = document.getElementById('task_project_id');
+        const addParentSel = document.getElementById('task_parent_id');
+        if (addProjectSel) {
+            addProjectSel.addEventListener('change', function () {
+                loadRelatedTasks(this.value || null, addParentSel, null);
+            });
+        }
+
+        const editProjectSel = document.getElementById('edit_task_project_id');
+        const editParentSel = document.getElementById('edit_task_parent_id');
+        if (editProjectSel) {
+            editProjectSel.addEventListener('change', function () {
+                const excludeId = document.getElementById('edit_task_id') ? document.getElementById('edit_task_id').value : null;
+                loadRelatedTasks(this.value || null, editParentSel, excludeId);
+            });
+        }
+    } catch (e) { console.warn('Failed to wire project->parent selects', e); }
     // Also load projects for schedule modal (optional select)
     (function loadProjectsForSchedule(){
         const select = document.getElementById('schedule_project_id');
@@ -6158,11 +6254,19 @@ function applyCurrentSearchFilter() {
         });
 
     $.ajax({
-            url: appUrl + "/task/" + taskId,
+        url: appUrl + "/task/" + taskId + "/edit",
             type: "GET",
             dataType: "json",
             success: function (res) {
-                const t = res.data || {};
+                const t = (res && res.data) ? res.data : (res || {});
+
+                // Ensure stored parent is present in select as early fallback
+                try {
+                    const earlyParentSel = document.getElementById('edit_task_parent_id');
+                    if (earlyParentSel && t.parent_id) {
+                        ensureParentOption(earlyParentSel, t.parent_id);
+                    }
+                } catch (e) { console.warn('early ensureParentOption failed', e); }
 
                 // Basic fields
                 const titleEl = document.getElementById("edit_task_title");
@@ -6176,6 +6280,11 @@ function applyCurrentSearchFilter() {
                     const projectId = (t.project_id != null) ? t.project_id : (t.project && t.project.id != null ? t.project.id : '');
                     loadProjectsForEdit(function() {
                         projSel.value = projectId != null ? String(projectId) : '';
+                        // After setting project, load related tasks for edit parent select
+                        const parentSel = document.getElementById('edit_task_parent_id');
+                        loadRelatedTasks(projectId, parentSel, t.id, t.parent_id);
+                        // Also ensure parent exists in select (covers edge cases)
+                        ensureParentOption(parentSel, t.parent_id);
                     });
                 }
 
@@ -6253,6 +6362,8 @@ function applyCurrentSearchFilter() {
                 if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
                     window.setSelectedExecutorsEdit(t.executors.map(e => ({ id: e.id, name: e.name, user_photo: e.user_photo || e.photo || e.image || '' })));
                 }
+
+                // parent select is set by loadRelatedTasks (selectedParentId)
 
                 // Existing reference files
                 let refFiles = t.reference_files;
