@@ -130,8 +130,8 @@ table.table tbody tr td:last-child {
 .modal-footer-custom {
     border: 0;
     justify-content: center;
-    background: transparent;
-    display: flex;
+    width: 100%;
+    padding: 0;
 }
 .modal-footer-delete {
     border: 0;
@@ -165,7 +165,7 @@ table.table tbody tr td:last-child {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(255,255,255,0.7);
+    background: rgba(255, 255, 255, 0.7);
     z-index: 10;
     display: flex;
     align-items: center;
@@ -176,7 +176,7 @@ table.table tbody tr td:last-child {
     display: none !important;
 }
 .loader-spinner {
-   border: 4px solid #f3f3f3;
+    border: 4px solid #f3f3f3;
     border-top: 4px solid #333;
     border-radius: 50%;
     width: 48px;
@@ -184,8 +184,12 @@ table.table tbody tr td:last-child {
     animation: spin 1s linear infinite;
 }
 @keyframes spin {
-    0% { transform: rotate(0deg);}
-    100% { transform: rotate(360deg);}
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Responsive */
@@ -220,5 +224,38 @@ table.table tbody tr td:last-child {
 .custom-input input,
 .custom-input textarea,
 .custom-input select {
+    border: none;
+}
+
+.modal-footer-custom button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    height: 45px;
+}
+
+.modal-footer-custom .btn-submit-black {
+    background-color: #444444 !important;
+    color: #e3e4ee;
+}
+
+.modal-footer-custom .btn-custom-cancel {
+    background-color: #e3e4ee !important;
+    color: #444444;
+    height: 45px;
+}
+
+.dropdown-menu-filter {
+    min-width: 220px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgb(240, 241, 248);
+    border: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu-filter select {
     border: none;
 }

@@ -271,3 +271,16 @@ table.table tbody tr td:first-child {
 .custom-input textarea{
     border: none;
 }
+
+.dropdown-menu-filter {
+    min-width: 220px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: rgb(240, 241, 248);
+    border: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu-filter select {
+    border: none;
+}

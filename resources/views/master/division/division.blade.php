@@ -32,8 +32,7 @@
                         type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="material-symbols-outlined icon">filter_list</span> Filter
                     </button>
-                    <ul class="dropdown-menu p-2" aria-labelledby="filterDropdown"
-                        style="min-width: 220px; max-height: 300px; overflow-y: auto;">
+                    <ul class="dropdown-menu dropdown-menu-filter p-2" aria-labelledby="filterDropdown">
                         <li class="mb-3">
                             <select class="form-select form-select-sm" id="filterTypeSelect"
                                 aria-label="Select filter type">
@@ -150,7 +149,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="submit" class="btn-submit-black btn-submit-custom">Submit</button>
+                        <button type="submit" class="btn-submit-black btn-submit-black">Submit</button>
                     </div>
                 </form>
             </div>
@@ -253,23 +252,23 @@
                 <form id="deleteDivisionForm" class="form-custom">
                     <div class="modal-body modal-body-custom">
 
-                        <div class="mb-3 mt-4">
+                        <div class="mb-3 mt-4 custom-input">
                             <label for="delete_department_name" class="form-label label-custom">Department
                                 Name</label>
                             <input type="text" class="form-control input-text" id="delete_department_name"
                                 name="department_name" readonly disabled />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="delete_name_division" class="form-label label-custom">Division Name</label>
                             <input type="text" class="form-control input-text" id="delete_name_division"
                                 name="name_division" readonly disabled />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="delete_status" class="form-label label-custom">Status</label>
                             <input type="text" class="form-control input-text" id="delete_status" name="status"
                                 readonly disabled />
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-3 custom-input">
                             <label for="delete_description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="delete_description" name="description" rows="3" readonly
                                 disabled></textarea>
@@ -284,12 +283,12 @@
                                 delete this data?</p>
                         </div>
                     </div>
-                    <div class="modal-footer modal-footer-custom modal-footer-delete">
-                        <button type="submit"
-                            class="btn-submit-black btn-submit-custom btn-delete-modal btn-delete-small btn-delete-red">Delete</button>
+                    <div class="modal-footer modal-footer-custom">
                         <button type="button"
-                            class="btn-cancel-delete btn-submit-black btn-submit-custom btn-cancel-small"
+                            class="btn btn-custom-cancel"
                             data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit"
+                            class="btn btn-submit-black">Delete</button>
                     </div>
                 </form>
             </div>

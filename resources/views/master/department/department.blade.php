@@ -32,7 +32,7 @@
                         type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="material-symbols-outlined icon">filter_list</span> Filter
                     </button>
-                    <ul class="dropdown-menu" aria-labelledby="filterDropdown" style="min-width: 150px;">
+                    <ul class="dropdown-menu dropdown-menu-filter" aria-labelledby="filterDropdown" style="min-width: 150px;">
                         <li><a class="dropdown-item filter-option active" href="#" data-status="ALL">All</a></li>
                         <li><a class="dropdown-item filter-option" href="#" data-status="ACTIVE">Active</a></li>
                         <li><a class="dropdown-item filter-option" href="#" data-status="INACTIVE">Inactive</a>
