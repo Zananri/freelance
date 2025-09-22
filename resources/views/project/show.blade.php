@@ -4,6 +4,17 @@
     </x-slot>
     <x-slot name="head_slot">
         <meta name="app-url" content="{{ url('/') }}">
+        <meta name="project-id" content="{{ $project->id ?? '' }}">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        @php
+            $img = $project->image ?? null;
+            $imgUrl = $img
+                ? asset('file/project/' . ltrim($img, '/'))
+                : asset('asset/img/image.png');
+            $totalTasks = $project->tasks ? $project->tasks->count() : 0;
+        @endphp
+        <meta name="project-image" content="{{ $imgUrl }}">
+        <meta name="project-total-tasks" content="{{ $totalTasks }}">
         <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css') }}">
     </x-slot>
 
@@ -31,49 +42,24 @@
             <div class="col-md-4 detail-project-card">
                 <div class="body-content rounded-4 p-3">
                     <div class="d-flex align-items-center">
-                        @php
-                            $img = $project->image ?? null;
-                            $imgUrl = $img
-                                ? asset('file/project/' . ltrim($img, '/'))
-                                : asset('asset/img/project-placeholder.png');
-                        @endphp
-                        <img src="{{ $imgUrl }}" alt="project detail image" class="project-detail-image me-3">
-                        <h4 class="project-detail-title m-0 d-flex align-items-center">{{ $project->title ?? '-' }}</h4>
+                        <img id="project-image" src="{{ asset('asset/img/image.png') }}" alt="project detail image" class="project-detail-image me-3">
+                        <h4 id="project-title" class="project-detail-title m-0 d-flex align-items-center">-</h4>
                     </div>
                     <div class="description-container mb-1">
-                        <p class="description-detail">
-                            {!! nl2br(e($project->description ?? '-')) !!}
-                        </p>
+                        <p id="project-description" class="description-detail">-</p>
                     </div>
                     <div class="d-flex justify-content-between">
                         <div class="d-flex">
-                            @if (!empty($project->reference_files) || !empty($project->reference_urls))
-                                <a href="#references" class="detail-icon" title="References">
-                                    <span class="material-symbols-outlined me-3">attach_file</span>
-                                </a>
-                            @else
-                                <button class="detail-icon">
-                                    <span class="material-symbols-outlined me-3">attach_file</span>
-                                </button>
-                            @endif
+                            <button id="btn-references" class="detail-icon" title="References">
+                                <span class="material-symbols-outlined me-3">attach_file</span>
+                            </button>
 
-                            <button class="detail-icon">
+                            <button id="btn-comments" class="detail-icon" title="Comments">
                                 <span class="material-symbols-outlined me-3">mode_comment</span>
                             </button>
                         </div>
-                        <div class="d-flex">
-                            <a href="{{ route('project.edit', ['id' => $project->id]) }}" class="detail-icon"
-                                title="Edit">
-                                <span class="material-symbols-outlined icon-fill me-3">edit</span>
-                            </a>
-                            <form action="{{ route('project.destroy', ['id' => $project->id]) }}" method="POST"
-                                onsubmit="return confirm('Are you sure you want to delete this project?');">
-                                @csrf
-                                @method('DELETE')
-                                <button class="detail-icon" type="submit" title="Delete">
-                                    <span class="material-symbols-outlined icon-fill">delete</span>
-                                </button>
-                            </form>
+                        <div class="d-flex" id="project-actions">
+                            <!-- edit / delete buttons will be injected by JS -->
                         </div>
                     </div>
 
@@ -81,136 +67,24 @@
 
                     <div class="d-flex justify-content-between detail-list">
                         <p>Total Task</p>
-                        <p>{{ $project->tasks->count() }} Task{{ $project->tasks->count() > 1 ? 's' : '' }}</p>
+                        <p id="project-total-tasks">-</p>
                     </div>
                     <div class="d-flex justify-content-between detail-list">
                         <p>Deadline</p>
-                        <p>{{ $project->due_date ? \Carbon\Carbon::parse($project->due_date)->format('d M Y') : '-' }}
-                        </p>
+                        <p id="project-deadline">-</p>
                     </div>
                     <div class="d-flex justify-content-between detail-list">
                         <p>Department</p>
-                        <p>{{ $project->department?->name_department ?? ($project->department?->name ?? '-') }}</p>
+                        <p id="project-department">-</p>
                     </div>
                     <div class="d-flex justify-content-between detail-list">
                         <p>Division</p>
-                        <p>{{ $project->division?->name_division ?? ($project->division?->name ?? '-') }}</p>
+                        <p id="project-division">-</p>
                     </div>
 
                     <div class="d-flex justify-content-start mt-3 flex-wrap gap-3">
-                        @php
-                            // group assignments
-                            $author = null;
-                            $coAuthors = [];
-                            $contributors = [];
-                            foreach ($project->projectAssignments as $assignment) {
-                                if (!isset($assignment->employee)) {
-                                    continue;
-                                }
-                                if ($assignment->role === 'author') {
-                                    $author = $assignment->employee;
-                                } elseif ($assignment->role === 'co_author') {
-                                    $coAuthors[] = $assignment->employee;
-                                } elseif ($assignment->role === 'contributor') {
-                                    $contributors[] = $assignment->employee;
-                                }
-                            }
-                        @endphp
-
-                        <div class="detail-project-bottom">
-                            @if ($author)
-                                <div class="d-flex align-items-center detail-role me-2 mb-2">
-                                    @php
-                                        $avatar = asset('asset/img/avatar.png');
-                                        if (!empty($author->profile_picture) || !empty($author->photo)) {
-                                            $raw = $author->profile_picture ?: $author->photo;
-                                            // If absolute URL or protocol-relative, use raw. Otherwise normalize local path.
-                                            if (
-                                                strpos($raw, 'http://') === 0 ||
-                                                strpos($raw, 'https://') === 0 ||
-                                                strpos($raw, '//') === 0
-                                            ) {
-                                                $avatar = $raw;
-                                            } else {
-                                                $clean = ltrim($raw, '/');
-                                                // If already begins with file/, don't prefix again
-        if (strpos($clean, 'file/') === 0) {
-            $avatar = asset($clean);
-        } else {
-            $avatar = asset('file/' . $clean);
-                                                }
-                                            }
-                                        }
-                                    @endphp
-                                    <img src="{{ $avatar }}" alt="user profile" class="user-profile me-2">
-                                    <div>
-                                        <p class="m-0 fw-normal">{{ $author->name }}</p>
-                                        <p class="m-0 text-muted small">Author</p>
-                                    </div>
-                                </div>
-                            @endif
-
-                            @foreach ($coAuthors as $co)
-                                <div class="d-flex align-items-center detail-role me-2 mb-2">
-                                    @php
-                                        $avatar = asset('asset/img/avatar.png');
-                                        if (!empty($co->profile_picture) || !empty($co->photo)) {
-                                            $raw = $co->profile_picture ?: $co->photo;
-                                            if (
-                                                strpos($raw, 'http://') === 0 ||
-                                                strpos($raw, 'https://') === 0 ||
-                                                strpos($raw, '//') === 0
-                                            ) {
-                                                $avatar = $raw;
-                                            } else {
-                                                $clean = ltrim($raw, '/');
-                                                if (strpos($clean, 'file/') === 0) {
-                                                    $avatar = asset($clean);
-                                                } else {
-                                                    $avatar = asset('file/' . $clean);
-                                                }
-                                            }
-                                        }
-                                    @endphp
-                                    <img src="{{ $avatar }}" alt="user profile" class="user-profile me-2">
-                                    <div>
-                                        <p class="m-0 fw-normal">{{ $co->name }}</p>
-                                        <p class="m-0 text-muted small">Co Author</p>
-                                    </div>
-                                </div>
-                            @endforeach
-
-                            @if (!empty($contributors))
-                                @foreach ($contributors as $con)
-                                    <div class="d-flex align-items-center detail-role me-2 mb-2">
-                                        @php
-                                            $avatar = asset('asset/img/avatar.png');
-                                            if (!empty($con->profile_picture) || !empty($con->photo)) {
-                                                $raw = $con->profile_picture ?: $con->photo;
-                                                if (
-                                                    strpos($raw, 'http://') === 0 ||
-                                                    strpos($raw, 'https://') === 0 ||
-                                                    strpos($raw, '//') === 0
-                                                ) {
-                                                    $avatar = $raw;
-                                                } else {
-                                                    $clean = ltrim($raw, '/');
-                                                    if (strpos($clean, 'file/') === 0) {
-                                                        $avatar = asset($clean);
-                                                    } else {
-                                                        $avatar = asset('file/' . $clean);
-                                                    }
-                                                }
-                                            }
-                                        @endphp
-                                        <img src="{{ $avatar }}" alt="user profile" class="user-profile me-2">
-                                        <div>
-                                            <p class="m-0 fw-normal">{{ $con->name }}</p>
-                                            <p class="m-0 text-muted small">Contributor</p>
-                                        </div>
-                                    </div>
-                                @endforeach
-                            @endif
+                        <div id="project-assignments" class="detail-project-bottom">
+                            <!-- author / co-authors / contributors rendered by JS -->
                         </div>
                     </div>
                 </div>
@@ -232,5 +106,8 @@
             </div>
         </div>
     </div>
+    <x-slot name="script_slot">
+        <script src="{{ asset('asset/js/project-detail.js') }}"></script>
+    </x-slot>
 
 </x-office-layout>
