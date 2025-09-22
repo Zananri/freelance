@@ -1,3 +1,21 @@
+.detail-project-container {
+    max-height: calc(100vh - 175px);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.detail-project-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.detail-project-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.detail-project-container::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
 
 .project-detail-image {
     border-radius: 50%;
@@ -28,27 +46,61 @@
 }
 
 .icon-fill {
-  font-variation-settings: 'FILL' 1;
-  color: #42484F;
+    font-variation-settings: "FILL" 1;
+    color: #42484f;
 }
 
 .task-separator {
-    background: #DEDFE7;
+    background: #dedfe7;
 }
 
-.detail-list p{
+.detail-list p {
     font-size: 10px;
     font-weight: normal;
     margin-bottom: 5px;
 }
 
-.user-profile{
+.user-profile {
     width: 40px;
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
 }
 
-.detail-role p{
+.detail-role p {
     font-size: 10px;
+}
+
+.detail-project-bottom {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    max-height: 90px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.detail-project-bottom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.detail-project-bottom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.detail-project-bottom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.detail-role {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.user-profile {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
 }
