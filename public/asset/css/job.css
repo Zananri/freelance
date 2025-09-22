@@ -208,6 +208,10 @@ table.table tbody tr td:last-child {
     }
 }
 
+.dropdown-toggle::after {
+    display: none;
+}
+
 .search-input-container input,
 .btn-add-custom,
 .dropdown-filter-container button,
@@ -259,3 +263,52 @@ table.table tbody tr td:last-child {
 .dropdown-menu-filter select {
     border: none;
 }
+
+@media (max-width: 768px) {
+    .d-flex.justify-content-between.align-items-center.mb-4 {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mb-4 > h5 {
+        align-self: flex-start;
+        width: 100%;
+        text-align: left;
+    }
+
+    .d-flex.justify-content-between.align-items-center.mb-4 > .d-flex {
+        width: 100%;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .search-input-container {
+        width: 215px;
+        height: 40px;
+        flex: 0 0 auto;
+    }
+
+    .search-input-container input {
+        width: 100%;
+        height: 100%;
+    }
+
+    .dropdown-filter-container button,
+    .btn-add-custom {
+        min-width: 40px;
+        min-height: 40px;
+        padding: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .btn-text {
+        display: none;
+    }
+}
+

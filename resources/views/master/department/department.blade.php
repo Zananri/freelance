@@ -24,13 +24,13 @@
             <h5 class="mb-0 table-title">List Department</h5>
 
             <div class="d-flex gap-1">
-                <div class="input-group search-input-container" style="min-width: 200px; height: 40px;">
+                <div class="input-group search-input-container">
                     <input type="text" id="searchInput" class="form-control input-text border-0" placeholder="Search" style="height: 40px;" />
                 </div>
                 <div class="dropdown dropdown-filter-container">
                     <button class="btn btn-icon-toggle dropdown-toggle border-0"
                         type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span class="material-symbols-outlined icon">filter_list</span> Filter
+                        <span class="material-symbols-outlined icon">filter_list</span> <span class="btn-text">Filter</span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-filter" aria-labelledby="filterDropdown" style="min-width: 150px;">
                         <li><a class="dropdown-item filter-option active" href="#" data-status="ALL">All</a></li>
@@ -39,11 +39,10 @@
                         </li>
                     </ul>
                 </div>
-                </button>
 
                 <button id="btnAddData" class="btn btn-icon-toggle btn-add-container border-0"
                     data-bs-toggle="modal" data-bs-target="#addDepartmentModal">
-                    <span class="material-symbols-outlined icon">add</span> Add Data
+                    <span class="material-symbols-outlined icon">add</span><span class="btn-text">Add Data</span>
                 </button>
             </div>
         </div>
