@@ -868,6 +868,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     project.id
                                                 }" style="font-size:12px; color:#454545;"></span>
                                             </button>
+                                            <!-- Add Schedule button: opens schedule create modal and passes project id -->
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent ms-2 add-schedule-btn" title="Add Schedule" data-bs-toggle="modal" data-bs-target="#scheduleCreateModal" data-project-id="${project.id}">
+                                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">calendar_month</span>
+                                            </button>
                                         </div>
                                     </div>
 
