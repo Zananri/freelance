@@ -81,15 +81,21 @@
                     <p>{{ $project->division?->name_division ?? $project->division?->name ?? '-' }}</p>
                 </div>
 
-                <div class="d-flex justify-content-start mt-3 flex-wrap">
+                <div class="d-flex justify-content-start mt-3 flex-wrap gap-3">
                     @php
                         // group assignments
                         $author = null;
                         $coAuthors = [];
+                        $contributors = [];
                         foreach ($project->projectAssignments as $assignment) {
                             if (!isset($assignment->employee)) continue;
-                            if ($assignment->role === 'author') $author = $assignment->employee;
-                            if ($assignment->role === 'co_author') $coAuthors[] = $assignment->employee;
+                            if ($assignment->role === 'author') {
+                                $author = $assignment->employee;
+                            } elseif ($assignment->role === 'co_author') {
+                                $coAuthors[] = $assignment->employee;
+                            } elseif ($assignment->role === 'contributor') {
+                                $contributors[] = $assignment->employee;
+                            }
                         }
                     @endphp
 
@@ -99,11 +105,21 @@
                                     $avatar = asset('asset/img/avatar.png');
                                     if (!empty($author->profile_picture) || !empty($author->photo)) {
                                         $raw = $author->profile_picture ?: $author->photo;
-                                        // Match absolute URLs (http:// or https://) or protocol-relative (//)
-                                        $avatar = preg_match('/^(https?:)?\\\\\\//i', $raw) ? $raw : asset('file/' . ltrim($raw, '/'));
+                                        // If absolute URL or protocol-relative, use raw. Otherwise normalize local path.
+                                        if (strpos($raw, 'http://') === 0 || strpos($raw, 'https://') === 0 || strpos($raw, '//') === 0) {
+                                            $avatar = $raw;
+                                        } else {
+                                            $clean = ltrim($raw, '/');
+                                            // If already begins with file/, don't prefix again
+                                            if (strpos($clean, 'file/') === 0) {
+                                                $avatar = asset($clean);
+                                            } else {
+                                                $avatar = asset('file/' . $clean);
+                                            }
+                                        }
                                     }
                                 @endphp
-                            <img src="{{ $avatar }}" alt="user profile" class="rounded-circle me-2" width="40" height="40">
+                            <img src="{{ $avatar }}" alt="user profile" class="user-profile me-2">
                             <div>
                                 <p class="m-0 fw-normal">{{ $author->name }}</p>
                                 <p class="m-0 text-muted small">Author</p>
@@ -117,16 +133,52 @@
                                     $avatar = asset('asset/img/avatar.png');
                                     if (!empty($co->profile_picture) || !empty($co->photo)) {
                                         $raw = $co->profile_picture ?: $co->photo;
-                                        $avatar = preg_match('/^(https?:)?\\\\\\//i', $raw) ? $raw : asset('file/' . ltrim($raw, '/'));
+                                        if (strpos($raw, 'http://') === 0 || strpos($raw, 'https://') === 0 || strpos($raw, '//') === 0) {
+                                            $avatar = $raw;
+                                        } else {
+                                            $clean = ltrim($raw, '/');
+                                            if (strpos($clean, 'file/') === 0) {
+                                                $avatar = asset($clean);
+                                            } else {
+                                                $avatar = asset('file/' . $clean);
+                                            }
+                                        }
                                     }
                                 @endphp
-                            <img src="{{ $avatar }}" alt="user profile" class="rounded-circle me-2" width="40" height="40">
+                            <img src="{{ $avatar }}" alt="user profile" class="user-profile me-2">
                             <div>
                                 <p class="m-0 fw-normal">{{ $co->name }}</p>
                                 <p class="m-0 text-muted small">Co Author</p>
                             </div>
                         </div>
                     @endforeach
+                    @if(!empty($contributors))
+                        @foreach($contributors as $con)
+                            <div class="d-flex align-items-center detail-role me-2 mb-2">
+                                @php
+                                    $avatar = asset('asset/img/avatar.png');
+                                    if (!empty($con->profile_picture) || !empty($con->photo)) {
+                                        $raw = $con->profile_picture ?: $con->photo;
+                                        if (strpos($raw, 'http://') === 0 || strpos($raw, 'https://') === 0 || strpos($raw, '//') === 0) {
+                                            $avatar = $raw;
+                                        } else {
+                                            $clean = ltrim($raw, '/');
+                                            if (strpos($clean, 'file/') === 0) {
+                                                $avatar = asset($clean);
+                                            } else {
+                                                $avatar = asset('file/' . $clean);
+                                            }
+                                        }
+                                    }
+                                @endphp
+                                <img src="{{ $avatar }}" alt="user profile" class="user-profile me-2">
+                                <div>
+                                    <p class="m-0 fw-normal">{{ $con->name }}</p>
+                                    <p class="m-0 text-muted small">Contributor</p>
+                                </div>
+                            </div>
+                        @endforeach
+                    @endif
                 </div>
             </div>
         </div>
