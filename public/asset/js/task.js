@@ -978,6 +978,19 @@
             dropdown.style.display = "none";
             input.value = "";
         };
+        // Allow programmatically setting selected executors for Add modal
+        window.setSelectedExecutorsAdd = function (executors) {
+            try {
+                selectedEmployees = (executors || []).map(function (ex) {
+                    var photo = ex.user_photo || ex.profile_picture || ex.profile_picture_url || null;
+                    var photoUrl = buildPhotoUrl(photo, ex.profile_picture, ex.profile_picture_url);
+                    return { id: ex.id, name: ex.name, user_photo: photoUrl };
+                });
+                renderSelected();
+                updateHiddenInput();
+                renderDropdown();
+            } catch (e) { console.warn('setSelectedExecutorsAdd error', e); }
+        };
     }
 
     setupExecutorInput();
@@ -1005,6 +1018,50 @@
             });
         }
     } catch (e) { console.warn('Failed to wire project->parent selects', e); }
+
+    // Wire division select in Add Task modal to auto-select executors from that division
+    try {
+        const addDivisionSel = document.getElementById('task_division_id');
+        if (addDivisionSel) {
+            // Populate divisions on page load using divisions-for-projects (no department filter)
+            fetch(appUrl + '/divisions-for-projects')
+                .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                .then(d => {
+                    if (!d || !d.data) return;
+                    let opts = '<option value="">-- Select Division (optional) --</option>';
+                    d.data.forEach(function(div){ opts += `<option value="${div.id}" data-name="${(div.name_division||div.name)}">${(div.name_division||div.name)}</option>`; });
+                    addDivisionSel.innerHTML = opts;
+                })
+                .catch(err => { /* ignore */ });
+
+            addDivisionSel.addEventListener('change', function () {
+                const val = this.value;
+                const selectedName = (this.selectedOptions && this.selectedOptions[0] && this.selectedOptions[0].dataset && this.selectedOptions[0].dataset.name) ? this.selectedOptions[0].dataset.name : '';
+                if (!val) {
+                    // Clear auto-selection when unselected
+                    try { if (window.clearSelectedExecutors) window.clearSelectedExecutors(); } catch(_){}
+                    return;
+                }
+                // Fetch employees and filter by division name primarily
+                fetch(appUrl + '/employees-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                    .then(res => {
+                        const arr = (res && res.data) || [];
+                        const nameLower = String(selectedName || '').toLowerCase();
+                        const filteredByName = arr.filter(emp => String(emp.division || '').toLowerCase() === nameLower);
+                        // If the employees payload contains division_id field, also try matching by id
+                        const filteredById = arr.filter(emp => String(emp.division_id || '').toLowerCase() === String(val).toLowerCase());
+                        const final = filteredByName.length ? filteredByName : (filteredById.length ? filteredById : []);
+                        if (!final.length) {
+                            try { showFloatingAlert('No employees found for selected division.', 'warning', 2500); } catch(_){}
+                            return;
+                        }
+                        if (window.setSelectedExecutorsAdd) window.setSelectedExecutorsAdd(final);
+                    })
+                    .catch(err => { try { showFloatingAlert('Failed to load employees for division.', 'warning', 2500); } catch(_){} });
+            });
+        }
+    } catch (e) { console.warn('Failed to wire division->executors', e); }
     // Also load projects for schedule modal (optional select)
     (function loadProjectsForSchedule(){
         const select = document.getElementById('schedule_project_id');
