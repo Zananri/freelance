@@ -179,6 +179,19 @@
                     })
                     .then(function (data) {
                         modalBody.innerHTML = '';
+                        // current employee id (used to show Edit for own feedback/reply)
+                        var currentEmployeeId = (projectFeedbackModalEl.getAttribute('data-employee-id') || '');
+                        function getOwnerId(item) {
+                            try {
+                                if (!item) return '';
+                                if (item.employee) {
+                                    return String(item.employee.id || item.employee.employee_id || item.employee.user_id || '');
+                                }
+                                if (item.employee_id) return String(item.employee_id);
+                                if (item.employee_user_id) return String(item.employee_user_id);
+                                return '';
+                            } catch (_) { return ''; }
+                        }
                         var dialogEl = projectFeedbackModalEl.closest('.modal-dialog');
                         if (!data.data || data.data.length === 0) {
                             modalBody.innerHTML = '<p class="text-center text-muted">No feedback available for this project.</p>';
@@ -317,7 +330,7 @@
                             var actionsDiv = document.createElement('div');
                             actionsDiv.className = 'feedback-actions mt-2 d-flex gap-3';
 
-                            // Reply button
+                            // Reply & Edit buttons (Edit should be on the left, Reply on the right)
                             var replyWrapper = document.createElement('span');
                             replyWrapper.className = 'd-flex align-items-center';
                             replyWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
@@ -325,7 +338,27 @@
                             var replyText = document.createElement('span'); replyText.textContent = 'Reply';
                             replyWrapper.appendChild(replyIcon); replyWrapper.appendChild(replyText);
                             replyWrapper.addEventListener('click', function () { showReplyFeedbackForm(projectId, feedback.id); });
-                            actionsDiv.appendChild(replyWrapper);
+
+                            try {
+                                var ownerId = getOwnerId(feedback);
+                                if (ownerId && String(ownerId) === String(currentEmployeeId)) {
+                                    var editWrapper = document.createElement('span');
+                                    editWrapper.className = 'd-flex align-items-center';
+                                    editWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                    var editIcon = document.createElement('span'); editIcon.className = 'material-symbols-outlined feedback-edit-trigger'; editIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; editIcon.textContent = 'edit';
+                                    var editText = document.createElement('span'); editText.textContent = 'Edit';
+                                    editWrapper.appendChild(editIcon); editWrapper.appendChild(editText);
+                                    editWrapper.addEventListener('click', function () { showEditFeedbackForm(projectId, feedback, false); });
+                                    // append edit first, then reply so Edit appears on the left
+                                    actionsDiv.appendChild(editWrapper);
+                                    actionsDiv.appendChild(replyWrapper);
+                                } else {
+                                    // only reply
+                                    actionsDiv.appendChild(replyWrapper);
+                                }
+                            } catch (_) {
+                                actionsDiv.appendChild(replyWrapper);
+                            }
 
                             feedbackItem.appendChild(headerDiv);
                             feedbackItem.appendChild(commentDiv);
@@ -351,7 +384,24 @@
                                     var rImg = null; if (rep.image) { rImg = document.createElement('img'); var rsrc = rep.image; if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) rsrc = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + rsrc; else if (rsrc && String(rsrc).startsWith('/')) rsrc = getMeta('app-url').replace(/\/$/, '') + rsrc; rImg.src = rsrc; rImg.className = 'img-fluid rounded reply-image mt-1'; rImg.style.width = '70px'; rImg.style.borderRadius = '8px'; rImg.style.cursor = 'pointer'; rImg.addEventListener('click', function(){ window.open(rImg.src, '_blank'); }); }
                                     repDiv.appendChild(repHeader); repDiv.appendChild(repComment); if (rep.reference_url || (Array.isArray(rep.reference_urls) && rep.reference_urls.length) || rep.reference_file || (Array.isArray(rep.reference_files) && rep.reference_files.length)) repDiv.appendChild(repMedia); if (rImg) repDiv.appendChild(rImg);
                                     var replyActionsDiv = document.createElement('div'); replyActionsDiv.className = 'reply-actions mt-2 d-flex gap-3';
-                                    var replyReplyWrapper = document.createElement('span'); replyReplyWrapper.className='d-flex align-items-center'; replyReplyWrapper.style.cssText='cursor:pointer; color:#555; font-size:12px;'; var replyToReplyIcon = document.createElement('span'); replyToReplyIcon.className='material-symbols-outlined feedback-reply-trigger'; replyToReplyIcon.style.cssText='font-size:18px; line-height:1; margin-right:5px;'; replyToReplyIcon.textContent='reply'; var replyReplyText = document.createElement('span'); replyReplyText.textContent='Reply'; replyReplyWrapper.appendChild(replyToReplyIcon); replyReplyWrapper.appendChild(replyReplyText); replyReplyWrapper.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); }); replyActionsDiv.appendChild(replyReplyWrapper);
+                                    var replyReplyWrapper = document.createElement('span'); replyReplyWrapper.className='d-flex align-items-center'; replyReplyWrapper.style.cssText='cursor:pointer; color:#555; font-size:12px;'; var replyToReplyIcon = document.createElement('span'); replyToReplyIcon.className='material-symbols-outlined feedback-reply-trigger'; replyToReplyIcon.style.cssText='font-size:18px; line-height:1; margin-right:5px;'; replyToReplyIcon.textContent='reply'; var replyReplyText = document.createElement('span'); replyReplyText.textContent='Reply'; replyReplyWrapper.appendChild(replyToReplyIcon); replyReplyWrapper.appendChild(replyReplyText); replyReplyWrapper.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); });
+                                    try {
+                                        var repOwnerId = getOwnerId(rep);
+                                        if (repOwnerId && String(repOwnerId) === String(currentEmployeeId)) {
+                                            var editRepWrapper = document.createElement('span');
+                                            editRepWrapper.className = 'd-flex align-items-center';
+                                            editRepWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                            var editRepIcon = document.createElement('span'); editRepIcon.className = 'material-symbols-outlined feedback-edit-trigger'; editRepIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; editRepIcon.textContent = 'edit';
+                                            var editRepText = document.createElement('span'); editRepText.textContent = 'Edit';
+                                            editRepWrapper.appendChild(editRepIcon); editRepWrapper.appendChild(editRepText);
+                                            editRepWrapper.addEventListener('click', function(){ showEditFeedbackForm(projectId, rep, true); });
+                                            // append edit first then reply so Edit is left
+                                            replyActionsDiv.appendChild(editRepWrapper);
+                                            replyActionsDiv.appendChild(replyReplyWrapper);
+                                        } else {
+                                            replyActionsDiv.appendChild(replyReplyWrapper);
+                                        }
+                                    } catch(_) { replyActionsDiv.appendChild(replyReplyWrapper); }
                                     repDiv.appendChild(replyActionsDiv);
                                     repliesContainer.appendChild(repDiv);
                                 });
@@ -581,6 +631,38 @@
                         }
                     } catch (_) {}
                 })();
+
+                    try {
+                        var imageInput = modalBody.querySelector('#feedback_image');
+                        var imageLabel = modalBody.querySelector('#feedbackImageLabel');
+                        var imageClearBtn = modalBody.querySelector('#feedbackImageClearBtn');
+                        if (imageInput && imageLabel && imageClearBtn) {
+                            imageInput.addEventListener('change', function () {
+                                if (this.files && this.files[0]) {
+                                    var reader = new FileReader();
+                                    reader.onload = function (e) {
+                                        imageLabel.style.backgroundImage = "url('" + e.target.result + "')";
+                                        imageLabel.classList.add('has-image');
+                                        imageLabel.style.backgroundSize = 'cover';
+                                        imageLabel.style.opacity = '1';
+                                        imageClearBtn.classList.remove('d-none');
+                                    };
+                                    reader.readAsDataURL(this.files[0]);
+                                }
+                            });
+                            imageClearBtn.addEventListener('click', function (e) {
+                                e.preventDefault();
+                                imageInput.value = '';
+                                imageLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
+                                imageLabel.style.backgroundPosition = 'center center';
+                                imageLabel.style.backgroundRepeat = 'no-repeat';
+                                imageLabel.style.backgroundSize = '50%';
+                                imageLabel.classList.remove('has-image');
+                                imageLabel.style.opacity = '0.5';
+                                imageClearBtn.classList.add('d-none');
+                            });
+                        }
+                    } catch (_) {}
 
                 try {
                     var addBtn = document.getElementById('addFeedbackButton'); if (addBtn) { addBtn.textContent = 'Submit'; var fresh = addBtn.cloneNode(true); addBtn.parentNode.replaceChild(fresh, addBtn); fresh.addEventListener('click', function(e){ e.preventDefault(); var form = document.getElementById('replyFeedbackForm'); if (!form) return; var fd = new FormData(form); try { var urlInputs = form.querySelectorAll('input[name="reference_urls[]"]'); var urls = Array.from(urlInputs).map(function(i){return (i.value||'').trim();}).filter(Boolean); if (urls.length) fd.set('reference_url', urls[0]); } catch(_){} try { if (window.replyFeedbackSelectedFiles && window.replyFeedbackSelectedFiles.length) { window.replyFeedbackSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); }); } else { var rfInput = form.querySelector('#reply_reference_files'); if (rfInput && rfInput.files && rfInput.files.length) Array.from(rfInput.files).forEach(function(f){ fd.append('reference_files[]', f); }); } } catch(_){} fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks', { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ window.showFloatingAlert(res.message || 'Reply submitted', 'success', 1500); loadFeedbackData(projectId); }).catch(function(err){ var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to submit reply'; window.showFloatingAlert(msg, 'warning', 3500); }); }); }
