@@ -483,7 +483,7 @@
                     var imageLabel = modalBody.querySelector('#feedbackImageLabel');
                     var imageClearBtn = modalBody.querySelector('#feedbackImageClearBtn');
                     if (imageInput && imageLabel && imageClearBtn) {
-                        imageInput.addEventListener('change', function () {
+                        imgInput.addEventListener('change', function () {
                             if (this.files && this.files[0]) {
                                 var reader = new FileReader();
                                 reader.onload = function (e) {
@@ -491,7 +491,9 @@
                                     imageLabel.classList.add('has-image');
                                     imageLabel.style.backgroundSize = 'cover';
                                     imageLabel.style.opacity = '1';
-                                    imageClearBtn.classList.remove('d-none');
+                                        imgClearBtn.classList.remove('d-none');
+                                        // reset remove flag when user selects a new file
+                                        try { var editRemove = modalBody.querySelector('#edit_remove_image'); if (editRemove) editRemove.value = '0'; } catch(_){ }
                                 };
                                 reader.readAsDataURL(this.files[0]);
                             }
@@ -505,7 +507,9 @@
                             imageLabel.style.backgroundSize = '50%';
                             imageLabel.classList.remove('has-image');
                             imageLabel.style.opacity = '0.5';
-                            imageClearBtn.classList.add('d-none');
+                                imgClearBtn.classList.add('d-none');
+                                // mark remove flag so backend deletes existing image on update
+                                try { var editRemove = modalBody.querySelector('#edit_remove_image'); if (editRemove) editRemove.value = '1'; } catch(_){ }
                         });
                     }
                 } catch (_) {}
@@ -673,16 +677,38 @@
 
             function showEditFeedbackForm(projectId, data, isReply) {
                 modalTitle.textContent = isReply ? 'Edit Reply' : 'Edit Feedback';
-                var existingImg = data.image_url || '';
-                var bgStyle = existingImg ? "background-image: url('" + existingImg + "'); background-size: cover; opacity: 1;" : "background-image: url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;";
-                var clearClass = existingImg ? '' : 'd-none';
+                // determine existing image from various possible fields and normalize to full URL
+                var existingImgRaw = (data && (data.image || data.image_url || data.image_path || data.imageUrl || data.image_url_full)) || '';
+                // detect explicit clear flags coming from server-side (treat as no image)
+                var removeFlag = false;
+                try {
+                    if (data && (data.remove_image === 1 || data.remove_image === '1' || data.remove_image === true)) removeFlag = true;
+                    if (data && (data.removeImage === 1 || data.removeImage === '1' || data.removeImage === true)) removeFlag = true;
+                } catch (_) { removeFlag = false; }
+                function toFullImageUrl(v) {
+                    if (!v) return '';
+                    try {
+                        var s = String(v);
+                        if (s.startsWith('http://') || s.startsWith('https://')) return s;
+                        if (s.startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + s;
+                        return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + s.replace(/^\//, '');
+                    } catch (_) { return String(v); }
+                }
+                var existingImg = toFullImageUrl(existingImgRaw || '');
+                var hasExistingImage = existingImg && !removeFlag;
+                var bgStyle = hasExistingImage ? "background-image: url('" + existingImg + "'); background-size: cover; opacity: 1;" : "background-image: url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;";
+                var clearClass = hasExistingImage ? '' : 'd-none';
                 modalBody.innerHTML = '';
+                // include a hidden remove flag so clearing the image signals backend to delete it
+                var initialRemoveFlag = removeFlag ? '1' : '0';
                 modalBody.innerHTML = '<form id="editFeedbackForm" enctype="multipart/form-data">' + (data.parent_id ? ('<input type="hidden" name="parent_id" value="' + data.parent_id + '">') : '') +
                     '<div class="mb-3 input-custom">' +
                     '<label class="form-label label-custom">Upload Image</label>' +
                     '<div class="image-upload-container">' +
                     '<label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; ' + bgStyle + ' cursor: pointer;">' +
                     '<input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">' +
+                    // hidden flag used by backend: remove_image=1 means delete existing image
+                    '<input type="hidden" id="edit_remove_image" name="remove_image" value="' + initialRemoveFlag + '">' +
                     '<span class="image-clear-btn ' + clearClass + '" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>' +
                     '</label>' +
                     '</div>' +
@@ -704,14 +730,43 @@
                     '</div>' +
                     '</form>';
 
-                // image preview and file preview handlers are similar to prior implementations; for brevity we'll not duplicate event binding here beyond basic behavior
+                // image preview and clear handlers for edit feedback (ensure existing image shows and can be changed/cleared)
                 try {
+                    var imgInput = modalBody.querySelector('#feedback_image');
+                    var imgLabel = modalBody.querySelector('#editFeedbackImageLabel');
+                    var imgClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+                    if (imgInput && imgLabel && imgClearBtn) {
+                        imgInput.addEventListener('change', function () {
+                            if (this.files && this.files[0]) {
+                                var reader = new FileReader();
+                                reader.onload = function (e) {
+                                    imgLabel.style.backgroundImage = "url('" + e.target.result + "')";
+                                    imgLabel.classList.add('has-image');
+                                    imgLabel.style.backgroundSize = 'cover';
+                                    imgLabel.style.opacity = '1';
+                                    imgClearBtn.classList.remove('d-none');
+                                };
+                                reader.readAsDataURL(this.files[0]);
+                            }
+                        });
+                        imgClearBtn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            try { imgInput.value = ''; } catch(_){}
+                            imgLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
+                            imgLabel.style.backgroundPosition = 'center center';
+                            imgLabel.style.backgroundRepeat = 'no-repeat';
+                            imgLabel.style.backgroundSize = '50%';
+                            imgLabel.classList.remove('has-image');
+                            imgLabel.style.opacity = '0.5';
+                            imgClearBtn.classList.add('d-none');
+                        });
+                    }
                     var addBtn = document.getElementById('addFeedbackButton');
                     if (addBtn) {
                         addBtn.textContent = 'Update';
                         var fresh = addBtn.cloneNode(true);
                         addBtn.parentNode.replaceChild(fresh, addBtn);
-                        fresh.addEventListener('click', function (e) {
+                            fresh.addEventListener('click', function (e) {
                             e.preventDefault();
                             var form = document.getElementById('editFeedbackForm');
                             if (!form) return;
@@ -723,8 +778,16 @@
                             try {
                                 if (window.editFeedbackSelectedFiles && window.editFeedbackSelectedFiles.length) { window.editFeedbackSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); }); } else { var rfInput = form.querySelector('#edit_reference_files'); if (rfInput && rfInput.files && rfInput.files.length) Array.from(rfInput.files).forEach(function(f){ fd.append('reference_files[]', f); }); }
                             } catch(_){}
+                            // ensure remove_image flag (if present) is sent to backend
+                            try { var editRemove = form.querySelector('#edit_remove_image'); if (editRemove) fd.set('remove_image', editRemove.value); } catch(_){ }
                             fd.append('_method', 'PUT');
-                            fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + data.id, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ window.showFloatingAlert(res.message || 'Feedback updated', 'success', 1500); loadFeedbackData(projectId); }).catch(function(err){ var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to update feedback'; window.showFloatingAlert(msg, 'warning', 3500); });
+                try { console.debug('[Feedback Edit] sending remove_image=', fd.get('remove_image')); } catch(_){}
+                fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + data.id, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ window.showFloatingAlert(res.message || 'Feedback updated', 'success', 1500);
+                    // refresh list and ensure modal reflects the updated state (no image if removed)
+                    try { loadFeedbackData(projectId); } catch(_){}
+                    // small safety: after a short delay re-render again to avoid stale cached content
+                    setTimeout(function(){ try { loadFeedbackData(projectId); } catch(_){} }, 700);
+                }).catch(function(err){ var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to update feedback'; window.showFloatingAlert(msg, 'warning', 3500); });
                         });
                     }
                 } catch (_) {}
