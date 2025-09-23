@@ -1229,6 +1229,36 @@ class TaskController extends Controller
                         return null;
                     }
                 })(),
+                // Include full ordered status change logs for frontend to render history
+                'status_changes' => (function () use ($task) {
+                    try {
+                        $logs = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'asc')->get();
+                        $arr = [];
+                        foreach ($logs as $log) {
+                            $emp = null;
+                            try { $emp = $log->employee; } catch (\Throwable $_) { $emp = null; }
+                            $name = $emp?->name ?? null;
+                            $label = match($log->new_status) {
+                                'in_progress' => 'In Progress by:',
+                                'new_request' => 'Back to request by:',
+                                'completed' => 'Completed by:',
+                                'rejected' => 'Rejected by:',
+                                default => ucfirst(str_replace('_', ' ', $log->new_status)) . ' by:',
+                            };
+                            $arr[] = [
+                                'label' => $label,
+                                'employee_id' => $log->employee_id,
+                                'employee_name' => $name,
+                                'changed_at' => $log->created_at,
+                                'new_status' => $log->new_status,
+                                'old_status' => $log->old_status,
+                            ];
+                        }
+                        return $arr;
+                    } catch (\Throwable $t) {
+                        return [];
+                    }
+                })(),
             ];
 
             return response()->json([

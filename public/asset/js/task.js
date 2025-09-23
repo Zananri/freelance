@@ -2025,17 +2025,7 @@ document.addEventListener("click", function (e) {
                                 ${task.priority}
                             </span>
                         </div>
-                        ${(function(){
-                            try {
-                                const sc = task.status_change || null;
-                                if (!sc) return '';
-                                const lbl = (sc.label || '').toString();
-                                const name = (sc.employee_name || '').toString();
-                                if (!lbl && !name) return '';
-                                function esc(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-                                return `<div style="font-size:10px;margin-top:4px;color:#454545"><span style="color:#797E91;">${esc(lbl)}</span><span style="margin-left:2px;color:#454545">${esc(name)}</span></div>`;
-                            } catch(e){ return ''; }
-                        })()}
+                        ${''}
                     </div>
                     <div style="font-size: 10px; font-weight: 400;">
                         <span style="color: #797E91;">Deadline: </span>
@@ -4873,46 +4863,56 @@ function applyCurrentSearchFilter() {
         `;
 
         // Wire image preview/clear
-        (function() {
-            const imageInput = modalBody.querySelector('#feedback_image');
-            const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
-            const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
-            if (!imageInput || !imageLabel || !imageClearBtn) return;
-            // If existing image exists, ensure clear button is visible
-            if (existingImg) {
-                imageClearBtn.classList.remove('d-none');
-                imageLabel.classList.add('has-image');
-            }
-            imageInput.addEventListener('change', function () {
-                if (this.files && this.files[0]) {
-                    const file = this.files[0];
-                    if (file.size > MAX_IMAGE_BYTES) {
-                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
-                        this.value = '';
-                        return;
-                    }
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
-                        imageLabel.classList.add('has-image');
-                        imageLabel.style.backgroundSize = 'cover';
-                        imageLabel.style.opacity = '1';
-                        imageClearBtn.classList.remove('d-none');
-                    };
-                    reader.readAsDataURL(file);
+        (function(){
+            try {
+                const imageInput = modalBody.querySelector('#feedback_image');
+                const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
+                const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+
+                if (imageInput) {
+                    imageInput.addEventListener('change', function () {
+                        if (this.files && this.files[0]) {
+                            const file = this.files[0];
+                            if (file.size > MAX_IMAGE_BYTES) {
+                                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                                this.value = '';
+                                return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                try {
+                                    if (imageLabel) {
+                                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                                        imageLabel.classList.add('has-image');
+                                        imageLabel.style.backgroundSize = 'cover';
+                                        imageLabel.style.opacity = '1';
+                                    }
+                                    if (imageClearBtn) imageClearBtn.classList.remove('d-none');
+                                } catch (_) {}
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
                 }
-            });
-            imageClearBtn.addEventListener('click', function (e) {
-                e.preventDefault();
-                imageInput.value = '';
-                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-                imageLabel.style.backgroundPosition = 'center center';
-                imageLabel.style.backgroundRepeat = 'no-repeat';
-                imageLabel.style.backgroundSize = '50%';
-                imageLabel.classList.remove('has-image');
-                imageLabel.style.opacity = '0.5';
-                imageClearBtn.classList.add('d-none');
-            });
+
+                if (imageClearBtn) {
+                    imageClearBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        try {
+                            if (imageInput) imageInput.value = '';
+                            if (imageLabel) {
+                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                imageLabel.style.backgroundPosition = 'center center';
+                                imageLabel.style.backgroundRepeat = 'no-repeat';
+                                imageLabel.style.backgroundSize = '50%';
+                                imageLabel.classList.remove('has-image');
+                                imageLabel.style.opacity = '0.5';
+                            }
+                            imageClearBtn.classList.add('d-none');
+                        } catch (_) {}
+                    });
+                }
+            } catch (_) {}
         })();
 
         // Prefill multiple reference URLs for edit form
@@ -5713,7 +5713,26 @@ function applyCurrentSearchFilter() {
                         <span>${task.project?.division || "-"}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
-                        <div class="flex-grow-1">${buildTaskCollaboratorsList(task)}</div>
+                        <div class="flex-grow-1">${buildTaskCollaboratorsList(task)}
+                            ${(function(){
+                                try {
+                                    let scs = task.status_changes || null;
+                                    // Backwards-compat: fallback to single status_change if present
+                                    if ((!scs || !Array.isArray(scs) || scs.length === 0) && task.status_change) {
+                                        scs = [task.status_change];
+                                    }
+                                    if (!scs || !Array.isArray(scs) || scs.length === 0) return '';
+                                    function esc(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+                                    const rows = scs.map(function(sc){
+                                        const lbl = (sc.label || '').toString();
+                                        const name = (sc.employee_name || '').toString();
+                                        if (!lbl && !name) return '';
+                                        return `<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">${esc(lbl)}</span><span style="margin-left:6px;color:#454545">${esc(name)}</span></div>`;
+                                    });
+                                    return rows.join('');
+                                } catch(e){ return ''; }
+                            })()}
+                        </div>
                         <div class="d-flex align-items-start">
                             <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
                                 <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
