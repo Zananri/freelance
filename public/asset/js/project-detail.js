@@ -341,10 +341,66 @@
             setupImageInput(editImageEl, editImageLabel, editImageClearBtn);
         } catch (e) {}
 
-        // button references (anchor to #references) - if project doesn't have references this simply navigates
-        $("#btn-references").on("click", function () {
-            window.location.hash = "#references";
+        // button references: open Reference Files modal (mirror project.js behavior)
+        $("#btn-references").on("click", function (e) {
+            e.preventDefault();
+            var pid = getMeta('project-id');
+            if (pid && window.showProjectFiles) {
+                window.showProjectFiles(pid);
+                return;
+            }
+            // fallback: try to open modal directly if element exists
+            try {
+                var modalEl = document.getElementById('projectFilesModal');
+                if (modalEl) {
+                    var m = new bootstrap.Modal(modalEl);
+                    m.show();
+                } else {
+                    // fallback to hash navigation
+                    window.location.hash = '#references';
+                }
+            } catch (err) {
+                window.location.hash = '#references';
+            }
         });
+        // Expose showProjectFiles for detail page (same behavior as project.js)
+        window.showProjectFiles = function (projectId) {
+            var modalEl = document.getElementById('projectFilesModal');
+            var listEl = document.getElementById('projectReferenceFilesList');
+            if (!modalEl || !listEl) return;
+
+            listEl.innerHTML = '<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            var appBase = getMeta('app-url') ? getMeta('app-url').replace(/\/$/, '') : '';
+            $.ajax({
+                url: appBase + '/project/' + projectId,
+                method: 'GET',
+                dataType: 'json',
+                success: function (resp) {
+                    var data = (resp && resp.data) ? resp.data : resp || {};
+                    var files = Array.isArray(data.reference_files) ? data.reference_files : Array.isArray(data.reference_file) ? data.reference_file : data.reference_file ? [data.reference_file] : [];
+                    listEl.innerHTML = '';
+                    if (files && files.length > 0) {
+                        files.forEach(function (fileName) {
+                            var a = document.createElement('a');
+                            a.href = appBase + '/file/project/' + fileName;
+                            a.target = '_blank';
+                            a.className = 'd-block text-decoration-none mb-1';
+                            a.innerHTML = '<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ' + fileName;
+                            listEl.appendChild(a);
+                        });
+                    } else {
+                        listEl.textContent = 'No reference files available.';
+                    }
+                    try { var m = new bootstrap.Modal(modalEl); m.show(); } catch (e) {}
+                },
+                error: function () {
+                    listEl.innerHTML = '';
+                    listEl.textContent = 'Failed to load reference files.';
+                    try { var m = new bootstrap.Modal(modalEl); m.show(); } catch (e) {}
+                }
+            });
+        };
         $("#btn-comments").on("click", function () {
             window.location.hash = "#comments";
         });

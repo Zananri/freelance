@@ -309,6 +309,24 @@
             <div class="alert-container mt-2" style="width: 100%;"></div>
         </div>
     </div>
+    <!-- Project Reference Files Modal (same as in project listing) -->
+    <div class="modal fade modal-custom" id="projectFilesModal" tabindex="-1"
+        aria-labelledby="projectFilesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom" id="projectFilesModalLabel">Reference Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <hr>
+                <div class="modal-body modal-body-custom">
+                    <div id="projectReferenceFilesList" class="d-flex flex-column gap-2">
+                        <!-- File links will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <x-slot name="script_slot">
         <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
