@@ -40,7 +40,7 @@
         <div class="row mb-3">
             <div class="col-md-4 detail-project-card">
                 <div class="body-content rounded-4 p-3">
-                    <div class="d-flex align-items-center">
+                    <div class="d-flex align-items-center mb-1">
                         <img id="project-image" src="{{ asset('asset/img/image.png') }}" alt="project detail image"
                             class="project-detail-image me-3">
                         <h4 id="project-title" class="project-detail-title m-0 d-flex align-items-center">-</h4>
