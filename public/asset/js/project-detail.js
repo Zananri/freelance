@@ -26,6 +26,52 @@
         return url;
     }
 
+    // Build 1-2 character initials from a title/name
+    function buildInitials(title) {
+        try {
+            if (!title) return '';
+            var t = String(title || '').trim();
+            if (!t) return '';
+            var parts = t.split(/\s+/).filter(Boolean);
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        } catch (e) { return ''; }
+    }
+
+    // Deterministic color pick from text
+    function getRandomColorFromText(text) {
+        try {
+            var colors = [
+                '#6A5AE0', '#FF8A3C', '#00A881', '#D4526E', '#3E8EDE',
+                '#546E7A', '#8E44AD', '#2E7D32', '#AD1457', '#EF6C00'
+            ];
+            var h = 0;
+            for (var i = 0; i < (text || '').length; i++) {
+                h = text.charCodeAt(i) + ((h << 5) - h);
+            }
+            return colors[Math.abs(h) % colors.length];
+        } catch (e) { return '#6A5AE0'; }
+    }
+
+    // Build a simple SVG data URI with initials centered
+    function buildInitialsSvg(initials, bgColor) {
+        try {
+            var w = 256, h = 256; // canvas size for crisp output
+            var text = (initials || '').toUpperCase();
+            // font size relative to canvas width for consistent scaling
+            var fontSize = Math.round(w * 0.44);
+            // Use viewBox so SVG scales nicely; center text with dominant-baseline & text-anchor
+            var svg = '';
+            svg += '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '">';
+            svg += '<rect width="100%" height="100%" fill="' + (bgColor || '#6A5AE0') + '"/>';
+            svg += '<text x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" fill="#ffffff" font-family="Inter, Arial, Helvetica, sans-serif" font-weight="700" font-size="' + fontSize + '">' + (text || '') + '</text>';
+            svg += '</svg>';
+            return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+        } catch (e) {
+            return '/asset/img/avatar.png';
+        }
+    }
+
     function renderAssignments(container, author, coAuthors, contributors) {
         container.empty();
         var makeEntry = function (person, roleLabel) {
@@ -200,9 +246,17 @@
             }
             $("#project-image").attr("src", imgUrl);
         } else {
-            // keep the server-provided placeholder image from meta (already set during init)
-            var metaImg = getMeta("project-image");
-            if (metaImg) $("#project-image").attr("src", metaImg);
+            // Project has no image: prefer an initials avatar generated from title.
+            // Only fall back to the server-provided meta placeholder if we cannot build initials.
+            var initials = buildInitials(data.title || '');
+            if (initials) {
+                var color = getRandomColorFromText(data.title || '');
+                var svg = buildInitialsSvg(initials, color);
+                $("#project-image").attr("src", svg);
+            } else {
+                var metaImg = getMeta("project-image");
+                if (metaImg) $("#project-image").attr("src", metaImg);
+            }
         }
         $("#project-description").html(
             data.description ? data.description.replace(/\n/g, "<br>") : "-"
@@ -386,11 +440,39 @@
                         labelEl.style.opacity = '1';
                         if (clearBtnEl) clearBtnEl.classList.remove('d-none');
                         // if user selects a new image, ensure remove_image flag is reset
-                        try { document.getElementById('edit_remove_image').value = '0'; } catch(_){}
+                        try { document.getElementById('edit_remove_image').value = '0'; } catch(_){ }
                     } catch (err) {}
                 };
                 reader.readAsDataURL(file);
             });
+
+            // Helper: build initials from a title string (first+last char or first two chars)
+            function buildInitials(title) {
+                try {
+                    if (!title) return '';
+                    var t = String(title || '').trim();
+                    if (!t) return '';
+                    var parts = t.split(/\s+/).filter(Boolean);
+                    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+                    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+                } catch (e) { return ''; }
+            }
+
+            // Helper: deterministic color from text
+            function getRandomColorFromText(text) {
+                try {
+                    var colors = [
+                        '#6A5AE0', '#FF8A3C', '#00A881', '#D4526E', '#3E8EDE',
+                        '#546E7A', '#8E44AD', '#2E7D32', '#AD1457', '#EF6C00'
+                    ];
+                    var h = 0;
+                    for (var i = 0; i < (text || '').length; i++) {
+                        h = text.charCodeAt(i) + ((h << 5) - h);
+                    }
+                    return colors[Math.abs(h) % colors.length];
+                } catch (e) { return '#6A5AE0'; }
+            }
+
             if (clearBtnEl) {
                 clearBtnEl.addEventListener('click', function (ev) {
                     ev.preventDefault();
@@ -402,7 +484,13 @@
                         labelEl.style.opacity = '0.5';
                         clearBtnEl.classList.add('d-none');
                         // mark remove_image so backend deletes existing image
-                        try { document.getElementById('edit_remove_image').value = '1'; } catch(_){}
+                        try { document.getElementById('edit_remove_image').value = '1'; } catch(_){ }
+
+                        // Note: do not change the project detail image immediately here.
+                        // The actual project image on the detail page will be refreshed
+                        // after the Update request succeeds (see edit form success handler
+                        // which calls fetchProject). We only update modal preview and
+                        // set the remove flag so the server knows to delete the image.
                     } catch (err) {}
                 });
             }
