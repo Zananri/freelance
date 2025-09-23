@@ -193,25 +193,6 @@
     }
 }
 
-.custom-image-upload.has-image {
-    opacity: 1;
-}
-.custom-image-upload {
-    position: relative;
-    display: inline-block;
-    width: 100px;
-    height: 100px;
-    background-size: cover;
-    background-position: center;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: border-color 0.3s
-ease, opacity 0.3s
-ease;
-    opacity: 0.5;
-}
-
 .input-custom input,
 .input-custom select,
 .input-custom textarea {
@@ -235,7 +216,7 @@ ease;
     display: inline-block;
     width: 100px;
     height: 100px;
-    background-size: cover;
+    background-size: 50% !important;
     background-position: center;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -246,6 +227,7 @@ ease;
 
 .custom-image-upload.has-image {
     opacity: 1;
+    background-size: cover !important;
 }
 
 .custom-image-upload:hover {
