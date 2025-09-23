@@ -8,9 +8,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         @php
             $img = $project->image ?? null;
-            $imgUrl = $img
-                ? asset('file/project/' . ltrim($img, '/'))
-                : asset('asset/img/image.png');
+            $imgUrl = $img ? asset('file/project/' . ltrim($img, '/')) : asset('asset/img/image.png');
             $totalTasks = $project->tasks ? $project->tasks->count() : 0;
         @endphp
         <meta name="project-image" content="{{ $imgUrl }}">
@@ -43,7 +41,8 @@
             <div class="col-md-4 detail-project-card">
                 <div class="body-content rounded-4 p-3">
                     <div class="d-flex align-items-center">
-                        <img id="project-image" src="{{ asset('asset/img/image.png') }}" alt="project detail image" class="project-detail-image me-3">
+                        <img id="project-image" src="{{ asset('asset/img/image.png') }}" alt="project detail image"
+                            class="project-detail-image me-3">
                         <h4 id="project-title" class="project-detail-title m-0 d-flex align-items-center">-</h4>
                     </div>
                     <div class="description-container mb-1">
@@ -83,7 +82,7 @@
                         <p id="project-division">-</p>
                     </div>
 
-                    <div class="d-flex justify-content-start mt-3 flex-wrap gap-3">
+                    <div class="d-flex justify-content-center mt-3">
                         <div id="project-assignments" class="detail-project-bottom">
                             <!-- author / co-authors / contributors rendered by JS -->
                         </div>
@@ -107,60 +106,75 @@
             </div>
         </div>
     </div>
-    <x-slot name="script_slot">
-        <!-- Delete confirmation modal (detailed card like in project list) -->
-        @php
-            $projImg = $project->image ?? null;
-            $projImgUrl = $projImg ? asset('file/project/' . ltrim($projImg, '/')) : asset('asset/img/image.png');
-            $projTitle = $project->title ?? '-';
-            $projDesc = $project->description ?? '-';
-            $projDeadline = $project->due_date ? $project->due_date : '-';
-            $projDept = $project->department?->name_department ?? ($project->department?->name ?? '-');
-            $projDiv = $project->division?->name_division ?? ($project->division?->name ?? '-');
-            // initials (first two letters of title)
-            $initials = trim($projTitle) ? strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]/u','',$projTitle),0,2)) : '';
-        @endphp
-        <div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-body modal-body-custom">
-                        <div id="deleteProjectContent">
-                            <div class="custom-card-delete position-relative p-3 border-0">
-                                <div class="d-flex align-items-center mb-2">
-                                    <img src="{{ $projImgUrl }}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;var d=document.createElement('div');d.className='rounded-circle d-flex align-items-center justify-content-center me-3';d.style.width='34px';d.style.height='34px';d.style.background='#FF8A3C';d.style.color='#fff';d.style.fontWeight='600';d.style.fontSize='11px';d.textContent='{{ $initials }}';this.replaceWith(d);">
-                                    <div class="d-flex flex-column">
-                                        <h5 class="mb-0 task-title" style="line-height:1.2;">{{ $projTitle }}</h5>
-                                    </div>
-                                </div>
-                                <div class="task-description-container mb-2"><p class="task-description mb-0" style="font-size:14px;">{{ $projDesc }}</p></div>
-                                <hr class="task-separator rounded-4">
-                                <div id="project-{{ $project->id ?? '0' }}" class="project-card">
-                                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
-                                        <div>
-                                            <span style="color:#797E91;">Deadline: </span>
-                                            <span id="deadline-{{ $project->id ?? '0' }}" style="color:#4B4F5E;">{{ $projDeadline }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
-                                    <span class="text-muted">Department:</span>
-                                    <span>{{ $projDept }}</span>
-                                </div>
-                                <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                                    <span class="text-muted">Division:</span>
-                                    <span>{{ $projDiv }}</span>
+    <!-- Delete confirmation modal (detailed card like in project list) -->
+    @php
+        $projImg = $project->image ?? null;
+        $projImgUrl = $projImg ? asset('file/project/' . ltrim($projImg, '/')) : asset('asset/img/image.png');
+        $projTitle = $project->title ?? '-';
+        $projDesc = $project->description ?? '-';
+        $projDeadline = $project->due_date ? $project->due_date : '-';
+        $projDept = $project->department?->name_department ?? ($project->department?->name ?? '-');
+        $projDiv = $project->division?->name_division ?? ($project->division?->name ?? '-');
+        // initials (first two letters of title)
+        $initials = trim($projTitle)
+            ? strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]/u', '', $projTitle), 0, 2))
+            : '';
+    @endphp
+    <div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-body modal-body-custom">
+                    <div id="deleteProjectContent">
+                        <div class="custom-card-delete position-relative p-3 border-0">
+                            <div class="d-flex align-items-center mb-2">
+                                <img src="{{ $projImgUrl }}" alt="Project Image" class="rounded-circle me-3"
+                                    style="width:34px;height:34px;object-fit:cover;"
+                                    onerror="this.onerror=null;var d=document.createElement('div');d.className='rounded-circle d-flex align-items-center justify-content-center me-3';d.style.width='34px';d.style.height='34px';d.style.background='#FF8A3C';d.style.color='#fff';d.style.fontWeight='600';d.style.fontSize='11px';d.textContent='{{ $initials }}';this.replaceWith(d);">
+                                <div class="d-flex flex-column">
+                                    <h5 class="mb-0 project-detail-title">{{ $projTitle }}</h5>
                                 </div>
                             </div>
+                            <div class="description-container mb-2">
+                                <p class="description-detail" style="font-size:14px;">{{ $projDesc }}</p>
+                            </div>
+                            <hr class="task-separator rounded-4">
+
+                            <div id="project-{{ $project->id ?? '0' }}" class="d-flex justify-content-between mb-1"
+                                style="font-size:12px;">
+                                <span>Total Task: </span>
+                                <span id="project-total-tasks">{{ $totalTasks }} Tasks</span>
+                            </div>
+
+                            <div id="project-{{ $project->id ?? '0' }}" class="d-flex justify-content-between mb-1"
+                                style="font-size:12px;">
+                                <span>Deadline: </span>
+                                <span id="deadline-{{ $project->id ?? '0' }}">{{ $projDeadline }}</span>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                <span class="text-muted">Department:</span>
+                                <span>{{ $projDept }}</span>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <span class="text-muted">Division:</span>
+                                <span>{{ $projDiv }}</span>
+                            </div>
+
                         </div>
                     </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-submit-black" id="confirmDeleteProjectBtn" data-project-id="{{ $project->id ?? '' }}">Delete</button>
-                    </div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteProjectBtn"
+                        data-project-id="{{ $project->id ?? '' }}">Delete</button>
                 </div>
             </div>
         </div>
+    </div>
 
+    <x-slot name="script_slot">
         <script src="{{ asset('asset/js/project-detail.js') }}"></script>
     </x-slot>
 
