@@ -24,10 +24,10 @@
 
     <div class="teams-container">
 
-        @foreach ($department as $rowDepartment)
-            <div class="card-department" data-department="{{ $rowDepartment->name_department }}">
+        @foreach ($division as $rowdivision)
+            <div class="card-division" data-division="{{ $rowdivision->name_division }}">
                 <div class="box-card-title">
-                    <h3 class="text-card-title">{{ $rowDepartment->name_department }}</h3>
+                    <h3 class="text-card-title">{{ $rowdivision->name_division }}</h3>
                 </div>
 
                 <div class="box-employee">
@@ -35,7 +35,7 @@
                         
                         @foreach ($employee as $rowEmmployee)
                         
-                            @if ($rowEmmployee->department_id == $rowDepartment->id)
+                            @if ($rowEmmployee->division_id == $rowdivision->id)
 
                                 <div class="col-12 col-md-4 col-employee">
 
@@ -140,14 +140,12 @@
                                 </div>
 
                                 <div class="info-item d-flex align-items-start gap-3 mb-4">
-                                    <div class="icon-circle department">
+                                    <div class="icon-circle division">
                                         <span class="material-symbols-outlined">work</span>
                                     </div>
                                     <div class="col-label-value">
-                                        <p class="label">Department & Division</p>
+                                        <p class="label">Division</p>
                                         <div class="value">
-                                            <span class="employee-department"></span>
-                                            <span>/</span>
                                             <span class="employee-division"></span>
                                         </div>
 

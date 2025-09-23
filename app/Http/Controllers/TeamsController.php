@@ -15,9 +15,15 @@ class TeamsController extends Controller
 
     public function showTeamsPage()
     {
+        $userId = auth()->user()->id;
+
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+
+
         $employee = Employee::select(
             'employees.id',
             'employees.department_id',
+            'employees.division_id',
             'employees.name',
             'employees.status',
             'employees.user_id',
@@ -30,6 +36,7 @@ class TeamsController extends Controller
         ->join('users','employees.user_id','=','users.id')
         ->where('employees.status',"ACTIVE")
         ->where('users.user_type','<>',"ADMINISTRATOR")
+        ->where('employees.department_id',$currentEmployee->department_id)
         ->get();
 
         $department = Department::where('status',"ACTIVE")->get();

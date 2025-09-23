@@ -1,4 +1,4 @@
-.card-department{
+.card-division{
     background-color: rgba(89, 140, 197,0.03);
     border-radius: 20px;
     border-bottom: 1px solid rgba(89, 140, 197,0.3);
@@ -236,7 +236,7 @@
     background: #9ddad9;
     color: white;
 }
-.icon-circle.department {
+.icon-circle.division {
     background: #ded4ab;
     color: white;
 }
@@ -259,7 +259,7 @@
 
 @media screen and (max-width: 568px) {
 
-    .card-department{
+    .card-division{
             padding: 5px 5px;
     }
     

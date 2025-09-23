@@ -42,7 +42,6 @@ function getTeamsDetail(employeeId)
             $('#modalView .employee-grade').text(resData.grade.title);
             $('#modalView .employee-email').text(resData.email_work);
             $('#modalView .employee-phone').text(resData.phone);
-            $('#modalView .employee-department').text(resData.department.name_department);
             $('#modalView .employee-division').text(resData.division.name_division);
             $('#modalView .employee-job').text(resData.job.job_name);
 
