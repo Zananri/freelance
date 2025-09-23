@@ -1557,7 +1557,9 @@ class TaskController extends Controller
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'message' => 'Task deleted successfully'
+                // Back-end still performs same soft-delete (status set to 'DELETED'),
+                // but return message uses 'canceled' to match UI label change.
+                'message' => 'Task canceled successfully'
             ]);
 
         } catch (\Exception $e) {

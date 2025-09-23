@@ -2047,7 +2047,7 @@ document.addEventListener("click", function (e) {
                         <div class="dropdown-item">Edit</div>
                         <div class="dropdown-item">Feedback</div>
                         ${statusMenuItem}
-                        ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
+                        ${showDelete ? '<div class="dropdown-item delete-task">Cancel</div>' : ''}
                     </div>
                 </div>
                 ${iconHtml}
@@ -3200,7 +3200,7 @@ function applyCurrentSearchFilter() {
                         case "Back to Request":
                             handleTaskBackToRequest(taskId, taskCard);
                             break;
-                        case "Delete":
+                        case "Cancel":
                             handleTaskDelete(taskId, taskCard);
                             break;
                     }
@@ -5756,7 +5756,7 @@ function applyCurrentSearchFilter() {
                             <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                             <div class="dropdown-menu d-none">
                                 <div class="dropdown-item edit-task">Edit</div>
-                                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
+                                ${showDelete ? '<div class="dropdown-item delete-task">Cancel</div>' : ''}
                             </div>
                         </div>
                     </div>
@@ -6010,7 +6010,8 @@ function applyCurrentSearchFilter() {
                     deleteModal.hide();
                     // Unified success alert
                     try {
-                        showFloatingAlert(response.message || "Task deleted successfully", "success", 1500);
+                        // Keep backend behavior (soft delete) but show Cancel message in UI
+                        showFloatingAlert(response.message || "Task canceled successfully", "success", 1500);
                     } catch (_) {}
                     // Optionally refresh lists to ensure DELETED tasks are not shown anywhere
                     try {
@@ -6023,9 +6024,9 @@ function applyCurrentSearchFilter() {
                 },
                 error: function () {
                     try {
-                        showFloatingAlert("Failed to delete task.", "danger", 3000);
+                        showFloatingAlert("Failed to cancel task.", "danger", 3000);
                     } catch (_) {
-                        try { alert("Failed to delete task."); } catch(e) {}
+                        try { alert("Failed to cancel task."); } catch(e) {}
                     }
                 },
             });
