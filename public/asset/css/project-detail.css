@@ -566,6 +566,10 @@
     }
 }
 
+.input-custom {
+    position: relative;
+}
+
 .input-custom input,
 .input-custom select,
 .input-custom textarea {
@@ -685,4 +689,20 @@
 #editProjectModal .dropdown-item input[type="checkbox"] {
     width: 14px;
     height: 14px;
+}
+
+#edit_co_author_dropdown,
+#edit_contributor_dropdown {
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    bottom: 100%;
+    top: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-bottom: -1.2rem;
 }
