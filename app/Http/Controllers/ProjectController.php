@@ -1318,9 +1318,18 @@ class ProjectController extends Controller
             $project->updated_by = auth()->user() ? auth()->user()->id : null;
 
             // Handle image upload
+            // If frontend requested removal of existing image, delete it and clear DB field
+            if ($request->input('remove_image') == "1") {
+                if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
+                    @unlink(public_path('file/project/' . $project->image));
+                }
+                $project->image = null;
+            }
+
+            // Handle new image upload (overrides removal if a new file is provided)
             if ($request->hasFile('image')) {
                 if ($project->image && file_exists(public_path('file/project/' . $project->image))) {
-                    unlink(public_path('file/project/' . $project->image));
+                    @unlink(public_path('file/project/' . $project->image));
                 }
                 $image = $request->file('image');
                 $imageName = 'PROJECT_' . time() . '.' . $image->getClientOriginalExtension();
