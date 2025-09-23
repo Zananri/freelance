@@ -731,10 +731,19 @@
             } catch(_) {}
 
             const formData = new FormData(addTaskForm);
-            // Ensure parent_id is appended even if empty
+            // Ensure parent_id is appended only when it has a real value
             try {
                 const parentSel = document.getElementById('task_parent_id');
-                if (parentSel) formData.set('parent_id', parentSel.value || null);
+                if (parentSel) {
+                    var pval = parentSel.value;
+                    // Only send parent_id when it's a non-empty numeric value that likely corresponds to a real task id
+                    if (pval && pval !== '' && pval !== 'null' && !isNaN(Number(pval))) {
+                        formData.set('parent_id', String(Number(pval)));
+                    } else {
+                        // Remove parent_id to avoid sending invalid values which fail server-side exists validation
+                        try { formData.delete('parent_id'); } catch (_) {}
+                    }
+                }
             } catch(_) {}
             // Append all selected reference files to formData
             selectedFiles.forEach((file) => {
