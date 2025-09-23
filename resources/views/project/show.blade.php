@@ -328,7 +328,31 @@
         </div>
     </div>
 
-    <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
-    </x-slot>
+                <!-- Project Feedback Modal (copied from project listing so detail page can show feedback) -->
+                <div class="modal fade" id="projectFeedbackModal" tabindex="-1" aria-labelledby="projectFeedbackModalLabel"
+                    aria-hidden="true" data-project-id="{{ $project->id ?? '' }}"
+                    data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                                <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate fs-5 fw-normal"
+                                    id="projectFeedbackModalLabel">Project Feedback</h5>
+                                <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                            </div>
+
+                            <div class="modal-body feedback-modal-body" id="projectFeedbackList">
+                            </div>
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
+                                    style="white-space: nowrap;">Add Feedback</button>
+                            </div>
+                        </div>
+                        <div class="alert-container mt-2" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <x-slot name="script_slot">
+                    <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
+                </x-slot>
 </x-office-layout>
