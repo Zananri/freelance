@@ -120,10 +120,12 @@
     width: 100%;
 }
 
-.dropdown-filter-footer button {
+.dropdown-filter-footer button,
+.dropdown-filter-footer button:hover {
     color: #596069;
     background: #e3e4ee;
     flex: 1;
+    font-size: 12px;
 }
 
 .schedule-title {
@@ -398,4 +400,14 @@
     max-height: 75px;
     overflow-y: auto;
     overflow-x: hidden;
+}
+
+.executor-list.dropup {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    width: 100%;
+    margin-bottom: -20px;
+    z-index: 1050;
+    background: rgb(240, 241, 248);
 }

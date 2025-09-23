@@ -324,18 +324,6 @@
     width: 48%;
 }
 
-.executor-list {
-    max-height: 200px;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    display: none;
-    background: white;
-    position: absolute;
-    z-index: 1000;
-    width: 100%;
-}
-
 .modal-footer-custom {
     border: none;
     justify-content: center;
@@ -403,75 +391,6 @@
 }
 
 /* Executor dropdown styling to match project modal co-author and contributor dropdown */
-
-#executor_dropdown,
-#edit_executor_dropdown {
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    max-height: 200px;
-    overflow-y: auto;
-    background: white;
-    position: absolute;
-    z-index: 1000;
-    width: 100%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-#executor_dropdown .dropdown-item,
-#edit_executor_dropdown .dropdown-item {
-    padding: 6px 12px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: background-color 0.2s ease;
-}
-
-#executor_dropdown .dropdown-item:hover,
-#edit_executor_dropdown .dropdown-item:hover {
-    background-color: #f0f0f0;
-}
-
-#executor_dropdown .dropdown-item.disabled,
-#edit_executor_dropdown .dropdown-item.disabled {
-    color: #999;
-    cursor: default;
-}
-
-#executor_dropdown input[type="checkbox"].executor-checkbox,
-#edit_executor_dropdown input[type="checkbox"].executor-checkbox {
-    width: 18px;
-    height: 18px;
-    margin-right: 8px;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-color: #fff;
-    border: 1.5px solid #ccc;
-    border-radius: 4px;
-    position: relative;
-    outline: none;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-
-#executor_dropdown input[type="checkbox"].executor-checkbox:checked,
-#edit_executor_dropdown input[type="checkbox"].executor-checkbox:checked {
-    background-color: #0d6efd; /* Bootstrap primary blue */
-    border-color: #0d6efd;
-}
-
-#executor_dropdown input[type="checkbox"].executor-checkbox:checked::after,
-#edit_executor_dropdown
-    input[type="checkbox"].executor-checkbox:checked::after {
-    content: "";
-    position: absolute;
-    top: 3px;
-    left: 6px;
-    width: 4px;
-    height: 9px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
 
 /* Selected executor badges */
 #selected_executors .badge,
@@ -904,19 +823,6 @@ p {
 
 .task-mobile-dropdown {
     display: none;
-}
-
-.btn-submit-reset,
-.btn-submit-filter {
-    background-color: #e3e4ee;
-    color: #444444;
-    width: 100%;
-}
-
-.btn-submit-reset:hover,
-.btn-submit-filter:hover {
-    background-color: #e3e4ee;
-    color: #444444;
 }
 
 .timeline-section {
@@ -1732,9 +1638,15 @@ p {
     display: flex;
     gap: 5px;
     justify-content: flex-end;
-    border-radius: 0 0 8px 8px;
-    font-size: 14px;
     width: 100%;
+}
+
+.dropdown-filter-footer button,
+.dropdown-filter-footer button:hover {
+    color: #596069;
+    background: #e3e4ee;
+    flex: 1;
+    font-size: 12px;
 }
 
 /* Project Filter Display Styles */
@@ -1875,6 +1787,7 @@ p {
 .custom-input select,
 .custom-input input,
 .custom-input textarea {
+    position: relative;
     border: none;
 }
 
@@ -1904,4 +1817,14 @@ p {
 #taskDetailModal .collab-division {
     font-size: 12px;
     color: #777;
+}
+
+.executor-list.dropup {
+    position: absolute;
+    bottom: -125%;
+    left: 0;
+    width: 100%;
+    margin-bottom: -20px;
+    z-index: 1050;
+    background: rgb(240, 241, 248);
 }

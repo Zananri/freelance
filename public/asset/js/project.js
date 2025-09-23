@@ -6201,15 +6201,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                             : ""
                                     }
                                     <hr class="task-separator rounded-4">
-                                    <div id="project-${project.id}" class="project-card">
-                                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
-                                            <div>
-                                                <span style="color:#797E91;">Deadline: </span>
-                                                <span id="deadline-${project.id}" style="color:#4B4F5E;">
-                                                    ${project.due_date || "-"}
-                                                </span>
-                                            </div>
-                                        </div>
+                                    <div class="d-flex justify-content-between mb-2" id="project-${project.id}" style="font-size:12px;">
+                                        <span style="color:#797E91;">Deadline: </span>
+                                        <span id="deadline-${project.id}" style="color:#4B4F5E;">
+                                            ${project.due_date || "-"}
+                                        </span>
                                     </div>
                                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
                                         <span class="text-muted">Department:</span>
@@ -8512,7 +8508,6 @@ document.addEventListener("DOMContentLoaded", function () {
         e.stopPropagation();
         const projectId =
             btn.getAttribute("data-project-id") || btn.dataset.projectId;
-        console.debug("project-attach-file clicked (delegated)", projectId);
         if (projectId)
             window.showProjectFiles && window.showProjectFiles(projectId);
     });
@@ -8526,12 +8521,12 @@ document.addEventListener("DOMContentLoaded", function () {
         // loading state
         listEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
 
-        fetch(appUrl + "/project/" + projectId)
-            .then((r) => {
-                if (!r.ok) throw new Error("Failed to fetch project");
-                return r.json();
-            })
-            .then((resp) => {
+        $.ajax({
+            url: appUrl + "/project/" + projectId,
+            method: "GET",
+            dataType: "json",
+            success: function (resp) {
+
                 const data = resp.data || resp;
                 const files = Array.isArray(data.reference_files)
                     ? data.reference_files
@@ -8558,18 +8553,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const modal = new bootstrap.Modal(modalEl);
                 modal.show();
-            })
-            .catch((err) => {
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error:", status, error);
+
                 showFloatingAlert(
                     "Failed to load reference files.",
                     "warning",
                     3000
                 );
-                console.error("showProjectFiles error", err);
-                // Still show modal but without content
+
+                // tetap munculin modal walau error
                 const modal = new bootstrap.Modal(modalEl);
                 modal.show();
-            });
+            },
+        });
     };
 
     window.__projectCache = window.__projectCache || {};

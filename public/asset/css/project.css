@@ -753,16 +753,13 @@
     justify-content: center;
 }
 
-.modal-footer-custom .btn,
 .modal-footer-custom button {
+    flex: 1;
     border: none;
     border-radius: 10px;
-    width: auto;
-    min-height: 45px;
     padding: 10px;
-    box-shadow: none !important;
-    outline: none !important;
-    flex: 1;
+    font-size: 12px;
+    height: 45px;
 }
 
 /* Keep shadows off but allow each button to control its own background (secondary vs black) */
@@ -1684,16 +1681,12 @@
     width: 100%;
 }
 
-.dropdown-filter-footer button {
-    color: #596069;
-    background: #e3e4ee;
-    flex: 1;
-}
-
+.dropdown-filter-footer button,
 .dropdown-filter-footer button:hover {
-    background: #e3e4ee;
     color: #596069;
+    background: #e3e4ee;
     flex: 1;
+    font-size: 12px;
 }
 
 /* Project Filter Display Styles - Sama persis dengan task */
@@ -1804,7 +1797,5 @@
 .modal-footer-custom .btn-custom-close {
     background-color: #e3e4ee  !important;
     color: #444444;
-    font-size: 14px;
+    font-size: 12px;
 }
-
-
