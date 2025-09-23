@@ -279,6 +279,14 @@
             fetchProject(projectId);
         }
 
+        // Ensure edit image input has preview/clear behavior
+        try {
+            var editImageEl = document.getElementById('edit_image');
+            var editImageLabel = document.getElementById('editImageLabel');
+            var editImageClearBtn = document.getElementById('editImageClearBtn');
+            setupImageInput(editImageEl, editImageLabel, editImageClearBtn);
+        } catch (e) {}
+
         // button references (anchor to #references) - if project doesn't have references this simply navigates
         $("#btn-references").on("click", function () {
             window.location.hash = "#references";
@@ -286,5 +294,373 @@
         $("#btn-comments").on("click", function () {
             window.location.hash = "#comments";
         });
-    });
-})(jQuery);
+
+        // --- Edit modal logic (adapted from project.js) ---
+        // Helper: load departments into a target select
+        function loadDepartments(callback, targetSelect) {
+            targetSelect = targetSelect || document.getElementById("edit_department");
+            $.ajax({
+                url: getMeta('app-url').replace(/\/$/, '') + "/departments-for-projects",
+                type: "GET",
+                dataType: "json",
+                success: function (data) {
+                    var options = '<option value="">Select Department</option>';
+                    (data.data || []).forEach(function (dept) {
+                        options += '<option value="' + dept.id + '">' + (dept.name_department || dept.name) + '</option>';
+                    });
+                    try { targetSelect.innerHTML = options; } catch (e) {}
+                    if (typeof callback === 'function') callback();
+                },
+                error: function () {
+                    if (typeof callback === 'function') callback();
+                }
+            });
+        }
+
+        function loadDivisions(departmentId, callback, targetSelect) {
+            targetSelect = targetSelect || document.getElementById("edit_division");
+            if (!departmentId) {
+                targetSelect.innerHTML = '<option value="">Select Division</option>';
+                if (typeof callback === 'function') callback();
+                return;
+            }
+            $.ajax({
+                url: getMeta('app-url').replace(/\/$/, '') + "/divisions-for-projects",
+                type: "GET",
+                data: { department_id: departmentId },
+                dataType: "json",
+                success: function (data) {
+                    var options = '<option value="">Select Division</option>';
+                    (data.data || []).forEach(function (d) {
+                        options += '<option value="' + d.id + '">' + (d.name_division || d.name) + '</option>';
+                    });
+                    try { targetSelect.innerHTML = options; } catch (e) {}
+                    if (typeof callback === 'function') callback();
+                },
+                error: function () {
+                    if (typeof callback === 'function') callback();
+                }
+            });
+        }
+
+        function populatePartOfProjectSelects(currentProjectId, currentProjectTitle, selectedPartOfProjectId) {
+            $.ajax({
+                url: getMeta('app-url').replace(/\/$/, '') + "/project/index?task_scope=all",
+                type: "GET",
+                dataType: "json",
+                success: function (payload) {
+                    var arr = Array.isArray(payload) ? payload : Array.isArray(payload.data) ? payload.data : [];
+                    var options = '<option value="">Select Project</option>';
+                    var foundCurrent = false;
+                    arr.forEach(function (p) {
+                        if (!p) return;
+                        if (String(p.id) === String(currentProjectId)) foundCurrent = true;
+                        options += '<option value="' + p.id + '">' + (p.title || p.name || ('Project ' + p.id)) + '</option>';
+                    });
+                    if (currentProjectId && !foundCurrent) {
+                        options += '<option value="' + currentProjectId + '">' + (currentProjectTitle || ('Project ' + currentProjectId)) + '</option>';
+                    }
+                    try { document.getElementById('edit_part_of_project').innerHTML = options; } catch (e) {}
+                    if (selectedPartOfProjectId) {
+                        try { $('#edit_part_of_project').val(selectedPartOfProjectId); } catch (e) {}
+                    }
+                },
+                error: function () {
+                    // ignore
+                }
+            });
+        }
+
+        // Image input helper for edit modal
+        function setupImageInput(inputEl, labelEl, clearBtnEl) {
+            if (!inputEl || !labelEl) return;
+            inputEl.addEventListener('change', function () {
+                var file = this.files && this.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        labelEl.style.backgroundImage = 'url(' + e.target.result + ')';
+                        labelEl.classList.add('has-image');
+                        labelEl.style.backgroundSize = 'cover';
+                        labelEl.style.opacity = '1';
+                        if (clearBtnEl) clearBtnEl.classList.remove('d-none');
+                        // if user selects a new image, ensure remove_image flag is reset
+                        try { document.getElementById('edit_remove_image').value = '0'; } catch(_){}
+                    } catch (err) {}
+                };
+                reader.readAsDataURL(file);
+            });
+            if (clearBtnEl) {
+                clearBtnEl.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    try {
+                        inputEl.value = '';
+                        var placeholder = getMeta('app-url').replace(/\/$/, '') + '/asset/img/background/add-image.png';
+                        labelEl.style.backgroundImage = "url('" + placeholder + "')";
+                        labelEl.classList.remove('has-image');
+                        labelEl.style.opacity = '0.5';
+                        clearBtnEl.classList.add('d-none');
+                        // mark remove_image so backend deletes existing image
+                        try { document.getElementById('edit_remove_image').value = '1'; } catch(_){}
+                    } catch (err) {}
+                });
+            }
+
+        } // end setupImageInput
+
+            // Render selected collaborators badges into edit modal (blue with remove button)
+            function renderSelectedBadges(containerId, arr, hiddenInputId) {
+                try {
+                    var container = document.getElementById(containerId);
+                    if (!container) return;
+                    container.innerHTML = '';
+                    if (!arr || !arr.length) return;
+
+                    // Ensure hidden input exists
+                    var hidden = hiddenInputId ? document.getElementById(hiddenInputId) : null;
+                    if (hidden && (!hidden.value || hidden.value === '')) {
+                        try { hidden.value = JSON.stringify((arr || []).map(function(x){ return x.id; })); } catch(_){}
+                    }
+
+                    arr.forEach(function (a) {
+                        var id = a.id || a.employee_id || a.user_id || null;
+                        var span = document.createElement('span');
+                        span.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2 text-white';
+                        span.style.padding = '6px 8px';
+
+                        var img = document.createElement('img');
+                        img.src = a.user_photo || a.profile_picture || (getMeta('app-url').replace(/\/$/, '') + '/asset/img/avatar.png');
+                        img.style.width = '24px';
+                        img.style.height = '24px';
+                        img.style.objectFit = 'cover';
+                        img.className = 'rounded-circle me-2';
+
+                        var txt = document.createElement('span');
+                        txt.textContent = a.name || a.employee_name || a.username || '-';
+
+                        var removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
+                        removeBtn.setAttribute('aria-label', 'Remove');
+                        removeBtn.addEventListener('click', function () {
+                            try {
+                                // remove from DOM
+                                if (span && span.parentNode) span.parentNode.removeChild(span);
+                                // update hidden input JSON by removing this id
+                                if (hidden) {
+                                    try {
+                                        var cur = JSON.parse(hidden.value || '[]');
+                                        if (Array.isArray(cur)) {
+                                            cur = cur.filter(function(v){ return String(v) !== String(id); });
+                                            hidden.value = JSON.stringify(cur);
+                                        }
+                                    } catch (_) {}
+                                }
+                            } catch (e) {}
+                        });
+
+                        span.appendChild(img);
+                        span.appendChild(txt);
+                        span.appendChild(removeBtn);
+                        container.appendChild(span);
+                    });
+                } catch (e) {}
+            }
+
+            // Intercept edit link clicks created by createActionButtons
+            $(document).off('click', '.detail-icon a, .detail-icon').on('click', '.detail-icon a, .detail-icon', function (e) {
+                // If it's the edit anchor inside project actions, handle specially
+                var $el = $(e.target).closest('a');
+                if (!$el || !$el.attr('href')) return; // let other icons behave normally
+                var href = $el.attr('href');
+                if (!/\/project\/\d+\/edit$/.test(href)) return; // not project edit
+                e.preventDefault();
+                // extract id
+                var m = href.match(/\/project\/(\d+)\/edit$/);
+                if (!m) return;
+                var projectId = m[1];
+                // fetch edit payload
+                $.ajax({
+                    url: getMeta('app-url').replace(/\/$/, '') + '/project/' + projectId + '/edit',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function (data) {
+                        try {
+                            // Populate basic fields
+                            $('#edit_project_id').val(data.id);
+                            $('#edit_title').val(data.title || '');
+                            $('#edit_description').val(data.description || '');
+                            $('#edit_start_date').val(data.start_date || '');
+                            $('#edit_due_date').val(data.due_date || '');
+
+                            // Reference URLs
+                            try {
+                                var container = document.getElementById('edit_project_reference_urls_container');
+                                container.innerHTML = '';
+                                var urls = [];
+                                if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
+                                else if (typeof data.reference_urls === 'string') {
+                                    try { var parsed = JSON.parse(data.reference_urls); if (Array.isArray(parsed)) urls = parsed; } catch(_){}
+                                }
+                                if ((!urls || !urls.length) && data.reference_url) urls = [data.reference_url];
+                                function makeRow(value, withAdd) {
+                                    var row = document.createElement('div');
+                                    row.className = 'd-flex gap-2 align-items-center';
+                                    row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+                                    container.appendChild(row);
+                                    var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value;
+                                }
+                                if (urls && urls.length) { urls.forEach(function(u){ makeRow(u, false); }); makeRow('', true); } else { makeRow('', true); }
+                            } catch (e) {}
+
+                            // Part of project select
+                            populatePartOfProjectSelects(data.id, data.title || '', data.part_of_project || '');
+
+                            // Departments/divisions
+                            loadDepartments(function () {
+                                try { $('#edit_department').val(data.department_id).trigger('change'); } catch(_){}
+                                loadDivisions(data.department_id, function () {
+                                    try { $('#edit_division').val(data.division_id); } catch(_){}
+                                });
+                            });
+
+                            // Image preview
+                            if (data.image) {
+                                var url = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + data.image.replace(/^\//, '');
+                                var label = document.getElementById('editImageLabel');
+                                if (label) {
+                                    label.style.backgroundImage = 'url(' + url + ')';
+                                    label.classList.add('has-image');
+                                    label.style.backgroundSize = 'cover';
+                                    label.style.opacity = '1';
+                                    document.getElementById('editImageClearBtn')?.classList.remove('d-none');
+                                }
+                            } else {
+                                var lbl = document.getElementById('editImageLabel');
+                                if (lbl) {
+                                    lbl.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
+                                    lbl.classList.remove('has-image');
+                                    lbl.style.opacity = '0.5';
+                                    document.getElementById('editImageClearBtn')?.classList.add('d-none');
+                                }
+                            }
+
+                            // Existing reference files
+                            var existingFiles = Array.isArray(data.reference_files) ? data.reference_files.slice() : (data.reference_file ? (Array.isArray(data.reference_file) ? data.reference_file.slice() : [data.reference_file]) : []);
+                            try { document.getElementById('existing_reference_files_input').value = JSON.stringify(existingFiles); } catch(_){}
+                            try {
+                                var existingContainer = document.getElementById('existing_reference_files');
+                                if (existingContainer) {
+                                    existingContainer.innerHTML = '';
+                                    if (existingFiles.length > 0) {
+                                        var title = document.createElement('div'); title.className = 'fw-bold mb-2'; title.textContent = 'Current Files:'; existingContainer.appendChild(title);
+                                        var list = document.createElement('div'); list.className = 'existing-files-list w-100';
+                                        existingFiles.forEach(function(fn){
+                                            var item = document.createElement('div'); item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                                            var info = document.createElement('div'); info.className = 'd-flex align-items-center flex-grow-1';
+                                            var icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
+                                            var link = document.createElement('a'); link.href = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + fn; link.textContent = fn; link.target = '_blank'; link.className = 'text-decoration-none';
+                                            var removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-outline-danger'; removeBtn.innerHTML='&times;'; removeBtn.addEventListener('click', function(){
+                                                existingFiles = existingFiles.filter(function(f){ return f !== fn; });
+                                                try { document.getElementById('existing_reference_files_input').value = JSON.stringify(existingFiles); } catch(_){}
+                                                // re-render
+                                                this.parentNode && this.parentNode.parentNode && this.parentNode.parentNode.removeChild(this.parentNode);
+                                            });
+                                            info.appendChild(icon); info.appendChild(link); item.appendChild(info); item.appendChild(removeBtn); list.appendChild(item);
+                                        });
+                                        existingContainer.appendChild(list);
+                                    }
+                                }
+                            } catch(_){}
+
+                            // Clear file input for new files
+                            try { $('#edit_reference_file').val(''); } catch(_){}
+
+                            // co-authors & contributors: set hidden inputs and render badges for display
+                            try {
+                                var co = data.co_authors || [];
+                                var cont = data.contributors || data.executors || [];
+                                try { $('#edit_co_author').val(JSON.stringify((co.map && co.map(function(c){ return c.id; })) || [])); } catch(_){}
+                                try { $('#edit_contributors').val(JSON.stringify((cont.map && cont.map(function(c){ return c.id; })) || [])); } catch(_){}
+                                renderSelectedBadges('edit_selected_co_authors', co);
+                                renderSelectedBadges('edit_selected_contributors', cont);
+                            } catch(_){}
+
+                            // Show modal
+                            var modalEl = document.getElementById('editProjectModal');
+                            if (modalEl) {
+                                var m = bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
+                                m.show();
+                            }
+                        } catch (e) {
+                            console.error('Failed to populate edit modal', e);
+                        }
+                    },
+                    error: function (xhr) {
+                        alert('Gagal mengambil data untuk edit');
+                    }
+                });
+            });
+
+            // Handle edit project form submission
+            var isSubmitting = false;
+            $(document).off('submit', '#editProjectForm').on('submit', '#editProjectForm', function (e) {
+                e.preventDefault();
+                if (isSubmitting) return;
+                isSubmitting = true;
+                var projectId = $('#edit_project_id').val();
+                if (!projectId) { alert('Project ID tidak ditemukan'); isSubmitting = false; return; }
+                var formEl = this;
+                var formData = new FormData(formEl);
+                // map reference_urls[] to single reference_url
+                try {
+                    var urlInputs = formEl.querySelectorAll('input[name="reference_urls[]"]');
+                    var urls = Array.from(urlInputs).map(function(i){ return (i.value || '').trim(); }).filter(Boolean);
+                    if (urls.length) formData.set('reference_url', urls[0]); else formData.set('reference_url', '');
+                } catch(_){}
+                formData.append('_method', 'PUT');
+                // attach newly selected files
+                try {
+                    var newFiles = document.getElementById('edit_reference_file').files || [];
+                    Array.from(newFiles).forEach(function(f){ formData.append('reference_file[]', f); });
+                } catch(_){}
+
+                $('#editModalLoader').removeClass('d-none');
+                var submitBtn = $('#editProjectForm button[type="submit"]');
+                submitBtn.prop('disabled', true);
+
+                $.ajax({
+                    url: getMeta('app-url').replace(/\/$/, '') + '/project/' + projectId,
+                    type: 'POST',
+                    data: formData,
+                    contentType: false,
+                    processData: false,
+                    success: function (res) {
+                        try { if (res && (res.status === 'success' || res.message)) { var msg = res.message || 'Project updated successfully!'; if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'success', 1500); else alert(msg); } } catch(_){}
+                        // hide modal and refresh project detail
+                        setTimeout(function(){ try { var me = bootstrap.Modal.getInstance(document.getElementById('editProjectModal')); if (me) me.hide(); } catch(_){} fetchProject(getMeta('project-id')); }, 700);
+                    },
+                    error: function (xhr) {
+                        if (xhr.status === 422) {
+                            try {
+                                var errors = xhr.responseJSON.errors || {};
+                                var listHtml = '';
+                                Object.keys(errors).forEach(function(k){ var v = errors[k]; if (Array.isArray(v)) v.forEach(function(m){ listHtml += '\n- ' + m; }); else listHtml += '\n- ' + v; });
+                                if (typeof showFloatingAlert === 'function') showFloatingAlert(listHtml, 'warning', 5000); else alert(listHtml);
+                            } catch (e) { alert('Validation failed'); }
+                        } else {
+                            alert('Failed to update project');
+                        }
+                    },
+                    complete: function () {
+                        $('#editModalLoader').addClass('d-none');
+                        submitBtn.prop('disabled', false);
+                        isSubmitting = false;
+                    }
+                });
+            });
+
+        }); // end $(function)
+
+    })(jQuery);
