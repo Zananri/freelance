@@ -7,8 +7,12 @@ use Carbon\Carbon;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Border;
+
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 use App\Models\User;
@@ -154,16 +158,9 @@ class AttendanceTrackingController extends Controller
 
         $employeeIds = $employee->pluck('id');
 
-        $attendance = Attendance::where('date_attendance','>=',$firstDayOfMonth)
-            ->whereIn('employee_id',$employeeIds)
-            ->where('date_attendance','<=',$lastDayOfMonth)
-        ->get();
-
         $allEmployeeActive = Employee::with('department','division','job','grade')
-            ->join('users','employees.user_id','=','users.id')
-            ->where('employees.status',"ACTIVE")
-            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+            ->whereIn('employees.id',$employeeIds)
+            ->orderBy('employees.division_id','asc')
         ->get();
 
         $spreadsheet = new Spreadsheet();
@@ -216,10 +213,15 @@ class AttendanceTrackingController extends Controller
                 ],
             ],
         ];
+        
 
         $activeWorksheet->getStyle('A2:W2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
 
-        $activeWorksheet->getStyle('A2:W2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $activeWorksheet->getStyle('A2:W2')
+            ->getAlignment()
+            ->setWrapText(true)
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+        ->setVertical(Alignment::VERTICAL_CENTER);
         
         $arrDayID = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
 
@@ -231,9 +233,26 @@ class AttendanceTrackingController extends Controller
             
             $activeWorksheet->setCellValue($column.'2', $newAddDate->format('d-M'));
             $activeWorksheet->setCellValue($column.'3', $arrDayID[$newAddDate->format('w')]);
+
+            if($newAddDate->isSunday()) {
+                $activeWorksheet->getStyle($column.'3')
+                    ->getFont()
+                    ->getColor()
+                ->setARGB('ffffffff');
+
+                $activeWorksheet->getStyle($column.'3')
+                    ->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()
+                ->setARGB('ffd74e51');
+            }
+
         }
 
-        $activeWorksheet->getStyle('X2:BC3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $activeWorksheet->getStyle('X2:BC3')
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+        ->setVertical(Alignment::VERTICAL_CENTER);
 
         
 
@@ -244,7 +263,7 @@ class AttendanceTrackingController extends Controller
         foreach ($allEmployeeActive as $employeeItem) {
 
             $activeWorksheet->setCellValue('A'.$row, $no);
-            $activeWorksheet->setCellValue('B'.$row, $employeeItem->name);
+            $activeWorksheet->setCellValue('B'.$row, $employeeItem->name.' '.$employeeItem->id);
             $activeWorksheet->setCellValue('C'.$row, $employeeItem->employee_niks);
             $activeWorksheet->setCellValue('D'.$row, $employeeItem->department->name_department);//'Department'
             $activeWorksheet->setCellValue('E'.$row, $employeeItem->division->name_division);//'Division'
@@ -267,6 +286,31 @@ class AttendanceTrackingController extends Controller
             $activeWorksheet->setCellValue('V'.$row, '');//Total Work Day This Month (23 Days)
             $activeWorksheet->setCellValue('W'.$row, '');//'Total Day Off This Month'
             
+            for ($i = 0; $i < $daysInMonth; $i++) {
+
+                $newAddDate = Carbon::parse($firstDayOfMonth)->copy()->addDays($i);                
+                $column = Coordinate::stringFromColumnIndex($i + 24); // Mengubah indeks menjadi huruf kolom (1=A, 2=B, ...)
+
+                $attendance = Attendance::where('employee_id', $employeeItem->id)
+                    ->where('date_attendance', $newAddDate->toDateString())
+                ->first();
+                
+                if($attendance){
+                    
+                    $timeIn = Carbon::parse($attendance->time_in)->format('H:i');
+                    $timeOut = Carbon::parse($attendance->time_out)->format('H:i');
+                    
+                    $activeWorksheet->setCellValue($column.$row, $timeIn.chr(10).$timeOut);// $timeIn." \n ".$timeOut
+                    
+                }else{
+                    //$activeWorksheet->setCellValue($column.$row, $employeeItem->id.' '.$newAddDate->toDateString());
+                    $activeWorksheet->setCellValue($column.$row, '');
+                }
+                
+            }
+            
+            
+            
             $row++;
             $no++;
         }
@@ -281,6 +325,17 @@ class AttendanceTrackingController extends Controller
 
         $lastColumn = Coordinate::stringFromColumnIndex(23 + $daysInMonth);
         $activeWorksheet->getStyle('A2:'.$lastColumn.($row-1))->applyFromArray($dataStyle);
+
+        $activeWorksheet->getStyle('A2:'.$lastColumn.($row-1))
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+        ->setVertical(Alignment::VERTICAL_CENTER);
+        
+        $activeWorksheet->getStyle('W4:'.$lastColumn.($row-1))
+            ->getAlignment()
+            ->setWrapText(true)
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+        ->setVertical(Alignment::VERTICAL_CENTER);
 
         // Mengatur lebar kolom agar otomatis
         foreach (range('A', 'J') as $column) {
