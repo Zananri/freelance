@@ -1000,6 +1000,34 @@
             window.location.hash = "#comments";
         });
 
+        // Delegated handler: add/remove reference URL rows (match project.js behavior)
+        document.addEventListener('click', function (e) {
+            try {
+                var addBtn = e.target.closest('.add-ref-url');
+                if (addBtn) {
+                    e.preventDefault && e.preventDefault();
+                    var container = addBtn.closest('#feedback_reference_urls_container, #project_reference_urls_container, #edit_project_reference_urls_container, #reply_reference_urls_container');
+                    if (!container) return;
+                    var row = document.createElement('div');
+                    row.className = 'd-flex gap-2 align-items-center';
+                    row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                        ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
+                    container.appendChild(row);
+                    var input = row.querySelector('input[type="url"]');
+                    if (input) try { input.focus(); } catch (_) {}
+                    return;
+                }
+
+                var removeBtn = e.target.closest('.remove-ref-url');
+                if (removeBtn) {
+                    e.preventDefault && e.preventDefault();
+                    var row = removeBtn.closest('.d-flex');
+                    if (row && row.parentNode) row.parentNode.removeChild(row);
+                    return;
+                }
+            } catch (_) {}
+        });
+
         // --- Edit modal logic (adapted from project.js) ---
         // Helper: load departments into a target select
         function loadDepartments(callback, targetSelect) {
