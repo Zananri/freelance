@@ -106,7 +106,6 @@
             </div>
         </div>
     </div>
-    <!-- Delete confirmation modal (detailed card like in project list) -->
     @php
         $projImg = $project->image ?? null;
         $projImgUrl = $projImg ? asset('file/project/' . ltrim($projImg, '/')) : asset('asset/img/image.png');
@@ -115,7 +114,6 @@
         $projDeadline = $project->due_date ? $project->due_date : '-';
         $projDept = $project->department?->name_department ?? ($project->department?->name ?? '-');
         $projDiv = $project->division?->name_division ?? ($project->division?->name ?? '-');
-        // initials (first two letters of title)
         $initials = trim($projTitle)
             ? strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]/u', '', $projTitle), 0, 2))
             : '';
@@ -174,7 +172,6 @@
         </div>
     </div>
 
-    {{-- Copy of Edit Project Modal (adapted from project listing) so detail page can open the same edit modal without relying on project.js --}}
     <div class="modal fade modal-custom" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false"
         tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true"
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
@@ -223,14 +220,12 @@
                             <label for="edit_department" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="edit_department" name="department" required>
                                 <option value="">Select Department</option>
-                                <!-- Options to be populated dynamically -->
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_division" class="form-label label-custom">Division</label>
                             <select class="form-select input-select" id="edit_division" name="division" required>
                                 <option value="">Select Division</option>
-                                <!-- Options to be populated dynamically -->
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
@@ -271,7 +266,6 @@
                             <select class="form-select input-select" id="edit_part_of_project"
                                 name="part_of_project">
                                 <option value="">Select Project</option>
-                                <!-- Options to be populated dynamically -->
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
@@ -282,7 +276,6 @@
                                 style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
                             </div>
                             <div id="edit_selected_co_authors" class="mt-2 d-flex flex-wrap gap-2">
-                                <!-- Selected co-authors will appear here -->
                             </div>
                             <input type="hidden" id="edit_co_author" name="co_author" value="">
                         </div>
@@ -294,7 +287,6 @@
                                 style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
                             </div>
                             <div id="edit_selected_contributors" class="mt-2 d-flex flex-wrap gap-2">
-                                <!-- Selected contributors will appear here -->
                             </div>
                             <input type="hidden" id="edit_contributors" name="contributors" value="">
                         </div>
@@ -309,7 +301,6 @@
             <div class="alert-container mt-2" style="width: 100%;"></div>
         </div>
     </div>
-    <!-- Project Reference Files Modal (same as in project listing) -->
     <div class="modal fade modal-custom" id="projectFilesModal" tabindex="-1"
         aria-labelledby="projectFilesModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -321,38 +312,36 @@
                 <hr>
                 <div class="modal-body modal-body-custom">
                     <div id="projectReferenceFilesList" class="d-flex flex-column gap-2">
-                        <!-- File links will be inserted here -->
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-                <!-- Project Feedback Modal (copied from project listing so detail page can show feedback) -->
-                <div class="modal fade" id="projectFeedbackModal" tabindex="-1" aria-labelledby="projectFeedbackModalLabel"
-                    aria-hidden="true" data-project-id="{{ $project->id ?? '' }}"
-                    data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
-                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
-                        <div class="modal-content modal-content-custom">
-                            <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
-                                <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate fs-5 fw-normal"
-                                    id="projectFeedbackModalLabel">Project Feedback</h5>
-                                <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
-                            </div>
-
-                            <div class="modal-body feedback-modal-body" id="projectFeedbackList">
-                            </div>
-                            <div class="modal-footer modal-footer-custom">
-                                <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
-                                    style="white-space: nowrap;">Add Feedback</button>
-                            </div>
-                        </div>
-                        <div class="alert-container mt-2" style="width: 100%;"></div>
-                    </div>
+    <div class="modal fade" id="projectFeedbackModal" tabindex="-1" aria-labelledby="projectFeedbackModalLabel"
+        aria-hidden="true" data-project-id="{{ $project->id ?? '' }}"
+        data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                    <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate fs-5 fw-normal"
+                        id="projectFeedbackModalLabel">Project Feedback</h5>
+                    <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
                 </div>
 
-                <x-slot name="script_slot">
-                    <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
-                </x-slot>
+                <div class="modal-body feedback-modal-body" id="projectFeedbackList">
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
+                        style="white-space: nowrap;">Add Feedback</button>
+                </div>
+            </div>
+            <div class="alert-container mt-2" style="width: 100%;"></div>
+        </div>
+    </div>
+
+    <x-slot name="script_slot">
+        <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
+    </x-slot>
 </x-office-layout>

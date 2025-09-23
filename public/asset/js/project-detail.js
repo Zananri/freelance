@@ -1028,8 +1028,7 @@
             } catch (_) {}
         });
 
-        // --- Edit modal logic (adapted from project.js) ---
-        // Helper: load departments into a target select
+    
         function loadDepartments(callback, targetSelect) {
             targetSelect = targetSelect || document.getElementById("edit_department");
             $.ajax({
