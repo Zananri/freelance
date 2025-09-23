@@ -138,7 +138,7 @@
                             <div class="description-container mb-2">
                                 <p class="description-detail" style="font-size:14px;">{{ $projDesc }}</p>
                             </div>
-                            <hr class="task-separator rounded-4">
+                            <hr class="task-separator border-3 rounded-4">
 
                             <div id="project-{{ $project->id ?? '0' }}" class="d-flex justify-content-between mb-1"
                                 style="font-size:12px;">
