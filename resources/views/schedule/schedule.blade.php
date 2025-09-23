@@ -46,8 +46,8 @@
                     </div>
                 </div>
                 <div class="dropdown-filter-footer">
-                    <button type="button" class="btn btn-submit-black" id="resetScheduleFilterBtn">Reset</button>
                     <button type="button" class="btn btn-submit-black" id="applyScheduleFilterBtn">Apply</button>
+                    <button type="button" class="btn btn-submit-black" id="resetScheduleFilterBtn">Reset</button>
                 </div>
             </div>
         </div>
@@ -250,7 +250,7 @@
                                 <label for="schedule_executor_input" class="form-label label-custom">Executor</label>
                                 <input type="text" id="schedule_executor_input" class="form-control input-text"
                                     placeholder="Search employees..." autocomplete="off">
-                                <div id="schedule_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
+                                <div id="schedule_executor_dropdown" class="dropdown-list mt-1 executor-list dropup"></div>
                                 <div id="schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                                 <input type="hidden" id="schedule_executors" name="executor_ids" value="[]">
                             </div>
@@ -514,7 +514,7 @@
                                 <input type="text" id="edit_schedule_executor_input"
                                     class="form-control input-text" placeholder="Search employees..."
                                     autocomplete="off">
-                                <div id="edit_schedule_executor_dropdown" class="dropdown-list mt-1 executor-list">
+                                <div id="edit_schedule_executor_dropdown" class="dropdown-list mt-1 executor-list dropup">
                                 </div>
                                 <div id="edit_schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                                 <input type="hidden" id="edit_schedule_executors" name="executor_ids"

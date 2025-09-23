@@ -424,7 +424,7 @@
                     <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
                             <div class="modal-content modal-content-custom">
-                               
+
                                 <div class="modal-body modal-body-custom">
                                     <div class="d-flex">
                                         <div class="me-3">
@@ -6662,10 +6662,7 @@ function applyCurrentSearchFilter() {
     }
 
     // Add reset filter button functionality
-    const resetFilterBtn = document.createElement('button');
-    resetFilterBtn.type = 'button';
-    resetFilterBtn.className = 'btn btn-submit-reset';
-    resetFilterBtn.textContent = 'Reset';
+    const resetFilterBtn = document.getElementById('resetTaskFilterBtn');
     resetFilterBtn.addEventListener('click', resetTaskFilters);
 
     if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {

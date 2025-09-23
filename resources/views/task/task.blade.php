@@ -62,7 +62,8 @@
                         </div>
                     </div>
                     <div class="dropdown-filter-footer">
-                        <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtn">Apply</button>
+                        <button type="button" class="btn btn-submit-black" id="resetTaskFilterBtn">Reset</button>
+                        <button type="button" class="btn btn-submit-black" id="applyTaskFilterBtn">Apply</button>
                     </div>
                 </div>
             </div>
@@ -232,7 +233,7 @@
                             <label for="edit_executor_input" class="form-label label-custom">Executor</label>
                             <input type="text" class="form-control input-text" id="edit_executor_input"
                                 name="edit_executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
+                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list dropup"></div>
                             <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                             <input type="hidden" id="edit_executors" name="executors" value="">
                         </div>
@@ -396,7 +397,7 @@
                             <label for="executor_input" class="form-label label-custom">Executor</label>
                             <input type="text" class="form-control input-text" id="executor_input"
                                 name="executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
+                            <div id="executor_dropdown" class="dropdown-list mt-1 executor-list dropup">
                             </div>
                             <div id="selected_executors" class="mt-2 d-flex flex-wrap gap-2">
                                 <!-- Selected executors will appear here -->
