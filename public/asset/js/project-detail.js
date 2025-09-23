@@ -287,14 +287,14 @@
                                 if (Array.isArray(rf) && rf.length) files = rf; else if (feedback.reference_file) files = [feedback.reference_file];
                                 if (files && files.length) {
                                     var refContainer = document.createElement('div');
-                                    refContainer.className = 'feedback-reference-container';
+                                    refContainer.className = 'feedback-reference-container mb-3';
                                     files.forEach(function (file, idx) {
                                         if (!file) return;
                                         var fileHref = file;
                                         if (fileHref && !(String(fileHref).startsWith('http') || String(fileHref).startsWith('/'))) fileHref = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + fileHref;
                                         else if (fileHref && String(fileHref).startsWith('/')) fileHref = getMeta('app-url').replace(/\/$/, '') + fileHref;
                                         var a = document.createElement('a');
-                                        a.href = fileHref; a.download = ''; a.className = 'feedback-reference-file ms-2';
+                                        a.href = fileHref; a.download = ''; a.className = 'feedback-reference-file';
                                         a.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx + 1);
                                         refContainer.appendChild(a);
                                     });
