@@ -174,10 +174,6 @@
         </div>
     </div>
 
-    <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
-    </x-slot>
-
     {{-- Copy of Edit Project Modal (adapted from project listing) so detail page can open the same edit modal without relying on project.js --}}
     <div class="modal fade modal-custom" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false"
         tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true"
@@ -244,7 +240,8 @@
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
                                     <button type="button" class="btn btn-submit-black add-ref-url"
-                                        aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                        aria-label="Add URL"><span
+                                            class="material-symbols-outlined">add</span></button>
                                 </div>
                             </div>
                         </div>
@@ -313,4 +310,7 @@
         </div>
     </div>
 
+    <x-slot name="script_slot">
+        <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
+    </x-slot>
 </x-office-layout>
