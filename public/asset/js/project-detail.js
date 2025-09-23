@@ -504,12 +504,14 @@
                             imageLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
                             imageLabel.style.backgroundPosition = 'center center';
                             imageLabel.style.backgroundRepeat = 'no-repeat';
-                            imageLabel.style.backgroundSize = '50%';
+                            imageLabel.style.backgroundSize = 'cover';
                             imageLabel.classList.remove('has-image');
                             imageLabel.style.opacity = '0.5';
-                                imgClearBtn.classList.add('d-none');
-                                // mark remove flag so backend deletes existing image on update
-                                try { var editRemove = modalBody.querySelector('#edit_remove_image'); if (editRemove) editRemove.value = '1'; } catch(_){ }
+                            imageClearBtn.classList.add('d-none');
+
+                            // tambahan penting
+                            var hidden = modalBody.querySelector('#edit_remove_image');
+                            if (hidden) hidden.value = '1';
                         });
                     }
                 } catch (_) {}
@@ -751,7 +753,9 @@
                         });
                         imgClearBtn.addEventListener('click', function (e) {
                             e.preventDefault();
-                            try { imgInput.value = ''; } catch(_){}
+                            try { imgInput.value = ''; } catch(_) {}
+
+                            // ubah preview jadi default
                             imgLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
                             imgLabel.style.backgroundPosition = 'center center';
                             imgLabel.style.backgroundRepeat = 'no-repeat';
@@ -759,6 +763,10 @@
                             imgLabel.classList.remove('has-image');
                             imgLabel.style.opacity = '0.5';
                             imgClearBtn.classList.add('d-none');
+
+                            // ini yang penting: flag backend
+                            var hidden = modalBody.querySelector('#edit_remove_image');
+                            if (hidden) hidden.value = '1';
                         });
                     }
                     var addBtn = document.getElementById('addFeedbackButton');
@@ -1173,7 +1181,7 @@
             } catch (_) {}
         });
 
-    
+
         function loadDepartments(callback, targetSelect) {
             targetSelect = targetSelect || document.getElementById("edit_department");
             $.ajax({
