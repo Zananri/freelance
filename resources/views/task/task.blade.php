@@ -342,6 +342,14 @@
                             </select>
                         </div>
                         <div class="mb-3 custom-input">
+                            <label for="task_division_id" class="form-label label-custom">Division (optional)</label>
+                            <select class="form-select input-select" id="task_division_id" name="division_id">
+                                <option value="">-- Select Division (optional) --</option>
+                                <!-- Options to be populated dynamically -->
+                            </select>
+                            <div class="form-text">If you select a division, all employees from that division will be automatically selected as executors.</div>
+                        </div>
+                        <div class="mb-3 custom-input">
                             <label for="task_parent_id" class="form-label label-custom">Related to Task
                                 (optional)</label>
                             <select class="form-select input-select" id="task_parent_id" name="parent_id">
