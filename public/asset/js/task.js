@@ -988,7 +988,9 @@
                 });
                 renderSelected();
                 updateHiddenInput();
-                renderDropdown();
+                // Hide the dropdown and clear the search input so the employee dropup does not appear
+                try { dropdown.style.display = 'none'; } catch(_) {}
+                try { input.value = ''; } catch(_) {}
             } catch (e) { console.warn('setSelectedExecutorsAdd error', e); }
         };
     }
