@@ -40,7 +40,7 @@ class TeamsController extends Controller
         ->get();
 
         $department = Department::where('status',"ACTIVE")->get();
-        $division = Division::where('status',"ACTIVE")->get();
+        $division = Division::where('status',"ACTIVE")->where('department_id',$currentEmployee->department_id)->get();
         $job = Job::where('status',"ACTIVE")->get();
 
         return view('teams.teams',[
