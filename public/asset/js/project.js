@@ -4639,16 +4639,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             e.preventDefault();
                             imageInput.value = "";
                             imageLabel.style.backgroundImage =
-                                "url('" +
-                                appUrl +
-                                "/asset/img/background/add-image.png')";
-                            imageLabel.style.backgroundPosition =
-                                "center center";
+                                "url('" + appUrl + "/asset/img/background/add-image.png')";
+                            imageLabel.style.backgroundPosition = "center center";
                             imageLabel.style.backgroundRepeat = "no-repeat";
                             imageLabel.style.backgroundSize = "50%";
                             imageLabel.classList.remove("has-image");
                             imageLabel.style.opacity = "0.5";
                             imageClearBtn.classList.add("d-none");
+
+                            var hidden = modalBody.querySelector("#edit_remove_image");
+                            if (hidden) hidden.value = "1";
                         });
 
                         // Setup multi-file preview for Add Feedback reference files
@@ -5043,22 +5043,21 @@ document.addEventListener("DOMContentLoaded", function () {
                                     reader.readAsDataURL(this.files[0]);
                                 }
                             });
-                            imageClearBtn.addEventListener(
-                                "click",
-                                function (e) {
-                                    e.preventDefault();
-                                    imageInput.value = "";
-                                    imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-                                    imageLabel.style.backgroundPosition =
-                                        "center center";
-                                    imageLabel.style.backgroundRepeat =
-                                        "no-repeat";
-                                    imageLabel.style.backgroundSize = "50%";
-                                    imageLabel.classList.remove("has-image");
-                                    imageLabel.style.opacity = "0.5";
-                                    imageClearBtn.classList.add("d-none");
-                                }
-                            );
+                            imageClearBtn.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                imageInput.value = "";
+                                imageLabel.style.backgroundImage =
+                                    "url('" + appUrl + "/asset/img/background/add-image.png')";
+                                imageLabel.style.backgroundPosition = "center center";
+                                imageLabel.style.backgroundRepeat = "no-repeat";
+                                imageLabel.style.backgroundSize = "50%";
+                                imageLabel.classList.remove("has-image");
+                                imageLabel.style.opacity = "0.5";
+                                imageClearBtn.classList.add("d-none");
+
+                                var hidden = modalBody.querySelector("#edit_remove_image");
+                                if (hidden) hidden.value = "1";
+                            });
                         })();
 
                         // Setup multi-file preview for Reply reference files
@@ -5323,6 +5322,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel"
                                         style="background-position: center center; background-repeat: no-repeat; ${bgStyle} cursor: pointer;">
                                         <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                                        <input type="hidden" id="edit_feedback_remove_image" name="remove_image" value="0">
                                         <span class="image-clear-btn ${clearClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
                                     </label>
                                 </div>
@@ -5377,22 +5377,20 @@ document.addEventListener("DOMContentLoaded", function () {
                                     reader.readAsDataURL(this.files[0]);
                                 }
                             });
-                            imageClearBtn.addEventListener(
-                                "click",
-                                function (e) {
-                                    e.preventDefault();
-                                    imageInput.value = "";
-                                    imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-                                    imageLabel.style.backgroundPosition =
-                                        "center center";
-                                    imageLabel.style.backgroundRepeat =
-                                        "no-repeat";
-                                    imageLabel.style.backgroundSize = "50%";
-                                    imageLabel.classList.remove("has-image");
-                                    imageLabel.style.opacity = "0.5";
-                                    imageClearBtn.classList.add("d-none");
-                                }
-                            );
+                            imageClearBtn.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                imageInput.value = "";
+                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                imageLabel.style.backgroundPosition = "center center";
+                                imageLabel.style.backgroundRepeat = "no-repeat";
+                                imageLabel.style.backgroundSize = "50%";
+                                imageLabel.classList.remove("has-image");
+                                imageLabel.style.opacity = "0.5";
+                                imageClearBtn.classList.add("d-none");
+
+                                const hidden = modalBody.querySelector("#edit_feedback_remove_image");
+                                if (hidden) hidden.value = "1";
+                            });
                         })();
 
                         // Setup multi-file preview for Edit Feedback reference files
