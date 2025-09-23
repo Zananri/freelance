@@ -6201,15 +6201,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                             : ""
                                     }
                                     <hr class="task-separator rounded-4">
-                                    <div id="project-${project.id}" class="project-card">
-                                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
-                                            <div>
-                                                <span style="color:#797E91;">Deadline: </span>
-                                                <span id="deadline-${project.id}" style="color:#4B4F5E;">
-                                                    ${project.due_date || "-"}
-                                                </span>
-                                            </div>
-                                        </div>
+                                    <div class="d-flex justify-content-between mb-2" id="project-${project.id}" style="font-size:12px;">
+                                        <span style="color:#797E91;">Deadline: </span>
+                                        <span id="deadline-${project.id}" style="color:#4B4F5E;">
+                                            ${project.due_date || "-"}
+                                        </span>
                                     </div>
                                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
                                         <span class="text-muted">Department:</span>
