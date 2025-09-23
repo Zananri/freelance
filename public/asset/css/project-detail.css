@@ -68,7 +68,7 @@
 }
 
 .description-container {
-    max-height: 50px;
+    max-height: 65px;
     overflow-y: auto;
     overflow-x: hidden;
     box-sizing: border-box;
@@ -102,7 +102,7 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     width: 100%;
-    max-height: 100px;
+    max-height: 65px;
     overflow-y: auto;
     overflow-x: hidden;
 }
@@ -589,7 +589,7 @@
     display: inline-block;
     width: 100px;
     height: 100px;
-    background-size: 50% !important;
+    background-size: 50% ;
     background-position: center;
     border: 1px solid #ddd;
     border-radius: 8px;
