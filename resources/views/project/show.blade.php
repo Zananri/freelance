@@ -118,6 +118,8 @@
             ? strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]/u', '', $projTitle), 0, 2))
             : '';
     @endphp
+
+    {{-- Add Modal --}}
     <div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -172,6 +174,7 @@
         </div>
     </div>
 
+    {{-- Edit Modal --}}
     <div class="modal fade modal-custom" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false"
         tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true"
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">

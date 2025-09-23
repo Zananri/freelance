@@ -26,6 +26,41 @@
         return url;
     }
 
+        function showFloatingAlert(message, type = "success", delayMs = 2500) {
+        try {
+            if (typeof window.showAlertMsg === "function") {
+                window.showAlertMsg(message, "light", delayMs);
+                return;
+            }
+            const box = document.querySelector(
+                ".box-alert-messages .box-message"
+            );
+            if (box && box.parentElement) {
+                box.parentElement.style.display = "block";
+                box.classList.remove("success", "warning", "error", "light");
+                box.classList.add("light");
+                box.innerHTML = message;
+                setTimeout(() => {
+                    if (typeof window.hideAlertMsg === "function") {
+                        window.hideAlertMsg();
+                    } else {
+                        box.parentElement.style.display = "none";
+                    }
+                }, delayMs);
+                return;
+            }
+        } catch (e) {
+            /* no-op */
+        }
+        try {
+            alert(
+                typeof message === "string"
+                    ? message.replace(/<[^>]+>/g, "")
+                    : String(message)
+            );
+        } catch (e) {}
+    }
+
     // Build 1-2 character initials from a title/name
     function buildInitials(title) {
         try {
