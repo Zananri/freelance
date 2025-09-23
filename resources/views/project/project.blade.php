@@ -291,7 +291,8 @@
                                         placeholder="https://example.com">
                                     <button type="button" class="btn btn-submit-black add-ref-url"
                                         aria-label="Add URL"><span
-                                            class="material-symbols-outlined">add</span></button>
+                                            class="material-symbols-outlined">add</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -326,8 +327,7 @@
                             <label for="co_author_input" class="form-label label-custom">Co-Author</label>
                             <input type="text" class="form-control input-text" id="co_author_input"
                                 name="co_author_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="co_author_dropdown" class="dropdown-list mt-1"
-                                style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
+                            <div id="co_author_dropdown" class="dropdown-list mt-1 dropup">
                             </div>
                             <div id="selected_co_authors" class="mt-2 d-flex flex-wrap gap-2">
                                 <!-- Selected co-authors will appear here -->
@@ -338,8 +338,7 @@
                             <label for="contributor_input" class="form-label label-custom">Contributor</label>
                             <input type="text" class="form-control input-text" id="contributor_input"
                                 name="contributor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="contributor_dropdown" class="dropdown-list mt-1"
-                                style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
+                            <div id="contributor_dropdown" class="dropdown-list mt-1 dropup">
                             </div>
                             <div id="selected_contributors" class="mt-2 d-flex flex-wrap gap-2">
                                 <!-- Selected contributors will appear here -->
@@ -461,8 +460,7 @@
                             <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
                             <input type="text" class="form-control input-text" id="edit_co_author_input"
                                 name="edit_co_author_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_co_author_dropdown" class="dropdown-list mt-1"
-                                style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
+                            <div id="edit_co_author_dropdown" class="dropdown-list mt-1 dropup">
                             </div>
                             <div id="edit_selected_co_authors" class="mt-2 d-flex flex-wrap gap-2">
                                 <!-- Selected co-authors will appear here -->
@@ -473,8 +471,7 @@
                             <label for="edit_contributor_input" class="form-label label-custom">Contributor</label>
                             <input type="text" class="form-control input-text" id="edit_contributor_input"
                                 name="edit_contributor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_contributor_dropdown" class="dropdown-list mt-1"
-                                style="max-height: 200px; overflow-y: auto; border: 1px solid #ccc; border-radius: 4px; display: none; background: white; position: absolute; z-index: 1000; width: 100%;">
+                            <div id="edit_contributor_dropdown" class="dropdown-list mt-1 dropup">
                             </div>
                             <div id="edit_selected_contributors" class="mt-2 d-flex flex-wrap gap-2">
                                 <!-- Selected contributors will appear here -->
