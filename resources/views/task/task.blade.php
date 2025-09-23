@@ -37,6 +37,11 @@
                     <span class="material-symbols-outlined">calendar_month</span>
                 </button>
 
+                <button class="btn btn-sm toggle-archieve" data-bs-toggle="modal"
+                    data-bs-target="#archieveModal">
+                    <span class="material-symbols-outlined">box</span>
+                </button>
+
                 <button class="btn btn-icon-toggle toggle-filter" type="button" id="openTaskFilterBtn">
                     <span class="material-symbols-outlined icon">filter_list</span> <span
                         class="btn-text-filter">Filter</span>
@@ -233,7 +238,7 @@
                             <label for="edit_executor_input" class="form-label label-custom">Executor</label>
                             <input type="text" class="form-control input-text" id="edit_executor_input"
                                 name="edit_executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list dropup"></div>
+                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
                             <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                             <input type="hidden" id="edit_executors" name="executors" value="">
                         </div>
@@ -342,6 +347,15 @@
                             </select>
                         </div>
                         <div class="mb-3 custom-input">
+                            <label for="task_division_id" class="form-label label-custom">Division (optional)</label>
+                            <select class="form-select input-select" id="task_division_id" name="division_id">
+                                <option value="">-- Select Division (optional) --</option>
+                                <!-- Options to be populated dynamically -->
+                            </select>
+                            <div class="form-text">If you select a division, all employees from that division will be
+                                automatically selected as executors.</div>
+                        </div>
+                        <div class="mb-3 custom-input">
                             <label for="task_parent_id" class="form-label label-custom">Related to Task
                                 (optional)</label>
                             <select class="form-select input-select" id="task_parent_id" name="parent_id">
@@ -397,7 +411,7 @@
                             <label for="executor_input" class="form-label label-custom">Executor</label>
                             <input type="text" class="form-control input-text" id="executor_input"
                                 name="executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="executor_dropdown" class="dropdown-list mt-1 executor-list dropup">
+                            <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
                             </div>
                             <div id="selected_executors" class="mt-2 d-flex flex-wrap gap-2">
                                 <!-- Selected executors will appear here -->
@@ -529,6 +543,60 @@
                 </div>
             </div>
             <div class="alert-container mt-2"></div>
+        </div>
+    </div>
+
+    {{-- Archieve Modal --}}
+    <div class="modal fade" id="archieveModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable archieve-modal-dialog">
+            <div class="modal-content modal-content-custom">
+                <div
+                    class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                    <h5 class="modal-title feedback-modal-title flex-grow-1 fs-5 fw-normal"
+                        id="taskFeedbackModalLabel">Archieve</h5>
+                </div>
+                <div class="modal-body modal-body-custom">
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                    <div class="card p-3 rounded-4 border-0 mb-3">
+                        <p>Ini Archieve Project</p>
+                    </div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -1800,6 +1800,14 @@ class ProjectController extends Controller
             }
 
             // Normalize image input key
+            // If frontend requested removal of existing feedback image, delete it and clear DB field
+            if ($request->input('remove_image') == "1") {
+                if ($feedback->image && file_exists(public_path('file/project/' . $feedback->image))) {
+                    @unlink(public_path('file/project/' . $feedback->image));
+                }
+                $feedback->image = null;
+            }
+
             $img = $request->file('image') ?: $request->file('feedback_image');
             if ($img) {
                 $name = 'FEEDBACK_' . time() . '.' . $img->getClientOriginalExtension();
