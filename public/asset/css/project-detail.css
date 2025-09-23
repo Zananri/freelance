@@ -133,13 +133,17 @@
 }
 
 .modal-content-custom {
-    border-radius: 20px;
-    background-color: rgb(240, 241, 248);
+    border-radius: 16px;
+    padding: 24px;
+    background: rgb(240, 241, 248);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
 }
 
-.modal-custom .modal-body-custom {
+.modal-body-custom {
     max-height: calc(80vh - 120px);
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 8px;
 }
 
