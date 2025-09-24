@@ -1841,3 +1841,16 @@ p {
     font-size: 12px;
     color: #777;
 }
+
+
+#archieveModal .custom-card {
+    background-color: #fff;
+}
+
+/* #archieveModal .dropdown-icon {
+    background-color: #fff;
+} */
+
+#archieveModal .pic-executor-image {
+    border: 3px solid #fff;
+}

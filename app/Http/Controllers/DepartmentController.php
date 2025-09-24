@@ -36,7 +36,7 @@ public function index(Request $request)
             $departmentsQuery->where('status', $status);
         }
     } else {
-        $departmentsQuery->where('status', '!=', 'DELETED');
+    $departmentsQuery->where('status', '!=', 'DELETED');
     }
 
     $departments = $departmentsQuery->get();

@@ -26,7 +26,7 @@ trait ScheduleImmediateGeneration
     private function maybeGenerateNow(TaskSchedule $s): void
     {
         // Do not generate for schedules that were marked deleted
-        if (strtoupper(trim((string)($s->status ?? ''))) === 'DELETED') {
+    if (strtoupper(trim((string)($s->status ?? ''))) === 'DELETED') {
             return;
         }
         $now = Carbon::now();
@@ -336,9 +336,9 @@ class ScheduleController extends Controller
     {
         // Exclude schedules that have been soft-deleted via status="DELETED"
         $query = TaskSchedule::with('project')
-            ->where(function ($q) {
-                $q->whereNull('status')->orWhere('status', '!=', 'DELETED');
-            })
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', '!=', 'DELETED');
+                })
             ->orderByDesc('created_at');
 
         // Only show schedules where current user is PIC (creator) or is listed as an executor
@@ -389,7 +389,7 @@ class ScheduleController extends Controller
                 'project.division'
             ])->findOrFail($id);
 
-            if (strtoupper(trim((string)($schedule->status ?? ''))) === 'DELETED') {
+                if (strtoupper(trim((string)($schedule->status ?? ''))) === 'DELETED') {
                 return response()->json([
                     'code' => 404,
                     'status' => 'error',

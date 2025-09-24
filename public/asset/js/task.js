@@ -1506,14 +1506,14 @@
                         window.editSelectedFiles = [];
                         displayEditSelectedFiles();
 
-                        // Close modal after short delay to show alert
+                        // Close modal after short delay to show alert and insert updated task
                         setTimeout(() => {
                             var editTaskModalInstance =
                                 bootstrap.Modal.getInstance(editTaskModalEl);
                             if (editTaskModalInstance)
                                 editTaskModalInstance.hide();
-                            // Refresh task cards without page reload
-                            fetchAndRenderTasks();
+                            // Insert/refresh single updated task so client-archived tasks get restored immediately
+                            try { fetchAndInsertTask(taskId); } catch(_) { fetchAndRenderTasks(); }
                         }, 1500);
                     }, 800); // Show loading for 800ms before showing success alert
                 },
@@ -1870,7 +1870,50 @@ document.addEventListener("click", function (e) {
     }
 
     // Function to create task card HTML
+    // Ensure client-side archive buffer exists (global map of id -> task)
+    window.__clientArchivedTasks = window.__clientArchivedTasks || new Map();
+
+    // Global date parse helper (safe)
+    function __parseDateForCompareGlobal(d) {
+        if (!d) return null;
+        try {
+            const dt = new Date(d);
+            if (isNaN(dt.getTime())) return null;
+            return dt;
+        } catch (e) { return null; }
+    }
+
+    // Global helper to check if a task with status completed is older than `days`
+    function __isCompletedOlderThanDaysGlobal(task, days) {
+        try {
+            if (!task) return false;
+            const status = String(task.status || '').toLowerCase();
+            if (!status.includes('completed')) return false;
+            const d = __parseDateForCompareGlobal(task.complete_date || task.updated_at || task.updatedAt || null);
+            if (!d) return false;
+            const now = new Date();
+            const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+            return diffDays > Number(days);
+        } catch (e) { return false; }
+    }
+
     function createTaskCard(task) {
+        // Early-safety: if this task is completed and older than threshold, register into
+        // client archive buffer and return an empty string so no card is rendered.
+        try {
+            // If we're currently rendering the archive modal, allow cards to be created
+            const inArchiveRender = !!(window.__renderingArchiveModal);
+            if (!inArchiveRender && __isCompletedOlderThanDaysGlobal(task, 90)) {
+                const idKey = String(task.id || task.task_id || '');
+                if (idKey) {
+                    const normalized = Object.assign({}, task, { status: task.status || 'completed' });
+                    window.__clientArchivedTasks = window.__clientArchivedTasks || new Map();
+                    window.__clientArchivedTasks.set(idKey, normalized);
+                    console.debug('[archive-client] createTaskCard suppressed rendering for archived task id:', idKey);
+                }
+                return '';
+            }
+        } catch(_) {}
         const userId = window.CurrentUserId;
 
         const placeholderProjectImg = `${appUrl}/asset/img/avatar.png`;
@@ -2047,7 +2090,7 @@ document.addEventListener("click", function (e) {
                         <div class="dropdown-item">Edit</div>
                         <div class="dropdown-item">Feedback</div>
                         ${statusMenuItem}
-                        ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
+                        ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
                     </div>
                 </div>
                 ${iconHtml}
@@ -2152,6 +2195,9 @@ document.addEventListener("click", function (e) {
         }
     }
     window.toggleDescription = toggleDescription;
+
+// Ensure canonical generator is reachable from other scopes (some runtimes wrap files)
+try { if (typeof window !== 'undefined' && typeof createTaskCard === 'function') window.createTaskCard = createTaskCard; } catch(_) {}
 
 const desktopState = {
   new_request: { page: 1, last: 1, loading: false },
@@ -2313,6 +2359,20 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
     ensureRejectedCardsPlaced();
     // Apply search filter after a full render
     try { applyCurrentSearchFilter(); } catch(_) {}
+
+        // Sweep: if any client-archived tasks exist in DOM after render, remove them
+        try {
+            const clientMap = window.__clientArchivedTasks || new Map();
+            if (clientMap && typeof clientMap.forEach === 'function' && clientMap.size) {
+                clientMap.forEach(function(t, k){
+                    try {
+                        const selector = '.custom-card[data-task-id="' + (t.id || t.task_id) + '"]';
+                        document.querySelectorAll(selector).forEach(function(el){ el.remove(); });
+                    } catch(_) {}
+                });
+                console.debug('[archive-client] swept DOM cards for client-archived tasks, count:', clientMap.size);
+            }
+        } catch(_) {}
 }
 
 function renderSingleSection(status, sectionData, append = false) {
@@ -2338,6 +2398,33 @@ function renderSingleSection(status, sectionData, append = false) {
 
   let incomingTasks = Array.isArray(sectionData?.tasks) ? sectionData.tasks.slice() : [];
 
+    // Ensure client-side archive buffer exists (Map of id -> task)
+    window.__clientArchivedTasks = window.__clientArchivedTasks || new Map();
+
+    function parseDateForCompare(d) {
+        if (!d) return null;
+        // Accept ISO strings or timestamps; fallback to null
+        try {
+            const dt = new Date(d);
+            if (isNaN(dt.getTime())) return null;
+            return dt;
+        } catch (e) { return null; }
+    }
+
+    function isCompletedOlderThanDays(task, days) {
+        try {
+            if (!task) return false;
+            const status = String(task.status || '').toLowerCase();
+            if (!status.includes('completed')) return false;
+            // Prefer complete_date, fallback to updated_at
+            const d = parseDateForCompare(task.complete_date || task.updated_at || task.updatedAt || null);
+            if (!d) return false;
+            const now = new Date();
+            const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+            return diffDays > Number(days);
+        } catch (e) { return false; }
+    }
+
     incomingTasks = incomingTasks.filter(task => {
         const statusNorm = String(task.status || "").trim().toLowerCase();
         const isRejected = statusNorm.includes("reject");
@@ -2354,8 +2441,81 @@ function renderSingleSection(status, sectionData, append = false) {
             return false;
         }
 
+        // If the TASK itself is completed and older than 90 days, move it to client archive buffer
+        try {
+            if (statusNorm && String(statusNorm).toLowerCase().includes('completed')) {
+                if (isCompletedOlderThanDays(task, 90)) {
+                    const idKey = String(task.id || task.task_id || '');
+                    if (idKey) {
+                        const normalized = Object.assign({}, task, { status: task.status || 'completed' });
+                        window.__clientArchivedTasks.set(idKey, normalized);
+                        // Also remove any existing DOM card immediately to avoid visual leftover
+                        try {
+                            const selector = '.custom-card[data-task-id="' + idKey + '"]';
+                            document.querySelectorAll(selector).forEach(function(el){ el.remove(); });
+                        } catch(_) {}
+                        try {
+                            const d = new Date(task.complete_date || task.updated_at || task.updatedAt || null);
+                            const now = new Date();
+                            const diffDays = (d && !isNaN(d.getTime())) ? Math.floor((now - d) / (1000*60*60*24)) : null;
+                            console.debug('[archive-client] moved task -> id:', idKey, 'title:', (task.title||task.name||''), 'complete_date:', task.complete_date, 'ageDays:', diffDays);
+                        } catch(_) {}
+                    }
+                    // Skip rendering anywhere
+                    return false;
+                }
+            }
+        } catch (_) {}
+
         return true;
     });
+
+    // If any incoming task exists in client archive buffer but is no longer older than 90 days,
+    // remove it from the buffer so it can be rendered again (restore case).
+    try {
+        const clientMap = window.__clientArchivedTasks || new Map();
+        if (clientMap && typeof clientMap.delete === 'function' && incomingTasks.length) {
+            incomingTasks.forEach(function(task){
+                try {
+                    const idKey = String(task.id || task.task_id || '');
+                    if (!idKey) return;
+                    if (clientMap.has(idKey)) {
+                        // if this task is not older than 90 days anymore, remove from buffer
+                        try {
+                            if (!isCompletedOlderThanDays(task, 90)) {
+                                clientMap.delete(idKey);
+                                console.debug('[archive-client] restored task from buffer id:', idKey);
+                            }
+                        } catch(_) {}
+                    }
+                } catch(_) {}
+            });
+        }
+    } catch(_) {}
+
+    // Additionally, when rendering Completed column, ensure any existing DOM cards
+    // for tasks that are older than 90 days are removed (covering append/partial updates)
+    try {
+        if (String(status || '').toLowerCase() === 'completed') {
+            const originalArr = Array.isArray(sectionData?.tasks) ? sectionData.tasks : [];
+            originalArr.forEach(function(task) {
+                try {
+                    if (isCompletedOlderThanDays(task, 90)) {
+                        const idKey = String(task.id || task.task_id || '');
+                        if (idKey) {
+                            const normalized = Object.assign({}, task, { status: task.status || 'completed' });
+                            window.__clientArchivedTasks.set(idKey, normalized);
+                        }
+                        // Remove any existing card DOM in Completed column
+                        try {
+                            const c = container.querySelector('.custom-card[data-task-id="' + (task.id || task.task_id) + '"]');
+                            if (c && c.parentNode) c.parentNode.removeChild(c);
+                        } catch(_) {}
+                    }
+                } catch(_) {}
+            });
+        }
+    } catch(_) {}
 
   if (!append) {
     incomingTasks.forEach(task =>
@@ -2377,6 +2537,19 @@ function renderSingleSection(status, sectionData, append = false) {
     try { applyCurrentSearchFilter(); } catch(_) {}
     // If rendering New Request column, update arrow visibility according to select-all state
     try { if (status === 'new_request' && typeof window.updateNewRequestArrowVisibility === 'function') window.updateNewRequestArrowVisibility(); } catch(_) {}
+
+    // After rendering this section, sweep DOM to remove any cards that are present in client archived buffer
+    try {
+        const clientMap = window.__clientArchivedTasks || new Map();
+        if (clientMap && typeof clientMap.forEach === 'function' && clientMap.size) {
+            clientMap.forEach(function(t, k){
+                try {
+                    const selector = '.custom-card[data-task-id="' + (t.id || t.task_id) + '"]';
+                    document.querySelectorAll(selector).forEach(function(el){ el.remove(); });
+                } catch(_) {}
+            });
+        }
+    } catch(_) {}
 }
 
 // Normalisasi posisi card rejected (fallback jika ada card nyasar / tidak tergabung)
@@ -3200,8 +3373,8 @@ function applyCurrentSearchFilter() {
                         case "Back to Request":
                             handleTaskBackToRequest(taskId, taskCard);
                             break;
-                        case "Delete":
-                            handleTaskDelete(taskId, taskCard);
+                        case "Cancel":
+                            handleTaskCancel(taskId, taskCard);
                             break;
                     }
                 }
@@ -3355,14 +3528,10 @@ function applyCurrentSearchFilter() {
                         }
                     } catch(_) {}
 
-                    // If a bulk operation asked us to suppress intermediate refreshes, let the bulk aggregator handle final refresh.
                     if (bulkStatusSuppressRefresh) {
                         // Nothing else to do here for intermediate items
                     } else {
-                        // Instead of performing a full fetch which only returns first-page items (causing moved
-                        // cards to disappear when they land on a later page), fetch the single updated task and
-                        // insert it directly into the correct destination column. This ensures visibility even
-                        // when pagination is in effect.
+                    
                         (function insertUpdatedTask() {
                             $.ajax({
                                 url: appUrl + '/task/' + taskId,
@@ -3399,6 +3568,20 @@ function applyCurrentSearchFilter() {
                                             normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
                                         } catch (_) {}
 
+                                       
+                                        try {
+                                            const clientMap = window.__clientArchivedTasks || new Map();
+                                            const idKey = String(normalized.id || normalized.task_id || '');
+                                            if (idKey && clientMap && clientMap.has(idKey)) {
+                                                try {
+                                                    // if not older than 90 days anymore, delete
+                                                    if (!(__isCompletedOlderThanDaysGlobal(normalized, 90))) {
+                                                        clientMap.delete(idKey);
+                                                        console.debug('[archive-client] removed id from buffer before single-insert:', idKey);
+                                                    }
+                                                } catch(_) {}
+                                            }
+                                        } catch(_) {}
                                         destContainer.insertAdjacentHTML('afterbegin', createTaskCard(normalized));
                                     } catch (e) {
                                         // If insertion fails, fallback to full refresh
@@ -3434,7 +3617,6 @@ function applyCurrentSearchFilter() {
                             });
                         })();
                     }
-                    // Mobile dynamic refresh (avoid full reload): if mobile status selector present
                     try {
                         const mobileStatusSel = document.getElementById('taskStatusSelect');
                         if (mobileStatusSel) {
@@ -3442,19 +3624,16 @@ function applyCurrentSearchFilter() {
                             const destStatus = String(newStatus);
                             const sourceStatus = oldStatus ? String(oldStatus).toLowerCase() : null;
                             const needsRefreshCurrent = (currentMobileStatus === destStatus) || (sourceStatus && currentMobileStatus === sourceStatus);
-                            // Always refresh destination bucket so moved card appears when user switches later
                             const statusesToRefresh = new Set();
                             if (sourceStatus) statusesToRefresh.add(sourceStatus);
                             statusesToRefresh.add(destStatus);
                             statusesToRefresh.forEach(st => {
                                 if (typeof mobileState !== 'undefined') {
                                     const prevActive = (st === currentMobileStatus);
-                                    // Reset pagination for that status and fetch
                                     mobileState.page = 1; mobileState.last = 1; mobileState.status = prevActive ? currentMobileStatus : st;
                                 }
                                 try { fetchMobileTasks(st, 1, false, { prefetch: true }); } catch(_) {}
                             });
-                            // Restore selector value if we temporarily changed state.status in loop
                             if (typeof mobileState !== 'undefined') mobileState.status = currentMobileStatus;
                             if (needsRefreshCurrent) {
                                 // Ensure currently viewed list reflects new data (already fetched above) and scroll stays at top
@@ -3497,6 +3676,83 @@ function applyCurrentSearchFilter() {
                     reject(errorMessage);
                 },
             });
+        });
+    }
+
+    function fetchAndInsertTask(taskId) {
+        if (!taskId) return;
+        $.ajax({
+            url: appUrl + '/task/' + taskId,
+            type: 'GET',
+            dataType: 'json'
+        }).done(function(res){
+            const t = (res && (res.data || res)) || null;
+            if (!t) {
+                try { fetchAndRenderTasks(); } catch(_) {}
+                return;
+            }
+
+            const normalized = Object.assign({}, t);
+            try {
+                normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+                normalized.pic = t.pic || normalized.pic || null;
+                normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
+                normalized.feedback_comments_count = t.feedback_comments_count || normalized.feedback_comments_count || 0;
+                normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
+            } catch(_) {}
+
+            // Remove from client archive buffer if it's no longer older than threshold
+            try {
+                const clientMap = window.__clientArchivedTasks || new Map();
+                const idKey = String(normalized.id || normalized.task_id || '');
+                if (idKey && clientMap && clientMap.has(idKey)) {
+                    try {
+                        if (!(__isCompletedOlderThanDaysGlobal(normalized, 90))) {
+                            clientMap.delete(idKey);
+                            console.debug('[archive-client] removed id from buffer before edit-insert:', idKey);
+                        }
+                    } catch(_) {}
+                }
+            } catch(_) {}
+
+            const destKey = (String(normalized.status || '').toLowerCase().includes('reject')) ? 'in_progress' : String(normalized.status || '').toLowerCase();
+            const destContainerId = sectionMap[destKey] || sectionMap['in_progress'];
+            const destContainer = document.getElementById(destContainerId);
+
+            // Remove duplicates then insert
+            try { document.querySelectorAll('.custom-card[data-task-id="' + taskId + '"]').forEach(n => n.remove()); } catch(_) {}
+
+            if (destContainer) {
+                try {
+                    destContainer.insertAdjacentHTML('afterbegin', createTaskCard(normalized));
+                } catch (e) {
+                    try { fetchAndRenderTasks(); } catch(_) {}
+                    return;
+                }
+            } else {
+                try { fetchAndRenderTasks(); } catch(_) {}
+                return;
+            }
+
+            // Update client-side cache: remove from other buckets and add to destination
+            try {
+                ['new_request','in_progress','completed'].forEach(k => {
+                    if (allTasksCache[k] && Array.isArray(allTasksCache[k].tasks)) {
+                        allTasksCache[k].tasks = allTasksCache[k].tasks.filter(x => String(x.id) !== String(taskId));
+                    }
+                });
+                if (!allTasksCache[destKey]) allTasksCache[destKey] = { tasks: [], pagination: {} };
+                if (allTasksCache[destKey] && Array.isArray(allTasksCache[destKey].tasks)) {
+                    allTasksCache[destKey].tasks.unshift(t);
+                }
+            } catch(_) {}
+
+            try { ensureRejectedCardsPlaced(); } catch(_) {}
+            try { initBootstrapTooltips(destContainer); addAttachFileIconListeners(); scheduleRefreshLatestFeedbackSnippets(); } catch(_) {}
+        }).fail(function(){
+            try { fetchAndRenderTasks(); } catch(_) {}
         });
     }
 
@@ -5521,7 +5777,7 @@ function applyCurrentSearchFilter() {
     }
 
     document.addEventListener("click", function(e) {
-        const deleteBtn = e.target.closest(".dropdown-item.delete-task");
+        const deleteBtn = e.target.closest(".dropdown-item.cancel-task");
         if (deleteBtn) {
             const card = deleteBtn.closest("[data-task-id]");
             const taskId = card?.getAttribute("data-task-id");
@@ -5536,7 +5792,7 @@ function applyCurrentSearchFilter() {
                 }
             }
 
-            handleTaskDelete(taskId);
+            handleTaskCancel(taskId);
         }
 
         const editBtn = e.target.closest(".dropdown-item.edit-task");
@@ -5756,7 +6012,7 @@ function applyCurrentSearchFilter() {
                             <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                             <div class="dropdown-menu d-none">
                                 <div class="dropdown-item edit-task">Edit</div>
-                                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
+                                ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
                             </div>
                         </div>
                     </div>
@@ -5894,8 +6150,8 @@ function applyCurrentSearchFilter() {
             });
     }
 
-    // Function to handle task delete
-    function handleTaskDelete(taskId, taskCard) {
+    // Function to handle task cancel (soft-delete semantics preserved)
+    function handleTaskCancel(taskId, taskCard) {
         const deleteModalEl = document.getElementById("deleteTaskModal");
         const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
 
@@ -5986,7 +6242,7 @@ function applyCurrentSearchFilter() {
             }
         });
 
-        // Delete button click handler
+        // Cancel (soft-delete) button click handler
         const confirmDeleteBtn = document.getElementById("confirmDeleteTaskBtn");
         confirmDeleteBtn.onclick = function () {
             $.ajax({
@@ -6010,22 +6266,24 @@ function applyCurrentSearchFilter() {
                     deleteModal.hide();
                     // Unified success alert
                     try {
-                        showFloatingAlert(response.message || "Task deleted successfully", "success", 1500);
+                        // Keep backend behavior (soft delete -> CANCELED) but show Cancel message in UI
+                        showFloatingAlert(response.message || "Task canceled successfully", "success", 1500);
                     } catch (_) {}
-                    // Optionally refresh lists to ensure DELETED tasks are not shown anywhere
+                    // Optionally refresh lists to ensure CANCELED tasks are not shown anywhere
                     try {
                         if (typeof fetchAndRenderTasks === 'function') {
                             fetchAndRenderTasks('new_request', 1, false, '');
                             fetchAndRenderTasks('in_progress', 1, false, '');
                             fetchAndRenderTasks('completed', 1, false, '');
+                            try { if (typeof loadArchivedTasksIntoModal === 'function') loadArchivedTasksIntoModal(); } catch(_) {}
                         }
                     } catch (_) {}
                 },
                 error: function () {
                     try {
-                        showFloatingAlert("Failed to delete task.", "danger", 3000);
+                        showFloatingAlert("Failed to cancel task.", "danger", 3000);
                     } catch (_) {
-                        try { alert("Failed to delete task."); } catch(e) {}
+                        try { alert("Failed to cancel task."); } catch(e) {}
                     }
                 },
             });
@@ -7335,6 +7593,242 @@ function applyCurrentSearchFilter() {
         await fetchTimelineTasksOnce();
         renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
     });
+
+    // Load archived (CANCELED) tasks into Archieve Modal when opened
+    async function loadArchivedTasksIntoModal() {
+        try {
+            // Resolve appUrl with safe fallback in case it's not in scope
+            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl) ? appUrl : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''));
+
+            const modalEl = document.getElementById('archieveModal');
+            if (!modalEl) return;
+            const body = modalEl.querySelector('.modal-body');
+            if (!body) return;
+            // Show spinner while loading
+            body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            // Prefer backend-provided canceled bucket: request status=canceled and a large per_page
+            const res = await fetch(baseAppUrl + '/task/index?status=canceled&per_page=1000', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) {
+                body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+                return;
+            }
+            const j = await res.json();
+            const data = (j && j.data) ? j.data : {};
+            console.debug('[archive] raw archive payload', j);
+
+            // First try server-provided canceled bucket
+            let tasks = [];
+            if (data) {
+                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
+                if (canceledSection) {
+                    if (Array.isArray(canceledSection)) tasks = canceledSection;
+                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
+                }
+            }
+
+            // Fallback: if server didn't provide cancelled section, collect from known buckets in response body
+            if (!tasks || tasks.length === 0) {
+                // Collect tasks from known buckets and any unknown arrays; normalize into single array
+                let collected = [];
+                const buckets = ['new_request','in_progress','completed','rejected','canceled','CANCELED'];
+                buckets.forEach(key => {
+                    const section = data[key];
+                    if (!section) return;
+                    if (Array.isArray(section)) collected.push(...section);
+                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
+                });
+                // If the API returned a flat array somewhere (e.g., data as array), include it
+                if (Array.isArray(data)) collected.push(...data);
+
+                // Deduplicate by id
+                const seen = new Set();
+                const allTasks = [];
+                collected.forEach(t => {
+                    const id = t && (t.id || t.task_id);
+                    if (!id) return;
+                    if (seen.has(String(id))) return;
+                    seen.add(String(id));
+                    allTasks.push(t);
+                });
+
+                // Filter tasks whose status contains 'cancel' (case-insensitive)
+                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
+                // Do not return here yet; allow client-side archived tasks
+                // (completed > 90 days) to be merged into the list below.
+                console.debug('[archive] collected tasks total:', allTasks.length, 'filtered canceled:', tasks.length);
+                console.debug('[archive] will merge client archived tasks (if any) before deciding emptiness');
+            } else {
+                console.debug('[archive] rendering canceled tasks count (server):', tasks.length, 'ids:', tasks.map(t => t.id));
+            }
+
+            // Merge client-side archived tasks (completed > 90 days) into tasks list
+            try {
+                const clientMap = window.__clientArchivedTasks || new Map();
+                let merged = 0;
+                if (clientMap && typeof clientMap.forEach === 'function') {
+                    clientMap.forEach(function(t, k){
+                        // avoid duplicates by id
+                        if (!tasks.some(x => String(x.id) === String(t.id))) { tasks.push(t); merged++; }
+                    });
+                }
+                try { console.debug('[archive] merged client archived tasks count:', (clientMap && clientMap.size) || 0, 'mergedIntoThisFetch:', merged, 'totalTasksNow:', tasks.length); } catch(_) {}
+                // If after merging there are still no tasks, show empty state and exit
+                if (!tasks || !tasks.length) {
+                    console.debug('[archive] no canceled tasks and no client archived tasks to display');
+                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
+                    try { window.__renderingArchiveModal = false; } catch(_) {}
+                    return;
+                }
+            } catch(_) {}
+
+            // Render using the same card generator where possible; fall back to a
+            // safe card builder if createTaskCard throws (missing fields in some
+            // API shapes caused errors observed in the wild). Use a `.task-list`
+            // wrapper so modal cards get similar spacing/scroll behavior.
+            const container = document.createElement('div');
+            container.className = 'task-list d-flex flex-column gap-2 p-2';
+
+            function buildSafeCardHtml(t) {
+                const title = (t.title || 'Untitled Task');
+                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                const desc = (t.description || '').toString();
+                const priority = t.priority || '';
+                const due = t.due_date || '';
+                // executors images (simple overlap)
+                let execHtml = '';
+                try {
+                    const execs = Array.isArray(t.executors) ? t.executors.slice(0,3) : [];
+                    execHtml = execs.map((ex, i) => {
+                        const src = ex && (ex.image || ex.user_photo || ex.profile_picture) ? (String(ex.image || ex.user_photo || ex.profile_picture) || '') : '';
+                        const img = src ? (/^https?:\/\//i.test(src) ? src : (src.startsWith('/') ? appUrl + src : appUrl + '/file/profile_picture/' + src)) : (appUrl + '/asset/img/avatar.png');
+                        return `<img src="${img}" class="pic-executor-image executor-image-overlap" style="width:32px;height:32px;object-fit:cover;border:3px solid #f0f1f8;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                    }).join('');
+                } catch(_) { execHtml = ''; }
+
+                // show Type instead of Deadline in archive modal cards as colored badge
+                const rawStatus = String((t.status || '')).toUpperCase();
+                const typeLabel = rawStatus;
+                // plain colored text (no background): red for canceled, green for completed/others
+                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL'))
+                    ? `<span style="color:red; font-weight:600;">${rawStatus}</span>`
+                    : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`;
+                return `
+                    <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${t.id || ''}" data-task-status="${t.status || ''}">
+                        ${proj ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${proj}</small>` : ''}
+                        <h5 class="mb-0 task-title" style="line-height:1.2; margin-top:6px;">${title}</h5>
+                        <div class="task-description-container"><p class="task-description" style="margin-top:6px;">${desc}</p></div>
+                        <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div style="font-size: 10px; font-weight: 400;"> <span style="color: #797E91;">Priority: </span><span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span></div>
+                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Type: </span><span class="type-badge-wrapper">${typeBadge}</span></div>
+                        </div>
+                        <div class="d-flex align-items-center mt-3"><div class="pic-executor-container">${execHtml}</div></div>
+                    </div>`;
+            }
+
+            // Mark that we're rendering the archive modal so createTaskCard can bypass suppression
+            try { window.__renderingArchiveModal = true; } catch(_) {}
+            tasks.forEach(t => {
+                try {
+                    // Normalize payload keys so createTaskCard receives expected fields
+                    const normalized = Object.assign({}, t);
+                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+                    normalized.pic = t.pic || normalized.pic || null;
+                    normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
+                    normalized.feedback_comments_count = (t.feedback_comments_count !== undefined) ? t.feedback_comments_count : (normalized.feedback_comments_count || 0);
+                    normalized.reference_files_count = Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0);
+
+                    // Prefer using the canonical card generator; call defensively to avoid ReferenceError
+                    let html = '';
+                    if (typeof createTaskCard === 'function') {
+                        try {
+                            html = createTaskCard(normalized);
+                        } catch (errCreate) {
+                            console.warn('createTaskCard threw for archived task', t.id, errCreate);
+                            html = buildSafeCardHtml(normalized);
+                        }
+                    } else if (typeof window !== 'undefined' && typeof window.createTaskCard === 'function') {
+                        try {
+                            html = window.createTaskCard(normalized);
+                        } catch (errCreate) {
+                            console.warn('window.createTaskCard threw for archived task', t.id, errCreate);
+                            html = buildSafeCardHtml(normalized);
+                        }
+                    } else {
+                        console.warn('createTaskCard not available for archived task', t.id);
+                        html = buildSafeCardHtml(normalized);
+                    }
+                    container.insertAdjacentHTML('beforeend', html);
+                } catch (e) {
+                    // ultimate fallback: simple card
+                    const simple = document.createElement('div');
+                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0';
+                    simple.innerHTML = `<h5 class="mb-1">${(t.title||'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`;
+                    container.appendChild(simple);
+                }
+            });
+
+            // End archive modal rendering flag
+            try { window.__renderingArchiveModal = false; } catch(_) {}
+
+            // Post-process inserted cards: if they came from createTaskCard which
+            // may include Deadline labels, replace Deadline with Type label for archive
+            // Normalize status label text to uppercase
+            try {
+                // Insert into modal body first
+                body.innerHTML = '';
+                body.appendChild(container);
+
+                // Replace any 'Deadline:' label inside cards with 'Type:' and show status
+                container.querySelectorAll('.custom-card').forEach(function(card){
+                    try {
+                        const ds = card.querySelectorAll('div[style*="Deadline:"]');
+                        // Fallback: find inner text nodes containing 'Deadline:'
+                        if (ds && ds.length) {
+                            ds.forEach(function(dd){
+                                // find corresponding task status from data attribute
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>');
+                            });
+                        } else {
+                            // Generic replace of text nodes
+                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function(_, g1){
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                return 'Type: <span class="type-badge-wrapper">' + badge + '</span>';
+                            });
+                        }
+                    } catch(_) {}
+                });
+
+                initBootstrapTooltips(modalEl);
+            } catch (_) {
+                // ensure modal still displays even if post-processing fails
+                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl); } catch(_) {}
+            }
+        } catch (err) {
+            try {
+                const modalEl = document.getElementById('archieveModal');
+                const body = modalEl && modalEl.querySelector('.modal-body');
+                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+            } catch(_) {}
+            console.warn('loadArchivedTasksIntoModal error', err);
+        }
+    }
+
+    // Bind modal show event
+    try {
+        const archModal = document.getElementById('archieveModal');
+        if (archModal) {
+            archModal.addEventListener('show.bs.modal', function () {
+                loadArchivedTasksIntoModal();
+            });
+        }
+    } catch(_) {}
 
     // Prev / Next bulan
     document.getElementById("prevTimelineModal").addEventListener("click", () => {

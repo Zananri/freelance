@@ -215,64 +215,140 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const departmentSelect = document.getElementById("department");
     const divisionSelect = document.getElementById("division");
-    const partOfProjectSelect = document.getElementById("part_of_project");
 
-    // Helper: populate part_of_project selects (add + edit). If currentProjectId is provided
-    // ensure an option for it exists even if the fetched list does not contain it.
-    function populatePartOfProjectSelects(
-        currentProjectId = null,
-        currentProjectTitle = "",
-        selectedPartOfProjectId = ""
-    ) {
-        fetch(appUrl + "/project/index?task_scope=all")
-            .then(function (response) {
-                if (!response.ok) throw new Error("Failed to load projects");
-                return response.json();
-            })
-            .then(function (payload) {
-                const arr = Array.isArray(payload)
-                    ? payload
-                    : Array.isArray(payload.data)
-                    ? payload.data
-                    : [];
-                let options = '<option value="">Select Project</option>';
-                let foundCurrent = false;
-                arr.forEach(function (p) {
-                    if (!p) return;
-                    const id = p.id;
-                    const title = p.title || p.name || "Project " + id;
-                    if (String(id) === String(currentProjectId))
-                        foundCurrent = true;
-                    options += `<option value="${id}">${title}</option>`;
-                });
+    function populatePartOfProjectSelects(prefix, currentProjectId = null, currentProjectTitle = "", currentPartOfProjectId = null, currentPartOfProjectTitle = "") {
+        const input = document.getElementById(`${prefix}_part_of_project_input`);
+        const dropdown = document.getElementById(`${prefix}_part_of_project_dropdown`);
+        const hiddenInput = document.getElementById(`${prefix}_part_of_project`);
+        const selectedContainer = document.getElementById(`${prefix}_selected_project`);
 
-                if (currentProjectId && !foundCurrent) {
-                    const safeTitle =
-                        currentProjectTitle || "Project " + currentProjectId;
-                    options += `<option value="${currentProjectId}">${safeTitle}</option>`;
-                }
+        let projects = [];
 
-                try {
-                    if (partOfProjectSelect)
-                        partOfProjectSelect.innerHTML = options;
-                } catch (_) {}
-                try {
-                    const editSel = document.getElementById(
-                        "edit_part_of_project"
-                    );
-                    if (editSel) editSel.innerHTML = options;
-                } catch (_) {}
+        function getInitialAvatar(name) {
+            const colors = [
+                "#F44336", "#E91E63", "#9C27B0", "#673AB7",
+                "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
+                "#009688", "#4CAF50", "#8BC34A", "#FFC107",
+                "#FF9800", "#FF5722", "#795548"
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const initial = (name || "?").charAt(0).toUpperCase();
+            return `<div style="
+                width:28px;height:28px;
+                border-radius:50%;
+                background:${color};
+                color:#fff;
+                font-size:13px;
+                font-weight:bold;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+            ">${initial}</div>`;
+        }
 
-                if (selectedPartOfProjectId) {
-                    try {
-                        $("#edit_part_of_project").val(selectedPartOfProjectId);
-                    } catch (_) {}
-                }
-            })
-            .catch(function (err) {
-                console.warn("populatePartOfProjectSelects failed", err);
+        function showSelectedProject(p) {
+            let avatarHtml;
+            if (p.image && p.image.trim() !== "") {
+                avatarHtml = `<img src="${appUrl}/file/project/${p.image}"
+                                width="28" height="28" style="object-fit:cover;border-radius:50%;">`;
+            } else {
+                avatarHtml = getInitialAvatar(p.title);
+            }
+
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                    ${avatarHtml}
+                    <span class="flex-grow-1">${p.title}</span>
+                    <button type="button" class="btn btn-sm btn-remove-project remove-project" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            const removeBtn = selectedContainer.querySelector(".remove-project");
+            removeBtn.addEventListener("click", () => {
+                hiddenInput.value = "";
+                input.value = "";
+                selectedContainer.innerHTML = "";
             });
+        }
+
+        function renderDropdown(filter = "") {
+            dropdown.innerHTML = "";
+            let filtered = projects.filter(p =>
+                p.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            // Kalo edit → exclude current project
+            if (prefix === "edit" && currentProjectId) {
+                filtered = filtered.filter(p => String(p.id) !== String(currentProjectId));
+            }
+
+            filtered.forEach(p => {
+                let avatarHtml;
+                if (p.image && p.image.trim() !== "") {
+                    avatarHtml = `<img src="${appUrl}/file/project/${p.image}"
+                                    width="24" height="24" style="object-fit:cover;border-radius:50%;">`;
+                } else {
+                    avatarHtml = getInitialAvatar(p.title);
+                }
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                item.addEventListener("click", () => {
+                    hiddenInput.value = p.id;
+                    input.value = p.title;
+                    dropdown.style.display = "none";
+                    showSelectedProject(p);
+                });
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = filtered.length ? "block" : "none";
+        }
+
+        // Fetch projects
+        fetch(appUrl + "/project/index?task_scope=all")
+            .then(res => res.json())
+            .then(payload => {
+                projects = (Array.isArray(payload) ? payload : payload.data) || [];
+                projects = projects.map(p => ({
+                    id: p.id,
+                    title: p.title || p.name || "Project " + p.id,
+                    image: p.image || ""
+                }));
+
+                // Kalau EDIT dan ada part_of_project → preselect itu
+                if (prefix === "edit" && currentPartOfProjectId) {
+                    const found = projects.find(p => String(p.id) === String(currentPartOfProjectId));
+                    if (found) {
+                        hiddenInput.value = found.id;
+                        input.value = found.title;
+                        showSelectedProject(found);
+                    } else if (currentPartOfProjectTitle) {
+                        hiddenInput.value = currentPartOfProjectId;
+                        input.value = currentPartOfProjectTitle;
+                        showSelectedProject({ id: currentPartOfProjectId, title: currentPartOfProjectTitle, image: "" });
+                    }
+                }
+            });
+
+        input.addEventListener("input", () => {
+            renderDropdown(input.value);
+        });
+
+        input.addEventListener("focus", () => {
+            renderDropdown(input.value);
+        });
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
     }
+
     const imageInput = document.getElementById("image");
     const imageLabel = document.getElementById("imageLabel");
     const imageClearBtn = document.getElementById("imageClearBtn");
@@ -782,7 +858,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             "&quot;"
                         );
                         rowHtml += `
-                            <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${
+                            <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
                             }" data-project-title="${dataTitle}">
                                 <div class="project-card p-4 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
@@ -1186,6 +1262,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 const currentProjectTitle =
                                                     data.title || "";
                                                 populatePartOfProjectSelects(
+                                                    "edit",
                                                     currentProjectId,
                                                     currentProjectTitle,
                                                     data.part_of_project
@@ -8128,7 +8205,7 @@ document.addEventListener("DOMContentLoaded", function () {
     loadDepartments();
     // Populate "Part of Project" selects for Add and Edit modals
     try {
-        populatePartOfProjectSelects();
+        populatePartOfProjectSelects("add");
     } catch (_) {}
 
     // Setup filter dropdown functionality
