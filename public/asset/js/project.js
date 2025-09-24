@@ -1705,12 +1705,25 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 var coAuthors =
                                                     data.co_authors.map(
                                                         function (a) {
+                                                            // preserve division info so the edit-modal setter can display it
+                                                            var division = "";
+                                                            try {
+                                                                division = (
+                                                                    a.division_name ||
+                                                                    a.division ||
+                                                                    a.division_title ||
+                                                                    (a.employee && (a.employee.division_name || (a.employee.division && (a.employee.division.name || a.employee.division.title)))) ||
+                                                                    a.employee_division ||
+                                                                    ""
+                                                                );
+                                                            } catch (_) {
+                                                                division = "";
+                                                            }
                                                             return {
                                                                 id: a.id,
                                                                 name: a.name,
-                                                                user_photo:
-                                                                    a.user_photo ||
-                                                                    null,
+                                                                user_photo: a.user_photo || null,
+                                                                division: division,
                                                             };
                                                         }
                                                     );
@@ -1725,12 +1738,24 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 var contributors =
                                                     data.contributors.map(
                                                         function (a) {
+                                                            var division = "";
+                                                            try {
+                                                                division = (
+                                                                    a.division_name ||
+                                                                    a.division ||
+                                                                    a.division_title ||
+                                                                    (a.employee && (a.employee.division_name || (a.employee.division && (a.employee.division.name || a.employee.division.title)))) ||
+                                                                    a.employee_division ||
+                                                                    ""
+                                                                );
+                                                            } catch (_) {
+                                                                division = "";
+                                                            }
                                                             return {
                                                                 id: a.id,
                                                                 name: a.name,
-                                                                user_photo:
-                                                                    a.user_photo ||
-                                                                    null,
+                                                                user_photo: a.user_photo || null,
+                                                                division: division,
                                                             };
                                                         }
                                                     );
@@ -1995,28 +2020,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 );
                                 if (hiddenExisting) hiddenExisting.value = "[]";
                                 $("#edit_reference_file").off("change");
-                            } catch (e) {}
-
-                            $("#editProjectAlert").addClass("d-none").hide();
-
-                            // Safety: remove stray backdrops if no other modal is open
-                            try {
-                                const anyOpen =
-                                    document.querySelector(".modal.show");
-                                if (!anyOpen) {
-                                    document
-                                        .querySelectorAll(".modal-backdrop")
-                                        .forEach(function (el) {
-                                            el.parentNode &&
-                                                el.parentNode.removeChild(el);
-                                        });
-                                    document.body.classList.remove(
-                                        "modal-open"
-                                    );
-                                    document.body.style.removeProperty(
-                                        "padding-right"
-                                    );
-                                }
                             } catch (_) {}
                         }
                     );
@@ -2116,10 +2119,26 @@ document.addEventListener("DOMContentLoaded", function () {
                                 }
                             }
                             const contributorIds = getContributorIds();
+
                             const availableEmployees = filteredEmployees.filter(
                                 (emp) =>
                                     !contributorIds.includes(Number(emp.id))
                             );
+
+                            function getDivision(emp) {
+                                try {
+                                    if (!emp) return '';
+                                    return (
+                                        emp?.division_name ||
+                                        emp?.division ||
+                                        emp?.division_title ||
+                                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                                        emp?.employee_division ||
+                                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                                        ''
+                                    );
+                                } catch (_) { return ''; }
+                            }
 
                             const html = availableEmployees
                                 .map((emp) => {
@@ -2149,17 +2168,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                             emp.user_photo;
                                     }
 
+                                    const divName = getDivision(emp);
+
                                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${photoUrl}" alt="${
-                                        emp.name
-                                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                    <span>${emp.name}</span>
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <div class="d-flex flex-column">
+                        <span>${emp.name}</span>
+                        <small class="text-muted" style="font-size:10px;">${divName || ''}</small>
+                    </div>
                 </div>
-                <input type="checkbox" class="co-author-checkbox" data-id="${
-                    emp.id
-                }" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
             </label>
         `;
                                 })
@@ -2197,6 +2217,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         user_photo: employeeObj
                                                             ? employeeObj.user_photo
                                                             : null,
+                                                        division: employeeObj ? getDivision(employeeObj) : '',
                                                     });
                                                 }
                                             } else {
@@ -2236,21 +2257,26 @@ document.addEventListener("DOMContentLoaded", function () {
                                 img.style.width = "24px";
                                 img.style.height = "24px";
                                 img.style.objectFit = "cover";
-
+                                const nameWrapper = document.createElement("div");
+                                nameWrapper.className = "d-flex flex-column";
                                 const nameSpan = document.createElement("span");
                                 nameSpan.textContent = emp.name;
+                                nameSpan.style.lineHeight = '1';
+                                const divSpan = document.createElement("small");
+                                divSpan.className = "text-muted";
+                                divSpan.style.lineHeight = '1';
+                                divSpan.textContent = emp.division || '';
+                                nameWrapper.appendChild(nameSpan);
+                                nameWrapper.appendChild(divSpan);
 
-                                const removeBtn =
-                                    document.createElement("button");
+                                const removeBtn = document.createElement("button");
                                 removeBtn.type = "button";
-                                removeBtn.className =
-                                    "btn-close btn-close-white btn-sm ms-2";
+                                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
                                 removeBtn.setAttribute("aria-label", "Remove");
                                 removeBtn.addEventListener("click", () => {
-                                    selectedEmployees =
-                                        selectedEmployees.filter(
-                                            (e) => e.id !== emp.id
-                                        );
+                                    selectedEmployees = selectedEmployees.filter(
+                                        (e) => e.id !== emp.id
+                                    );
                                     renderSelected();
                                     updateHiddenInput();
                                     renderDropdown();
@@ -2262,7 +2288,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 });
 
                                 badge.appendChild(img);
-                                badge.appendChild(nameSpan);
+                                badge.appendChild(nameWrapper);
                                 badge.appendChild(removeBtn);
                                 selectedContainer.appendChild(badge);
                             });
@@ -2349,6 +2375,21 @@ document.addEventListener("DOMContentLoaded", function () {
                                 contribIds = [];
                             }
 
+                            function getDivisionFrom(emp) {
+                                try {
+                                    if (!emp) return "";
+                                    return (
+                                        emp?.division_name ||
+                                        emp?.division ||
+                                        emp?.division_title ||
+                                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                                        emp?.employee_division ||
+                                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                                        ""
+                                    );
+                                } catch (_) { return ""; }
+                            }
+
                             selectedEmployees = coAuthors
                                 .filter(
                                     (ca) => !contribIds.includes(Number(ca.id))
@@ -2362,6 +2403,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         id: ca.id,
                                         name: ca.name,
                                         user_photo: buildAvatarUrl(candidate),
+                                        division: getDivisionFrom(ca),
                                     };
                                 });
                             renderSelected();
@@ -2476,6 +2518,21 @@ document.addEventListener("DOMContentLoaded", function () {
                             };
                         })(window.__refreshEditProjectEmployees);
 
+                        function getDivision(emp) {
+                            try {
+                                if (!emp) return "";
+                                return (
+                                    emp?.division_name ||
+                                    emp?.division ||
+                                    emp?.division_title ||
+                                    (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                                    emp?.employee_division ||
+                                    (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                                    ""
+                                );
+                            } catch (_) { return ""; }
+                        }
+
                         function renderDropdown() {
                             if (filteredEmployees.length === 0) {
                                 dropdown.innerHTML =
@@ -2514,8 +2571,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     // Pastikan user_photo ada, jika tidak set default
                                     if (!emp.user_photo) {
-                                        emp.user_photo =
-                                            "/asset/img/avatar.png"; // relatif terhadap appUrl
+                                        emp.user_photo = "/asset/img/avatar.png"; // relatif terhadap appUrl
                                     }
 
                                     // Tentukan URL gambar profil
@@ -2525,26 +2581,23 @@ document.addEventListener("DOMContentLoaded", function () {
                                     } else if (emp.user_photo.startsWith("/")) {
                                         photoUrl = appUrl + emp.user_photo;
                                     } else if (emp.user_photo.includes("/")) {
-                                        photoUrl =
-                                            appUrl + "/" + emp.user_photo;
+                                        photoUrl = appUrl + "/" + emp.user_photo;
                                     } else {
-                                        photoUrl =
-                                            appUrl +
-                                            "/file/profile_picture/" +
-                                            emp.user_photo;
+                                        photoUrl = appUrl + "/file/profile_picture/" + emp.user_photo;
                                     }
+
+                                    const divName = getDivision(emp);
 
                                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${photoUrl}" alt="${
-                                        emp.name
-                                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                    <span>${emp.name}</span>
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <div class="d-flex flex-column">
+                        <span>${emp.name}</span>
+                        <small class="text-muted" style="font-size:10px;">${divName || ''}</small>
+                    </div>
                 </div>
-                <input type="checkbox" class="contributor-checkbox" data-id="${
-                    emp.id
-                }" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
             </label>
         `;
                                 })
@@ -2607,13 +2660,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         function renderSelected() {
                             selectedContainer.innerHTML = "";
                             selectedEmployees.forEach((emp) => {
-                                // Ganti semua logika pengambilan foto dengan:
-                                const photoUrl =
-                                    emp.user_photo ||
-                                    appUrl + "/asset/img/avatar.png";
+                                const photoUrl = emp.user_photo || appUrl + "/asset/img/avatar.png";
                                 const badge = document.createElement("span");
-                                badge.className =
-                                    "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                                badge.className = "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
 
                                 const img = document.createElement("img");
                                 img.src = photoUrl;
@@ -2623,20 +2672,26 @@ document.addEventListener("DOMContentLoaded", function () {
                                 img.style.height = "24px";
                                 img.style.objectFit = "cover";
 
+                                const nameWrapper = document.createElement("div");
+                                nameWrapper.className = "d-flex flex-column";
                                 const nameSpan = document.createElement("span");
                                 nameSpan.textContent = emp.name;
+                                nameSpan.style.lineHeight = '1';
+                                const divSpan = document.createElement("small");
+                                divSpan.className = "text-muted";
+                                divSpan.style.lineHeight = '1';
+                                divSpan.textContent = emp.division || '';
+                                nameWrapper.appendChild(nameSpan);
+                                nameWrapper.appendChild(divSpan);
 
-                                const removeBtn =
-                                    document.createElement("button");
+                                const removeBtn = document.createElement("button");
                                 removeBtn.type = "button";
-                                removeBtn.className =
-                                    "btn-close btn-close-white btn-sm ms-2";
+                                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
                                 removeBtn.setAttribute("aria-label", "Remove");
                                 removeBtn.addEventListener("click", () => {
-                                    selectedEmployees =
-                                        selectedEmployees.filter(
-                                            (e) => e.id !== emp.id
-                                        );
+                                    selectedEmployees = selectedEmployees.filter(
+                                        (e) => e.id !== emp.id
+                                    );
                                     renderSelected();
                                     updateHiddenInput();
                                     renderDropdown();
@@ -2648,7 +2703,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 });
 
                                 badge.appendChild(img);
-                                badge.appendChild(nameSpan);
+                                badge.appendChild(nameWrapper);
                                 badge.appendChild(removeBtn);
                                 selectedContainer.appendChild(badge);
                             });
@@ -2719,6 +2774,21 @@ document.addEventListener("DOMContentLoaded", function () {
                                 coIds = [];
                             }
 
+                            function getDivisionFrom(emp) {
+                                try {
+                                    if (!emp) return "";
+                                    return (
+                                        emp?.division_name ||
+                                        emp?.division ||
+                                        emp?.division_title ||
+                                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                                        emp?.employee_division ||
+                                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                                        ""
+                                    );
+                                } catch (_) { return ""; }
+                            }
+
                             selectedEmployees = contributors
                                 .filter((c) => !coIds.includes(Number(c.id)))
                                 .map((ca) => {
@@ -2730,6 +2800,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         id: ca.id,
                                         name: ca.name,
                                         user_photo: buildAvatarUrl(candidate),
+                                        division: getDivisionFrom(ca),
                                     };
                                 });
                             renderSelected();
@@ -7501,6 +7572,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
+            function getDivision(emp) {
+                try {
+                    if (!emp) return '';
+                    return (
+                        emp?.division_name ||
+                        emp?.division ||
+                        emp?.division_title ||
+                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                        emp?.employee_division ||
+                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                        ''
+                    );
+                } catch (_) { return ''; }
+            }
+
             const html = filteredEmployees
                 .map((emp) => {
                     const isChecked = selectedEmployees.some(
@@ -7527,17 +7613,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     })(candidate);
 
+                    const divName = getDivision(emp);
                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${appendAvatarVersion(photoUrl)}" alt="${
-                        emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                    <span>${emp.name}</span>
+                    <img src="${appendAvatarVersion(photoUrl)}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <div class="d-flex flex-column">
+                        <span>${emp.name}</span>
+                        <small class="text-muted" style="font-size:10px;">${divName || ''}</small>
+                    </div>
                 </div>
-                <input type="checkbox" class="contributor-checkbox" data-id="${
-                    emp.id
-                }" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
             </label>
         `;
                 })
@@ -7568,6 +7654,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     id,
                                     name,
                                     user_photo: candidate,
+                                    division: employeeObj ? getDivision(employeeObj) : '',
                                 });
                             }
                         } else {
@@ -7619,8 +7706,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 img.style.height = "24px";
                 img.style.objectFit = "cover";
 
+                const nameWrapper = document.createElement("div");
+                nameWrapper.className = "d-flex flex-column";
                 const nameSpan = document.createElement("span");
                 nameSpan.textContent = emp.name;
+                nameSpan.style.lineHeight = '1';
+                const divSpan = document.createElement("small");
+                divSpan.className = "text-muted";
+                divSpan.style.lineHeight = '1';
+                divSpan.textContent = emp.division || '';
+                nameWrapper.appendChild(nameSpan);
+                nameWrapper.appendChild(divSpan);
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
@@ -7636,7 +7732,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameWrapper);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
@@ -8076,6 +8172,21 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
 
+        function getDivision(emp) {
+            try {
+                if (!emp) return '';
+                return (
+                    emp?.division_name ||
+                    emp?.division ||
+                    emp?.division_title ||
+                    (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                    emp?.employee_division ||
+                    (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                    ''
+                );
+            } catch (_) { return ''; }
+        }
+
         function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
@@ -8105,17 +8216,17 @@ document.addEventListener("DOMContentLoaded", function () {
                             appUrl + "/file/profile_picture/" + emp.user_photo;
                     }
 
+                    const divName = getDivision(emp);
                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${photoUrl}" alt="${
-                        emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                    <span>${emp.name}</span>
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <div class="d-flex flex-column">
+                        <span>${emp.name}</span>
+                        <small class="text-muted" style="font-size:10px;">${divName || ''}</small>
+                    </div>
                 </div>
-                <input type="checkbox" class="co-author-checkbox" data-id="${
-                    emp.id
-                }" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
             </label>
         `;
                 })
@@ -8142,6 +8253,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     user_photo: employeeObj
                                         ? employeeObj.user_photo
                                         : null,
+                                    division: employeeObj ? getDivision(employeeObj) : '',
                                 });
                             }
                         } else {
@@ -8184,8 +8296,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 img.style.height = "24px";
                 img.style.objectFit = "cover";
 
+                const nameWrapper = document.createElement("div");
+                nameWrapper.className = "d-flex flex-column";
                 const nameSpan = document.createElement("span");
                 nameSpan.textContent = emp.name;
+                nameSpan.style.lineHeight = '1';
+                const divSpan = document.createElement("small");
+                divSpan.className = "text-muted";
+                divSpan.style.lineHeight = '1';
+                divSpan.textContent = emp.division || '';
+                nameWrapper.appendChild(nameSpan);
+                nameWrapper.appendChild(divSpan);
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
@@ -8208,7 +8329,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameWrapper);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
@@ -8877,7 +8998,25 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
 
-        // Render dropdown list with checkboxes
+        // Helper to extract division name similarly to co-author logic
+        function getDivision(emp) {
+            try {
+                if (!emp) return "";
+                return (
+                    emp?.division_name ||
+                    emp?.division ||
+                    emp?.division_title ||
+                    (typeof emp?.division === "object" && (emp.division?.name || emp.division?.title)) ||
+                    emp?.employee_division ||
+                    (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                    ""
+                );
+            } catch (_) {
+                return "";
+            }
+        }
+
+        // Render dropdown list with checkboxes (shows division under name)
         function renderDropdown() {
             if (filteredEmployees.length === 0) {
                 dropdown.innerHTML =
@@ -8907,17 +9046,18 @@ document.addEventListener("DOMContentLoaded", function () {
                             appUrl + "/file/profile_picture/" + emp.user_photo;
                     }
 
+                    const divName = getDivision(emp);
+
                     return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
-                    <img src="${photoUrl}" alt="${
-                        emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                    <span>${emp.name}</span>
+                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                    <div class="d-flex flex-column">
+                        <span>${emp.name}</span>
+                        <small class="text-muted" style="font-size:10px;">${divName || ''}</small>
+                    </div>
                 </div>
-                <input type="checkbox" class="contributor-checkbox" data-id="${
-                    emp.id
-                }" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
             </label>
         `;
                 })
@@ -8945,6 +9085,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     user_photo: employeeObj
                                         ? employeeObj.user_photo
                                         : null,
+                                    division: employeeObj ? getDivision(employeeObj) : '',
                                 });
                             }
                         } else {
@@ -8969,16 +9110,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
         }
 
-        // Render selected employees as badges with remove buttons
+        // Render selected employees as badges with remove buttons (shows division)
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
-                const photoUrl =
-                    emp.user_photo || appUrl + "/asset/img/avatar.png";
+                const photoUrl = emp.user_photo || appUrl + "/asset/img/avatar.png";
 
                 const badge = document.createElement("span");
-                badge.className =
-                    "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                badge.className = "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -8988,8 +9127,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 img.style.height = "24px";
                 img.style.objectFit = "cover";
 
+                const nameWrapper = document.createElement("div");
+                nameWrapper.className = "d-flex flex-column";
                 const nameSpan = document.createElement("span");
                 nameSpan.textContent = emp.name;
+                nameSpan.style.lineHeight = '1';
+                const divSpan = document.createElement("small");
+                divSpan.className = "text-muted";
+                divSpan.style.lineHeight = '1';
+                divSpan.textContent = emp.division || '';
+                nameWrapper.appendChild(nameSpan);
+                nameWrapper.appendChild(divSpan);
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
@@ -9012,7 +9160,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameWrapper);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
