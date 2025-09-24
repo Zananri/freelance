@@ -1586,7 +1586,7 @@
 #edit_contributor_dropdown,
 #add_part_of_project_dropdown,
 #edit_part_of_project_dropdown {
-    border: 1px solid #ccc;
+    border: none;
     border-radius: 4px;
     max-height: 200px;
     overflow-y: auto;

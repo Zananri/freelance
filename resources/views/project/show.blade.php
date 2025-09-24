@@ -347,6 +347,120 @@
         </div>
     </div>
 
+    {{-- Feedback form templates (rendered in Blade). JS will clone these into the modal body. --}}
+    <template id="template-add-feedback">
+        <form id="addFeedbackForm" enctype="multipart/form-data">
+            <input type="hidden" name="project_id" value="">
+            <input type="hidden" name="employee_id" value="">
+            <input type="hidden" name="parent_id" value="">
+
+            <div class="mb-3">
+                <label class="form-label">Upload Image</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('{{ asset('asset/img/background/add-image.png') }}'); cursor: pointer;">
+                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label class="form-label">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>
+                <input type="file" class="form-control" id="feedback_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                <div id="feedback_reference_files_preview" class="mt-2"></div>
+            </div>
+        </form>
+    </template>
+
+    <template id="template-reply-feedback">
+        <form id="replyFeedbackForm" enctype="multipart/form-data">
+            <input type="hidden" name="project_id" value="">
+            <input type="hidden" name="parent_id" value="">
+            <input type="hidden" name="employee_id" value="">
+
+            <div class="mb-3 input-custom">
+                <label class="form-label">Upload Image</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('{{ asset('asset/img/background/add-image.png') }}'); cursor: pointer;">
+                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label class="form-label">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label for="reply_reference_files" class="form-label">Reference Files (Optional)</label>
+                <input type="file" class="form-control" id="reply_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                <div id="reply_reference_files_preview" class="mt-2"></div>
+            </div>
+        </form>
+    </template>
+
+    <template id="template-edit-feedback">
+        <form id="editFeedbackForm" enctype="multipart/form-data">
+            <input type="hidden" name="parent_id" value="">
+            <input type="hidden" id="edit_remove_image" name="remove_image" value="0">
+
+            <div class="mb-3 input-custom">
+                <label class="form-label">Upload Image</label>
+                <div class="image-upload-container">
+                    <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('{{ asset('asset/img/background/add-image.png') }}'); cursor: pointer;">
+                        <input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">
+                        <span class="image-clear-btn d-none" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label class="form-label">Reference URLs (Optional)</label>
+                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
+            </div>
+
+            <div class="mb-3 input-custom">
+                <label for="edit_reference_files" class="form-label">Reference Files (Optional)</label>
+                <input type="file" class="form-control" id="edit_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                <div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>
+                <div id="edit_feedback_reference_files_preview" class="mt-2"></div>
+            </div>
+        </form>
+    </template>
+
     <div class="modal fade" id="projectFeedbackModal" tabindex="-1" aria-labelledby="projectFeedbackModalLabel"
         aria-hidden="true" data-project-id="{{ $project->id ?? '' }}"
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
