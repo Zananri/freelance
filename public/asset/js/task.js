@@ -1506,14 +1506,14 @@
                         window.editSelectedFiles = [];
                         displayEditSelectedFiles();
 
-                        // Close modal after short delay to show alert
+                        // Close modal after short delay to show alert and insert updated task
                         setTimeout(() => {
                             var editTaskModalInstance =
                                 bootstrap.Modal.getInstance(editTaskModalEl);
                             if (editTaskModalInstance)
                                 editTaskModalInstance.hide();
-                            // Refresh task cards without page reload
-                            fetchAndRenderTasks();
+                            // Insert/refresh single updated task so client-archived tasks get restored immediately
+                            try { fetchAndInsertTask(taskId); } catch(_) { fetchAndRenderTasks(); }
                         }, 1500);
                     }, 800); // Show loading for 800ms before showing success alert
                 },
@@ -3528,14 +3528,10 @@ function applyCurrentSearchFilter() {
                         }
                     } catch(_) {}
 
-                    // If a bulk operation asked us to suppress intermediate refreshes, let the bulk aggregator handle final refresh.
                     if (bulkStatusSuppressRefresh) {
                         // Nothing else to do here for intermediate items
                     } else {
-                        // Instead of performing a full fetch which only returns first-page items (causing moved
-                        // cards to disappear when they land on a later page), fetch the single updated task and
-                        // insert it directly into the correct destination column. This ensures visibility even
-                        // when pagination is in effect.
+                    
                         (function insertUpdatedTask() {
                             $.ajax({
                                 url: appUrl + '/task/' + taskId,
@@ -3572,8 +3568,7 @@ function applyCurrentSearchFilter() {
                                             normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
                                         } catch (_) {}
 
-                                        // If this task exists in client archived buffer but is no longer older than 90 days,
-                                        // remove it so createTaskCard will allow rendering.
+                                       
                                         try {
                                             const clientMap = window.__clientArchivedTasks || new Map();
                                             const idKey = String(normalized.id || normalized.task_id || '');
@@ -3622,7 +3617,6 @@ function applyCurrentSearchFilter() {
                             });
                         })();
                     }
-                    // Mobile dynamic refresh (avoid full reload): if mobile status selector present
                     try {
                         const mobileStatusSel = document.getElementById('taskStatusSelect');
                         if (mobileStatusSel) {
@@ -3630,19 +3624,16 @@ function applyCurrentSearchFilter() {
                             const destStatus = String(newStatus);
                             const sourceStatus = oldStatus ? String(oldStatus).toLowerCase() : null;
                             const needsRefreshCurrent = (currentMobileStatus === destStatus) || (sourceStatus && currentMobileStatus === sourceStatus);
-                            // Always refresh destination bucket so moved card appears when user switches later
                             const statusesToRefresh = new Set();
                             if (sourceStatus) statusesToRefresh.add(sourceStatus);
                             statusesToRefresh.add(destStatus);
                             statusesToRefresh.forEach(st => {
                                 if (typeof mobileState !== 'undefined') {
                                     const prevActive = (st === currentMobileStatus);
-                                    // Reset pagination for that status and fetch
                                     mobileState.page = 1; mobileState.last = 1; mobileState.status = prevActive ? currentMobileStatus : st;
                                 }
                                 try { fetchMobileTasks(st, 1, false, { prefetch: true }); } catch(_) {}
                             });
-                            // Restore selector value if we temporarily changed state.status in loop
                             if (typeof mobileState !== 'undefined') mobileState.status = currentMobileStatus;
                             if (needsRefreshCurrent) {
                                 // Ensure currently viewed list reflects new data (already fetched above) and scroll stays at top
@@ -3685,6 +3676,83 @@ function applyCurrentSearchFilter() {
                     reject(errorMessage);
                 },
             });
+        });
+    }
+
+    function fetchAndInsertTask(taskId) {
+        if (!taskId) return;
+        $.ajax({
+            url: appUrl + '/task/' + taskId,
+            type: 'GET',
+            dataType: 'json'
+        }).done(function(res){
+            const t = (res && (res.data || res)) || null;
+            if (!t) {
+                try { fetchAndRenderTasks(); } catch(_) {}
+                return;
+            }
+
+            const normalized = Object.assign({}, t);
+            try {
+                normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+                normalized.pic = t.pic || normalized.pic || null;
+                normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
+                normalized.feedback_comments_count = t.feedback_comments_count || normalized.feedback_comments_count || 0;
+                normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
+            } catch(_) {}
+
+            // Remove from client archive buffer if it's no longer older than threshold
+            try {
+                const clientMap = window.__clientArchivedTasks || new Map();
+                const idKey = String(normalized.id || normalized.task_id || '');
+                if (idKey && clientMap && clientMap.has(idKey)) {
+                    try {
+                        if (!(__isCompletedOlderThanDaysGlobal(normalized, 90))) {
+                            clientMap.delete(idKey);
+                            console.debug('[archive-client] removed id from buffer before edit-insert:', idKey);
+                        }
+                    } catch(_) {}
+                }
+            } catch(_) {}
+
+            const destKey = (String(normalized.status || '').toLowerCase().includes('reject')) ? 'in_progress' : String(normalized.status || '').toLowerCase();
+            const destContainerId = sectionMap[destKey] || sectionMap['in_progress'];
+            const destContainer = document.getElementById(destContainerId);
+
+            // Remove duplicates then insert
+            try { document.querySelectorAll('.custom-card[data-task-id="' + taskId + '"]').forEach(n => n.remove()); } catch(_) {}
+
+            if (destContainer) {
+                try {
+                    destContainer.insertAdjacentHTML('afterbegin', createTaskCard(normalized));
+                } catch (e) {
+                    try { fetchAndRenderTasks(); } catch(_) {}
+                    return;
+                }
+            } else {
+                try { fetchAndRenderTasks(); } catch(_) {}
+                return;
+            }
+
+            // Update client-side cache: remove from other buckets and add to destination
+            try {
+                ['new_request','in_progress','completed'].forEach(k => {
+                    if (allTasksCache[k] && Array.isArray(allTasksCache[k].tasks)) {
+                        allTasksCache[k].tasks = allTasksCache[k].tasks.filter(x => String(x.id) !== String(taskId));
+                    }
+                });
+                if (!allTasksCache[destKey]) allTasksCache[destKey] = { tasks: [], pagination: {} };
+                if (allTasksCache[destKey] && Array.isArray(allTasksCache[destKey].tasks)) {
+                    allTasksCache[destKey].tasks.unshift(t);
+                }
+            } catch(_) {}
+
+            try { ensureRejectedCardsPlaced(); } catch(_) {}
+            try { initBootstrapTooltips(destContainer); addAttachFileIconListeners(); scheduleRefreshLatestFeedbackSnippets(); } catch(_) {}
+        }).fail(function(){
+            try { fetchAndRenderTasks(); } catch(_) {}
         });
     }
 
