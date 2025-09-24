@@ -46,7 +46,7 @@ class EmployeeController extends Controller
 
     public function showEmployeePage()
     {
-        return view('employee/employee');
+        return view('employee.employee');
     }
     public function index(Request $request)
     {
@@ -124,20 +124,20 @@ class EmployeeController extends Controller
 
     public function show($id)
     {
-    $employee = Employee::with(['department', 'division', 'job', 'grade', 'officeModel', 'user'])->find($id);
-        if (!$employee) {
-            return response()->json(['message' => 'Employee not found'], 404);
-        }
-    // Map office and grade to display values for UI compatibility
-    $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
-    $employee->grade = $employee->grade ? $employee->grade->title : null;
-    $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
-    $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
-    // Normalize status for response (uppercase, map legacy INACTIVE to RESIGN)
-    $status = strtoupper((string)($employee->status ?? ''));
-    if ($status === 'INACTIVE') { $status = 'RESIGN'; }
-    $employee->status = $status ?: null;
-    return response()->json($employee);
+        $employee = Employee::with(['department', 'division', 'job', 'grade', 'officeModel', 'user'])->find($id);
+            if (!$employee) {
+                return response()->json(['message' => 'Employee not found'], 404);
+            }
+        // Map office and grade to display values for UI compatibility
+        $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
+        $employee->grade = $employee->grade ? $employee->grade->title : null;
+        $employee->user_photo = $employee->user && $employee->user->photo ? asset($employee->user->photo) : null;
+        $employee->profile_picture_url = $employee->profile_picture ? asset($employee->profile_picture) : null;
+        // Normalize status for response (uppercase, map legacy INACTIVE to RESIGN)
+        $status = strtoupper((string)($employee->status ?? ''));
+        if ($status === 'INACTIVE') { $status = 'RESIGN'; }
+        $employee->status = $status ?: null;
+        return response()->json($employee);
     }
 
     public function create()
@@ -182,6 +182,7 @@ class EmployeeController extends Controller
                 'ktp' => 'nullable|file|image|max:10240',
                 'birth_date' => 'required|date',
                 'hire_date' => 'required|date',
+                'contract_end_date' => 'required|date',
                 'resign_date' => 'nullable|date',
                 'grade_id' => 'required|exists:grades,id',
                 'office' => 'required|exists:offices,id',
@@ -269,6 +270,7 @@ class EmployeeController extends Controller
                 'ktp' => $ktpPath,
                 'birth_date' => $request->birth_date,
                 'hire_date' => $request->hire_date,
+                'contract_end_date' => $request->contract_end_date,
                 'resign_date' => $request->resign_date,
                 'grade_id' => $request->grade_id,
                 'office' => $request->office,
@@ -345,6 +347,7 @@ class EmployeeController extends Controller
                 'ktp' => 'nullable|file|image|max:10240',
                 'birth_date' => 'sometimes|date',
                 'hire_date' => 'sometimes|date',
+                'contract_end_date' => 'sometimes|date',
                 'resign_date' => 'nullable|date',
                 'grade_id' => 'sometimes|exists:grades,id',
                 'office' => 'sometimes|exists:offices,id',
@@ -361,7 +364,7 @@ class EmployeeController extends Controller
 
             $updateData = $request->only([
                 'department_id', 'division_id', 'job_id', 'shift_id', 'name', 'employee_niks', 'email', 'email_work', 'phone', 'status', 'address',
-                'address', 'birth_date', 'hire_date', 'resign_date', 'grade_id', 'office'
+                'address', 'birth_date', 'hire_date','contract_end_date', 'resign_date', 'grade_id', 'office'
             ]);
 
             // Ensure status remains uppercase in DB and map legacy value just in case

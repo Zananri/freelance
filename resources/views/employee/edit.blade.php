@@ -104,18 +104,29 @@
                                     Please enter the birth date.
                                 </div>
                             </div>
-                            <div class="custom-form-employee">
-                                <label for="hire_date" class="form-label">Hire Date</label>
-                                <input type="date" id="hire_date" name="hire_date"
-                                    class="form-control input-text" value="{{ $employee->hire_date }}" required />
-                                <div class="invalid-feedback">
-                                    Please enter the hire date.
-                                </div>
-                            </div>
+                            
                         </div>
 
                         <!-- Middle Section -->
                         <div class="col-md-4 d-flex flex-column gap-3">
+
+                            <div class="custom-form-employee">
+                                <label for="hire_date" class="form-label">Join Date</label>
+                                <input type="date" id="hire_date" name="hire_date"
+                                    class="form-control input-text" value="{{ $employee->hire_date }}" required />
+                                <div class="invalid-feedback">
+                                    Please enter the Join date.
+                                </div>
+                            </div>
+                            <div class="custom-form-employee">
+                                <label for="contract_end_date" class="form-label">Contract End Date</label>
+                                <input type="date" id="contract_end_date" value="{{ $employee->contract_end_date }}" name="contract_end_date" class="form-control input-text"
+                                    required />
+                                <div class="invalid-feedback">
+                                    Please enter the contract end date.
+                                </div>
+                            </div>
+
                             <div class="custom-form-employee">
                                 <label for="department_id" class="form-label">Department Name</label>
                                 <select id="department_id" name="department_id" class="form-select input-select"
