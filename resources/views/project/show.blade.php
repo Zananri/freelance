@@ -1,4 +1,4 @@
-<x-office-layout>
+    <x-office-layout>
     <x-slot name="menu_active">
         {{ __('project') }}
     </x-slot>
@@ -13,7 +13,7 @@
         @endphp
         <meta name="project-image" content="{{ $imgUrl }}">
         <meta name="project-total-tasks" content="{{ $totalTasks }}">
-        <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css') }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css?v=') . time() }}">
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -119,9 +119,21 @@
             : '';
 
         $randomColors = [
-            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
-            '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
+            '#FF6B6B',
+            '#4ECDC4',
+            '#45B7D1',
+            '#96CEB4',
+            '#FFEAA7',
+            '#DDA0DD',
+            '#98D8C8',
+            '#F7DC6F',
+            '#BB8FCE',
+            '#85C1E9',
+            '#F8C471',
+            '#82E0AA',
+            '#F1948A',
+            '#85C1E9',
+            '#D7BDE2',
         ];
         $randomBgColor = $randomColors[array_rand($randomColors)];
     @endphp
@@ -135,7 +147,7 @@
                     <div id="deleteProjectContent">
                         <div class="custom-card-delete position-relative p-3 border-0">
                             <div class="d-flex align-items-center mb-2">
-                                @if($projImg)
+                                @if ($projImg)
                                     <img src="{{ $projImgUrl }}" alt="Project Image" class="rounded-circle me-3"
                                         style="width:34px;height:34px;object-fit:cover;"
                                         onerror="this.onerror=null;var d=document.createElement('div');d.className='rounded-circle d-flex align-items-center justify-content-center me-3';d.style.width='34px';d.style.height='34px';d.style.background='{{ $randomBgColor }}';d.style.color='#fff';d.style.fontWeight='600';d.style.fontSize='11px';d.textContent='{{ $initials }}';this.replaceWith(d);">
@@ -359,6 +371,6 @@
     </div>
 
     <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
     </x-slot>
 </x-office-layout>

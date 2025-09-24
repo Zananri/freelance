@@ -1583,7 +1583,9 @@
 #co_author_dropdown,
 #edit_co_author_dropdown,
 #contributor_dropdown,
-#edit_contributor_dropdown {
+#edit_contributor_dropdown,
+#add_part_of_project_dropdown,
+#edit_part_of_project_dropdown {
     border: 1px solid #ccc;
     border-radius: 4px;
     max-height: 200px;
@@ -1602,7 +1604,9 @@
 #co_author_dropdown .dropdown-item,
 #contributor_dropdown .dropdown-item,
 #edit_contributor_dropdown .dropdown-item,
-#edit_co_author_dropdown .dropdown-item {
+#edit_co_author_dropdown .dropdown-item,
+#add_part_of_project_dropdown .dropdown-item,
+#edit_part_of_project_dropdown .dropdown-item {
     padding: 6px 12px;
     cursor: pointer;
     display: flex;
@@ -1682,6 +1686,10 @@
 
 #selected_co_authors .badge .btn-close:hover {
     opacity: 1;
+}
+
+.selected-project {
+    border: none;
 }
 
 /* Added styles for project delete success alert */
@@ -2006,4 +2014,8 @@
     background-color: #e3e4ee !important;
     color: #444444;
     font-size: 12px;
+}
+
+.btn-remove-project {
+    border: none;
 }

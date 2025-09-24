@@ -173,7 +173,8 @@
                         <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown">
                             <div class="dropdown-filter-body">
                                 <div class="mb-2">
-                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by Status</label>
+                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by
+                                        Status</label>
                                     <select id="filterProjectStatus" class="form-select label-custom-filter">
                                         <option value="">All Status</option>
                                         <option value="ongoing">Not Started</option>
@@ -185,10 +186,10 @@
                                 <div class="mb-3">
                                     <label for="filterSortBy" class="form-label label-custom-filter">Sort By</label>
                                     <select id="filterSortBy" class="form-select label-custom-filter">
-                                    <option value="title_asc">Title A-Z</option>
-                                    <option value="title_desc">Title Z-A</option>
-                                    <option value="date_desc">Newest ↑</option>
-                                    <option value="date_asc">Oldest ↓</option>
+                                        <option value="title_asc">Title A-Z</option>
+                                        <option value="title_desc">Title Z-A</option>
+                                        <option value="date_desc">Newest ↑</option>
+                                        <option value="date_asc">Oldest ↓</option>
                                     </select>
                                 </div>
                             </div>
@@ -290,8 +291,7 @@
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
                                     <button type="button" class="btn btn-submit-black add-ref-url"
-                                        aria-label="Add URL"><span
-                                            class="material-symbols-outlined">add</span>
+                                        aria-label="Add URL"><span class="material-symbols-outlined">add</span>
                                     </button>
                                 </div>
                             </div>
@@ -317,11 +317,12 @@
                             </div>
                         </div>
                         <div class="mb-3 input-custom">
-                            <label for="part_of_project" class="form-label label-custom">Part of Project</label>
-                            <select class="form-select input-select" id="part_of_project" name="part_of_project">
-                                <option value="">Select Project</option>
-                                <!-- Options to be populated dynamically -->
-                            </select>
+                            <label class="form-label label-custom">Part of Project</label>
+                            <input type="text" class="form-control input-text" id="add_part_of_project_input"
+                                autocomplete="off" placeholder="Search project...">
+                            <div id="add_part_of_project_dropdown" class="dropdown-list mt-1"></div>
+                            <div id="add_selected_project" class="mt-2"></div>
+                            <input type="hidden" id="add_part_of_project" name="part_of_project" value="">
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="co_author_input" class="form-label label-custom">Co-Author</label>
@@ -449,13 +450,14 @@
                             </div>
                         </div>
                         <div class="mb-3 input-custom">
-                            <label for="edit_part_of_project" class="form-label label-custom">Part of Project</label>
-                            <select class="form-select input-select" id="edit_part_of_project"
-                                name="part_of_project">
-                                <option value="">Select Project</option>
-                                <!-- Options to be populated dynamically -->
-                            </select>
+                            <label class="form-label label-custom">Part of Project</label>
+                            <input type="text" class="form-control input-text" id="edit_part_of_project_input"
+                                autocomplete="off" placeholder="Search project...">
+                            <div id="edit_part_of_project_dropdown" class="dropdown-list mt-1"></div>
+                            <div id="edit_selected_project" class="mt-2"></div>
+                            <input type="hidden" id="edit_part_of_project" name="part_of_project" value="">
                         </div>
+
                         <div class="mb-3 input-custom">
                             <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
                             <input type="text" class="form-control input-text" id="edit_co_author_input"
