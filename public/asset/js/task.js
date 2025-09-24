@@ -2153,6 +2153,9 @@ document.addEventListener("click", function (e) {
     }
     window.toggleDescription = toggleDescription;
 
+// Ensure canonical generator is reachable from other scopes (some runtimes wrap files)
+try { if (typeof window !== 'undefined' && typeof createTaskCard === 'function') window.createTaskCard = createTaskCard; } catch(_) {}
+
 const desktopState = {
   new_request: { page: 1, last: 1, loading: false },
   in_progress: { page: 1, last: 1, loading: false },
@@ -7409,20 +7412,79 @@ function applyCurrentSearchFilter() {
                 console.debug('[archive] rendering canceled tasks count (server):', tasks.length, 'ids:', tasks.map(t => t.id));
             }
 
-            // Render using existing createTaskCard to keep consistent look
+            // Render using the same card generator where possible; fall back to a
+            // safe card builder if createTaskCard throws (missing fields in some
+            // API shapes caused errors observed in the wild). Use a `.task-list`
+            // wrapper so modal cards get similar spacing/scroll behavior.
             const container = document.createElement('div');
-            container.className = 'd-flex flex-column gap-2';
+            container.className = 'task-list d-flex flex-column gap-2 p-2';
+
+            function buildSafeCardHtml(t) {
+                const title = (t.title || 'Untitled Task');
+                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                const desc = (t.description || '').toString();
+                const priority = t.priority || '';
+                const due = t.due_date || '';
+                // executors images (simple overlap)
+                let execHtml = '';
+                try {
+                    const execs = Array.isArray(t.executors) ? t.executors.slice(0,3) : [];
+                    execHtml = execs.map((ex, i) => {
+                        const src = ex && (ex.image || ex.user_photo || ex.profile_picture) ? (String(ex.image || ex.user_photo || ex.profile_picture) || '') : '';
+                        const img = src ? (/^https?:\/\//i.test(src) ? src : (src.startsWith('/') ? appUrl + src : appUrl + '/file/profile_picture/' + src)) : (appUrl + '/asset/img/avatar.png');
+                        return `<img src="${img}" class="pic-executor-image executor-image-overlap" style="width:32px;height:32px;object-fit:cover;border:3px solid #f0f1f8;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                    }).join('');
+                } catch(_) { execHtml = ''; }
+
+                return `
+                    <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${t.id || ''}" data-task-status="${t.status || ''}">
+                        ${proj ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${proj}</small>` : ''}
+                        <h5 class="mb-0 task-title" style="line-height:1.2; margin-top:6px;">${title}</h5>
+                        <div class="task-description-container"><p class="task-description" style="margin-top:6px;">${desc}</p></div>
+                        <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div style="font-size: 10px; font-weight: 400;"> <span style="color: #797E91;">Priority: </span><span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span></div>
+                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Deadline: </span><span style="#color: #4B4F5E">${due}</span></div>
+                        </div>
+                        <div class="d-flex align-items-center mt-3"><div class="pic-executor-container">${execHtml}</div></div>
+                    </div>`;
+            }
+
             tasks.forEach(t => {
                 try {
-                    const html = createTaskCard(t);
-                    const wrapper = document.createElement('div');
-                    wrapper.innerHTML = html;
-                    // Remove action dropdowns and bulky controls to make modal list cleaner
-                    // Keep card content but prevent buttons that open editors
-                    wrapper.querySelectorAll('.dropdown-icon, .task-selectable-thumb, .btn-accept-invite, .btn-cancel-invite').forEach(n => n.remove());
-                    container.appendChild(wrapper.firstElementChild || wrapper);
+                    // Normalize payload keys so createTaskCard receives expected fields
+                    const normalized = Object.assign({}, t);
+                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+                    normalized.pic = t.pic || normalized.pic || null;
+                    normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
+                    normalized.feedback_comments_count = (t.feedback_comments_count !== undefined) ? t.feedback_comments_count : (normalized.feedback_comments_count || 0);
+                    normalized.reference_files_count = Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0);
+
+                    // Prefer using the canonical card generator; call defensively to avoid ReferenceError
+                    let html = '';
+                    if (typeof createTaskCard === 'function') {
+                        try {
+                            html = createTaskCard(normalized);
+                        } catch (errCreate) {
+                            console.warn('createTaskCard threw for archived task', t.id, errCreate);
+                            html = buildSafeCardHtml(normalized);
+                        }
+                    } else if (typeof window !== 'undefined' && typeof window.createTaskCard === 'function') {
+                        try {
+                            html = window.createTaskCard(normalized);
+                        } catch (errCreate) {
+                            console.warn('window.createTaskCard threw for archived task', t.id, errCreate);
+                            html = buildSafeCardHtml(normalized);
+                        }
+                    } else {
+                        console.warn('createTaskCard not available for archived task', t.id);
+                        html = buildSafeCardHtml(normalized);
+                    }
+                    container.insertAdjacentHTML('beforeend', html);
                 } catch (e) {
-                    // fallback simple card
+                    // ultimate fallback: simple card
                     const simple = document.createElement('div');
                     simple.className = 'custom-card rounded-4 position-relative p-3 border-0';
                     simple.innerHTML = `<h5 class="mb-1">${(t.title||'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`;
@@ -7430,11 +7492,9 @@ function applyCurrentSearchFilter() {
                 }
             });
 
-            // Insert into modal body
+            // Insert into modal body and initialize tooltips for avatar/tooltips
             body.innerHTML = '';
             body.appendChild(container);
-
-            // Initialize tooltips for any executor avatars inside modal
             initBootstrapTooltips(modalEl);
         } catch (err) {
             try {
