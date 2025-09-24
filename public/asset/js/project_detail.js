@@ -477,40 +477,29 @@
             }
 
             function showAddFeedbackForm(projectId) {
+              
                 modalTitle.textContent = 'Add Feedback';
-                modalBody.innerHTML = "" +
-                    '<form id="addFeedbackForm" enctype="multipart/form-data">' +
-                    '<input type="hidden" name="project_id" value="' + projectId + '">' +
-                    '<input type="hidden" name="employee_id" value="' + (projectFeedbackModalEl.getAttribute('data-employee-id') || '') + '">' +
-                    '<input type="hidden" name="parent_id" value="">' +
-                    '<div class="mb-3">' +
-                    '<label class="form-label">Upload Image</label>' +
-                    '<div class="image-upload-container">' +
-                    '<label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url(\'' + getMeta('app-url').replace(/\/$/, '') + '/asset/img/background/add-image.png\'); cursor: pointer;">' +
-                    '<input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">' +
-                    '<span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>' +
-                    '</label>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label for="feedback_comment" class="form-label">Feedback Comment</label>' +
-                    '<textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label class="form-label">Reference URLs (Optional)</label>' +
-                    '<div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">' +
-                    '<div class="d-flex gap-2 align-items-center">' +
-                    '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
-                    '<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>' +
-                    '<input type="file" class="form-control" id="feedback_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">' +
-                    '<div id="feedback_reference_files_preview" class="mt-2"></div>' +
-                    '</div>' +
-                    '</form>';
+                modalBody.innerHTML = '';
+                var tpl = document.getElementById('template-add-feedback');
+                if (tpl) {
+                    var node = (tpl.tagName && tpl.tagName.toLowerCase() === 'template') ? tpl.content.cloneNode(true) : tpl.cloneNode(true);
+                    modalBody.appendChild(node);
+                    // set hidden values inserted by template
+                    try { var inProject = modalBody.querySelector('input[name="project_id"]'); if (inProject) inProject.value = projectId; } catch(_){}
+                    try { var inEmployee = modalBody.querySelector('input[name="employee_id"]'); if (inEmployee) inEmployee.value = (projectFeedbackModalEl.getAttribute('data-employee-id') || ''); } catch(_){}
+                    try { var inParent = modalBody.querySelector('input[name="parent_id"]'); if (inParent) inParent.value = ''; } catch(_){}
+                } else {
+                   
+                    var existingForm = modalBody.querySelector('#addFeedbackForm');
+                    if (existingForm) {
+                        try { var p = existingForm.querySelector('input[name="project_id"]'); if (p) p.value = projectId; } catch(_){ }
+                        try { var e = existingForm.querySelector('input[name="employee_id"]'); if (e) e.value = (projectFeedbackModalEl.getAttribute('data-employee-id') || ''); } catch(_){ }
+                        try { var pa = existingForm.querySelector('input[name="parent_id"]'); if (pa) pa.value = ''; } catch(_){ }
+                    } else {
+                        console.error('Add Feedback template/form not found. Provide #template-add-feedback or an element #addFeedbackForm in the Blade view.');
+                        return;
+                    }
+                }
 
                 // image preview
                 try {
@@ -623,42 +612,28 @@
             }
 
             function showReplyFeedbackForm(projectId, parentId) {
+                // Reply form should be provided by blade as #template-reply-feedback
                 modalTitle.textContent = 'Reply Feedback';
                 modalBody.innerHTML = '';
-                // create form similar to project.js reply form
-                // reuse showAddFeedbackForm structure but with parent_id set
-                modalBody.innerHTML = '<form id="replyFeedbackForm" enctype="multipart/form-data">' +
-                    '<input type="hidden" name="project_id" value="' + projectId + '">' +
-                    '<input type="hidden" name="parent_id" value="' + parentId + '">' +
-                    '<input type="hidden" name="employee_id" value="' + (projectFeedbackModalEl.getAttribute('data-employee-id') || '') + '">' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label class="form-label">Upload Image</label>' +
-                    '<div class="image-upload-container">' +
-                    '<label for="feedback_image" class="custom-image-upload position-relative label-custom" id="feedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url(\'' + getMeta('app-url').replace(/\/$/, '') + '/asset/img/background/add-image.png\'); cursor: pointer;">' +
-                    '<input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">' +
-                    '<span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>' +
-                    '</label>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>' +
-                    '<textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label class="form-label label-custom">Reference URLs (Optional)</label>' +
-                    '<div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">' +
-                    '<div class="d-flex gap-2 align-items-center">' +
-                    '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
-                    '<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' +
-                    '</div>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label for="reply_reference_files" class="form-label label-custom">Reference Files (Optional)</label>' +
-                    '<input type="file" class="form-control" id="reply_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">' +
-                    '<div id="reply_reference_files_preview" class="mt-2"></div>' +
-                    '</div>' +
-                    '</form>';
+                var tplReply = document.getElementById('template-reply-feedback');
+                if (tplReply) {
+                    var nodeR = (tplReply.tagName && tplReply.tagName.toLowerCase() === 'template') ? tplReply.content.cloneNode(true) : tplReply.cloneNode(true);
+                    modalBody.appendChild(nodeR);
+                    try { var inProjectR = modalBody.querySelector('input[name="project_id"]'); if (inProjectR) inProjectR.value = projectId; } catch(_){}
+                    try { var inParentR = modalBody.querySelector('input[name="parent_id"]'); if (inParentR) inParentR.value = parentId; } catch(_){}
+                    try { var inEmployeeR = modalBody.querySelector('input[name="employee_id"]'); if (inEmployeeR) inEmployeeR.value = (projectFeedbackModalEl.getAttribute('data-employee-id') || ''); } catch(_){}
+                } else {
+                   
+                    var existingReplyForm = modalBody.querySelector('#replyFeedbackForm');
+                    if (existingReplyForm) {
+                        try { var p = existingReplyForm.querySelector('input[name="project_id"]'); if (p) p.value = projectId; } catch(_){ }
+                        try { var pr = existingReplyForm.querySelector('input[name="parent_id"]'); if (pr) pr.value = parentId; } catch(_){ }
+                        try { var e = existingReplyForm.querySelector('input[name="employee_id"]'); if (e) e.value = (projectFeedbackModalEl.getAttribute('data-employee-id') || ''); } catch(_){ }
+                    } else {
+                        console.error('Reply Feedback template/form not found. Provide #template-reply-feedback or an element #replyFeedbackForm in the Blade view.');
+                        return;
+                    }
+                }
 
                 // image + file preview + submit handler
                 (function () {
@@ -735,37 +710,53 @@
                 var hasExistingImage = existingImg && !removeFlag;
                 var bgStyle = hasExistingImage ? "background-image: url('" + existingImg + "'); background-size: cover; opacity: 1;" : "background-image: url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;";
                 var clearClass = hasExistingImage ? '' : 'd-none';
+                // Edit form markup should be provided by blade in #template-edit-feedback
                 modalBody.innerHTML = '';
-                // include a hidden remove flag so clearing the image signals backend to delete it
-                var initialRemoveFlag = removeFlag ? '1' : '0';
-                modalBody.innerHTML = '<form id="editFeedbackForm" enctype="multipart/form-data">' + (data.parent_id ? ('<input type="hidden" name="parent_id" value="' + data.parent_id + '">') : '') +
-                    '<div class="mb-3 input-custom">' +
-                    '<label class="form-label label-custom">Upload Image</label>' +
-                    '<div class="image-upload-container">' +
-                    '<label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; ' + bgStyle + ' cursor: pointer;">' +
-                    '<input type="file" id="feedback_image" name="feedback_image" accept="image/*" class="d-none">' +
-                    // hidden flag used by backend: remove_image=1 means delete existing image
-                    '<input type="hidden" id="edit_remove_image" name="remove_image" value="' + initialRemoveFlag + '">' +
-                    '<span class="image-clear-btn ' + clearClass + '" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>' +
-                    '</label>' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>' +
-                    '<textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>' + (data.feedback_comment || '') + '</textarea>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label class="form-label label-custom">Reference URLs (Optional)</label>' +
-                    '<div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>' +
-                    '</div>' +
-                    '<div class="mb-3 input-custom">' +
-                    '<label for="edit_reference_files" class="form-label label-custom">Reference Files (Optional)</label>' +
-                    '<input type="file" class="form-control" id="edit_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">' +
-                    '<input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">' +
-                    '<div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>' +
-                    '<div id="edit_feedback_reference_files_preview" class="mt-2"></div>' +
-                    '</div>' +
-                    '</form>';
+                var tplEdit = document.getElementById('template-edit-feedback');
+                if (tplEdit) {
+                    var nodeE = (tplEdit.tagName && tplEdit.tagName.toLowerCase() === 'template') ? tplEdit.content.cloneNode(true) : tplEdit.cloneNode(true);
+                    modalBody.appendChild(nodeE);
+                    // Set remove flag and textarea value after cloning
+                    var initialRemoveFlag = removeFlag ? '1' : '0';
+                    try { var hid = modalBody.querySelector('#edit_remove_image'); if (hid) hid.value = initialRemoveFlag; } catch(_){}
+                    try { var comment = modalBody.querySelector('#feedback_comment'); if (comment) comment.value = (data.feedback_comment || ''); } catch(_){}
+                    // Set image preview/background according to existing image
+                    try {
+                        var labelEl = modalBody.querySelector('#editFeedbackImageLabel');
+                        if (labelEl) {
+                            if (hasExistingImage) {
+                                labelEl.style.backgroundImage = "url('" + existingImg + "')";
+                                labelEl.style.backgroundSize = 'cover';
+                                labelEl.style.opacity = '1';
+                            } else {
+                                labelEl.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
+                                labelEl.style.backgroundSize = '50%';
+                                labelEl.style.opacity = '0.5';
+                            }
+                        }
+                    } catch(_){}
+                } else {
+                    
+                    var existingEditForm = modalBody.querySelector('#editFeedbackForm');
+                    if (existingEditForm) {
+                        try { var hid = existingEditForm.querySelector('#edit_remove_image'); if (hid) hid.value = (removeFlag ? '1' : '0'); } catch(_){ }
+                        try { var comment2 = existingEditForm.querySelector('#feedback_comment'); if (comment2) comment2.value = (data.feedback_comment || ''); } catch(_){ }
+                        try { var labelEl2 = existingEditForm.querySelector('#editFeedbackImageLabel'); if (labelEl2) {
+                            if (hasExistingImage) {
+                                labelEl2.style.backgroundImage = "url('" + existingImg + "')";
+                                labelEl2.style.backgroundSize = 'cover';
+                                labelEl2.style.opacity = '1';
+                            } else {
+                                labelEl2.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
+                                labelEl2.style.backgroundSize = '50%';
+                                labelEl2.style.opacity = '0.5';
+                            }
+                        } } catch(_){ }
+                    } else {
+                        console.error('Edit Feedback template/form not found. Provide #template-edit-feedback or an element #editFeedbackForm in the Blade view.');
+                        return;
+                    }
+                }
 
                 // image preview and clear handlers for edit feedback (ensure existing image shows and can be changed/cleared)
                 try {
