@@ -418,6 +418,13 @@
     margin-bottom: -1.2rem;
 }
 
+#edit_task_selected_project,
+#edit_task_selected_parent,
+#task_selected_parent,
+#task_selected_project {
+    font-size: 0.875rem;
+}
+
 /* Division list items: reuse dropdown-item style to keep consistency */
 .division-item {
     padding: 8px 12px;
