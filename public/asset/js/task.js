@@ -2047,7 +2047,7 @@ document.addEventListener("click", function (e) {
                         <div class="dropdown-item">Edit</div>
                         <div class="dropdown-item">Feedback</div>
                         ${statusMenuItem}
-                        ${showDelete ? '<div class="dropdown-item delete-task">Cancel</div>' : ''}
+                        ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
                     </div>
                 </div>
                 ${iconHtml}
@@ -3201,7 +3201,7 @@ function applyCurrentSearchFilter() {
                             handleTaskBackToRequest(taskId, taskCard);
                             break;
                         case "Cancel":
-                            handleTaskDelete(taskId, taskCard);
+                            handleTaskCancel(taskId, taskCard);
                             break;
                     }
                 }
@@ -5521,7 +5521,7 @@ function applyCurrentSearchFilter() {
     }
 
     document.addEventListener("click", function(e) {
-        const deleteBtn = e.target.closest(".dropdown-item.delete-task");
+        const deleteBtn = e.target.closest(".dropdown-item.cancel-task");
         if (deleteBtn) {
             const card = deleteBtn.closest("[data-task-id]");
             const taskId = card?.getAttribute("data-task-id");
@@ -5536,7 +5536,7 @@ function applyCurrentSearchFilter() {
                 }
             }
 
-            handleTaskDelete(taskId);
+            handleTaskCancel(taskId);
         }
 
         const editBtn = e.target.closest(".dropdown-item.edit-task");
@@ -5756,7 +5756,7 @@ function applyCurrentSearchFilter() {
                             <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                             <div class="dropdown-menu d-none">
                                 <div class="dropdown-item edit-task">Edit</div>
-                                ${showDelete ? '<div class="dropdown-item delete-task">Cancel</div>' : ''}
+                                ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
                             </div>
                         </div>
                     </div>
@@ -5894,8 +5894,8 @@ function applyCurrentSearchFilter() {
             });
     }
 
-    // Function to handle task delete
-    function handleTaskDelete(taskId, taskCard) {
+    // Function to handle task cancel (soft-delete semantics preserved)
+    function handleTaskCancel(taskId, taskCard) {
         const deleteModalEl = document.getElementById("deleteTaskModal");
         const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
 
@@ -5986,7 +5986,7 @@ function applyCurrentSearchFilter() {
             }
         });
 
-        // Delete button click handler
+        // Cancel (soft-delete) button click handler
         const confirmDeleteBtn = document.getElementById("confirmDeleteTaskBtn");
         confirmDeleteBtn.onclick = function () {
             $.ajax({
@@ -6010,15 +6010,16 @@ function applyCurrentSearchFilter() {
                     deleteModal.hide();
                     // Unified success alert
                     try {
-                        // Keep backend behavior (soft delete) but show Cancel message in UI
+                        // Keep backend behavior (soft delete -> CANCELED) but show Cancel message in UI
                         showFloatingAlert(response.message || "Task canceled successfully", "success", 1500);
                     } catch (_) {}
-                    // Optionally refresh lists to ensure DELETED tasks are not shown anywhere
+                    // Optionally refresh lists to ensure CANCELED tasks are not shown anywhere
                     try {
                         if (typeof fetchAndRenderTasks === 'function') {
                             fetchAndRenderTasks('new_request', 1, false, '');
                             fetchAndRenderTasks('in_progress', 1, false, '');
                             fetchAndRenderTasks('completed', 1, false, '');
+                            try { if (typeof loadArchivedTasksIntoModal === 'function') loadArchivedTasksIntoModal(); } catch(_) {}
                         }
                     } catch (_) {}
                 },
@@ -7336,6 +7337,124 @@ function applyCurrentSearchFilter() {
         await fetchTimelineTasksOnce();
         renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
     });
+
+    // Load archived (CANCELED) tasks into Archieve Modal when opened
+    async function loadArchivedTasksIntoModal() {
+        try {
+            // Resolve appUrl with safe fallback in case it's not in scope
+            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl) ? appUrl : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''));
+
+            const modalEl = document.getElementById('archieveModal');
+            if (!modalEl) return;
+            const body = modalEl.querySelector('.modal-body');
+            if (!body) return;
+            // Show spinner while loading
+            body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            // Prefer backend-provided canceled bucket: request status=canceled and a large per_page
+            const res = await fetch(baseAppUrl + '/task/index?status=canceled&per_page=1000', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) {
+                body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+                return;
+            }
+            const j = await res.json();
+            const data = (j && j.data) ? j.data : {};
+            console.debug('[archive] raw archive payload', j);
+
+            // First try server-provided canceled bucket
+            let tasks = [];
+            if (data) {
+                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
+                if (canceledSection) {
+                    if (Array.isArray(canceledSection)) tasks = canceledSection;
+                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
+                }
+            }
+
+            // Fallback: if server didn't provide cancelled section, collect from known buckets in response body
+            if (!tasks || tasks.length === 0) {
+                // Collect tasks from known buckets and any unknown arrays; normalize into single array
+                let collected = [];
+                const buckets = ['new_request','in_progress','completed','rejected','canceled','CANCELED'];
+                buckets.forEach(key => {
+                    const section = data[key];
+                    if (!section) return;
+                    if (Array.isArray(section)) collected.push(...section);
+                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
+                });
+                // If the API returned a flat array somewhere (e.g., data as array), include it
+                if (Array.isArray(data)) collected.push(...data);
+
+                // Deduplicate by id
+                const seen = new Set();
+                const allTasks = [];
+                collected.forEach(t => {
+                    const id = t && (t.id || t.task_id);
+                    if (!id) return;
+                    if (seen.has(String(id))) return;
+                    seen.add(String(id));
+                    allTasks.push(t);
+                });
+
+                // Filter tasks whose status contains 'cancel' (case-insensitive)
+                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
+                if (!tasks.length) {
+                    console.debug('[archive] collected tasks total:', allTasks.length, 'filtered canceled:', tasks.length);
+                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
+                    return;
+                }
+
+                console.debug('[archive] rendering canceled tasks count (client-collected):', tasks.length, 'ids:', tasks.map(t => t.id));
+            } else {
+                console.debug('[archive] rendering canceled tasks count (server):', tasks.length, 'ids:', tasks.map(t => t.id));
+            }
+
+            // Render using existing createTaskCard to keep consistent look
+            const container = document.createElement('div');
+            container.className = 'd-flex flex-column gap-2';
+            tasks.forEach(t => {
+                try {
+                    const html = createTaskCard(t);
+                    const wrapper = document.createElement('div');
+                    wrapper.innerHTML = html;
+                    // Remove action dropdowns and bulky controls to make modal list cleaner
+                    // Keep card content but prevent buttons that open editors
+                    wrapper.querySelectorAll('.dropdown-icon, .task-selectable-thumb, .btn-accept-invite, .btn-cancel-invite').forEach(n => n.remove());
+                    container.appendChild(wrapper.firstElementChild || wrapper);
+                } catch (e) {
+                    // fallback simple card
+                    const simple = document.createElement('div');
+                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0';
+                    simple.innerHTML = `<h5 class="mb-1">${(t.title||'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`;
+                    container.appendChild(simple);
+                }
+            });
+
+            // Insert into modal body
+            body.innerHTML = '';
+            body.appendChild(container);
+
+            // Initialize tooltips for any executor avatars inside modal
+            initBootstrapTooltips(modalEl);
+        } catch (err) {
+            try {
+                const modalEl = document.getElementById('archieveModal');
+                const body = modalEl && modalEl.querySelector('.modal-body');
+                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+            } catch(_) {}
+            console.warn('loadArchivedTasksIntoModal error', err);
+        }
+    }
+
+    // Bind modal show event
+    try {
+        const archModal = document.getElementById('archieveModal');
+        if (archModal) {
+            archModal.addEventListener('show.bs.modal', function () {
+                loadArchivedTasksIntoModal();
+            });
+        }
+    } catch(_) {}
 
     // Prev / Next bulan
     document.getElementById("prevTimelineModal").addEventListener("click", () => {

@@ -556,42 +556,7 @@
                         id="taskFeedbackModalLabel">Archieve</h5>
                 </div>
                 <div class="modal-body modal-body-custom">
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
-                    <div class="card p-3 rounded-4 border-0 mb-3">
-                        <p>Ini Archieve Project</p>
-                    </div>
+                   
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>

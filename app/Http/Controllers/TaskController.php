@@ -99,8 +99,26 @@ class TaskController extends Controller
                     ->orWhere(function ($q) use ($currentUserId) {
                         if ($currentUserId) $q->where('created_by', $currentUserId);
                     });
-                })
-                ->whereRaw('LOWER(status) <> ?', ['deleted']);
+                });
+
+            // By default we exclude canceled tasks from index responses. However, allow callers
+            // to request canceled tasks explicitly by using `status=canceled` or
+            // `include_canceled=1`. This keeps current behavior unchanged while enabling
+            // the archive modal to fetch canceled items.
+            $includeCanceled = false;
+            if ($statusFilter && strtolower($statusFilter) === 'canceled') {
+                $includeCanceled = true;
+            }
+            if ($request->filled('include_canceled')) {
+                $v = $request->input('include_canceled');
+                if ($v === 1 || $v === '1' || $v === 'true' || $v === true) {
+                    $includeCanceled = true;
+                }
+            }
+
+            if (!$includeCanceled) {
+                $baseQuery->whereRaw('LOWER(status) <> ?', ['canceled']);
+            }
 
             if ($projectId) $baseQuery->where('project_id', $projectId);
 
@@ -315,7 +333,7 @@ class TaskController extends Controller
                     });
                 })
                 // Hide soft-deleted tasks from all aggregations
-                ->whereRaw('LOWER(status) <> ?', ['deleted']);
+                ->whereRaw('LOWER(status) <> ?', ['canceled']);
 
             if ($projectId) {
                 $baseQuery->where('project_id', $projectId);
@@ -660,7 +678,7 @@ class TaskController extends Controller
                         });
                 })
                 // Exclude DELETED tasks
-                ->whereRaw('LOWER(status) <> ?', ['deleted'])
+                ->whereRaw('LOWER(status) <> ?', ['canceled'])
                 // Do not show tasks that start in the future (e.g., tomorrow) on Today's tab
                 ->where(function ($d) use ($today) {
                     $d->whereNull('start_date')
@@ -827,7 +845,7 @@ class TaskController extends Controller
                         });
                 })
                 // Exclude DELETED tasks
-                ->whereRaw('LOWER(status) <> ?', ['deleted'])
+                ->whereRaw('LOWER(status) <> ?', ['canceled'])
                 ->whereDate('start_date', $tomorrow);
 
             $tasks = $base->orderByDesc('created_at')->get();
@@ -1547,8 +1565,8 @@ class TaskController extends Controller
                     'message' => 'Only PIC can delete this task.'
                 ], 403);
             }
-            // Soft-delete: flag status as DELETED and set deleted_by. Do not remove files or related data.
-            $task->status = 'DELETED';
+            // Soft-delete: flag status as CANCELED and set deleted_by. Do not remove files or related data.
+            $task->status = 'CANCELED';
             $task->deleted_by = auth()->id();
             $task->save();
 
@@ -1557,8 +1575,8 @@ class TaskController extends Controller
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                // Back-end still performs same soft-delete (status set to 'DELETED'),
-                // but return message uses 'canceled' to match UI label change.
+                    // Back-end now performs same soft-delete (status set to 'CANCELED'),
+                // return message uses 'canceled' to match UI label change.
                 'message' => 'Task canceled successfully'
             ]);
 
@@ -2336,8 +2354,8 @@ class TaskController extends Controller
                 'project'
             ])
                 ->where('project_id', $projectId)
-                // Hide tasks marked as DELETED
-                ->whereRaw('LOWER(status) <> ?', ['deleted'])
+                // Hide tasks marked as CANCELED
+                ->whereRaw('LOWER(status) <> ?', ['canceled'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
