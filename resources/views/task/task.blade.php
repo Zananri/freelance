@@ -347,15 +347,6 @@
                             </select>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="task_division_id" class="form-label label-custom">Division (optional)</label>
-                            <select class="form-select input-select" id="task_division_id" name="division_id">
-                                <option value="">-- Select Division (optional) --</option>
-                                <!-- Options to be populated dynamically -->
-                            </select>
-                            <div class="form-text">If you select a division, all employees from that division will be
-                                automatically selected as executors.</div>
-                        </div>
-                        <div class="mb-3 custom-input">
                             <label for="task_parent_id" class="form-label label-custom">Related to Task
                                 (optional)</label>
                             <select class="form-select input-select" id="task_parent_id" name="parent_id">
@@ -407,14 +398,25 @@
                                     name="due_date" required>
                             </div>
                         </div>
-                        <div class="mb-3 custom-input">
+                        <div class="mb-3 custom-input position-relative">
                             <label for="executor_input" class="form-label label-custom">Executor</label>
+
+                            <select aria-label="Division (optional)" class="form-select input-select position-absolute" id="task_division_id" name="division_id">
+                                <option value="">-- Division (optional) --</option>
+                            </select>
+                            <!-- Invisible activator placed over the select to intercept clicks
+                                 and use the custom dropup UI. Keeps the real select for form
+                                 submission and programmatic updates. -->
+                            <div id="task_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
+
+                            <!-- Custom dropup for divisions: appears above the input like executor dropup -->
+                            <div id="task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
+
                             <input type="text" class="form-control input-text" id="executor_input"
                                 name="executor_input" autocomplete="off" placeholder="Search employees...">
                             <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
                             </div>
                             <div id="selected_executors" class="mt-2 d-flex flex-wrap gap-2">
-                                <!-- Selected executors will appear here -->
                             </div>
                             <input type="hidden" id="executors" name="executors" value="">
                         </div>
