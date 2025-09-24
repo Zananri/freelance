@@ -1405,6 +1405,21 @@
                     fetchEmployees(document.getElementById("edit_co_author_input")?.value || "");
                 };
 
+                function getDivision(emp) {
+                    try {
+                        if (!emp) return '';
+                        return (
+                            emp?.division_name ||
+                            emp?.division ||
+                            emp?.division_title ||
+                            (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                            emp?.employee_division ||
+                            (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                            ''
+                        );
+                    } catch (_) { return ''; }
+                }
+
                 function renderDropdown() {
                     if (filteredEmployees.length === 0) {
                         dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
@@ -1443,11 +1458,15 @@
                                 photoUrl = getMeta("app-url") + "/asset/img/avatar.png";
                             }
 
+                            const divName = getDivision(emp);
                             return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
                     <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                    <span>${emp.name}</span>
+                    <div class="d-flex flex-column">
+                        <span>${emp.name}</span>
+                        <small class="text-muted" style="font-size:10px;">${divName || ''}</small>
+                    </div>
                 </div>
                 <input type="checkbox" class="co-author-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
             </label>
@@ -1465,7 +1484,7 @@
                             const employeeObj = employees.find((emp) => emp.id === id);
                             if (this.checked) {
                                 if (!selectedEmployees.some((e) => e.id === id)) {
-                                    selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
+                                    selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null, division: employeeObj ? getDivision(employeeObj) : '' });
                                 }
                             } else {
                                 selectedEmployees = selectedEmployees.filter((e) => e.id !== id);
@@ -1492,8 +1511,17 @@
                         img.style.height = "24px";
                         img.style.objectFit = "cover";
 
+                        const nameWrapper = document.createElement("div");
+                        nameWrapper.className = "d-flex flex-column";
                         const nameSpan = document.createElement("span");
                         nameSpan.textContent = emp.name;
+                        nameSpan.style.lineHeight = '1';
+                        const divSpan = document.createElement("small");
+                        divSpan.className = "text-muted";
+                        divSpan.style.lineHeight = '1';
+                        divSpan.textContent = emp.division || '';
+                        nameWrapper.appendChild(nameSpan);
+                        nameWrapper.appendChild(divSpan);
 
                         const removeBtn = document.createElement("button");
                         removeBtn.type = "button";
@@ -1508,7 +1536,7 @@
                         });
 
                         badge.appendChild(img);
-                        badge.appendChild(nameSpan);
+                        badge.appendChild(nameWrapper);
                         badge.appendChild(removeBtn);
                         selectedContainer.appendChild(badge);
                     });
@@ -1579,7 +1607,7 @@
                         .filter((ca) => !contribIds.includes(Number(ca.id)))
                         .map((ca) => {
                             const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
-                            return { id: ca.id, name: ca.name, user_photo: buildAvatarUrl(candidate) };
+                            return { id: ca.id, name: ca.name, user_photo: buildAvatarUrl(candidate), division: getDivision(ca) };
                         });
                     renderSelected();
                     updateHiddenInput();
@@ -1651,6 +1679,21 @@
                     };
                 })(window.__refreshEditProjectEmployees);
 
+                function getDivision(emp) {
+                    try {
+                        if (!emp) return '';
+                        return (
+                            emp?.division_name ||
+                            emp?.division ||
+                            emp?.division_title ||
+                            (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                            emp?.employee_division ||
+                            (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                            ''
+                        );
+                    } catch (_) { return ''; }
+                }
+
                 function renderDropdown() {
                     if (filteredEmployees.length === 0) {
                         dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
@@ -1681,11 +1724,15 @@
                                 else photoUrl = getMeta("app-url") + "/file/profile_picture/" + emp.user_photo;
                             } catch (_) { photoUrl = getMeta("app-url") + "/asset/img/avatar.png"; }
 
+                            const divName = getDivision(emp);
                             return `
             <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
                 <div class="d-flex align-items-center">
                     <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                    <span>${emp.name}</span>
+                    <div class="d-flex flex-column">
+                        <span>${emp.name}</span>
+                        <small class="text-muted" style="font-size:10px;">${divName || ''}</small>
+                    </div>
                 </div>
                 <input type="checkbox" class="contributor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
             </label>
@@ -1703,7 +1750,7 @@
                             const employeeObj = employees.find((emp) => emp.id === id);
                             if (this.checked) {
                                 if (!selectedEmployees.some((e) => e.id === id)) {
-                                    selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null });
+                                    selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null, division: employeeObj ? getDivision(employeeObj) : '' });
                                 }
                             } else {
                                 selectedEmployees = selectedEmployees.filter((e) => e.id !== id);
@@ -1731,8 +1778,17 @@
                         img.style.height = "24px";
                         img.style.objectFit = "cover";
 
+                        const nameWrapper = document.createElement("div");
+                        nameWrapper.className = "d-flex flex-column";
                         const nameSpan = document.createElement("span");
                         nameSpan.textContent = emp.name;
+                        nameSpan.style.lineHeight = '1';
+                        const divSpan = document.createElement("small");
+                        divSpan.className = "text-muted";
+                        divSpan.style.lineHeight = '1';
+                        divSpan.textContent = emp.division || '';
+                        nameWrapper.appendChild(nameSpan);
+                        nameWrapper.appendChild(divSpan);
 
                         const removeBtn = document.createElement("button");
                         removeBtn.type = "button";
@@ -1747,7 +1803,7 @@
                         });
 
                         badge.appendChild(img);
-                        badge.appendChild(nameSpan);
+                        badge.appendChild(nameWrapper);
                         badge.appendChild(removeBtn);
                         selectedContainer.appendChild(badge);
                     });
@@ -1803,7 +1859,7 @@
                         .filter((c) => !coIds.includes(Number(c.id)))
                         .map((ca) => {
                             const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
-                            return { id: ca.id, name: ca.name, user_photo: buildAvatarUrl(candidate) };
+                            return { id: ca.id, name: ca.name, user_photo: buildAvatarUrl(candidate), division: getDivision(ca) };
                         });
                     renderSelected();
                     updateHiddenInput();
