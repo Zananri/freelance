@@ -563,73 +563,211 @@
     }
 
     function loadProjects() {
-        if (!projectSelect) return;
-        fetch(appUrl + "/project/index?task_scope=all")
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Failed to load projects");
-                }
-                return response.json();
-            })
-            .then((data) => {
-                if (!data.data) return;
-                let options =
-                    '<option value="" disabled selected>Select Project</option>';
-                data.data.forEach((project) => {
-                    options += `<option value="${project.id}">${project.title}</option>`;
+        const input = document.getElementById("task_project_input");
+        const dropdown = document.getElementById("task_project_dropdown");
+        const selectedContainer = document.getElementById("task_selected_project");
+        const hiddenInput = document.getElementById("task_project_id");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let projects = [];
+
+        function renderDropdown(filter = "") {
+            dropdown.innerHTML = "";
+            let filtered = projects.filter((p) =>
+                p.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            filtered.forEach((p) => {
+                let avatarHtml = p.image
+                    ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>`
+                    : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">
+                            ${p.title.charAt(0).toUpperCase()}
+                    </div>`;
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                item.addEventListener("click", () => {
+                    hiddenInput.value = p.id;
+                    input.value = p.title;
+                    dropdown.style.display = "none";
+                    showSelectedProject(p);
                 });
-                projectSelect.innerHTML = options;
-            })
-            .catch((error) => {
-                console.error("Error loading projects:", error);
+                dropdown.appendChild(item);
             });
+
+            dropdown.style.display = filtered.length ? "block" : "none";
+        }
+
+        function showSelectedProject(p) {
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                    ${
+                        p.image
+                            ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                            : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">
+                                    ${p.title.charAt(0).toUpperCase()}
+                            </div>`
+                    }
+                    <span class="flex-grow-1">${p.title}</span>
+                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            selectedContainer
+                .querySelector(".btn-remove-project")
+                .addEventListener("click", () => {
+                    hiddenInput.value = "";
+                    input.value = "";
+                    selectedContainer.innerHTML = "";
+                    document.getElementById("task_parent_id").innerHTML = "<option value=''>No Parent</option>";
+                });
+
+            // 🔹 Trigger load related tasks
+            loadRelatedTasks(p.id, "task", document.getElementById("task_parent_id"));
+        }
+
+        fetch(appUrl + "/project/index?task_scope=all")
+            .then((res) => res.json())
+            .then((payload) => {
+                projects = (payload.data || []).map((p) => ({
+                    id: p.id,
+                    title: p.title,
+                    image: p.image || "",
+                }));
+            })
+            .catch((err) => console.error("Error loading projects:", err));
+
+        input.addEventListener("input", () => renderDropdown(input.value));
+        input.addEventListener("focus", () => renderDropdown(input.value));
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
     }
 
     // Load related tasks for a given project into an element (select). excludeTaskId optional to avoid listing self as parent
-    function loadRelatedTasks(projectId, selectElement, excludeTaskId, selectedParentId) {
-        if (!selectElement) return;
-        // Clear
-        selectElement.innerHTML = '<option value="">No Parent</option>';
-        if (!projectId) return;
-        fetch(appUrl + '/projects/' + encodeURIComponent(projectId) + '/tasks')
-            .then(r => r.json())
-            .then(res => {
-                if (!res || !res.data) return;
-                const tasks = Array.isArray(res.data) ? res.data : [];
-                tasks.forEach(t => {
-                    if (excludeTaskId && String(t.id) === String(excludeTaskId)) return;
-                    const opt = document.createElement('option');
-                    opt.value = t.id;
-                    opt.textContent = t.title;
-                    selectElement.appendChild(opt);
+    function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
+        const input = document.getElementById(`${prefix}_parent_input`);
+        const dropdown = document.getElementById(`${prefix}_parent_dropdown`);
+        const selectedContainer = document.getElementById(`${prefix}_selected_parent`);
+        const hiddenInput = document.getElementById(`${prefix}_parent_id`);
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let tasks = [];
+
+        function getInitialAvatar(name) {
+            const colors = [
+                "#F44336", "#E91E63", "#9C27B0", "#673AB7",
+                "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
+                "#009688", "#4CAF50", "#8BC34A", "#FFC107",
+                "#FF9800", "#FF5722", "#795548"
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const initial = (name || "?").charAt(0).toUpperCase();
+            return `<div style="
+                width:28px;height:28px;
+                border-radius:50%;
+                background:${color};
+                color:#fff;
+                font-size:13px;
+                font-weight:bold;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+            ">${initial}</div>`;
+        }
+
+        function showSelectedTask(task) {
+            let avatarHtml = task.image
+                ? `<img src="${appUrl}/file/task/${task.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                : getInitialAvatar(task.title);
+
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                    ${avatarHtml}
+                    <span class="flex-grow-1">${task.title}</span>
+                    <button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            selectedContainer.querySelector(".remove-task").addEventListener("click", () => {
+                hiddenInput.value = "";
+                input.value = "";
+                selectedContainer.innerHTML = "";
+            });
+        }
+
+        function renderDropdown(filter = "") {
+            dropdown.innerHTML = "";
+            let filtered = tasks.filter(t =>
+                t.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            filtered.forEach(t => {
+                let avatarHtml = t.image
+                    ? `<img src="${appUrl}/file/task/${t.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`
+                    : getInitialAvatar(t.title);
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.innerHTML = `${avatarHtml}<span>${t.title}</span>`;
+                item.addEventListener("click", () => {
+                    hiddenInput.value = t.id;
+                    input.value = t.title;
+                    dropdown.style.display = "none";
+                    showSelectedTask(t);
                 });
-                // If caller requested a selected value, set it now (after options appended)
-                try {
-                    if (selectedParentId != null && selectedParentId !== '') {
-                        const found = selectElement.querySelector('option[value="' + String(selectedParentId) + '"]');
-                        if (found) {
-                            selectElement.value = String(selectedParentId);
-                        } else {
-                            // Option not found in project task list — try to fetch the single task by id and append
-                            fetch(appUrl + '/task/' + encodeURIComponent(String(selectedParentId)))
-                                .then(r => r.ok ? r.json() : Promise.reject('Not found'))
-                                .then(resSingle => {
-                                    const taskSingle = (resSingle && (resSingle.data || resSingle)) || null;
-                                    if (taskSingle && taskSingle.id) {
-                                        const opt2 = document.createElement('option');
-                                        opt2.value = taskSingle.id;
-                                        opt2.textContent = taskSingle.title || ('Task #' + taskSingle.id);
-                                        // Append at end and select
-                                        selectElement.appendChild(opt2);
-                                        selectElement.value = String(taskSingle.id);
-                                    }
-                                })
-                                .catch(err => { console.warn('Related parent not in project list and single fetch failed', err); });
-                        }
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = filtered.length ? "block" : "none";
+        }
+
+        fetch(appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks")
+            .then(res => res.json())
+            .then(payload => {
+                tasks = (payload.data || []).map(t => ({
+                    id: t.id,
+                    title: t.title,
+                    image: t.image || ""
+                }));
+                renderDropdown(input.value);
+
+                // Jika edit mode dan parent sudah ada → tampilkan langsung
+                if (selectedParentId) {
+                    const found = tasks.find(t => String(t.id) === String(selectedParentId));
+                    if (found) {
+                        hiddenInput.value = found.id;
+                        input.value = found.title;
+                        showSelectedTask(found);
+                    } else if (selectedParentTitle) {
+                        hiddenInput.value = selectedParentId;
+                        input.value = selectedParentTitle;
+                        showSelectedTask({ id: selectedParentId, title: selectedParentTitle, image: "" });
                     }
-                } catch (e) { console.warn('Failed to set selected parent', e); }
+                }
             })
-            .catch(err => { console.error('Failed to load related tasks', err); });
+            .catch(err => console.error("Failed to load related tasks", err));
+
+        input.addEventListener("input", () => renderDropdown(input.value));
+        input.addEventListener("focus", () => renderDropdown(input.value));
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
     }
 
     // Ensure a parent option exists in select by fetching single task and appending if missing
@@ -3607,7 +3745,7 @@ function applyCurrentSearchFilter() {
                     if (bulkStatusSuppressRefresh) {
                         // Nothing else to do here for intermediate items
                     } else {
-                    
+
                         (function insertUpdatedTask() {
                             $.ajax({
                                 url: appUrl + '/task/' + taskId,
@@ -3644,7 +3782,7 @@ function applyCurrentSearchFilter() {
                                             normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
                                         } catch (_) {}
 
-                                       
+
                                         try {
                                             const clientMap = window.__clientArchivedTasks || new Map();
                                             const idKey = String(normalized.id || normalized.task_id || '');
@@ -6196,34 +6334,107 @@ function applyCurrentSearchFilter() {
 
     // Function to handle task edit (removed old implementation)
 
-    // Function to load projects for edit modal
-    function loadProjectsForEdit(callback) {
-        const editProjectSelect = document.getElementById(
-            "edit_task_project_id"
-        );
-        if (!editProjectSelect) return;
+    function loadProjectsForEdit(selectedProjectId = null, callback) {
+        const input = document.getElementById("edit_task_project_input");
+        const dropdown = document.getElementById("edit_task_project_dropdown");
+        const selectedContainer = document.getElementById("edit_task_selected_project");
+        const hiddenInput = document.getElementById("edit_task_project_id");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let projects = [];
+
+        function renderDropdown(filter = "", autoShow = false) {
+            dropdown.innerHTML = "";
+            const filtered = projects.filter((p) =>
+                p.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            filtered.forEach((p) => {
+                let avatarHtml = p.image
+                    ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>`
+                    : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">
+                            ${p.title.charAt(0).toUpperCase()}
+                    </div>`;
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                item.addEventListener("click", () => {
+                    hiddenInput.value = p.id;
+                    input.value = p.title;
+                    dropdown.style.display = "none";
+                    showSelectedProject(p);
+                    loadRelatedTasks(p.id, "edit_task", document.getElementById("edit_task_parent_id"));
+                });
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = (filtered.length && autoShow) ? "block" : "none";
+        }
+
+        function showSelectedProject(p) {
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                    ${
+                        p.image
+                            ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                            : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">
+                                    ${p.title.charAt(0).toUpperCase()}
+                            </div>`
+                    }
+                    <span class="flex-grow-1">${p.title}</span>
+                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            selectedContainer.querySelector(".btn-remove-project").addEventListener("click", () => {
+                hiddenInput.value = "";
+                input.value = "";
+                selectedContainer.innerHTML = "";
+                document.getElementById("edit_task_parent_id").innerHTML = "<option value=''>No Parent</option>";
+            });
+        }
 
         fetch(appUrl + "/project/index?task_scope=all")
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Failed to load projects");
+            .then((res) => res.json())
+            .then((payload) => {
+                projects = (payload.data || []).map((p) => ({
+                    id: p.id,
+                    title: p.title,
+                    image: p.image || "",
+                }));
+
+                // Kalau ada project yang sudah dipilih sebelumnya
+                if (selectedProjectId) {
+                    const project = projects.find(p => String(p.id) === String(selectedProjectId));
+                    if (project) {
+                        hiddenInput.value = project.id;
+                        input.value = project.title;
+                        showSelectedProject(project);
+                        loadRelatedTasks(project.id, "edit_task");
+                    }
                 }
-                return response.json();
-            })
-            .then((data) => {
-                if (!data.data) return;
-                let options =
-                    '<option value="" disabled selected>Select Project</option>';
-                data.data.forEach((project) => {
-                    options += `<option value="${project.id}">${project.title}</option>`;
-                });
-                editProjectSelect.innerHTML = options;
+
                 if (typeof callback === "function") callback();
             })
-            .catch((error) => {
-                console.error("Error loading projects for edit:", error);
+            .catch((err) => {
+                console.error("Error loading projects for edit:", err);
                 if (typeof callback === "function") callback();
             });
+
+        input.addEventListener("input", () => renderDropdown(input.value, true));
+        input.addEventListener("focus", () => renderDropdown(input.value, true));
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
     }
 
     // Function to handle task cancel (soft-delete semantics preserved)
@@ -6695,19 +6906,11 @@ function applyCurrentSearchFilter() {
                 if (titleEl) titleEl.value = t.title || "";
                 if (descEl) descEl.value = t.description || "";
 
-                // Project select: load options first, then set value
-                const projSel = document.getElementById("edit_task_project_id");
-                if (projSel && typeof loadProjectsForEdit === 'function') {
-                    const projectId = (t.project_id != null) ? t.project_id : (t.project && t.project.id != null ? t.project.id : '');
-                    loadProjectsForEdit(function() {
-                        projSel.value = projectId != null ? String(projectId) : '';
-                        // After setting project, load related tasks for edit parent select
-                        const parentSel = document.getElementById('edit_task_parent_id');
-                        loadRelatedTasks(projectId, parentSel, t.id, t.parent_id);
-                        // Also ensure parent exists in select (covers edge cases)
-                        ensureParentOption(parentSel, t.parent_id);
-                    });
-                }
+                const projectId = t.project_id || (t.project && t.project.id);
+                loadProjectsForEdit(projectId, function () {
+                    loadRelatedTasks(projectId, "edit_task", t.id, t.parent_id);
+                    ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id);
+                });
 
                 // Point, Priority
                 const pointEl = document.getElementById("edit_task_point");
@@ -7729,7 +7932,7 @@ function applyCurrentSearchFilter() {
                 });
 
                 tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
-                
+
                 console.debug('[archive] collected tasks total:', allTasks.length, 'filtered canceled:', tasks.length);
                 console.debug('[archive] will merge client archived tasks (if any) before deciding emptiness');
             } else {
@@ -7756,7 +7959,7 @@ function applyCurrentSearchFilter() {
                 }
             } catch(_) {}
 
-            
+
             const container = document.createElement('div');
             container.className = 'task-list d-flex flex-column gap-2 p-2';
 
