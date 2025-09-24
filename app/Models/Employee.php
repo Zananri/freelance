@@ -27,6 +27,7 @@ class Employee extends Model
         'ktp',
         'birth_date',
         'hire_date',
+        'contract_end_date',
         'resign_date',
     'grade_id',
         'office',
