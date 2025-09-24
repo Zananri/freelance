@@ -1071,6 +1071,82 @@
                     })
                     .catch(err => { try { showFloatingAlert('Failed to load employees for division.', 'warning', 2500); } catch(_){} });
             });
+
+                // Setup dropup UI for division select so it behaves like executor dropup
+                try {
+                    const divisionDropdown = document.getElementById('task_division_dropdown');
+                    if (divisionDropdown) {
+                        // Populate items when select is focused/clicked
+                        function renderDivisionDropup() {
+                            const opts = Array.from(addDivisionSel.options || []);
+                            if (!opts.length) {
+                                divisionDropdown.innerHTML = '<div class="division-item disabled">No divisions</div>';
+                                divisionDropdown.style.display = 'block';
+                                return;
+                            }
+                            const html = opts.map(o => {
+                                const val = o.value || '';
+                                const txt = o.textContent || o.innerText || '';
+                                return `<div class="division-item" data-value="${val}">${escapeHtml(txt)}</div>`;
+                            }).join('');
+                            divisionDropdown.innerHTML = html;
+                            divisionDropdown.style.display = 'block';
+
+                            divisionDropdown.querySelectorAll('.division-item').forEach(el => {
+                                el.addEventListener('click', function () {
+                                    const v = this.getAttribute('data-value');
+                                    try { addDivisionSel.value = v; addDivisionSel.dispatchEvent(new Event('change', { bubbles: true })); } catch(_) {}
+                                    divisionDropdown.style.display = 'none';
+                                });
+                            });
+                        }
+
+                        // Utility to escape HTML
+                        function escapeHtml(str) {
+                            return String(str || '').replace(/[&<>"']/g, function (m) {
+                                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"})[m];
+                            });
+                        }
+
+                        // Show dropup on focus/click. Also intercept mousedown to prevent
+                        // the browser's native select dropdown from opening while still
+                        // allowing the element to receive focus (useful for keyboard).
+                        addDivisionSel.addEventListener('focus', renderDivisionDropup);
+                        // Bind click on the transparent activator (placed above the select)
+                        // so pointer clicks open our custom dropup while the real select
+                        // remains non-interactive (pointer-events:none) on desktop.
+                        const activator = document.getElementById('task_division_activator');
+                        if (activator) {
+                            activator.addEventListener('click', function (e) {
+                                try { e.preventDefault(); e.stopPropagation(); } catch(_) {}
+                                renderDivisionDropup();
+                                try { addDivisionSel.focus(); } catch(_) {}
+                            });
+                        } else {
+                            // Fallback: if activator not present, keep select's click behavior
+                            addDivisionSel.addEventListener('click', function (e) {
+                                try { e.preventDefault(); e.stopPropagation(); } catch(_) {}
+                                renderDivisionDropup();
+                                try { addDivisionSel.focus(); } catch(_) {}
+                            });
+                        }
+                        // Intercept certain keyboard keys (Space / ArrowDown / ArrowUp)
+                        // to prevent native select opening and show custom dropup instead.
+                        addDivisionSel.addEventListener('keydown', function (e) {
+                            const k = e.key || '';
+                            if (k === ' ' || k === 'Spacebar' || k === 'ArrowDown' || k === 'ArrowUp') {
+                                try { e.preventDefault(); renderDivisionDropup(); } catch (_) {}
+                            }
+                        });
+
+                        // Hide when clicking outside
+                        document.addEventListener('click', function (e) {
+                            if (!addDivisionSel.contains(e.target) && !divisionDropdown.contains(e.target)) {
+                                divisionDropdown.style.display = 'none';
+                            }
+                        });
+                    }
+                } catch (e) { console.warn('division dropup init failed', e); }
         }
     } catch (e) { console.warn('Failed to wire division->executors', e); }
     // Also load projects for schedule modal (optional select)
