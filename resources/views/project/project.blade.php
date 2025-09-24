@@ -30,7 +30,7 @@
 
     <div class="project-card-container">
         <div class="row">
-            <div class="col-md-4">
+            <div class="col-md-4 above-content">
                 {{-- project chart --}}
                 <div class="body-content chart-section p-4">
                     <div class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">

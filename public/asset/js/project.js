@@ -782,7 +782,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             "&quot;"
                         );
                         rowHtml += `
-                            <div class="col-md-4 mb-3 d-flex align-items-start position-relative" data-project-id="${
+                            <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
                             }" data-project-title="${dataTitle}">
                                 <div class="project-card p-4 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
