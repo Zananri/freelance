@@ -297,10 +297,18 @@ class AttendanceTrackingController extends Controller
                 
                 if($attendance){
                     
+                    
                     $timeIn = Carbon::parse($attendance->time_in)->format('H:i');
                     $timeOut = Carbon::parse($attendance->time_out)->format('H:i');
                     
                     $activeWorksheet->setCellValue($column.$row, $timeIn.chr(10).$timeOut);// $timeIn." \n ".$timeOut
+                    
+                    if($attendance->time_late){
+                        $activeWorksheet->getStyle($column.$row)
+                            ->getFont()
+                            ->getColor()
+                        ->setARGB('ffd74e51');
+                    }
                     
                 }else{
                     //$activeWorksheet->setCellValue($column.$row, $employeeItem->id.' '.$newAddDate->toDateString());
