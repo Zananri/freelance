@@ -742,7 +742,6 @@
                     title: t.title,
                     image: t.image || ""
                 }));
-                renderDropdown(input.value);
 
                 // Jika edit mode dan parent sudah ada → tampilkan langsung
                 if (selectedParentId) {

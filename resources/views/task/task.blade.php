@@ -172,7 +172,8 @@
                             <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="edit_task_project_input" class="form-label label-custom">Project (optional)</label>
+                            <label for="edit_task_project_input" class="form-label label-custom">Project
+                                (optional)</label>
                             <input type="text" class="form-control input-text" id="edit_task_project_input"
                                 autocomplete="off" placeholder="Search project...">
                             <div id="edit_task_project_dropdown" class="dropdown-list mt-1"></div>
@@ -181,7 +182,8 @@
                         </div>
 
                         <div class="mb-3 custom-input">
-                            <label for="edit_task_parent_input" class="form-label label-custom">Related to Task (optional)</label>
+                            <label for="edit_task_parent_input" class="form-label label-custom">Related to Task
+                                (optional)</label>
                             <input type="text" class="form-control input-text" id="edit_task_parent_input"
                                 autocomplete="off" placeholder="Search task...">
                             <div id="edit_task_parent_dropdown" class="dropdown-list mt-1"></div>
@@ -237,12 +239,27 @@
                                     name="due_date" required>
                             </div>
                         </div>
-                        <div class="mb-3 custom-input">
+                        <div class="mb-1 custom-input position-relative">
                             <label for="edit_executor_input" class="form-label label-custom">Executor</label>
+
+                            <select aria-label="Division (optional)"
+                                class="form-select input-select position-absolute" id="edit_task_division_id"
+                                name="division_id">
+                                <option value="">-- Division (optional) --</option>
+                            </select>
+                            <div id="edit_task_division_activator" class="division-activator position-absolute"
+                                aria-hidden="true"></div>
+
+                            <div id="edit_task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
+
+                        </div>
+                        <div class="mb-3 custom-input">
                             <input type="text" class="form-control input-text" id="edit_executor_input"
                                 name="edit_executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
-                            <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
+                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list">
+                            </div>
+                            <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2">
+                            </div>
                             <input type="hidden" id="edit_executors" name="executors" value="">
                         </div>
                     </div>
@@ -406,7 +423,7 @@
                                     name="due_date" required>
                             </div>
                         </div>
-                        <div class="mb-3 custom-input position-relative">
+                        <div class="mb-1 custom-input position-relative">
                             <label for="executor_input" class="form-label label-custom">Executor</label>
 
                             <select aria-label="Division (optional)"
@@ -422,11 +439,13 @@
 
                             <!-- Custom dropup for divisions: appears above the input like executor dropup -->
                             <div id="task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
-
-                            <input type="text" class="form-control input-text" id="executor_input"
-                                name="executor_input" autocomplete="off" placeholder="Search employees...">
                             <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
                             </div>
+                        </div>
+                        <div class="mb-3 custom-input position-relative">
+                            <input type="text" class="form-control input-text" id="executor_input"
+                                name="executor_input" autocomplete="off" placeholder="Search employees...">
+
                             <div id="selected_executors" class="mt-2 d-flex flex-wrap gap-2">
                             </div>
                             <input type="hidden" id="executors" name="executors" value="">
