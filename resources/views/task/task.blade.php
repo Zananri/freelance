@@ -37,8 +37,7 @@
                     <span class="material-symbols-outlined">calendar_month</span>
                 </button>
 
-                <button class="btn btn-sm toggle-archieve" data-bs-toggle="modal"
-                    data-bs-target="#archieveModal">
+                <button class="btn btn-sm toggle-archieve" data-bs-toggle="modal" data-bs-target="#archieveModal">
                     <span class="material-symbols-outlined">box</span>
                 </button>
 
@@ -173,19 +172,23 @@
                             <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="edit_task_project_id" class="form-label label-custom">Project
-                                (optional)</label>
-                            <select class="form-select input-select" id="edit_task_project_id" name="project_id">
-                                <option value="">No Project</option>
-                            </select>
+                            <label for="edit_task_project_input" class="form-label label-custom">Project (optional)</label>
+                            <input type="text" class="form-control input-text" id="edit_task_project_input"
+                                autocomplete="off" placeholder="Search project...">
+                            <div id="edit_task_project_dropdown" class="dropdown-list mt-1"></div>
+                            <div id="edit_task_selected_project" class="mt-2"></div>
+                            <input type="hidden" id="edit_task_project_id" name="project_id" value="">
                         </div>
+
                         <div class="mb-3 custom-input">
-                            <label for="edit_task_parent_id" class="form-label label-custom">Related to Task
-                                (optional)</label>
-                            <select class="form-select input-select" id="edit_task_parent_id" name="parent_id">
-                                <option value="">No Parent</option>
-                            </select>
+                            <label for="edit_task_parent_input" class="form-label label-custom">Related to Task (optional)</label>
+                            <input type="text" class="form-control input-text" id="edit_task_parent_input"
+                                autocomplete="off" placeholder="Search task...">
+                            <div id="edit_task_parent_dropdown" class="dropdown-list mt-1"></div>
+                            <div id="edit_task_selected_parent" class="mt-2"></div>
+                            <input type="hidden" id="edit_task_parent_id" name="parent_id" value="">
                         </div>
+
                         <div class="mb-3 custom-input">
                             <label for="edit_task_point" class="form-label label-custom">Point</label>
                             <input type="number" class="form-control input-text" id="edit_task_point"
@@ -340,19 +343,24 @@
                             <textarea class="form-control input-text" id="task_description" name="description" rows="6"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="task_project_id" class="form-label label-custom">Project</label>
-                            <select class="form-select input-select" id="task_project_id" name="project_id" required>
-                                <option value="">Select Project</option>
-                                <!-- Options to be populated dynamically -->
-                            </select>
+                            <label class="form-label label-custom">Project</label>
+                            <input type="text" class="form-control input-text" id="task_project_input"
+                                autocomplete="off" placeholder="Search project...">
+                            <div id="task_project_dropdown" class="dropdown-list mt-1"></div>
+                            <div id="task_selected_project" class="mt-2"></div>
+                            <input type="hidden" id="task_project_id" name="project_id" value="">
                         </div>
+
                         <div class="mb-3 custom-input">
-                            <label for="task_parent_id" class="form-label label-custom">Related to Task
-                                (optional)</label>
-                            <select class="form-select input-select" id="task_parent_id" name="parent_id">
-                                <option value="">No Parent</option>
-                            </select>
+                            <label class="form-label label-custom">Related to Task (optional)</label>
+                            <input type="text" class="form-control input-text" id="task_parent_input"
+                                autocomplete="off" placeholder="Search task...">
+                            <div id="task_parent_dropdown" class="dropdown-list mt-1"></div>
+                            <div id="task_selected_parent" class="mt-2"></div>
+                            <input type="hidden" id="task_parent_id" name="parent_id" value="">
                         </div>
+
+
                         <div class="mb-3 custom-input">
                             <label for="task_point" class="form-label label-custom">Point</label>
                             <input type="number" class="form-control input-text" id="task_point" name="point"
@@ -401,13 +409,16 @@
                         <div class="mb-3 custom-input position-relative">
                             <label for="executor_input" class="form-label label-custom">Executor</label>
 
-                            <select aria-label="Division (optional)" class="form-select input-select position-absolute" id="task_division_id" name="division_id">
+                            <select aria-label="Division (optional)"
+                                class="form-select input-select position-absolute" id="task_division_id"
+                                name="division_id">
                                 <option value="">-- Division (optional) --</option>
                             </select>
                             <!-- Invisible activator placed over the select to intercept clicks
                                  and use the custom dropup UI. Keeps the real select for form
                                  submission and programmatic updates. -->
-                            <div id="task_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
+                            <div id="task_division_activator" class="division-activator position-absolute"
+                                aria-hidden="true"></div>
 
                             <!-- Custom dropup for divisions: appears above the input like executor dropup -->
                             <div id="task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
@@ -552,13 +563,12 @@
     <div class="modal fade" id="archieveModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable archieve-modal-dialog">
             <div class="modal-content modal-content-custom">
-                <div
-                    class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
                     <h5 class="modal-title feedback-modal-title flex-grow-1 fs-5 fw-normal"
                         id="taskFeedbackModalLabel">Archieve</h5>
                 </div>
                 <div class="modal-body modal-body-custom">
-                   
+
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
