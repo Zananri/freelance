@@ -1,4 +1,4 @@
-<x-office-layout>
+    <x-office-layout>
     <x-slot name="menu_active">
         {{ __('project') }}
     </x-slot>
@@ -13,7 +13,7 @@
         @endphp
         <meta name="project-image" content="{{ $imgUrl }}">
         <meta name="project-total-tasks" content="{{ $totalTasks }}">
-        <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css') }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css?v=') . time() }}">
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -117,7 +117,28 @@
         $initials = trim($projTitle)
             ? strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]/u', '', $projTitle), 0, 2))
             : '';
+
+        $randomColors = [
+            '#FF6B6B',
+            '#4ECDC4',
+            '#45B7D1',
+            '#96CEB4',
+            '#FFEAA7',
+            '#DDA0DD',
+            '#98D8C8',
+            '#F7DC6F',
+            '#BB8FCE',
+            '#85C1E9',
+            '#F8C471',
+            '#82E0AA',
+            '#F1948A',
+            '#85C1E9',
+            '#D7BDE2',
+        ];
+        $randomBgColor = $randomColors[array_rand($randomColors)];
     @endphp
+
+    {{-- delete Modal --}}
     <div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-labelledby="deleteProjectModalLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -126,9 +147,16 @@
                     <div id="deleteProjectContent">
                         <div class="custom-card-delete position-relative p-3 border-0">
                             <div class="d-flex align-items-center mb-2">
-                                <img src="{{ $projImgUrl }}" alt="Project Image" class="rounded-circle me-3"
-                                    style="width:34px;height:34px;object-fit:cover;"
-                                    onerror="this.onerror=null;var d=document.createElement('div');d.className='rounded-circle d-flex align-items-center justify-content-center me-3';d.style.width='34px';d.style.height='34px';d.style.background='#FF8A3C';d.style.color='#fff';d.style.fontWeight='600';d.style.fontSize='11px';d.textContent='{{ $initials }}';this.replaceWith(d);">
+                                @if ($projImg)
+                                    <img src="{{ $projImgUrl }}" alt="Project Image" class="rounded-circle me-3"
+                                        style="width:34px;height:34px;object-fit:cover;"
+                                        onerror="this.onerror=null;var d=document.createElement('div');d.className='rounded-circle d-flex align-items-center justify-content-center me-3';d.style.width='34px';d.style.height='34px';d.style.background='{{ $randomBgColor }}';d.style.color='#fff';d.style.fontWeight='600';d.style.fontSize='11px';d.textContent='{{ $initials }}';this.replaceWith(d);">
+                                @else
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                        style="width:34px;height:34px;background:{{ $randomBgColor }};color:#fff;font-weight:600;font-size:11px;">
+                                        {{ $initials }}
+                                    </div>
+                                @endif
                                 <div class="d-flex flex-column">
                                     <h5 class="mb-0 project-detail-ti   tle">{{ $projTitle }}</h5>
                                 </div>
@@ -172,6 +200,7 @@
         </div>
     </div>
 
+    {{-- Edit Modal --}}
     <div class="modal fade modal-custom" id="editProjectModal" data-bs-backdrop="static" data-bs-keyboard="false"
         tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true"
         data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
@@ -342,6 +371,6 @@
     </div>
 
     <x-slot name="script_slot">
-        <script src="{{ asset('asset/js/project-detail.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
     </x-slot>
 </x-office-layout>
