@@ -7654,13 +7654,10 @@ function applyCurrentSearchFilter() {
 
                 // Filter tasks whose status contains 'cancel' (case-insensitive)
                 tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
-                if (!tasks.length) {
-                    console.debug('[archive] collected tasks total:', allTasks.length, 'filtered canceled:', tasks.length);
-                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
-                    return;
-                }
-
-                console.debug('[archive] rendering canceled tasks count (client-collected):', tasks.length, 'ids:', tasks.map(t => t.id));
+                // Do not return here yet; allow client-side archived tasks
+                // (completed > 90 days) to be merged into the list below.
+                console.debug('[archive] collected tasks total:', allTasks.length, 'filtered canceled:', tasks.length);
+                console.debug('[archive] will merge client archived tasks (if any) before deciding emptiness');
             } else {
                 console.debug('[archive] rendering canceled tasks count (server):', tasks.length, 'ids:', tasks.map(t => t.id));
             }
@@ -7676,6 +7673,13 @@ function applyCurrentSearchFilter() {
                     });
                 }
                 try { console.debug('[archive] merged client archived tasks count:', (clientMap && clientMap.size) || 0, 'mergedIntoThisFetch:', merged, 'totalTasksNow:', tasks.length); } catch(_) {}
+                // If after merging there are still no tasks, show empty state and exit
+                if (!tasks || !tasks.length) {
+                    console.debug('[archive] no canceled tasks and no client archived tasks to display');
+                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
+                    try { window.__renderingArchiveModal = false; } catch(_) {}
+                    return;
+                }
             } catch(_) {}
 
             // Render using the same card generator where possible; fall back to a
