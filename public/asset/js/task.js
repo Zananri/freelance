@@ -1039,7 +1039,7 @@
                 .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
                 .then(d => {
                     if (!d || !d.data) return;
-                    let opts = '<option value="">-- Select Division (optional) --</option>';
+                    let opts = '<option value="">Select Division (optional)</option>';
                     d.data.forEach(function(div){ opts += `<option value="${div.id}" data-name="${(div.name_division||div.name)}">${(div.name_division||div.name)}</option>`; });
                     addDivisionSel.innerHTML = opts;
                 })
@@ -7652,10 +7652,8 @@ function applyCurrentSearchFilter() {
                     allTasks.push(t);
                 });
 
-                // Filter tasks whose status contains 'cancel' (case-insensitive)
                 tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
-                // Do not return here yet; allow client-side archived tasks
-                // (completed > 90 days) to be merged into the list below.
+                
                 console.debug('[archive] collected tasks total:', allTasks.length, 'filtered canceled:', tasks.length);
                 console.debug('[archive] will merge client archived tasks (if any) before deciding emptiness');
             } else {
@@ -7682,10 +7680,7 @@ function applyCurrentSearchFilter() {
                 }
             } catch(_) {}
 
-            // Render using the same card generator where possible; fall back to a
-            // safe card builder if createTaskCard throws (missing fields in some
-            // API shapes caused errors observed in the wild). Use a `.task-list`
-            // wrapper so modal cards get similar spacing/scroll behavior.
+            
             const container = document.createElement('div');
             container.className = 'task-list d-flex flex-column gap-2 p-2';
 
