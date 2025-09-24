@@ -706,3 +706,25 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     margin-bottom: -1.2rem;
 }
+
+.alert-container {
+    margin-top: 0.5rem;
+    width: 100%;
+    height: 36px !important;
+    border-radius: 8px;
+    overflow: hidden;
+    font-size: 14px;
+    line-height: 36px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 14px;
+    text-align: center;
+}
