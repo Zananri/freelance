@@ -564,6 +564,8 @@ class TaskController extends Controller
                 'project_has_image' => $projectHasImage,
                 'project_id' => $task->project_id,
                 'due_date' => $task->due_date,
+                'complete_date' => $task->complete_date,
+                'updated_at' => $task->updated_at,
                 'priority' => $task->priority,
                 'pic' => $picData,
                 'executors' => $executorsData,
