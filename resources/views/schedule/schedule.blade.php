@@ -74,13 +74,13 @@
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title" id="scheduleCreateModalLabel">Create Schedule</h5>
+                    <h5 class="modal-title modal-title-custom" id="scheduleCreateModalLabel">Create Schedule</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
                 <form id="scheduleCreateForm" class="needs-validation" enctype="multipart/form-data" novalidate>
                     <div class="modal-body modal-body-custom">
-                        <div class="d-flex flex-column gap-3">
+                        <div class="d-flex flex-column">
 
                             <input type="hidden" id="schedule_recurrence_start_date" name="recurrence_start_date"
                                 value="{{ now()->toDateString() }}">
@@ -99,7 +99,7 @@
                             </div>
 
                             <!-- Recurrence Type -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="schedule_recurrence_type" class="form-label label-custom">Repeat</label>
                                 <select id="schedule_recurrence_type" name="recurrence_type"
                                     class="form-select input-select" required>
@@ -113,7 +113,7 @@
                             <!-- include_weekend removed -->
 
                             <!-- Weekly options -->
-                            <div class="custom-form-employee d-none" id="schedule_weekly_opts">
+                            <div class="mb-3 custom-form-employee d-none" id="schedule_weekly_opts">
                                 <label for="schedule_recurrence_day_of_week" class="form-label label-custom">Day of
                                     Week</label>
                                 <select class="form-select input-select" id="schedule_recurrence_day_of_week"
@@ -129,22 +129,30 @@
                             </div>
 
                             <!-- Weekday picker for Daily: allow selecting multiple weekdays instead of a single date -->
-                            <div class="custom-form-employee d-none" id="schedule_daily_weekdays">
+                            <div class="mb-3 custom-form-employee d-none" id="schedule_daily_weekdays">
                                 <label class="form-label label-custom">Pick weekdays</label>
                                 <div class="d-flex flex-wrap gap-2" id="schedule_daily_weekdays_buttons">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="0">Sunday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="1">Monday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="2">Tuesday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="3">Wednesday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="4">Thursday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="5">Friday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn" data-day="6">Saturday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn"
+                                        data-day="0">Sunday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn"
+                                        data-day="1">Monday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn"
+                                        data-day="2">Tuesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn"
+                                        data-day="3">Wednesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn"
+                                        data-day="4">Thursday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn"
+                                        data-day="5">Friday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm weekday-btn"
+                                        data-day="6">Saturday</button>
                                 </div>
-                                <input type="hidden" id="schedule_recurrence_days_of_week" name="recurrence_days_of_week" value="[]">
+                                <input type="hidden" id="schedule_recurrence_days_of_week"
+                                    name="recurrence_days_of_week" value="[]">
                             </div>
 
                             <!-- Date options -->
-                            <div class="custom-form-employee" id="schedule_date_opts">
+                            <div class="mb-3 custom-form-employee" id="schedule_date_opts">
                                 <div class="d-flex gap-2">
                                     <!-- Start Date -->
                                     <div class="w-50" id="schedule_start_at_div">
@@ -164,7 +172,7 @@
                             </div>
 
                             <!-- Points -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="schedule_point" class="form-label label-custom">Point</label>
                                 <input type="number" id="schedule_point" name="point" value="1"
                                     min="1" class="form-control input-text" required>
@@ -172,7 +180,7 @@
                             </div>
 
                             <!-- Priority -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="schedule_priority" class="form-label label-custom">Priority</label>
                                 <select id="schedule_priority" name="priority" class="form-select input-select"
                                     required>
@@ -185,7 +193,7 @@
                             </div>
 
                             <!-- Due in days -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="schedule_due_in_days" class="form-label label-custom">Due date
                                     (days)</label>
                                 <input type="number" min="0" id="schedule_due_in_days" name="due_in_days"
@@ -194,7 +202,7 @@
                             </div>
 
                             <!-- Title -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="schedule_title" class="form-label label-custom">Title</label>
                                 <input type="text" id="schedule_title" name="title"
                                     class="form-control input-text" required>
@@ -202,25 +210,36 @@
                             </div>
 
                             <!-- Description -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="schedule_description" class="form-label label-custom">Description</label>
                                 <textarea id="schedule_description" name="description" rows="4" class="form-control input-text"></textarea>
                             </div>
 
                             <!-- Project -->
-                            <div class="custom-form-employee">
+                            {{-- <div class="mb-3 custom-form-employee">
                                 <label for="schedule_project_id" class="form-label label-custom">Project
-                                    </label>
+                                </label>
                                 <!-- Hidden field to indicate modal opened from a project context -->
-                                <input type="hidden" id="schedule_project_context_id" name="project_context_id" value="">
-                                <select id="schedule_project_id" name="project_id" class="form-select input-select" required>
+                                <input type="hidden" id="schedule_project_context_id" name="project_context_id"
+                                    value="">
+                                <select id="schedule_project_id" name="project_id" class="form-select input-select"
+                                    required>
                                     <option value="">No Project</option>
                                 </select>
                                 <div class="invalid-feedback">Please select a project.</div>
+                            </div> --}}
+                            <div class="mb-3 custom-form-employee">
+                                <label class="form-label label-custom">Project</label>
+                                <input type="text" class="form-control input-text"
+                                    id="schedule_project_context_id" autocomplete="off"
+                                    placeholder="Search project...">
+                                <div id="schedule_project_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="schedule_selected_project" class="mt-2"></div>
+                                <input type="hidden" id="schedule_project_id" name="project_id" value="">
                             </div>
 
                             <!-- Reference URLs -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label class="form-label label-custom">Reference URLs</label>
                                 <div id="schedule_reference_urls_container" class="d-flex flex-column gap-2">
                                     <div class="d-flex gap-2 align-items-center">
@@ -235,7 +254,7 @@
                             </div>
 
                             <!-- Reference Files -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="schedule_reference_files" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" id="schedule_reference_files" name="reference_files[]"
@@ -244,9 +263,8 @@
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="schedule_reference_files_preview" class="mt-2"></div>
                             </div>
-                            <!-- Division (optional) - matches Add Task modal behavior -->
-                            <div class="custom-form-employee position-relative">
-                                <label for="schedule_division_id" class="form-label label-custom">Division</label>
+                            <div class="mb-1 custom-form-employee position-relative">
+                                <label for="schedule_executor_input" class="form-label label-custom">Executor</label>
 
                                 <select aria-label="Division (optional)"
                                     class="form-select input-select position-absolute" id="schedule_division_id"
@@ -254,16 +272,16 @@
                                     <option value="">Select Division</option>
                                 </select>
 
-                                <div id="schedule_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
+                                <div id="schedule_division_activator" class="division-activator position-absolute"
+                                    aria-hidden="true"></div>
                                 <div id="schedule_division_dropdown" class="dropdown-list mt-1 division-list"></div>
+                                <div id="schedule_executor_dropdown" class="dropdown-list mt-1 executor-list dropup">
+                                </div>
                             </div>
 
-                            <!-- Executors -->
-                            <div class="custom-form-employee">
-                                <label for="schedule_executor_input" class="form-label label-custom">Executor</label>
+                            <div class="mb-3 custom-form-employee position-relative">
                                 <input type="text" id="schedule_executor_input" class="form-control input-text"
                                     placeholder="Search employees..." autocomplete="off">
-                                <div id="schedule_executor_dropdown" class="dropdown-list mt-1 executor-list dropup"></div>
                                 <div id="schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                                 <input type="hidden" id="schedule_executors" name="executor_ids" value="[]">
                             </div>
@@ -332,7 +350,7 @@
                     <div class="loader-spinner"></div>
                 </div>
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title" id="scheduleEditModalLabel">Edit Schedule</h5>
+                    <h5 class="modal-title modal-title-custom" id="scheduleEditModalLabel">Edit Schedule</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
@@ -341,13 +359,13 @@
                         @csrf
                         <input type="hidden" name="_method" value="PUT">
                         <input type="hidden" id="edit_schedule_id">
-                        <div class="d-flex flex-column gap-3">
+                        <div class="d-flex flex-column">
 
                             <input type="hidden" id="edit_schedule_recurrence_start_date"
                                 name="recurrence_start_date" value="{{ now()->toDateString() }}">
                             <input type="hidden" id="edit_schedule_recurrence_end_date" name="recurrence_end_date"
                                 value="">
-                                <input type="hidden" id="edit_schedule_next_run_at" name="next_run_at" value="">
+                            <input type="hidden" id="edit_schedule_next_run_at" name="next_run_at" value="">
 
                             <!-- Upload Image -->
                             <div class="mb-3">
@@ -366,7 +384,7 @@
                             </div>
 
                             <!-- Recurrence Type -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_recurrence_type"
                                     class="form-label label-custom">Repeat</label>
                                 <select id="edit_schedule_recurrence_type" name="recurrence_type"
@@ -381,7 +399,7 @@
                             <!-- include_weekend removed -->
 
                             <!-- Weekly options -->
-                            <div class="custom-form-employee d-none" id="edit_schedule_weekly_opts">
+                            <div class="mb-3 custom-form-employee d-none" id="edit_schedule_weekly_opts">
                                 <label for="edit_schedule_recurrence_day_of_week" class="form-label label-custom">Day
                                     of
                                     Week</label>
@@ -398,22 +416,30 @@
                             </div>
 
                             <!-- Weekday picker for Daily in edit modal -->
-                            <div class="custom-form-employee d-none" id="edit_schedule_daily_weekdays">
+                            <div class="mb-3 custom-form-employee d-none" id="edit_schedule_daily_weekdays">
                                 <label class="form-label">Pick weekdays</label>
                                 <div class="d-flex flex-wrap gap-2" id="edit_schedule_daily_weekdays_buttons">
-                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="0">Sunday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="1">Monday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="2">Tuesday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="3">Wednesday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="4">Thursday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="5">Friday</button>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn" data-day="6">Saturday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn"
+                                        data-day="0">Sunday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn"
+                                        data-day="1">Monday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn"
+                                        data-day="2">Tuesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn"
+                                        data-day="3">Wednesday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn"
+                                        data-day="4">Thursday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn"
+                                        data-day="5">Friday</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm edit-weekday-btn"
+                                        data-day="6">Saturday</button>
                                 </div>
-                                <input type="hidden" id="edit_schedule_recurrence_days_of_week" name="recurrence_days_of_week" value="[]">
+                                <input type="hidden" id="edit_schedule_recurrence_days_of_week"
+                                    name="recurrence_days_of_week" value="[]">
                             </div>
 
                             <!-- Monthly options -->
-                            <div class="custom-form-employee" id="edit_schedule_date_opts">
+                            <div class="mb-3 custom-form-employee" id="edit_schedule_date_opts">
                                 <div class="d-flex gap-2">
                                     <!-- Start Date -->
                                     <div class="w-50">
@@ -435,12 +461,14 @@
 
                             <!-- Monthly options hidden helpers expected by JS -->
                             <div class="d-none" id="edit_schedule_monthly_opts">
-                                <input type="hidden" id="edit_schedule_recurrence_day_of_month" name="recurrence_day_of_month" value="">
-                                <input type="hidden" id="edit_schedule_monthly_date" name="recurrence_monthly_date" value="">
+                                <input type="hidden" id="edit_schedule_recurrence_day_of_month"
+                                    name="recurrence_day_of_month" value="">
+                                <input type="hidden" id="edit_schedule_monthly_date" name="recurrence_monthly_date"
+                                    value="">
                             </div>
 
                             <!-- Points -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_point" class="form-label label-custom">Point</label>
                                 <input type="number" id="edit_schedule_point" name="point" value="1"
                                     min="1" class="form-control input-text" required>
@@ -448,7 +476,7 @@
                             </div>
 
                             <!-- Priority -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_priority" class="form-label label-custom">Priority</label>
                                 <select id="edit_schedule_priority" name="priority" class="form-select input-select"
                                     required>
@@ -461,7 +489,7 @@
                             </div>
 
                             <!-- Due in days -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_due_in_days" class="form-label label-custom">Due date
                                     (days)</label>
                                 <input type="number" min="0" id="edit_schedule_due_in_days"
@@ -470,7 +498,7 @@
                             </div>
 
                             <!-- Title -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_title" class="form-label label-custom">Title</label>
                                 <input type="text" id="edit_schedule_title" name="title"
                                     class="form-control input-text" required>
@@ -478,24 +506,24 @@
                             </div>
 
                             <!-- Description -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_description"
                                     class="form-label label-custom">Description</label>
                                 <textarea id="edit_schedule_description" name="description" rows="4" class="form-control input-text"></textarea>
                             </div>
 
-                            <!-- Project -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_project_id" class="form-label label-custom">Project
-                                    </label>
-                                <select id="edit_schedule_project_id" name="project_id"
-                                    class="form-select input-select">
-                                    <option value="">No Project</option>
-                                </select>
+                                    (optional)</label>
+                                <input type="text" class="form-control input-text" id="edit_schedule_project_id"
+                                    autocomplete="off" placeholder="Search project...">
+                                <div id="edit_schedule_project_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="edit_schedule_selected_project" class="mt-2"></div>
+                                <input type="hidden" id="edit_schedule_project_id" name="project_id" value="">
                             </div>
 
                             <!-- Reference URLs -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label class="form-label label-custom">Reference URLs</label>
                                 <div id="edit_schedule_reference_urls_container" class="d-flex flex-column gap-2">
                                     <div class="d-flex gap-2 align-items-center">
@@ -510,7 +538,7 @@
                             </div>
 
                             <!-- Reference Files -->
-                            <div class="custom-form-employee">
+                            <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_reference_files" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" id="edit_schedule_reference_files" name="reference_files[]"
@@ -521,7 +549,7 @@
                             </div>
 
                             <!-- Executors -->
-                            <div class="custom-form-employee">
+                            <div class="mb-1 custom-form-employee">
                                 <label for="edit_schedule_executor_input"
                                     class="form-label label-custom">Executor</label>
                                 <!-- Division (optional) - same behavior as edit task modal -->
@@ -530,14 +558,19 @@
                                     name="division_id">
                                     <option value="">Select Division</option>
                                 </select>
-                                <div id="edit_schedule_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
-                                <div id="edit_schedule_division_dropdown" class="dropdown-list mt-1 division-list"></div>
+                                <div id="edit_schedule_division_activator"
+                                    class="division-activator position-absolute" aria-hidden="true"></div>
+                                <div id="edit_schedule_division_dropdown" class="dropdown-list mt-1 division-list">
+                                </div>
+                                <div id="edit_schedule_executor_dropdown"
+                                    class="dropdown-list mt-1 executor-list dropup">
+                                </div>
 
+                            </div>
+                            <div class="mb-3 custom-form-employee position-relative">
                                 <input type="text" id="edit_schedule_executor_input"
                                     class="form-control input-text" placeholder="Search employees..."
                                     autocomplete="off">
-                                <div id="edit_schedule_executor_dropdown" class="dropdown-list mt-1 executor-list dropup">
-                                </div>
                                 <div id="edit_schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                                 <input type="hidden" id="edit_schedule_executors" name="executor_ids"
                                     value="[]">
@@ -553,7 +586,8 @@
         </div>
     </div>
 
-    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-labelledby="deleteScheduleModalLabel" aria-hidden="true">
+    <div class="modal fade" id="deleteScheduleModal" tabindex="-1" aria-labelledby="deleteScheduleModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
             <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
@@ -573,7 +607,7 @@
         <script src="{{ asset('asset/js/schedule-create.js?v=' . time()) }}"></script>
 
         <script>
-            (function(){
+            (function() {
                 // When opening create modal, allow passing project id via data attribute
                 var scheduleCreateModal = document.getElementById('scheduleCreateModal');
                 if (!scheduleCreateModal) return;
@@ -598,12 +632,13 @@
                     }
                 }
 
-                scheduleCreateModal.addEventListener('show.bs.modal', function (event) {
+                scheduleCreateModal.addEventListener('show.bs.modal', function(event) {
                     // triggering element (button) may have data-project-id attribute
                     var trigger = event.relatedTarget || document.activeElement;
                     var projectId = null;
                     if (trigger && trigger.getAttribute) {
-                        projectId = trigger.getAttribute('data-project-id') || (trigger.dataset && trigger.dataset.projectId) || null;
+                        projectId = trigger.getAttribute('data-project-id') || (trigger.dataset && trigger.dataset
+                            .projectId) || null;
                     }
 
                     // clear previous state
@@ -640,13 +675,13 @@
 
                 // update validation state when user changes selection
                 if (projectSelect) {
-                    projectSelect.addEventListener('change', function () {
+                    projectSelect.addEventListener('change', function() {
                         updateProjectValidationState();
                     });
                 }
 
                 // Reset state when modal hidden
-                scheduleCreateModal.addEventListener('hidden.bs.modal', function () {
+                scheduleCreateModal.addEventListener('hidden.bs.modal', function() {
                     if (projectSelect) {
                         projectSelect.classList.remove('is-invalid');
                         projectSelect.classList.remove('is-valid');
@@ -663,7 +698,7 @@
                 // Basic bootstrap validation on submit (also respects required attributes set above)
                 var form = document.getElementById('scheduleCreateForm');
                 if (form) {
-                    form.addEventListener('submit', function(e){
+                    form.addEventListener('submit', function(e) {
                         // ensure project validation reflects current value before checkValidity
                         updateProjectValidationState();
 
