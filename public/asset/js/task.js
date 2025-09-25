@@ -7756,6 +7756,278 @@ function applyCurrentSearchFilter() {
     updateMobileBulkControlsVisibility();
     });
 
+    // Load archived (CANCELED) tasks into Archieve Modal when opened
+    async function loadArchivedTasksIntoModal() {
+        try {
+            // Resolve appUrl with safe fallback in case it's not in scope
+            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl) ? appUrl : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''));
+
+            const modalEl = document.getElementById('archieveModal');
+            if (!modalEl) return;
+            const body = modalEl.querySelector('.modal-body');
+            if (!body) return;
+            // Show spinner while loading
+            body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            // Prefer backend-provided canceled bucket: request status=canceled and a large per_page
+            const res = await fetch(baseAppUrl + '/task/index?status=canceled&per_page=1000', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) {
+                body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+                return;
+            }
+            const j = await res.json();
+            const data = (j && j.data) ? j.data : {};
+            console.debug('[archive] raw archive payload', j);
+
+            // First try server-provided canceled bucket
+            let tasks = [];
+            if (data) {
+                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
+                if (canceledSection) {
+                    if (Array.isArray(canceledSection)) tasks = canceledSection;
+                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
+                }
+            }
+
+            // Fallback: if server didn't provide cancelled section, collect from known buckets in response body
+            if (!tasks || tasks.length === 0) {
+                // Collect tasks from known buckets and any unknown arrays; normalize into single array
+                let collected = [];
+                const buckets = ['new_request','in_progress','completed','rejected','canceled','CANCELED'];
+                buckets.forEach(key => {
+                    const section = data[key];
+                    if (!section) return;
+                    if (Array.isArray(section)) collected.push(...section);
+                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
+                });
+                // If the API returned a flat array somewhere (e.g., data as array), include it
+                if (Array.isArray(data)) collected.push(...data);
+
+                // Deduplicate by id
+                const seen = new Set();
+                const allTasks = [];
+                collected.forEach(t => {
+                    const id = t && (t.id || t.task_id);
+                    if (!id) return;
+                    if (seen.has(String(id))) return;
+                    seen.add(String(id));
+                    allTasks.push(t);
+                });
+
+                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
+
+                console.debug('[archive] collected tasks total:', allTasks.length, 'filtered canceled:', tasks.length);
+                console.debug('[archive] will merge client archived tasks (if any) before deciding emptiness');
+            } else {
+                console.debug('[archive] rendering canceled tasks count (server):', tasks.length, 'ids:', tasks.map(t => t.id));
+            }
+
+            // Merge client-side archived tasks (completed > 90 days) into tasks list
+            try {
+                const clientMap = window.__clientArchivedTasks || new Map();
+                let merged = 0;
+                if (clientMap && typeof clientMap.forEach === 'function') {
+                    clientMap.forEach(function(t, k){
+                        // avoid duplicates by id
+                        if (!tasks.some(x => String(x.id) === String(t.id))) { tasks.push(t); merged++; }
+                    });
+                }
+                try { console.debug('[archive] merged client archived tasks count:', (clientMap && clientMap.size) || 0, 'mergedIntoThisFetch:', merged, 'totalTasksNow:', tasks.length); } catch(_) {}
+                // If after merging there are still no tasks, show empty state and exit
+                if (!tasks || !tasks.length) {
+                    console.debug('[archive] no canceled tasks and no client archived tasks to display');
+                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
+                    try { window.__renderingArchiveModal = false; } catch(_) {}
+                    return;
+                }
+            } catch(_) {}
+
+
+            const container = document.createElement('div');
+            container.className = 'task-list d-flex flex-column gap-2 p-2';
+
+            function buildSafeCardHtml(t) {
+                const title = (t.title || 'Untitled Task');
+                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                const desc = (t.description || '').toString();
+                const priority = t.priority || '';
+                const due = t.due_date || '';
+
+                // show Type instead of Deadline in archive modal cards as colored badge
+                const rawStatus = String((t.status || '')).toUpperCase();
+                const typeLabel = rawStatus;
+                // plain colored text (no background): red for canceled, green for completed/others
+                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL'))
+                    ? `<span style="color:red; font-weight:600;">${rawStatus}</span>`
+                    : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`;
+                return `
+                    <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${t.id || ''}" data-task-status="${t.status || ''}">
+                        ${proj ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${proj}</small>` : ''}
+                        <h5 class="mb-0 task-title" style="line-height:1.2; margin-top:6px;">${title}</h5>
+                        <div class="task-description-container"><p class="task-description" style="margin-top:6px;">${desc}</p></div>
+                        <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div style="font-size: 10px; font-weight: 400;"> <span style="color: #797E91;">Priority: </span><span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span></div>
+                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Status: </span><span class="type-badge-wrapper">${typeBadge}</span></div>
+                        </div>
+                    </div>`;
+            }
+
+            // Mark that we're rendering the archive modal so createTaskCard can bypass suppression
+            try { window.__renderingArchiveModal = true; } catch(_) {}
+            tasks.forEach(t => {
+                try {
+                    // Normalize payload keys so createTaskCard receives expected fields
+                    const normalized = Object.assign({}, t);
+                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+
+                    // Prefer using the canonical card generator; call defensively to avoid ReferenceError
+                    let html = '';
+                    if (typeof createTaskCard === 'function') {
+                        try {
+                            html = createTaskCard(normalized);
+                        } catch (errCreate) {
+                            console.warn('createTaskCard threw for archived task', t.id, errCreate);
+                            html = buildSafeCardHtml(normalized);
+                        }
+                    } else if (typeof window !== 'undefined' && typeof window.createTaskCard === 'function') {
+                        try {
+                            html = window.createTaskCard(normalized);
+                        } catch (errCreate) {
+                            console.warn('window.createTaskCard threw for archived task', t.id, errCreate);
+                            html = buildSafeCardHtml(normalized);
+                        }
+                    } else {
+                        console.warn('createTaskCard not available for archived task', t.id);
+                        html = buildSafeCardHtml(normalized);
+                    }
+                    container.insertAdjacentHTML('beforeend', html);
+                } catch (e) {
+                    // ultimate fallback: simple card
+                    const simple = document.createElement('div');
+                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0';
+                    simple.innerHTML = `<h5 class="mb-1">${(t.title||'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`;
+                    container.appendChild(simple);
+                }
+            });
+
+            // End archive modal rendering flag
+            try { window.__renderingArchiveModal = false; } catch(_) {}
+
+            try {
+                // Insert into modal body first
+                body.innerHTML = '';
+                body.appendChild(container);
+
+                container.querySelectorAll('.custom-card').forEach(function(card){
+                    try {
+                        const ds = card.querySelectorAll('div[style*="Deadline:"]');
+                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove());
+                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove());
+                        card.querySelectorAll('.task-icon').forEach(el => el.remove());
+
+                        card.querySelectorAll('button, a.btn').forEach(btn => {
+                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) {
+                                btn.remove();
+                            }
+                        });
+
+                        // dropdown logic
+                        const status = (card.getAttribute('data-task-status') || '').toLowerCase();
+                        const dropdownMenu = card.querySelector('.dropdown-menu');
+                        if (dropdownMenu) {
+                            dropdownMenu.innerHTML = '';
+
+                            if (status === 'completed') {
+                                dropdownMenu.innerHTML = `
+                                    <div class="dropdown-item">Detail</div>`;
+                                } else {
+                                    dropdownMenu.innerHTML = `
+                                    <div class="dropdown-item">Detail</div>
+                                    <div class="dropdown-item">Restore Task</div>
+                                `;
+                            }
+                        }
+                        if (ds && ds.length) {
+                            ds.forEach(function(dd){
+                                // find corresponding task status from data attribute
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>');
+                            });
+                        } else {
+                            // Generic replace of text nodes
+                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function(_, g1){
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>';
+                            });
+                        }
+                    } catch(_) {}
+                });
+
+                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function(item) {
+                    item.addEventListener('click', function(e) {
+                        e.stopPropagation();
+
+                        const text = this.textContent.trim();
+                        const card = this.closest('.custom-card');
+                        const taskId = card && card.getAttribute('data-task-id');
+
+                        if (!taskId) return;
+
+                        // Detail handler
+                        if (text === 'Detail') {
+                            const archiveModal = document.getElementById('archieveModal');
+                            if (archiveModal) {
+                                const bsModal = bootstrap.Modal.getInstance(archiveModal);
+                                if (bsModal) bsModal.hide();
+                            }
+                            handleTaskDetail(taskId);
+                        }
+
+                        // Restore Task handler
+                        if (text === 'Restore Task') {
+                            const restoreStatus = 'new_request';
+                            updateTaskStatus(taskId, restoreStatus, card)
+                                .then(() => {
+                                    showFloatingAlert('Task restored to ' + restoreStatus, 'success');
+                                    card.remove();
+                                })
+                                .catch(err => {
+                                    showFloatingAlert('Failed to restore task: ' + err, 'danger');
+                                });
+                        }
+                    });
+                });
+
+            initBootstrapTooltips(modalEl);
+            } catch (_) {
+                // ensure modal still displays even if post-processing fails
+                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl); } catch(_) {}
+            }
+        } catch (err) {
+            try {
+                const modalEl = document.getElementById('archieveModal');
+                const body = modalEl && modalEl.querySelector('.modal-body');
+                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+            } catch(_) {}
+            console.warn('loadArchivedTasksIntoModal error', err);
+        }
+    }
+
+    // Bind modal show event
+    try {
+        const archModal = document.getElementById('archieveModal');
+        if (archModal) {
+            archModal.addEventListener('show.bs.modal', function () {
+                loadArchivedTasksIntoModal();
+            });
+        }
+    } catch(_) {}
+
 });
 
  let currentMonth = new Date().getMonth();
@@ -8004,262 +8276,6 @@ function applyCurrentSearchFilter() {
         await fetchTimelineTasksOnce();
         renderTimeline("#timelineHeaderModal", "#timelineRowsModal", currentMonth, currentYear);
     });
-
-    // Load archived (CANCELED) tasks into Archieve Modal when opened
-    async function loadArchivedTasksIntoModal() {
-        try {
-            // Resolve appUrl with safe fallback in case it's not in scope
-            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl) ? appUrl : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''));
-
-            const modalEl = document.getElementById('archieveModal');
-            if (!modalEl) return;
-            const body = modalEl.querySelector('.modal-body');
-            if (!body) return;
-            // Show spinner while loading
-            body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
-            // Prefer backend-provided canceled bucket: request status=canceled and a large per_page
-            const res = await fetch(baseAppUrl + '/task/index?status=canceled&per_page=1000', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            if (!res.ok) {
-                body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
-                return;
-            }
-            const j = await res.json();
-            const data = (j && j.data) ? j.data : {};
-            console.debug('[archive] raw archive payload', j);
-
-            // First try server-provided canceled bucket
-            let tasks = [];
-            if (data) {
-                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
-                if (canceledSection) {
-                    if (Array.isArray(canceledSection)) tasks = canceledSection;
-                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
-                }
-            }
-
-            // Fallback: if server didn't provide cancelled section, collect from known buckets in response body
-            if (!tasks || tasks.length === 0) {
-                // Collect tasks from known buckets and any unknown arrays; normalize into single array
-                let collected = [];
-                const buckets = ['new_request','in_progress','completed','rejected','canceled','CANCELED'];
-                buckets.forEach(key => {
-                    const section = data[key];
-                    if (!section) return;
-                    if (Array.isArray(section)) collected.push(...section);
-                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
-                });
-                // If the API returned a flat array somewhere (e.g., data as array), include it
-                if (Array.isArray(data)) collected.push(...data);
-
-                // Deduplicate by id
-                const seen = new Set();
-                const allTasks = [];
-                collected.forEach(t => {
-                    const id = t && (t.id || t.task_id);
-                    if (!id) return;
-                    if (seen.has(String(id))) return;
-                    seen.add(String(id));
-                    allTasks.push(t);
-                });
-
-                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
-
-                console.debug('[archive] collected tasks total:', allTasks.length, 'filtered canceled:', tasks.length);
-                console.debug('[archive] will merge client archived tasks (if any) before deciding emptiness');
-            } else {
-                console.debug('[archive] rendering canceled tasks count (server):', tasks.length, 'ids:', tasks.map(t => t.id));
-            }
-
-            // Merge client-side archived tasks (completed > 90 days) into tasks list
-            try {
-                const clientMap = window.__clientArchivedTasks || new Map();
-                let merged = 0;
-                if (clientMap && typeof clientMap.forEach === 'function') {
-                    clientMap.forEach(function(t, k){
-                        // avoid duplicates by id
-                        if (!tasks.some(x => String(x.id) === String(t.id))) { tasks.push(t); merged++; }
-                    });
-                }
-                try { console.debug('[archive] merged client archived tasks count:', (clientMap && clientMap.size) || 0, 'mergedIntoThisFetch:', merged, 'totalTasksNow:', tasks.length); } catch(_) {}
-                // If after merging there are still no tasks, show empty state and exit
-                if (!tasks || !tasks.length) {
-                    console.debug('[archive] no canceled tasks and no client archived tasks to display');
-                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
-                    try { window.__renderingArchiveModal = false; } catch(_) {}
-                    return;
-                }
-            } catch(_) {}
-
-
-            const container = document.createElement('div');
-            container.className = 'task-list d-flex flex-column gap-2 p-2';
-
-            function buildSafeCardHtml(t) {
-                const title = (t.title || 'Untitled Task');
-                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
-                const desc = (t.description || '').toString();
-                const priority = t.priority || '';
-                const due = t.due_date || '';
-
-                // show Type instead of Deadline in archive modal cards as colored badge
-                const rawStatus = String((t.status || '')).toUpperCase();
-                const typeLabel = rawStatus;
-                // plain colored text (no background): red for canceled, green for completed/others
-                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL'))
-                    ? `<span style="color:red; font-weight:600;">${rawStatus}</span>`
-                    : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`;
-                return `
-                    <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${t.id || ''}" data-task-status="${t.status || ''}">
-                        ${proj ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${proj}</small>` : ''}
-                        <h5 class="mb-0 task-title" style="line-height:1.2; margin-top:6px;">${title}</h5>
-                        <div class="task-description-container"><p class="task-description" style="margin-top:6px;">${desc}</p></div>
-                        <hr class="task-separator rounded-4">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div style="font-size: 10px; font-weight: 400;"> <span style="color: #797E91;">Priority: </span><span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span></div>
-                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Status: </span><span class="type-badge-wrapper">${typeBadge}</span></div>
-                        </div>
-                    </div>`;
-            }
-
-            // Mark that we're rendering the archive modal so createTaskCard can bypass suppression
-            try { window.__renderingArchiveModal = true; } catch(_) {}
-            tasks.forEach(t => {
-                try {
-                    // Normalize payload keys so createTaskCard receives expected fields
-                    const normalized = Object.assign({}, t);
-                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
-                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
-                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
-
-                    // Prefer using the canonical card generator; call defensively to avoid ReferenceError
-                    let html = '';
-                    if (typeof createTaskCard === 'function') {
-                        try {
-                            html = createTaskCard(normalized);
-                        } catch (errCreate) {
-                            console.warn('createTaskCard threw for archived task', t.id, errCreate);
-                            html = buildSafeCardHtml(normalized);
-                        }
-                    } else if (typeof window !== 'undefined' && typeof window.createTaskCard === 'function') {
-                        try {
-                            html = window.createTaskCard(normalized);
-                        } catch (errCreate) {
-                            console.warn('window.createTaskCard threw for archived task', t.id, errCreate);
-                            html = buildSafeCardHtml(normalized);
-                        }
-                    } else {
-                        console.warn('createTaskCard not available for archived task', t.id);
-                        html = buildSafeCardHtml(normalized);
-                    }
-                    container.insertAdjacentHTML('beforeend', html);
-                } catch (e) {
-                    // ultimate fallback: simple card
-                    const simple = document.createElement('div');
-                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0';
-                    simple.innerHTML = `<h5 class="mb-1">${(t.title||'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`;
-                    container.appendChild(simple);
-                }
-            });
-
-            // End archive modal rendering flag
-            try { window.__renderingArchiveModal = false; } catch(_) {}
-
-            try {
-                // Insert into modal body first
-                body.innerHTML = '';
-                body.appendChild(container);
-
-                container.querySelectorAll('.custom-card').forEach(function(card){
-                    try {
-                        const ds = card.querySelectorAll('div[style*="Deadline:"]');
-                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove());
-                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove());
-                        card.querySelectorAll('.task-icon').forEach(el => el.remove());
-
-                        card.querySelectorAll('button, a.btn').forEach(btn => {
-                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) {
-                                btn.remove();
-                            }
-                        });
-
-                        // dropdown logic
-                        const status = (card.getAttribute('data-task-status') || '').toLowerCase();
-                        const dropdownMenu = card.querySelector('.dropdown-menu');
-                        if (dropdownMenu) {
-                            dropdownMenu.innerHTML = '';
-
-                            if (status === 'completed') {
-                                dropdownMenu.innerHTML = `
-                                    <div class="dropdown-item">Detail</div>`;
-                                } else {
-                                    dropdownMenu.innerHTML = `
-                                    <div class="dropdown-item">Detail</div>
-                                    <div class="dropdown-item">Restore Task</div>
-                                `;
-                            }
-                        }
-                        if (ds && ds.length) {
-                            ds.forEach(function(dd){
-                                // find corresponding task status from data attribute
-                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
-                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>');
-                            });
-                        } else {
-                            // Generic replace of text nodes
-                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function(_, g1){
-                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
-                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>';
-                            });
-                        }
-                    } catch(_) {}
-                });
-
-                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function(item) {
-                    item.addEventListener('click', function(e) {
-                        e.stopPropagation();
-
-                        const text = this.textContent.trim();
-                        const card = this.closest('.custom-card');
-                        const taskId = card && card.getAttribute('data-task-id');
-
-                        if (text === 'Detail' && taskId) {
-                            const archiveModal = document.getElementById('archieveModal');
-                            if (archiveModal) {
-                                const bsModal = bootstrap.Modal.getInstance(archiveModal);
-                                if (bsModal) bsModal.hide();
-                            }
-                            handleTaskDetail(taskId);
-                        }
-                    });
-                });
-
-            initBootstrapTooltips(modalEl);
-            } catch (_) {
-                // ensure modal still displays even if post-processing fails
-                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl); } catch(_) {}
-            }
-        } catch (err) {
-            try {
-                const modalEl = document.getElementById('archieveModal');
-                const body = modalEl && modalEl.querySelector('.modal-body');
-                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
-            } catch(_) {}
-            console.warn('loadArchivedTasksIntoModal error', err);
-        }
-    }
-
-    // Bind modal show event
-    try {
-        const archModal = document.getElementById('archieveModal');
-        if (archModal) {
-            archModal.addEventListener('show.bs.modal', function () {
-                loadArchivedTasksIntoModal();
-            });
-        }
-    } catch(_) {}
 
     // Prev / Next bulan
     document.getElementById("prevTimelineModal").addEventListener("click", () => {
