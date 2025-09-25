@@ -238,6 +238,7 @@
 }
 
 .image-clear-btn {
+.image-clear-btn {
     position: absolute;
     top: -13px;
     right: -13px;
@@ -255,6 +256,18 @@
     z-index: 2;
     transition: background 0.2s;
     opacity: 0.85;
+}
+
+/* Executor dropdown small layout tweaks */
+.executor-name {
+    font-weight: 500;
+    line-height: 1;
+}
+.executor-division {
+    font-size: 12px;
+    line-height: 1;
+    margin-top: 0;
+    color: #6c757d; /* muted */
 }
 .image-clear-btn:hover {
     background: #b02a37;

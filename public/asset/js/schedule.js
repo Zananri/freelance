@@ -973,11 +973,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 .map((emp) => {
                     const checked = selected.some((s) => s.id === emp.id);
                     const photo = buildPhotoUrl(emp.user_photo);
-                    return `<label class='dropdown-item d-flex align-items-center justify-content-between'><div class='d-flex align-items-center'><img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>${
-                        emp.name
-                    }</div><input type='checkbox' data-id='${emp.id}' ${
-                        checked ? "checked" : ""
-                    }></label>`;
+                    return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
+                        <div class='d-flex align-items-center'>
+                            <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
+                            <div class='d-flex flex-column'>
+                                <span class='executor-name'>${emp.name}</span>
+                                <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
+                            </div>
+                        </div>
+                        <input type='checkbox' data-id='${emp.id}' ${checked ? "checked" : ""}>
+                    </label>`;
                 })
                 .join("");
             dropdown.style.display = "block";

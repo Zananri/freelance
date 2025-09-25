@@ -134,7 +134,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function renderDropdown(){
             if(filtered.length===0){ dropdown.innerHTML='<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
-            dropdown.innerHTML = filtered.map(emp=>{ const checked = selected.some(s=>s.id===emp.id); const photo=buildPhotoUrl(emp.user_photo); return `<label class='dropdown-item d-flex align-items-center justify-content-between'><div class='d-flex align-items-center'><img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>${emp.name}</div><input type='checkbox' data-id='${emp.id}' ${checked?'checked':''}></label>`; }).join('');
+            dropdown.innerHTML = filtered.map(emp=>{ const checked = selected.some(s=>s.id===emp.id); const photo=buildPhotoUrl(emp.user_photo); return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
+                <div class='d-flex align-items-center'>
+                    <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
+                    <div class='d-flex flex-column'>
+                        <span class='executor-name'>${emp.name}</span>
+                        <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
+                    </div>
+                </div>
+                <input type='checkbox' data-id='${emp.id}' ${checked?'checked':''}>
+            </label>`; }).join('');
             dropdown.style.display='block';
             dropdown.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', function(){ const id=parseInt(this.getAttribute('data-id')); if(this.checked){ if(!selected.some(s=>s.id===id)){ const emp=employees.find(e=>e.id===id); selected.push({id, name:emp.name, user_photo:emp.user_photo}); } } else { selected = selected.filter(s=>s.id!==id); } renderSelected(); renderDropdown(); updateHidden(); }));
         }
