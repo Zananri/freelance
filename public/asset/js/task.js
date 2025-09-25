@@ -6906,53 +6906,59 @@ function applyCurrentSearchFilter() {
             existing.innerHTML = "";
 
             if (files.length > 0) {
-                const title = document.createElement("div");
-                title.className = "fw-bold mb-2";
-                title.textContent = "Current Files:";
-                existing.appendChild(title);
+                    const title = document.createElement("div");
+                    title.className = "fw-bold mb-2";
+                    title.textContent = "Current Files:";
+                    existing.appendChild(title);
 
-                const fileList = document.createElement("div");
-                fileList.className = "existing-files-list";
+                    const fileList = document.createElement("div");
+                    fileList.className = "existing-files-list";
 
-                files.forEach((fileName) => {
-                    const fileItem = document.createElement("div");
-                    fileItem.className =
-                        "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                    files.forEach((fileName) => {
+                        const fileItem = document.createElement("div");
+                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-                    const fileInfo = document.createElement("div");
-                    fileInfo.className =
-                        "d-flex align-items-center flex-grow-1";
+                        // determine if file is an image by extension
+                        const lower = String(fileName || '').toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+                        if (isImage) {
+                            const img = document.createElement('img');
+                            img.src = appUrl + '/file/task_reference_files/' + encodeURIComponent(fileName);
+                            img.width = 28; img.height = 28;
+                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                            img.alt = fileName;
+                            fileItem.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                            badge.style.width = '28px'; badge.style.height = '28px';
+                            badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
+                            badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
+                            badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
+                            fileItem.appendChild(badge);
+                        }
 
-                    const fileIcon = document.createElement("span");
-                    fileIcon.className = "material-symbols-outlined me-2";
-                    fileIcon.textContent = "description";
+                        const titleSpan = document.createElement('span');
+                        titleSpan.className = 'flex-grow-1';
+                        titleSpan.textContent = fileName;
+                        fileItem.appendChild(titleSpan);
 
-                    const fileLink = document.createElement("a");
-                    fileLink.href =
-                        appUrl + "/file/task_reference_files/" + fileName;
-                    fileLink.textContent = fileName;
-                    fileLink.className = "text-decoration-none";
-                    fileLink.target = "_blank";
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                        removeBtn.style.lineHeight = '1';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                        removeBtn.addEventListener('click', function () {
+                            fileItem.remove();
+                            updateExistingFiles();
+                        });
 
-                    const removeBtn = document.createElement("button");
-                    removeBtn.type = "button";
-                    removeBtn.className = "btn btn-sm btn-outline-danger";
-                    removeBtn.innerHTML = "&times;";
-                    removeBtn.onclick = function () {
-                        fileItem.remove();
-                        updateExistingFiles();
-                    };
+                        fileItem.appendChild(removeBtn);
+                        fileList.appendChild(fileItem);
+                    });
 
-                    fileInfo.appendChild(fileIcon);
-                    fileInfo.appendChild(fileLink);
-
-                    fileItem.appendChild(fileInfo);
-                    fileItem.appendChild(removeBtn);
-                    fileList.appendChild(fileItem);
-                });
-
-                existing.appendChild(fileList);
-            }
+                    existing.appendChild(fileList);
+                }
             // Initialize or update hidden input with all existing files on display
             let existingFilesInput = document.getElementById(
                 "existing_reference_files_input"
@@ -6972,13 +6978,19 @@ function applyCurrentSearchFilter() {
         // Function to update existing files array
         function updateExistingFiles() {
             const existingItems = document.querySelectorAll(
-                "#existing_reference_files .existing-file-item"
-            );
+                    "#existing_reference_files .existing-file-item, #existing_reference_files .selected-task"
+                );
             const existingFiles = [];
 
             existingItems.forEach((item) => {
-                const fileName = item.querySelector("a").textContent;
-                existingFiles.push(fileName);
+                let fileName = '';
+                const a = item.querySelector('a');
+                if (a && a.textContent) fileName = a.textContent.trim();
+                if (!fileName) {
+                    const sp = item.querySelector('span.flex-grow-1');
+                    if (sp && sp.textContent) fileName = sp.textContent.trim();
+                }
+                if (fileName) existingFiles.push(fileName);
             });
 
             // Update hidden input
@@ -7004,7 +7016,8 @@ function applyCurrentSearchFilter() {
         document
             .getElementById("existing_reference_files")
             ?.addEventListener("click", function (e) {
-                if (e.target && e.target.matches("button.btn-outline-danger")) {
+                // Support new remove button classes and legacy btn-outline-danger
+                if (e.target && (e.target.matches("button.btn-remove-task") || e.target.matches("button.remove-task") || e.target.matches("button.btn-outline-danger") || e.target.closest('button.btn-remove-task') || e.target.closest('button.remove-task'))) {
                     setTimeout(() => {
                         updateExistingFiles();
                     }, 10);
