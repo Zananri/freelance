@@ -263,7 +263,7 @@ class AttendanceTrackingController extends Controller
         foreach ($allEmployeeActive as $employeeItem) {
 
             $activeWorksheet->setCellValue('A'.$row, $no);
-            $activeWorksheet->setCellValue('B'.$row, $employeeItem->name.' '.$employeeItem->id);
+            $activeWorksheet->setCellValue('B'.$row, $employeeItem->name);
             $activeWorksheet->setCellValue('C'.$row, $employeeItem->employee_niks);
             $activeWorksheet->setCellValue('D'.$row, $employeeItem->department->name_department);//'Department'
             $activeWorksheet->setCellValue('E'.$row, $employeeItem->division->name_division);//'Division'
