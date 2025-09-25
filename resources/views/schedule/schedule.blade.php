@@ -244,6 +244,19 @@
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="schedule_reference_files_preview" class="mt-2"></div>
                             </div>
+                            <!-- Division (optional) - matches Add Task modal behavior -->
+                            <div class="custom-form-employee position-relative">
+                                <label for="schedule_division_id" class="form-label label-custom">Division</label>
+
+                                <select aria-label="Division (optional)"
+                                    class="form-select input-select position-absolute" id="schedule_division_id"
+                                    name="division_id">
+                                    <option value="">Select Division</option>
+                                </select>
+
+                                <div id="schedule_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
+                                <div id="schedule_division_dropdown" class="dropdown-list mt-1 division-list"></div>
+                            </div>
 
                             <!-- Executors -->
                             <div class="custom-form-employee">
@@ -511,6 +524,15 @@
                             <div class="custom-form-employee">
                                 <label for="edit_schedule_executor_input"
                                     class="form-label label-custom">Executor</label>
+                                <!-- Division (optional) - same behavior as edit task modal -->
+                                <select aria-label="Division (optional)"
+                                    class="form-select input-select position-absolute" id="edit_schedule_division_id"
+                                    name="division_id">
+                                    <option value="">Select Division</option>
+                                </select>
+                                <div id="edit_schedule_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
+                                <div id="edit_schedule_division_dropdown" class="dropdown-list mt-1 division-list"></div>
+
                                 <input type="text" id="edit_schedule_executor_input"
                                     class="form-control input-text" placeholder="Search employees..."
                                     autocomplete="off">
