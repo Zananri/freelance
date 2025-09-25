@@ -6324,7 +6324,31 @@ function applyCurrentSearchFilter() {
                                 title.textContent = fileName;
                                 item.appendChild(title);
 
-                                // No remove button in reference files modal (read-only preview)
+                                // Add download button (read-only modal). Clicking will trigger download of the file.
+                                const dlBtn = document.createElement('button');
+                                dlBtn.type = 'button';
+                                dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                                dlBtn.title = 'Download';
+                                dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                                dlBtn.addEventListener('click', function (ev) {
+                                    try {
+                                        ev.preventDefault(); ev.stopPropagation();
+                                        const a = document.createElement('a');
+                                        a.style.display = 'none';
+                                        a.href = fileUrl;
+                                        // Attempt to set filename for download
+                                        try { a.download = String(fileName || '').split('/').pop(); } catch(_) {}
+                                        a.target = '_blank';
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        setTimeout(() => { try { document.body.removeChild(a); } catch(_) {} }, 100);
+                                    } catch (e) {
+                                        // fallback: open in new tab
+                                        window.open(fileUrl, '_blank');
+                                    }
+                                });
+
+                                item.appendChild(dlBtn);
 
                                 referenceFilesList.appendChild(item);
                             });
