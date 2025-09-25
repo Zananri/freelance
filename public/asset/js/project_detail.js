@@ -219,7 +219,6 @@
                     })
                     .then(function (data) {
                         modalBody.innerHTML = '';
-                        // current employee id (used to show Edit for own feedback/reply)
                         var currentEmployeeId = (projectFeedbackModalEl.getAttribute('data-employee-id') || '');
                         function getOwnerId(item) {
                             try {
@@ -275,9 +274,11 @@
                             var nameStrong = document.createElement('strong');
                             nameStrong.textContent = (feedback.employee && feedback.employee.name) || feedback.employee_name || 'Unknown';
                             nameRow.appendChild(nameStrong);
+                            nameStrong.style.fontSize = "14px";
 
                             var dateDiv = document.createElement('div');
                             dateDiv.className = 'text-muted small';
+                            dateDiv.style.fontSize = "10px";
                             if (feedback.created_at) {
                                 var d = new Date(feedback.created_at);
                                 var now = new Date();
@@ -303,13 +304,13 @@
                             headerDiv.appendChild(leftWrap);
 
                             var commentDiv = document.createElement('div');
-                            commentDiv.className = 'feedback-comment mb-2';
+                            commentDiv.className = 'feedback-comment ms-5 mb-2';
                             commentDiv.textContent = feedback.feedback_comment || '';
+                            commentDiv.style.fontSize = "13px";
 
                             var mediaDiv = document.createElement('div');
                             mediaDiv.className = 'feedback-media mt-2';
 
-                            // Reference URLs
                             (function () {
                                 var urls = [];
                                 if (Array.isArray(feedback.reference_urls)) urls = feedback.reference_urls;
@@ -330,7 +331,6 @@
                                 }
                             })();
 
-                            // Reference files
                             (function () {
                                 var files = [];
                                 var rf = feedback.reference_files;
@@ -368,9 +368,8 @@
                             }
 
                             var actionsDiv = document.createElement('div');
-                            actionsDiv.className = 'feedback-actions mt-2 d-flex gap-3';
+                            actionsDiv.className = 'feedback-actions ms-5 mt-2 d-flex align-items-center gap-3';
 
-                            // Reply & Edit buttons (Edit should be on the left, Reply on the right)
                             var replyWrapper = document.createElement('span');
                             replyWrapper.className = 'd-flex align-items-center';
                             replyWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
@@ -378,7 +377,6 @@
                             var replyText = document.createElement('span'); replyText.textContent = 'Reply';
                             replyWrapper.appendChild(replyIcon); replyWrapper.appendChild(replyText);
                             replyWrapper.addEventListener('click', function () { showReplyFeedbackForm(projectId, feedback.id); });
-
                             try {
                                 var ownerId = getOwnerId(feedback);
                                 if (ownerId && String(ownerId) === String(currentEmployeeId)) {
@@ -389,11 +387,9 @@
                                     var editText = document.createElement('span'); editText.textContent = 'Edit';
                                     editWrapper.appendChild(editIcon); editWrapper.appendChild(editText);
                                     editWrapper.addEventListener('click', function () { showEditFeedbackForm(projectId, feedback, false); });
-                                    // append edit first, then reply so Edit appears on the left
                                     actionsDiv.appendChild(editWrapper);
                                     actionsDiv.appendChild(replyWrapper);
                                 } else {
-                                    // only reply
                                     actionsDiv.appendChild(replyWrapper);
                                 }
                             } catch (_) {
@@ -405,25 +401,30 @@
                             feedbackItem.appendChild(mediaDiv);
                             feedbackItem.appendChild(actionsDiv);
 
-                            // Replies rendering
                             if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
-                                var repliesWrap = document.createElement('div'); repliesWrap.className = 'view-replies-wrap feedback-replies-wrap mt-1';
-                                var toggleBtn = document.createElement('button'); toggleBtn.type = 'button'; toggleBtn.className = 'btn btn-link p-0 view-replies-toggle feedback-toggle-replies'; toggleBtn.style.cssText = 'font-size:13px; color:#555; text-decoration:none;'; toggleBtn.textContent = 'View all replies (' + feedback.replies.length + ')';
-                                var repliesContainer = document.createElement('div'); repliesContainer.className = 'feedback-replies d-none';
+                                var toggleBtn = document.createElement('button');
+                                toggleBtn.type = 'button';
+                                toggleBtn.className = 'btn btn-link p-0 view-replies-toggle feedback-toggle-replies';
+                                toggleBtn.style.cssText = 'font-size:13px; color:#555; text-decoration:none;';
+                                toggleBtn.textContent = 'View All Replies (' + feedback.replies.length + ')';
+                                actionsDiv.appendChild(toggleBtn);
+
+                                var repliesContainer = document.createElement('div');
+                                repliesContainer.className = 'feedback-replies d-none';
                                 feedback.replies.forEach(function (rep) {
                                     var repDiv = document.createElement('div'); repDiv.className = 'feedback-reply ms-4 mt-2 p-2 rounded'; repDiv.style.background = '#fafafa';
                                     if (rep && rep.id != null) { repDiv.setAttribute('data-reply-id', String(rep.id)); if (feedback && feedback.id != null) repDiv.setAttribute('data-parent-id', String(feedback.id)); }
                                     var repHeader = document.createElement('div'); repHeader.className = 'd-flex align-items-center mb-1';
                                     var repImg = document.createElement('img'); (function(){ var raw = (rep.employee || {}).user_photo || (rep.employee || {}).profile_picture || (rep.employee || {}).photo || ''; var url = getMeta('app-url') + '/asset/img/avatar.png'; if (raw) { if (String(raw).startsWith('http')) url = raw; else if (String(raw).startsWith('/')) url = getMeta('app-url') + raw; else if (String(raw).indexOf('/') !== -1) url = getMeta('app-url') + '/' + raw; else url = getMeta('app-url') + '/file/profile_picture/' + raw; } repImg.src = url; })();
                                     repImg.alt = (rep.employee || {}).name || 'Employee'; repImg.className = 'rounded-circle me-2'; repImg.style.width = '24px'; repImg.style.height = '24px'; repImg.style.objectFit = 'cover';
-                                    var repInfo = document.createElement('div'); var repNameRow = document.createElement('div'); repNameRow.className = 'd-flex align-items-center'; var repName = document.createElement('strong'); repName.style.fontSize = '13px'; repName.textContent = (rep.employee || {}).name || 'Unknown'; repNameRow.appendChild(repName); repInfo.appendChild(repNameRow); var repTime = document.createElement('small'); repTime.className = 'text-muted d-block'; repTime.style.fontSize = '11px'; if (rep.created_at) { var dt = new Date(rep.created_at); repTime.textContent = dt.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'}); } repInfo.appendChild(repTime); repHeader.appendChild(repImg); repHeader.appendChild(repInfo);
-                                    var repComment = document.createElement('p'); repComment.className = 'mb-1'; repComment.style.fontSize = '13px'; repComment.textContent = rep.feedback_comment || '';
+                                    var repInfo = document.createElement('div'); var repNameRow = document.createElement('div'); repNameRow.className = 'd-flex align-items-center'; var repName = document.createElement('strong'); repName.style.fontSize = '12px'; repName.textContent = (rep.employee || {}).name || 'Unknown'; repNameRow.appendChild(repName); repInfo.appendChild(repNameRow); var repTime = document.createElement('small'); repTime.className = 'text-muted d-block'; repTime.style.fontSize = '10px'; if (rep.created_at) { var dt = new Date(rep.created_at); repTime.textContent = dt.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'}); } repInfo.appendChild(repTime); repHeader.appendChild(repImg); repHeader.appendChild(repInfo);
+                                    var repComment = document.createElement('p'); repComment.className = 'mb-1 ms-4'; repComment.style.fontSize = '13px'; repComment.textContent = rep.feedback_comment || '';
                                     var repMedia = document.createElement('div'); repMedia.className = 'feedback-reference-container mb-1';
                                     (function(){ var urls=[]; if (Array.isArray(rep.reference_urls)) urls = rep.reference_urls; else if (rep.reference_urls && typeof rep.reference_urls === 'string') { try{ var arr = JSON.parse(rep.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_){} } if ((!urls || !urls.length) && rep.reference_url) urls = [rep.reference_url]; urls.forEach(function(u, idx){ var a = document.createElement('a'); a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2'; a.innerHTML = '<span class="material-symbols-outlined">link</span> Link ' + (idx+1); repMedia.appendChild(a); }); })();
                                     (function(){ var files=[]; var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string') { try{ var arr=JSON.parse(rf); if (Array.isArray(arr)) rf=arr; } catch(_){} } if (Array.isArray(rf) && rf.length) files = rf; else if (rep.reference_file) files = [rep.reference_file]; files.forEach(function(file, idx){ if(!file) return; var href = file; if (href && !(String(href).startsWith('http') || String(href).startsWith('/'))) href = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + href; else if (href && String(href).startsWith('/')) href = getMeta('app-url').replace(/\/$/, '') + href; var a2 = document.createElement('a'); a2.href = href; a2.download=''; a2.className='feedback-reference-file ms-2'; a2.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx+1); repMedia.appendChild(a2); }); })();
-                                    var rImg = null; if (rep.image) { rImg = document.createElement('img'); var rsrc = rep.image; if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) rsrc = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + rsrc; else if (rsrc && String(rsrc).startsWith('/')) rsrc = getMeta('app-url').replace(/\/$/, '') + rsrc; rImg.src = rsrc; rImg.className = 'img-fluid rounded reply-image mt-1'; rImg.style.width = '70px'; rImg.style.borderRadius = '8px'; rImg.style.cursor = 'pointer'; rImg.addEventListener('click', function(){ window.open(rImg.src, '_blank'); }); }
+                                    var rImg = null; if (rep.image) { rImg = document.createElement('img'); var rsrc = rep.image; if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) rsrc = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + rsrc; else if (rsrc && String(rsrc).startsWith('/')) rsrc = getMeta('app-url').replace(/\/$/, '') + rsrc; rImg.src = rsrc; rImg.className = 'img-fluid rounded reply-image ms-4 mt-1'; rImg.style.width = '70px'; rImg.style.borderRadius = '8px'; rImg.style.cursor = 'pointer'; rImg.addEventListener('click', function(){ window.open(rImg.src, '_blank'); }); }
                                     repDiv.appendChild(repHeader); repDiv.appendChild(repComment); if (rep.reference_url || (Array.isArray(rep.reference_urls) && rep.reference_urls.length) || rep.reference_file || (Array.isArray(rep.reference_files) && rep.reference_files.length)) repDiv.appendChild(repMedia); if (rImg) repDiv.appendChild(rImg);
-                                    var replyActionsDiv = document.createElement('div'); replyActionsDiv.className = 'reply-actions mt-2 d-flex gap-3';
+                                    var replyActionsDiv = document.createElement('div'); replyActionsDiv.className = 'reply-actions mt-2 ms-4 d-flex gap-3';
                                     var replyReplyWrapper = document.createElement('span'); replyReplyWrapper.className='d-flex align-items-center'; replyReplyWrapper.style.cssText='cursor:pointer; color:#555; font-size:12px;'; var replyToReplyIcon = document.createElement('span'); replyToReplyIcon.className='material-symbols-outlined feedback-reply-trigger'; replyToReplyIcon.style.cssText='font-size:18px; line-height:1; margin-right:5px;'; replyToReplyIcon.textContent='reply'; var replyReplyText = document.createElement('span'); replyReplyText.textContent='Reply'; replyReplyWrapper.appendChild(replyToReplyIcon); replyReplyWrapper.appendChild(replyReplyText); replyReplyWrapper.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); });
                                     try {
                                         var repOwnerId = getOwnerId(rep);
@@ -434,50 +435,39 @@
                                             var editRepIcon = document.createElement('span'); editRepIcon.className = 'material-symbols-outlined feedback-edit-trigger'; editRepIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; editRepIcon.textContent = 'edit';
                                             var editRepText = document.createElement('span'); editRepText.textContent = 'Edit';
                                             editRepWrapper.appendChild(editRepIcon); editRepWrapper.appendChild(editRepText);
-                                            editRepWrapper.addEventListener('click', function(){ showEditFeedbackForm(projectId, rep, true); });
-                                            // append edit first then reply so Edit is left
+                                            editRepWrapper.addEventListener('click', function () { showEditFeedbackForm(projectId, rep, true); });
                                             replyActionsDiv.appendChild(editRepWrapper);
                                             replyActionsDiv.appendChild(replyReplyWrapper);
                                         } else {
                                             replyActionsDiv.appendChild(replyReplyWrapper);
                                         }
-                                    } catch(_) { replyActionsDiv.appendChild(replyReplyWrapper); }
+                                    } catch(_) {
+                                        replyActionsDiv.appendChild(replyReplyWrapper);
+                                    }
                                     repDiv.appendChild(replyActionsDiv);
                                     repliesContainer.appendChild(repDiv);
                                 });
-                                repliesWrap.appendChild(toggleBtn); repliesWrap.appendChild(repliesContainer); feedbackItem.appendChild(repliesWrap);
-                                toggleBtn.addEventListener('click', function(){ var hidden = repliesContainer.classList.contains('d-none'); if (hidden) { repliesContainer.classList.remove('d-none'); this.textContent = 'Hide replies'; } else { repliesContainer.classList.add('d-none'); this.textContent = 'View all replies (' + feedback.replies.length + ')'; } this.style.textDecoration='none'; this.style.color='#555'; });
+                                feedbackItem.appendChild(repliesContainer);
+                                toggleBtn.addEventListener('click', function () {
+                                    var hidden = repliesContainer.classList.contains('d-none');
+                                    if (hidden) {
+                                        repliesContainer.classList.remove('d-none');
+                                        this.textContent = 'Hide replies';
+                                    } else {
+                                        repliesContainer.classList.add('d-none');
+                                        this.textContent = 'View all replies (' + feedback.replies.length + ')';
+                                    }
+                                    this.style.textDecoration='none';
+                                    this.style.color='#555';
+                                });
                             }
 
                             modalBody.appendChild(feedbackItem);
                         });
-
-                        // scroll to target if any (kept minimal)
-                        try {
-                            var pidKey = String(projectId);
-                            var target = (window.__projectLatestTarget && window.__projectLatestTarget[pidKey]) || null;
-                            if (target) {
-                                delete window.__projectLatestTarget[pidKey];
-                                var isReply = target.parent_id != null && target.parent_id !== '';
-                                if (isReply) {
-                                    var parentEl = modalBody.querySelector('.feedback-item[data-feedback-id="' + target.parent_id + '"]');
-                                    if (parentEl) {
-                                        var container = parentEl.querySelector('.feedback-replies');
-                                        var toggle = parentEl.querySelector('.feedback-toggle-replies');
-                                        if (container && container.classList.contains('d-none')) { if (toggle) try{ toggle.click(); } catch(_) { container.classList.remove('d-none'); } else container.classList.remove('d-none'); }
-                                        var replyEl = parentEl.querySelector('.feedback-reply[data-reply-id="' + target.id + '"]'); if (replyEl) { replyEl.scrollIntoView({behavior:'smooth', block:'center'}); var oldBg = replyEl.style.backgroundColor; replyEl.style.transition = 'background-color 0.6s ease'; replyEl.style.backgroundColor = '#fff9c4'; setTimeout(function(){ replyEl.style.backgroundColor = oldBg || ''; }, 1200); }
-                                    }
-                                } else {
-                                    var topEl = modalBody.querySelector('.feedback-item[data-feedback-id="' + target.id + '"]'); if (topEl) { topEl.scrollIntoView({behavior:'smooth', block:'center'}); var oldBg = topEl.style.backgroundColor; topEl.style.transition = 'background-color 0.6s ease'; topEl.style.backgroundColor = '#fff9c4'; setTimeout(function(){ topEl.style.backgroundColor = oldBg || ''; }, 1200); }
-                                }
-                            }
-                        } catch (_) {}
-
                     })
                     .catch(function (error) {
-                        modalBody.innerHTML = '<div class="text-center text-muted">Failed to load feedback data.</div>';
-                        if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Error loading feedback data. Please try again.', 'warning', 3500);
-                        console.error('Error fetching feedback data:', error);
+                        console.error(error);
+                        modalBody.innerHTML = '<p class="text-center text-danger">Error loading feedback.</p>';
                     });
             }
 
