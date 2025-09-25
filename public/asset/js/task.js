@@ -1050,7 +1050,7 @@
 
                 const badge = document.createElement("span");
                 badge.className =
-                    "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                    "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -1065,7 +1065,7 @@
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
-                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
                     selectedEmployees = selectedEmployees.filter(
@@ -1704,10 +1704,10 @@
             selectedContainer.innerHTML = '';
             selected.forEach(emp => {
                 const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
-                const badge = document.createElement('span'); badge.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+                const badge = document.createElement('span'); badge.className = 'badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2';
                 const img = document.createElement('img'); img.src = photoUrl; img.alt = emp.name; img.className = 'rounded-circle me-2'; img.style.width='24px'; img.style.height='24px'; img.style.objectFit='cover';
                 const nameSpan = document.createElement('span'); nameSpan.textContent = emp.name;
-                const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn-close btn-close-white btn-sm ms-2'; removeBtn.addEventListener('click', () => { selected = selected.filter(e => e.id !== emp.id); renderSelected(); updateHidden(); renderDropdown(); });
+                const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn-close btn-sm ms-2'; removeBtn.addEventListener('click', () => { selected = selected.filter(e => e.id !== emp.id); renderSelected(); updateHidden(); renderDropdown(); });
                 badge.appendChild(img); badge.appendChild(nameSpan); badge.appendChild(removeBtn); selectedContainer.appendChild(badge);
             });
         }
@@ -2059,7 +2059,7 @@
 
                 const badge = document.createElement("span");
                 badge.className =
-                    "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                    "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -2074,7 +2074,7 @@
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
-                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
                     selectedEmployees = selectedEmployees.filter(
@@ -7664,14 +7664,17 @@ function applyCurrentSearchFilter() {
         </div>
         <div class="task-mobile-actions d-flex justify-content-between align-items-center">
             <div class="search-input-container flex-grow-1 me-2">
-            <span class="material-symbols-outlined search-icon">search</span>
-            <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
             </div>
             <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
-            <span class="material-symbols-outlined">calendar_month</span>
+                <span class="material-symbols-outlined">calendar_month</span>
+            </button>
+            <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
+                <span class="material-symbols-outlined">box</span>
             </button>
             <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
-            <span class="material-symbols-outlined">filter_list</span>
+                <span class="material-symbols-outlined">filter_list</span>
             </button>
         </div>
         <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-2" style="display:none;">
