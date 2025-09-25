@@ -58,8 +58,8 @@
 .new-request-container .task-list {
     flex: 1;
     overflow-y: auto;
-    min-height: 500px;
-    max-height: 500px;
+    min-height: calc(100vh - 30vh);
+    max-height: calc(100vh - 30vh);
     padding-right: 10px;
     margin-bottom: 20px;
 }
@@ -73,10 +73,9 @@
 .in-progress-container .task-list {
     flex: 1;
     overflow-y: auto;
-    min-height: 500px;
-    max-height: 500px;
+    min-height: calc(100vh - 30vh);
+    max-height: calc(100vh - 30vh);
     padding-right: 10px;
-    margin-bottom: 100px;
 }
 
 .completed-container {
@@ -89,8 +88,8 @@
 .completed-container .task-list {
     flex: 1;
     overflow-y: auto;
-    min-height: 500px;
-    max-height: 500px;
+    min-height: calc(100vh - 30vh);
+    max-height: calc(100vh - 30vh);
     padding-right: 10px;
     margin-bottom: 100px;
 }

@@ -8170,16 +8170,13 @@ function applyCurrentSearchFilter() {
                 body.innerHTML = '';
                 body.appendChild(container);
 
-                // Replace any 'Deadline:' label inside cards with 'Type:' and show status
                 container.querySelectorAll('.custom-card').forEach(function(card){
                     try {
                         const ds = card.querySelectorAll('div[style*="Deadline:"]');
-                        // Fallback: find inner text nodes containing 'Deadline:'
                         card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove());
                         card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove());
                         card.querySelectorAll('.task-icon').forEach(el => el.remove());
 
-                        // ilangin tombol edit/delete
                         card.querySelectorAll('button, a.btn').forEach(btn => {
                             if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) {
                                 btn.remove();
@@ -8220,24 +8217,20 @@ function applyCurrentSearchFilter() {
                     } catch(_) {}
                 });
 
-                // handle dropdown-item click di archive modal
                 container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function(item) {
                     item.addEventListener('click', function(e) {
-                        e.stopPropagation(); // cegah bubble ke card
+                        e.stopPropagation();
 
                         const text = this.textContent.trim();
                         const card = this.closest('.custom-card');
                         const taskId = card && card.getAttribute('data-task-id');
 
-                        // cuma jalan kalau item nya bener-bener 'Detail'
                         if (text === 'Detail' && taskId) {
-                            // Tutup archive modal
                             const archiveModal = document.getElementById('archieveModal');
                             if (archiveModal) {
                                 const bsModal = bootstrap.Modal.getInstance(archiveModal);
                                 if (bsModal) bsModal.hide();
                             }
-                            // Buka modal detail
                             handleTaskDetail(taskId);
                         }
                     });
