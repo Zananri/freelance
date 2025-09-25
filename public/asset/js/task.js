@@ -4564,10 +4564,12 @@ function applyCurrentSearchFilter() {
                                                 const canEditTop = String(topAuthorId) === String(currentEmployeeId);
                                                 const topCanEdit = canEditTop; // keep flag for actions row
 
-                                                let repliesHtml = '';
-                                                if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
-                                                        const repliesCount = feedback.replies.length;
-                                                        const repliesContent = feedback.replies.map(function (rep) {
+                                    let repliesHtml = '';
+                                    let viewRepliesBtnHtml = '';
+                                    let repliesContainerHtml = '';
+                                    if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                        const repliesCount = feedback.replies.length;
+                                        const repliesContent = feedback.replies.map(function (rep) {
                                                                 // reply date formatting
                                                                 let rDate = '';
                                                                 if (rep.created_at) {
@@ -4628,81 +4630,87 @@ function applyCurrentSearchFilter() {
                                                                 const canEditRep = canEditReply; // used in actions row
 
                                                                 return `
-                                                                    <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background: rgb(240, 241, 248);">
-                                                                        <div class="d-flex align-items-center mb-1">
-                                                                            <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-2" style="width: 24px; height: 24px; object-fit: cover;">
-                                                                            <div>
-                                                                                <div class="d-flex align-items-center">
-                                                                                    <strong style="font-size: 13px;">${rep.employee.name}</strong>
-                                                                                </div>
-                                                                                <small class="text-muted d-block" style="font-size: 11px;">${rDate}</small>
-                                                                            </div>
-                                                                        </div>
-                                                                        <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
-                                                                        ${
-                                                                            ((Array.isArray(repRefUrls) && repRefUrls.length > 0) || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
-                                                                                ? `
-                                                                                    <div class="feedback-reference-container mb-1">
-                                                                                        ${Array.isArray(repRefUrls) && repRefUrls.length > 0 ? repRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
-                                                                                        ${Array.isArray(repRefFiles) && repRefFiles.length > 0 ? repRefFiles.map((u, idx) => `<a href=\"${u}\" download class=\"feedback-reference-file ms-2\"><span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}</a>`).join('') : ''}
+                                                                            <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background: rgb(240, 241, 248);">
+                                                                                <div class="d-flex align-items-start mb-1">
+                                                                                    <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-3" style="width: 24px; height: 24px; object-fit: cover;">
+                                                                                    <div class="flex-grow-1">
+                                                                                        <div>
+                                                                                            <strong style="font-size:12px; font-weight:600;">${rep.employee.name}</strong>
+                                                                                            <div><small class="text-muted d-block" style="font-size:9px;">${rDate}</small></div>
+                                                                                        </div>
+
+                                                                                        <div class="mt-2">
+                                                                                            <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
+
+                                                                                            ${
+                                                                                                ((Array.isArray(repRefUrls) && repRefUrls.length > 0) || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
+                                                                                                    ? `
+                                                                                                        <div class="feedback-reference-container mb-1">
+                                                                                                            ${Array.isArray(repRefUrls) && repRefUrls.length > 0 ? repRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
+                                                                                                            ${Array.isArray(repRefFiles) && repRefFiles.length > 0 ? repRefFiles.map((u, idx) => `<a href=\"${u}\" download class="feedback-reference-file ms-2"><span class="material-symbols-outlined">draft</span> FILE ${idx+1}</a>`).join('') : ''}
+                                                                                                        </div>
+                                                                                                    `
+                                                                                                    : ''
+                                                                                            }
+
+                                                                                            ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+
+                                                                                            <div class="reply-actions mt-2 d-flex gap-4">
+                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                                            </div>
+                                                                                        </div>
                                                                                     </div>
-                                                                                `
-                                                                                : ''
-                                                                        }
-                                                                        ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
-                                                                        <div class="reply-actions mt-2 d-flex gap-3">
-                                                                            ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
-                                                                            <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
-                                                                        </div>
-                                                                    </div>
+                                                                                </div>
+                                                                            </div>
                                                                 `;
                                                         }).join('');
 
-                                                        repliesHtml = `
-                                                            <div class="view-replies-wrap feedback-replies-wrap mt-1">
-                                                                <button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>
-                                                                <div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>
-                                                            </div>
-                                                        `;
+                                                        // Keep the "View all replies" button separate so it can be aligned inline
+                                                        viewRepliesBtnHtml = `<button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>`;
+                                                        repliesContainerHtml = `<div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>`;
                                                 }
-
                                                 feedbackHtml += `
                                                 <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
-                                                    <div class="d-flex align-items-center mb-2">
-                                                        <div class="d-flex align-items-center">
-                                                            <img src="${feedback.employee.photo}" alt="${feedback.employee.name}"
-                                                                class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
+                                                    <div class="d-flex align-items-start mb-2">
+                                                        <img src="${feedback.employee.photo}" alt="${feedback.employee.name}" class="rounded-circle me-3" style="width: 32px; height: 32px; object-fit: cover;">
+                                                        <div class="flex-grow-1">
                                                             <div>
-                                                                <div class="d-flex align-items-center">
-                                                                    <strong>${feedback.employee.name}</strong>
-                                                                </div>
-                                                                <small class="text-muted d-block">${formattedDate}</small>
+                                                                <strong style="font-size:14px; font-weight:600;">${feedback.employee.name}</strong>
+                                                                <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
                                                             </div>
-                                                        </div>
-                                                    </div>
-                            <p class="mb-2">${feedback.feedback_comment}</p>
-                            ${
+
+                                                            <div class="mt-2">
+                                                                <p class="mb-2" style="font-size:13px;">${feedback.feedback_comment}</p>
+
+                                                                ${
                                 ((Array.isArray(topRefUrls) && topRefUrls.length > 0) || (Array.isArray(topRefFiles) && topRefFiles.length > 0))
                                     ? `
-                                <div class="feedback-reference-container">
+                                <div class="feedback-reference-container mb-2">
                                     ${Array.isArray(topRefUrls) && topRefUrls.length > 0 ? topRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
-                                    ${Array.isArray(topRefFiles) && topRefFiles.length > 0 ? topRefFiles.map((u, idx) => `<a href=\"${u}\" download class=\"feedback-reference-file ms-2\"><span class=\"material-symbols-outlined\">draft</span> FILE ${idx+1}</a>`).join('') : ''}
+                                    ${Array.isArray(topRefFiles) && topRefFiles.length > 0 ? topRefFiles.map((u, idx) => `<a href=\"${u}\" download class="feedback-reference-file ms-2"><span class="material-symbols-outlined">draft</span> FILE ${idx+1}</a>`).join('') : ''}
                                 </div>
                             `
                                     : ""
                             }
-                            ${
+
+                                                                ${
                                 topImageUrl
                                     ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
                                     : ""
                             }
-                        <div class="feedback-actions mt-2 d-flex gap-3">
-                            ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
-                            <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
-                        </div>
-                        ${repliesHtml}
-                        </div>
-                    `;
+
+                                                                <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
+                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                    <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                    ${viewRepliesBtnHtml}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ${repliesContainerHtml}
+                                                </div>
+                                            `;
                     });
                     modalBody.innerHTML = feedbackHtml;
 
