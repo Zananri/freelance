@@ -12,7 +12,7 @@ function escapeHtml(str) {
 
 // Global helper: show delete confirmation modal (Bootstrap) for project feedback/reply
 function showDeleteConfirmModal(opts) {
-    // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+    // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
     try {
         const id = opts.id;
         const type = opts.type || 'feedback';
@@ -156,7 +156,7 @@ function handleEmployeeLoadError(xhr, status, error, context = "") {
 
     // Helper: show delete confirmation modal (Bootstrap) for project feedback/reply
     function showDeleteConfirmModal(opts) {
-        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
         try {
             const id = opts.id;
             const type = opts.type || 'feedback';
@@ -3283,6 +3283,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             feedback.employee.name) ||
                                         feedback.employee_name ||
                                         "Unknown";
+                                    nameStrong.style.fontSize = "14px"
                                     nameRow.appendChild(nameStrong);
 
                                     // Store edit button data for later positioning
@@ -3486,6 +3487,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const dateDiv =
                                         document.createElement("div");
                                     dateDiv.className = "text-muted small";
+                                    dateDiv.style.fontSize = '10px';
                                     if (feedback.created_at) {
                                         const dateObj = new Date(
                                             feedback.created_at
@@ -3563,6 +3565,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const commentDiv = document.createElement("div");
                                     commentDiv.className = "feedback-comment mb-2";
                                     commentDiv.textContent = feedback.feedback_comment || "";
+                                    commentDiv.style.fontSize = "13px";
 
                                     // Media attachments
                                     const mediaDiv = document.createElement("div");
