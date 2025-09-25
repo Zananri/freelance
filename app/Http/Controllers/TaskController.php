@@ -2642,6 +2642,9 @@ class TaskController extends Controller
                     // Provide unified avatar fields consumed by buildPhotoUrl in task.js
                     'profile_picture' => $resolved,
                     'profile_picture_url' => $resolved,
+                    // Expose division name for UI (keep compatibility with project payload)
+                    'division' => ($emp->division && (($emp->division->name_division ?? $emp->division->name) )) ? ($emp->division->name_division ?? $emp->division->name) : null,
+                    'division_name' => ($emp->division && (($emp->division->name_division ?? $emp->division->name) )) ? ($emp->division->name_division ?? $emp->division->name) : null,
                     // Expose user_type so client can filter out ADMINISTRATOR users
                     'user_type' => $emp->user && isset($emp->user->user_type) ? $emp->user->user_type : null,
                 ];

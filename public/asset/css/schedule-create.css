@@ -167,8 +167,7 @@
     padding: 0.35em 0.65em;
     font-size: 0.75rem;
     border-radius: 0.5rem;
-    background: #0d6efd;
-    color: #fff;
+    color: #444444;
     user-select: none;
 }
 #schedule_selected_executors {
@@ -187,6 +186,27 @@
     padding: 0;
     position: sticky;
     z-index: 1050;
+}
+
+/* Ensure edit modal selected executors use same text color as task edit badges */
+#edit_schedule_selected_executors .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35em 0.65em;
+    font-size: 0.75rem;
+    border-radius: 0.5rem;
+    color: #444444;
+    user-select: none;
+}
+#edit_schedule_selected_executors .badge .btn-close {
+    margin-left: 0.5em;
+    font-size: 10px;
+    opacity: 0.8;
+    cursor: pointer;
+    color: #444444;
+}
+#edit_schedule_selected_executors .badge .btn-close:hover {
+    opacity: 1;
 }
 
 .form-check-label {
