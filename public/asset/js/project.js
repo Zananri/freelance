@@ -8333,15 +8333,74 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 if (files && files.length > 0) {
                     files.forEach((fileName) => {
-                        const link = document.createElement("a");
-                        link.href = appUrl + "/file/project/" + fileName;
-                        link.target = "_blank";
-                        link.className = "d-block text-decoration-none mb-1";
-                        link.innerHTML = `<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ${fileName}`;
-                        listEl.appendChild(link);
+                        if (!fileName) return;
+
+                        let fileUrl = String(fileName || '');
+                        const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+                        const isRefPath = fileUrl.startsWith('/file/project/') || fileUrl.startsWith('file/project/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
+                        if (!isAbs && !isRefPath) {
+                            fileUrl = (appUrl ? appUrl : '') + '/file/project/' + fileUrl;
+                        } else if (!isAbs && fileUrl.startsWith('/')) {
+                            fileUrl = (appUrl ? appUrl : '') + fileUrl;
+                        }
+
+                        const item = document.createElement('div');
+                        item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        const lower = String(fileName || '').toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+
+                        if (isImage) {
+                            const img = document.createElement('img');
+                            img.src = fileUrl;
+                            img.width = 28; img.height = 28;
+                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                            img.alt = fileName;
+                            item.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                            badge.style.width = '28px'; badge.style.height = '28px';
+                            badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
+                            badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
+                            badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
+                            item.appendChild(badge);
+                        }
+
+                        const title = document.createElement('a');
+                        title.className = 'flex-grow-1 text-decoration-none text-truncate';
+                        title.href = fileUrl;
+                        title.target = '_blank';
+                        title.textContent = fileName;
+                        item.appendChild(title);
+
+                        const dlBtn = document.createElement('button');
+                        dlBtn.type = 'button';
+                        dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        dlBtn.title = 'Download';
+                        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                        dlBtn.addEventListener('click', function (ev) {
+                            try {
+                                ev.preventDefault(); ev.stopPropagation();
+                                const a = document.createElement('a');
+                                a.style.display = 'none';
+                                a.href = fileUrl;
+                                try { a.download = String(fileName || '').split('/').pop(); } catch(_) {}
+                                a.target = '_blank';
+                                document.body.appendChild(a);
+                                a.click();
+                                setTimeout(() => { try { document.body.removeChild(a); } catch(_) {} }, 100);
+                            } catch (e) {
+                                window.open(fileUrl, '_blank');
+                            }
+                        });
+
+                        item.appendChild(dlBtn);
+
+                        listEl.appendChild(item);
                     });
                 } else {
-                    listEl.textContent = "No reference files available.";
+                    listEl.textContent = 'No reference files available.';
                 }
 
                 const modal = new bootstrap.Modal(modalEl);
