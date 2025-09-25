@@ -1013,15 +1013,34 @@ document.addEventListener("DOMContentLoaded", function () {
             selected.forEach((emp) => {
                 const photo = buildPhotoUrl(emp.user_photo);
                 const badge = document.createElement("span");
-                badge.className =
-                    "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
-                badge.innerHTML = `<img src='${photo}' class='rounded-circle me-2' style='width:24px;height:24px;object-fit:cover;'>${emp.name}<button type='button' class='btn-close btn-close-white btn-sm ms-2'></button>`;
-                badge.querySelector("button").addEventListener("click", () => {
+                // Use same styling/structure as Task selected badges
+                badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
+
+                const img = document.createElement('img');
+                img.src = photo;
+                img.alt = emp.name || '';
+                img.className = 'rounded-circle me-2';
+                img.style.width = '24px';
+                img.style.height = '24px';
+                img.style.objectFit = 'cover';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = emp.name || '';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-close btn-sm ms-2';
+                removeBtn.setAttribute('aria-label', 'Remove');
+                removeBtn.addEventListener('click', () => {
                     selected = selected.filter((s) => s.id !== emp.id);
                     renderSelected();
                     renderDropdown();
                     updateHidden();
                 });
+
+                badge.appendChild(img);
+                badge.appendChild(nameSpan);
+                badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
         }
