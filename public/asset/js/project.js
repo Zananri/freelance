@@ -2603,6 +2603,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         user_photo: employeeObj
                                                             ? employeeObj.user_photo
                                                             : null,
+                                                        division: employeeObj ? getDivision(employeeObj) : '',
                                                     });
                                                 }
                                             } else {
