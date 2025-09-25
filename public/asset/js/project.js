@@ -3284,6 +3284,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         feedback.employee_name ||
                                         "Unknown";
                                     nameStrong.style.fontSize = "14px"
+                                    nameStrong.style.fontWeight = "600"
                                     nameRow.appendChild(nameStrong);
 
                                     // Store edit button data for later positioning
@@ -4140,6 +4141,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             // date display (time / yesterday / full date)
                                             const repDateDiv = document.createElement('div');
                                             repDateDiv.className = 'text-muted small';
+                                            repDateDiv.style.fontSize = '10px';
                                             if (rep.created_at) {
                                                 const dateObj = new Date(rep.created_at);
                                                 const now = new Date();

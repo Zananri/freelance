@@ -163,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function renderDropdown(){
-            if(filtered.length===0){ dropdown.innerHTML='<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
             dropdown.innerHTML = filtered.map(emp=>{ const checked = selected.some(s=>s.id===emp.id); const photo=buildPhotoUrl(emp.user_photo); return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
                 <div class='d-flex align-items-center'>
                     <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
