@@ -7497,9 +7497,24 @@ function applyCurrentSearchFilter() {
             if (mobileState.page >= mobileState.last) return;
             if (list.scrollHeight <= list.clientHeight + 4) {
                 mobileState.page++;
-                fetchMobileTasks(status, mobileState.page, true, { prefetch: false });
             }
-        } catch(_) {}
+
+            // Add click handler to open task detail
+            card.addEventListener('click', function() {
+                const taskId = this.getAttribute('data-task-id');
+                if (taskId) {
+                    // Close the archive modal
+                    const archiveModal = document.getElementById('archieveModal');
+                    if (archiveModal) {
+                        const bsModal = bootstrap.Modal.getInstance(archiveModal);
+                        if (bsModal) bsModal.hide();
+                    }
+                    // Open task detail
+                    handleTaskDetail(taskId);
+                }
+            });
+
+        } catch (_) {}
     }
 
     function renderMobileTasks(status, data, append = false) {
@@ -8086,16 +8101,6 @@ function applyCurrentSearchFilter() {
                 const desc = (t.description || '').toString();
                 const priority = t.priority || '';
                 const due = t.due_date || '';
-                // executors images (simple overlap)
-                let execHtml = '';
-                try {
-                    const execs = Array.isArray(t.executors) ? t.executors.slice(0,3) : [];
-                    execHtml = execs.map((ex, i) => {
-                        const src = ex && (ex.image || ex.user_photo || ex.profile_picture) ? (String(ex.image || ex.user_photo || ex.profile_picture) || '') : '';
-                        const img = src ? (/^https?:\/\//i.test(src) ? src : (src.startsWith('/') ? appUrl + src : appUrl + '/file/profile_picture/' + src)) : (appUrl + '/asset/img/avatar.png');
-                        return `<img src="${img}" class="pic-executor-image executor-image-overlap" style="width:32px;height:32px;object-fit:cover;border:3px solid #f0f1f8;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
-                    }).join('');
-                } catch(_) { execHtml = ''; }
 
                 // show Type instead of Deadline in archive modal cards as colored badge
                 const rawStatus = String((t.status || '')).toUpperCase();
@@ -8112,9 +8117,8 @@ function applyCurrentSearchFilter() {
                         <hr class="task-separator rounded-4">
                         <div class="d-flex justify-content-between align-items-center">
                             <div style="font-size: 10px; font-weight: 400;"> <span style="color: #797E91;">Priority: </span><span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span></div>
-                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Type: </span><span class="type-badge-wrapper">${typeBadge}</span></div>
+                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Status: </span><span class="type-badge-wrapper">${typeBadge}</span></div>
                         </div>
-                        <div class="d-flex align-items-center mt-3"><div class="pic-executor-container">${execHtml}</div></div>
                     </div>`;
             }
 
@@ -8127,10 +8131,6 @@ function applyCurrentSearchFilter() {
                     normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
                     normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
                     normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
-                    normalized.pic = t.pic || normalized.pic || null;
-                    normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
-                    normalized.feedback_comments_count = (t.feedback_comments_count !== undefined) ? t.feedback_comments_count : (normalized.feedback_comments_count || 0);
-                    normalized.reference_files_count = Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0);
 
                     // Prefer using the canonical card generator; call defensively to avoid ReferenceError
                     let html = '';
@@ -8165,9 +8165,6 @@ function applyCurrentSearchFilter() {
             // End archive modal rendering flag
             try { window.__renderingArchiveModal = false; } catch(_) {}
 
-            // Post-process inserted cards: if they came from createTaskCard which
-            // may include Deadline labels, replace Deadline with Type label for archive
-            // Normalize status label text to uppercase
             try {
                 // Insert into modal body first
                 body.innerHTML = '';
@@ -8178,6 +8175,33 @@ function applyCurrentSearchFilter() {
                     try {
                         const ds = card.querySelectorAll('div[style*="Deadline:"]');
                         // Fallback: find inner text nodes containing 'Deadline:'
+                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove());
+                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove());
+                        card.querySelectorAll('.task-icon').forEach(el => el.remove());
+
+                        // ilangin tombol edit/delete
+                        card.querySelectorAll('button, a.btn').forEach(btn => {
+                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) {
+                                btn.remove();
+                            }
+                        });
+
+                        // dropdown logic
+                        const status = (card.getAttribute('data-task-status') || '').toLowerCase();
+                        const dropdownMenu = card.querySelector('.dropdown-menu');
+                        if (dropdownMenu) {
+                            dropdownMenu.innerHTML = '';
+
+                            if (status === 'completed') {
+                                dropdownMenu.innerHTML = `
+                                    <div class="dropdown-item">Detail</div>`;
+                                } else {
+                                    dropdownMenu.innerHTML = `
+                                    <div class="dropdown-item">Detail</div>
+                                    <div class="dropdown-item">Restore Task</div>
+                                `;
+                            }
+                        }
                         if (ds && ds.length) {
                             ds.forEach(function(dd){
                                 // find corresponding task status from data attribute
@@ -8190,13 +8214,36 @@ function applyCurrentSearchFilter() {
                             card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function(_, g1){
                                 const st = (card.getAttribute('data-task-status') || '').toUpperCase();
                                 const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
-                                return 'Type: <span class="type-badge-wrapper">' + badge + '</span>';
+                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>';
                             });
                         }
                     } catch(_) {}
                 });
 
-                initBootstrapTooltips(modalEl);
+                // handle dropdown-item click di archive modal
+                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function(item) {
+                    item.addEventListener('click', function(e) {
+                        e.stopPropagation(); // cegah bubble ke card
+
+                        const text = this.textContent.trim();
+                        const card = this.closest('.custom-card');
+                        const taskId = card && card.getAttribute('data-task-id');
+
+                        // cuma jalan kalau item nya bener-bener 'Detail'
+                        if (text === 'Detail' && taskId) {
+                            // Tutup archive modal
+                            const archiveModal = document.getElementById('archieveModal');
+                            if (archiveModal) {
+                                const bsModal = bootstrap.Modal.getInstance(archiveModal);
+                                if (bsModal) bsModal.hide();
+                            }
+                            // Buka modal detail
+                            handleTaskDetail(taskId);
+                        }
+                    });
+                });
+
+            initBootstrapTooltips(modalEl);
             } catch (_) {
                 // ensure modal still displays even if post-processing fails
                 try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl); } catch(_) {}
