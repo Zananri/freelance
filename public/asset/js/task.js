@@ -3598,6 +3598,10 @@ function applyCurrentSearchFilter() {
         // Open Modal from mode_comment icon click
         document.addEventListener("click", function (e) {
             $(document).on("hidden.bs.modal", "#taskFeedbackModal", function () {
+                try {
+                    // If suppression flag is set, do not remove the backdrop because we're swapping to another modal
+                    if (window.__suppressFeedbackBackdropRemoval) return;
+                } catch(_) {}
                 $(".modal-backdrop").remove();
                 $("body").removeClass("modal-open").css("overflow", "");
             });
@@ -4444,6 +4448,117 @@ function applyCurrentSearchFilter() {
         scheduleRefreshLatestFeedbackSnippets(10);
     }
 
+    // Helper: show delete confirmation modal (Bootstrap) with avatar, content and confirm/cancel
+    function showDeleteConfirmModal(opts) {
+        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+        try {
+            const id = opts.id;
+            const type = opts.type || 'feedback';
+            const avatarUrl = opts.avatarUrl || '';
+            const authorName = opts.authorName || '';
+            const content = opts.content || '';
+            const modalId = 'deleteConfirmModal_' + (type || 'f') + '_' + id + '_' + Date.now();
+
+            const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
+                `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
+
+            const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
+            const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-body modal-body-custom">
+                                <div class="text-center mb-2">
+                                    <div class="task-description-container">
+                                        <p class="task-description mb-0" id="${modalId}_desc">${escapeHtml(content)}</p>
+                                    </div>
+                                </div>
+                                <hr class="my-2">
+                                <p class="fw-normal fs-6 text-center mb-4" id="${modalId}_confirm">${confirmText}</p>
+
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" id="${modalId}_cancel">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            // If the task feedback modal is open, hide it first so delete modal appears alone.
+            const parentModalEl = document.getElementById('taskFeedbackModal');
+            let _parentWasOpen = false;
+            let _parentModalInstance = null;
+            try {
+                if (parentModalEl && parentModalEl.classList.contains('show')) {
+                    _parentWasOpen = true;
+                    _parentModalInstance = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                    // Set global suppression so hidden handler doesn't remove the backdrop while we swap modals
+                    try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                    try { _parentModalInstance.hide(); } catch(_) {}
+                }
+            } catch(_) {}
+
+            // Insert modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modalEl = document.getElementById(modalId);
+            const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+            modalInstance.show();
+
+            // Close & cleanup helper
+            function cleanup() {
+                try { modalInstance.hide(); } catch(_) {}
+                try { modalEl.remove(); } catch(_) {}
+                // If we previously hid the parent feedback modal, show it again
+                try {
+                    if (_parentWasOpen && _parentModalInstance) {
+                        // clear suppression before re-showing so hidden handler resumes normal behavior
+                        try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                        // small delay to allow modal hide animation to finish
+                        setTimeout(function(){ try { _parentModalInstance.show(); } catch(_) {} }, 180);
+                    }
+                } catch(_) {}
+            }
+
+            // Wire cancel to cleanup
+            const cancelBtn = document.getElementById(`${modalId}_cancel`);
+            if (cancelBtn) cancelBtn.addEventListener('click', cleanup);
+
+            // Confirm button
+            const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function () {
+                    try { confirmBtn.disabled = true; confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; } catch(_) {}
+                    // Provide a done callback the caller must call when finished (success or error)
+                    if (typeof opts.onConfirm === 'function') {
+                        try {
+                            opts.onConfirm(function doneFn(shouldClose){
+                                // shouldClose default true
+                                if (shouldClose === false) {
+                                    confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                                    return;
+                                }
+                                cleanup();
+                            });
+                        } catch (e) {
+                            // onConfirm threw
+                            confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                        }
+                    } else {
+                        cleanup();
+                    }
+                });
+            }
+        } catch (e) { console.warn('showDeleteConfirmModal error', e); }
+    }
+
+    // Utility to escape HTML
+    function escapeHtml(str) {
+        return String(str || '').replace(/[&<>"]+/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]) || m; });
+    }
+
     // Fungsi untuk memuat data feedback
     function loadTaskFeedbackData(taskId) {
         const modalBody = document.getElementById("taskFeedbackList");
@@ -4537,21 +4652,21 @@ function applyCurrentSearchFilter() {
                                                         return f;
                                                     }).filter(Boolean);
                                                 } else {
-                                                    let singleRef = feedback.reference_file || '';
-                                                    if (singleRef) {
-                                                        const isAbs2 = typeof singleRef === 'string' && (singleRef.startsWith('http://') || singleRef.startsWith('https://'));
-                                                        const isRefPath = typeof singleRef === 'string' && (singleRef.startsWith('/file/task_reference_files/') || singleRef.startsWith('file/task_reference_files/'));
-                                                        if (!isAbs2 && !isRefPath) singleRef = appUrl + '/file/task_reference_files/' + singleRef;
-                                                        else if (!isAbs2 && isRefPath) singleRef = singleRef.startsWith('/') ? (appUrl + singleRef) : (appUrl + '/' + singleRef);
-                                                        topRefFiles = [singleRef];
+                                                    let singleTop = feedback.reference_file || '';
+                                                    if (singleTop) {
+                                                        const isAbs2 = typeof singleTop === 'string' && (singleTop.startsWith('http://') || singleTop.startsWith('https://'));
+                                                        const isRefPath2 = typeof singleTop === 'string' && (singleTop.startsWith('/file/task_reference_files/') || singleTop.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs2 && !isRefPath2) singleTop = appUrl + '/file/task_reference_files/' + singleTop;
+                                                        else if (!isAbs2 && isRefPath2) singleTop = singleTop.startsWith('/') ? (appUrl + singleTop) : (appUrl + '/' + singleTop);
+                                                        topRefFiles = [singleTop];
                                                     }
                                                 }
 
-                                                // Build top-level reference URL list (array-first, fallback to single)
+                                                // Build top-level reference URLs list (array-first, fallback to single)
                                                 let topRefUrls = [];
                                                 let topRuVal = feedback.reference_urls;
                                                 if (!Array.isArray(topRuVal) && typeof topRuVal === 'string') {
-                                                    try { const parsed = JSON.parse(topRuVal); if (Array.isArray(parsed)) topRuVal = parsed; } catch(_) { /* noop */ }
+                                                    try { const parsed2 = JSON.parse(topRuVal); if (Array.isArray(parsed2)) topRuVal = parsed2; } catch(_) { /* noop */ }
                                                 }
                                                 if (Array.isArray(topRuVal) && topRuVal.length > 0) {
                                                     topRefUrls = topRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
@@ -4657,7 +4772,8 @@ function applyCurrentSearchFilter() {
 
                                                                                             <div class="reply-actions mt-2 d-flex gap-4">
                                                                                                 ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
-                                                                                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                                                                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-delete-trigger" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
                                                                                             </div>
                                                                                         </div>
                                                                                     </div>
@@ -4704,6 +4820,7 @@ function applyCurrentSearchFilter() {
                                                                     ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
                                                                     <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
                                                                     ${viewRepliesBtnHtml}
+                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-delete-trigger" data-feedback-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -4792,6 +4909,73 @@ function applyCurrentSearchFilter() {
                             }
                         });
                     });
+
+                        // Bind delete triggers for feedback and replies
+                        modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                const fid = this.getAttribute('data-feedback-id');
+                                if (!fid) return;
+                                const authorName = (this.closest('.feedback-item')?.querySelector('strong')?.textContent) || '';
+                                const content = (this.closest('.feedback-item')?.querySelector('.task-description, p, .task-description-container p, .task-description')?.textContent) || '';
+                                const avatarUrl = (this.closest('.feedback-item')?.querySelector('img')?.getAttribute('src')) || '';
+                                showDeleteConfirmModal({ type: 'feedback', id: fid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                    const url = appUrl + '/task-feedbacks/' + fid;
+                                    $.ajax({
+                                        url: url,
+                                        type: 'DELETE',
+                                        headers: {
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                        },
+                                        success: function (res) {
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Feedback deleted', 'success'); } catch(_){ }
+                                            // Remove feedback DOM
+                                            const el = modalBody.querySelector(`.feedback-item[data-feedback-id="${fid}"]`);
+                                            if (el && el.parentNode) el.parentNode.removeChild(el);
+                                            // Refresh feedback count on task card
+                                            try { $.ajax({ url: appUrl + '/task-feedbacks/count/' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') , type: 'GET', success: function(c){ if (c && c.data && typeof c.data.count === 'number') { const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') + '"]'); if (card) { let span = card.querySelector('.feedback-comments-count'); if (span) { span.textContent = String(c.data.count); } } } } }); } catch(_){ }
+                                            done(true);
+                                        },
+                                        error: function (xhr) {
+                                            let msg = 'Failed to delete feedback';
+                                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                            done(false);
+                                        }
+                                    });
+                                }});
+                            });
+                        });
+
+                        modalBody.querySelectorAll('.reply-delete-trigger').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                const rid = this.getAttribute('data-reply-id');
+                                const pid = this.getAttribute('data-parent-id');
+                                if (!rid) return;
+                                const authorName = (this.closest('.feedback-reply')?.querySelector('strong')?.textContent) || '';
+                                const content = (this.closest('.feedback-reply')?.querySelector('p')?.textContent) || '';
+                                const avatarUrl = (this.closest('.feedback-reply')?.querySelector('img')?.getAttribute('src')) || '';
+                                showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                    const url = appUrl + '/task-feedbacks/' + rid;
+                                    $.ajax({
+                                        url: url,
+                                        type: 'DELETE',
+                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                        success: function (res) {
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reply deleted', 'success'); } catch(_){}
+                                            const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"][data-parent-id="${pid}"]`);
+                                            if (el && el.parentNode) el.parentNode.removeChild(el);
+                                            done(true);
+                                        },
+                                        error: function (xhr) {
+                                            let msg = 'Failed to delete reply';
+                                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                            done(false);
+                                        }
+                                    });
+                                }});
+                            });
+                        });
 
                     // Deep-link scroll/highlight if a target is set for this task
                     try {
