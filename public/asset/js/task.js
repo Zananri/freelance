@@ -1033,6 +1033,7 @@
                                     user_photo: employeeObj
                                         ? employeeObj.user_photo
                                         : null,
+                                    division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
                                 });
                             }
                         } else {
@@ -1064,7 +1065,16 @@
                 img.style.objectFit = "cover";
 
                 const nameSpan = document.createElement("span");
-                nameSpan.textContent = emp.name;
+                // show name with division under it
+                const nameCol = document.createElement('div');
+                nameCol.className = 'd-flex flex-column';
+                const nameText = document.createElement('span');
+                nameText.textContent = emp.name || '';
+                const divSmall = document.createElement('small');
+                divSmall.className = 'text-muted executor-division';
+                divSmall.textContent = emp.division || '';
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
@@ -1080,7 +1090,7 @@
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameCol);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
@@ -1133,7 +1143,7 @@
                 selectedEmployees = (executors || []).map(function (ex) {
                     var photo = ex.user_photo || ex.profile_picture || ex.profile_picture_url || null;
                     var photoUrl = buildPhotoUrl(photo, ex.profile_picture, ex.profile_picture_url);
-                    return { id: ex.id, name: ex.name, user_photo: photoUrl };
+                    return { id: ex.id, name: ex.name, user_photo: photoUrl, division: ex.division || ex.division_name || '' };
                 });
                 renderSelected();
                 updateHiddenInput();
@@ -2050,6 +2060,7 @@
                                     user_photo: employeeObj
                                         ? employeeObj.user_photo
                                         : null,
+                                    division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
                                 });
                             }
                         } else {
@@ -2080,8 +2091,15 @@
                 img.style.height = "24px";
                 img.style.objectFit = "cover";
 
-                const nameSpan = document.createElement("span");
-                nameSpan.textContent = emp.name;
+                const nameCol = document.createElement('div');
+                nameCol.className = 'd-flex flex-column';
+                const nameText = document.createElement('span');
+                nameText.textContent = emp.name || '';
+                const divSmall = document.createElement('small');
+                divSmall.className = 'text-muted executor-division';
+                divSmall.textContent = emp.division || '';
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
@@ -2097,7 +2115,7 @@
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameCol);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
@@ -2174,6 +2192,7 @@
                     id: ex.id,
                     name: ex.name,
                     user_photo: photoUrl,
+                    division: ex.division || ex.division_name || '',
                 };
             });
             renderSelected();
@@ -7112,7 +7131,12 @@ function applyCurrentSearchFilter() {
 
                 // Executors
                 if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
-                    window.setSelectedExecutorsEdit(t.executors.map(e => ({ id: e.id, name: e.name, user_photo: e.user_photo || e.photo || e.image || '' })));
+                    window.setSelectedExecutorsEdit(t.executors.map(e => ({
+                        id: e.id,
+                        name: e.name,
+                        user_photo: e.user_photo || e.photo || e.image || '',
+                        division: e.division || e.division_name || ''
+                    })));
                 }
 
                 // parent select is set by loadRelatedTasks (selectedParentId)
