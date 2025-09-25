@@ -1698,70 +1698,37 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 window.clearSelectedCoAuthorsEdit();
                                             window.clearSelectedContributorsEdit &&
                                                 window.clearSelectedContributorsEdit();
+                                            // Helper to normalize incoming collaborator items so division/photo/name are present
+                                            function normalizePerson(item) {
+                                                if (!item) return item;
+                                                try {
+                                                    // name
+                                                    item.name = item.name || item.employee_name || item.username || item.full_name || (item.employee && (item.employee.name || item.employee.full_name)) || '-';
+                                                    // photo fields
+                                                    item.user_photo = item.user_photo || item.profile_picture || item.profile_picture_url || item.user_photo_url || item.user_photo_path || null;
+                                                    // normalize division from many possible shapes (include department fallbacks for older payloads)
+                                                    item.division = item.division || item.division_name || item.division_title || item.employee_division || (item.employee && (item.employee.division_name || (item.employee.division && (item.employee.division.name || item.employee.division.title)))) || (item.employee && item.employee.department && (item.employee.department.name || item.employee.department.title)) || (item.department && (item.department.name || item.department.title)) || '';
+                                                } catch (_) {}
+                                                return item;
+                                            }
 
-                                            // Set co-authors
+                                            // Set co-authors (use normalized items so division is included when possible)
                                             if (data.co_authors) {
-                                                var coAuthors =
-                                                    data.co_authors.map(
-                                                        function (a) {
-                                                            // preserve division info so the edit-modal setter can display it
-                                                            var division = "";
-                                                            try {
-                                                                division = (
-                                                                    a.division_name ||
-                                                                    a.division ||
-                                                                    a.division_title ||
-                                                                    (a.employee && (a.employee.division_name || (a.employee.division && (a.employee.division.name || a.employee.division.title)))) ||
-                                                                    a.employee_division ||
-                                                                    ""
-                                                                );
-                                                            } catch (_) {
-                                                                division = "";
-                                                            }
-                                                            return {
-                                                                id: a.id,
-                                                                name: a.name,
-                                                                user_photo: a.user_photo || null,
-                                                                division: division,
-                                                            };
-                                                        }
-                                                    );
-                                                window.setSelectedCoAuthorsEdit &&
-                                                    window.setSelectedCoAuthorsEdit(
-                                                        coAuthors
-                                                    );
+                                                var coAuthorsRaw = Array.isArray(data.co_authors) ? data.co_authors : [];
+                                                var coAuthors = coAuthorsRaw.map(normalizePerson);
+                                                // ensure we pass objects that include division + user_photo to the edit-setter
+                                                window.setSelectedCoAuthorsEdit && window.setSelectedCoAuthorsEdit(
+                                                    coAuthors.map(function(a){ return { id: a.id, name: a.name, user_photo: a.user_photo || null, division: a.division || '' }; })
+                                                );
                                             }
 
                                             // Set contributors
                                             if (data.contributors) {
-                                                var contributors =
-                                                    data.contributors.map(
-                                                        function (a) {
-                                                            var division = "";
-                                                            try {
-                                                                division = (
-                                                                    a.division_name ||
-                                                                    a.division ||
-                                                                    a.division_title ||
-                                                                    (a.employee && (a.employee.division_name || (a.employee.division && (a.employee.division.name || a.employee.division.title)))) ||
-                                                                    a.employee_division ||
-                                                                    ""
-                                                                );
-                                                            } catch (_) {
-                                                                division = "";
-                                                            }
-                                                            return {
-                                                                id: a.id,
-                                                                name: a.name,
-                                                                user_photo: a.user_photo || null,
-                                                                division: division,
-                                                            };
-                                                        }
-                                                    );
-                                                window.setSelectedContributorsEdit &&
-                                                    window.setSelectedContributorsEdit(
-                                                        contributors
-                                                    );
+                                                var contributorsRaw = Array.isArray(data.contributors) ? data.contributors : [];
+                                                var contributors = contributorsRaw.map(normalizePerson);
+                                                window.setSelectedContributorsEdit && window.setSelectedContributorsEdit(
+                                                    contributors.map(function(a){ return { id: a.id, name: a.name, user_photo: a.user_photo || null, division: a.division || '' }; })
+                                                );
                                             }
 
                                             // Show edit modal after data is set
@@ -2040,6 +2007,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         let employees = [];
                         let filteredEmployees = [];
                         let selectedEmployees = [];
+
                         let isDropdownOpen = false;
 
                         function fetchEmployees(query = "") {
@@ -2063,6 +2031,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         const candidate =
                                             e.profile_picture_url ||
                                             e.profile_picture ||
+                                            
                                             e.user_photo;
                                         e.user_photo = candidate;
                                         return e;
@@ -2671,6 +2640,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 img.style.height = "24px";
                                 img.style.objectFit = "cover";
 
+                                // name + division column
                                 const nameWrapper = document.createElement("div");
                                 nameWrapper.className = "d-flex flex-column text-start";
                                 const nameSpan = document.createElement("span");
@@ -2679,7 +2649,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const divSpan = document.createElement("small");
                                 divSpan.className = "text-muted";
                                 divSpan.style.lineHeight = '1';
-                                divSpan.textContent = emp.division || '';
+                                divSpan.textContent = emp.division || emp.division_name || '';
                                 nameWrapper.appendChild(nameSpan);
                                 nameWrapper.appendChild(divSpan);
 

@@ -1915,8 +1915,19 @@
                             img.style.height = '24px';
                             img.style.objectFit = 'cover';
 
-                            var txt = document.createElement('span');
-                            txt.textContent = a.name || a.employee_name || a.username || '-';
+                            // Build name + division column (match project.js style)
+                            var nameWrapper = document.createElement('div');
+                            nameWrapper.className = 'd-flex flex-column text-start';
+                            var nameSpan = document.createElement('span');
+                            nameSpan.textContent = a.name || a.employee_name || a.username || '-';
+                            nameSpan.style.lineHeight = '1';
+                            var divSpan = document.createElement('small');
+                            divSpan.className = 'text-muted';
+                            divSpan.style.lineHeight = '1';
+                            // Prefer any explicit division field, fallback to helper getDivision if available
+                            try { divSpan.textContent = a.division || a.division_name || (typeof getDivision === 'function' ? getDivision(a) : '') || ''; } catch(_) { divSpan.textContent = a.division || a.division_name || ''; }
+                            nameWrapper.appendChild(nameSpan);
+                            nameWrapper.appendChild(divSpan);
 
                         var removeBtn = document.createElement('button');
                         removeBtn.type = 'button';
@@ -1940,7 +1951,7 @@
                         });
 
                         span.appendChild(img);
-                        span.appendChild(txt);
+                        span.appendChild(nameWrapper);
                         span.appendChild(removeBtn);
                         container.appendChild(span);
                     });
@@ -2058,10 +2069,26 @@
 
                             // co-authors & contributors: set hidden inputs and render badges for display
                             try {
-                                var co = data.co_authors || [];
-                                var cont = data.contributors || data.executors || [];
+                                // Normalize collaborator items so badges can show division and photo consistently
+                                function normalizePerson(item) {
+                                    if (!item) return item;
+                                    try {
+                                        // ensure name
+                                        item.name = item.name || item.employee_name || item.username || item.full_name || (item.employee && (item.employee.name || item.employee.full_name)) || '-';
+                                        // prefer explicit user_photo fields
+                                        item.user_photo = item.user_photo || item.profile_picture || item.profile_picture_url || item.user_photo_url || item.user_photo_path || null;
+                                        // normalize division
+                                        item.division = item.division || item.division_name || item.division_title || item.employee_division || (item.employee && (item.employee.division_name || (item.employee.division && (item.employee.division.name || item.employee.division.title)))) || '';
+                                    } catch (_) {}
+                                    return item;
+                                }
+
+                                var co = (Array.isArray(data.co_authors) ? data.co_authors : []).map(normalizePerson);
+                                var cont = (Array.isArray(data.contributors) ? data.contributors : (Array.isArray(data.executors) ? data.executors : [])).map(normalizePerson);
+
                                 try { $('#edit_co_author').val(JSON.stringify((co.map && co.map(function(c){ return c.id; })) || [])); } catch(_){ }
                                 try { $('#edit_contributors').val(JSON.stringify((cont.map && cont.map(function(c){ return c.id; })) || [])); } catch(_){ }
+
                                 renderSelectedBadges('edit_selected_co_authors', co, 'edit_co_author');
                                 renderSelectedBadges('edit_selected_contributors', cont, 'edit_contributors');
                             } catch(_){}
