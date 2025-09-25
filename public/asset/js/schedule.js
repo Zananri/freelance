@@ -754,6 +754,62 @@ document.addEventListener("DOMContentLoaded", function () {
         // Handle executors
         populateEditExecutors(schedule.executor_ids || []);
 
+        // Set division select value for edit modal (do not dispatch change to avoid overwriting selected executors)
+        try {
+            const divSel = document.getElementById('edit_schedule_division_id');
+            if (divSel) {
+                let divId = null;
+                if (schedule.division_id) divId = schedule.division_id;
+                else if (schedule.division && (schedule.division.id || schedule.division.division_id)) divId = schedule.division.id || schedule.division.division_id;
+                else if (schedule.project && schedule.project.division && (schedule.project.division.id || schedule.project.division.division_id)) divId = schedule.project.division.id || schedule.project.division.division_id;
+
+                if (divId) {
+                    // try to select if option exists, else add temporary option then select
+                    const opt = divSel.querySelector('option[value="' + divId + '"]');
+                    if (!opt) {
+                        const tmp = document.createElement('option');
+                        tmp.value = divId;
+                        tmp.text = 'Division #' + divId;
+                        divSel.appendChild(tmp);
+                    }
+                    divSel.value = divId;
+                } else {
+                    // attempt to match by name if provided
+                    const divName = schedule.division || (schedule.project && schedule.project.division && (schedule.project.division.name_division || schedule.project.division.name || ''));
+                    if (divName) {
+                        // try find option by text content
+                        const opts = Array.from(divSel.options || []);
+                        const found = opts.find(o => String((o.textContent||o.innerText||'')).trim().toLowerCase() === String(divName).trim().toLowerCase());
+                        if (found) divSel.value = found.value;
+                    }
+                }
+            }
+        } catch(e) { /* ignore */ }
+
+        // After setting division value, automatically seed executors for edit modal
+        try {
+            const divSel2 = document.getElementById('edit_schedule_division_id');
+            if (divSel2 && divSel2.value) {
+                const val = divSel2.value;
+                const selectedName = (divSel2.selectedOptions && divSel2.selectedOptions[0] && divSel2.selectedOptions[0].dataset && divSel2.selectedOptions[0].dataset.name) ? divSel2.selectedOptions[0].dataset.name : '';
+                fetch(appUrl + '/employees-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('fail'))
+                    .then(res => {
+                        const arr = (res && res.data) || [];
+                        const nameLower = String(selectedName || '').toLowerCase();
+                        const filteredByName = arr.filter(emp => String(emp.division || '').toLowerCase() === nameLower);
+                        const filteredById = arr.filter(emp => String(emp.division_id || '').toLowerCase() === String(val).toLowerCase());
+                        const final = filteredByName.length ? filteredByName : (filteredById.length ? filteredById : []);
+                        if (!final.length) return; // do not overwrite existing selected executors if none found
+                        const mapped = final.map(e => ({ id: e.id, name: e.name || e.full_name || '', user_photo: e.user_photo || e.profile_picture || '' }));
+                        try { window.setSelectedExecutorsEdit?.(mapped); } catch(_){}
+                    })
+                    .catch(()=>{
+                        // ignore fetch failure on auto-seed: keep existing executor selection
+                    });
+            }
+        } catch(e) { /* ignore */ }
+
         // Load projects for edit modal and set the selected project
         loadProjectsForEdit(schedule.project_id);
 
@@ -1166,8 +1222,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 dropdown.style.display = "none";
             }
         });
-    }
 
+        // Expose edit executor picker API for external preselection (used by division wiring)
+        window.__scheduleEditExecPicker = {
+            clear: function(){ try{ selected = []; renderSelected(); updateHidden(); dropdown.innerHTML = ''; } catch(e){} },
+            set: function(arr){ try{ if(!Array.isArray(arr)) return; selected = arr.map(a=> ({ id: a.id, name: a.name || a.full_name || '', user_photo: a.user_photo || a.profile_picture || '' })); renderSelected(); updateHidden(); renderDropdown(); } catch(e){} }
+        };
+
+    }
     function setupEditRecurrenceToggles() {
         const typeSel = document.getElementById(
             "edit_schedule_recurrence_type"

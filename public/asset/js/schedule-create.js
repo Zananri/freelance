@@ -227,14 +227,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Expose a small API to clear selections from outside (e.g., when modal closes)
         window.__scheduleExecPicker = {
             clear: function(){
+                try { selected = []; renderSelected(); updateHidden(); dropdown.innerHTML = ''; } catch(e) {}
+            },
+            // Pre-select executors programmatically. Accepts array of objects {id,name,user_photo}
+            set: function(arr){
                 try {
-                    selected = [];
-                    renderSelected();
-                    updateHidden();
-                    dropdown.innerHTML = '';
+                    if(!Array.isArray(arr)) return;
+                    selected = arr.map(a=> ({ id: a.id, name: a.name || a.full_name || '', user_photo: a.user_photo || a.profile_picture || '' }));
+                    renderSelected(); updateHidden(); renderDropdown();
                 } catch(e) {}
             }
         };
+
+        // Convenience globals used by task.js compatibility code
+    window.setSelectedExecutorsAdd = function(execs){ try{ if(window.__scheduleExecPicker && typeof window.__scheduleExecPicker.set === 'function') window.__scheduleExecPicker.set(execs || []); } catch(_){} };
+    window.setSelectedExecutorsEdit = function(execs){ try{ if(window.__scheduleEditExecPicker && typeof window.__scheduleEditExecPicker.set === 'function') { window.__scheduleEditExecPicker.set(execs || []); } else if(window.__scheduleExecPicker && typeof window.__scheduleExecPicker.set === 'function') { window.__scheduleExecPicker.set(execs || []); } } catch(_){} };
     })();
 
     // Recurrence toggle logic (reuse simplified logic from task.js schedule section)
@@ -368,6 +375,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load projects for select
     (function loadProjects(){ const sel=document.getElementById('schedule_project_id'); if(!sel) return; fetch(appUrl + '/project/index?task_scope=all').then(r=>r.json()).then(d=>{ const arr=d.data||[]; let opts='<option value="">No Project</option>'; arr.forEach(p=> opts += `<option value='${p.id}'>${p.title}</option>`); sel.innerHTML=opts; }).catch(()=>{}); })();
+
+    // Load divisions and wire division -> executor behavior (mirror task.js)
+    (function loadDivisionsAndWire(){
+        // Create modal division
+        const addDivSel = document.getElementById('schedule_division_id');
+        const addDivDropdown = document.getElementById('schedule_division_dropdown');
+        const addDivActivator = document.getElementById('schedule_division_activator');
+
+        // Edit modal division
+        const editDivSel = document.getElementById('edit_schedule_division_id');
+        const editDivDropdown = document.getElementById('edit_schedule_division_dropdown');
+        const editDivActivator = document.getElementById('edit_schedule_division_activator');
+
+        function populate(sel){
+            if(!sel) return;
+            fetch(appUrl + '/divisions-for-projects')
+                .then(r=> r.ok? r.json(): Promise.reject('fail'))
+                .then(d=>{
+                    if(!d||!d.data) return;
+                    let opts = '<option value="">Select Division</option>';
+                    d.data.forEach(function(div){ opts += `<option value="${div.id}" data-name="${(div.name_division||div.name||'').trim()}">${(div.name_division||div.name||'').trim()}</option>`; });
+                    sel.innerHTML = opts;
+                }).catch(()=>{});
+        }
+
+        populate(addDivSel); populate(editDivSel);
+
+        function wireDivision(sel, dropdown, activator, isEdit){
+            if(!sel) return;
+            // When division changes, fetch employees-for-projects and set selected executors
+            sel.addEventListener('change', function(){
+                const val = this.value;
+                const selectedName = (this.selectedOptions && this.selectedOptions[0] && this.selectedOptions[0].dataset && this.selectedOptions[0].dataset.name) ? this.selectedOptions[0].dataset.name : '';
+                if(!val){
+                    try { if (isEdit) window.setSelectedExecutorsEdit?.([]); else window.setSelectedExecutorsAdd?.([]); } catch(_){}
+                    return;
+                }
+                fetch(appUrl + '/employees-for-projects')
+                    .then(r=> r.ok? r.json(): Promise.reject('fail'))
+                    .then(res=>{
+                        const arr = (res && res.data) || [];
+                        const nameLower = String(selectedName || '').toLowerCase();
+                        const filteredByName = arr.filter(emp => String(emp.division || '').toLowerCase() === nameLower);
+                        const filteredById = arr.filter(emp => String(emp.division_id || '').toLowerCase() === String(val).toLowerCase());
+                        const final = filteredByName.length ? filteredByName : (filteredById.length ? filteredById : []);
+                        if(!final.length){ try { showScheduleAlert('No employees found for selected division.','warning'); } catch(_){}; return; }
+                        // adapt shape to what executor picker expects: objects with id, name, user_photo
+                        const mapped = final.map(e => ({ id: e.id, name: e.name || e.full_name || '', user_photo: e.user_photo || e.profile_picture || '' }));
+                        try { if(isEdit){ window.setSelectedExecutorsEdit?.(mapped); } else { window.setSelectedExecutorsAdd?.(mapped); } } catch(_){}
+                    }).catch(()=>{ try { showScheduleAlert('Failed to load employees for division.','warning'); } catch(_){} });
+            });
+
+            // Custom dropup rendering similar to task.js
+            if(dropdown){
+                function escapeHtml(str){ return String(str||'').replace(/[&<>"']/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]; }); }
+                function render(){
+                    const opts = Array.from(sel.options || []);
+                    if(!opts.length){ dropdown.innerHTML = '<div class="division-item disabled">No divisions</div>'; dropdown.style.display = 'block'; return; }
+                    const html = opts.map(o=> `<div class="division-item" data-value="${o.value}">${escapeHtml(o.textContent||o.innerText||'')}</div>`).join('');
+                    dropdown.innerHTML = html; dropdown.style.display = 'block';
+                    dropdown.querySelectorAll('.division-item').forEach(el=> el.addEventListener('click', function(){ const v = this.getAttribute('data-value'); try{ sel.value = v; sel.dispatchEvent(new Event('change',{ bubbles:true })); }catch(_){} dropdown.style.display='none'; }));
+                }
+                sel.addEventListener('focus', render);
+                const act = activator || sel;
+                if(act){ act.addEventListener('click', function(e){ try{ e.preventDefault(); e.stopPropagation(); } catch(_){} render(); try{ sel.focus(); } catch(_){} }); }
+                sel.addEventListener('keydown', function(e){ const k = e.key || ''; if(k===' '||k==='Spacebar'||k==='ArrowDown'||k==='ArrowUp'){ try{ e.preventDefault(); render(); } catch(_){} } });
+                document.addEventListener('click', function(e){ if(!sel.contains(e.target) && !dropdown.contains(e.target)){ dropdown.style.display = 'none'; } });
+            }
+        }
+
+        try{ wireDivision(addDivSel, addDivDropdown, addDivActivator, false); } catch(e){}
+        try{ wireDivision(editDivSel, editDivDropdown, editDivActivator, true); } catch(e){}
+    })();
 
     // Reference URL dynamic rows (simple) - reuse global logic in task.js if loaded; else lightweight here
     document.addEventListener('click', function(e){
