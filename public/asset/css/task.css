@@ -400,6 +400,7 @@
 #executor_dropdown,
 #edit_executor_dropdown,
 #task_division_dropdown,
+#edit_task_division_dropdown,
 #task_project_dropdown,
 #task_parent_dropdown,
 #edit_task_project_dropdown,
@@ -1883,7 +1884,9 @@ p {
 }
 
 #task_division_id.position-absolute.input-select,
-.custom-input .position-absolute.input-select#task_division_id {
+.custom-input .position-absolute.input-select#task_division_id,
+#edit_task_division_id.position-absolute.input-select,
+.custom-input .position--absolute.input-select#edit_task_division_id {
     height: 25px !important;
     min-height: 25px !important;
     line-height: 21px !important;

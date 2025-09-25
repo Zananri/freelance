@@ -1176,7 +1176,7 @@
                 .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
                 .then(d => {
                     if (!d || !d.data) return;
-                    let opts = '<option value="">Select Division (optional)</option>';
+                    let opts = '<option value="">Select Division</option>';
                     d.data.forEach(function(div){ opts += `<option value="${div.id}" data-name="${(div.name_division||div.name)}">${(div.name_division||div.name)}</option>`; });
                     addDivisionSel.innerHTML = opts;
                 })
@@ -1300,6 +1300,124 @@
             })
             .catch(console.error);
     })();
+
+    try {
+        const editDivisionSel = document.getElementById('edit_task_division_id');
+        if (editDivisionSel) {
+            // Load divisions on page load
+            fetch(appUrl + '/divisions-for-projects')
+                .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                .then(d => {
+                    if (!d || !d.data) return;
+                    let opts = '<option value="">Select Division</option>';
+                    d.data.forEach(function (div) {
+                        opts += `
+                            <option value="${div.id}"
+                                    data-name="${(div.name_division || div.name || '').trim()}">
+                                ${(div.name_division || div.name || '').trim()}
+                            </option>`;
+                    });
+                    editDivisionSel.innerHTML = opts;
+                })
+                .catch(err => console.warn('Failed to load divisions for edit', err));
+
+            // Division change → fetch employees
+            editDivisionSel.addEventListener('change', function () {
+                const val = this.value;
+                const selectedName = (this.selectedOptions[0]?.dataset?.name || '').trim();
+
+                if (!val) {
+                    try { window.clearSelectedExecutors?.(); } catch (_) {}
+                    return;
+                }
+
+                fetch(appUrl + '/employees-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                    .then(res => {
+                        const arr = res?.data || [];
+                        const valStr = String(val).toLowerCase();
+                        const nameStr = String(selectedName).toLowerCase();
+
+                        // Cari by ID dulu, kalau ga ada fallback ke nama
+                        let final = arr.filter(emp => String(emp.division_id || '').toLowerCase() === valStr);
+
+                        if (!final.length) {
+                            final = arr.filter(emp => String(emp.division || '').toLowerCase() === nameStr);
+                        }
+
+                        if (!final.length) {
+                            showFloatingAlert?.('No employees found for selected division.', 'warning', 2500);
+                            return;
+                        }
+                        window.setSelectedExecutorsEdit?.(final);
+                    })
+                    .catch(() => {
+                        showFloatingAlert?.('Failed to load employees for division.', 'warning', 2500);
+                    });
+            });
+
+            // Custom dropdown
+            const divisionDropdown = document.getElementById('edit_task_division_dropdown');
+            if (divisionDropdown) {
+                function renderDivisionDropup() {
+                    const opts = Array.from(editDivisionSel.options || []);
+                    if (!opts.length) {
+                        divisionDropdown.innerHTML = '<div class="division-item disabled">No divisions</div>';
+                        divisionDropdown.style.display = 'block';
+                        return;
+                    }
+
+                    const html = opts.map(o => `
+                        <div class="division-item" data-value="${o.value}">
+                            ${escapeHtml(o.textContent || '')}
+                        </div>
+                    `).join('');
+                    divisionDropdown.innerHTML = html;
+                    divisionDropdown.style.display = 'block';
+
+                    divisionDropdown.querySelectorAll('.division-item').forEach(el => {
+                        el.addEventListener('click', function () {
+                            const v = this.dataset.value;
+                            editDivisionSel.value = v;
+                            editDivisionSel.dispatchEvent(new Event('change', { bubbles: true }));
+                            divisionDropdown.style.display = 'none';
+                        });
+                    });
+                }
+
+                function escapeHtml(str) {
+                    return String(str || '').replace(/[&<>"']/g, m => ({
+                        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                    })[m]);
+                }
+
+                editDivisionSel.addEventListener('focus', renderDivisionDropup);
+
+                const activator = document.getElementById('edit_task_division_activator');
+                (activator || editDivisionSel).addEventListener('click', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    renderDivisionDropup();
+                    editDivisionSel.focus();
+                });
+
+                editDivisionSel.addEventListener('keydown', e => {
+                    if ([' ', 'Spacebar', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+                        e.preventDefault();
+                        renderDivisionDropup();
+                    }
+                });
+
+                document.addEventListener('click', e => {
+                    if (!editDivisionSel.contains(e.target) && !divisionDropdown.contains(e.target)) {
+                        divisionDropdown.style.display = 'none';
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to wire edit division->executors', e);
+    }
 
     // If an Edit Schedule modal exists, make its Project field optional
     (function relaxEditScheduleProjectRequired(){
