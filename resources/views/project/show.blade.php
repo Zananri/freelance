@@ -336,7 +336,7 @@
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom" id="projectFilesModalLabel">Reference Files</h5>
+                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="projectFilesModalLabel">Reference Files</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <hr>
