@@ -4559,6 +4559,31 @@ function applyCurrentSearchFilter() {
         return String(str || '').replace(/[&<>"]+/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]) || m; });
     }
 
+    // timeAgo helper (human readable relative time)
+    function timeAgo(createdAt){
+        try {
+            const time = new Date(createdAt);
+            const now = new Date();
+            const diff = (now.getTime() - time.getTime()) / 1000;
+
+            if(diff < 60){
+                return 'just now';
+            }else if(diff < 3600){
+                return Math.round(diff/60)+' minute ago';
+            }else if(diff < 86400){
+                return Math.round(diff/3600)+' hour ago';
+            }else if(diff < 604800){
+                return Math.round(diff/86400)+' day ago';
+            }else if(diff < 2592000){
+                return Math.round(diff/604800)+' week ago';
+            }else if(diff < 31526000){
+                return Math.round(diff/2592000)+' month ago';
+            }
+
+            return time.toDateString();
+        } catch (e) { return String(createdAt || ''); }
+    }
+
     // Fungsi untuk memuat data feedback
     function loadTaskFeedbackData(taskId) {
         const modalBody = document.getElementById("taskFeedbackList");
@@ -4580,46 +4605,10 @@ function applyCurrentSearchFilter() {
                             10
                         ) || 0;
 
-                        // Format the date with the requested format
+                        // Format the date using timeAgo helper
                         let formattedDate = "";
                         if (feedback.created_at) {
-                            const dateObj = new Date(feedback.created_at);
-                            const now = new Date();
-
-                            // Helper function to check if two dates are the same day
-                            function isSameDay(d1, d2) {
-                                return (
-                                    d1.getFullYear() === d2.getFullYear() &&
-                                    d1.getMonth() === d2.getMonth() &&
-                                    d1.getDate() === d2.getDate()
-                                );
-                            }
-
-                            // Helper function to check if d1 is yesterday of d2
-                            function isYesterday(d1, d2) {
-                                const yesterday = new Date(d2);
-                                yesterday.setDate(d2.getDate() - 1);
-                                return isSameDay(d1, yesterday);
-                            }
-
-                            if (isSameDay(dateObj, now)) {
-                                // Show time only
-                                formattedDate = dateObj.toLocaleTimeString(
-                                    undefined,
-                                    { hour: "2-digit", minute: "2-digit" }
-                                );
-                            } else if (isYesterday(dateObj, now)) {
-                                formattedDate = "yesterday";
-                            } else {
-                                formattedDate = dateObj.toLocaleDateString(
-                                    undefined,
-                                    {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                    }
-                                );
-                            }
+                            formattedDate = timeAgo(feedback.created_at);
                         }
 
                                                 // Build top-level feedback block
@@ -4685,12 +4674,11 @@ function applyCurrentSearchFilter() {
                                     if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
                                         const repliesCount = feedback.replies.length;
                                         const repliesContent = feedback.replies.map(function (rep) {
-                                                                // reply date formatting
-                                                                let rDate = '';
-                                                                if (rep.created_at) {
-                                                                        const d = new Date(rep.created_at);
-                                                                        rDate = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                                                                }
+                                // reply date formatting (relative)
+                                let rDate = '';
+                                if (rep.created_at) {
+                                    rDate = timeAgo(rep.created_at);
+                                }
                                                                 // Normalize image URL if backend returns filename/relative
                                                                 let repImageUrl = rep.image || '';
                                                                 if (repImageUrl) {
