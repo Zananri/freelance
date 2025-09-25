@@ -291,11 +291,12 @@
                             </div>
                         </div>
                         <div class="mb-3 input-custom">
-                            <label for="edit_part_of_project" class="form-label label-custom">Part of Project</label>
-                            <select class="form-select input-select" id="edit_part_of_project"
-                                name="part_of_project">
-                                <option value="">Select Project</option>
-                            </select>
+                            <label class="form-label label-custom">Part of Project</label>
+                            <input type="text" class="form-control input-text" id="edit_part_of_project_input"
+                                autocomplete="off" placeholder="Search project...">
+                            <div id="edit_part_of_project_dropdown" class="dropdown-list mt-1"></div>
+                            <div id="edit_selected_project" class="mt-2"></div>
+                            <input type="hidden" id="edit_part_of_project" name="part_of_project" value="">
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
