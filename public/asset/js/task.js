@@ -999,7 +999,10 @@
                 <img src="${photoUrl}" alt="${
                         emp.name
             }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
-                            <span>${emp.name}</span>
+                            <div class="d-flex flex-column">
+                                <span class="executor-name">${emp.name}</span>
+                                <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                            </div>
                         </div>
                         <input type="checkbox" class="executor-checkbox" data-id="${
                             emp.id
@@ -1685,7 +1688,12 @@
                 const isChecked = selected.some(e => e.id === emp.id);
                 const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
         return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-            <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'"><span>${emp.name}</span></div>
+            <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                <div class="d-flex flex-column">
+                    <span class="executor-name">${emp.name}</span>
+                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                </div>
+            </div>
                         <input type="checkbox" class="schedule-executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
                     </label>`;
             }).join('');
@@ -2008,7 +2016,10 @@
                             <img src="${photoUrl}" alt="${
                         emp.name
                     }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
+                            <div class="d-flex flex-column">
+                                <span class="executor-name">${emp.name}</span>
+                                <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                            </div>
                         </div>
                         <input type="checkbox" class="executor-checkbox" data-id="${
                             emp.id
