@@ -1355,7 +1355,9 @@
         } // end setupImageInput
 
             // Setup searchable co-author input inside edit modal (copied/adapted from project.js)
-            function setupCoAuthorInputEdit() {
+            // Define setupCoAuthorInputEdit only if not provided by shared project.js
+            if (typeof window.setupCoAuthorInputEdit !== 'function') {
+                window.setupCoAuthorInputEdit = function setupCoAuthorInputEdit() {
                 const input = document.getElementById("edit_co_author_input");
                 const dropdown = document.getElementById("edit_co_author_dropdown");
                 const selectedContainer = document.getElementById(
@@ -1368,7 +1370,9 @@
 
                 let employees = [];
                 let filteredEmployees = [];
+                // store selected contributors as a map id -> object to avoid losing previous selections
                 let selectedEmployees = [];
+                let selectedMap = {};
                 let isDropdownOpen = false;
 
                 function fetchEmployees(query = "") {
@@ -1481,16 +1485,27 @@
                         checkbox.addEventListener("change", function () {
                             const id = parseInt(this.getAttribute("data-id"));
                             const name = this.getAttribute("data-name");
-                            const employeeObj = employees.find((emp) => emp.id === id);
+                            // use hidden input as source of truth to avoid replacements
+                            let cur = [];
+                            try {
+                                cur = JSON.parse((hiddenInput && hiddenInput.value) || '[]');
+                                if (!Array.isArray(cur)) cur = [];
+                            } catch (_) { cur = []; }
+
                             if (this.checked) {
-                                if (!selectedEmployees.some((e) => e.id === id)) {
-                                    selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null, division: employeeObj ? getDivision(employeeObj) : '' });
-                                }
+                                if (!cur.includes(id)) cur.push(id);
+                                const empObj = employees.find((emp) => Number(emp.id) === Number(id)) || { id: id, name: name };
+                                selectedMap[String(id)] = { id: Number(id), name: empObj.name || name || '', user_photo: empObj.user_photo || null, division: getDivision(empObj) };
                             } else {
-                                selectedEmployees = selectedEmployees.filter((e) => e.id !== id);
+                                cur = cur.filter((v) => Number(v) !== Number(id));
+                                delete selectedMap[String(id)];
                             }
+
+                            try { if (hiddenInput) hiddenInput.value = JSON.stringify(cur); } catch (_) {}
+
+                            selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
                             renderSelected();
-                            updateHiddenInput();
+                            renderDropdown();
                             try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch (_) {}
                         });
                     });
@@ -1528,9 +1543,19 @@
                         removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
                         removeBtn.setAttribute("aria-label", "Remove");
                         removeBtn.addEventListener("click", () => {
-                            selectedEmployees = selectedEmployees.filter((e) => e.id !== emp.id);
+                            // remove from hidden input (source of truth) and from selectedMap
+                            try {
+                                let cur = JSON.parse((hiddenInput && hiddenInput.value) || '[]');
+                                if (!Array.isArray(cur)) cur = [];
+                                cur = cur.filter(function (v) { return Number(v) !== Number(emp.id); });
+                                if (hiddenInput) hiddenInput.value = JSON.stringify(cur);
+                                delete selectedMap[String(emp.id)];
+                                selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
+                            } catch (_) {
+                                delete selectedMap[String(emp.id)];
+                                selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
+                            }
                             renderSelected();
-                            updateHiddenInput();
                             renderDropdown();
                             try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch (_) {}
                         });
@@ -1603,14 +1628,39 @@
                         contribIds = Array.isArray(arr) ? arr.map((v) => Number(v)) : [];
                     } catch (_) { contribIds = []; }
 
-                    selectedEmployees = coAuthors
-                        .filter((ca) => !contribIds.includes(Number(ca.id)))
-                        .map((ca) => {
-                            const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
-                            return { id: ca.id, name: ca.name, user_photo: buildAvatarUrl(candidate), division: getDivision(ca) };
+                    // Merge incoming coAuthors with existing hidden input (do not replace)
+                    let existing = [];
+                    try {
+                        existing = JSON.parse((document.getElementById('edit_co_author')?.value) || '[]');
+                        if (!Array.isArray(existing)) existing = [];
+                    } catch (_) { existing = []; }
+
+                    const incoming = Array.isArray(coAuthors) ? coAuthors.map((c) => Number(c.id)) : [];
+                    const unionIds = Array.from(new Set([].concat(existing, incoming))).filter((id) => !contribIds.includes(Number(id)));
+
+                    try {
+                        selectedMap = {};
+                        selectedEmployees = unionIds.map(function (sid) {
+                            const emp = employees.find(function (ee) { return Number(ee.id) === Number(sid); }) || {};
+                            const foundIncoming = (coAuthors || []).find(function(c){ return Number(c.id) === Number(sid); }) || {};
+                            const obj = {
+                                id: Number(sid),
+                                name: emp.name || foundIncoming.name || '',
+                                user_photo: emp.user_photo || buildAvatarUrl(foundIncoming.profile_picture || foundIncoming.user_photo || ''),
+                                division: getDivision(emp) || getDivision(foundIncoming) || ''
+                            };
+                            selectedMap[String(obj.id)] = obj;
+                            return obj;
                         });
+                    } catch (_) {
+                        selectedMap = {};
+                        selectedEmployees = unionIds.map(function (sid) { var o = { id: Number(sid), name: '', user_photo: null, division: '' }; selectedMap[String(sid)] = o; return o; });
+                    }
+
+                    // write back hidden input
+                    try { document.getElementById('edit_co_author').value = JSON.stringify(selectedEmployees.map(function(e){ return e.id; })); } catch (_) {}
+
                     renderSelected();
-                    updateHiddenInput();
                     try { window.syncContributorsWithCoAuthors && window.syncContributorsWithCoAuthors(); } catch (_) {}
                     renderDropdown();
                 };
@@ -1631,10 +1681,13 @@
                     }
                     renderDropdown();
                 };
+                } // end setupCoAuthorInputEdit
             }
 
             // Setup searchable contributors input inside edit modal
-            function setupContributorInputEdit() {
+            // Define setupContributorInputEdit only if not provided by shared project.js
+            if (typeof window.setupContributorInputEdit !== 'function') {
+                window.setupContributorInputEdit = function setupContributorInputEdit() {
                 const input = document.getElementById("edit_contributor_input");
                 const dropdown = document.getElementById("edit_contributor_dropdown");
                 const selectedContainer = document.getElementById("edit_selected_contributors");
@@ -1645,7 +1698,24 @@
                 let employees = [];
                 let filteredEmployees = [];
                 let selectedEmployees = [];
+                // map of id -> employee object to persist selections
+                let selectedMap = {};
                 let isDropdownOpen = false;
+
+                function buildAvatarUrl(raw) {
+                    if (!raw) return getMeta("app-url") + "/asset/img/avatar.png";
+                    try {
+                        raw = String(raw).trim();
+                        const trimmed = raw.replace(/^\/+/, "");
+                        if (/^https?:\/\//i.test(raw)) return raw;
+                        if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return getMeta("app-url") + "/" + trimmed;
+                        if (raw.startsWith("/")) return getMeta("app-url") + raw;
+                        if (raw.indexOf("/") !== -1) return getMeta("app-url") + "/" + trimmed;
+                        return getMeta("app-url") + "/file/profile_picture/" + raw;
+                    } catch (_) {
+                        return getMeta("app-url") + "/asset/img/avatar.png";
+                    }
+                }
 
                 function fetchEmployees(query = "") {
                     const currentEmployeeId = document.getElementById("editProjectModal")?.getAttribute("data-employee-id") || "";
@@ -1747,16 +1817,30 @@
                         checkbox.addEventListener("change", function () {
                             const id = parseInt(this.getAttribute("data-id"));
                             const name = this.getAttribute("data-name");
-                            const employeeObj = employees.find((emp) => emp.id === id);
+                            // Use hidden input as source of truth to avoid replaces
+                            let cur = [];
+                            try {
+                                cur = JSON.parse((hiddenInput && hiddenInput.value) || '[]');
+                                if (!Array.isArray(cur)) cur = [];
+                            } catch (_) { cur = []; }
+
                             if (this.checked) {
-                                if (!selectedEmployees.some((e) => e.id === id)) {
-                                    selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null, division: employeeObj ? getDivision(employeeObj) : '' });
-                                }
+                                if (!cur.includes(id)) cur.push(id);
+                                // add to selectedMap using employees cache if available
+                                const empObj = employees.find((ee) => Number(ee.id) === Number(id)) || { id: id, name: name };
+                                selectedMap[String(id)] = { id: Number(id), name: empObj.name || name || '', user_photo: empObj.user_photo || null, division: getDivision(empObj) };
                             } else {
-                                selectedEmployees = selectedEmployees.filter((e) => e.id !== id);
+                                cur = cur.filter((v) => Number(v) !== Number(id));
+                                delete selectedMap[String(id)];
                             }
+
+                            // write back hidden input
+                            try { if (hiddenInput) hiddenInput.value = JSON.stringify(cur); } catch (_) {}
+
+                            // rebuild selectedEmployees array from map to keep order stable
+                            selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
+
                             renderSelected();
-                            updateHiddenInput();
                             renderDropdown();
                             try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch (_) {}
                         });
@@ -1795,9 +1879,19 @@
                         removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
                         removeBtn.setAttribute("aria-label", "Remove");
                         removeBtn.addEventListener("click", () => {
-                            selectedEmployees = selectedEmployees.filter((e) => e.id !== emp.id);
+                            // remove from hidden input (source of truth) and from selectedMap
+                            try {
+                                let cur = JSON.parse((hiddenInput && hiddenInput.value) || '[]');
+                                if (!Array.isArray(cur)) cur = [];
+                                cur = cur.filter(function (v) { return Number(v) !== Number(emp.id); });
+                                if (hiddenInput) hiddenInput.value = JSON.stringify(cur);
+                                delete selectedMap[String(emp.id)];
+                                selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
+                            } catch (_) {
+                                delete selectedMap[String(emp.id)];
+                                selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
+                            }
                             renderSelected();
-                            updateHiddenInput();
                             renderDropdown();
                             try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch (_) {}
                         });
@@ -1848,6 +1942,7 @@
                 };
 
                 window.setSelectedContributorsEdit = function (contributors) {
+                    // Merge incoming contributors with existing hidden input (do not replace)
                     let coIds = [];
                     try {
                         const raw = document.getElementById("edit_co_author")?.value || "[]";
@@ -1855,14 +1950,44 @@
                         coIds = Array.isArray(arr) ? arr.map((v) => Number(v)) : [];
                     } catch (_) { coIds = []; }
 
-                    selectedEmployees = contributors
-                        .filter((c) => !coIds.includes(Number(c.id)))
-                        .map((ca) => {
-                            const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
-                            return { id: ca.id, name: ca.name, user_photo: buildAvatarUrl(candidate), division: getDivision(ca) };
+                    // incoming ids
+                    const incoming = Array.isArray(contributors) ? contributors.map((c) => Number(c.id)) : [];
+
+                    // existing ids from hidden input
+                    let existing = [];
+                    try {
+                        existing = JSON.parse((document.getElementById('edit_contributors')?.value) || '[]');
+                        if (!Array.isArray(existing)) existing = [];
+                    } catch (_) { existing = []; }
+
+                    // union, then exclude any co-author ids
+                    const unionIds = Array.from(new Set([].concat(existing, incoming))).filter((id) => !coIds.includes(Number(id)));
+
+                    // Build selectedEmployees from unionIds using employees cache when possible
+                    try {
+                        // populate selectedMap and selectedEmployees
+                        selectedMap = {};
+                        selectedEmployees = unionIds.map(function (sid) {
+                            const emp = employees.find(function (ee) { return Number(ee.id) === Number(sid); }) || {};
+                            const foundIncoming = (contributors || []).find(function(c){ return Number(c.id) === Number(sid); }) || {};
+                            const obj = {
+                                id: Number(sid),
+                                name: emp.name || foundIncoming.name || '',
+                                user_photo: emp.user_photo || buildAvatarUrl(foundIncoming.profile_picture || foundIncoming.user_photo || ''),
+                                division: getDivision(emp) || getDivision(foundIncoming) || ''
+                            };
+                            selectedMap[String(obj.id)] = obj;
+                            return obj;
                         });
+                    } catch (_) {
+                        selectedMap = {};
+                        selectedEmployees = unionIds.map(function (sid) { var o = { id: Number(sid), name: '', user_photo: null, division: '' }; selectedMap[String(sid)] = o; return o; });
+                    }
+
+                    // write back hidden input
+                    try { document.getElementById('edit_contributors').value = JSON.stringify(selectedEmployees.map(function(e){ return e.id; })); } catch (_) {}
+
                     renderSelected();
-                    updateHiddenInput();
                     try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch (_) {}
                 };
 
@@ -1882,11 +2007,12 @@
                     }
                     renderDropdown();
                 };
+                } // end setupContributorInputEdit
             }
 
             // initialize co-author/contributor dropdowns for edit modal
-            try { setupCoAuthorInputEdit(); } catch (_) {}
-            try { setupContributorInputEdit(); } catch (_) {}
+            try { if (typeof window.setupCoAuthorInputEdit === 'function') window.setupCoAuthorInputEdit(); } catch (_) {}
+            try { if (typeof window.setupContributorInputEdit === 'function') window.setupContributorInputEdit(); } catch (_) {}
 
             // Render selected collaborators badges into edit modal (blue with remove button)
             function renderSelectedBadges(containerId, arr, hiddenInputId) {
@@ -1896,27 +2022,50 @@
                     container.innerHTML = '';
                     if (!arr || !arr.length) return;
 
-                    // Ensure hidden input exists
+                    // helper to resolve division text
+                    function getDivisionBadge(item) {
+                        try {
+                            if (!item) return '';
+                            return (
+                                item.division ||
+                                item.division_name ||
+                                item.division_title ||
+                                item.employee_division ||
+                                (item.employee && (item.employee.division_name || (item.employee.division && (item.employee.division.name || item.employee.division.title)))) ||
+                                ''
+                            );
+                        } catch (_) { return ''; }
+                    }
+
+                    // Ensure hidden input exists and populate if empty
                     var hidden = hiddenInputId ? document.getElementById(hiddenInputId) : null;
                     if (hidden && (!hidden.value || hidden.value === '')) {
-                        try { hidden.value = JSON.stringify((arr || []).map(function(x){ return x.id; })); } catch(_){}
+                        try { hidden.value = JSON.stringify((arr || []).map(function(x){ return x.id; })); } catch(_){ }
                     }
 
                     arr.forEach(function (a) {
                         var id = a.id || a.employee_id || a.user_id || null;
                         var span = document.createElement('span');
-                            // Match project.js styling exactly
-                            span.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+                        span.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
 
-                            var img = document.createElement('img');
-                            img.src = a.user_photo || a.profile_picture || (getMeta('app-url').replace(/\/$/, '') + '/asset/img/avatar.png');
-                            img.className = 'rounded-circle me-2';
-                            img.style.width = '24px';
-                            img.style.height = '24px';
-                            img.style.objectFit = 'cover';
+                        var img = document.createElement('img');
+                        img.src = a.user_photo || a.profile_picture || (getMeta('app-url').replace(/\/$/, '') + '/asset/img/avatar.png');
+                        img.className = 'rounded-circle me-2';
+                        img.style.width = '24px';
+                        img.style.height = '24px';
+                        img.style.objectFit = 'cover';
 
-                            var txt = document.createElement('span');
-                            txt.textContent = a.name || a.employee_name || a.username || '-';
+                        var nameWrapper = document.createElement('div');
+                        nameWrapper.className = 'd-flex flex-column text-start';
+                        var nameSpan = document.createElement('span');
+                        nameSpan.textContent = a.name || a.employee_name || a.username || '-';
+                        nameSpan.style.lineHeight = '1';
+                        var divSpan = document.createElement('small');
+                        divSpan.className = 'text-muted';
+                        divSpan.style.lineHeight = '1';
+                        try { divSpan.textContent = getDivisionBadge(a) || ''; } catch(_) { divSpan.textContent = a.division || a.division_name || ''; }
+                        nameWrapper.appendChild(nameSpan);
+                        nameWrapper.appendChild(divSpan);
 
                         var removeBtn = document.createElement('button');
                         removeBtn.type = 'button';
@@ -1940,7 +2089,7 @@
                         });
 
                         span.appendChild(img);
-                        span.appendChild(txt);
+                        span.appendChild(nameWrapper);
                         span.appendChild(removeBtn);
                         container.appendChild(span);
                     });
@@ -2058,12 +2207,52 @@
 
                             // co-authors & contributors: set hidden inputs and render badges for display
                             try {
-                                var co = data.co_authors || [];
-                                var cont = data.contributors || data.executors || [];
+                                // Normalize collaborator items so badges can show division and photo consistently
+                                function normalizePerson(item) {
+                                    if (!item) return item;
+                                    try {
+                                        // ensure name
+                                        item.name = item.name || item.employee_name || item.username || item.full_name || (item.employee && (item.employee.name || item.employee.full_name)) || '-';
+                                        // prefer explicit user_photo fields
+                                        item.user_photo = item.user_photo || item.profile_picture || item.profile_picture_url || item.user_photo_url || item.user_photo_path || null;
+
+                                        // normalize division into a flat string
+                                        var div = '';
+                                        try {
+                                            if (item.division) {
+                                                if (typeof item.division === 'string') div = item.division;
+                                                else if (typeof item.division === 'object') div = item.division.name || item.division.title || '';
+                                            }
+                                            if (!div && item.division_name) div = item.division_name;
+                                            if (!div && item.division_title) div = item.division_title;
+                                            if (!div && item.employee_division) div = item.employee_division;
+                                            if (!div && item.employee) {
+                                                if (item.employee.division_name) div = item.employee.division_name;
+                                                else if (item.employee.division) {
+                                                    if (typeof item.employee.division === 'string') div = item.employee.division;
+                                                    else if (typeof item.employee.division === 'object') div = item.employee.division.name || item.employee.division.title || '';
+                                                }
+                                            }
+                                        } catch (_) { div = '' }
+                                        item.division = div || '';
+                                    } catch (_) {}
+                                    return item;
+                                }
+
+                                var co = (Array.isArray(data.co_authors) ? data.co_authors : []).map(normalizePerson);
+                                var cont = (Array.isArray(data.contributors) ? data.contributors : (Array.isArray(data.executors) ? data.executors : [])).map(normalizePerson);
+
                                 try { $('#edit_co_author').val(JSON.stringify((co.map && co.map(function(c){ return c.id; })) || [])); } catch(_){ }
                                 try { $('#edit_contributors').val(JSON.stringify((cont.map && cont.map(function(c){ return c.id; })) || [])); } catch(_){ }
+
+                                // Debug: log normalized collaborator arrays so we can verify division fields
+                                try { console.debug('[Edit modal] normalized co_authors:', co); console.debug('[Edit modal] normalized contributors:', cont); } catch(_) {}
+
                                 renderSelectedBadges('edit_selected_co_authors', co, 'edit_co_author');
                                 renderSelectedBadges('edit_selected_contributors', cont, 'edit_contributors');
+
+                                try { if (window.setSelectedCoAuthorsEdit) window.setSelectedCoAuthorsEdit(co || []); } catch (_) {}
+                                try { if (window.setSelectedContributorsEdit) window.setSelectedContributorsEdit(cont || []); } catch (_) {}
                             } catch(_){}
 
                             // Show modal
