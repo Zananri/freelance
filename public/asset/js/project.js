@@ -3,6 +3,112 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
+// Global utility: escape HTML for safe insertion
+function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, function (m) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]) || m;
+    });
+}
+
+// Global helper: show delete confirmation modal (Bootstrap) for project feedback/reply
+function showDeleteConfirmModal(opts) {
+    // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+    try {
+        const id = opts.id;
+        const type = opts.type || 'feedback';
+        const avatarUrl = opts.avatarUrl || '';
+        const authorName = opts.authorName || '';
+        const content = opts.content || '';
+        const modalId = 'deleteConfirmModal_proj_' + (type || 'f') + '_' + id + '_' + Date.now();
+
+        const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
+            `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
+
+        const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
+        const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+
+        const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content modal-content-custom">
+                        <div class="modal-body modal-body-custom">
+                            <div class="text-center mb-2">
+                                <div class="task-description-container">
+                                    <p class="task-description mb-0" id="${modalId}_desc">${escapeHtml(content)}</p>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <p class="fw-normal fs-6 text-center mb-4" id="${modalId}_confirm">${confirmText}</p>
+
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" id="${modalId}_cancel">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // If the project feedback modal is open, hide it first so delete modal appears alone.
+        const parentModalEl = document.getElementById('projectFeedbackModal');
+        let _parentWasOpen = false;
+        let _parentModalInstance = null;
+        try {
+            if (parentModalEl && parentModalEl.classList.contains('show')) {
+                _parentWasOpen = true;
+                _parentModalInstance = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                try { _parentModalInstance.hide(); } catch(_) {}
+            }
+        } catch(_) {}
+
+        // Insert modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalEl = document.getElementById(modalId);
+        const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+        modalInstance.show();
+
+        // Close & cleanup helper
+        function cleanup() {
+            try { modalInstance.hide(); } catch(_) {}
+            try { modalEl.remove(); } catch(_) {}
+            try {
+                if (_parentWasOpen && _parentModalInstance) {
+                    try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                    setTimeout(function(){ try { _parentModalInstance.show(); } catch(_) {} }, 180);
+                }
+            } catch(_) {}
+        }
+
+        // Wire cancel to cleanup
+        const cancelBtn = document.getElementById(`${modalId}_cancel`);
+        if (cancelBtn) cancelBtn.addEventListener('click', cleanup);
+
+        // Confirm button
+        const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                try { confirmBtn.disabled = true; confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; } catch(_) {}
+                if (typeof opts.onConfirm === 'function') {
+                    try {
+                        opts.onConfirm(function doneFn(shouldClose){
+                            if (shouldClose === false) {
+                                confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                                return;
+                            }
+                            cleanup();
+                        });
+                    } catch (e) {
+                        confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                    }
+                } else {
+                    cleanup();
+                }
+            });
+        }
+    } catch (e) { console.warn('showDeleteConfirmModal error', e); }
+}
+
 // Flags to prevent double modal triggering
 window.isReopeningTimeline = false;
 window.isHandlingTimelineBarClick = false;
@@ -47,6 +153,112 @@ function handleEmployeeLoadError(xhr, status, error, context = "") {
                     ) {
                         return true;
                     }
+
+    // Helper: show delete confirmation modal (Bootstrap) for project feedback/reply
+    function showDeleteConfirmModal(opts) {
+        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+        try {
+            const id = opts.id;
+            const type = opts.type || 'feedback';
+            const avatarUrl = opts.avatarUrl || '';
+            const authorName = opts.authorName || '';
+            const content = opts.content || '';
+            const modalId = 'deleteConfirmModal_proj_' + (type || 'f') + '_' + id + '_' + Date.now();
+
+            const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
+                `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
+
+            const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
+            const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-body modal-body-custom">
+                                <div class="text-center mb-2">
+                                    <div class="task-description-container">
+                                        <p class="task-description mb-0" id="${modalId}_desc">${escapeHtml(content)}</p>
+                                    </div>
+                                </div>
+                                <hr class="my-2">
+                                <p class="fw-normal fs-6 text-center mb-4" id="${modalId}_confirm">${confirmText}</p>
+
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" id="${modalId}_cancel">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            // If the project feedback modal is open, hide it first so delete modal appears alone.
+            const parentModalEl = document.getElementById('projectFeedbackModal');
+            let _parentWasOpen = false;
+            let _parentModalInstance = null;
+            try {
+                if (parentModalEl && parentModalEl.classList.contains('show')) {
+                    _parentWasOpen = true;
+                    _parentModalInstance = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                    try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                    try { _parentModalInstance.hide(); } catch(_) {}
+                }
+            } catch(_) {}
+
+            // Insert modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modalEl = document.getElementById(modalId);
+            const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+            modalInstance.show();
+
+            // Close & cleanup helper
+            function cleanup() {
+                try { modalInstance.hide(); } catch(_) {}
+                try { modalEl.remove(); } catch(_) {}
+                try {
+                    if (_parentWasOpen && _parentModalInstance) {
+                        try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                        setTimeout(function(){ try { _parentModalInstance.show(); } catch(_) {} }, 180);
+                    }
+                } catch(_) {}
+            }
+
+            // Wire cancel to cleanup
+            const cancelBtn = document.getElementById(`${modalId}_cancel`);
+            if (cancelBtn) cancelBtn.addEventListener('click', cleanup);
+
+            // Confirm button
+            const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function () {
+                    try { confirmBtn.disabled = true; confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; } catch(_) {}
+                    if (typeof opts.onConfirm === 'function') {
+                        try {
+                            opts.onConfirm(function doneFn(shouldClose){
+                                if (shouldClose === false) {
+                                    confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                                    return;
+                                }
+                                cleanup();
+                            });
+                        } catch (e) {
+                            confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                        }
+                    } else {
+                        cleanup();
+                    }
+                });
+            }
+        } catch (e) { console.warn('showDeleteConfirmModal error', e); }
+    }
+
+            // Utility to escape HTML
+            function escapeHtml(str) {
+                return String(str || '').replace(/[&<>"']/g, function (m) {
+                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]) || m;
+                });
+            }
                 }
             } catch (_) {}
             return false;
@@ -3772,6 +3984,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // Add reply button
                                     actionsDiv.appendChild(replyWrapper);
 
+                                    // Add delete button for top-level feedback if author (match Task behavior)
+                                    if (canEditTopInline) {
+                                        const deleteWrapper = document.createElement('span');
+                                        // Make the entire wrapper the trigger so clicking text/icon works
+                                        deleteWrapper.className = 'd-flex align-items-center feedback-delete-trigger';
+                                        deleteWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                        deleteWrapper.setAttribute('data-feedback-id', String(feedback.id));
+
+                                        const deleteIcon = document.createElement('span');
+                                        deleteIcon.className = 'material-symbols-outlined';
+                                        deleteIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;';
+                                        deleteIcon.textContent = 'delete';
+
+                                        const deleteText = document.createElement('span');
+                                        deleteText.textContent = 'Delete';
+
+                                        deleteWrapper.appendChild(deleteIcon);
+                                        deleteWrapper.appendChild(deleteText);
+                                        actionsDiv.appendChild(deleteWrapper);
+                                    }
+
                                     // Insert actions after media (image/links/files) or comment if no media
                                     feedbackItem.appendChild(actionsDiv);
 
@@ -4558,6 +4791,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 replyReplyWrapper
                                             );
 
+                                            // Add delete button for reply if author can edit
+                                            if (rEdit) {
+                                                const delRepWrapper = document.createElement('span');
+                                                delRepWrapper.className = 'd-flex align-items-center';
+                                                delRepWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                                delRepWrapper.setAttribute('data-reply-id', String(rep.id));
+                                                delRepWrapper.setAttribute('data-parent-id', String(feedback.id));
+
+                                                const delRepIcon = document.createElement('span');
+                                                delRepIcon.className = 'material-symbols-outlined reply-delete-trigger';
+                                                delRepIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;';
+                                                delRepIcon.textContent = 'delete';
+
+                                                const delRepText = document.createElement('span');
+                                                delRepText.textContent = 'Delete';
+
+                                                delRepWrapper.appendChild(delRepIcon);
+                                                delRepWrapper.appendChild(delRepText);
+                                                replyActionsDiv.appendChild(delRepWrapper);
+                                            }
+
                                             repDiv.appendChild(replyActionsDiv);
                                             repliesContainer.appendChild(
                                                 repDiv
@@ -4698,6 +4952,96 @@ document.addEventListener("DOMContentLoaded", function () {
                                 } catch (_) {
                                     /* noop */
                                 }
+                                // Attach delete handlers for feedback and replies (matching task.js behavior)
+                                try {
+                                    // Top-level feedback delete
+                                    modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function(btn){
+                                        btn.addEventListener('click', function(){
+                                            const fid = this.getAttribute('data-feedback-id');
+                                            const authorName = (this.closest('.feedback-item')?.querySelector('strong')?.textContent) || '';
+                                            const content = (this.closest('.feedback-item')?.querySelector('.task-description, p, .task-description-container p, .task-description')?.textContent) || '';
+                                            const avatarUrl = (this.closest('.feedback-item')?.querySelector('img')?.getAttribute('src')) || '';
+                                            window.showDeleteConfirmModal({ type: 'feedback', id: fid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                                // perform DELETE
+                                                fetch(appUrl + '/project-feedbacks/' + fid, {
+                                                    method: 'DELETE',
+                                                    headers: {
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                        'Accept': 'application/json'
+                                                    }
+                                                }).then(r => r.ok ? r.json() : r.json().then(Promise.reject)).then(res => {
+                                                    // remove DOM
+                                                    try {
+                                                        const el = modalBody.querySelector(`.feedback-item[data-feedback-id="${fid}"]`);
+                                                        if (el) el.remove();
+                                                    } catch(_){}
+                                                    // update badge count on card
+                                                    try {
+                                                        const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                                                        if (card) {
+                                                            const badge = card.querySelector('.project-feedback-count');
+                                                            if (badge) {
+                                                                const cur = parseInt(badge.textContent) || 0;
+                                                                badge.textContent = Math.max(0, cur - 1);
+                                                            }
+                                                        }
+                                                    } catch(_){}
+                                                    showFloatingAlert(res.message || 'Feedback deleted', 'success', 1500);
+                                                    // signal done to close modal
+                                                    done(true);
+                                                }).catch(err => {
+                                                    const msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to delete feedback';
+                                                    showFloatingAlert(msg, 'warning', 3500);
+                                                    done(false);
+                                                });
+                                            }});
+                                        });
+                                    });
+
+                                    // Reply delete
+                                    modalBody.querySelectorAll('.reply-delete-trigger').forEach(function(btn){
+                                        btn.addEventListener('click', function(){
+                                            const rid = this.getAttribute('data-reply-id');
+                                            const pid = this.getAttribute('data-parent-id');
+                                            const authorName = (this.closest('.feedback-reply')?.querySelector('strong')?.textContent) || '';
+                                            const content = (this.closest('.feedback-reply')?.querySelector('p')?.textContent) || '';
+                                            const avatarUrl = (this.closest('.feedback-reply')?.querySelector('img')?.getAttribute('src')) || '';
+                                            window.showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                                fetch(appUrl + '/project-feedbacks/' + rid, {
+                                                    method: 'DELETE',
+                                                    headers: {
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                        'Accept': 'application/json'
+                                                    }
+                                                }).then(r => r.ok ? r.json() : r.json().then(Promise.reject)).then(res => {
+                                                    try {
+                                                        const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"]`);
+                                                        if (el) el.remove();
+                                                        // if no more replies, hide replies container and toggle text
+                                                        const parentEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${pid}"]`);
+                                                        if (parentEl) {
+                                                            const repliesContainer = parentEl.querySelector('.feedback-replies');
+                                                            if (repliesContainer) {
+                                                                const children = repliesContainer.querySelectorAll('.feedback-reply');
+                                                                if (!children || children.length === 0) {
+                                                                    repliesContainer.classList.add('d-none');
+                                                                    const toggle = parentEl.querySelector('.feedback-toggle-replies');
+                                                                    if (toggle) toggle.textContent = '';
+                                                                }
+                                                            }
+                                                        }
+                                                    } catch(_){}
+                                                    showFloatingAlert(res.message || 'Reply deleted', 'success', 1500);
+                                                    done(true);
+                                                }).catch(err => {
+                                                    const msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to delete reply';
+                                                    showFloatingAlert(msg, 'warning', 3500);
+                                                    done(false);
+                                                });
+                                            }});
+                                        });
+                                    });
+                                } catch (_) {}
                             })
                             .catch((error) => {
                                 modalBody.innerHTML =
@@ -6004,6 +6348,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     projectFeedbackModalEl.addEventListener(
                         "hidden.bs.modal",
                         function () {
+                            // If suppression flag is set (we temporarily hid this modal to show delete modal),
+                            // skip clearing body/backdrop and reset the flag in the delete modal cleanup instead.
+                            try {
+                                if (window.__suppressFeedbackBackdropRemoval) return;
+                            } catch (_) {}
+
                             modalTitle.textContent = "Feedback";
                             modalBody.innerHTML = "";
                             try {
