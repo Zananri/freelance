@@ -940,7 +940,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </button>
                                             <!-- Add Schedule button: opens schedule create modal and passes project id -->
                                             <button class="btn btn-sm p-0 border-0 ms-1 bg-transparent add-schedule-btn d-flex align-items-center" title="Add Schedule" data-bs-toggle="modal" data-bs-target="#scheduleCreateModal" data-project-id="${project.id}">
-                                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">calendar_month</span>
                                             </button>
                                         </div>
                                     </div>
@@ -2248,7 +2247,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     appUrl + "/asset/img/avatar.png";
                                 const badge = document.createElement("span");
                                 badge.className =
-                                    "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                                    "badge d-inline-flex align-items-center me-2 mb-2 bg-light";
 
                                 const img = document.createElement("img");
                                 img.src = photoUrl;
@@ -2258,7 +2257,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 img.style.height = "24px";
                                 img.style.objectFit = "cover";
                                 const nameWrapper = document.createElement("div");
-                                nameWrapper.className = "d-flex flex-column";
+                                nameWrapper.className = "d-flex flex-column text-start";
                                 const nameSpan = document.createElement("span");
                                 nameSpan.textContent = emp.name;
                                 nameSpan.style.lineHeight = '1';
@@ -2271,7 +2270,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 const removeBtn = document.createElement("button");
                                 removeBtn.type = "button";
-                                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                                removeBtn.className = "btn-close btn-sm ms-2";
                                 removeBtn.setAttribute("aria-label", "Remove");
                                 removeBtn.addEventListener("click", () => {
                                     selectedEmployees = selectedEmployees.filter(
@@ -2662,7 +2661,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             selectedEmployees.forEach((emp) => {
                                 const photoUrl = emp.user_photo || appUrl + "/asset/img/avatar.png";
                                 const badge = document.createElement("span");
-                                badge.className = "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                                badge.className = "badge d-inline-flex align-items-center me-2 mb-2 bg-light";
 
                                 const img = document.createElement("img");
                                 img.src = photoUrl;
@@ -2673,7 +2672,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 img.style.objectFit = "cover";
 
                                 const nameWrapper = document.createElement("div");
-                                nameWrapper.className = "d-flex flex-column";
+                                nameWrapper.className = "d-flex flex-column text-start";
                                 const nameSpan = document.createElement("span");
                                 nameSpan.textContent = emp.name;
                                 nameSpan.style.lineHeight = '1';
@@ -2686,7 +2685,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 const removeBtn = document.createElement("button");
                                 removeBtn.type = "button";
-                                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                                removeBtn.className = "btn-close btn-sm ms-2";
                                 removeBtn.setAttribute("aria-label", "Remove");
                                 removeBtn.addEventListener("click", () => {
                                     selectedEmployees = selectedEmployees.filter(
@@ -7696,7 +7695,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const badge = document.createElement("span");
                 badge.className =
-                    "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                    "badge d-inline-flex align-items-center me-2 mb-2 bg-light";
 
                 const img = document.createElement("img");
                 img.src = appendAvatarVersion(photoUrl);
@@ -7707,7 +7706,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 img.style.objectFit = "cover";
 
                 const nameWrapper = document.createElement("div");
-                nameWrapper.className = "d-flex flex-column";
+                nameWrapper.className = "d-flex flex-column text-start";
                 const nameSpan = document.createElement("span");
                 nameSpan.textContent = emp.name;
                 nameSpan.style.lineHeight = '1';
@@ -7720,7 +7719,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
-                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
                     selectedEmployees = selectedEmployees.filter(
@@ -8286,7 +8285,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     emp.user_photo || appUrl + "/asset/img/avatar.png";
                 const badge = document.createElement("span");
                 badge.className =
-                    "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                    "badge d-inline-flex align-items-center me-2 mb-2 bg-light";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -8297,7 +8296,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 img.style.objectFit = "cover";
 
                 const nameWrapper = document.createElement("div");
-                nameWrapper.className = "d-flex flex-column";
+                nameWrapper.className = "d-flex flex-column text-start";
                 const nameSpan = document.createElement("span");
                 nameSpan.textContent = emp.name;
                 nameSpan.style.lineHeight = '1';
@@ -8310,7 +8309,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
-                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
                     selectedEmployees = selectedEmployees.filter(
@@ -9117,7 +9116,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const photoUrl = emp.user_photo || appUrl + "/asset/img/avatar.png";
 
                 const badge = document.createElement("span");
-                badge.className = "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                badge.className = "badge d-inline-flex align-items-center me-2 mb-2 bg-light";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -9128,7 +9127,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 img.style.objectFit = "cover";
 
                 const nameWrapper = document.createElement("div");
-                nameWrapper.className = "d-flex flex-column";
+                nameWrapper.className = "d-flex flex-column text-start";
                 const nameSpan = document.createElement("span");
                 nameSpan.textContent = emp.name;
                 nameSpan.style.lineHeight = '1';
@@ -9141,7 +9140,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
-                removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
                     selectedEmployees = selectedEmployees.filter(
