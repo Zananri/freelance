@@ -5,6 +5,11 @@
         return $('meta[name="' + name + '"]').attr("content") || "";
     }
 
+    var appUrl = (
+        document.querySelector('meta[name="app-url"]')?.getAttribute("content") ||
+        ""
+    ).replace(/\/$/, "");
+
     function safeText(str) {
         return str === null || typeof str === "undefined" ? "-" : String(str);
     }
@@ -477,7 +482,7 @@
             }
 
             function showAddFeedbackForm(projectId) {
-              
+
                 modalTitle.textContent = 'Add Feedback';
                 modalBody.innerHTML = '';
                 var tpl = document.getElementById('template-add-feedback');
@@ -489,7 +494,7 @@
                     try { var inEmployee = modalBody.querySelector('input[name="employee_id"]'); if (inEmployee) inEmployee.value = (projectFeedbackModalEl.getAttribute('data-employee-id') || ''); } catch(_){}
                     try { var inParent = modalBody.querySelector('input[name="parent_id"]'); if (inParent) inParent.value = ''; } catch(_){}
                 } else {
-                   
+
                     var existingForm = modalBody.querySelector('#addFeedbackForm');
                     if (existingForm) {
                         try { var p = existingForm.querySelector('input[name="project_id"]'); if (p) p.value = projectId; } catch(_){ }
@@ -601,7 +606,6 @@
                     body: formData
                 }).then(function (response) { if (!response.ok) return response.json().then(Promise.reject); return response.json(); })
                 .then(function (data) {
-                    window.showFloatingAlert(data.message || 'Feedback submitted successfully!', 'success', 1500);
                     var card = document.querySelector('[data-project-id="' + projectId + '"]'); if (card) { var fbBadge = card.querySelector('.project-feedback-count'); if (fbBadge) { var current = parseInt(fbBadge.textContent) || 0; fbBadge.textContent = current + 1; } }
                     setTimeout(function () { loadFeedbackData(projectId); form.reset(); var imageLabel = form.querySelector('#feedbackImageLabel'); var imageClearBtn = form.querySelector('#feedbackImageClearBtn'); if (imageLabel) { imageLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')"; imageLabel.style.backgroundSize='50%'; imageLabel.classList.remove('has-image'); imageLabel.style.opacity='0.5'; } if (imageClearBtn) imageClearBtn.classList.add('d-none'); }, 1000);
                 }).catch(function (error) {
@@ -623,7 +627,7 @@
                     try { var inParentR = modalBody.querySelector('input[name="parent_id"]'); if (inParentR) inParentR.value = parentId; } catch(_){}
                     try { var inEmployeeR = modalBody.querySelector('input[name="employee_id"]'); if (inEmployeeR) inEmployeeR.value = (projectFeedbackModalEl.getAttribute('data-employee-id') || ''); } catch(_){}
                 } else {
-                   
+
                     var existingReplyForm = modalBody.querySelector('#replyFeedbackForm');
                     if (existingReplyForm) {
                         try { var p = existingReplyForm.querySelector('input[name="project_id"]'); if (p) p.value = projectId; } catch(_){ }
@@ -736,7 +740,7 @@
                         }
                     } catch(_){}
                 } else {
-                    
+
                     var existingEditForm = modalBody.querySelector('#editFeedbackForm');
                     if (existingEditForm) {
                         try { var hid = existingEditForm.querySelector('#edit_remove_image'); if (hid) hid.value = (removeFlag ? '1' : '0'); } catch(_){ }
@@ -815,8 +819,7 @@
                             // ensure remove_image flag (if present) is sent to backend
                             try { var editRemove = form.querySelector('#edit_remove_image'); if (editRemove) fd.set('remove_image', editRemove.value); } catch(_){ }
                             fd.append('_method', 'PUT');
-                try { console.debug('[Feedback Edit] sending remove_image=', fd.get('remove_image')); } catch(_){}
-                fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + data.id, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ window.showFloatingAlert(res.message || 'Feedback updated', 'success', 1500);
+                fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + data.id, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ ;
                     // refresh list and ensure modal reflects the updated state (no image if removed)
                     try { loadFeedbackData(projectId); } catch(_){}
                     // small safety: after a short delay re-render again to avoid stale cached content
@@ -1254,33 +1257,148 @@
             });
         }
 
-        function populatePartOfProjectSelects(currentProjectId, currentProjectTitle, selectedPartOfProjectId) {
-            $.ajax({
-                url: getMeta('app-url').replace(/\/$/, '') + "/project/index?task_scope=all",
-                type: "GET",
-                dataType: "json",
-                success: function (payload) {
-                    var arr = Array.isArray(payload) ? payload : Array.isArray(payload.data) ? payload.data : [];
-                    var options = '<option value="">Select Project</option>';
-                    var foundCurrent = false;
-                    arr.forEach(function (p) {
-                        if (!p) return;
-                        if (String(p.id) === String(currentProjectId)) foundCurrent = true;
-                        options += '<option value="' + p.id + '">' + (p.title || p.name || ('Project ' + p.id)) + '</option>';
+        function populatePartOfProjectSelects(
+            currentProjectId = null,
+            currentProjectTitle = "",
+            currentPartOfProjectId = null,
+            currentPartOfProjectTitle = ""
+        ) {
+            const input = document.getElementById("edit_part_of_project_input");
+            const dropdown = document.getElementById("edit_part_of_project_dropdown");
+            const hiddenInput = document.getElementById("edit_part_of_project");
+            const selectedContainer = document.getElementById("edit_selected_project");
+
+            if (!input || !dropdown || !hiddenInput || !selectedContainer) {
+                console.warn("[populatePartOfProjectSelects] Elements not found for edit");
+                return;
+            }
+
+            let projects = [];
+
+            function getInitialAvatar(name) {
+                const colors = [
+                    "#F44336", "#E91E63", "#9C27B0", "#673AB7",
+                    "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
+                    "#009688", "#4CAF50", "#8BC34A", "#FFC107",
+                    "#FF9800", "#FF5722", "#795548"
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const initial = (name || "?").charAt(0).toUpperCase();
+                return `<div style="
+                    width:28px;height:28px;
+                    border-radius:50%;
+                    background:${color};
+                    color:#fff;
+                    font-size:13px;
+                    font-weight:bold;
+                    display:flex;
+                    align-items:center;
+                    justify-content:center;
+                ">${initial}</div>`;
+            }
+
+            function showSelectedProject(p) {
+                let avatarHtml;
+                if (p.image && p.image.trim() !== "") {
+                    avatarHtml = `<img src="${appUrl}/file/project/${p.image}"
+                                    width="28" height="28" style="object-fit:cover;border-radius:50%;">`;
+                } else {
+                    avatarHtml = getInitialAvatar(p.title);
+                }
+
+                selectedContainer.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                        ${avatarHtml}
+                        <span class="flex-grow-1">${p.title}</span>
+                        <button type="button" class="btn btn-sm btn-remove-project remove-project" style="line-height:1">
+                            <span class="material-symbols-outlined">close</span>
+                        </button>
+                    </div>
+                `;
+
+                const removeBtn = selectedContainer.querySelector(".remove-project");
+                removeBtn.addEventListener("click", () => {
+                    hiddenInput.value = "";
+                    input.value = "";
+                    selectedContainer.innerHTML = "";
+                });
+            }
+
+            function renderDropdown(filter = "") {
+                dropdown.innerHTML = "";
+                let filtered = projects.filter(p =>
+                    p.title.toLowerCase().includes(filter.toLowerCase())
+                );
+
+                // Exclude current project
+                if (currentProjectId) {
+                    filtered = filtered.filter(p => String(p.id) !== String(currentProjectId));
+                }
+
+                filtered.forEach(p => {
+                    let avatarHtml;
+                    if (p.image && p.image.trim() !== "") {
+                        avatarHtml = `<img src="${appUrl}/file/project/${p.image}"
+                                        width="24" height="24" style="object-fit:cover;border-radius:50%;">`;
+                    } else {
+                        avatarHtml = getInitialAvatar(p.title);
+                    }
+
+                    const item = document.createElement("div");
+                    item.className = "dropdown-item d-flex align-items-center gap-2";
+                    item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                    item.addEventListener("click", () => {
+                        hiddenInput.value = p.id;
+                        input.value = p.title;
+                        dropdown.style.display = "none";
+                        showSelectedProject(p);
                     });
-                    if (currentProjectId && !foundCurrent) {
-                        options += '<option value="' + currentProjectId + '">' + (currentProjectTitle || ('Project ' + currentProjectId)) + '</option>';
+                    dropdown.appendChild(item);
+                });
+
+                dropdown.style.display = filtered.length ? "block" : "none";
+            }
+
+            // Fetch projects
+            fetch(appUrl + "/project/index?task_scope=all")
+                .then(res => res.json())
+                .then(payload => {
+                    projects = (Array.isArray(payload) ? payload : payload.data) || [];
+                    projects = projects.map(p => ({
+                        id: p.id,
+                        title: p.title || p.name || "Project " + p.id,
+                        image: p.image || ""
+                    }));
+
+                    // Preselect part_of_project kalau ada
+                    if (currentPartOfProjectId) {
+                        const found = projects.find(p => String(p.id) === String(currentPartOfProjectId));
+                        if (found) {
+                            hiddenInput.value = found.id;
+                            input.value = found.title;
+                            showSelectedProject(found);
+                        } else if (currentPartOfProjectTitle) {
+                            hiddenInput.value = currentPartOfProjectId;
+                            input.value = currentPartOfProjectTitle;
+                            showSelectedProject({
+                                id: currentPartOfProjectId,
+                                title: currentPartOfProjectTitle,
+                                image: ""
+                            });
+                        }
                     }
-                    try { document.getElementById('edit_part_of_project').innerHTML = options; } catch (e) {}
-                    if (selectedPartOfProjectId) {
-                        try { $('#edit_part_of_project').val(selectedPartOfProjectId); } catch (e) {}
-                    }
-                },
-                error: function () {
-                    // ignore
+                });
+
+            input.addEventListener("input", () => renderDropdown(input.value));
+            input.addEventListener("focus", () => renderDropdown(input.value));
+
+            document.addEventListener("click", (e) => {
+                if (!dropdown.contains(e.target) && e.target !== input) {
+                    dropdown.style.display = "none";
                 }
             });
         }
+
 
         // Image input helper for edit modal
         function setupImageInput(inputEl, labelEl, clearBtnEl) {
@@ -1516,7 +1634,7 @@
                     selectedEmployees.forEach((emp) => {
                         const photoUrl = emp.user_photo || getMeta("app-url") + "/asset/img/avatar.png";
                         const badge = document.createElement("span");
-                        badge.className = "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                        badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
                         const img = document.createElement("img");
                         img.src = photoUrl;
@@ -1540,7 +1658,7 @@
 
                         const removeBtn = document.createElement("button");
                         removeBtn.type = "button";
-                        removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                        removeBtn.className = "btn-close btn-sm ms-2";
                         removeBtn.setAttribute("aria-label", "Remove");
                         removeBtn.addEventListener("click", () => {
                             // remove from hidden input (source of truth) and from selectedMap
@@ -1852,7 +1970,7 @@
                     selectedEmployees.forEach((emp) => {
                         const photoUrl = emp.user_photo || getMeta("app-url") + "/asset/img/avatar.png";
                         const badge = document.createElement("span");
-                        badge.className = "badge bg-primary d-inline-flex align-items-center me-2 mb-2";
+                        badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
                         const img = document.createElement("img");
                         img.src = photoUrl;
@@ -1876,7 +1994,7 @@
 
                         const removeBtn = document.createElement("button");
                         removeBtn.type = "button";
-                        removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
+                        removeBtn.className = "btn-close btn-sm ms-2";
                         removeBtn.setAttribute("aria-label", "Remove");
                         removeBtn.addEventListener("click", () => {
                             // remove from hidden input (source of truth) and from selectedMap
@@ -2046,7 +2164,7 @@
                     arr.forEach(function (a) {
                         var id = a.id || a.employee_id || a.user_id || null;
                         var span = document.createElement('span');
-                        span.className = 'badge bg-primary d-inline-flex align-items-center me-2 mb-2';
+                        span.className = 'badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2';
 
                         var img = document.createElement('img');
                         img.src = a.user_photo || a.profile_picture || (getMeta('app-url').replace(/\/$/, '') + '/asset/img/avatar.png');
@@ -2069,7 +2187,7 @@
 
                         var removeBtn = document.createElement('button');
                         removeBtn.type = 'button';
-                        removeBtn.className = 'btn-close btn-close-white btn-sm ms-2';
+                        removeBtn.className = 'btn-close btn-sm ms-2';
                         removeBtn.setAttribute('aria-label', 'Remove');
                         removeBtn.addEventListener('click', function () {
                             try {

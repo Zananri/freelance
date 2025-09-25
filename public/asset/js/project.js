@@ -2031,7 +2031,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         const candidate =
                                             e.profile_picture_url ||
                                             e.profile_picture ||
-                                            
+
                                             e.user_photo;
                                         e.user_photo = candidate;
                                         return e;
@@ -2346,16 +2346,36 @@ document.addEventListener("DOMContentLoaded", function () {
                             function getDivisionFrom(emp) {
                                 try {
                                     if (!emp) return "";
-                                    return (
+
+                                    let division =
                                         emp?.division_name ||
                                         emp?.division ||
                                         emp?.division_title ||
-                                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                                        (typeof emp?.division === "object" && (emp.division?.name || emp.division?.title)) ||
                                         emp?.employee_division ||
-                                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
-                                        ""
-                                    );
-                                } catch (_) { return ""; }
+                                        (emp?.employee && (emp.employee.division_name ||
+                                            (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                                        "";
+
+                                    if (!division && Array.isArray(employees)) {
+                                        const match = employees.find(e => Number(e.id) === Number(emp.id));
+                                        if (match) {
+                                            division =
+                                                match.division_name ||
+                                                match.division ||
+                                                match.division_title ||
+                                                (typeof match.division === "object" && (match.division?.name || match.division?.title)) ||
+                                                match.employee_division ||
+                                                (match.employee && (match.employee.division_name ||
+                                                    (match.employee.division && (match.employee.division.name || match.employee.division.title)))) ||
+                                                "";
+                                        }
+                                    }
+
+                                    return division || "";
+                                } catch (_) {
+                                    return "";
+                                }
                             }
 
                             selectedEmployees = coAuthors
@@ -2747,16 +2767,36 @@ document.addEventListener("DOMContentLoaded", function () {
                             function getDivisionFrom(emp) {
                                 try {
                                     if (!emp) return "";
-                                    return (
+
+                                    let division =
                                         emp?.division_name ||
                                         emp?.division ||
                                         emp?.division_title ||
-                                        (typeof emp?.division === 'object' && (emp.division?.name || emp.division?.title)) ||
+                                        (typeof emp?.division === "object" && (emp.division?.name || emp.division?.title)) ||
                                         emp?.employee_division ||
-                                        (emp?.employee && (emp.employee.division_name || (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
-                                        ""
-                                    );
-                                } catch (_) { return ""; }
+                                        (emp?.employee && (emp.employee.division_name ||
+                                            (emp.employee.division && (emp.employee.division.name || emp.employee.division.title)))) ||
+                                        "";
+
+                                    if (!division && Array.isArray(employees)) {
+                                        const match = employees.find(e => Number(e.id) === Number(emp.id));
+                                        if (match) {
+                                            division =
+                                                match.division_name ||
+                                                match.division ||
+                                                match.division_title ||
+                                                (typeof match.division === "object" && (match.division?.name || match.division?.title)) ||
+                                                match.employee_division ||
+                                                (match.employee && (match.employee.division_name ||
+                                                    (match.employee.division && (match.employee.division.name || match.employee.division.title)))) ||
+                                                "";
+                                        }
+                                    }
+
+                                    return division || "";
+                                } catch (_) {
+                                    return "";
+                                }
                             }
 
                             selectedEmployees = contributors

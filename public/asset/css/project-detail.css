@@ -527,6 +527,7 @@
     margin-left: 0.5em;
     opacity: 0.8;
     cursor: pointer;
+    font-size: 10px;
 }
 
 #selected_co_authors .badge .btn-close:hover {
@@ -671,10 +672,12 @@
 /* Selected badges inside edit modal: mirror project.js visual (24px avatar, compact padding) */
 #edit_selected_co_authors .badge,
 #edit_selected_contributors .badge,
-#editProjectModal .badge.bg-primary.d-inline-flex {
+#editProjectModal .badge.bg-light.d-inline-flex {
     padding: 4px 8px !important;
     font-size: 12px !important;
     line-height: 1 !important;
+    color: #444444;
+    text-align: start;
 }
 #edit_selected_co_authors img,
 #edit_selected_contributors img,
@@ -705,4 +708,26 @@
     top: auto;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     margin-bottom: -1.2rem;
+}
+
+#edit_part_of_project_dropdown {
+    border: none;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    bottom: 100%;
+    top: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-bottom: -1.2rem;
+}
+
+#edit_part_of_project_dropdown .dropdown-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
 }
