@@ -90,6 +90,8 @@ Route::middleware('auth')->group(function () {
     // === Project feedback routes ===
     Route::post('/project-feedbacks', [ProjectController::class, 'storeFeedback'])->name('project-feedbacks.store');
     Route::put('/project-feedbacks/{id}', [ProjectController::class, 'updateFeedback'])->name('project-feedbacks.update');
+    // Allow authors to delete their own project feedback or replies
+    Route::delete('/project-feedbacks/{id}', [ProjectController::class, 'destroyFeedback'])->name('project-feedbacks.destroy');
     Route::get('/project-feedbacks/latest', [ProjectController::class, 'getProjectsLatestFeedback'])
         ->name('project-feedbacks.latest');
     Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');

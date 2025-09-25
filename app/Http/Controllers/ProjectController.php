@@ -1870,6 +1870,64 @@ class ProjectController extends Controller
     }
 
     /**
+     * Destroy project feedback or reply (only author allowed)
+     */
+    public function destroyFeedback(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $feedback = ProjectFeedback::findOrFail($id);
+
+            $user = $request->user();
+            $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$currentEmployeeId || (int)$feedback->employee_id !== (int)$currentEmployeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'You are not allowed to delete this feedback.',
+                ], 403);
+            }
+
+            // Delete attached image if any
+            if (!empty($feedback->image)) {
+                $path = public_path('file/project/' . $feedback->image);
+                if (file_exists($path)) {
+                    @unlink($path);
+                }
+            }
+
+            // Delete attached reference files if any
+            $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
+            foreach ($refFiles as $rf) {
+                if (!$rf) continue;
+                $p = public_path('file/project/' . $rf);
+                if (file_exists($p)) {
+                    @unlink($p);
+                }
+            }
+
+            // Delete the feedback (this will also delete replies if cascade set; otherwise remove replies manually)
+            $feedback->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Feedback deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json([
+                'code' => $status,
+                'status' => 'error',
+                'message' => 'Failed to delete feedback: ' . $e->getMessage(),
+            ], $status);
+        }
+    }
+
+    /**
      * Get unread feedback count for a project for current employee.
      */
     public function getAllUnreadCounts()

@@ -3,6 +3,112 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
+// Global utility: escape HTML for safe insertion
+function escapeHtml(str) {
+    return String(str || '').replace(/[&<>"']/g, function (m) {
+        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]) || m;
+    });
+}
+
+// Global helper: show delete confirmation modal (Bootstrap) for project feedback/reply
+function showDeleteConfirmModal(opts) {
+    // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+    try {
+        const id = opts.id;
+        const type = opts.type || 'feedback';
+        const avatarUrl = opts.avatarUrl || '';
+        const authorName = opts.authorName || '';
+        const content = opts.content || '';
+        const modalId = 'deleteConfirmModal_proj_' + (type || 'f') + '_' + id + '_' + Date.now();
+
+        const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
+            `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
+
+        const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
+        const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+
+        const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content modal-content-custom">
+                        <div class="modal-body modal-body-custom">
+                            <div class="text-center mb-2">
+                                <div class="task-description-container">
+                                    <p class="task-description mb-0" id="${modalId}_desc">${escapeHtml(content)}</p>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <p class="fw-normal fs-6 text-center mb-4" id="${modalId}_confirm">${confirmText}</p>
+
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" id="${modalId}_cancel">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // If the project feedback modal is open, hide it first so delete modal appears alone.
+        const parentModalEl = document.getElementById('projectFeedbackModal');
+        let _parentWasOpen = false;
+        let _parentModalInstance = null;
+        try {
+            if (parentModalEl && parentModalEl.classList.contains('show')) {
+                _parentWasOpen = true;
+                _parentModalInstance = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                try { _parentModalInstance.hide(); } catch(_) {}
+            }
+        } catch(_) {}
+
+        // Insert modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalEl = document.getElementById(modalId);
+        const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+        modalInstance.show();
+
+        // Close & cleanup helper
+        function cleanup() {
+            try { modalInstance.hide(); } catch(_) {}
+            try { modalEl.remove(); } catch(_) {}
+            try {
+                if (_parentWasOpen && _parentModalInstance) {
+                    try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                    setTimeout(function(){ try { _parentModalInstance.show(); } catch(_) {} }, 180);
+                }
+            } catch(_) {}
+        }
+
+        // Wire cancel to cleanup
+        const cancelBtn = document.getElementById(`${modalId}_cancel`);
+        if (cancelBtn) cancelBtn.addEventListener('click', cleanup);
+
+        // Confirm button
+        const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                try { confirmBtn.disabled = true; confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; } catch(_) {}
+                if (typeof opts.onConfirm === 'function') {
+                    try {
+                        opts.onConfirm(function doneFn(shouldClose){
+                            if (shouldClose === false) {
+                                confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                                return;
+                            }
+                            cleanup();
+                        });
+                    } catch (e) {
+                        confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                    }
+                } else {
+                    cleanup();
+                }
+            });
+        }
+    } catch (e) { console.warn('showDeleteConfirmModal error', e); }
+}
+
 // Flags to prevent double modal triggering
 window.isReopeningTimeline = false;
 window.isHandlingTimelineBarClick = false;
@@ -47,6 +153,112 @@ function handleEmployeeLoadError(xhr, status, error, context = "") {
                     ) {
                         return true;
                     }
+
+    // Helper: show delete confirmation modal (Bootstrap) for project feedback/reply
+    function showDeleteConfirmModal(opts) {
+        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+        try {
+            const id = opts.id;
+            const type = opts.type || 'feedback';
+            const avatarUrl = opts.avatarUrl || '';
+            const authorName = opts.authorName || '';
+            const content = opts.content || '';
+            const modalId = 'deleteConfirmModal_proj_' + (type || 'f') + '_' + id + '_' + Date.now();
+
+            const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
+                `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
+
+            const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
+            const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+
+            const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-body modal-body-custom">
+                                <div class="text-center mb-2">
+                                    <div class="task-description-container">
+                                        <p class="task-description mb-0" id="${modalId}_desc">${escapeHtml(content)}</p>
+                                    </div>
+                                </div>
+                                <hr class="my-2">
+                                <p class="fw-normal fs-6 text-center mb-4" id="${modalId}_confirm">${confirmText}</p>
+
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" id="${modalId}_cancel">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+            // If the project feedback modal is open, hide it first so delete modal appears alone.
+            const parentModalEl = document.getElementById('projectFeedbackModal');
+            let _parentWasOpen = false;
+            let _parentModalInstance = null;
+            try {
+                if (parentModalEl && parentModalEl.classList.contains('show')) {
+                    _parentWasOpen = true;
+                    _parentModalInstance = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                    try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                    try { _parentModalInstance.hide(); } catch(_) {}
+                }
+            } catch(_) {}
+
+            // Insert modal
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modalEl = document.getElementById(modalId);
+            const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+            modalInstance.show();
+
+            // Close & cleanup helper
+            function cleanup() {
+                try { modalInstance.hide(); } catch(_) {}
+                try { modalEl.remove(); } catch(_) {}
+                try {
+                    if (_parentWasOpen && _parentModalInstance) {
+                        try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                        setTimeout(function(){ try { _parentModalInstance.show(); } catch(_) {} }, 180);
+                    }
+                } catch(_) {}
+            }
+
+            // Wire cancel to cleanup
+            const cancelBtn = document.getElementById(`${modalId}_cancel`);
+            if (cancelBtn) cancelBtn.addEventListener('click', cleanup);
+
+            // Confirm button
+            const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function () {
+                    try { confirmBtn.disabled = true; confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; } catch(_) {}
+                    if (typeof opts.onConfirm === 'function') {
+                        try {
+                            opts.onConfirm(function doneFn(shouldClose){
+                                if (shouldClose === false) {
+                                    confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                                    return;
+                                }
+                                cleanup();
+                            });
+                        } catch (e) {
+                            confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                        }
+                    } else {
+                        cleanup();
+                    }
+                });
+            }
+        } catch (e) { console.warn('showDeleteConfirmModal error', e); }
+    }
+
+            // Utility to escape HTML
+            function escapeHtml(str) {
+                return String(str || '').replace(/[&<>"']/g, function (m) {
+                    return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]) || m;
+                });
+            }
                 }
             } catch (_) {}
             return false;
@@ -988,6 +1200,48 @@ document.addEventListener("DOMContentLoaded", function () {
                     } catch (_) {
                         /* noop */
                     }
+                                // Bind reply icon clicks and view-replies toggles so behavior matches task.js
+                                try {
+                                    // Reply triggers (for dynamically created wrappers)
+                                    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function(btn){
+                                        // Avoid rebinding
+                                        if (btn.dataset.bound === '1') return; btn.dataset.bound = '1';
+                                        btn.addEventListener('click', function () {
+                                            const parentId = this.getAttribute('data-feedback-id');
+                                            const pId = parentId || this.closest('.feedback-item')?.getAttribute('data-feedback-id');
+                                            showReplyFeedbackForm(projectId, pId);
+                                        });
+                                    });
+
+                                    // View replies toggle
+                                    modalBody.querySelectorAll('.view-replies-toggle').forEach(function(btn){
+                                        if (btn.dataset.bound === '1') return; btn.dataset.bound = '1';
+                                        btn.addEventListener('click', function(){
+                                            const fid = this.getAttribute('data-feedback-id');
+                                            const count = this.getAttribute('data-replies-count');
+                                            const container = modalBody.querySelector('#replies-' + fid) || this.closest('.feedback-item')?.querySelector('.feedback-replies');
+                                            if (!container) return;
+                                            const hidden = container.classList.contains('d-none');
+                                            if (hidden) {
+                                                container.classList.remove('d-none');
+                                                this.textContent = 'Hide replies';
+                                            } else {
+                                                container.classList.add('d-none');
+                                                this.textContent = `View all replies (${count})`;
+                                            }
+                                            this.style.textDecoration = 'none';
+                                            this.style.color = '#555';
+                                        });
+                                    });
+
+                                    // Open feedback/reply images in a new tab
+                                    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function(img){
+                                        if (img.dataset.bound === '1') return; img.dataset.bound = '1';
+                                        img.addEventListener('click', function(){
+                                            const src = this.getAttribute('src'); if (src) window.open(src, '_blank');
+                                        });
+                                    });
+                                } catch(_) {}
 
                     // Add robust delegated listener for card action menu toggle
                     if (container && container.__cardMenuDelegated !== true) {
@@ -2993,13 +3247,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                         img.src = url;
                                     })();
                                     img.alt = "Employee Photo";
-                                    img.className =
-                                        "feedback-employee-photo me-2 rounded-circle";
-                                    img.style.width = "40px";
-                                    img.style.height = "40px";
+                                    img.className = "rounded-circle me-3";
+                                    img.style.width = "32px";
+                                    img.style.height = "32px";
+                                    img.style.objectFit = "cover";
 
-                                    const infoDiv =
-                                        document.createElement("div");
+                                    const infoDiv = document.createElement("div");
+                                    infoDiv.className = "flex-grow-1";
                                     // Determine author/edit permissions early (used for placing edit icon next to name like Task)
                                     const currentEmployeeIdTop =
                                         parseInt(
@@ -3294,29 +3548,24 @@ document.addEventListener("DOMContentLoaded", function () {
                                     infoDiv.appendChild(nameRow);
                                     infoDiv.appendChild(dateDiv);
                                     infoDiv.appendChild(roleDiv);
+
                                     // Wrap left side like Task: avatar + (name/date)
-                                    const leftWrap =
-                                        document.createElement("div");
-                                    leftWrap.className =
-                                        "d-flex align-items-center";
+                                    const leftWrap = document.createElement("div");
+                                    leftWrap.className = "d-flex align-items-start";
                                     leftWrap.appendChild(img);
                                     leftWrap.appendChild(infoDiv);
+
                                     // Prepare header container
-                                    headerDiv.className =
-                                        "d-flex align-items-center mb-2";
+                                    headerDiv.className = "d-flex align-items-start mb-2";
                                     headerDiv.appendChild(leftWrap);
 
                                     // Comment
-                                    const commentDiv =
-                                        document.createElement("div");
-                                    commentDiv.className =
-                                        "feedback-comment mb-2";
-                                    commentDiv.textContent =
-                                        feedback.feedback_comment || "";
+                                    const commentDiv = document.createElement("div");
+                                    commentDiv.className = "feedback-comment mb-2";
+                                    commentDiv.textContent = feedback.feedback_comment || "";
 
                                     // Media attachments
-                                    const mediaDiv =
-                                        document.createElement("div");
+                                    const mediaDiv = document.createElement("div");
                                     mediaDiv.className = "feedback-media mt-2";
 
                                     if (
@@ -3735,45 +3984,70 @@ document.addEventListener("DOMContentLoaded", function () {
                                     }
 
                                     // Create reply button wrapper with icon + text
-                                    const replyWrapper =
-                                        document.createElement("span");
-                                    replyWrapper.className =
-                                        "d-flex align-items-center";
-                                    replyWrapper.style.cssText =
-                                        "cursor:pointer; color:#555; font-size:12px;";
+                                    const replyWrapper = document.createElement("span");
+                                    // Make wrapper itself the trigger and include data attrs like task.js
+                                    replyWrapper.className = "d-flex align-items-center feedback-reply-trigger";
+                                    replyWrapper.style.cssText = "cursor:pointer; color:#555; font-size:12px;";
+                                    replyWrapper.setAttribute('data-feedback-id', String(feedback.id));
+                                    replyWrapper.setAttribute('data-project-id', String(projectId));
 
-                                    // Recreate reply icon
-                                    const replyIcon =
-                                        document.createElement("span");
-                                    replyIcon.className =
-                                        "material-symbols-outlined feedback-reply-trigger";
-                                    replyIcon.style.cssText =
-                                        "font-size:18px; line-height:1; margin-right:5px;";
+                                    // Recreate reply icon (icon only, trigger is on wrapper)
+                                    const replyIcon = document.createElement("span");
+                                    replyIcon.className = "material-symbols-outlined";
+                                    replyIcon.style.cssText = "font-size:18px; line-height:1; margin-right:5px;";
                                     replyIcon.textContent = "reply";
 
-                                    const replyText =
-                                        document.createElement("span");
+                                    const replyText = document.createElement("span");
                                     replyText.textContent = "Reply";
 
                                     replyWrapper.appendChild(replyIcon);
                                     replyWrapper.appendChild(replyText);
 
-                                    // Add click handler to wrapper
-                                    replyWrapper.addEventListener(
-                                        "click",
-                                        function () {
-                                            showReplyFeedbackForm(
-                                                projectId,
-                                                feedback.id
-                                            );
-                                        }
-                                    );
+                                    // Local click still works (keeps behavior consistent)
+                                    replyWrapper.addEventListener("click", function () {
+                                        showReplyFeedbackForm(projectId, feedback.id);
+                                    });
 
-                                    // Add reply button
+                                    // Add reply button to actions
                                     actionsDiv.appendChild(replyWrapper);
 
-                                    // Insert actions after media (image/links/files) or comment if no media
-                                    feedbackItem.appendChild(actionsDiv);
+                                    // Add delete button for top-level feedback if author (match Task behavior)
+                                    if (canEditTopInline) {
+                                        const deleteWrapper = document.createElement('span');
+                                        // Make the entire wrapper the trigger so clicking text/icon works
+                                        deleteWrapper.className = 'd-flex align-items-center feedback-delete-trigger';
+                                        deleteWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                        deleteWrapper.setAttribute('data-feedback-id', String(feedback.id));
+
+                                        const deleteIcon = document.createElement('span');
+                                        deleteIcon.className = 'material-symbols-outlined';
+                                        deleteIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;';
+                                        deleteIcon.textContent = 'delete';
+
+                                        const deleteText = document.createElement('span');
+                                        deleteText.textContent = 'Delete';
+
+                                        deleteWrapper.appendChild(deleteIcon);
+                                        deleteWrapper.appendChild(deleteText);
+                                        actionsDiv.appendChild(deleteWrapper);
+                                    }
+
+                                    // Prepare content container that holds comment, media and actions (so actions align vertically with name/date)
+                                    const contentContainer = document.createElement('div');
+                                    contentContainer.className = 'mt-2';
+                                    contentContainer.appendChild(commentDiv);
+                                    // mediaDiv appended below if populated
+
+                                    // Ensure actionsDiv uses same classes as Task for alignment
+                                    actionsDiv.className = 'feedback-actions mt-2 d-flex gap-4 align-items-center';
+
+                                    // If there are replies, we will append the view-replies toggle into actionsDiv below
+
+                                    // Insert the actions row into the content container so it lines up under the name/date
+                                    contentContainer.appendChild(actionsDiv);
+
+                                    // Insert content container into infoDiv so actions are vertically aligned with name/date
+                                    infoDiv.appendChild(contentContainer);
 
                                     // Replies list
                                     if (
@@ -3782,22 +4056,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                     ) {
                                         const repliesCount =
                                             feedback.replies.length;
-                                        const repliesWrap =
-                                            document.createElement("div");
-                                        repliesWrap.className =
-                                            "view-replies-wrap feedback-replies-wrap mt-1";
-                                        const toggleBtn =
-                                            document.createElement("button");
+
+                                        const repliesWrap = document.createElement("div");
+                                        repliesWrap.className = "view-replies-wrap feedback-replies-wrap mt-1";
+                                        const toggleBtn = document.createElement("button");
                                         toggleBtn.type = "button";
-                                        toggleBtn.className =
-                                            "btn btn-link p-0 view-replies-toggle feedback-toggle-replies";
-                                        toggleBtn.style.cssText =
-                                            "font-size: 13px; color:#555; text-decoration: none;";
+                                        // Make toggle visually match other action items (flex-aligned, same font-size)
+                                        toggleBtn.className = "btn btn-link p-0 view-replies-toggle feedback-toggle-replies d-flex align-items-center";
+                                        toggleBtn.style.cssText = "cursor:pointer; color:rgb(85,85,85); font-size:13px; text-decoration: none; display:flex; align-items:center;";
+                                        toggleBtn.setAttribute('data-feedback-id', String(feedback.id));
+                                        toggleBtn.setAttribute('data-replies-count', String(repliesCount));
                                         toggleBtn.textContent = `View all replies (${repliesCount})`;
-                                        const repliesContainer =
-                                            document.createElement("div");
-                                        repliesContainer.className =
-                                            "feedback-replies d-none";
+                                        const repliesContainer = document.createElement("div");
+                                        repliesContainer.className = "feedback-replies d-none";
+
+                                        // Append the view-replies toggle into the actions row so it's inline with Reply/Edit/Delete
+                                        actionsDiv.appendChild(toggleBtn);
 
                                         feedback.replies.forEach((rep) => {
                                             const repEmp = rep.employee || {};
@@ -3822,752 +4096,228 @@ document.addEventListener("DOMContentLoaded", function () {
                                             }
                                             repDiv.style.background = "#fafafa";
 
-                                            const repHeader =
-                                                document.createElement("div");
-                                            repHeader.className =
-                                                "d-flex align-items-center mb-1";
-                                            const repImg =
-                                                document.createElement("img");
-                                            (function () {
-                                                const raw =
-                                                    repEmp.user_photo ||
-                                                    repEmp.profile_picture ||
-                                                    repEmp.photo ||
-                                                    "";
-                                                let url =
-                                                    appUrl +
-                                                    "/asset/img/avatar.png";
+                                            // Determine if current user can edit this reply (rEdit)
+                                            const currentEmployeeId = parseInt(projectFeedbackModalEl.getAttribute('data-employee-id') || '0', 10) || 0;
+                                            const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                                            const rEdit = String(repAuthorId) === String(currentEmployeeId);
+
+                                            // Build reply header and content to match Task layout
+                                            const repHeader = document.createElement('div');
+                                            repHeader.className = 'd-flex align-items-start mb-1';
+                                            const repImg = document.createElement('img');
+                                            (function(){
+                                                const raw = repEmp.user_photo || repEmp.profile_picture || repEmp.photo || '';
+                                                let url = appUrl + '/asset/img/avatar.png';
                                                 if (raw) {
-                                                    if (
-                                                        String(raw).startsWith(
-                                                            "http"
-                                                        )
-                                                    )
-                                                        url = raw;
-                                                    else if (
-                                                        String(raw).startsWith(
-                                                            "/"
-                                                        )
-                                                    )
-                                                        url = appUrl + raw;
-                                                    else if (
-                                                        String(raw).indexOf(
-                                                            "/"
-                                                        ) !== -1
-                                                    )
-                                                        url =
-                                                            appUrl + "/" + raw;
-                                                    else
-                                                        url =
-                                                            appUrl +
-                                                            "/file/profile_picture/" +
-                                                            raw;
+                                                    if (String(raw).startsWith('http')) url = raw;
+                                                    else if (String(raw).startsWith('/')) url = appUrl + raw;
+                                                    else if (String(raw).indexOf('/') !== -1) url = appUrl + '/' + raw;
+                                                    else url = appUrl + '/file/profile_picture/' + raw;
                                                 }
                                                 repImg.src = url;
                                             })();
-                                            repImg.alt =
-                                                repEmp.name || "Employee";
-                                            repImg.className =
-                                                "rounded-circle me-2";
-                                            repImg.style.width = "24px";
-                                            repImg.style.height = "24px";
-                                            repImg.style.objectFit = "cover";
-                                            const repInfo =
-                                                document.createElement("div");
-                                            const repNameRow =
-                                                document.createElement("div");
-                                            repNameRow.className =
-                                                "d-flex align-items-center";
-                                            const repName =
-                                                document.createElement(
-                                                    "strong"
-                                                );
-                                            repName.style.fontSize = "13px";
-                                            repName.textContent =
-                                                repEmp.name || "Unknown";
-                                            repNameRow.appendChild(repName);
-                                            const canEditReply =
-                                                String(
-                                                    rep.employee_id != null
-                                                        ? rep.employee_id
-                                                        : repEmp.id || 0
-                                                ) ===
-                                                String(currentEmployeeIdTop);
+                                            repImg.alt = repEmp.name || 'Employee';
+                                            repImg.className = 'rounded-circle me-3';
+                                            repImg.style.width = '24px'; repImg.style.height = '24px'; repImg.style.objectFit = 'cover';
 
-                                            // Store reply edit button for later positioning
-                                            let rEdit = null;
-                                            if (canEditReply) {
-                                                rEdit =
-                                                    document.createElement(
-                                                        "span"
-                                                    );
-                                                rEdit.className =
-                                                    "material-symbols-outlined feedback-edit-trigger ms-2";
-                                                rEdit.style.cssText =
-                                                    "cursor:pointer; font-size:18px; line-height:1; color:rgb(85, 85, 85);";
-                                                rEdit.textContent = "edit";
-                                                rEdit.addEventListener(
-                                                    "click",
-                                                    function () {
-                                                        const payload = {
-                                                            id: rep.id,
-                                                            parent_id:
-                                                                feedback.id,
-                                                            feedback_comment:
-                                                                rep.feedback_comment ||
-                                                                "",
-                                                            reference_url:
-                                                                rep.reference_url ||
-                                                                "",
-                                                            reference_urls:
-                                                                rep.reference_urls ||
-                                                                [],
-                                                            reference_file_url:
-                                                                rep.reference_file ||
-                                                                "",
-                                                            reference_files_urls:
-                                                                (function () {
-                                                                    let files =
-                                                                        [];
-                                                                    let rf =
-                                                                        rep.reference_files;
-                                                                    if (
-                                                                        !Array.isArray(
-                                                                            rf
-                                                                        ) &&
-                                                                        typeof rf ===
-                                                                            "string"
-                                                                    ) {
-                                                                        try {
-                                                                            const arr =
-                                                                                JSON.parse(
-                                                                                    rf
-                                                                                );
-                                                                            if (
-                                                                                Array.isArray(
-                                                                                    arr
-                                                                                )
-                                                                            )
-                                                                                rf =
-                                                                                    arr;
-                                                                        } catch (_) {}
-                                                                    }
-                                                                    if (
-                                                                        Array.isArray(
-                                                                            rf
-                                                                        ) &&
-                                                                        rf.length
-                                                                    ) {
-                                                                        files =
-                                                                            rf
-                                                                                .map(
-                                                                                    function (
-                                                                                        f
-                                                                                    ) {
-                                                                                        if (
-                                                                                            !f
-                                                                                        )
-                                                                                            return null;
-                                                                                        const isAbs =
-                                                                                            typeof f ===
-                                                                                                "string" &&
-                                                                                            (f.startsWith(
-                                                                                                "http://"
-                                                                                            ) ||
-                                                                                                f.startsWith(
-                                                                                                    "https://"
-                                                                                                ));
-                                                                                        const isPath =
-                                                                                            typeof f ===
-                                                                                                "string" &&
-                                                                                            (f.startsWith(
-                                                                                                "/file/project/"
-                                                                                            ) ||
-                                                                                                f.startsWith(
-                                                                                                    "file/project/"
-                                                                                                ));
-                                                                                        if (
-                                                                                            !isAbs &&
-                                                                                            !isPath
-                                                                                        )
-                                                                                            return (
-                                                                                                appUrl +
-                                                                                                "/file/project/" +
-                                                                                                f
-                                                                                            );
-                                                                                        if (
-                                                                                            !isAbs &&
-                                                                                            isPath
-                                                                                        )
-                                                                                            return f.startsWith(
-                                                                                                "/"
-                                                                                            )
-                                                                                                ? appUrl +
-                                                                                                      f
-                                                                                                : appUrl +
-                                                                                                      "/" +
-                                                                                                      f;
-                                                                                        return f;
-                                                                                    }
-                                                                                )
-                                                                                .filter(
-                                                                                    Boolean
-                                                                                );
-                                                                    } else if (
-                                                                        rep.reference_file
-                                                                    ) {
-                                                                        let single =
-                                                                            rep.reference_file;
-                                                                        const isAbs2 =
-                                                                            typeof single ===
-                                                                                "string" &&
-                                                                            (single.startsWith(
-                                                                                "http://"
-                                                                            ) ||
-                                                                                single.startsWith(
-                                                                                    "https://"
-                                                                                ));
-                                                                        const isPath2 =
-                                                                            typeof single ===
-                                                                                "string" &&
-                                                                            (single.startsWith(
-                                                                                "/file/project/"
-                                                                            ) ||
-                                                                                single.startsWith(
-                                                                                    "file/project/"
-                                                                                ));
-                                                                        if (
-                                                                            !isAbs2 &&
-                                                                            !isPath2
-                                                                        )
-                                                                            single =
-                                                                                appUrl +
-                                                                                "/file/project/" +
-                                                                                single;
-                                                                        else if (
-                                                                            !isAbs2 &&
-                                                                            isPath2
-                                                                        )
-                                                                            single =
-                                                                                single.startsWith(
-                                                                                    "/"
-                                                                                )
-                                                                                    ? appUrl +
-                                                                                      single
-                                                                                    : appUrl +
-                                                                                      "/" +
-                                                                                      single;
-                                                                        files =
-                                                                            [
-                                                                                single,
-                                                                            ];
-                                                                    }
-                                                                    return files;
-                                                                })(),
-                                                            image_url:
-                                                                (function () {
-                                                                    const img =
-                                                                        rep.image ||
-                                                                        "";
-                                                                    if (!img)
-                                                                        return "";
-                                                                    if (
-                                                                        String(
-                                                                            img
-                                                                        ).startsWith(
-                                                                            "http"
-                                                                        )
-                                                                    )
-                                                                        return img;
-                                                                    if (
-                                                                        String(
-                                                                            img
-                                                                        ).startsWith(
-                                                                            "/"
-                                                                        )
-                                                                    )
-                                                                        return (
-                                                                            appUrl +
-                                                                            img
-                                                                        );
-                                                                    return (
-                                                                        appUrl +
-                                                                        "/file/project/" +
-                                                                        img
-                                                                    );
-                                                                })(),
-                                                        };
-                                                        showEditFeedbackForm(
-                                                            projectId,
-                                                            payload,
-                                                            true
-                                                        );
-                                                    }
-                                                );
-                                            }
-                                            repInfo.appendChild(repNameRow);
-                                            const repTime =
-                                                document.createElement("small");
-                                            repTime.className =
-                                                "text-muted d-block";
-                                            repTime.style.fontSize = "11px";
+                                            const repInfo = document.createElement('div');
+                                            repInfo.className = 'flex-grow-1';
+                                            // name + time
+                                            // Build name row and date similar to top-level feedback so reply shows date/time consistently
+                                            const repNameWrap = document.createElement('div');
+                                            // name row
+                                            const repNameRow = document.createElement('div');
+                                            repNameRow.className = 'd-flex align-items-center';
+                                            const repNameStrong = document.createElement('strong');
+                                            repNameStrong.style.fontSize = '12px';
+                                            repNameStrong.style.fontWeight = '600';
+                                            repNameStrong.textContent = repEmp.name || 'Unknown';
+                                            repNameRow.appendChild(repNameStrong);
+
+                                            // date display (time / yesterday / full date)
+                                            const repDateDiv = document.createElement('div');
+                                            repDateDiv.className = 'text-muted small';
                                             if (rep.created_at) {
-                                                const d = new Date(
-                                                    rep.created_at
-                                                );
-                                                repTime.textContent =
-                                                    d.toLocaleTimeString(
-                                                        undefined,
-                                                        {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        }
+                                                const dateObj = new Date(rep.created_at);
+                                                const now = new Date();
+                                                function isSameDay(d1, d2) {
+                                                    return (
+                                                        d1.getFullYear() === d2.getFullYear() &&
+                                                        d1.getMonth() === d2.getMonth() &&
+                                                        d1.getDate() === d2.getDate()
                                                     );
+                                                }
+                                                function isYesterday(d1, d2) {
+                                                    const yesterday = new Date(d2);
+                                                    yesterday.setDate(d2.getDate() - 1);
+                                                    return isSameDay(d1, yesterday);
+                                                }
+                                                if (isSameDay(dateObj, now)) {
+                                                    repDateDiv.textContent = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                                                } else if (isYesterday(dateObj, now)) {
+                                                    repDateDiv.textContent = 'yesterday';
+                                                } else {
+                                                    repDateDiv.textContent = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                                                }
+                                            } else {
+                                                repDateDiv.textContent = '';
                                             }
-                                            repInfo.appendChild(repTime);
-                                            repHeader.appendChild(repImg);
-                                            repHeader.appendChild(repInfo);
 
-                                            const repComment =
-                                                document.createElement("p");
-                                            repComment.className = "mb-1";
-                                            repComment.style.fontSize = "13px";
-                                            repComment.textContent =
-                                                rep.feedback_comment || "";
+                                            // assemble into repNameWrap
+                                            repNameWrap.appendChild(repNameRow);
+                                            repNameWrap.appendChild(repDateDiv);
 
-                                            const repMedia =
-                                                document.createElement("div");
-                                            repMedia.className =
-                                                "feedback-reference-container mb-1";
-                                            // Render one or multiple reference URLs in reply
-                                            (function () {
+                                            // content block (description, media, image)
+                                            const repContent = document.createElement('div');
+                                            repContent.className = 'mt-2';
+                                            const repComment = document.createElement('p');
+                                            repComment.className = 'mb-1';
+                                            repComment.style.fontSize = '13px';
+                                            repComment.textContent = rep.feedback_comment || '';
+                                            repContent.appendChild(repComment);
+
+                                            const repMedia = document.createElement('div');
+                                            repMedia.className = 'feedback-reference-container mb-1';
+                                            // render reference urls/files (existing logic reused)
+                                            (function(){
                                                 let urls = [];
-                                                if (
-                                                    Array.isArray(
-                                                        rep.reference_urls
-                                                    )
-                                                )
-                                                    urls = rep.reference_urls;
-                                                else if (
-                                                    rep.reference_urls &&
-                                                    typeof rep.reference_urls ===
-                                                        "string"
-                                                ) {
-                                                    try {
-                                                        const arr = JSON.parse(
-                                                            rep.reference_urls
-                                                        );
-                                                        if (Array.isArray(arr))
-                                                            urls = arr;
-                                                    } catch (_) {}
+                                                if (Array.isArray(rep.reference_urls)) urls = rep.reference_urls;
+                                                else if (rep.reference_urls && typeof rep.reference_urls === 'string') {
+                                                    try{ const arr = JSON.parse(rep.reference_urls); if (Array.isArray(arr)) urls = arr; }catch(_){}
                                                 }
-                                                if (
-                                                    (!urls ||
-                                                        urls.length === 0) &&
-                                                    rep.reference_url
-                                                )
-                                                    urls = [rep.reference_url];
-                                                urls.forEach((u, idx) => {
-                                                    const a =
-                                                        document.createElement(
-                                                            "a"
-                                                        );
-                                                    a.href = u;
-                                                    a.target = "_blank";
-                                                    a.className =
-                                                        "feedback-reference-url me-2";
-                                                    a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${
-                                                        idx + 1
-                                                    }`;
+                                                if (Array.isArray(urls) && urls.length > 0) {
+                                                    urls.filter(Boolean).forEach(function(u, idx){
+                                                        const a = document.createElement('a');
+                                                        a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
+                                                        a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${idx+1}`;
+                                                        repMedia.appendChild(a);
+                                                    });
+                                                } else if (rep.reference_url) {
+                                                    const a = document.createElement('a'); a.href = rep.reference_url; a.target = '_blank'; a.className = 'feedback-reference-url me-2'; a.innerHTML = `<span class="material-symbols-outlined">link</span> Link`;
                                                     repMedia.appendChild(a);
-                                                });
-                                            })();
-                                            (function () {
-                                                let files = [];
-                                                let rf = rep.reference_files;
-                                                if (
-                                                    !Array.isArray(rf) &&
-                                                    typeof rf === "string"
-                                                ) {
-                                                    try {
-                                                        const arr =
-                                                            JSON.parse(rf);
-                                                        if (Array.isArray(arr))
-                                                            rf = arr;
-                                                    } catch (_) {}
                                                 }
-                                                if (
-                                                    Array.isArray(rf) &&
-                                                    rf.length
-                                                )
-                                                    files = rf;
-                                                else if (rep.reference_file)
-                                                    files = [
-                                                        rep.reference_file,
-                                                    ];
-                                                (files || []).forEach(function (
-                                                    file,
-                                                    idx
-                                                ) {
-                                                    if (!file) return;
-                                                    let href = file;
-                                                    if (
-                                                        href &&
-                                                        !(
-                                                            String(
-                                                                href
-                                                            ).startsWith(
-                                                                "http"
-                                                            ) ||
-                                                            String(
-                                                                href
-                                                            ).startsWith("/")
-                                                        )
-                                                    ) {
-                                                        href =
-                                                            appUrl +
-                                                            "/file/project/" +
-                                                            href;
-                                                    } else if (
-                                                        href &&
-                                                        String(href).startsWith(
-                                                            "/"
-                                                        )
-                                                    ) {
-                                                        href = appUrl + href;
-                                                    }
-                                                    const a2 =
-                                                        document.createElement(
-                                                            "a"
-                                                        );
-                                                    a2.href = href;
-                                                    a2.download = "";
-                                                    a2.className =
-                                                        "feedback-reference-file ms-2";
-                                                    a2.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${
-                                                        idx + 1
-                                                    }`;
-                                                    repMedia.appendChild(a2);
-                                                });
+                                                // files
+                                                let files = [];
+                                                if (Array.isArray(rep.reference_files)) files = rep.reference_files;
+                                                else if (rep.reference_files && typeof rep.reference_files === 'string') {
+                                                    try{ const arr = JSON.parse(rep.reference_files); if (Array.isArray(arr)) files = arr; }catch(_){}
+                                                }
+                                                if ((files && files.length) || rep.reference_file) {
+                                                    const fs = Array.isArray(files) && files.length ? files : (rep.reference_file ? [rep.reference_file] : []);
+                                                    fs.filter(Boolean).forEach(function(f, idx){
+                                                        let href = f;
+                                                        if (href && !(String(href).startsWith('http') || String(href).startsWith('/'))) href = appUrl + '/file/project/' + href;
+                                                        else if (href && String(href).startsWith('/')) href = appUrl + href;
+                                                        const af = document.createElement('a'); af.href = href; af.download = true; af.className = 'feedback-reference-file ms-2'; af.innerHTML = `<span class="material-symbols-outlined">draft</span> FILE ${idx+1}`;
+                                                        repMedia.appendChild(af);
+                                                    });
+                                                }
                                             })();
-                                            // Prepare reply image element but append later (below comment and references) like Task
+
+                                            // image
                                             let rImg = null;
                                             if (rep.image) {
-                                                rImg =
-                                                    document.createElement(
-                                                        "img"
-                                                    );
+                                                rImg = document.createElement('img');
                                                 let rsrc = rep.image;
-                                                if (
-                                                    rsrc &&
-                                                    !(
-                                                        String(rsrc).startsWith(
-                                                            "http"
-                                                        ) ||
-                                                        String(rsrc).startsWith(
-                                                            "/"
-                                                        )
-                                                    )
-                                                ) {
-                                                    rsrc =
-                                                        appUrl +
-                                                        "/file/project/" +
-                                                        rsrc;
-                                                } else if (
-                                                    rsrc &&
-                                                    String(rsrc).startsWith("/")
-                                                ) {
-                                                    rsrc = appUrl + rsrc;
-                                                }
-                                                rImg.src = rsrc;
-                                                rImg.className =
-                                                    "img-fluid rounded reply-image mt-1";
-                                                rImg.style.width = "70px";
-                                                rImg.style.borderRadius = "8px";
-                                                rImg.style.cursor = "pointer";
-                                                rImg.addEventListener(
-                                                    "click",
-                                                    () =>
-                                                        window.open(
-                                                            rImg.src,
-                                                            "_blank"
-                                                        )
-                                                );
+                                                if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) rsrc = appUrl + '/file/project/' + rsrc;
+                                                else if (rsrc && String(rsrc).startsWith('/')) rsrc = appUrl + rsrc;
+                                                rImg.src = rsrc; rImg.className = 'img-fluid rounded reply-image'; rImg.style.width = '70px'; rImg.style.borderRadius = '8px'; rImg.style.cursor = 'pointer'; rImg.style.marginTop = '6px';
+                                                rImg.addEventListener('click', function(){ if (this.src) window.open(this.src, '_blank'); });
                                             }
 
-                                            repDiv.appendChild(repHeader);
-                                            repDiv.appendChild(repComment);
-                                            if (
-                                                rep.reference_url ||
-                                                (Array.isArray(
-                                                    rep.reference_urls
-                                                ) &&
-                                                    rep.reference_urls
-                                                        .length) ||
-                                                rep.reference_file ||
-                                                (Array.isArray(
-                                                    rep.reference_files
-                                                ) &&
-                                                    rep.reference_files.length)
-                                            )
-                                                repDiv.appendChild(repMedia);
-                                            if (rImg) repDiv.appendChild(rImg);
+                                            // Create reply actions container for edit, reply and delete (matching task.js)
+                                            const replyActionsDiv = document.createElement('div');
+                                            replyActionsDiv.className = 'feedback-actions mt-2 d-flex gap-4 align-items-center';
 
-                                            // Create reply actions container for edit and reply buttons
-                                            const replyActionsDiv =
-                                                document.createElement("div");
-                                            replyActionsDiv.className =
-                                                "reply-actions mt-2 d-flex gap-3";
+                                            // Create a content container that holds comment, media and actions (so actions align vertically with name/date)
+                                            const repContentContainer = document.createElement('div');
+                                            repContentContainer.className = 'mt-2';
+                                            // attach comment first
+                                            repContentContainer.appendChild(repComment);
 
-                                            // Add edit button if exists
+                                            // attach media (urls/files) into the temporary repContent holder
+                                            repContent.appendChild(repMedia);
+                                            // If image exists, append it to repContent so it will be included in container
+                                            if (rImg) repContent.appendChild(rImg);
+
+                                            // Now repContent holds media and image; move its children into the content container in correct order
+                                            try {
+                                                while (repContent.firstChild) {
+                                                    repContentContainer.appendChild(repContent.firstChild);
+                                                }
+                                            } catch (_) {}
+
+                                            // After building actions, we'll place the actions row inside the content container so it aligns with name/time
+
+                                            // Edit (if allowed)
                                             if (rEdit) {
-                                                // Create edit wrapper with icon + text
-                                                const editReplyWrapper =
-                                                    document.createElement(
-                                                        "span"
-                                                    );
-                                                editReplyWrapper.className =
-                                                    "d-flex align-items-center";
-                                                editReplyWrapper.style.cssText =
-                                                    "cursor:pointer; color:#555; font-size:12px;";
-
-                                                // Recreate edit icon
-                                                const editReplyIcon =
-                                                    document.createElement(
-                                                        "span"
-                                                    );
-                                                editReplyIcon.className =
-                                                    "material-symbols-outlined feedback-edit-trigger";
-                                                editReplyIcon.style.cssText =
-                                                    "font-size:18px; line-height:1; margin-right:5px;";
-                                                editReplyIcon.textContent =
-                                                    "edit";
-
-                                                const editReplyText =
-                                                    document.createElement(
-                                                        "span"
-                                                    );
-                                                editReplyText.textContent =
-                                                    "Edit";
-
-                                                editReplyWrapper.appendChild(
-                                                    editReplyIcon
-                                                );
-                                                editReplyWrapper.appendChild(
-                                                    editReplyText
-                                                );
-
-                                                // Add click handler to wrapper
-                                                editReplyWrapper.addEventListener(
-                                                    "click",
-                                                    function () {
-                                                        const payload = {
-                                                            id: rep.id,
-                                                            parent_id:
-                                                                feedback.id,
-                                                            feedback_comment:
-                                                                rep.feedback_comment ||
-                                                                "",
-                                                            reference_url:
-                                                                rep.reference_url ||
-                                                                "",
-                                                            reference_urls:
-                                                                rep.reference_urls ||
-                                                                [],
-                                                            reference_file_url:
-                                                                rep.reference_file ||
-                                                                "",
-                                                            reference_files_urls:
-                                                                (function () {
-                                                                    let files =
-                                                                        [];
-                                                                    let rf =
-                                                                        rep.reference_files;
-                                                                    if (
-                                                                        !Array.isArray(
-                                                                            rf
-                                                                        ) &&
-                                                                        typeof rf ===
-                                                                            "string"
-                                                                    ) {
-                                                                        try {
-                                                                            const arr =
-                                                                                JSON.parse(
-                                                                                    rf
-                                                                                );
-                                                                            if (
-                                                                                Array.isArray(
-                                                                                    arr
-                                                                                )
-                                                                            )
-                                                                                rf =
-                                                                                    arr;
-                                                                        } catch (_) {}
-                                                                    }
-                                                                    if (
-                                                                        Array.isArray(
-                                                                            rf
-                                                                        ) &&
-                                                                        rf.length
-                                                                    )
-                                                                        files =
-                                                                            rf;
-                                                                    else if (
-                                                                        rep.reference_file
-                                                                    )
-                                                                        files =
-                                                                            [
-                                                                                rep.reference_file,
-                                                                            ];
-                                                                    return files
-                                                                        .map(
-                                                                            function (
-                                                                                f
-                                                                            ) {
-                                                                                if (
-                                                                                    !f
-                                                                                )
-                                                                                    return null;
-                                                                                let href =
-                                                                                    f;
-                                                                                if (
-                                                                                    href &&
-                                                                                    !(
-                                                                                        String(
-                                                                                            href
-                                                                                        ).startsWith(
-                                                                                            "http"
-                                                                                        ) ||
-                                                                                        String(
-                                                                                            href
-                                                                                        ).startsWith(
-                                                                                            "/"
-                                                                                        )
-                                                                                    )
-                                                                                ) {
-                                                                                    href =
-                                                                                        appUrl +
-                                                                                        "/file/project/" +
-                                                                                        href;
-                                                                                } else if (
-                                                                                    href &&
-                                                                                    String(
-                                                                                        href
-                                                                                    ).startsWith(
-                                                                                        "/"
-                                                                                    )
-                                                                                ) {
-                                                                                    href =
-                                                                                        appUrl +
-                                                                                        href;
-                                                                                }
-                                                                                return href;
-                                                                            }
-                                                                        )
-                                                                        .filter(
-                                                                            Boolean
-                                                                        );
-                                                                })(),
-                                                            image_url:
-                                                                (function () {
-                                                                    const img =
-                                                                        rep.image ||
-                                                                        "";
-                                                                    if (!img)
-                                                                        return "";
-                                                                    if (
-                                                                        String(
-                                                                            img
-                                                                        ).startsWith(
-                                                                            "http"
-                                                                        )
-                                                                    )
-                                                                        return img;
-                                                                    if (
-                                                                        String(
-                                                                            img
-                                                                        ).startsWith(
-                                                                            "/"
-                                                                        )
-                                                                    )
-                                                                        return (
-                                                                            appUrl +
-                                                                            img
-                                                                        );
-                                                                    return (
-                                                                        appUrl +
-                                                                        "/file/project/" +
-                                                                        img
-                                                                    );
-                                                                })(),
-                                                        };
-                                                        showEditFeedbackForm(
-                                                            projectId,
-                                                            payload,
-                                                            true
-                                                        );
-                                                    }
-                                                );
-
-                                                replyActionsDiv.appendChild(
-                                                    editReplyWrapper
-                                                );
+                                                const editRep = document.createElement('span');
+                                                editRep.className = 'd-flex align-items-center reply-edit-trigger';
+                                                editRep.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                                editRep.setAttribute('data-reply-id', String(rep.id));
+                                                editRep.setAttribute('data-parent-id', String(feedback.id));
+                                                const editIcon = document.createElement('span'); editIcon.className = 'material-symbols-outlined'; editIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; editIcon.textContent = 'edit';
+                                                const editText = document.createElement('span'); editText.textContent = 'Edit';
+                                                editRep.appendChild(editIcon); editRep.appendChild(editText);
+                                                editRep.addEventListener('click', function(){
+                                                    const payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ const v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ const p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ let rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ const p = JSON.parse(rf); if (Array.isArray(p)) rf = p; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ const img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return appUrl + img; return appUrl + '/file/project/' + img; })() };
+                                                    showEditFeedbackForm(projectId, payload, true);
+                                                });
+                                                replyActionsDiv.appendChild(editRep);
                                             }
 
-                                            // Create reply wrapper with icon + text
-                                            const replyReplyWrapper =
-                                                document.createElement("span");
-                                            replyReplyWrapper.className =
-                                                "d-flex align-items-center";
-                                            replyReplyWrapper.style.cssText =
-                                                "cursor:pointer; color:#555; font-size:12px;";
+                                            // Reply
+                                            const replyRep = document.createElement('span');
+                                            replyRep.className = 'd-flex align-items-center feedback-reply-trigger';
+                                            replyRep.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                            replyRep.setAttribute('data-feedback-id', String(feedback.id));
+                                            replyRep.setAttribute('data-project-id', String(projectId));
+                                            const replyIcon = document.createElement('span'); replyIcon.className = 'material-symbols-outlined'; replyIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; replyIcon.textContent = 'reply';
+                                            const replyText = document.createElement('span'); replyText.textContent = 'Reply';
+                                            replyRep.appendChild(replyIcon); replyRep.appendChild(replyText);
+                                            replyRep.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); });
+                                            replyActionsDiv.appendChild(replyRep);
 
-                                            // Add reply button for nested reply
-                                            const replyToReplyIcon =
-                                                document.createElement("span");
-                                            replyToReplyIcon.className =
-                                                "material-symbols-outlined feedback-reply-trigger";
-                                            replyToReplyIcon.style.cssText =
-                                                "font-size:18px; line-height:1; margin-right:5px;";
-                                            replyToReplyIcon.textContent =
-                                                "reply";
+                                            // Delete (if allowed)
+                                            if (rEdit) {
+                                                const delRep = document.createElement('span');
+                                                delRep.className = 'd-flex align-items-center reply-delete-trigger';
+                                                delRep.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                                delRep.setAttribute('data-reply-id', String(rep.id));
+                                                delRep.setAttribute('data-parent-id', String(feedback.id));
+                                                const delIcon = document.createElement('span'); delIcon.className = 'material-symbols-outlined'; delIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; delIcon.textContent = 'delete';
+                                                const delText = document.createElement('span'); delText.textContent = 'Delete';
+                                                delRep.appendChild(delIcon); delRep.appendChild(delText);
+                                                replyActionsDiv.appendChild(delRep);
+                                            }
 
-                                            const replyReplyText =
-                                                document.createElement("span");
-                                            replyReplyText.textContent =
-                                                "Reply";
+                                            // Insert avatar + info into header so avatar, name and time are visible
+                                            const leftWrap = document.createElement('div');
+                                            leftWrap.className = 'd-flex align-items-start';
+                                            leftWrap.appendChild(repImg);
 
-                                            replyReplyWrapper.appendChild(
-                                                replyToReplyIcon
-                                            );
-                                            replyReplyWrapper.appendChild(
-                                                replyReplyText
-                                            );
+                                            // name already prepared in repNameWrap
+                                            repInfo.appendChild(repNameWrap);
 
-                                            replyReplyWrapper.addEventListener(
-                                                "click",
-                                                function () {
-                                                    showReplyFeedbackForm(
-                                                        projectId,
-                                                        feedback.id
-                                                    );
-                                                }
-                                            );
+                                            // insert the content (comment + media + image) under the name so actions align with name/time
+                                            repInfo.appendChild(repContentContainer);
 
-                                            replyActionsDiv.appendChild(
-                                                replyReplyWrapper
-                                            );
+                                            // Now place info to the right of avatar
+                                            leftWrap.appendChild(repInfo);
+                                            repHeader.appendChild(leftWrap);
 
-                                            repDiv.appendChild(replyActionsDiv);
+                                            // Place reply actions inside the content container so they align vertically with name/time
+                                            try { repContentContainer.appendChild(replyActionsDiv); } catch(_) {}
+
+                                            // Append header (which contains avatar + info + content+actions)
+                                            repDiv.appendChild(repHeader);
                                             repliesContainer.appendChild(
                                                 repDiv
                                             );
                                         });
 
-                                        repliesWrap.appendChild(toggleBtn);
-                                        repliesWrap.appendChild(
-                                            repliesContainer
-                                        );
+                                        // Keep toggle button inside actionsDiv (already appended there).
+                                        repliesWrap.appendChild(repliesContainer);
                                         feedbackItem.appendChild(repliesWrap);
 
                                         toggleBtn.addEventListener(
@@ -4698,6 +4448,104 @@ document.addEventListener("DOMContentLoaded", function () {
                                 } catch (_) {
                                     /* noop */
                                 }
+                                // Attach delete handlers for feedback and replies (matching task.js behavior)
+                                try {
+                                    // Top-level feedback delete
+                                    modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function(btn){
+                                        btn.addEventListener('click', function(){
+                                            const fid = this.getAttribute('data-feedback-id');
+                                            const authorName = (this.closest('.feedback-item')?.querySelector('strong')?.textContent) || '';
+                                            const content = (this.closest('.feedback-item')?.querySelector('.task-description, p, .task-description-container p, .task-description')?.textContent) || '';
+                                            const avatarUrl = (this.closest('.feedback-item')?.querySelector('img')?.getAttribute('src')) || '';
+                                            window.showDeleteConfirmModal({ type: 'feedback', id: fid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                                // perform DELETE
+                                                fetch(appUrl + '/project-feedbacks/' + fid, {
+                                                    method: 'DELETE',
+                                                    headers: {
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                        'Accept': 'application/json'
+                                                    }
+                                                }).then(function(r){
+                                                    return r.text().then(function(t){
+                                                        try{ var j = JSON.parse(t); if (r.ok) return j; return Promise.reject(j); }catch(e){ if (r.ok) return { message: t }; return Promise.reject({ message: t }); }
+                                                    });
+                                                }).then(res => {
+                                                    // remove DOM
+                                                    try {
+                                                        const el = modalBody.querySelector(`.feedback-item[data-feedback-id="${fid}"]`);
+                                                        if (el) el.remove();
+                                                    } catch(_){}
+                                                    // update badge count on card
+                                                    try {
+                                                        const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                                                        if (card) {
+                                                            const badge = card.querySelector('.project-feedback-count');
+                                                            if (badge) {
+                                                                const cur = parseInt(badge.textContent) || 0;
+                                                                badge.textContent = Math.max(0, cur - 1);
+                                                            }
+                                                        }
+                                                    } catch(_){}
+                                                    showFloatingAlert(res.message || 'Feedback deleted', 'success', 1500);
+                                                    // signal done to close modal
+                                                    done(true);
+                                                }).catch(err => {
+                                                    const msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to delete feedback';
+                                                    showFloatingAlert(msg, 'warning', 3500);
+                                                    done(false);
+                                                });
+                                            }});
+                                        });
+                                    });
+
+                                    // Reply delete
+                                    modalBody.querySelectorAll('.reply-delete-trigger').forEach(function(btn){
+                                        btn.addEventListener('click', function(){
+                                            const rid = this.getAttribute('data-reply-id');
+                                            const pid = this.getAttribute('data-parent-id');
+                                            const authorName = (this.closest('.feedback-reply')?.querySelector('strong')?.textContent) || '';
+                                            const content = (this.closest('.feedback-reply')?.querySelector('p')?.textContent) || '';
+                                            const avatarUrl = (this.closest('.feedback-reply')?.querySelector('img')?.getAttribute('src')) || '';
+                                            window.showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                                fetch(appUrl + '/project-feedbacks/' + rid, {
+                                                    method: 'DELETE',
+                                                    headers: {
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                        'Accept': 'application/json'
+                                                    }
+                                                }).then(function(r){
+                                                    return r.text().then(function(t){
+                                                        try{ var j = JSON.parse(t); if (r.ok) return j; return Promise.reject(j); }catch(e){ if (r.ok) return { message: t }; return Promise.reject({ message: t }); }
+                                                    });
+                                                }).then(res => {
+                                                    try {
+                                                        const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"]`);
+                                                        if (el) el.remove();
+                                                        // if no more replies, hide replies container and toggle text
+                                                        const parentEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${pid}"]`);
+                                                        if (parentEl) {
+                                                            const repliesContainer = parentEl.querySelector('.feedback-replies');
+                                                            if (repliesContainer) {
+                                                                const children = repliesContainer.querySelectorAll('.feedback-reply');
+                                                                if (!children || children.length === 0) {
+                                                                    repliesContainer.classList.add('d-none');
+                                                                    const toggle = parentEl.querySelector('.feedback-toggle-replies');
+                                                                    if (toggle) toggle.textContent = '';
+                                                                }
+                                                            }
+                                                        }
+                                                    } catch(_){}
+                                                    showFloatingAlert(res.message || 'Reply deleted', 'success', 1500);
+                                                    done(true);
+                                                }).catch(err => {
+                                                    const msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to delete reply';
+                                                    showFloatingAlert(msg, 'warning', 3500);
+                                                    done(false);
+                                                });
+                                            }});
+                                        });
+                                    });
+                                } catch (_) {}
                             })
                             .catch((error) => {
                                 modalBody.innerHTML =
@@ -6004,6 +5852,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     projectFeedbackModalEl.addEventListener(
                         "hidden.bs.modal",
                         function () {
+                            // If suppression flag is set (we temporarily hid this modal to show delete modal),
+                            // skip clearing body/backdrop and reset the flag in the delete modal cleanup instead.
+                            try {
+                                if (window.__suppressFeedbackBackdropRemoval) return;
+                            } catch (_) {}
+
                             modalTitle.textContent = "Feedback";
                             modalBody.innerHTML = "";
                             try {
@@ -7356,7 +7210,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const prevLi = document.createElement("li");
         prevLi.className = "page-item" + (currentPage === 1 ? " disabled" : "");
         const prevBtn = document.createElement("button");
-        prevBtn.className = "page-link";1
+    prevBtn.className = "page-link";
         prevBtn.textContent = "Previous";
         prevBtn.addEventListener("click", function (e) {
             e.preventDefault();
