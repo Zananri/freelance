@@ -39,39 +39,49 @@ document.addEventListener('DOMContentLoaded', () => {
         preview.innerHTML='';
 
         if(selectedFiles.length === 0) return;
-
         const list = document.createElement('div');
         list.className = 'selected-files-list mt-2';
 
         selectedFiles.forEach((file, index)=>{
             const item = document.createElement('div');
-            item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+            item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-            const info = document.createElement('div');
-            info.className = 'd-flex align-items-center flex-grow-1';
+            if (file && file.type && file.type.indexOf('image') === 0) {
+                const img = document.createElement('img');
+                const url = URL.createObjectURL(file);
+                img.src = url;
+                img.width = 28;
+                img.height = 28;
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '50%';
+                img.alt = file.name;
+                img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
+                item.appendChild(img);
+            } else {
+                const badge = document.createElement('div');
+                badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                badge.style.width = '28px';
+                badge.style.height = '28px';
+                badge.style.background = '#E9ECEF';
+                badge.style.color = '#4B4F5E';
+                badge.style.fontSize = '13px';
+                badge.style.fontWeight = '600';
+                badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
+                item.appendChild(badge);
+            }
 
-            const icon = document.createElement('span');
-            icon.className = 'material-symbols-outlined me-2';
-            icon.textContent = 'description';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'file-name';
-            nameSpan.textContent = file.name;
-
-            const size = document.createElement('small');
-            size.className = 'text-muted ms-1';
-            size.textContent = ` (${(file.size/1024/1024).toFixed(2)} MB)`;
+            const title = document.createElement('span');
+            title.className = 'flex-grow-1';
+            title.textContent = file.name;
+            item.appendChild(title);
 
             const removeBtn = document.createElement('button');
             removeBtn.type = 'button';
-            removeBtn.className = 'btn btn-sm btn-outline-danger';
-            removeBtn.innerHTML = '&times;';
+            removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+            removeBtn.style.lineHeight = '1';
+            removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
             removeBtn.addEventListener('click', ()=>{ selectedFiles.splice(index,1); displaySelectedFiles(); });
 
-            info.appendChild(icon);
-            info.appendChild(nameSpan);
-            info.appendChild(size);
-            item.appendChild(info);
             item.appendChild(removeBtn);
             list.appendChild(item);
         });
