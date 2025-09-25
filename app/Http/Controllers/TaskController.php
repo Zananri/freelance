@@ -287,6 +287,63 @@ class TaskController extends Controller
     }
 
     /**
+     * Destroy task feedback or reply (only author allowed)
+     */
+    public function destroyFeedback(Request $request, $id)
+    {
+        DB::beginTransaction();
+        try {
+            $feedback = TaskFeedback::findOrFail($id);
+
+            $user = $request->user();
+            $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$currentEmployeeId || (int)$feedback->employee_id !== (int)$currentEmployeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'You are not allowed to delete this feedback.',
+                ], 403);
+            }
+
+            // Delete attached image if any
+            if (!empty($feedback->image)) {
+                $path = public_path('file/task/' . $feedback->image);
+                if (file_exists($path)) {
+                    @unlink($path);
+                }
+            }
+
+            // Delete attached reference files if any
+            $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
+            foreach ($refFiles as $rf) {
+                if (!$rf) continue;
+                $p = public_path('file/task_reference_files/' . $rf);
+                if (file_exists($p)) {
+                    @unlink($p);
+                }
+            }
+
+            // Delete the feedback (this will also delete replies if cascade set; otherwise remove replies manually)
+            $feedback->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Feedback deleted successfully',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => 'Failed to delete feedback: ' . $e->getMessage(),
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
      * List tasks for current employee without pagination, grouped for charts.
      * Categories: not_started (new_request), in_progress, rejected, completed, late (overdue and not completed).
      * Optional filter: project (project_id)
