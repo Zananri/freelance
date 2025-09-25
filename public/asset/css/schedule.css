@@ -306,7 +306,6 @@
 
     .schedule-header .search-input-container {
         width: 200px !important;
-
     }
 
     .btn-filter-custom,
@@ -353,6 +352,13 @@
     border: none;
 }
 
+.modal-header-custom {
+    position: sticky;
+    margin-bottom: 20px;
+    z-index: 1050;
+    border: none;
+}
+
 .modal-body-custom {
     max-height: calc(80vh - 120px);
     overflow-y: auto;
@@ -360,12 +366,25 @@
     padding: 8px;
 }
 
+.modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
 .modal-footer-custom button {
     flex: 1;
     border: none;
     border-radius: 10px;
     padding: 10px;
-    font-size: 14px;
+    font-size: 12px;
     height: 45px;
 }
 
@@ -376,14 +395,14 @@
 
 .modal-footer-custom .btn-submit-black {
     background-color: #313131 !important;
-    color: #F3F3F3 !important;
-    font-size: 14px !important;
+    color: #f3f3f3 !important;
+    font-size: 12px !important;
     font-weight: 300 !important;
     border: 0px !important;
 }
 
 .modal-footer-custom .btn-submit-black:hover,
-.modal-footer-custom .btn-submit-black:active{
+.modal-footer-custom .btn-submit-black:active {
     background-color: #1b1c1d !important;
     color: #fdfeff !important;
 }
@@ -423,31 +442,11 @@
     align-items: center;
     justify-content: space-between;
 }
-.division-item:hover { background: #f0f0f0; }
-
-/* sizing for the native select used as value carrier */
-#schedule_division_id.position-absolute.input-select,
-#edit_schedule_division_id.position-absolute.input-select {
-    height: 25px !important;
-    min-height: 25px !important;
-    line-height: 21px !important;
-    padding-top: 2px !important;
-    padding-bottom: 2px !important;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-    box-sizing: border-box !important;
-    font-size: 10px !important;
+.division-item:hover {
+    background: #f0f0f0;
 }
 
 @media (min-width: 769px) {
-    #schedule_division_id.position-absolute.input-select,
-    #edit_schedule_division_id.position-absolute.input-select {
-        -webkit-appearance: none;
-        -moz-appearance: none;
-        appearance: none;
-        background-image: none !important;
-        pointer-events: none; /* disable direct pointer interaction on desktop */
-    }
     .division-activator {
         inset: 0; /* fill the select area */
         width: 100%;
@@ -459,5 +458,7 @@
 }
 
 @media (max-width: 768px) {
-    .division-activator { display: none; }
+    .division-activator {
+        display: none;
+    }
 }

@@ -374,7 +374,95 @@ document.addEventListener('DOMContentLoaded', () => {
     })();
 
     // Load projects for select
-    (function loadProjects(){ const sel=document.getElementById('schedule_project_id'); if(!sel) return; fetch(appUrl + '/project/index?task_scope=all').then(r=>r.json()).then(d=>{ const arr=d.data||[]; let opts='<option value="">No Project</option>'; arr.forEach(p=> opts += `<option value='${p.id}'>${p.title}</option>`); sel.innerHTML=opts; }).catch(()=>{}); })();
+    (function loadProjects() {
+        const input = document.getElementById("schedule_project_context_id");
+        const dropdown = document.getElementById("schedule_project_dropdown");
+        const selectedContainer = document.getElementById("schedule_selected_project");
+        const hiddenInput = document.getElementById("schedule_project_id");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let projects = [];
+
+        function renderDropdown(filter = "") {
+            dropdown.innerHTML = "";
+            let filtered = projects.filter((p) =>
+                p.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            filtered.forEach((p) => {
+                let avatarHtml = p.image
+                    ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>`
+                    : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">
+                            ${p.title.charAt(0).toUpperCase()}
+                    </div>`;
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                item.addEventListener("click", () => {
+                    hiddenInput.value = p.id;
+                    input.value = p.title;
+                    dropdown.style.display = "none";
+                    showSelectedProject(p);
+                });
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = filtered.length ? "block" : "none";
+        }
+
+        function showSelectedProject(p) {
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                    ${
+                        p.image
+                            ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                            : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">
+                                    ${p.title.charAt(0).toUpperCase()}
+                            </div>`
+                    }
+                    <span class="flex-grow-1">${p.title}</span>
+                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            selectedContainer
+                .querySelector(".btn-remove-project")
+                .addEventListener("click", () => {
+                    hiddenInput.value = "";
+                    input.value = "";
+                    selectedContainer.innerHTML = "";
+                    document.getElementById("task_parent_id").innerHTML = "<option value=''>No Parent</option>";
+                });
+
+            loadRelatedTasks(p.id, "task", document.getElementById("task_parent_id"));
+        }
+
+        fetch(appUrl + "/project/index?task_scope=all")
+            .then((res) => res.json())
+            .then((payload) => {
+                projects = (payload.data || []).map((p) => ({
+                    id: p.id,
+                    title: p.title,
+                    image: p.image || "",
+                }));
+            })
+            .catch((err) => console.error("Error loading projects:", err));
+
+        input.addEventListener("input", () => renderDropdown(input.value));
+        input.addEventListener("focus", () => renderDropdown(input.value));
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
+    })();
 
     // Load divisions and wire division -> executor behavior (mirror task.js)
     (function loadDivisionsAndWire(){
