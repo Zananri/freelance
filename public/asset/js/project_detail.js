@@ -1355,7 +1355,9 @@
         } // end setupImageInput
 
             // Setup searchable co-author input inside edit modal (copied/adapted from project.js)
-            function setupCoAuthorInputEdit() {
+            // Define setupCoAuthorInputEdit only if not provided by shared project.js
+            if (typeof window.setupCoAuthorInputEdit !== 'function') {
+                window.setupCoAuthorInputEdit = function setupCoAuthorInputEdit() {
                 const input = document.getElementById("edit_co_author_input");
                 const dropdown = document.getElementById("edit_co_author_dropdown");
                 const selectedContainer = document.getElementById(
@@ -1368,7 +1370,9 @@
 
                 let employees = [];
                 let filteredEmployees = [];
+                // store selected contributors as a map id -> object to avoid losing previous selections
                 let selectedEmployees = [];
+                let selectedMap = {};
                 let isDropdownOpen = false;
 
                 function fetchEmployees(query = "") {
@@ -1631,10 +1635,13 @@
                     }
                     renderDropdown();
                 };
+                } // end setupCoAuthorInputEdit
             }
 
             // Setup searchable contributors input inside edit modal
-            function setupContributorInputEdit() {
+            // Define setupContributorInputEdit only if not provided by shared project.js
+            if (typeof window.setupContributorInputEdit !== 'function') {
+                window.setupContributorInputEdit = function setupContributorInputEdit() {
                 const input = document.getElementById("edit_contributor_input");
                 const dropdown = document.getElementById("edit_contributor_dropdown");
                 const selectedContainer = document.getElementById("edit_selected_contributors");
@@ -1645,7 +1652,24 @@
                 let employees = [];
                 let filteredEmployees = [];
                 let selectedEmployees = [];
+                // map of id -> employee object to persist selections
+                let selectedMap = {};
                 let isDropdownOpen = false;
+
+                function buildAvatarUrl(raw) {
+                    if (!raw) return getMeta("app-url") + "/asset/img/avatar.png";
+                    try {
+                        raw = String(raw).trim();
+                        const trimmed = raw.replace(/^\/+/, "");
+                        if (/^https?:\/\//i.test(raw)) return raw;
+                        if (/^(file\/|asset\/|storage\/)/.test(trimmed)) return getMeta("app-url") + "/" + trimmed;
+                        if (raw.startsWith("/")) return getMeta("app-url") + raw;
+                        if (raw.indexOf("/") !== -1) return getMeta("app-url") + "/" + trimmed;
+                        return getMeta("app-url") + "/file/profile_picture/" + raw;
+                    } catch (_) {
+                        return getMeta("app-url") + "/asset/img/avatar.png";
+                    }
+                }
 
                 function fetchEmployees(query = "") {
                     const currentEmployeeId = document.getElementById("editProjectModal")?.getAttribute("data-employee-id") || "";
@@ -1747,16 +1771,30 @@
                         checkbox.addEventListener("change", function () {
                             const id = parseInt(this.getAttribute("data-id"));
                             const name = this.getAttribute("data-name");
-                            const employeeObj = employees.find((emp) => emp.id === id);
+                            // Use hidden input as source of truth to avoid replaces
+                            let cur = [];
+                            try {
+                                cur = JSON.parse((hiddenInput && hiddenInput.value) || '[]');
+                                if (!Array.isArray(cur)) cur = [];
+                            } catch (_) { cur = []; }
+
                             if (this.checked) {
-                                if (!selectedEmployees.some((e) => e.id === id)) {
-                                    selectedEmployees.push({ id, name, user_photo: employeeObj ? employeeObj.user_photo : null, division: employeeObj ? getDivision(employeeObj) : '' });
-                                }
+                                if (!cur.includes(id)) cur.push(id);
+                                // add to selectedMap using employees cache if available
+                                const empObj = employees.find((ee) => Number(ee.id) === Number(id)) || { id: id, name: name };
+                                selectedMap[String(id)] = { id: Number(id), name: empObj.name || name || '', user_photo: empObj.user_photo || null, division: getDivision(empObj) };
                             } else {
-                                selectedEmployees = selectedEmployees.filter((e) => e.id !== id);
+                                cur = cur.filter((v) => Number(v) !== Number(id));
+                                delete selectedMap[String(id)];
                             }
+
+                            // write back hidden input
+                            try { if (hiddenInput) hiddenInput.value = JSON.stringify(cur); } catch (_) {}
+
+                            // rebuild selectedEmployees array from map to keep order stable
+                            selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
+
                             renderSelected();
-                            updateHiddenInput();
                             renderDropdown();
                             try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch (_) {}
                         });
@@ -1795,9 +1833,19 @@
                         removeBtn.className = "btn-close btn-close-white btn-sm ms-2";
                         removeBtn.setAttribute("aria-label", "Remove");
                         removeBtn.addEventListener("click", () => {
-                            selectedEmployees = selectedEmployees.filter((e) => e.id !== emp.id);
+                            // remove from hidden input (source of truth) and from selectedMap
+                            try {
+                                let cur = JSON.parse((hiddenInput && hiddenInput.value) || '[]');
+                                if (!Array.isArray(cur)) cur = [];
+                                cur = cur.filter(function (v) { return Number(v) !== Number(emp.id); });
+                                if (hiddenInput) hiddenInput.value = JSON.stringify(cur);
+                                delete selectedMap[String(emp.id)];
+                                selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
+                            } catch (_) {
+                                delete selectedMap[String(emp.id)];
+                                selectedEmployees = Object.keys(selectedMap).map(function (k) { return selectedMap[k]; });
+                            }
                             renderSelected();
-                            updateHiddenInput();
                             renderDropdown();
                             try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch (_) {}
                         });
@@ -1848,6 +1896,7 @@
                 };
 
                 window.setSelectedContributorsEdit = function (contributors) {
+                    // Merge incoming contributors with existing hidden input (do not replace)
                     let coIds = [];
                     try {
                         const raw = document.getElementById("edit_co_author")?.value || "[]";
@@ -1855,14 +1904,44 @@
                         coIds = Array.isArray(arr) ? arr.map((v) => Number(v)) : [];
                     } catch (_) { coIds = []; }
 
-                    selectedEmployees = contributors
-                        .filter((c) => !coIds.includes(Number(c.id)))
-                        .map((ca) => {
-                            const candidate = ca.profile_picture_url || ca.profile_picture || ca.user_photo;
-                            return { id: ca.id, name: ca.name, user_photo: buildAvatarUrl(candidate), division: getDivision(ca) };
+                    // incoming ids
+                    const incoming = Array.isArray(contributors) ? contributors.map((c) => Number(c.id)) : [];
+
+                    // existing ids from hidden input
+                    let existing = [];
+                    try {
+                        existing = JSON.parse((document.getElementById('edit_contributors')?.value) || '[]');
+                        if (!Array.isArray(existing)) existing = [];
+                    } catch (_) { existing = []; }
+
+                    // union, then exclude any co-author ids
+                    const unionIds = Array.from(new Set([].concat(existing, incoming))).filter((id) => !coIds.includes(Number(id)));
+
+                    // Build selectedEmployees from unionIds using employees cache when possible
+                    try {
+                        // populate selectedMap and selectedEmployees
+                        selectedMap = {};
+                        selectedEmployees = unionIds.map(function (sid) {
+                            const emp = employees.find(function (ee) { return Number(ee.id) === Number(sid); }) || {};
+                            const foundIncoming = (contributors || []).find(function(c){ return Number(c.id) === Number(sid); }) || {};
+                            const obj = {
+                                id: Number(sid),
+                                name: emp.name || foundIncoming.name || '',
+                                user_photo: emp.user_photo || buildAvatarUrl(foundIncoming.profile_picture || foundIncoming.user_photo || ''),
+                                division: getDivision(emp) || getDivision(foundIncoming) || ''
+                            };
+                            selectedMap[String(obj.id)] = obj;
+                            return obj;
                         });
+                    } catch (_) {
+                        selectedMap = {};
+                        selectedEmployees = unionIds.map(function (sid) { var o = { id: Number(sid), name: '', user_photo: null, division: '' }; selectedMap[String(sid)] = o; return o; });
+                    }
+
+                    // write back hidden input
+                    try { document.getElementById('edit_contributors').value = JSON.stringify(selectedEmployees.map(function(e){ return e.id; })); } catch (_) {}
+
                     renderSelected();
-                    updateHiddenInput();
                     try { window.syncCoAuthorsWithContributors && window.syncCoAuthorsWithContributors(); } catch (_) {}
                 };
 
@@ -1882,11 +1961,12 @@
                     }
                     renderDropdown();
                 };
+                } // end setupContributorInputEdit
             }
 
             // initialize co-author/contributor dropdowns for edit modal
-            try { setupCoAuthorInputEdit(); } catch (_) {}
-            try { setupContributorInputEdit(); } catch (_) {}
+            try { if (typeof window.setupCoAuthorInputEdit === 'function') window.setupCoAuthorInputEdit(); } catch (_) {}
+            try { if (typeof window.setupContributorInputEdit === 'function') window.setupContributorInputEdit(); } catch (_) {}
 
             // Render selected collaborators badges into edit modal (blue with remove button)
             function renderSelectedBadges(containerId, arr, hiddenInputId) {
@@ -2091,6 +2171,9 @@
 
                                 renderSelectedBadges('edit_selected_co_authors', co, 'edit_co_author');
                                 renderSelectedBadges('edit_selected_contributors', cont, 'edit_contributors');
+
+                                try { if (window.setSelectedCoAuthorsEdit) window.setSelectedCoAuthorsEdit(co || []); } catch (_) {}
+                                try { if (window.setSelectedContributorsEdit) window.setSelectedContributorsEdit(cont || []); } catch (_) {}
                             } catch(_){}
 
                             // Show modal
