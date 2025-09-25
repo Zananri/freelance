@@ -6280,14 +6280,53 @@ function applyCurrentSearchFilter() {
                         referenceFilesList.innerHTML = "";
 
                         if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
+                            // Render preview-like items (thumbnail for images, badge for others)
                             referenceFiles.forEach((fileName) => {
                                 if (!fileName) return;
-                                const link = document.createElement("a");
-                                link.href = appUrl + "/file/task_reference_files/" + fileName;
-                                link.target = "_blank";
-                                link.className = "d-block text-decoration-none mb-1";
-                                link.innerHTML = `<span class="material-symbols-outlined me-1" style="font-size: 16px; vertical-align: middle;">description</span> ${fileName}`;
-                                referenceFilesList.appendChild(link);
+
+                                // Normalize URL: if already absolute use it, if starts with '/' prefix with appUrl, else assume stored filename under task_reference_files
+                                let fileUrl = String(fileName || '');
+                                const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+                                const isRefPath = fileUrl.startsWith('/file/task_reference_files/') || fileUrl.startsWith('file/task_reference_files/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
+                                if (!isAbs && !isRefPath) {
+                                    fileUrl = appUrl + '/file/task_reference_files/' + fileUrl;
+                                } else if (!isAbs && fileUrl.startsWith('/')) {
+                                    fileUrl = appUrl + fileUrl;
+                                }
+
+                                const item = document.createElement('div');
+                                item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                                const lower = String(fileName || '').toLowerCase();
+                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+
+                                if (isImage) {
+                                    const img = document.createElement('img');
+                                    img.src = fileUrl;
+                                    img.width = 28; img.height = 28;
+                                    img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                                    img.alt = fileName;
+                                    item.appendChild(img);
+                                } else {
+                                    const badge = document.createElement('div');
+                                    badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                                    badge.style.width = '28px'; badge.style.height = '28px';
+                                    badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
+                                    badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
+                                    badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
+                                    item.appendChild(badge);
+                                }
+
+                                const title = document.createElement('a');
+                                title.className = 'flex-grow-1 text-decoration-none text-truncate';
+                                title.href = fileUrl;
+                                title.target = '_blank';
+                                title.textContent = fileName;
+                                item.appendChild(title);
+
+                                // No remove button in reference files modal (read-only preview)
+
+                                referenceFilesList.appendChild(item);
                             });
                         } else {
                             referenceFilesList.textContent = "No reference files available.";
