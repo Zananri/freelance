@@ -999,7 +999,10 @@
                 <img src="${photoUrl}" alt="${
                         emp.name
             }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
-                            <span>${emp.name}</span>
+                            <div class="d-flex flex-column">
+                                <span class="executor-name">${emp.name}</span>
+                                <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                            </div>
                         </div>
                         <input type="checkbox" class="executor-checkbox" data-id="${
                             emp.id
@@ -1030,6 +1033,7 @@
                                     user_photo: employeeObj
                                         ? employeeObj.user_photo
                                         : null,
+                                    division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
                                 });
                             }
                         } else {
@@ -1061,7 +1065,16 @@
                 img.style.objectFit = "cover";
 
                 const nameSpan = document.createElement("span");
-                nameSpan.textContent = emp.name;
+                // show name with division under it
+                const nameCol = document.createElement('div');
+                nameCol.className = 'd-flex flex-column';
+                const nameText = document.createElement('span');
+                nameText.textContent = emp.name || '';
+                const divSmall = document.createElement('small');
+                divSmall.className = 'text-muted executor-division';
+                divSmall.textContent = emp.division || '';
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
@@ -1077,7 +1090,7 @@
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameCol);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
@@ -1130,7 +1143,7 @@
                 selectedEmployees = (executors || []).map(function (ex) {
                     var photo = ex.user_photo || ex.profile_picture || ex.profile_picture_url || null;
                     var photoUrl = buildPhotoUrl(photo, ex.profile_picture, ex.profile_picture_url);
-                    return { id: ex.id, name: ex.name, user_photo: photoUrl };
+                    return { id: ex.id, name: ex.name, user_photo: photoUrl, division: ex.division || ex.division_name || '' };
                 });
                 renderSelected();
                 updateHiddenInput();
@@ -1685,7 +1698,12 @@
                 const isChecked = selected.some(e => e.id === emp.id);
                 const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
         return `<label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-            <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'"><span>${emp.name}</span></div>
+            <div class="d-flex align-items-center"><img src="${photoUrl}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;" alt="${emp.name}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                <div class="d-flex flex-column">
+                    <span class="executor-name">${emp.name}</span>
+                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                </div>
+            </div>
                         <input type="checkbox" class="schedule-executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? 'checked' : ''}>
                     </label>`;
             }).join('');
@@ -2008,7 +2026,10 @@
                             <img src="${photoUrl}" alt="${
                         emp.name
                     }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <span>${emp.name}</span>
+                            <div class="d-flex flex-column">
+                                <span class="executor-name">${emp.name}</span>
+                                <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                            </div>
                         </div>
                         <input type="checkbox" class="executor-checkbox" data-id="${
                             emp.id
@@ -2039,6 +2060,7 @@
                                     user_photo: employeeObj
                                         ? employeeObj.user_photo
                                         : null,
+                                    division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
                                 });
                             }
                         } else {
@@ -2069,8 +2091,15 @@
                 img.style.height = "24px";
                 img.style.objectFit = "cover";
 
-                const nameSpan = document.createElement("span");
-                nameSpan.textContent = emp.name;
+                const nameCol = document.createElement('div');
+                nameCol.className = 'd-flex flex-column';
+                const nameText = document.createElement('span');
+                nameText.textContent = emp.name || '';
+                const divSmall = document.createElement('small');
+                divSmall.className = 'text-muted executor-division';
+                divSmall.textContent = emp.division || '';
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
 
                 const removeBtn = document.createElement("button");
                 removeBtn.type = "button";
@@ -2086,7 +2115,7 @@
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameCol);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
@@ -2163,6 +2192,7 @@
                     id: ex.id,
                     name: ex.name,
                     user_photo: photoUrl,
+                    division: ex.division || ex.division_name || '',
                 };
             });
             renderSelected();
@@ -6719,37 +6749,50 @@ function applyCurrentSearchFilter() {
 
             selectedFiles.forEach((file, index) => {
                 const fileItem = document.createElement('div');
-                fileItem.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-                const fileInfo = document.createElement('div');
-                fileInfo.className = 'd-flex align-items-center flex-grow-1';
+                // Thumbnail or placeholder
+                if (file && file.type && file.type.indexOf('image') === 0) {
+                    const img = document.createElement('img');
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                    img.width = 28;
+                    img.height = 28;
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '50%';
+                    img.alt = file.name;
+                    // revoke object URL after load
+                    img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
+                    fileItem.appendChild(img);
+                } else {
+                    // Non-image: show generic icon badge
+                    const badge = document.createElement('div');
+                    badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                    badge.style.width = '28px';
+                    badge.style.height = '28px';
+                    badge.style.background = '#E9ECEF';
+                    badge.style.color = '#4B4F5E';
+                    badge.style.fontSize = '13px';
+                    badge.style.fontWeight = '600';
+                    badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
+                    fileItem.appendChild(badge);
+                }
 
-                const fileIcon = document.createElement('span');
-                fileIcon.className = 'material-symbols-outlined me-2';
-                fileIcon.textContent = 'description';
-
-                const fileName = document.createElement('span');
-                fileName.textContent = file.name;
-                fileName.className = 'file-name';
-
-                const fileSize = document.createElement('small');
-                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
-                fileSize.className = 'text-muted ms-1';
+                const title = document.createElement('span');
+                title.className = 'flex-grow-1';
+                title.textContent = file.name;
+                fileItem.appendChild(title);
 
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'btn btn-sm btn-outline-danger';
-                removeBtn.innerHTML = '&times;';
-                removeBtn.onclick = function () {
+                removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                removeBtn.style.lineHeight = '1';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener('click', function () {
                     selectedFiles.splice(index, 1);
                     displaySelectedFiles();
-                };
+                });
 
-                fileInfo.appendChild(fileIcon);
-                fileInfo.appendChild(fileName);
-                fileInfo.appendChild(fileSize);
-
-                fileItem.appendChild(fileInfo);
                 fileItem.appendChild(removeBtn);
                 fileList.appendChild(fileItem);
             });
@@ -6801,53 +6844,57 @@ function applyCurrentSearchFilter() {
             preview.innerHTML = "";
 
             if (window.editSelectedFiles.length > 0) {
-                const fileList = document.createElement("div");
-                fileList.className = "selected-files-list mt-2";
+                    const fileList = document.createElement("div");
+                    fileList.className = "selected-files-list mt-2";
 
-                window.editSelectedFiles.forEach((file, index) => {
-                    const fileItem = document.createElement("div");
-                    fileItem.className =
-                        "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                    window.editSelectedFiles.forEach((file, index) => {
+                        const fileItem = document.createElement("div");
+                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-                    const fileInfo = document.createElement("div");
-                    fileInfo.className =
-                        "d-flex align-items-center flex-grow-1";
+                        if (file && file.type && file.type.indexOf('image') === 0) {
+                            const img = document.createElement('img');
+                            const url = URL.createObjectURL(file);
+                            img.src = url;
+                            img.width = 28;
+                            img.height = 28;
+                            img.style.objectFit = 'cover';
+                            img.style.borderRadius = '50%';
+                            img.alt = file.name;
+                            img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
+                            fileItem.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                            badge.style.width = '28px';
+                            badge.style.height = '28px';
+                            badge.style.background = '#E9ECEF';
+                            badge.style.color = '#4B4F5E';
+                            badge.style.fontSize = '13px';
+                            badge.style.fontWeight = '600';
+                            badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
+                            fileItem.appendChild(badge);
+                        }
 
-                    const fileIcon = document.createElement("span");
-                    fileIcon.className = "material-symbols-outlined me-2";
-                    fileIcon.textContent = "description";
+                        const title = document.createElement('span');
+                        title.className = 'flex-grow-1';
+                        title.textContent = file.name;
+                        fileItem.appendChild(title);
 
-                    const fileName = document.createElement("span");
-                    fileName.textContent = file.name;
-                    fileName.className = "file-name";
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                        removeBtn.style.lineHeight = '1';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                        removeBtn.addEventListener('click', function () {
+                            window.editSelectedFiles.splice(index, 1);
+                            window.displayEditSelectedFiles();
+                        });
 
-                    const fileSize = document.createElement("small");
-                    fileSize.textContent = ` (${(
-                        file.size /
-                        1024 /
-                        1024
-                    ).toFixed(2)} MB)`;
-                    fileSize.className = "text-muted ms-1";
+                        fileItem.appendChild(removeBtn);
+                        fileList.appendChild(fileItem);
+                    });
 
-                    const removeBtn = document.createElement("button");
-                    removeBtn.type = "button";
-                    removeBtn.className = "btn btn-sm btn-outline-danger";
-                    removeBtn.innerHTML = "&times;";
-                    removeBtn.onclick = function () {
-                        window.editSelectedFiles.splice(index, 1);
-                        window.displayEditSelectedFiles();
-                    };
-
-                    fileInfo.appendChild(fileIcon);
-                    fileInfo.appendChild(fileName);
-                    fileInfo.appendChild(fileSize);
-
-                    fileItem.appendChild(fileInfo);
-                    fileItem.appendChild(removeBtn);
-                    fileList.appendChild(fileItem);
-                });
-
-                preview.appendChild(fileList);
+                    preview.appendChild(fileList);
             }
         };
 
@@ -6859,53 +6906,59 @@ function applyCurrentSearchFilter() {
             existing.innerHTML = "";
 
             if (files.length > 0) {
-                const title = document.createElement("div");
-                title.className = "fw-bold mb-2";
-                title.textContent = "Current Files:";
-                existing.appendChild(title);
+                    const title = document.createElement("div");
+                    title.className = "fw-bold mb-2";
+                    title.textContent = "Current Files:";
+                    existing.appendChild(title);
 
-                const fileList = document.createElement("div");
-                fileList.className = "existing-files-list";
+                    const fileList = document.createElement("div");
+                    fileList.className = "existing-files-list";
 
-                files.forEach((fileName) => {
-                    const fileItem = document.createElement("div");
-                    fileItem.className =
-                        "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                    files.forEach((fileName) => {
+                        const fileItem = document.createElement("div");
+                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-                    const fileInfo = document.createElement("div");
-                    fileInfo.className =
-                        "d-flex align-items-center flex-grow-1";
+                        // determine if file is an image by extension
+                        const lower = String(fileName || '').toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+                        if (isImage) {
+                            const img = document.createElement('img');
+                            img.src = appUrl + '/file/task_reference_files/' + encodeURIComponent(fileName);
+                            img.width = 28; img.height = 28;
+                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                            img.alt = fileName;
+                            fileItem.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                            badge.style.width = '28px'; badge.style.height = '28px';
+                            badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
+                            badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
+                            badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
+                            fileItem.appendChild(badge);
+                        }
 
-                    const fileIcon = document.createElement("span");
-                    fileIcon.className = "material-symbols-outlined me-2";
-                    fileIcon.textContent = "description";
+                        const titleSpan = document.createElement('span');
+                        titleSpan.className = 'flex-grow-1';
+                        titleSpan.textContent = fileName;
+                        fileItem.appendChild(titleSpan);
 
-                    const fileLink = document.createElement("a");
-                    fileLink.href =
-                        appUrl + "/file/task_reference_files/" + fileName;
-                    fileLink.textContent = fileName;
-                    fileLink.className = "text-decoration-none";
-                    fileLink.target = "_blank";
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                        removeBtn.style.lineHeight = '1';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                        removeBtn.addEventListener('click', function () {
+                            fileItem.remove();
+                            updateExistingFiles();
+                        });
 
-                    const removeBtn = document.createElement("button");
-                    removeBtn.type = "button";
-                    removeBtn.className = "btn btn-sm btn-outline-danger";
-                    removeBtn.innerHTML = "&times;";
-                    removeBtn.onclick = function () {
-                        fileItem.remove();
-                        updateExistingFiles();
-                    };
+                        fileItem.appendChild(removeBtn);
+                        fileList.appendChild(fileItem);
+                    });
 
-                    fileInfo.appendChild(fileIcon);
-                    fileInfo.appendChild(fileLink);
-
-                    fileItem.appendChild(fileInfo);
-                    fileItem.appendChild(removeBtn);
-                    fileList.appendChild(fileItem);
-                });
-
-                existing.appendChild(fileList);
-            }
+                    existing.appendChild(fileList);
+                }
             // Initialize or update hidden input with all existing files on display
             let existingFilesInput = document.getElementById(
                 "existing_reference_files_input"
@@ -6925,13 +6978,19 @@ function applyCurrentSearchFilter() {
         // Function to update existing files array
         function updateExistingFiles() {
             const existingItems = document.querySelectorAll(
-                "#existing_reference_files .existing-file-item"
-            );
+                    "#existing_reference_files .existing-file-item, #existing_reference_files .selected-task"
+                );
             const existingFiles = [];
 
             existingItems.forEach((item) => {
-                const fileName = item.querySelector("a").textContent;
-                existingFiles.push(fileName);
+                let fileName = '';
+                const a = item.querySelector('a');
+                if (a && a.textContent) fileName = a.textContent.trim();
+                if (!fileName) {
+                    const sp = item.querySelector('span.flex-grow-1');
+                    if (sp && sp.textContent) fileName = sp.textContent.trim();
+                }
+                if (fileName) existingFiles.push(fileName);
             });
 
             // Update hidden input
@@ -6957,7 +7016,8 @@ function applyCurrentSearchFilter() {
         document
             .getElementById("existing_reference_files")
             ?.addEventListener("click", function (e) {
-                if (e.target && e.target.matches("button.btn-outline-danger")) {
+                // Support new remove button classes and legacy btn-outline-danger
+                if (e.target && (e.target.matches("button.btn-remove-task") || e.target.matches("button.remove-task") || e.target.matches("button.btn-outline-danger") || e.target.closest('button.btn-remove-task') || e.target.closest('button.remove-task'))) {
                     setTimeout(() => {
                         updateExistingFiles();
                     }, 10);
@@ -7101,7 +7161,12 @@ function applyCurrentSearchFilter() {
 
                 // Executors
                 if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
-                    window.setSelectedExecutorsEdit(t.executors.map(e => ({ id: e.id, name: e.name, user_photo: e.user_photo || e.photo || e.image || '' })));
+                    window.setSelectedExecutorsEdit(t.executors.map(e => ({
+                        id: e.id,
+                        name: e.name,
+                        user_photo: e.user_photo || e.photo || e.image || '',
+                        division: e.division || e.division_name || ''
+                    })));
                 }
 
                 // parent select is set by loadRelatedTasks (selectedParentId)

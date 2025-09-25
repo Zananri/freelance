@@ -33,50 +33,80 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setupImageInput('schedule_image','scheduleImageLabel','scheduleImageClearBtn');
 
-    function displaySelectedFiles(){
-        const preview = document.getElementById('schedule_reference_files_preview');
-        if(!preview) return;
-        preview.innerHTML='';
+    function displaySelectedFiles() {
+        function findVisiblePreview(ids) {
+            let fallback = null;
+            for (const id of ids) {
+                const el = document.getElementById(id);
+                if (el && !fallback) fallback = el;
+                if (el && el.offsetParent !== null) return el; // visible
+            }
+            return fallback;
+        }
+        const preview = findVisiblePreview([
+            'schedule_reference_files_preview',
+            'feedback_reference_files_preview',
+            'reference_files_preview',
+        ]);
+        if (!preview) return;
+        preview.innerHTML = '';
 
-        if(selectedFiles.length === 0) return;
+        if (selectedFiles.length > 0) {
+            const fileList = document.createElement('div');
+            fileList.className = 'selected-files-list mt-2';
 
-        const list = document.createElement('div');
-        list.className = 'selected-files-list mt-2';
+            selectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-        selectedFiles.forEach((file, index)=>{
-            const item = document.createElement('div');
-            item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                // Thumbnail or placeholder
+                if (file && file.type && file.type.indexOf('image') === 0) {
+                    const img = document.createElement('img');
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                    img.width = 28;
+                    img.height = 28;
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '50%';
+                    img.alt = file.name;
+                    // revoke object URL after load
+                    img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
+                    fileItem.appendChild(img);
+                } else {
+                    // Non-image: show generic icon badge
+                    const badge = document.createElement('div');
+                    badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
+                    badge.style.width = '28px';
+                    badge.style.height = '28px';
+                    badge.style.background = '#E9ECEF';
+                    badge.style.color = '#4B4F5E';
+                    badge.style.fontSize = '13px';
+                    badge.style.fontWeight = '600';
+                    badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
+                    fileItem.appendChild(badge);
+                }
 
-            const info = document.createElement('div');
-            info.className = 'd-flex align-items-center flex-grow-1';
+                const title = document.createElement('span');
+                title.className = 'flex-grow-1';
+                title.textContent = file.name;
+                fileItem.appendChild(title);
 
-            const icon = document.createElement('span');
-            icon.className = 'material-symbols-outlined me-2';
-            icon.textContent = 'description';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                removeBtn.style.lineHeight = '1';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener('click', function () {
+                    selectedFiles.splice(index, 1);
+                    displaySelectedFiles();
+                });
 
-            const nameSpan = document.createElement('span');
-            nameSpan.className = 'file-name';
-            nameSpan.textContent = file.name;
+                fileItem.appendChild(removeBtn);
+                fileList.appendChild(fileItem);
+            });
 
-            const size = document.createElement('small');
-            size.className = 'text-muted ms-1';
-            size.textContent = ` (${(file.size/1024/1024).toFixed(2)} MB)`;
-
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'btn btn-sm btn-outline-danger';
-            removeBtn.innerHTML = '&times;';
-            removeBtn.addEventListener('click', ()=>{ selectedFiles.splice(index,1); displaySelectedFiles(); });
-
-            info.appendChild(icon);
-            info.appendChild(nameSpan);
-            info.appendChild(size);
-            item.appendChild(info);
-            item.appendChild(removeBtn);
-            list.appendChild(item);
-        });
-
-        preview.appendChild(list);
+            preview.appendChild(fileList);
+        }
     }
 
     const refInput = document.getElementById('schedule_reference_files');
@@ -134,7 +164,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function renderDropdown(){
             if(filtered.length===0){ dropdown.innerHTML='<div class="dropdown-item disabled">No employees found</div>'; dropdown.style.display='block'; return; }
-            dropdown.innerHTML = filtered.map(emp=>{ const checked = selected.some(s=>s.id===emp.id); const photo=buildPhotoUrl(emp.user_photo); return `<label class='dropdown-item d-flex align-items-center justify-content-between'><div class='d-flex align-items-center'><img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>${emp.name}</div><input type='checkbox' data-id='${emp.id}' ${checked?'checked':''}></label>`; }).join('');
+            dropdown.innerHTML = filtered.map(emp=>{ const checked = selected.some(s=>s.id===emp.id); const photo=buildPhotoUrl(emp.user_photo); return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
+                <div class='d-flex align-items-center'>
+                    <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
+                    <div class='d-flex flex-column'>
+                        <span class='executor-name'>${emp.name}</span>
+                        <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
+                    </div>
+                </div>
+                <input type='checkbox' data-id='${emp.id}' ${checked?'checked':''}>
+            </label>`; }).join('');
             dropdown.style.display='block';
             dropdown.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', function(){ const id=parseInt(this.getAttribute('data-id')); if(this.checked){ if(!selected.some(s=>s.id===id)){ const emp=employees.find(e=>e.id===id); selected.push({id, name:emp.name, user_photo:emp.user_photo}); } } else { selected = selected.filter(s=>s.id!==id); } renderSelected(); renderDropdown(); updateHidden(); }));
         }
@@ -148,7 +187,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             renderDropdown();
         }
-    function renderSelected(){ selectedContainer.innerHTML=''; selected.forEach(emp=>{ const photo=buildPhotoUrl(emp.user_photo); const badge=document.createElement('span'); badge.className='badge bg-primary d-inline-flex align-items-center me-2 mb-2'; badge.innerHTML=`<img src='${photo}' class='rounded-circle me-2' style='width:24px;height:24px;object-fit:cover;'>${emp.name}<button type='button' class='btn-close btn-close-white btn-sm ms-2'></button>`; badge.querySelector('button').addEventListener('click', ()=>{ selected = selected.filter(s=>s.id!==emp.id); renderSelected(); renderDropdown(); updateHidden(); }); selectedContainer.appendChild(badge); }); }
+    function renderSelected(){
+        selectedContainer.innerHTML='';
+        selected.forEach(emp=>{
+            const photo=buildPhotoUrl(emp.user_photo);
+            const badge=document.createElement('span');
+            // Use same styling/structure as Task selected badges
+            badge.className='badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2';
+
+            const img = document.createElement('img');
+            img.src = photo; img.alt = emp.name || ''; img.className = 'rounded-circle me-2'; img.style.width='24px'; img.style.height='24px'; img.style.objectFit='cover';
+
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = emp.name || '';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn-close btn-sm ms-2';
+            removeBtn.setAttribute('aria-label', 'Remove');
+            removeBtn.addEventListener('click', ()=>{ selected = selected.filter(s=>s.id!==emp.id); renderSelected(); renderDropdown(); updateHidden(); });
+
+            badge.appendChild(img);
+            badge.appendChild(nameSpan);
+            badge.appendChild(removeBtn);
+            selectedContainer.appendChild(badge);
+        });
+    }
         function updateHidden(){ hidden.value = JSON.stringify(selected.map(s=>s.id)); }
         input.addEventListener('input', function(){
             // Ensure we have full employee list loaded before filtering
