@@ -606,7 +606,6 @@
                     body: formData
                 }).then(function (response) { if (!response.ok) return response.json().then(Promise.reject); return response.json(); })
                 .then(function (data) {
-                    window.showFloatingAlert(data.message || 'Feedback submitted successfully!', 'success', 1500);
                     var card = document.querySelector('[data-project-id="' + projectId + '"]'); if (card) { var fbBadge = card.querySelector('.project-feedback-count'); if (fbBadge) { var current = parseInt(fbBadge.textContent) || 0; fbBadge.textContent = current + 1; } }
                     setTimeout(function () { loadFeedbackData(projectId); form.reset(); var imageLabel = form.querySelector('#feedbackImageLabel'); var imageClearBtn = form.querySelector('#feedbackImageClearBtn'); if (imageLabel) { imageLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')"; imageLabel.style.backgroundSize='50%'; imageLabel.classList.remove('has-image'); imageLabel.style.opacity='0.5'; } if (imageClearBtn) imageClearBtn.classList.add('d-none'); }, 1000);
                 }).catch(function (error) {
@@ -820,8 +819,7 @@
                             // ensure remove_image flag (if present) is sent to backend
                             try { var editRemove = form.querySelector('#edit_remove_image'); if (editRemove) fd.set('remove_image', editRemove.value); } catch(_){ }
                             fd.append('_method', 'PUT');
-                try { console.debug('[Feedback Edit] sending remove_image=', fd.get('remove_image')); } catch(_){}
-                fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + data.id, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ window.showFloatingAlert(res.message || 'Feedback updated', 'success', 1500);
+                fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + data.id, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ ;
                     // refresh list and ensure modal reflects the updated state (no image if removed)
                     try { loadFeedbackData(projectId); } catch(_){}
                     // small safety: after a short delay re-render again to avoid stale cached content
