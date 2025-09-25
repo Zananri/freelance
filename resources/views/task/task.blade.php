@@ -245,21 +245,18 @@
                             <select aria-label="Division (optional)"
                                 class="form-select input-select position-absolute" id="edit_task_division_id"
                                 name="division_id">
-                                <option value="">-- Division (optional) --</option>
+                                <option value="">Select Division</option>
                             </select>
-                            <div id="edit_task_division_activator" class="division-activator position-absolute"
-                                aria-hidden="true"></div>
 
+                            <div id="edit_task_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
                             <div id="edit_task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
-
+                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
                         </div>
-                        <div class="mb-3 custom-input">
+                        <div class="mb-3 custom-input position-relative">
                             <input type="text" class="form-control input-text" id="edit_executor_input"
-                                name="edit_executor_input" autocomplete="off" placeholder="Search employees...">
-                            <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list">
-                            </div>
-                            <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2">
-                            </div>
+                                name="executor_input" autocomplete="off" placeholder="Search employees...">
+
+                            <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                             <input type="hidden" id="edit_executors" name="executors" value="">
                         </div>
                     </div>
@@ -429,15 +426,10 @@
                             <select aria-label="Division (optional)"
                                 class="form-select input-select position-absolute" id="task_division_id"
                                 name="division_id">
-                                <option value="">-- Division (optional) --</option>
+                                <option value="">Select Division</option>
                             </select>
-                            <!-- Invisible activator placed over the select to intercept clicks
-                                 and use the custom dropup UI. Keeps the real select for form
-                                 submission and programmatic updates. -->
                             <div id="task_division_activator" class="division-activator position-absolute"
                                 aria-hidden="true"></div>
-
-                            <!-- Custom dropup for divisions: appears above the input like executor dropup -->
                             <div id="task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
                             <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
                             </div>
