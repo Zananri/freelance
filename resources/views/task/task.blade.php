@@ -543,7 +543,7 @@
             <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
 
-                    <div class="d-flex align-items-start mb-3">
+                    <div class="d-flex mb-3">
                         <div id="statusModalAvatar" class="me-3">
 
                         </div>
@@ -551,7 +551,7 @@
                         <div class="custom-card p-0 m-0 border-0">
                             <small class="text-muted" style="font-size: 10px" id="statusModalPartofProject"></small>
                             <h5 class="fw-bold" id="statusModalTitle">Task Title</h5>
-                            <div class="task-description-container">
+                            <div class="task-description-container flex-grow-1">
                                 <p class="task-description" id="statusModalDescription">
                                     Task short description
                                 </p>

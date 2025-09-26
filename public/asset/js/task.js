@@ -3862,7 +3862,7 @@ function applyCurrentSearchFilter() {
                 document.getElementById("statusModalAvatar").innerHTML = avatarHtml;
                 document.getElementById("statusModalPartofProject").innerHTML = taskProject;
                 document.getElementById("statusModalTitle").textContent = taskTitle;
-                document.getElementById("statusModalDescription").textContent = taskDescription;
+                document.getElementById("statusModalDescription").innerHTML = taskDescription;
 
                 let confirmText = "Are you sure want to move this task?";
                 if (newStatus === "in_progress") confirmText = "Are you sure want to move the task to Progress?";
