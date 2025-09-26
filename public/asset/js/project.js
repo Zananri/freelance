@@ -10,6 +10,36 @@ function escapeHtml(str) {
     });
 }
 
+// Helper: human-friendly relative time formatter used in feedback modals
+function timeAgo(createdAt){
+    try {
+        const time = new Date(createdAt);
+        if (isNaN(time.getTime())) return '';
+        const now = new Date();
+        const diff = (now.getTime() - time.getTime()) / 1000;
+
+        if(diff < 60){
+            return 'just now';
+        }else if(diff < 3600){
+            return Math.round(diff/60)+' minute ago';
+        }else if(diff < 86400){
+            return Math.round(diff/3600)+' hour ago';
+        }else if(diff < 604800){
+            return Math.round(diff/86400)+' day ago';
+        }else if(diff < 2592000){
+            return Math.round(diff/604800)+' week ago';
+        }else if(diff < 31526000){
+            return Math.round(diff/2592000)+' month ago';
+        }else if(diff < 630720000){
+            return Math.round(diff/31526000)+' year ago';
+        }
+
+        return time.toDateString();
+    } catch (e) {
+        return '';
+    }
+}
+
 // Global helper: show delete confirmation modal (Bootstrap) for project feedback/reply
 function showDeleteConfirmModal(opts) {
     // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
@@ -3378,52 +3408,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     dateDiv.className = "text-muted small";
                                     dateDiv.style.fontSize = '10px';
                                     if (feedback.created_at) {
-                                        const dateObj = new Date(
-                                            feedback.created_at
-                                        );
-                                        const now = new Date();
-
-                                        // Helper function to check if two dates are the same day
-                                        function isSameDay(d1, d2) {
-                                            return (
-                                                d1.getFullYear() ===
-                                                    d2.getFullYear() &&
-                                                d1.getMonth() ===
-                                                    d2.getMonth() &&
-                                                d1.getDate() === d2.getDate()
-                                            );
-                                        }
-
-                                        // Helper function to check if d1 is yesterday of d2
-                                        function isYesterday(d1, d2) {
-                                            const yesterday = new Date(d2);
-                                            yesterday.setDate(d2.getDate() - 1);
-                                            return isSameDay(d1, yesterday);
-                                        }
-
-                                        if (isSameDay(dateObj, now)) {
-                                            // Show time only
-                                            dateDiv.textContent =
-                                                dateObj.toLocaleTimeString(
-                                                    undefined,
-                                                    {
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                    }
-                                                );
-                                        } else if (isYesterday(dateObj, now)) {
-                                            dateDiv.textContent = "yesterday";
-                                        } else {
-                                            dateDiv.textContent =
-                                                dateObj.toLocaleDateString(
-                                                    undefined,
-                                                    {
-                                                        year: "numeric",
-                                                        month: "long",
-                                                        day: "numeric",
-                                                    }
-                                                );
-                                        }
+                                        dateDiv.textContent = timeAgo(feedback.created_at);
                                     } else {
                                         dateDiv.textContent = "";
                                     }
@@ -4040,27 +4025,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             repDateDiv.className = 'text-muted small';
                                             repDateDiv.style.fontSize = '10px';
                                             if (rep.created_at) {
-                                                const dateObj = new Date(rep.created_at);
-                                                const now = new Date();
-                                                function isSameDay(d1, d2) {
-                                                    return (
-                                                        d1.getFullYear() === d2.getFullYear() &&
-                                                        d1.getMonth() === d2.getMonth() &&
-                                                        d1.getDate() === d2.getDate()
-                                                    );
-                                                }
-                                                function isYesterday(d1, d2) {
-                                                    const yesterday = new Date(d2);
-                                                    yesterday.setDate(d2.getDate() - 1);
-                                                    return isSameDay(d1, yesterday);
-                                                }
-                                                if (isSameDay(dateObj, now)) {
-                                                    repDateDiv.textContent = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                                                } else if (isYesterday(dateObj, now)) {
-                                                    repDateDiv.textContent = 'yesterday';
-                                                } else {
-                                                    repDateDiv.textContent = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                                                }
+                                                repDateDiv.textContent = timeAgo(rep.created_at);
                                             } else {
                                                 repDateDiv.textContent = '';
                                             }
