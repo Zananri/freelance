@@ -1730,7 +1730,7 @@
 
         } // end setupImageInput
 
-         
+            
             if (typeof window.setupCoAuthorInputEdit !== 'function') {
                 window.setupCoAuthorInputEdit = function setupCoAuthorInputEdit() {
                 const input = document.getElementById("edit_co_author_input");
