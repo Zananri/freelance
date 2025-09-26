@@ -1360,11 +1360,13 @@
                             }
 
                             const item = document.createElement('div');
-                            item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light mb-2';
+                            // use same classes as project.js so styling (filename color, icon color) matches
+                            item.className = 'reference-files-list d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
                             const lower = String(fileName || '').toLowerCase();
                             const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
 
+                            // Only show a thumbnail when the file is an image; for other types we don't render a preview
                             if (isImage) {
                                 const img = document.createElement('img');
                                 img.src = fileUrl;
@@ -1372,18 +1374,10 @@
                                 img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
                                 img.alt = fileName;
                                 item.appendChild(img);
-                            } else {
-                                const badge = document.createElement('div');
-                                badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                                badge.style.width = '28px'; badge.style.height = '28px';
-                                badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
-                                badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
-                                badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
-                                item.appendChild(badge);
                             }
 
                             const title = document.createElement('a');
-                            title.className = 'flex-grow-1 text-decoration-none text-truncate';
+                            title.className = 'reference-files-list flex-grow-1 text-decoration-none text-truncate';
                             title.href = fileUrl;
                             title.target = '_blank';
                             title.textContent = fileName;
