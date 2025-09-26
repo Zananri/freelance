@@ -209,12 +209,12 @@
                         <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
-                                <div class="d-flex gap-2 align-items-center">
+                                <div class="input-group">
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
-                                    <button type="button" class="btn btn-submit-black add-ref-url"
-                                        aria-label="Add URL"><span
-                                            class="material-symbols-outlined">add</span></button>
+                                    <button type="button" class="btn btn-submit-black add-ref-url aria-label="Add URL">
+                                        <span class="material-symbols-outlined">add</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -393,12 +393,12 @@
                         <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
-                                <div class="d-flex gap-2 align-items-center">
+                                <div class="input-group">
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
-                                    <button type="button" class="btn btn-submit-black add-ref-url"
-                                        aria-label="Add URL"><span
-                                            class="material-symbols-outlined">add</span></button>
+                                    <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                        <span class="material-symbols-outlined">add</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>

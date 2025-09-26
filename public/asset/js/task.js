@@ -1448,12 +1448,11 @@
 
     // Reference URL rows: delegated handlers (Add/Edit Task + Feedback modals)
     (function initReferenceUrlDynamicRows() {
-        if (window._refUrlHandlersBound) return; // bind once
+        if (window._refUrlHandlersBound) return;
         window._refUrlHandlersBound = true;
 
         function findRefUrlsContainer(startEl) {
             if (!startEl) return null;
-            // Look for known containers up the DOM tree
             return startEl.closest('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container, #schedule_reference_urls_container');
         }
 
@@ -1464,16 +1463,23 @@
         }
 
         function createAddButton() {
-            return makeBtn('<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>');
+            return makeBtn(`
+                <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                    <span class="material-symbols-outlined">add</span>
+                </button>
+            `);
         }
 
         function createRemoveButton() {
-            return makeBtn('<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+            return makeBtn(`
+                <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            `);
         }
 
         function getRowEls(container) {
-            return Array.from(container.querySelectorAll(':scope > .d-flex'))
-                .filter(el => el.classList.contains('align-items-center'));
+            return Array.from(container.querySelectorAll(':scope > .input-group'));
         }
 
         function normalizeRows(container) {
@@ -1483,40 +1489,40 @@
             }
             const fresh = getRowEls(container);
             fresh.forEach((row, idx) => {
-                // Remove existing control buttons
                 row.querySelectorAll('.add-ref-url, .remove-ref-url').forEach(btn => btn.remove());
-                // First row keeps Add; others get Remove
+
                 const isFirst = idx === 0;
-                row.appendChild(isFirst ? createAddButton() : createRemoveButton());
+                const btn = isFirst ? createAddButton() : createRemoveButton();
+                row.appendChild(btn);
             });
         }
 
         function createRow(container, value = '') {
             const row = document.createElement('div');
-            row.className = 'd-flex gap-2 align-items-center';
+            row.className = 'input-group';
+
             const input = document.createElement('input');
             input.type = 'url';
             input.name = 'reference_urls[]';
             input.placeholder = 'https://example.com';
-            // Feedback modals used plain .form-control; task modals use .form-control.input-text
             input.className = (container && container.id === 'feedback_reference_urls_container')
                 ? 'form-control'
                 : 'form-control input-text';
+
             if (value) input.value = value;
             row.appendChild(input);
             row.appendChild(createAddButton());
             return row;
         }
 
-        // Enforce downward stacking in known containers
-        (function ensureDownwardDirection(){
+        (function ensureDownwardDirection() {
             try {
                 document.querySelectorAll('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container')
                     .forEach(ct => { ct.style.flexDirection = 'column'; });
-            } catch (_) { /* noop */ }
+            } catch (_) {}
         })();
 
-    document.addEventListener('click', function (e) {
+        document.addEventListener('click', function (e) {
             const addBtn = e.target.closest('.add-ref-url');
             if (addBtn) {
                 const container = findRefUrlsContainer(addBtn);
@@ -1537,7 +1543,7 @@
             if (rmBtn) {
                 const container = findRefUrlsContainer(rmBtn);
                 if (!container) return;
-                const row = rmBtn.closest('.d-flex');
+                const row = rmBtn.closest('.input-group');
                 if (row && row.parentElement === container) row.remove();
                 let rows = getRowEls(container);
                 if (rows.length === 0) {
@@ -2523,15 +2529,34 @@ document.addEventListener("click", function (e) {
                                 <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                 <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                             </div>
-                            <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
-                                <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
-                                ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
-                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
-                            </div>
-                            <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                                <span class="material-symbols-outlined task-icon">attach_file</span>
-                                ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>` : ""}
-                            </div>
+                            ${task.status === 'completed'
+                                ? `
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
+                                    <span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}">playlist_add_check</span>
+                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                                </div>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
+                                    <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+                                    ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
+                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                                </div>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                                    <span class="material-symbols-outlined task-icon">attach_file</span>
+                                    ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>` : ""}
+                                </div>
+                                `
+                                : `
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
+                                    <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+                                    ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
+                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                                </div>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                                    <span class="material-symbols-outlined task-icon">attach_file</span>
+                                    ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>` : ""}
+                                </div>
+                                `
+                            }
                         </div>
                         `}
                 </div>
@@ -7327,7 +7352,7 @@ function applyCurrentSearchFilter() {
                     if (urls.length === 0) urls = [''];
                     urls.forEach((u, idx) => {
                         const row = document.createElement('div');
-                        row.className = 'd-flex gap-2 align-items-center';
+                        row.className = 'input-group';
                         const controls = (idx === 0)
                             ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
                             : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
