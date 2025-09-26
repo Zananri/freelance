@@ -163,6 +163,19 @@
     padding: 8px;
 }
 
+.modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
 .modal-footer-custom {
     width: 100%;
     border: 0;
@@ -185,9 +198,22 @@
 }
 
 /* ===== Feedback/Reply - Reference Files (match Task styling) ===== */
-.existing-files-list {
+.existing-files-list.w-100 {
     max-height: 150px;
     overflow-y: auto;
+}
+
+.existing-files-list.w-100::-webkit-scrollbar {
+    width: 4px;
+}
+
+.existing-files-list.w-100::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.existing-files-list.w-100::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
 }
 
 .existing-file-item {
@@ -197,6 +223,7 @@
     padding: 8px 12px;
     margin-bottom: 6px;
 }
+
 
 .existing-file-item a {
     color: #1a73e8;
