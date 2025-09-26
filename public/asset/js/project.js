@@ -3643,10 +3643,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                         }
                                     );
 
-                                    // Append sections
+                                    // Append header only for now; comment/media will be moved into the info/content column
                                     feedbackItem.appendChild(headerDiv);
-                                    feedbackItem.appendChild(commentDiv);
-                                    feedbackItem.appendChild(mediaDiv);
 
                                     // Create actions container for edit and reply buttons
                                     const actionsDiv =
@@ -3927,8 +3925,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // Prepare content container that holds comment, media and actions (so actions align vertically with name/date)
                                     const contentContainer = document.createElement('div');
                                     contentContainer.className = 'mt-2';
+                                    // Append comment first
                                     contentContainer.appendChild(commentDiv);
-                                    // mediaDiv appended below if populated
+                                    // Append media (images / refs) so they appear above the action icons and aligned with the description
+                                    try {
+                                        if (mediaDiv && mediaDiv.childNodes && mediaDiv.childNodes.length) {
+                                            contentContainer.appendChild(mediaDiv);
+                                        }
+                                    } catch (_) {}
 
                                     // Ensure actionsDiv uses same classes as Task for alignment
                                     actionsDiv.className = 'feedback-actions mt-2 d-flex gap-4 align-items-center';
