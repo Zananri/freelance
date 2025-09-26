@@ -6233,7 +6233,6 @@ function applyCurrentSearchFilter() {
                 target.classList.contains("task-icon") &&
                 target.textContent.trim() === "attach_file"
             ) {
-                // Cari task card terdekat (bisa desktop & mobile)
                 const taskCard = target.closest(".custom-card");
                 if (!taskCard) return;
 
@@ -6243,7 +6242,6 @@ function applyCurrentSearchFilter() {
                     return;
                 }
 
-                // Fetch task details
                 $.ajax({
                     url: appUrl + "/task/" + taskId,
                     type: "GET",
@@ -6270,11 +6268,9 @@ function applyCurrentSearchFilter() {
                         referenceFilesList.innerHTML = "";
 
                         if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
-                            // Render preview-like items (thumbnail for images, badge for others)
                             referenceFiles.forEach((fileName) => {
                                 if (!fileName) return;
 
-                                // Normalize URL: if already absolute use it, if starts with '/' prefix with appUrl, else assume stored filename under task_reference_files
                                 let fileUrl = String(fileName || '');
                                 const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
                                 const isRefPath = fileUrl.startsWith('/file/task_reference_files/') || fileUrl.startsWith('file/task_reference_files/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
@@ -6288,7 +6284,8 @@ function applyCurrentSearchFilter() {
                                 item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
                                 const lower = String(fileName || '').toLowerCase();
-                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+                                // DETEKSI khusus hanya gambar
+                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
 
                                 if (isImage) {
                                     const img = document.createElement('img');
@@ -6299,11 +6296,6 @@ function applyCurrentSearchFilter() {
                                     item.appendChild(img);
                                 } else {
                                     const badge = document.createElement('div');
-                                    badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                                    badge.style.width = '28px'; badge.style.height = '28px';
-                                    badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
-                                    badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
-                                    badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
                                     item.appendChild(badge);
                                 }
 
@@ -6315,7 +6307,6 @@ function applyCurrentSearchFilter() {
                                 title.style.color = "#444444"
                                 item.appendChild(title);
 
-                                // Add download button (read-only modal). Clicking will trigger download of the file.
                                 const dlBtn = document.createElement('button');
                                 dlBtn.type = 'button';
                                 dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
@@ -6328,20 +6319,17 @@ function applyCurrentSearchFilter() {
                                         const a = document.createElement('a');
                                         a.style.display = 'none';
                                         a.href = fileUrl;
-                                        // Attempt to set filename for download
                                         try { a.download = String(fileName || '').split('/').pop(); } catch(_) {}
                                         a.target = '_blank';
                                         document.body.appendChild(a);
                                         a.click();
                                         setTimeout(() => { try { document.body.removeChild(a); } catch(_) {} }, 100);
                                     } catch (e) {
-                                        // fallback: open in new tab
                                         window.open(fileUrl, '_blank');
                                     }
                                 });
 
                                 item.appendChild(dlBtn);
-
                                 referenceFilesList.appendChild(item);
                             });
                         } else {
@@ -6350,20 +6338,16 @@ function applyCurrentSearchFilter() {
 
                         const modalEl = document.getElementById("referenceFilesModal");
                         if (modalEl) {
-                            // Check if modal is opened from timeline via detail modal
                             const detailEl = document.getElementById('taskDetailModal');
                             if (detailEl && bootstrap.Modal.getInstance(detailEl)) {
-                                // Mark that a child modal is opening
                                 detailEl.setAttribute('data-child-opened', '1');
 
-                                // Backup timeline handler if it exists
                                 if (detailEl._timelineHiddenHandler) {
                                     detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
                                     detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
                                     detailEl._timelineHiddenHandler = null;
                                 }
 
-                                // Hide detail modal first
                                 const detailModal = bootstrap.Modal.getInstance(detailEl);
                                 if (detailModal) {
                                     detailModal.hide();
@@ -7018,14 +7002,6 @@ function applyCurrentSearchFilter() {
                 } else {
                     // Non-image: show generic icon badge
                     const badge = document.createElement('div');
-                    badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                    badge.style.width = '28px';
-                    badge.style.height = '28px';
-                    badge.style.background = '#E9ECEF';
-                    badge.style.color = '#4B4F5E';
-                    badge.style.fontSize = '13px';
-                    badge.style.fontWeight = '600';
-                    badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
                     fileItem.appendChild(badge);
                 }
 
@@ -7115,14 +7091,6 @@ function applyCurrentSearchFilter() {
                             fileItem.appendChild(img);
                         } else {
                             const badge = document.createElement('div');
-                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                            badge.style.width = '28px';
-                            badge.style.height = '28px';
-                            badge.style.background = '#E9ECEF';
-                            badge.style.color = '#4B4F5E';
-                            badge.style.fontSize = '13px';
-                            badge.style.fontWeight = '600';
-                            badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
                             fileItem.appendChild(badge);
                         }
 
@@ -7181,11 +7149,6 @@ function applyCurrentSearchFilter() {
                             fileItem.appendChild(img);
                         } else {
                             const badge = document.createElement('div');
-                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                            badge.style.width = '28px'; badge.style.height = '28px';
-                            badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
-                            badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
-                            badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
                             fileItem.appendChild(badge);
                         }
 
