@@ -535,6 +535,14 @@
     color: #444444 !important;
 }
 
+/* Ensure current/existing file names and selected-files preview names use #444444 */
+.existing-files-list a,
+.existing-files-list .flex-grow-1,
+.selected-files-list .flex-grow-1,
+.selected-files-list a {
+    color: #444444 !important;
+}
+
 .author {
     font-size: 0.9rem;
     color: #666;
