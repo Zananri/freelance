@@ -243,7 +243,27 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="edit_description" name="description" required rows="3"></textarea>
+
+                            <!-- Quill toolbar + editor (visual) -->
+                            <div id="edit_description_toolbar">
+                                <span class="ql-formats">
+                                    <button class="ql-bold" title="Bold"></button>
+                                    <button class="ql-italic" title="Italic"></button>
+                                    <button class="ql-underline" title="Underline"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="bullet" title="Bullet list"></button>
+                                    <button class="ql-list" value="ordered" title="Ordered list"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-link" title="Link"></button>
+                                </span>
+                            </div>
+
+                            <div id="edit_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+
+                            <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
+                            <textarea class="form-control input-text d-none" id="edit_description" name="description" rows="3" style="display:none;"></textarea>
                         </div>
                         @php
                             $__emp = auth()->user()->employee ?? null;
@@ -434,6 +454,67 @@
             </div>
         </form>
     </template>
+
+    <!-- Quill assets and inline initializer for Project Detail edit modal -->
+    <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
+    <script>
+        (function(){
+            // guard: only initialize if editor container exists
+            if (!document.getElementById('edit_description_editor')) return;
+
+            // helper to sync Quill HTML into hidden textarea
+            function syncQuillToTextarea(quill, textareaId) {
+                try {
+                    var ta = document.getElementById(textareaId);
+                    if (!ta) return;
+                    ta.value = quill.root.innerHTML || '';
+                } catch (e) {}
+            }
+
+            // create Quill instance for edit modal
+            try {
+                window.__quillProjectDetailEdit = new Quill('#edit_description_editor', {
+                    modules: { toolbar: '#edit_description_toolbar', clipboard: { matchVisual: false } },
+                    theme: 'snow'
+                });
+            } catch (e) {
+                console.error('Quill init failed', e);
+            }
+
+            // ensure we sync before any normal submit handlers run
+            document.getElementById('editProjectForm').addEventListener('submit', function(ev){
+                if (window.__quillProjectDetailEdit) syncQuillToTextarea(window.__quillProjectDetailEdit, 'edit_description');
+                // basic required validation if needed
+                try {
+                    var text = window.__quillProjectDetailEdit.getText().trim();
+                    if (!text) {
+                        ev.preventDefault();
+                        alert('Description is required');
+                        return false;
+                    }
+                } catch(e){}
+            }, true); // capture phase
+
+            // When project_detail JS fills #edit_description textarea, copy into Quill on modal show
+            var editModalEl = document.getElementById('editProjectModal');
+            if (editModalEl) {
+                editModalEl.addEventListener('shown.bs.modal', function(){
+                    try {
+                        var ta = document.getElementById('edit_description');
+                        if (ta && window.__quillProjectDetailEdit) {
+                            window.__quillProjectDetailEdit.root.innerHTML = ta.value || '';
+                        }
+                    } catch(e){/* no-op */}
+                });
+
+                editModalEl.addEventListener('hidden.bs.modal', function(){
+                    try { if (window.__quillProjectDetailEdit) window.__quillProjectDetailEdit.root.innerHTML = ''; } catch(_){}
+                    try { document.getElementById('edit_description').value = ''; } catch(_){}
+                });
+            }
+        })();
+    </script>
 
     <template id="template-edit-feedback">
         <form id="editFeedbackForm" enctype="multipart/form-data">
