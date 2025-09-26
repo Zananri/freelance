@@ -1221,10 +1221,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const hidden = container.classList.contains('d-none');
                                             if (hidden) {
                                                 container.classList.remove('d-none');
-                                                this.textContent = 'Hide replies';
+                                                this.textContent = 'Hide';
                                             } else {
                                                 container.classList.add('d-none');
-                                                this.textContent = `View all replies (${count})`;
+                                                this.textContent = `View all (${count})`;
                                             }
                                             this.style.textDecoration = 'none';
                                             this.style.color = '#555';
@@ -3652,7 +3652,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     actionsDiv.className =
                                         "feedback-actions mt-2 d-flex gap-3";
 
-                                    // Add edit button if exists
+                                    // Prepare possible edit wrapper but do not append yet: we'll control order below
+                                    let editWrapper = null;
                                     if (editBtnInline) {
                                         // Store the original event listener
                                         const editClickHandler =
@@ -3660,7 +3661,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             function () {};
 
                                         // Create edit button wrapper with icon + text
-                                        const editWrapper =
+                                        editWrapper =
                                             document.createElement("span");
                                         editWrapper.className =
                                             "d-flex align-items-center";
@@ -3869,8 +3870,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 );
                                             }
                                         );
-
-                                        actionsDiv.appendChild(editWrapper);
                                     }
 
                                     // Create reply button wrapper with icon + text
@@ -3898,10 +3897,16 @@ document.addEventListener("DOMContentLoaded", function () {
                                         showReplyFeedbackForm(projectId, feedback.id);
                                     });
 
-                                    // Add reply button to actions
+                                    // Append actions in requested order: Reply, Edit, Delete
+                                    // Reply first
                                     actionsDiv.appendChild(replyWrapper);
 
-                                    // Add delete button for top-level feedback if author (match Task behavior)
+                                    // Then Edit (if prepared)
+                                    if (editWrapper) {
+                                        actionsDiv.appendChild(editWrapper);
+                                    }
+
+                                    // Then Delete (if allowed)
                                     if (canEditTopInline) {
                                         const deleteWrapper = document.createElement('span');
                                         // Make the entire wrapper the trigger so clicking text/icon works
@@ -3962,7 +3967,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         toggleBtn.style.cssText = "cursor:pointer; color:rgb(85,85,85); font-size:13px; text-decoration: none; display:flex; align-items:center;";
                                         toggleBtn.setAttribute('data-feedback-id', String(feedback.id));
                                         toggleBtn.setAttribute('data-replies-count', String(repliesCount));
-                                        toggleBtn.textContent = `View all replies (${repliesCount})`;
+                                        toggleBtn.textContent = `View all (${repliesCount})`;
                                         const repliesContainer = document.createElement("div");
                                         repliesContainer.className = "feedback-replies d-none";
 
@@ -4146,7 +4151,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                             // After building actions, we'll place the actions row inside the content container so it aligns with name/time
 
-                                            // Edit (if allowed)
+                                            // Reply first
+                                            const replyRep = document.createElement('span');
+                                            replyRep.className = 'd-flex align-items-center feedback-reply-trigger';
+                                            replyRep.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                            replyRep.setAttribute('data-feedback-id', String(feedback.id));
+                                            replyRep.setAttribute('data-project-id', String(projectId));
+                                            const replyIcon = document.createElement('span'); replyIcon.className = 'material-symbols-outlined'; replyIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; replyIcon.textContent = 'reply';
+                                            const replyText = document.createElement('span'); replyText.textContent = 'Reply';
+                                            replyRep.appendChild(replyIcon); replyRep.appendChild(replyText);
+                                            replyRep.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); });
+                                            replyActionsDiv.appendChild(replyRep);
+
+                                            // Then Edit (if allowed)
                                             if (rEdit) {
                                                 const editRep = document.createElement('span');
                                                 editRep.className = 'd-flex align-items-center reply-edit-trigger';
@@ -4163,19 +4180,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 replyActionsDiv.appendChild(editRep);
                                             }
 
-                                            // Reply
-                                            const replyRep = document.createElement('span');
-                                            replyRep.className = 'd-flex align-items-center feedback-reply-trigger';
-                                            replyRep.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
-                                            replyRep.setAttribute('data-feedback-id', String(feedback.id));
-                                            replyRep.setAttribute('data-project-id', String(projectId));
-                                            const replyIcon = document.createElement('span'); replyIcon.className = 'material-symbols-outlined'; replyIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; replyIcon.textContent = 'reply';
-                                            const replyText = document.createElement('span'); replyText.textContent = 'Reply';
-                                            replyRep.appendChild(replyIcon); replyRep.appendChild(replyText);
-                                            replyRep.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); });
-                                            replyActionsDiv.appendChild(replyRep);
-
-                                            // Delete (if allowed)
+                                            // Then Delete (if allowed)
                                             if (rEdit) {
                                                 const delRep = document.createElement('span');
                                                 delRep.className = 'd-flex align-items-center reply-delete-trigger';
@@ -4229,7 +4234,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         "d-none"
                                                     );
                                                     this.textContent =
-                                                        "Hide replies";
+                                                        "Hide";
                                                 } else {
                                                     repliesContainer.classList.add(
                                                         "d-none"
