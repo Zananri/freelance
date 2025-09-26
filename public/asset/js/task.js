@@ -1070,6 +1070,8 @@
                 nameCol.className = 'd-flex flex-column';
                 const nameText = document.createElement('span');
                 nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+
                 const divSmall = document.createElement('small');
                 divSmall.className = 'text-muted executor-division';
                 divSmall.textContent = emp.division || '';
@@ -1979,9 +1981,7 @@
     function setupEditExecutorInput() {
         const input = document.getElementById("edit_executor_input");
         const dropdown = document.getElementById("edit_executor_dropdown");
-        const selectedContainer = document.getElementById(
-            "edit_selected_executors"
-        );
+        const selectedContainer = document.getElementById("edit_selected_executors");
         const hiddenInput = document.getElementById("edit_executors");
 
         if (!input || !dropdown || !selectedContainer || !hiddenInput) {
@@ -1993,16 +1993,15 @@
         let selectedEmployees = [];
 
         function fetchEmployees(query = "") {
-            fetchEmployeesForExecutorCached(query)
-                .then(function(data){
+            return fetchEmployeesForExecutorCached(query)
+                .then(function(data) {
                     employees = (data && (data.data || data)) || [];
-                    // Exclude administrator users from executor pickers
                     employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filteredEmployees = employees;
                     renderDropdown();
                 })
-                .catch(function(){
-                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) {}
+                .catch(function() {
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) {}
                 });
         }
 
@@ -2014,64 +2013,49 @@
                 return;
             }
 
-        const html = filteredEmployees
+            const html = filteredEmployees
                 .map((emp) => {
-                    const isChecked = selectedEmployees.some(
-                        (e) => e.id === emp.id
-                    );
-            const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
                     return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${
-                        emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <div class="d-flex flex-column">
-                                <span class="executor-name">${emp.name}</span>
-                                <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <div class="d-flex flex-column">
+                                    <span class="executor-name">${emp.name}</span>
+                                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                                </div>
                             </div>
-                        </div>
-                        <input type="checkbox" class="executor-checkbox" data-id="${
-                            emp.id
-                        }" data-name="${emp.name}" ${
-                        isChecked ? "checked" : ""
-                    }>
-                    </label>
-                `;
+                            <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                        </label>
+                    `;
                 })
                 .join("");
             dropdown.innerHTML = html;
             dropdown.style.display = "block";
 
-            dropdown
-                .querySelectorAll(".executor-checkbox")
-                .forEach((checkbox) => {
-                    checkbox.addEventListener("change", function () {
-                        const id = parseInt(this.getAttribute("data-id"));
-                        const name = this.getAttribute("data-name");
-                        const employeeObj = employees.find(
-                            (emp) => emp.id === id
-                        );
-                        if (this.checked) {
-                            if (!selectedEmployees.some((e) => e.id === id)) {
-                                selectedEmployees.push({
-                                    id,
-                                    name,
-                                    user_photo: employeeObj
-                                        ? employeeObj.user_photo
-                                        : null,
-                                    division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
-                                });
-                            }
-                        } else {
-                            selectedEmployees = selectedEmployees.filter(
-                                (e) => e.id !== id
-                            );
+            dropdown.querySelectorAll(".executor-checkbox").forEach((checkbox) => {
+                checkbox.addEventListener("change", function () {
+                    const id = parseInt(this.getAttribute("data-id"));
+                    const name = this.getAttribute("data-name");
+                    const employeeObj = employees.find(emp => emp.id === id);
+
+                    if (this.checked) {
+                        if (!selectedEmployees.some((e) => e.id === id)) {
+                            selectedEmployees.push({
+                                id,
+                                name,
+                                user_photo: employeeObj ? employeeObj.user_photo : null,
+                                division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
+                            });
                         }
-                        renderSelected();
-                        updateHiddenInput();
-                    });
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
                 });
+            });
         }
 
         function renderSelected() {
@@ -2080,8 +2064,7 @@
                 const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
 
                 const badge = document.createElement("span");
-                badge.className =
-                    "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
+                badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -2095,9 +2078,12 @@
                 nameCol.className = 'd-flex flex-column';
                 const nameText = document.createElement('span');
                 nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+
                 const divSmall = document.createElement('small');
                 divSmall.className = 'text-muted executor-division';
                 divSmall.textContent = emp.division || '';
+
                 nameCol.appendChild(nameText);
                 nameCol.appendChild(divSmall);
 
@@ -2106,9 +2092,7 @@
                 removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
-                    selectedEmployees = selectedEmployees.filter(
-                        (e) => e.id !== emp.id
-                    );
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
                     renderSelected();
                     updateHiddenInput();
                     renderDropdown();
@@ -2122,20 +2106,14 @@
         }
 
         function updateHiddenInput() {
-            hiddenInput.value = JSON.stringify(
-                selectedEmployees.map((e) => e.id)
-            );
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
         }
 
         function filterEmployees(value) {
             const val = value.trim().toLowerCase();
-            if (val === "") {
-                filteredEmployees = employees;
-            } else {
-                filteredEmployees = employees.filter((emp) =>
-                    emp.name.toLowerCase().includes(val)
-                );
-            }
+            filteredEmployees = val === ""
+                ? employees
+                : employees.filter(emp => emp.name.toLowerCase().includes(val));
             renderDropdown();
         }
 
@@ -2163,7 +2141,16 @@
             input.value = "";
         };
 
-        window.setSelectedExecutorsEdit = function (executors) {
+        window.setSelectedExecutorsEdit = async function (executors) {
+            try {
+                // Fetch all employees to get divisions
+                const data = await fetchEmployeesForExecutorCached("");
+                employees = (data && (data.data || data)) || [];
+                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+            } catch (e) {
+                console.warn("Gagal ambil data employee:", e);
+            }
+
             selectedEmployees = executors.map((ex) => {
                 let photoUrl = "";
                 let userPhoto = ex.user_photo;
@@ -2181,24 +2168,32 @@
                     ) {
                         photoUrl = appUrl + "/" + userPhoto;
                     } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + userPhoto;
+                        photoUrl = appUrl + "/file/profile_picture/" + userPhoto;
                     }
                 } else {
-                    photoUrl =
-                        appUrl + "/asset/img/avatar.png";
+                    photoUrl = appUrl + "/asset/img/avatar.png";
                 }
+
+                // Cari division dari list employees
+                let divisionName = "";
+                const empData = employees.find(e => e.id === ex.id);
+                if (empData) {
+                    divisionName = empData.division || empData.division_name || "";
+                }
+
                 return {
                     id: ex.id,
                     name: ex.name,
                     user_photo: photoUrl,
-                    division: ex.division || ex.division_name || '',
+                    division: divisionName
                 };
             });
+
             renderSelected();
             updateHiddenInput();
         };
     }
+
 
 document.addEventListener("click", function (e) {
     if (e.target && e.target.classList.contains("arrow-forward-icon")) {
@@ -4450,7 +4445,7 @@ function applyCurrentSearchFilter() {
 
     // Helper: show delete confirmation modal (Bootstrap) with avatar, content and confirm/cancel
     function showDeleteConfirmModal(opts) {
-        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
         try {
             const id = opts.id;
             const type = opts.type || 'feedback';
@@ -7305,8 +7300,8 @@ function applyCurrentSearchFilter() {
             if (idx < arr.length - 1) el.remove();
         });
 
-    $.ajax({
-        url: appUrl + "/task/" + taskId + "/edit",
+        $.ajax({
+            url: appUrl + "/task/" + taskId + "/edit",
             type: "GET",
             dataType: "json",
             success: function (res) {
