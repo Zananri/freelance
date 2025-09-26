@@ -7757,7 +7757,18 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load departments and projects on page load
     loadProjectCardData();
     loadTimelineProjects();
-    loadDepartments();
+    // If department select already has selected value (derived from logged-in employee), skip full departments load and just load divisions for that department
+    try {
+        const presetDept = departmentSelect && departmentSelect.value ? departmentSelect.value : null;
+        if (presetDept) {
+            // ensure the select shows the preset option only (already set by server)
+            loadDivisions(presetDept);
+        } else {
+            loadDepartments();
+        }
+    } catch (e) {
+        loadDepartments();
+    }
     // Populate "Part of Project" selects for Add and Edit modals
     try {
         populatePartOfProjectSelects("add");

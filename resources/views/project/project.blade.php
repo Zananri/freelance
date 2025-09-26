@@ -270,11 +270,17 @@
                             <label for="description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="description" name="description" required rows="3"></textarea>
                         </div>
-                        <div class="mb-3 input-custom">
+                        @php
+                            $__emp = auth()->user()->employee ?? null;
+                            $__deptId = $__emp ? $__emp->department_id : '';
+                            $__deptName = ($__emp && $__emp->department) ? ($__emp->department->name_department ?? $__emp->department->name ?? '') : '';
+                        @endphp
+
+                        {{-- Department is fixed to the logged-in employee's department and hidden from selection --}}
+                        <div class="mb-3 input-custom" style="display:none;">
                             <label for="department" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="department" name="department" required>
-                                <option value="">Select Department</option>
-                                <!-- Options to be populated dynamically -->
+                                <option value="{{ $__deptId }}" selected>{{ $__deptName }}</option>
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
@@ -402,11 +408,17 @@
                             <label for="edit_description" class="form-label label-custom">Description</label>
                             <textarea class="form-control input-text" id="edit_description" name="description" required rows="3"></textarea>
                         </div>
-                        <div class="mb-3 input-custom">
+                        @php
+                            $__emp = auth()->user()->employee ?? null;
+                            $__deptId = $__emp ? $__emp->department_id : '';
+                            $__deptName = ($__emp && $__emp->department) ? ($__emp->department->name_department ?? $__emp->department->name ?? '') : '';
+                        @endphp
+
+                        {{-- Department is fixed to the logged-in employee's department and hidden from selection --}}
+                        <div class="mb-3 input-custom" style="display:none;">
                             <label for="edit_department" class="form-label label-custom">Department</label>
                             <select class="form-select input-select" id="edit_department" name="department" required>
-                                <option value="">Select Department</option>
-                                <!-- Options to be populated dynamically -->
+                                <option value="{{ $__deptId }}" selected>{{ $__deptName }}</option>
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
