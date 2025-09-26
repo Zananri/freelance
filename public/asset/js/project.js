@@ -10,6 +10,36 @@ function escapeHtml(str) {
     });
 }
 
+// Helper: human-friendly relative time formatter used in feedback modals
+function timeAgo(createdAt){
+    try {
+        const time = new Date(createdAt);
+        if (isNaN(time.getTime())) return '';
+        const now = new Date();
+        const diff = (now.getTime() - time.getTime()) / 1000;
+
+        if(diff < 60){
+            return 'just now';
+        }else if(diff < 3600){
+            return Math.round(diff/60)+' minute ago';
+        }else if(diff < 86400){
+            return Math.round(diff/3600)+' hour ago';
+        }else if(diff < 604800){
+            return Math.round(diff/86400)+' day ago';
+        }else if(diff < 2592000){
+            return Math.round(diff/604800)+' week ago';
+        }else if(diff < 31526000){
+            return Math.round(diff/2592000)+' month ago';
+        }else if(diff < 630720000){
+            return Math.round(diff/31526000)+' year ago';
+        }
+
+        return time.toDateString();
+    } catch (e) {
+        return '';
+    }
+}
+
 // Global helper: show delete confirmation modal (Bootstrap) for project feedback/reply
 function showDeleteConfirmModal(opts) {
     // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
@@ -582,40 +612,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
             projectSelectedFiles.forEach((file, index) => {
                 const fileItem = document.createElement("div");
-                fileItem.className =
-                    "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                // Use exact classes requested: matches Task styling
+                fileItem.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
 
-                const fileInfo = document.createElement("div");
-                fileInfo.className = "d-flex align-items-center flex-grow-1";
+                // Determine if file is image for thumbnail
+                const lower = String(file.name || "").toLowerCase();
+                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
 
-                const fileIcon = document.createElement("span");
-                fileIcon.className = "material-symbols-outlined me-2";
-                fileIcon.textContent = "description";
+                if (isImage) {
+                    const img = document.createElement("img");
+                    img.src = URL.createObjectURL(file);
+                    img.width = 28; img.height = 28;
+                    img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                    img.alt = file.name || 'img';
+                    fileItem.appendChild(img);
+                }
 
-                const fileName = document.createElement("span");
-                fileName.textContent = file.name;
-                fileName.className = "file-name";
+                const title = document.createElement('span');
+                title.className = 'flex-grow-1 text-truncate';
+                title.textContent = file.name;
+                fileItem.appendChild(title);
 
-                const fileSize = document.createElement("small");
-                fileSize.textContent = ` (${(file.size / 1024 / 1024).toFixed(
-                    2
-                )} MB)`;
-                fileSize.className = "text-muted ms-1";
-
-                const removeBtn = document.createElement("button");
-                removeBtn.type = "button";
-                removeBtn.className = "btn btn-sm btn-outline-danger";
-                removeBtn.innerHTML = "&times;";
-                removeBtn.onclick = function () {
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                removeBtn.style.lineHeight = '1';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener('click', function () {
                     projectSelectedFiles.splice(index, 1);
                     displayProjectSelectedFiles();
-                };
+                });
 
-                fileInfo.appendChild(fileIcon);
-                fileInfo.appendChild(fileName);
-                fileInfo.appendChild(fileSize);
-
-                fileItem.appendChild(fileInfo);
                 fileItem.appendChild(removeBtn);
                 fileList.appendChild(fileItem);
             });
@@ -1224,10 +1251,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const hidden = container.classList.contains('d-none');
                                             if (hidden) {
                                                 container.classList.remove('d-none');
-                                                this.textContent = 'Hide replies';
+                                                this.textContent = 'Hide';
                                             } else {
                                                 container.classList.add('d-none');
-                                                this.textContent = `View all replies (${count})`;
+                                                this.textContent = `View all (${count})`;
                                             }
                                             this.style.textDecoration = 'none';
                                             this.style.color = '#555';
@@ -1671,88 +1698,44 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         title
                                                     );
 
-                                                    var fileList =
-                                                        document.createElement(
-                                                            "div"
-                                                        );
-                                                    fileList.className =
-                                                        "existing-files-list w-100";
+                                                    var fileList = document.createElement('div');
+                                                    fileList.className = 'selected-files-list mt-2 existing-files-list w-100';
 
-                                                    existingFiles.forEach(
-                                                        function (
-                                                            fileName,
-                                                            idx
-                                                        ) {
-                                                            var fileItem =
-                                                                document.createElement(
-                                                                    "div"
-                                                                );
-                                                            fileItem.className =
-                                                                "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                                    existingFiles.forEach(function (fileName, idx) {
+                                                            var fileItem = document.createElement('div');
+                                                            fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-                                                            var fileInfo =
-                                                                document.createElement(
-                                                                    "div"
-                                                                );
-                                                            fileInfo.className =
-                                                                "d-flex align-items-center flex-grow-1";
+                                                            // determine if server file is an image
+                                                            var lower = String(fileName || '').toLowerCase();
+                                                            var isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+                                                            if (isImage) {
+                                                                var img = document.createElement('img');
+                                                                img.src = appUrl + '/file/project/' + fileName;
+                                                                img.width = 28; img.height = 28;
+                                                                img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                                                                img.alt = fileName;
+                                                                fileItem.appendChild(img);
+                                                            }
 
-                                                            var fileIcon =
-                                                                document.createElement(
-                                                                    "span"
-                                                                );
-                                                            fileIcon.className =
-                                                                "material-symbols-outlined me-2";
-                                                            fileIcon.textContent =
-                                                                "description";
+                                                            var fileLink = document.createElement('a');
+                                                            fileLink.href = appUrl + '/file/project/' + fileName;
+                                                            fileLink.target = '_blank';
+                                                            fileLink.className = 'flex-grow-1 text-decoration-none text-truncate';
+                                                            fileLink.textContent = fileName;
 
-                                                            var fileLink =
-                                                                document.createElement(
-                                                                    "a"
-                                                                );
-                                                            fileLink.href =
-                                                                appUrl +
-                                                                "/file/project/" +
-                                                                fileName;
-                                                            fileLink.textContent =
-                                                                fileName;
-                                                            fileLink.className =
-                                                                "text-decoration-none";
-                                                            fileLink.target =
-                                                                "_blank";
+                                                            var removeBtn = document.createElement('button');
+                                                            removeBtn.type = 'button';
+                                                            removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                                                            removeBtn.style.lineHeight = '1';
+                                                            removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                                            removeBtn.onclick = function () {
+                                                                // remove from list and re-render
+                                                                existingFiles = existingFiles.filter(function (f) { return f !== fileName; });
+                                                                existingInput.value = JSON.stringify(existingFiles);
+                                                                renderExistingProjectFiles();
 
-                                                            var removeBtn =
-                                                                document.createElement(
-                                                                    "button"
-                                                                );
-                                                            removeBtn.type =
-                                                                "button";
-                                                            removeBtn.className =
-                                                                "btn btn-sm btn-outline-danger";
-                                                            removeBtn.innerHTML =
-                                                                "&times;";
-                                                            removeBtn.onclick =
-                                                                function () {
-                                                                    // remove from list and re-render
-                                                                    existingFiles =
-                                                                        existingFiles.filter(
-                                                                            function (
-                                                                                f
-                                                                            ) {
-                                                                                return (
-                                                                                    f !==
-                                                                                    fileName
-                                                                                );
-                                                                            }
-                                                                        );
-                                                                    existingInput.value =
-                                                                        JSON.stringify(
-                                                                            existingFiles
-                                                                        );
-                                                                    renderExistingProjectFiles();
-
-                                                                    // update badge count on project card immediately (decrement)
-                                                                    try {
+                                                                // update badge count on project card immediately (decrement)
+                                                                try {
                                                                         var pid =
                                                                             data.id;
                                                                         var card =
@@ -1787,23 +1770,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                                                             }
                                                                         }
                                                                     } catch (e) {}
-                                                                };
+                                                                    };
 
-                                                            fileInfo.appendChild(
-                                                                fileIcon
-                                                            );
-                                                            fileInfo.appendChild(
-                                                                fileLink
-                                                            );
-                                                            fileItem.appendChild(
-                                                                fileInfo
-                                                            );
-                                                            fileItem.appendChild(
-                                                                removeBtn
-                                                            );
-                                                            fileList.appendChild(
-                                                                fileItem
-                                                            );
+                                                            // Append link and remove button into item and add to list
+                                                            fileItem.appendChild(fileLink);
+                                                            fileItem.appendChild(removeBtn);
+                                                            fileList.appendChild(fileItem);
                                                         }
                                                     );
 
@@ -1830,94 +1802,40 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     fileList.className =
                                                         "selected-files-list mt-2";
 
-                                                    window.editProjectSelectedFiles.forEach(
-                                                        function (file, index) {
-                                                            var fileItem =
-                                                                document.createElement(
-                                                                    "div"
-                                                                );
-                                                            fileItem.className =
-                                                                "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                                    window.editProjectSelectedFiles.forEach(function (file, index) {
+                                                            var fileItem = document.createElement('div');
+                                                            fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-                                                            var fileInfo =
-                                                                document.createElement(
-                                                                    "div"
-                                                                );
-                                                            fileInfo.className =
-                                                                "d-flex align-items-center flex-grow-1";
+                                                            // image preview for images
+                                                            var lower = String(file.name || '').toLowerCase();
+                                                            var isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+                                                            if (isImage) {
+                                                                var img = document.createElement('img');
+                                                                img.src = URL.createObjectURL(file);
+                                                                img.width = 28; img.height = 28;
+                                                                img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                                                                img.alt = file.name || 'img';
+                                                                fileItem.appendChild(img);
+                                                            }
 
-                                                            var fileIcon =
-                                                                document.createElement(
-                                                                    "span"
-                                                                );
-                                                            fileIcon.className =
-                                                                "material-symbols-outlined me-2";
-                                                            fileIcon.textContent =
-                                                                "description";
+                                                            var title = document.createElement('span');
+                                                            title.className = 'flex-grow-1 text-truncate';
+                                                            title.textContent = file.name;
+                                                            fileItem.appendChild(title);
 
-                                                            var fileName =
-                                                                document.createElement(
-                                                                    "span"
-                                                                );
-                                                            fileName.textContent =
-                                                                file.name;
-                                                            fileName.className =
-                                                                "file-name";
+                                                            var removeBtn = document.createElement('button');
+                                                            removeBtn.type = 'button';
+                                                            removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                                                            removeBtn.style.lineHeight = '1';
+                                                            removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                                            removeBtn.addEventListener('click', function () {
+                                                                window.editProjectSelectedFiles.splice(index, 1);
+                                                                renderEditProjectSelectedFiles();
+                                                            });
 
-                                                            var fileSize =
-                                                                document.createElement(
-                                                                    "small"
-                                                                );
-                                                            fileSize.textContent =
-                                                                " (" +
-                                                                (
-                                                                    file.size /
-                                                                    1024 /
-                                                                    1024
-                                                                ).toFixed(2) +
-                                                                " MB)";
-                                                            fileSize.className =
-                                                                "text-muted ms-1";
-
-                                                            var removeBtn =
-                                                                document.createElement(
-                                                                    "button"
-                                                                );
-                                                            removeBtn.type =
-                                                                "button";
-                                                            removeBtn.className =
-                                                                "btn btn-sm btn-outline-danger";
-                                                            removeBtn.innerHTML =
-                                                                "&times;";
-                                                            removeBtn.onclick =
-                                                                function () {
-                                                                    window.editProjectSelectedFiles.splice(
-                                                                        index,
-                                                                        1
-                                                                    );
-                                                                    renderEditProjectSelectedFiles();
-                                                                };
-
-                                                            fileInfo.appendChild(
-                                                                fileIcon
-                                                            );
-                                                            fileInfo.appendChild(
-                                                                fileName
-                                                            );
-                                                            fileInfo.appendChild(
-                                                                fileSize
-                                                            );
-                                                            fileItem.appendChild(
-                                                                fileInfo
-                                                            );
-                                                            fileItem.appendChild(
-                                                                removeBtn
-                                                            );
-                                                            fileList.appendChild(
-                                                                fileItem
-                                                            );
-                                                        }
-                                                    );
+                                                            fileItem.appendChild(removeBtn);
+                                                            fileList.appendChild(fileItem);
+                                                        });
 
                                                     previewEdit.appendChild(
                                                         fileList
@@ -3490,52 +3408,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     dateDiv.className = "text-muted small";
                                     dateDiv.style.fontSize = '10px';
                                     if (feedback.created_at) {
-                                        const dateObj = new Date(
-                                            feedback.created_at
-                                        );
-                                        const now = new Date();
-
-                                        // Helper function to check if two dates are the same day
-                                        function isSameDay(d1, d2) {
-                                            return (
-                                                d1.getFullYear() ===
-                                                    d2.getFullYear() &&
-                                                d1.getMonth() ===
-                                                    d2.getMonth() &&
-                                                d1.getDate() === d2.getDate()
-                                            );
-                                        }
-
-                                        // Helper function to check if d1 is yesterday of d2
-                                        function isYesterday(d1, d2) {
-                                            const yesterday = new Date(d2);
-                                            yesterday.setDate(d2.getDate() - 1);
-                                            return isSameDay(d1, yesterday);
-                                        }
-
-                                        if (isSameDay(dateObj, now)) {
-                                            // Show time only
-                                            dateDiv.textContent =
-                                                dateObj.toLocaleTimeString(
-                                                    undefined,
-                                                    {
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                    }
-                                                );
-                                        } else if (isYesterday(dateObj, now)) {
-                                            dateDiv.textContent = "yesterday";
-                                        } else {
-                                            dateDiv.textContent =
-                                                dateObj.toLocaleDateString(
-                                                    undefined,
-                                                    {
-                                                        year: "numeric",
-                                                        month: "long",
-                                                        day: "numeric",
-                                                    }
-                                                );
-                                        }
+                                        dateDiv.textContent = timeAgo(feedback.created_at);
                                     } else {
                                         dateDiv.textContent = "";
                                     }
@@ -3755,10 +3628,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                         }
                                     );
 
-                                    // Append sections
+                                    // Append header only for now; comment/media will be moved into the info/content column
                                     feedbackItem.appendChild(headerDiv);
-                                    feedbackItem.appendChild(commentDiv);
-                                    feedbackItem.appendChild(mediaDiv);
 
                                     // Create actions container for edit and reply buttons
                                     const actionsDiv =
@@ -3766,7 +3637,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     actionsDiv.className =
                                         "feedback-actions mt-2 d-flex gap-3";
 
-                                    // Add edit button if exists
+                                    // Prepare possible edit wrapper but do not append yet: we'll control order below
+                                    let editWrapper = null;
                                     if (editBtnInline) {
                                         // Store the original event listener
                                         const editClickHandler =
@@ -3774,7 +3646,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             function () {};
 
                                         // Create edit button wrapper with icon + text
-                                        const editWrapper =
+                                        editWrapper =
                                             document.createElement("span");
                                         editWrapper.className =
                                             "d-flex align-items-center";
@@ -3983,8 +3855,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 );
                                             }
                                         );
-
-                                        actionsDiv.appendChild(editWrapper);
                                     }
 
                                     // Create reply button wrapper with icon + text
@@ -4012,10 +3882,16 @@ document.addEventListener("DOMContentLoaded", function () {
                                         showReplyFeedbackForm(projectId, feedback.id);
                                     });
 
-                                    // Add reply button to actions
+                                    // Append actions in requested order: Reply, Edit, Delete
+                                    // Reply first
                                     actionsDiv.appendChild(replyWrapper);
 
-                                    // Add delete button for top-level feedback if author (match Task behavior)
+                                    // Then Edit (if prepared)
+                                    if (editWrapper) {
+                                        actionsDiv.appendChild(editWrapper);
+                                    }
+
+                                    // Then Delete (if allowed)
                                     if (canEditTopInline) {
                                         const deleteWrapper = document.createElement('span');
                                         // Make the entire wrapper the trigger so clicking text/icon works
@@ -4039,8 +3915,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // Prepare content container that holds comment, media and actions (so actions align vertically with name/date)
                                     const contentContainer = document.createElement('div');
                                     contentContainer.className = 'mt-2';
+                                    // Append comment first
                                     contentContainer.appendChild(commentDiv);
-                                    // mediaDiv appended below if populated
+                                    // Append media (images / refs) so they appear above the action icons and aligned with the description
+                                    try {
+                                        if (mediaDiv && mediaDiv.childNodes && mediaDiv.childNodes.length) {
+                                            contentContainer.appendChild(mediaDiv);
+                                        }
+                                    } catch (_) {}
 
                                     // Ensure actionsDiv uses same classes as Task for alignment
                                     actionsDiv.className = 'feedback-actions mt-2 d-flex gap-4 align-items-center';
@@ -4070,7 +3952,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         toggleBtn.style.cssText = "cursor:pointer; color:rgb(85,85,85); font-size:13px; text-decoration: none; display:flex; align-items:center;";
                                         toggleBtn.setAttribute('data-feedback-id', String(feedback.id));
                                         toggleBtn.setAttribute('data-replies-count', String(repliesCount));
-                                        toggleBtn.textContent = `View all replies (${repliesCount})`;
+                                        toggleBtn.textContent = `View all (${repliesCount})`;
                                         const repliesContainer = document.createElement("div");
                                         repliesContainer.className = "feedback-replies d-none";
 
@@ -4143,27 +4025,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             repDateDiv.className = 'text-muted small';
                                             repDateDiv.style.fontSize = '10px';
                                             if (rep.created_at) {
-                                                const dateObj = new Date(rep.created_at);
-                                                const now = new Date();
-                                                function isSameDay(d1, d2) {
-                                                    return (
-                                                        d1.getFullYear() === d2.getFullYear() &&
-                                                        d1.getMonth() === d2.getMonth() &&
-                                                        d1.getDate() === d2.getDate()
-                                                    );
-                                                }
-                                                function isYesterday(d1, d2) {
-                                                    const yesterday = new Date(d2);
-                                                    yesterday.setDate(d2.getDate() - 1);
-                                                    return isSameDay(d1, yesterday);
-                                                }
-                                                if (isSameDay(dateObj, now)) {
-                                                    repDateDiv.textContent = dateObj.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                                                } else if (isYesterday(dateObj, now)) {
-                                                    repDateDiv.textContent = 'yesterday';
-                                                } else {
-                                                    repDateDiv.textContent = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                                                }
+                                                repDateDiv.textContent = timeAgo(rep.created_at);
                                             } else {
                                                 repDateDiv.textContent = '';
                                             }
@@ -4254,7 +4116,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                             // After building actions, we'll place the actions row inside the content container so it aligns with name/time
 
-                                            // Edit (if allowed)
+                                            // Reply first
+                                            const replyRep = document.createElement('span');
+                                            replyRep.className = 'd-flex align-items-center feedback-reply-trigger';
+                                            replyRep.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                            replyRep.setAttribute('data-feedback-id', String(feedback.id));
+                                            replyRep.setAttribute('data-project-id', String(projectId));
+                                            const replyIcon = document.createElement('span'); replyIcon.className = 'material-symbols-outlined'; replyIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; replyIcon.textContent = 'reply';
+                                            const replyText = document.createElement('span'); replyText.textContent = 'Reply';
+                                            replyRep.appendChild(replyIcon); replyRep.appendChild(replyText);
+                                            replyRep.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); });
+                                            replyActionsDiv.appendChild(replyRep);
+
+                                            // Then Edit (if allowed)
                                             if (rEdit) {
                                                 const editRep = document.createElement('span');
                                                 editRep.className = 'd-flex align-items-center reply-edit-trigger';
@@ -4271,19 +4145,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 replyActionsDiv.appendChild(editRep);
                                             }
 
-                                            // Reply
-                                            const replyRep = document.createElement('span');
-                                            replyRep.className = 'd-flex align-items-center feedback-reply-trigger';
-                                            replyRep.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
-                                            replyRep.setAttribute('data-feedback-id', String(feedback.id));
-                                            replyRep.setAttribute('data-project-id', String(projectId));
-                                            const replyIcon = document.createElement('span'); replyIcon.className = 'material-symbols-outlined'; replyIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; replyIcon.textContent = 'reply';
-                                            const replyText = document.createElement('span'); replyText.textContent = 'Reply';
-                                            replyRep.appendChild(replyIcon); replyRep.appendChild(replyText);
-                                            replyRep.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); });
-                                            replyActionsDiv.appendChild(replyRep);
-
-                                            // Delete (if allowed)
+                                            // Then Delete (if allowed)
                                             if (rEdit) {
                                                 const delRep = document.createElement('span');
                                                 delRep.className = 'd-flex align-items-center reply-delete-trigger';
@@ -4337,7 +4199,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         "d-none"
                                                     );
                                                     this.textContent =
-                                                        "Hide replies";
+                                                        "Hide";
                                                 } else {
                                                     repliesContainer.classList.add(
                                                         "d-none"
@@ -8345,7 +8207,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         const item = document.createElement('div');
-                        item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+                        item.className = 'reference-files-list d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
                         const lower = String(fileName || '').toLowerCase();
                         const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
@@ -8357,14 +8219,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
                             img.alt = fileName;
                             item.appendChild(img);
-                        } else {
-                            const badge = document.createElement('div');
-                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                            badge.style.width = '28px'; badge.style.height = '28px';
-                            badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
-                            badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
-                            badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
-                            item.appendChild(badge);
                         }
 
                         const title = document.createElement('a');
