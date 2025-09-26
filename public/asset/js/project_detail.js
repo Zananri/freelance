@@ -323,7 +323,7 @@
                 }
             }
 
-          
+
             try {
                 if (typeof window.showFloatingAlert !== 'function') {
                     window.showFloatingAlert = showFloatingAlert;
@@ -1067,7 +1067,7 @@
 
             // modal show/hide handlers
             projectFeedbackModalEl.addEventListener('show.bs.modal', function () { try { document.body.classList.add('feedback-modal-open'); if (!document.getElementById('feedbackBackdropStyle')) { var style = document.createElement('style'); style.id = 'feedbackBackdropStyle'; style.textContent = '.feedback-modal-open .modal-backdrop.show {opacity:0.18 !important;}'; document.head.appendChild(style); } } catch(_){} });
-            projectFeedbackModalEl.addEventListener('hidden.bs.modal', function () { 
+            projectFeedbackModalEl.addEventListener('hidden.bs.modal', function () {
                 try {
                     // If suppression flag is set, this hidden event is from a temporary hide
                     // (for example when showing the delete confirmation). In that case,
@@ -1237,7 +1237,7 @@
             }
             $("#project-image").attr("src", imgUrl);
         } else {
-          
+
             var initials = buildInitials(data.title || '');
             if (initials) {
                 var color = getRandomColorFromText(data.title || '');
@@ -1482,7 +1482,7 @@
                     var container = addBtn.closest('#feedback_reference_urls_container, #project_reference_urls_container, #edit_project_reference_urls_container, #reply_reference_urls_container');
                     if (!container) return;
                     var row = document.createElement('div');
-                    row.className = 'd-flex gap-2 align-items-center';
+                    row.className = 'input-group';
                     row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                         ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
                     container.appendChild(row);
@@ -1491,12 +1491,13 @@
                     return;
                 }
 
-                var removeBtn = e.target.closest('.remove-ref-url');
+                const removeBtn = e.target.closest(".remove-ref-url");
                 if (removeBtn) {
-                    e.preventDefault && e.preventDefault();
-                    var row = removeBtn.closest('.d-flex');
-                    if (row && row.parentNode) row.parentNode.removeChild(row);
-                    return;
+                    e.preventDefault();
+                    const row = removeBtn.closest(".input-group");
+                    if (row && row.parentNode) {
+                        row.parentNode.removeChild(row);
+                    }
                 }
             } catch (_) {}
         });
@@ -1752,14 +1753,14 @@
                         // mark remove_image so backend deletes existing image
                         try { document.getElementById('edit_remove_image').value = '1'; } catch(_){ }
 
-                     
+
                     } catch (err) {}
                 });
             }
 
         } // end setupImageInput
 
-            
+
             if (typeof window.setupCoAuthorInputEdit !== 'function') {
                 window.setupCoAuthorInputEdit = function setupCoAuthorInputEdit() {
                 const input = document.getElementById("edit_co_author_input");
@@ -2538,7 +2539,7 @@
                                 if ((!urls || !urls.length) && data.reference_url) urls = [data.reference_url];
                                 function makeRow(value, withAdd) {
                                     var row = document.createElement('div');
-                                    row.className = 'd-flex gap-2 align-items-center';
+                                    row.className = 'input-group';
                                     row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
                                     container.appendChild(row);
                                     var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value;
