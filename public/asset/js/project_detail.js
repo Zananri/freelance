@@ -323,7 +323,7 @@
                 }
             }
 
-          
+
             try {
                 if (typeof window.showFloatingAlert !== 'function') {
                     window.showFloatingAlert = showFloatingAlert;
@@ -1067,7 +1067,7 @@
 
             // modal show/hide handlers
             projectFeedbackModalEl.addEventListener('show.bs.modal', function () { try { document.body.classList.add('feedback-modal-open'); if (!document.getElementById('feedbackBackdropStyle')) { var style = document.createElement('style'); style.id = 'feedbackBackdropStyle'; style.textContent = '.feedback-modal-open .modal-backdrop.show {opacity:0.18 !important;}'; document.head.appendChild(style); } } catch(_){} });
-            projectFeedbackModalEl.addEventListener('hidden.bs.modal', function () { 
+            projectFeedbackModalEl.addEventListener('hidden.bs.modal', function () {
                 try {
                     // If suppression flag is set, this hidden event is from a temporary hide
                     // (for example when showing the delete confirmation). In that case,
@@ -1237,7 +1237,7 @@
             }
             $("#project-image").attr("src", imgUrl);
         } else {
-          
+
             var initials = buildInitials(data.title || '');
             if (initials) {
                 var color = getRandomColorFromText(data.title || '');
@@ -1482,7 +1482,7 @@
                     var container = addBtn.closest('#feedback_reference_urls_container, #project_reference_urls_container, #edit_project_reference_urls_container, #reply_reference_urls_container');
                     if (!container) return;
                     var row = document.createElement('div');
-                    row.className = 'd-flex gap-2 align-items-center';
+                    row.className = 'input-group';
                     row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                         ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
                     container.appendChild(row);
@@ -1491,12 +1491,13 @@
                     return;
                 }
 
-                var removeBtn = e.target.closest('.remove-ref-url');
+                const removeBtn = e.target.closest(".remove-ref-url");
                 if (removeBtn) {
-                    e.preventDefault && e.preventDefault();
-                    var row = removeBtn.closest('.d-flex');
-                    if (row && row.parentNode) row.parentNode.removeChild(row);
-                    return;
+                    e.preventDefault();
+                    const row = removeBtn.closest(".input-group");
+                    if (row && row.parentNode) {
+                        row.parentNode.removeChild(row);
+                    }
                 }
             } catch (_) {}
         });
@@ -1752,14 +1753,14 @@
                         // mark remove_image so backend deletes existing image
                         try { document.getElementById('edit_remove_image').value = '1'; } catch(_){ }
 
-                     
+
                     } catch (err) {}
                 });
             }
 
         } // end setupImageInput
 
-            
+
             if (typeof window.setupCoAuthorInputEdit !== 'function') {
                 window.setupCoAuthorInputEdit = function setupCoAuthorInputEdit() {
                 const input = document.getElementById("edit_co_author_input");
@@ -2502,31 +2503,26 @@
 
             // Intercept edit link clicks created by createActionButtons
             $(document).off('click', '.detail-icon a, .detail-icon').on('click', '.detail-icon a, .detail-icon', function (e) {
-                // If it's the edit anchor inside project actions, handle specially
                 var $el = $(e.target).closest('a');
-                if (!$el || !$el.attr('href')) return; // let other icons behave normally
+                if (!$el || !$el.attr('href')) return;
                 var href = $el.attr('href');
-                if (!/\/project\/\d+\/edit$/.test(href)) return; // not project edit
+                if (!/\/project\/\d+\/edit$/.test(href)) return;
                 e.preventDefault();
-                // extract id
                 var m = href.match(/\/project\/(\d+)\/edit$/);
                 if (!m) return;
                 var projectId = m[1];
-                // fetch edit payload
                 $.ajax({
                     url: getMeta('app-url').replace(/\/$/, '') + '/project/' + projectId + '/edit',
                     type: 'GET',
                     dataType: 'json',
                     success: function (data) {
                         try {
-                            // Populate basic fields
                             $('#edit_project_id').val(data.id);
                             $('#edit_title').val(data.title || '');
                             $('#edit_description').val(data.description || '');
                             $('#edit_start_date').val(data.start_date || '');
                             $('#edit_due_date').val(data.due_date || '');
 
-                            // Reference URLs
                             try {
                                 var container = document.getElementById('edit_project_reference_urls_container');
                                 container.innerHTML = '';
@@ -2538,28 +2534,24 @@
                                 if ((!urls || !urls.length) && data.reference_url) urls = [data.reference_url];
                                 function makeRow(value, withAdd) {
                                     var row = document.createElement('div');
-                                    row.className = 'd-flex gap-2 align-items-center';
-                                    row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+                                    row.className = 'input-group mb-2';
+                                    row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="border-0 bg-transparent p-1 remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined" style="color:#444444;">close</span></button>');
                                     container.appendChild(row);
                                     var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value;
                                 }
                                 if (urls && urls.length) { urls.forEach(function(u){ makeRow(u, false); }); makeRow('', true); } else { makeRow('', true); }
                             } catch (e) {}
 
-                            // Part of project select
                             populatePartOfProjectSelects(data.id, data.title || '', data.part_of_project || '');
 
-                            // Departments/divisions
                             try {
                                 var presetDeptEl = document.getElementById('edit_department');
                                 var presetDeptVal = presetDeptEl ? (presetDeptEl.value || '').toString().trim() : '';
                                 if (presetDeptVal) {
-                                    // department was prefilled by server (hidden). Load divisions for that department and set selected division.
                                     loadDivisions(presetDeptVal, function () {
                                         try { $('#edit_division').val(data.division_id); } catch(_){}
                                     }, document.getElementById('edit_division'));
                                 } else {
-                                    // No preset: load departments then select the project's department and load divisions
                                     loadDepartments(function () {
                                         try { $('#edit_department').val(data.department_id).trigger('change'); } catch(_){ }
                                         loadDivisions(data.department_id, function () {
@@ -2568,11 +2560,9 @@
                                     }, document.getElementById('edit_department'));
                                 }
                             } catch (e) {
-                                // fallback: attempt to load divisions directly
                                 try { loadDivisions(data.department_id, function () { try { $('#edit_division').val(data.division_id); } catch(_){} }, document.getElementById('edit_division')); } catch(_){}
                             }
 
-                            // Image preview
                             if (data.image) {
                                 var url = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + data.image.replace(/^\//, '');
                                 var label = document.getElementById('editImageLabel');
@@ -2593,7 +2583,6 @@
                                 }
                             }
 
-                            // Existing reference files
                             var existingFiles = Array.isArray(data.reference_files) ? data.reference_files.slice() : (data.reference_file ? (Array.isArray(data.reference_file) ? data.reference_file.slice() : [data.reference_file]) : []);
                             try { document.getElementById('existing_reference_files_input').value = JSON.stringify(existingFiles); } catch(_){}
                             try {
@@ -2601,41 +2590,70 @@
                                 if (existingContainer) {
                                     existingContainer.innerHTML = '';
                                     if (existingFiles.length > 0) {
-                                        var title = document.createElement('div'); title.className = 'fw-bold mb-2'; title.textContent = 'Current Files:'; existingContainer.appendChild(title);
-                                        var list = document.createElement('div'); list.className = 'existing-files-list w-100';
-                                        existingFiles.forEach(function(fn){
-                                            var item = document.createElement('div'); item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
-                                            var info = document.createElement('div'); info.className = 'd-flex align-items-center flex-grow-1';
-                                            var icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
-                                            var link = document.createElement('a'); link.href = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + fn; link.textContent = fn; link.target = '_blank'; link.className = 'text-decoration-none';
-                                            var removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-outline-danger'; removeBtn.innerHTML='&times;'; removeBtn.addEventListener('click', function(){
-                                                existingFiles = existingFiles.filter(function(f){ return f !== fn; });
-                                                try { document.getElementById('existing_reference_files_input').value = JSON.stringify(existingFiles); } catch(_){}
-                                                // re-render
-                                                this.parentNode && this.parentNode.parentNode && this.parentNode.parentNode.removeChild(this.parentNode);
+                                        var title = document.createElement('div');
+                                        title.className = 'fw-bold mb-2';
+                                        title.textContent = 'Current Files:';
+                                        existingContainer.appendChild(title);
+
+                                        var list = document.createElement('div');
+                                        list.className = 'existing-files-list w-100';
+
+                                        existingFiles.forEach(function(fn) {
+                                            var item = document.createElement('div');
+                                            item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
+
+                                            var info = document.createElement('div');
+                                            info.className = 'd-flex align-items-center flex-grow-1';
+
+                                            var ext = fn.split('.').pop().toLowerCase();
+                                            var isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext);
+
+                                            if (isImage) {
+                                                var img = document.createElement('img');
+                                                img.src = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + fn;
+                                                img.alt = fn;
+                                                img.style.maxWidth = '28px';
+                                                img.style.maxHeight = '28px';
+                                                img.className = 'me-2 rounded border';
+                                                info.appendChild(img);
+                                            }
+
+                                            var link = document.createElement('a');
+                                            link.href = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + fn;
+                                            link.textContent = fn;
+                                            link.target = '_blank';
+                                            link.className = 'text-decoration-none';
+                                            link.style.color = '#444444'
+                                            info.appendChild(link);
+
+                                            var removeBtn = document.createElement('button');
+                                            removeBtn.type = 'button';
+                                            removeBtn.className = 'border-0 bg-transparent p-1';
+                                            removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444444;">close</span>';
+                                            removeBtn.addEventListener('click', function() {
+                                                existingFiles = existingFiles.filter(function(f) { return f !== fn; });
+                                                try { document.getElementById('existing_reference_files_input').value = JSON.stringify(existingFiles); } catch(_) {}
+                                                item.remove();
                                             });
-                                            info.appendChild(icon); info.appendChild(link); item.appendChild(info); item.appendChild(removeBtn); list.appendChild(item);
+
+                                            item.appendChild(info);
+                                            item.appendChild(removeBtn);
+                                            list.appendChild(item);
                                         });
+
                                         existingContainer.appendChild(list);
                                     }
                                 }
                             } catch(_){}
 
-                            // Clear file input for new files
                             try { $('#edit_reference_file').val(''); } catch(_){}
 
-                            // co-authors & contributors: set hidden inputs and render badges for display
                             try {
-                                // Normalize collaborator items so badges can show division and photo consistently
                                 function normalizePerson(item) {
                                     if (!item) return item;
                                     try {
-                                        // ensure name
                                         item.name = item.name || item.employee_name || item.username || item.full_name || (item.employee && (item.employee.name || item.employee.full_name)) || '-';
-                                        // prefer explicit user_photo fields
                                         item.user_photo = item.user_photo || item.profile_picture || item.profile_picture_url || item.user_photo_url || item.user_photo_path || null;
-
-                                        // normalize division into a flat string
                                         var div = '';
                                         try {
                                             if (item.division) {
@@ -2664,9 +2682,6 @@
                                 try { $('#edit_co_author').val(JSON.stringify((co.map && co.map(function(c){ return c.id; })) || [])); } catch(_){ }
                                 try { $('#edit_contributors').val(JSON.stringify((cont.map && cont.map(function(c){ return c.id; })) || [])); } catch(_){ }
 
-                                // Debug: log normalized collaborator arrays so we can verify division fields
-                                try { console.debug('[Edit modal] normalized co_authors:', co); console.debug('[Edit modal] normalized contributors:', cont); } catch(_) {}
-
                                 renderSelectedBadges('edit_selected_co_authors', co, 'edit_co_author');
                                 renderSelectedBadges('edit_selected_contributors', cont, 'edit_contributors');
 
@@ -2674,7 +2689,6 @@
                                 try { if (window.setSelectedContributorsEdit) window.setSelectedContributorsEdit(cont || []); } catch (_) {}
                             } catch(_){}
 
-                            // Show modal
                             var modalEl = document.getElementById('editProjectModal');
                             if (modalEl) {
                                 var m = bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : new bootstrap.Modal(modalEl);
@@ -2689,6 +2703,62 @@
                         else alert('Gagal mengambil data untuk edit');
                     }
                 });
+            });
+
+            document.addEventListener("change", function (e) {
+                if (e.target && e.target.id === "edit_reference_file") {
+                    const previewContainer = document.getElementById("edit_reference_files_preview");
+                    const oldFiles = Array.from(e.target.files);
+                    const newFiles = Array.from(e.target._newFiles || []);
+                    const allFiles = [...newFiles, ...oldFiles];
+                    e.target._newFiles = allFiles;
+
+                    previewContainer.innerHTML = "";
+                    allFiles.forEach(file => {
+                        const item = document.createElement("div");
+                        item.className = "preview-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded";
+
+                        const info = document.createElement("div");
+                        info.className = "d-flex align-items-center flex-grow-1";
+
+                        if (file.type.startsWith("image/")) {
+                            const img = document.createElement("img");
+                            img.src = URL.createObjectURL(file);
+                            img.alt = file.name;
+                            img.style.maxWidth = "28px";
+                            img.style.maxHeight = "28px";
+                            img.className = "me-2 rounded border";
+                            info.appendChild(img);
+                            const text = document.createElement("span");
+                            text.textContent = file.name;
+                            info.appendChild(text);
+                        } else {
+                            const text = document.createElement("span");
+                            text.textContent = file.name;
+                            info.appendChild(text);
+                        }
+
+                        const removeBtn = document.createElement("button");
+                        removeBtn.type = "button";
+                        removeBtn.className = "border-0 bg-transparent";
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444444;">close</span>';
+                        removeBtn.addEventListener("click", function () {
+                            item.remove();
+                            e.target._newFiles = e.target._newFiles.filter(f => f !== file);
+                            const dt = new DataTransfer();
+                            e.target._newFiles.forEach(f => dt.items.add(f));
+                            e.target.files = dt.files;
+                        });
+
+                        item.appendChild(info);
+                        item.appendChild(removeBtn);
+                        previewContainer.appendChild(item);
+                    });
+
+                    const dt = new DataTransfer();
+                    allFiles.forEach(f => dt.items.add(f));
+                    e.target.files = dt.files;
+                }
             });
 
             // Handle edit project form submission
