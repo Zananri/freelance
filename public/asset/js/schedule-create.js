@@ -121,14 +121,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedContainer = document.getElementById('schedule_selected_executors');
         const hidden = document.getElementById('schedule_executors');
         if(!input||!dropdown||!selectedContainer||!hidden) return;
-    let employees = [], filtered = [], selected = [];
-        // Local cached fetch (shared via window to reuse across reloadless navigations)
+
+        let employees = [], filtered = [], selected = [];
+
         const EMP_CACHE_TTL_MS = 5*60*1000;
         const empCache = (window.__empExecCache = window.__empExecCache || { map:new Map(), inFlight:new Map() });
+
         function fetchEmployeesCached(q=''){
-            const key = String(q||'').trim().toLowerCase(); const now = Date.now();
+            const key = String(q||'').trim().toLowerCase();
+            const now = Date.now();
             const hit = empCache.map.get(key);
-            if(hit && (now - hit.t) < EMP_CACHE_TTL_MS){ return Promise.resolve(hit.v); }
+            if(hit && (now - hit.t) < EMP_CACHE_TTL_MS) return Promise.resolve(hit.v);
             if(empCache.inFlight.has(key)) return empCache.inFlight.get(key);
             const p = fetch(appUrl + '/task/employees-for-executor?q='+encodeURIComponent(key))
                 .then(r=>r.ok?r.json():Promise.reject(r))
@@ -137,21 +140,16 @@ document.addEventListener('DOMContentLoaded', () => {
             empCache.inFlight.set(key, p);
             return p;
         }
+
         function buildPhotoUrl(userPhoto){
             if(!userPhoto) return appUrl + '/asset/img/avatar.png';
-            if(/^https?:/i.test(userPhoto)) return userPhoto; if(userPhoto.startsWith('/')) return appUrl+userPhoto; if(userPhoto.startsWith('file/')||userPhoto.startsWith('asset/')) return appUrl+'/'+userPhoto; return appUrl + '/file/profile_picture/' + userPhoto;
-        }
-        function fetchEmployees(q=''){
-            // Deprecated: keep for compatibility but prefer a single full-load via fetchAllEmployees
-            return fetchEmployeesCached(q).then(d => {
-                employees = (d && (d.data||d)) || [];
-                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
-                filtered = employees;
-                renderDropdown();
-            }).catch(() => showScheduleAlert('Failed load employees','danger'));
+            if(/^https?:/i.test(userPhoto)) return userPhoto;
+            if(userPhoto.startsWith('/')) return appUrl+userPhoto;
+            if(userPhoto.startsWith('file/')||userPhoto.startsWith('asset/'))
+                return appUrl+'/'+userPhoto;
+            return appUrl + '/file/profile_picture/' + userPhoto;
         }
 
-        // Fetch all employees once (no query) and cache locally, then filter client-side
         function fetchAllEmployeesIfNeeded() {
             if (employees && employees.length > 0) return Promise.resolve(employees);
             return fetchEmployeesCached('').then(d => {
@@ -163,84 +161,154 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function renderDropdown(){
-            dropdown.innerHTML = filtered.map(emp=>{ const checked = selected.some(s=>s.id===emp.id); const photo=buildPhotoUrl(emp.user_photo); return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
-                <div class='d-flex align-items-center'>
-                    <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
-                    <div class='d-flex flex-column'>
-                        <span class='executor-name'>${emp.name}</span>
-                        <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
+            dropdown.innerHTML = filtered.map(emp=>{
+                const checked = selected.some(s=>s.id===emp.id);
+                const photo=buildPhotoUrl(emp.user_photo);
+                return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
+                    <div class='d-flex align-items-center'>
+                        <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
+                        <div class='d-flex flex-column'>
+                            <span class='executor-name'>${emp.name}</span>
+                            <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
+                        </div>
                     </div>
-                </div>
-                <input type='checkbox' data-id='${emp.id}' ${checked?'checked':''}>
-            </label>`; }).join('');
-            dropdown.style.display='block';
-            dropdown.querySelectorAll('input[type=checkbox]').forEach(cb=> cb.addEventListener('change', function(){ const id=parseInt(this.getAttribute('data-id')); if(this.checked){ if(!selected.some(s=>s.id===id)){ const emp=employees.find(e=>e.id===id); selected.push({id, name:emp.name, user_photo:emp.user_photo}); } } else { selected = selected.filter(s=>s.id!==id); } renderSelected(); renderDropdown(); updateHidden(); }));
+                    <input type='checkbox' data-id='${emp.id}' ${checked?'checked':''}>
+                </label>`;
+            }).join('');
+
+            dropdown.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+                cb.addEventListener('change', function(){
+                    const id=parseInt(this.getAttribute('data-id'));
+                    if(this.checked){
+                        if(!selected.some(s=>s.id===id)){
+                            const emp=employees.find(e=>e.id===id);
+                            selected.push({
+                                id,
+                                name: emp.name,
+                                user_photo: emp.user_photo,
+                                division: emp.division || emp.division_name || ''
+                            });
+                        }
+                    } else {
+                        selected = selected.filter(s=>s.id!==id);
+                    }
+                    renderSelected();
+                    updateHidden();
+                    renderDropdown();
+                });
+            });
         }
+
+        function renderSelected(){
+            selectedContainer.innerHTML='';
+            if(selected.length === 0){
+                selectedContainer.style.display = "none";
+                return;
+            }
+            selectedContainer.style.display = "flex";
+            selected.forEach(emp=>{
+                const photo=buildPhotoUrl(emp.user_photo);
+                const badge=document.createElement('span');
+                badge.className='badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2';
+
+                const img = document.createElement('img');
+                img.src = photo;
+                img.alt = emp.name || '';
+                img.className = 'rounded-circle me-2';
+                img.style.width='24px';
+                img.style.height='24px';
+                img.style.objectFit='cover';
+
+                const nameCol = document.createElement("div");
+                nameCol.className = "d-flex flex-column";
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = emp.name || "";
+                nameSpan.style.marginBottom = "5px"
+
+                const divisionSmall = document.createElement('small');
+                divisionSmall.className = "text-muted executor-division";
+                divisionSmall.textContent = emp.division || "";
+
+                nameCol.appendChild(nameSpan);
+                nameCol.appendChild(divisionSmall);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-close btn-sm ms-2';
+                removeBtn.setAttribute('aria-label', 'Remove');
+                removeBtn.addEventListener('click', ()=>{
+                    selected = selected.filter(s=>s.id!==emp.id);
+                    renderSelected();
+                    updateHidden();
+                    renderDropdown();
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameCol);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        function updateHidden(){ hidden.value = JSON.stringify(selected.map(s=>s.id)); }
+
+        input.addEventListener('input', function(){
+            fetchAllEmployeesIfNeeded().then(()=> {
+                filterEmployeesByName(this.value);
+                dropdown.style.display = "block";
+            });
+        });
+        input.addEventListener('focus', function(){
+            fetchAllEmployeesIfNeeded().then(()=> {
+                filterEmployeesByName(this.value);
+                dropdown.style.display = "block";
+            });
+        });
+        document.addEventListener('click', e=>{
+            if(!dropdown.contains(e.target) && e.target!==input){
+                dropdown.style.display='none';
+            }
+        });
 
         function filterEmployeesByName(q) {
             const val = String(q || '').trim().toLowerCase();
-            if (!val) {
-                filtered = employees;
-            } else {
-                filtered = employees.filter(emp => (emp.name || '').toLowerCase().includes(val));
-            }
+            if (!val) filtered = employees;
+            else filtered = employees.filter(emp => (emp.name || '').toLowerCase().includes(val));
             renderDropdown();
         }
-    function renderSelected(){
-        selectedContainer.innerHTML='';
-        selected.forEach(emp=>{
-            const photo=buildPhotoUrl(emp.user_photo);
-            const badge=document.createElement('span');
-            // Use same styling/structure as Task selected badges
-            badge.className='badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2';
 
-            const img = document.createElement('img');
-            img.src = photo; img.alt = emp.name || ''; img.className = 'rounded-circle me-2'; img.style.width='24px'; img.style.height='24px'; img.style.objectFit='cover';
-
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = emp.name || '';
-
-            const removeBtn = document.createElement('button');
-            removeBtn.type = 'button';
-            removeBtn.className = 'btn-close btn-sm ms-2';
-            removeBtn.setAttribute('aria-label', 'Remove');
-            removeBtn.addEventListener('click', ()=>{ selected = selected.filter(s=>s.id!==emp.id); renderSelected(); renderDropdown(); updateHidden(); });
-
-            badge.appendChild(img);
-            badge.appendChild(nameSpan);
-            badge.appendChild(removeBtn);
-            selectedContainer.appendChild(badge);
-        });
-    }
-        function updateHidden(){ hidden.value = JSON.stringify(selected.map(s=>s.id)); }
-        input.addEventListener('input', function(){
-            // Ensure we have full employee list loaded before filtering
-            fetchAllEmployeesIfNeeded().then(()=> filterEmployeesByName(this.value));
-        });
-        input.addEventListener('focus', function(){
-            // Load full list once and show filtered results based on current input
-            fetchAllEmployeesIfNeeded().then(()=> filterEmployeesByName(this.value));
-        });
-        document.addEventListener('click', e=>{ if(!dropdown.contains(e.target) && e.target!==input){ dropdown.style.display='none'; } });
-
-        // Expose a small API to clear selections from outside (e.g., when modal closes)
+        // API buat luar
         window.__scheduleExecPicker = {
             clear: function(){
-                try { selected = []; renderSelected(); updateHidden(); dropdown.innerHTML = ''; } catch(e) {}
+                selected = [];
+                renderSelected();
+                updateHidden();
+                dropdown.innerHTML = '';
             },
-            // Pre-select executors programmatically. Accepts array of objects {id,name,user_photo}
             set: function(arr){
-                try {
+                fetchAllEmployeesIfNeeded().then(()=>{
                     if(!Array.isArray(arr)) return;
-                    selected = arr.map(a=> ({ id: a.id, name: a.name || a.full_name || '', user_photo: a.user_photo || a.profile_picture || '' }));
-                    renderSelected(); updateHidden(); renderDropdown();
-                } catch(e) {}
+                    selected = arr.map(a=>{
+                        const emp = employees.find(e=>e.id===a.id);
+                        return {
+                            id: a.id,
+                            name: a.name || a.full_name || (emp?emp.name:''),
+                            user_photo: a.user_photo || (emp?emp.user_photo:''),
+                            division: emp? (emp.division || emp.division_name || '') : ''
+                        };
+                    });
+                    renderSelected();  // <== ini langsung munculin badge
+                    updateHidden();
+                    renderDropdown();
+                });
             }
         };
 
-        // Convenience globals used by task.js compatibility code
-    window.setSelectedExecutorsAdd = function(execs){ try{ if(window.__scheduleExecPicker && typeof window.__scheduleExecPicker.set === 'function') window.__scheduleExecPicker.set(execs || []); } catch(_){} };
-    window.setSelectedExecutorsEdit = function(execs){ try{ if(window.__scheduleEditExecPicker && typeof window.__scheduleEditExecPicker.set === 'function') { window.__scheduleEditExecPicker.set(execs || []); } else if(window.__scheduleExecPicker && typeof window.__scheduleExecPicker.set === 'function') { window.__scheduleExecPicker.set(execs || []); } } catch(_){} };
+        // alias lama
+        window.setSelectedExecutorsAdd = execs => window.__scheduleExecPicker.set(execs||[]);
+        window.setSelectedExecutorsEdit = execs => window.__scheduleExecPicker.set(execs||[]);
+
     })();
 
     // Recurrence toggle logic (reuse simplified logic from task.js schedule section)
