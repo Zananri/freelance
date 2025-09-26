@@ -724,6 +724,8 @@ p {
 
 /* Ensure any HTML inserted by Quill or from server-side (eg. raw <p>, <ul>, <ol>)
    inside the description container uses the same visual style as .task-description */
+.task-description-container,
+.task-description,
 .task-description-container p,
 .task-description-container ul,
 .task-description-container ol,
@@ -1302,6 +1304,9 @@ p {
     }
     .custom-input.position-relative .form-text {
         margin-right: 0;
+    }
+    #statusConfirmModal .custom-card {
+        min-width: 87%;
     }
 }
 
@@ -1985,6 +1990,10 @@ p {
 
 #archieveModal .custom-card {
     background-color: #fff;
+}
+
+#statusConfirmModal .custom-card {
+    min-width: 87%;
 }
 
 /* #archieveModal .dropdown-icon {
