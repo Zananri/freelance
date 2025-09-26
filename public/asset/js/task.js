@@ -8096,92 +8096,103 @@ function applyCurrentSearchFilter() {
 
     async function loadArchivedTasksIntoModal(page = 1, append = false) {
         try {
-            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl) ? appUrl : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''))
-            const modalEl = document.getElementById('archieveModal')
-            if (!modalEl) return
-            const body = modalEl.querySelector('.modal-body')
-            if (!body) return
+            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl)
+                ? appUrl
+                : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''));
+
+            const modalEl = document.getElementById('archieveModal');
+            if (!modalEl) return;
+            const body = modalEl.querySelector('.modal-body');
+            if (!body) return;
 
             if (!append) {
-                resetArchiveState()
-                body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>'
+                resetArchiveState();
+                body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                // reset ID set kalau reload full
+                window.__renderedArchiveIds = new Set();
             }
 
-            if (archiveLoading || !archiveHasMore) return
-            archiveLoading = true
+            if (archiveLoading || !archiveHasMore) return;
+            archiveLoading = true;
 
-            const res = await fetch(`${baseAppUrl}/task/index?status=canceled&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null)
+            const res = await fetch(`${baseAppUrl}/task/index?status=canceled&per_page=10&page=${page}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).catch(() => null);
+
             if (!res || !res.ok) {
-                if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>'
-                archiveLoading = false
-                return
+                if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+                archiveLoading = false;
+                return;
             }
 
-            const j = await res.json().catch(() => ({}))
-            const data = (j && j.data) ? j.data : {}
-            let tasks = []
+            const j = await res.json().catch(() => ({}));
+            const data = (j && j.data) ? j.data : {};
+            let tasks = [];
+
             if (data) {
-                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null
+                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
                 if (canceledSection) {
-                    if (Array.isArray(canceledSection)) tasks = canceledSection
-                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks
+                    if (Array.isArray(canceledSection)) tasks = canceledSection;
+                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
                 }
             }
             if (!tasks || tasks.length === 0) {
-                let collected = []
-                const buckets = ['new_request','in_progress','completed','rejected','canceled','CANCELED']
+                let collected = [];
+                const buckets = ['new_request', 'in_progress', 'completed', 'rejected', 'canceled', 'CANCELED'];
                 buckets.forEach(key => {
-                    const section = data[key]
-                    if (!section) return
-                    if (Array.isArray(section)) collected.push(...section)
-                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks)
-                })
-                if (Array.isArray(data)) collected.push(...data)
-                const seen = new Set()
-                const allTasks = []
+                    const section = data[key];
+                    if (!section) return;
+                    if (Array.isArray(section)) collected.push(...section);
+                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
+                });
+                if (Array.isArray(data)) collected.push(...data);
+                const seen = new Set();
+                const allTasks = [];
                 collected.forEach(t => {
-                    const id = t && (t.id || t.task_id)
-                    if (!id) return
-                    if (seen.has(String(id))) return
-                    seen.add(String(id))
-                    allTasks.push(t)
-                })
-                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'))
+                    const id = t && (t.id || t.task_id);
+                    if (!id) return;
+                    if (seen.has(String(id))) return;
+                    seen.add(String(id));
+                    allTasks.push(t);
+                });
+                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
             }
 
             try {
-                const clientMap = window.__clientArchivedTasks || new Map()
+                const clientMap = window.__clientArchivedTasks || new Map();
                 if (clientMap && typeof clientMap.forEach === 'function') {
-                    clientMap.forEach(function(t, k){
-                        if (!tasks.some(x => String(x.id) === String(t.id))) tasks.push(t)
-                    })
+                    clientMap.forEach(function (t) {
+                        if (!tasks.some(x => String(x.id) === String(t.id))) tasks.push(t);
+                    });
                 }
                 if (!tasks || !tasks.length) {
-                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>'
-                    try { window.__renderingArchiveModal = false } catch(_) {}
-                    archiveLoading = false
-                    archiveHasMore = false
-                    return
+                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
+                    try { window.__renderingArchiveModal = false } catch (_) { }
+                    archiveLoading = false;
+                    archiveHasMore = false;
+                    return;
                 }
-            } catch(_) {}
+            } catch (_) { }
 
-            let container = body.querySelector('.task-list')
+            let container = body.querySelector('.task-list');
             if (!container) {
-                container = document.createElement('div')
-                container.className = 'task-list d-flex flex-column gap-2 p-2'
+                container = document.createElement('div');
+                container.className = 'task-list d-flex flex-column gap-2 p-2';
                 if (!append) {
-                    body.innerHTML = ''
-                    body.appendChild(container)
+                    body.innerHTML = '';
+                    body.appendChild(container);
                 }
             }
 
             function buildSafeCardHtml(t) {
-                const title = (t.title || 'Untitled Task')
-                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '')
-                const desc = (t.description || '').toString()
-                const priority = t.priority || ''
-                const rawStatus = String((t.status || '')).toUpperCase()
-                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL')) ? `<span style="color:red; font-weight:600;">${rawStatus}</span>` : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`
+                const title = (t.title || 'Untitled Task');
+                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                const desc = (t.description || '').toString();
+                const priority = t.priority || '';
+                const rawStatus = String((t.status || '')).toUpperCase();
+                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL'))
+                    ? `<span style="color:red; font-weight:600;">${rawStatus}</span>`
+                    : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`;
                 return `
                     <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${t.id || ''}" data-task-status="${t.status || ''}">
                         ${proj ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${proj}</small>` : ''}
@@ -8189,137 +8200,158 @@ function applyCurrentSearchFilter() {
                         <div class="task-description-container"><p class="task-description" style="margin-top:6px;">${desc}</p></div>
                         <hr class="task-separator rounded-4">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div style="font-size: 10px; font-weight: 400;"> <span style="color: #797E91;">Priority: </span><span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span></div>
-                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Status: </span><span class="type-badge-wrapper">${typeBadge}</span></div>
+                            <div style="font-size: 10px; font-weight: 400;">
+                                <span style="color: #797E91;">Priority: </span>
+                                <span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span>
+                            </div>
+                            <div style="font-size: 10px; font-weight: 400;">
+                                <span style="color: #797E91;">Status: </span>
+                                <span class="type-badge-wrapper">${typeBadge}</span>
+                            </div>
                         </div>
-                    </div>`
+                    </div>`;
             }
 
-            try { window.__renderingArchiveModal = true } catch(_) {}
+            function safeInsertTask(container, t, html) {
+                const id = String(t.id || t.task_id || '');
+                if (!id) return;
+                window.__renderedArchiveIds = window.__renderedArchiveIds || new Set();
+                if (window.__renderedArchiveIds.has(id)) return;
+                window.__renderedArchiveIds.add(id);
+                container.insertAdjacentHTML('beforeend', html);
+            }
+
+            try { window.__renderingArchiveModal = true } catch (_) { }
             tasks.forEach(t => {
                 try {
-                    const normalized = Object.assign({}, t)
-                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '')
-                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null)
-                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null)
-                    let html = ''
+                    const normalized = Object.assign({}, t);
+                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+
+                    let html = '';
                     if (typeof createTaskCard === 'function') {
-                        try { html = createTaskCard(normalized) } catch { html = buildSafeCardHtml(normalized) }
+                        try { html = createTaskCard(normalized); } catch { html = buildSafeCardHtml(normalized); }
                     } else if (typeof window !== 'undefined' && typeof window.createTaskCard === 'function') {
-                        try { html = window.createTaskCard(normalized) } catch { html = buildSafeCardHtml(normalized) }
+                        try { html = window.createTaskCard(normalized); } catch { html = buildSafeCardHtml(normalized); }
                     } else {
-                        html = buildSafeCardHtml(normalized)
+                        html = buildSafeCardHtml(normalized);
                     }
-                    container.insertAdjacentHTML('beforeend', html)
-                } catch {
-                    const simple = document.createElement('div')
-                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0'
-                    simple.innerHTML = `<h5 class="mb-1">${(t.title||'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`
-                    container.appendChild(simple)
+
+                    safeInsertTask(container, normalized, html);
+                } catch (e) {
+                    const simple = document.createElement('div');
+                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0';
+                    simple.innerHTML = `<h5 class="mb-1">${(t.title || 'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`;
+                    safeInsertTask(container, t, simple.outerHTML);
                 }
-            })
-            try { window.__renderingArchiveModal = false } catch(_) {}
+            });
+            try { window.__renderingArchiveModal = false } catch (_) { }
 
             try {
-                body.innerHTML = ''
-                body.appendChild(container)
-                container.querySelectorAll('.custom-card').forEach(function(card){
+                body.innerHTML = '';
+                body.appendChild(container);
+                container.querySelectorAll('.custom-card').forEach(function (card) {
                     try {
-                        const ds = card.querySelectorAll('div[style*="Deadline:"]')
-                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove())
-                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove())
-                        card.querySelectorAll('.task-icon').forEach(el => el.remove())
+                        const ds = card.querySelectorAll('div[style*="Deadline:"]');
+                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove());
+                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove());
+                        card.querySelectorAll('.task-icon').forEach(el => el.remove());
                         card.querySelectorAll('button, a.btn').forEach(btn => {
-                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) btn.remove()
-                        })
-                        const status = (card.getAttribute('data-task-status') || '').toLowerCase()
-                        const dropdownMenu = card.querySelector('.dropdown-menu')
+                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) btn.remove();
+                        });
+                        const status = (card.getAttribute('data-task-status') || '').toLowerCase();
+                        const dropdownMenu = card.querySelector('.dropdown-menu');
                         if (dropdownMenu) {
-                            dropdownMenu.innerHTML = ''
+                            dropdownMenu.innerHTML = '';
                             if (status === 'completed') {
-                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div>`
+                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div>`;
                             } else {
-                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div><div class="dropdown-item">Restore Task</div>`
+                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div><div class="dropdown-item">Restore Task</div>`;
                             }
                         }
                         if (ds && ds.length) {
-                            ds.forEach(function(dd){
-                                const st = (card.getAttribute('data-task-status') || '').toUpperCase()
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`
-                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>')
-                            })
+                            ds.forEach(function (dd) {
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                    ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
+                                    : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>');
+                            });
                         } else {
-                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function(_, g1){
-                                const st = (card.getAttribute('data-task-status') || '').toUpperCase()
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`
-                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>'
-                            })
+                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function (_, g1) {
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                    ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
+                                    : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>';
+                            });
                         }
-                    } catch(_) {}
-                })
-                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function(item) {
-                    item.addEventListener('click', function(e) {
-                        e.stopPropagation()
-                        const text = this.textContent.trim()
-                        const card = this.closest('.custom-card')
-                        const taskId = card && card.getAttribute('data-task-id')
-                        if (!taskId) return
+                    } catch (_) { }
+                });
+                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function (item) {
+                    item.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        const text = this.textContent.trim();
+                        const card = this.closest('.custom-card');
+                        const taskId = card && card.getAttribute('data-task-id');
+                        if (!taskId) return;
                         if (text === 'Detail') {
-                            const archiveModal = document.getElementById('archieveModal')
+                            const archiveModal = document.getElementById('archieveModal');
                             if (archiveModal) {
-                                const bsModal = bootstrap.Modal.getInstance(archiveModal)
-                                if (bsModal) bsModal.hide()
+                                const bsModal = bootstrap.Modal.getInstance(archiveModal);
+                                if (bsModal) bsModal.hide();
                             }
-                            handleTaskDetail(taskId)
+                            handleTaskDetail(taskId);
                         }
                         if (text === 'Restore Task') {
-                            const restoreStatus = 'new_request'
+                            const restoreStatus = 'new_request';
                             updateTaskStatus(taskId, restoreStatus, card)
                                 .then(() => {
-                                    showFloatingAlert('Task restored to ' + restoreStatus, 'success')
-                                    card.remove()
+                                    showFloatingAlert('Task restored to ' + restoreStatus, 'success');
+                                    card.remove();
                                 })
                                 .catch(err => {
-                                    showFloatingAlert('Failed to restore task: ' + err, 'danger')
-                                })
+                                    showFloatingAlert('Failed to restore task: ' + err, 'danger');
+                                });
                         }
-                    })
-                })
-                initBootstrapTooltips(modalEl)
+                    });
+                });
+                initBootstrapTooltips(modalEl);
             } catch (_) {
-                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl) } catch(_) {}
+                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl); } catch (_) { }
             }
 
             if (tasks.length < 10) {
-                archiveHasMore = false
-                const sentinel = body.querySelector('.lazy-sentinel')
-                if (sentinel) sentinel.remove()
+                archiveHasMore = false;
+                const sentinel = body.querySelector('.lazy-sentinel');
+                if (sentinel) sentinel.remove();
             } else {
-                let sentinel = body.querySelector('.lazy-sentinel')
+                let sentinel = body.querySelector('.lazy-sentinel');
                 if (!sentinel) {
-                    sentinel = document.createElement('div')
-                    sentinel.className = 'lazy-sentinel text-center p-2 text-muted'
-                    sentinel.innerText = 'Loading more...'
-                    body.appendChild(sentinel)
+                    sentinel = document.createElement('div');
+                    sentinel.className = 'lazy-sentinel text-center p-2 text-muted';
+                    sentinel.innerText = 'Loading more...';
+                    body.appendChild(sentinel);
                     const io = new IntersectionObserver(entries => {
                         entries.forEach(entry => {
                             if (entry.isIntersecting && archiveHasMore && !archiveLoading) {
-                                archivePage++
-                                loadArchivedTasksIntoModal(archivePage, true)
+                                archivePage++;
+                                loadArchivedTasksIntoModal(archivePage, true);
                             }
-                        })
-                    })
-                    io.observe(sentinel)
+                        });
+                    });
+                    io.observe(sentinel);
                 }
             }
 
-            archiveLoading = false
+            archiveLoading = false;
         } catch (err) {
             try {
-                const modalEl = document.getElementById('archieveModal')
-                const body = modalEl && modalEl.querySelector('.modal-body')
-                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>'
-            } catch(_) {}
+                const modalEl = document.getElementById('archieveModal');
+                const body = modalEl && modalEl.querySelector('.modal-body');
+                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+            } catch (_) { }
         }
     }
 
