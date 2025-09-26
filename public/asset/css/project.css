@@ -524,6 +524,25 @@
     font-size: 18px;
 }
 
+/* Reference files list inside Project/Feedback modals
+   Make filename text, download icon and initial circle use #444444
+   Use !important to override inline styles where necessary. */
+.reference-files-list,
+.reference-files-list a,
+.reference-files-list .material-symbols-outlined,
+.reference-files-list .btn-link,
+.reference-files-list .rounded-circle {
+    color: #444444 !important;
+}
+
+/* Ensure current/existing file names and selected-files preview names use #444444 */
+.existing-files-list a,
+.existing-files-list .flex-grow-1,
+.selected-files-list .flex-grow-1,
+.selected-files-list a {
+    color: #444444 !important;
+}
+
 .author {
     font-size: 0.9rem;
     color: #666;
@@ -1432,7 +1451,7 @@
 }
 
 .feedback-modal-body {
-    padding: 1rem 1.5rem;
+    padding: 0;
     max-height: 100%;
     overflow-y: auto;
     flex-grow: 1;
@@ -1475,7 +1494,7 @@
 }
 
 .feedback-modal-body {
-    padding: 1rem 1.5rem;
+    padding: 0;
     max-height: 600px;
     overflow-y: auto;
 }
@@ -1512,7 +1531,7 @@
     align-items: center;
     gap: 1rem;
     margin-top: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 12px;
 }
 
 .feedback-reference-url,
