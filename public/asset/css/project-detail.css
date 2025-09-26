@@ -383,6 +383,14 @@
     display: block;
 }
 
+.reference-files-list,
+.reference-files-list a,
+.reference-files-list .material-symbols-outlined,
+.reference-files-list .btn-link,
+.reference-files-list .rounded-circle {
+    color: #444444 !important;
+}
+
 .feedback-reference-container {
     display: flex;
     align-items: center;
