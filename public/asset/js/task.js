@@ -6690,9 +6690,6 @@ function applyCurrentSearchFilter() {
                             </div>
                         </div>
                     </div>
-                    <div class="modal-footer modal-footer-custom mt-3">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                    </div>
                 </div>`;
 
                 const contentEl = document.getElementById("taskDetailContent");
