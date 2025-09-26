@@ -2705,31 +2705,6 @@
                 });
             });
 
-            document.addEventListener("click", function (e) {
-                const addBtn = e.target.closest(".add-ref-url");
-                if (addBtn) {
-                    e.preventDefault();
-                    const container = addBtn.closest("#edit_project_reference_urls_container");
-                    if (!container) return;
-                    const row = document.createElement("div");
-                    row.className = "input-group mb-2";
-                    row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + ' <button type="button" class="border-0 bg-transparent p-1 remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined" style="color:#444444;">close</span></button>';
-                    container.appendChild(row);
-                    const input = row.querySelector('input[type="url"]');
-                    if (input) input.focus();
-                    return;
-                }
-
-                const removeBtn = e.target.closest(".remove-ref-url");
-                if (removeBtn) {
-                    e.preventDefault();
-                    const row = removeBtn.closest(".input-group");
-                    if (row && row.parentNode) {
-                        row.parentNode.removeChild(row);
-                    }
-                }
-            });
-
             document.addEventListener("change", function (e) {
                 if (e.target && e.target.id === "edit_reference_file") {
                     const previewContainer = document.getElementById("edit_reference_files_preview");
