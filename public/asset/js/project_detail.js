@@ -58,11 +58,41 @@
             /* no-op */
         }
         try {
-            alert(
-                typeof message === "string"
-                    ? message.replace(/<[^>]+>/g, "")
-                    : String(message)
-            );
+            // Fallback: create a lightweight in-page toast so we never trigger browser native alert()
+            var tmsg = typeof message === "string" ? message.replace(/<[^>]+>/g, "") : String(message);
+            try {
+                var tmpId = 'tmp-floating-alert';
+                var existing = document.getElementById(tmpId);
+                if (existing) {
+                    // update text and reset timer
+                    existing.textContent = tmsg;
+                    existing.className = 'tmp-floating-alert show ' + (type || '');
+                    clearTimeout(existing._tmpTimeout);
+                    existing._tmpTimeout = setTimeout(function () { try{ existing.remove(); }catch(_){} }, delayMs || 2500);
+                } else {
+                    var div = document.createElement('div');
+                    div.id = tmpId;
+                    div.textContent = tmsg;
+                    div.className = 'tmp-floating-alert show ' + (type || '');
+                    var s = div.style;
+                    s.position = 'fixed';
+                    s.right = '18px';
+                    s.top = '18px';
+                    s.zIndex = 1060;
+                    s.background = 'rgba(0,0,0,0.8)';
+                    s.color = '#fff';
+                    s.padding = '10px 14px';
+                    s.borderRadius = '6px';
+                    s.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                    s.maxWidth = '320px';
+                    s.fontSize = '13px';
+                    document.body.appendChild(div);
+                    div._tmpTimeout = setTimeout(function () { try{ div.remove(); }catch(_){} }, delayMs || 2500);
+                }
+            } catch (e) {
+                // as an absolute last resort, log to console (do not use native alert)
+                try { console.log(tmsg); } catch(_){}
+            }
         } catch (e) {}
     }
 
@@ -110,6 +140,76 @@
         } catch (e) {
             return '/asset/img/avatar.png';
         }
+    }
+
+    // Minimal delete confirmation modal helper (for feedback/reply) used inside project detail
+    function showDeleteConfirmModal(opts) {
+        try {
+            var id = opts.id;
+            var type = opts.type || 'feedback';
+            var content = opts.content || '';
+            var modalId = 'deleteConfirmModal_detail_' + (type || 'f') + '_' + id + '_' + Date.now();
+            var html = '';
+            html += '<div class="modal fade" id="' + modalId + '" tabindex="-1" aria-modal="true" role="dialog">';
+            html += '<div class="modal-dialog modal-dialog-centered">';
+            html += '<div class="modal-content modal-content-custom">';
+            html += '<div class="modal-body modal-body-custom">';
+            html += '<div class="text-center mb-2">';
+            html += '<div class="task-description-container">';
+            html += '<p class="task-description mb-0">' + String(content || '').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</p>';
+            html += '</div></div><hr class="my-2">';
+            html += '<p class="fw-normal fs-6 text-center mb-4">Are you sure you want to delete this ' + (type === 'reply' ? 'reply' : 'feedback') + '?</p>';
+            html += '<div class="modal-footer modal-footer-custom">';
+            html += '<button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>';
+            html += '<button type="button" class="btn btn-submit-black" id="' + modalId + '_confirmBtn">Delete</button>';
+            html += '</div></div></div></div></div>';
+
+            var parentModalEl = document.getElementById('projectFeedbackModal');
+            var parentWasOpen = false; var parentInst = null;
+            try { if (parentModalEl && parentModalEl.classList.contains('show')) { parentWasOpen = true; parentInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl); } } catch(_){ }
+
+            // create and show delete modal only after parent has been hidden (if it was open)
+            function createAndShowDeleteModal() {
+                // insert modal HTML
+                document.body.insertAdjacentHTML('beforeend', html);
+                var modalEl = document.getElementById(modalId);
+                if (!modalEl) return;
+                var inst = null;
+                try { inst = new bootstrap.Modal(modalEl, { backdrop: 'static' }); } catch(_) { inst = null; }
+
+                // when delete modal hides, clean it up and restore parent if needed
+                var hiddenHandler = function () {
+                    try { if (inst && typeof inst.dispose === 'function') inst.dispose(); } catch(_){}
+                    try { modalEl.remove(); } catch(_){}
+                    try { modalEl.removeEventListener('hidden.bs.modal', hiddenHandler); } catch(_){}
+                    if (parentWasOpen && parentInst) {
+                        setTimeout(function(){ try { parentInst.show(); } catch(_){} }, 120);
+                    }
+                };
+                modalEl.addEventListener('hidden.bs.modal', hiddenHandler);
+
+                var btn = document.getElementById(modalId + '_confirmBtn');
+                if (btn) {
+                    btn.addEventListener('click', function () {
+                        try { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; } catch(_){}
+                        if (typeof opts.onConfirm === 'function') {
+                            try { opts.onConfirm(function(done){ if (done === false) { btn.disabled = false; btn.innerHTML = 'Delete'; return; } try { inst && inst.hide(); } catch(_){} }); } catch(e) { btn.disabled = false; btn.innerHTML = 'Delete'; }
+                        } else { try { inst && inst.hide(); } catch(_){} }
+                    });
+                }
+
+                try { inst && inst.show(); } catch(_){}
+            }
+
+            if (parentWasOpen && parentInst) {
+                // attach one-time listener and then hide parent
+                var once = function () { try { parentModalEl.removeEventListener('hidden.bs.modal', once); } catch(_){} createAndShowDeleteModal(); };
+                parentModalEl.addEventListener('hidden.bs.modal', once);
+                try { parentModalEl._suppressFeedbackClear = true; parentInst.hide(); } catch(_){}
+            } else {
+                createAndShowDeleteModal();
+            }
+        } catch (e) { console.warn('showDeleteConfirmModal error', e); }
     }
 
     function renderAssignments(container, author, coAuthors, contributors) {
@@ -193,14 +293,12 @@
                 }
             }
 
-            function showFloatingAlertFallback(message, type, delay) {
-                try {
-                    alert(typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message));
-                } catch (e) {}
-            }
-            if (typeof window.showFloatingAlert !== 'function') {
-                window.showFloatingAlert = showFloatingAlertFallback;
-            }
+          
+            try {
+                if (typeof window.showFloatingAlert !== 'function') {
+                    window.showFloatingAlert = showFloatingAlert;
+                }
+            } catch (_) {}
 
             function showImageModal(imageSrc) {
                 window.open(imageSrc, "_blank");
@@ -309,48 +407,50 @@
                             commentDiv.style.fontSize = "13px";
 
                             var mediaDiv = document.createElement('div');
-                            mediaDiv.className = 'feedback-media mt-2';
+                            // Ensure media (images / reference container) aligns with the comment text
+                            mediaDiv.className = 'feedback-media mt-2 ms-5';
 
                             (function () {
+                                // Consolidate reference URLs and files into a single container so
+                                // the modal layout matches the project page (one reference block).
                                 var urls = [];
                                 if (Array.isArray(feedback.reference_urls)) urls = feedback.reference_urls;
                                 else if (feedback.reference_urls && typeof feedback.reference_urls === 'string') {
                                     try { var arr = JSON.parse(feedback.reference_urls); if (Array.isArray(arr)) urls = arr; } catch (_) {}
                                 }
                                 if ((!urls || urls.length === 0) && feedback.reference_url) urls = [feedback.reference_url];
-                                if (urls && urls.length) {
-                                    var refContainer = document.createElement('div');
-                                    refContainer.className = 'feedback-reference-container';
-                                    urls.forEach(function (u, idx) {
-                                        var a = document.createElement('a');
-                                        a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
-                                        a.innerHTML = '<span class="material-symbols-outlined">link</span> Link ' + (idx + 1);
-                                        refContainer.appendChild(a);
-                                    });
-                                    mediaDiv.appendChild(refContainer);
-                                }
-                            })();
 
-                            (function () {
                                 var files = [];
                                 var rf = feedback.reference_files;
                                 if (!Array.isArray(rf) && typeof rf === 'string') {
                                     try { var arr = JSON.parse(rf); if (Array.isArray(arr)) rf = arr; } catch (_) {}
                                 }
                                 if (Array.isArray(rf) && rf.length) files = rf; else if (feedback.reference_file) files = [feedback.reference_file];
-                                if (files && files.length) {
+
+                                if ((urls && urls.length) || (files && files.length)) {
                                     var refContainer = document.createElement('div');
-                                    refContainer.className = 'feedback-reference-container mb-3';
-                                    files.forEach(function (file, idx) {
+                                    refContainer.className = 'feedback-reference-container';
+
+                                    // Render URLs
+                                    (urls || []).forEach(function (u, idx) {
+                                        var a = document.createElement('a');
+                                        a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2';
+                                        a.innerHTML = '<span class="material-symbols-outlined">link</span> Link ' + (idx + 1);
+                                        refContainer.appendChild(a);
+                                    });
+
+                                    // Render files
+                                    (files || []).forEach(function (file, idx) {
                                         if (!file) return;
                                         var fileHref = file;
                                         if (fileHref && !(String(fileHref).startsWith('http') || String(fileHref).startsWith('/'))) fileHref = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + fileHref;
                                         else if (fileHref && String(fileHref).startsWith('/')) fileHref = getMeta('app-url').replace(/\/$/, '') + fileHref;
                                         var a = document.createElement('a');
-                                        a.href = fileHref; a.download = ''; a.className = 'feedback-reference-file';
+                                        a.href = fileHref; a.download = ''; a.className = 'feedback-reference-file ms-2';
                                         a.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx + 1);
                                         refContainer.appendChild(a);
                                     });
+
                                     mediaDiv.appendChild(refContainer);
                                 }
                             })();
@@ -380,6 +480,7 @@
                             try {
                                 var ownerId = getOwnerId(feedback);
                                 if (ownerId && String(ownerId) === String(currentEmployeeId)) {
+                                    // Edit button
                                     var editWrapper = document.createElement('span');
                                     editWrapper.className = 'd-flex align-items-center';
                                     editWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
@@ -387,8 +488,50 @@
                                     var editText = document.createElement('span'); editText.textContent = 'Edit';
                                     editWrapper.appendChild(editIcon); editWrapper.appendChild(editText);
                                     editWrapper.addEventListener('click', function () { showEditFeedbackForm(projectId, feedback, false); });
+
+                                    // Reply button
+                                    // reuse replyWrapper declared above
+
+                                    // Delete button
+                                    var deleteWrapper = document.createElement('span');
+                                    deleteWrapper.className = 'd-flex align-items-center feedback-delete-trigger';
+                                    deleteWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                    deleteWrapper.setAttribute('data-feedback-id', feedback.id != null ? String(feedback.id) : '');
+                                    var delIcon = document.createElement('span'); delIcon.className = 'material-symbols-outlined'; delIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; delIcon.textContent = 'delete';
+                                    var delText = document.createElement('span'); delText.textContent = 'Delete';
+                                    deleteWrapper.appendChild(delIcon); deleteWrapper.appendChild(delText);
+
+                                    // Inline delete handler for this feedback
+                                    deleteWrapper.addEventListener('click', function () {
+                                        var fid = this.getAttribute('data-feedback-id');
+                                        var authorName = (this.closest('.feedback-item')?.querySelector('strong')?.textContent) || '';
+                                        var content = (this.closest('.feedback-item')?.querySelector('.feedback-comment')?.textContent) || '';
+                                        var avatarUrl = (this.closest('.feedback-item')?.querySelector('img')?.getAttribute('src')) || '';
+                                        showDeleteConfirmModal({ type: 'feedback', id: fid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                            fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + fid, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), 'Accept': 'application/json' } })
+                                            .then(function(r){ return r.text().then(function(t){ try{ var j=JSON.parse(t); if (r.ok) return j; return Promise.reject(j);}catch(e){ if(r.ok) return { message: t }; return Promise.reject({ message: t }); } }); })
+                                            .then(function(res){ try{ var el = modalBody.querySelector('.feedback-item[data-feedback-id="' + fid + '"]'); if (el) el.remove(); }catch(_){ } try{ var card = document.querySelector('[data-project-id="' + projectId + '"]'); if (card) { var badge = card.querySelector('.project-feedback-count'); if (badge) { var cur = parseInt(badge.textContent) || 0; badge.textContent = Math.max(0, cur - 1); } } }catch(_){}
+                                                try {
+                                                    var alertMsg = 'Feedback deleted';
+                                                    if (res && res.message) {
+                                                        var m = String(res.message || '').trim();
+                                                        var appBase = getMeta('app-url') ? getMeta('app-url').replace(/\/$/, '') : '';
+                                                        var isOnlyUrl = /^https?:\/\/[^\s]+\/?$/.test(m);
+                                                        var isAppUrl = appBase && m.indexOf(appBase) !== -1;
+                                                        if (m && !isOnlyUrl && !isAppUrl) alertMsg = m;
+                                                    }
+                                                    window.showFloatingAlert(alertMsg, 'success', 1500);
+                                                } catch (_) { window.showFloatingAlert('Feedback deleted', 'success', 1500); }
+                                                done(true);
+                                            })
+                                            .catch(function(err){ var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to delete feedback'; window.showFloatingAlert(msg, 'warning', 3500); done(false); });
+                                        }});
+                                    });
+
+                                    // Append in order: Edit, Reply, Delete
                                     actionsDiv.appendChild(editWrapper);
                                     actionsDiv.appendChild(replyWrapper);
+                                    actionsDiv.appendChild(deleteWrapper);
                                 } else {
                                     actionsDiv.appendChild(replyWrapper);
                                 }
@@ -406,7 +549,7 @@
                                 toggleBtn.type = 'button';
                                 toggleBtn.className = 'btn btn-link p-0 view-replies-toggle feedback-toggle-replies';
                                 toggleBtn.style.cssText = 'font-size:13px; color:#555; text-decoration:none;';
-                                toggleBtn.textContent = 'View All Replies (' + feedback.replies.length + ')';
+                                toggleBtn.textContent = 'View All (' + feedback.replies.length + ')';
                                 actionsDiv.appendChild(toggleBtn);
 
                                 var repliesContainer = document.createElement('div');
@@ -419,7 +562,7 @@
                                     repImg.alt = (rep.employee || {}).name || 'Employee'; repImg.className = 'rounded-circle me-2'; repImg.style.width = '24px'; repImg.style.height = '24px'; repImg.style.objectFit = 'cover';
                                     var repInfo = document.createElement('div'); var repNameRow = document.createElement('div'); repNameRow.className = 'd-flex align-items-center'; var repName = document.createElement('strong'); repName.style.fontSize = '12px'; repName.textContent = (rep.employee || {}).name || 'Unknown'; repNameRow.appendChild(repName); repInfo.appendChild(repNameRow); var repTime = document.createElement('small'); repTime.className = 'text-muted d-block'; repTime.style.fontSize = '10px'; if (rep.created_at) { var dt = new Date(rep.created_at); repTime.textContent = dt.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'}); } repInfo.appendChild(repTime); repHeader.appendChild(repImg); repHeader.appendChild(repInfo);
                                     var repComment = document.createElement('p'); repComment.className = 'mb-1 ms-4'; repComment.style.fontSize = '13px'; repComment.textContent = rep.feedback_comment || '';
-                                    var repMedia = document.createElement('div'); repMedia.className = 'feedback-reference-container mb-1';
+                                    var repMedia = document.createElement('div'); repMedia.className = 'feedback-reference-container mb-1 ms-4';
                                     (function(){ var urls=[]; if (Array.isArray(rep.reference_urls)) urls = rep.reference_urls; else if (rep.reference_urls && typeof rep.reference_urls === 'string') { try{ var arr = JSON.parse(rep.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_){} } if ((!urls || !urls.length) && rep.reference_url) urls = [rep.reference_url]; urls.forEach(function(u, idx){ var a = document.createElement('a'); a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2'; a.innerHTML = '<span class="material-symbols-outlined">link</span> Link ' + (idx+1); repMedia.appendChild(a); }); })();
                                     (function(){ var files=[]; var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string') { try{ var arr=JSON.parse(rf); if (Array.isArray(arr)) rf=arr; } catch(_){} } if (Array.isArray(rf) && rf.length) files = rf; else if (rep.reference_file) files = [rep.reference_file]; files.forEach(function(file, idx){ if(!file) return; var href = file; if (href && !(String(href).startsWith('http') || String(href).startsWith('/'))) href = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + href; else if (href && String(href).startsWith('/')) href = getMeta('app-url').replace(/\/$/, '') + href; var a2 = document.createElement('a'); a2.href = href; a2.download=''; a2.className='feedback-reference-file ms-2'; a2.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx+1); repMedia.appendChild(a2); }); })();
                                     var rImg = null; if (rep.image) { rImg = document.createElement('img'); var rsrc = rep.image; if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) rsrc = getMeta('app-url').replace(/\/$/, '') + '/file/project/' + rsrc; else if (rsrc && String(rsrc).startsWith('/')) rsrc = getMeta('app-url').replace(/\/$/, '') + rsrc; rImg.src = rsrc; rImg.className = 'img-fluid rounded reply-image ms-4 mt-1'; rImg.style.width = '70px'; rImg.style.borderRadius = '8px'; rImg.style.cursor = 'pointer'; rImg.addEventListener('click', function(){ window.open(rImg.src, '_blank'); }); }
@@ -429,6 +572,7 @@
                                     try {
                                         var repOwnerId = getOwnerId(rep);
                                         if (repOwnerId && String(repOwnerId) === String(currentEmployeeId)) {
+                                            // Edit
                                             var editRepWrapper = document.createElement('span');
                                             editRepWrapper.className = 'd-flex align-items-center';
                                             editRepWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
@@ -436,8 +580,47 @@
                                             var editRepText = document.createElement('span'); editRepText.textContent = 'Edit';
                                             editRepWrapper.appendChild(editRepIcon); editRepWrapper.appendChild(editRepText);
                                             editRepWrapper.addEventListener('click', function () { showEditFeedbackForm(projectId, rep, true); });
+
+                                            // Delete for reply
+                                            var deleteRepWrapper = document.createElement('span');
+                                            deleteRepWrapper.className = 'd-flex align-items-center reply-delete-trigger';
+                                            deleteRepWrapper.style.cssText = 'cursor:pointer; color:#555; font-size:12px;';
+                                            deleteRepWrapper.setAttribute('data-reply-id', rep.id != null ? String(rep.id) : '');
+                                            deleteRepWrapper.setAttribute('data-parent-id', feedback.id != null ? String(feedback.id) : '');
+                                            var delRepIcon = document.createElement('span'); delRepIcon.className = 'material-symbols-outlined'; delRepIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; delRepIcon.textContent = 'delete';
+                                            var delRepText = document.createElement('span'); delRepText.textContent = 'Delete';
+                                            deleteRepWrapper.appendChild(delRepIcon); deleteRepWrapper.appendChild(delRepText);
+                                            deleteRepWrapper.addEventListener('click', function () {
+                                                var rid = this.getAttribute('data-reply-id');
+                                                var pid = this.getAttribute('data-parent-id');
+                                                var authorName = (this.closest('.feedback-reply')?.querySelector('strong')?.textContent) || '';
+                                                var content = (this.closest('.feedback-reply')?.querySelector('p')?.textContent) || '';
+                                                var avatarUrl = (this.closest('.feedback-reply')?.querySelector('img')?.getAttribute('src')) || '';
+                                                showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                                    fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + rid, { method: 'DELETE', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'), 'Accept': 'application/json' } })
+                                                    .then(function(r){ return r.text().then(function(t){ try{ var j=JSON.parse(t); if (r.ok) return j; return Promise.reject(j);}catch(e){ if(r.ok) return { message: t }; return Promise.reject({ message: t }); } }); })
+                                                    .then(function(res){ try{ var el = modalBody.querySelector('.feedback-reply[data-reply-id="' + rid + '"]'); if (el) el.remove(); }catch(_){ } try{ var parentEl = modalBody.querySelector('.feedback-item[data-feedback-id="' + pid + '"]'); if (parentEl) { var repliesContainer = parentEl.querySelector('.feedback-replies'); if (repliesContainer) { var children = repliesContainer.querySelectorAll('.feedback-reply'); if (!children || children.length === 0) { repliesContainer.classList.add('d-none'); var toggle = parentEl.querySelector('.feedback-toggle-replies'); if (toggle) toggle.textContent = ''; } } } }catch(_){}
+                                                        try {
+                                                            var alertMsg = 'Reply deleted';
+                                                            if (res && res.message) {
+                                                                var m2 = String(res.message || '').trim();
+                                                                var appBase2 = getMeta('app-url') ? getMeta('app-url').replace(/\/$/, '') : '';
+                                                                var isOnlyUrl2 = /^https?:\/\/[^\s]+\/?$/.test(m2);
+                                                                var isAppUrl2 = appBase2 && m2.indexOf(appBase2) !== -1;
+                                                                if (m2 && !isOnlyUrl2 && !isAppUrl2) alertMsg = m2;
+                                                            }
+                                                            window.showFloatingAlert(alertMsg, 'success', 1500);
+                                                        } catch (_) { window.showFloatingAlert('Reply deleted', 'success', 1500); }
+                                                        done(true);
+                                                    })
+                                                    .catch(function(err){ var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to delete reply'; window.showFloatingAlert(msg, 'warning', 3500); done(false); });
+                                                }});
+                                            });
+
+                                            // Append in order: Edit, Reply, Delete
                                             replyActionsDiv.appendChild(editRepWrapper);
                                             replyActionsDiv.appendChild(replyReplyWrapper);
+                                            replyActionsDiv.appendChild(deleteRepWrapper);
                                         } else {
                                             replyActionsDiv.appendChild(replyReplyWrapper);
                                         }
@@ -451,19 +634,21 @@
                                 toggleBtn.addEventListener('click', function () {
                                     var hidden = repliesContainer.classList.contains('d-none');
                                     if (hidden) {
-                                        repliesContainer.classList.remove('d-none');
-                                        this.textContent = 'Hide replies';
-                                    } else {
-                                        repliesContainer.classList.add('d-none');
-                                        this.textContent = 'View all replies (' + feedback.replies.length + ')';
-                                    }
+                                            repliesContainer.classList.remove('d-none');
+                                            this.textContent = 'Hide';
+                                        } else {
+                                            repliesContainer.classList.add('d-none');
+                                            this.textContent = 'View All (' + feedback.replies.length + ')';
+                                        }
                                     this.style.textDecoration='none';
                                     this.style.color='#555';
                                 });
                             }
 
-                            modalBody.appendChild(feedbackItem);
+                                modalBody.appendChild(feedbackItem);
                         });
+
+                        // ...delete handlers were wired inline when items were created; avoid double-wiring here.
                     })
                     .catch(function (error) {
                         console.error(error);
@@ -847,7 +1032,21 @@
 
             // modal show/hide handlers
             projectFeedbackModalEl.addEventListener('show.bs.modal', function () { try { document.body.classList.add('feedback-modal-open'); if (!document.getElementById('feedbackBackdropStyle')) { var style = document.createElement('style'); style.id = 'feedbackBackdropStyle'; style.textContent = '.feedback-modal-open .modal-backdrop.show {opacity:0.18 !important;}'; document.head.appendChild(style); } } catch(_){} });
-            projectFeedbackModalEl.addEventListener('hidden.bs.modal', function () { try { modalTitle.textContent = 'Feedback'; modalBody.innerHTML = ''; document.body.classList.remove('feedback-modal-open'); } catch(_){} try { var backdrops = document.querySelectorAll('.modal-backdrop'); backdrops.forEach(function(b){ b.parentNode.removeChild(b); }); } catch(_){} });
+            projectFeedbackModalEl.addEventListener('hidden.bs.modal', function () { 
+                try {
+                    // If suppression flag is set, this hidden event is from a temporary hide
+                    // (for example when showing the delete confirmation). In that case,
+                    // do not clear the modal content; just unset the flag and return.
+                    if (projectFeedbackModalEl._suppressFeedbackClear) {
+                        projectFeedbackModalEl._suppressFeedbackClear = false;
+                        return;
+                    }
+                    modalTitle.textContent = 'Feedback';
+                    modalBody.innerHTML = '';
+                    document.body.classList.remove('feedback-modal-open');
+                } catch(_){}
+                try { var backdrops = document.querySelectorAll('.modal-backdrop'); backdrops.forEach(function(b){ b.parentNode.removeChild(b); }); } catch(_){}
+            });
             // Expose functions globally so button handlers outside this scope can call them
             try {
                 window.loadFeedbackData = loadFeedbackData;
@@ -917,7 +1116,8 @@
                             appUrlFb.replace(/\/$/, "") + "/project";
                     },
                     error: function () {
-                        alert("Failed to delete");
+                        if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Failed to delete', 'warning', 3500);
+                        else alert('Failed to delete');
                     },
                 });
                 return;
@@ -939,7 +1139,8 @@
                 var pid =
                     $btn.attr("data-project-id") || $btn.data("projectId");
                 if (!pid) {
-                    alert("Project ID tidak ditemukan");
+                    if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Project ID tidak ditemukan', 'warning', 3500);
+                    else alert('Project ID tidak ditemukan');
                     return;
                 }
                 var appUrlLocal = getMeta("app-url") || "";
@@ -965,10 +1166,9 @@
                             window.location.href =
                                 appUrlLocal.replace(/\/$/, "") + "/project";
                         } else {
-                            alert(
-                                (res && res.message) ||
-                                    "Failed to delete project"
-                            );
+                            var failMsg = (res && res.message) || 'Failed to delete project';
+                            if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert(failMsg, 'warning', 3500);
+                            else alert(failMsg);
                             $btn.prop("disabled", false).text("Delete");
                         }
                     },
@@ -980,7 +1180,8 @@
                                     ? xhr.responseJSON.message
                                     : msg;
                         } catch (e) {}
-                        alert(msg);
+                        if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert(msg, 'warning', 3500);
+                        else alert(msg);
                         $btn.prop("disabled", false).text("Delete");
                     },
                 });
@@ -1001,8 +1202,7 @@
             }
             $("#project-image").attr("src", imgUrl);
         } else {
-            // Project has no image: prefer an initials avatar generated from title.
-            // Only fall back to the server-provided meta placeholder if we cannot build initials.
+          
             var initials = buildInitials(data.title || '');
             if (initials) {
                 var color = getRandomColorFromText(data.title || '');
@@ -1053,14 +1253,16 @@
             success: function (res) {
                 if (res && res.status === "success" && res.data) {
                     populateProject(res.data);
-                } else {
+                    } else {
                     console.error("Invalid project payload", res);
-                    alert("Gagal mengambil data project");
+                    if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Gagal mengambil data project', 'warning', 3500);
+                    else alert('Gagal mengambil data project');
                 }
             },
             error: function (xhr) {
                 console.error("Error fetching project", xhr);
-                alert("Gagal mengambil data project");
+                if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Gagal mengambil data project', 'warning', 3500);
+                else alert('Gagal mengambil data project');
             },
         });
     }
@@ -1521,19 +1723,14 @@
                         // mark remove_image so backend deletes existing image
                         try { document.getElementById('edit_remove_image').value = '1'; } catch(_){ }
 
-                        // Note: do not change the project detail image immediately here.
-                        // The actual project image on the detail page will be refreshed
-                        // after the Update request succeeds (see edit form success handler
-                        // which calls fetchProject). We only update modal preview and
-                        // set the remove flag so the server knows to delete the image.
+                     
                     } catch (err) {}
                 });
             }
 
         } // end setupImageInput
 
-            // Setup searchable co-author input inside edit modal (copied/adapted from project.js)
-            // Define setupCoAuthorInputEdit only if not provided by shared project.js
+         
             if (typeof window.setupCoAuthorInputEdit !== 'function') {
                 window.setupCoAuthorInputEdit = function setupCoAuthorInputEdit() {
                 const input = document.getElementById("edit_co_author_input");
@@ -2444,7 +2641,8 @@
                         }
                     },
                     error: function (xhr) {
-                        alert('Gagal mengambil data untuk edit');
+                        if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Gagal mengambil data untuk edit', 'warning', 3500);
+                        else alert('Gagal mengambil data untuk edit');
                     }
                 });
             });
@@ -2456,7 +2654,7 @@
                 if (isSubmitting) return;
                 isSubmitting = true;
                 var projectId = $('#edit_project_id').val();
-                if (!projectId) { alert('Project ID tidak ditemukan'); isSubmitting = false; return; }
+                if (!projectId) { if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Project ID tidak ditemukan', 'warning', 3500); else alert('Project ID tidak ditemukan'); isSubmitting = false; return; }
                 var formEl = this;
                 var formData = new FormData(formEl);
                 // map reference_urls[] to single reference_url
@@ -2496,10 +2694,10 @@
                                 var errors = xhr.responseJSON.errors || {};
                                 var listHtml = '';
                                 Object.keys(errors).forEach(function(k){ var v = errors[k]; if (Array.isArray(v)) v.forEach(function(m){ listHtml += '\n- ' + m; }); else listHtml += '\n- ' + v; });
-                                if (typeof showFloatingAlert === 'function') showFloatingAlert(listHtml, 'warning', 5000); else alert(listHtml);
-                            } catch (e) { alert('Validation failed'); }
+                                        if (typeof showFloatingAlert === 'function') showFloatingAlert(listHtml, 'warning', 5000); else if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert(listHtml, 'warning', 5000); else alert(listHtml);
+                            } catch (e) { if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Validation failed', 'warning', 3500); else alert('Validation failed'); }
                         } else {
-                            alert('Failed to update project');
+                                    if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert('Failed to update project', 'warning', 3500); else alert('Failed to update project');
                         }
                     },
                     complete: function () {
