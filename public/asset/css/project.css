@@ -524,6 +524,17 @@
     font-size: 18px;
 }
 
+/* Reference files list inside Project/Feedback modals
+   Make filename text, download icon and initial circle use #444444
+   Use !important to override inline styles where necessary. */
+.reference-files-list,
+.reference-files-list a,
+.reference-files-list .material-symbols-outlined,
+.reference-files-list .btn-link,
+.reference-files-list .rounded-circle {
+    color: #444444 !important;
+}
+
 .author {
     font-size: 0.9rem;
     color: #666;

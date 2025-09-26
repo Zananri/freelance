@@ -8345,7 +8345,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
 
                         const item = document.createElement('div');
-                        item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+                        item.className = 'reference-files-list d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
                         const lower = String(fileName || '').toLowerCase();
                         const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
