@@ -602,6 +602,12 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.title || "";
         document.getElementById("edit_schedule_description").value =
             schedule.description || "";
+        // If Quill edit instance exists, populate it immediately so the editor UI reflects the description
+        try {
+            if (window.__quillScheduleEdit && window.__quillScheduleEdit.root) {
+                window.__quillScheduleEdit.root.innerHTML = schedule.description || '';
+            }
+        } catch (e) { /* ignore if Quill not initialized yet */ }
         document.getElementById("edit_schedule_point").value =
             schedule.point || 1;
         document.getElementById("edit_schedule_priority").value =
@@ -1595,7 +1601,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <h5 class="mb-0" style="line-height:1.2; font-size:16px; font-weight:600;">${scheduleTitle}</h5>
                                 </div>
                             </div>
-                            ${description ? `<div class="schedule-description-container mb-2"><p class="schedule-description mb-0" style="font-size:14px;">${description}</p></div>` : ''}
+                            ${description ? `<div class="schedule-description-container mb-2"><div class="schedule-description mb-0">${description}</div></div>` : ''}
                             <hr class="task-separator rounded-4">
                             <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
                                 <div>
@@ -1630,7 +1636,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <img src="${imageUrl}" alt="Schedule Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
                                             <div class="d-flex flex-column">
                                                 <h6 class="mb-0" style="font-size:16px; font-weight:600; line-height:1;">${scheduleTitle}</h6>
-                                                <p class="schedule-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                                <p class="schedule-description small text-muted">Are you sure want to delete this schedule?</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1646,7 +1652,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div class="custom-card p-0 m-0 border-0">
                                             <h6 style="font-size:16px; font-weight:600; margin:0;">${scheduleTitle}</h6>
                                             <div class="schedule-description-container">
-                                                <p class="schedule-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
+                                                <p class="schedule-description small text-muted">Are you sure want to delete this schedule?</p>
                                             </div>
                                         </div>
                                     </div>

@@ -722,6 +722,20 @@ p {
     font-weight: 400;
 }
 
+/* Ensure any HTML inserted by Quill or from server-side (eg. raw <p>, <ul>, <ol>)
+   inside the description container uses the same visual style as .task-description */
+.task-description-container p,
+.task-description-container ul,
+.task-description-container ol,
+.task-description-container li,
+.task-description-container span {
+    color: #4c5060;
+    font-size: 12px;
+    font-weight: 400;
+    margin-top: 0.25rem;
+    line-height: 1.4;
+}
+
 .task-icon {
     color: #555;
     font-size: 20px;

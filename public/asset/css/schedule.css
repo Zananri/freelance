@@ -421,6 +421,29 @@
     overflow-x: hidden;
 }
 
+/* Ensure any HTML inserted inside .schedule-description-container (for
+   example from Quill or server-rendered HTML) follows the same visual
+   style used across the app's descriptions so color and size match */
+.schedule-description,
+.schedule-description-container,
+.schedule-description-container p,
+.schedule-description-container ul,
+.schedule-description-container ol,
+.schedule-description-container li,
+.schedule-description-container span {
+    /* Force visual parity with other description styles */
+    color: #4c5060 !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    margin-top: 0.25rem !important;
+    line-height: 1.4 !important;
+}
+
+/* Ensure paragraphs inside the description wrapper don't keep browser default margins */
+.schedule-description p {
+    margin: 0 0 0.5rem 0 !important;
+}
+
 .executor-list.dropup {
     border: none;
     border-radius: 4px;

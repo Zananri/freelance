@@ -802,6 +802,7 @@
         addTaskModalEl.addEventListener("hidden.bs.modal", function () {
             if (addTaskForm) {
                 addTaskForm.reset();
+                try { if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root.innerHTML = ''; } catch(_){}
             }
             if (imageLabel && imageClearBtn) {
                 imageLabel.style.backgroundImage =
@@ -909,7 +910,8 @@
                 showFloatingAlert(data.message || "Task added successfully!", "success");
 
                         // Reset form and preview
-                        addTaskForm.reset();
+                    addTaskForm.reset();
+                    try { if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root.innerHTML = ''; } catch(_){}
                         imageLabel.style.backgroundImage = "";
                         imageLabel.classList.remove("has-image");
                         imageLabel.style.opacity = "0.5";
@@ -4605,6 +4607,8 @@ function applyCurrentSearchFilter() {
                 return Math.round(diff/604800)+' week ago';
             }else if(diff < 31526000){
                 return Math.round(diff/2592000)+' month ago';
+            }else if(diff < 63072000){
+                return Math.round(diff/31536000)+' year ago';
             }
 
             return time.toDateString();
@@ -7320,7 +7324,14 @@ function applyCurrentSearchFilter() {
                 const titleEl = document.getElementById("edit_task_title");
                 const descEl = document.getElementById("edit_task_description");
                 if (titleEl) titleEl.value = t.title || "";
-                if (descEl) descEl.value = t.description || "";
+                if (descEl) {
+                    descEl.value = t.description || "";
+                    try {
+                        if (window.__quillTaskEdit && window.__quillTaskEdit.root) {
+                            window.__quillTaskEdit.root.innerHTML = t.description || '';
+                        }
+                    } catch (e) { /* noop */ }
+                }
 
                 const projectId = t.project_id || (t.project && t.project.id);
                 loadProjectsForEdit(projectId, function () {
