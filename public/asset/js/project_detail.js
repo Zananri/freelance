@@ -26,6 +26,36 @@
         }
     }
 
+    // Helper: human-friendly relative time formatter used in feedback modals
+    function timeAgo(createdAt){
+        try {
+            const time = new Date(createdAt);
+            if (isNaN(time.getTime())) return '';
+            const now = new Date();
+            const diff = (now.getTime() - time.getTime()) / 1000;
+
+            if(diff < 60){
+                return 'just now';
+            }else if(diff < 3600){
+                return Math.round(diff/60)+' minute ago';
+            }else if(diff < 86400){
+                return Math.round(diff/3600)+' hour ago';
+            }else if(diff < 604800){
+                return Math.round(diff/86400)+' day ago';
+            }else if(diff < 2592000){
+                return Math.round(diff/604800)+' week ago';
+            }else if(diff < 31526000){
+                return Math.round(diff/2592000)+' month ago';
+            }else if(diff < 630720000){
+                return Math.round(diff/31526000)+' year ago';
+            }
+
+            return time.toDateString();
+        } catch (e) {
+            return '';
+        }
+    }
+
     function resolveAvatar(url) {
         if (!url) return "/asset/img/avatar.png";
         return url;
@@ -378,13 +408,18 @@
                             dateDiv.className = 'text-muted small';
                             dateDiv.style.fontSize = "10px";
                             if (feedback.created_at) {
-                                var d = new Date(feedback.created_at);
-                                var now = new Date();
-                                function isSameDay(d1, d2) { return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate(); }
-                                function isYesterday(d1, d2) { var y = new Date(d2); y.setDate(d2.getDate() - 1); return isSameDay(d1, y); }
-                                if (isSameDay(d, now)) dateDiv.textContent = d.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'});
-                                else if (isYesterday(d, now)) dateDiv.textContent = 'yesterday';
-                                else dateDiv.textContent = d.toLocaleDateString(undefined, {year:'numeric', month:'long', day:'numeric'});
+                                try {
+                                    // use global timeAgo if available (same logic as project page)
+                                    if (typeof timeAgo === 'function') {
+                                        dateDiv.textContent = timeAgo(feedback.created_at);
+                                    } else {
+                                        // fallback: show locale string
+                                        var _d = new Date(feedback.created_at);
+                                        if (!isNaN(_d.getTime())) dateDiv.textContent = _d.toLocaleString();
+                                    }
+                                } catch (e) {
+                                    dateDiv.textContent = '';
+                                }
                             }
 
                             var roleDiv = document.createElement('div');
@@ -560,7 +595,7 @@
                                     var repHeader = document.createElement('div'); repHeader.className = 'd-flex align-items-center mb-1';
                                     var repImg = document.createElement('img'); (function(){ var raw = (rep.employee || {}).user_photo || (rep.employee || {}).profile_picture || (rep.employee || {}).photo || ''; var url = getMeta('app-url') + '/asset/img/avatar.png'; if (raw) { if (String(raw).startsWith('http')) url = raw; else if (String(raw).startsWith('/')) url = getMeta('app-url') + raw; else if (String(raw).indexOf('/') !== -1) url = getMeta('app-url') + '/' + raw; else url = getMeta('app-url') + '/file/profile_picture/' + raw; } repImg.src = url; })();
                                     repImg.alt = (rep.employee || {}).name || 'Employee'; repImg.className = 'rounded-circle me-2'; repImg.style.width = '24px'; repImg.style.height = '24px'; repImg.style.objectFit = 'cover';
-                                    var repInfo = document.createElement('div'); var repNameRow = document.createElement('div'); repNameRow.className = 'd-flex align-items-center'; var repName = document.createElement('strong'); repName.style.fontSize = '12px'; repName.textContent = (rep.employee || {}).name || 'Unknown'; repNameRow.appendChild(repName); repInfo.appendChild(repNameRow); var repTime = document.createElement('small'); repTime.className = 'text-muted d-block'; repTime.style.fontSize = '10px'; if (rep.created_at) { var dt = new Date(rep.created_at); repTime.textContent = dt.toLocaleTimeString(undefined, {hour:'2-digit', minute:'2-digit'}); } repInfo.appendChild(repTime); repHeader.appendChild(repImg); repHeader.appendChild(repInfo);
+                                    var repInfo = document.createElement('div'); var repNameRow = document.createElement('div'); repNameRow.className = 'd-flex align-items-center'; var repName = document.createElement('strong'); repName.style.fontSize = '12px'; repName.textContent = (rep.employee || {}).name || 'Unknown'; repNameRow.appendChild(repName); repInfo.appendChild(repNameRow); var repTime = document.createElement('small'); repTime.className = 'text-muted d-block'; repTime.style.fontSize = '10px'; if (rep.created_at) { try { if (typeof timeAgo === 'function') { repTime.textContent = timeAgo(rep.created_at); } else { var _dt = new Date(rep.created_at); if (!isNaN(_dt.getTime())) repTime.textContent = _dt.toLocaleString(); } } catch (e) { repTime.textContent = ''; } } repInfo.appendChild(repTime); repHeader.appendChild(repImg); repHeader.appendChild(repInfo);
                                     var repComment = document.createElement('p'); repComment.className = 'mb-1 ms-4'; repComment.style.fontSize = '13px'; repComment.textContent = rep.feedback_comment || '';
                                     var repMedia = document.createElement('div'); repMedia.className = 'feedback-reference-container mb-1 ms-4';
                                     (function(){ var urls=[]; if (Array.isArray(rep.reference_urls)) urls = rep.reference_urls; else if (rep.reference_urls && typeof rep.reference_urls === 'string') { try{ var arr = JSON.parse(rep.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_){} } if ((!urls || !urls.length) && rep.reference_url) urls = [rep.reference_url]; urls.forEach(function(u, idx){ var a = document.createElement('a'); a.href = u; a.target = '_blank'; a.className = 'feedback-reference-url me-2'; a.innerHTML = '<span class="material-symbols-outlined">link</span> Link ' + (idx+1); repMedia.appendChild(a); }); })();
