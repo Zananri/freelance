@@ -1135,11 +1135,47 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <!-- Description (render only if non-empty) -->
                                     <div class="description-container">
                                         ${(function () {
-                                            const d = (
-                                                project.description || ""
-                                            ).trim();
-                                            if (!d) return "";
-                                            return `<p class="description mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${d}</p>`;
+                                            const raw = (project.description || "").trim();
+                                            if (!raw) return "";
+                                            try {
+                                                // Use a DOM-based sanitizer to remove Quill UI artifacts
+                                                const tmp = document.createElement('div');
+                                                tmp.innerHTML = raw;
+
+                                                // Remove Quill UI nodes and any elements that are clearly editor chrome
+                                                tmp.querySelectorAll('.ql-ui').forEach(n => n.remove());
+
+                                                // Remove contenteditable attributes that may interfere with display
+                                                tmp.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
+
+                                                // Strip Quill-specific attributes and classes (prefix ql-)
+                                                tmp.querySelectorAll('*').forEach(function (node) {
+                                                    try {
+                                                        // Remove a few known Quill data-attributes
+                                                        node.removeAttribute('data-list');
+                                                        node.removeAttribute('data-target');
+                                                    } catch (_) {}
+                                                    try {
+                                                        const cls = Array.from(node.classList || []);
+                                                        const filtered = cls.filter(c => !/^ql-/.test(c));
+                                                        if (filtered.length) node.className = filtered.join(' ');
+                                                        else node.removeAttribute('class');
+                                                    } catch (_) {}
+                                                });
+
+                                                let inner = tmp.innerHTML.trim();
+                                                if (!inner) return "";
+
+                                                // If inner content doesn't start with a block element, wrap in a paragraph
+                                                const startsWithBlock = /^(<(p|ul|ol|div|h[1-6]|table|blockquote))/i.test(inner);
+                                                const contentHtml = startsWithBlock ? inner : `<p>${inner}</p>`;
+
+                                                // Apply existing description classes/styles so card CSS applies
+                                                return `<div class="description mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${contentHtml}</div>`;
+                                            } catch (e) {
+                                                // Fallback: render raw
+                                                return `<p class="description mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${raw}</p>`;
+                                            }
                                         })()}
                                     </div>
 
@@ -1437,6 +1473,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             $("#edit_description").val(
                                                 data.description
                                             );
+                                            // If Quill editor is available for edit modal, populate it as well
+                                            try {
+                                                if (window.__quillEdit && window.__quillEdit.root) {
+                                                    window.__quillEdit.root.innerHTML = data.description || '';
+                                                }
+                                            } catch (e) {
+                                                console.warn('Failed to set edit quill content', e);
+                                            }
                                             // Prefill multiple reference URLs in Edit Project (match Task behavior)
                                             (function () {
                                                 try {
