@@ -96,8 +96,18 @@
                 try {
                     const inst = bootstrap.Tooltip.getInstance(el);
                     if (inst) {
-                        try { inst.hide(); } catch(_) {}
-                        try { inst.dispose(); } catch(_) {}
+                        // Defensive: some Tooltip instances may have missing internal state
+                        // (e.g. _activeTrigger undefined) which causes Object.values() to throw
+                        // inside bootstrap's internals. Ensure it's an object before calling hide().
+                        try {
+                            if (!inst._activeTrigger || typeof inst._activeTrigger !== 'object') {
+                                try { inst._activeTrigger = {}; } catch(_) {}
+                            }
+                        } catch(_) {}
+
+                        // Attempt to hide, but if hide throws, still attempt dispose to clean up.
+                        try { inst.hide(); } catch(_) { /* ignore hide error */ }
+                        try { inst.dispose(); } catch(_) { /* ignore dispose error */ }
                     }
                 } catch(_) {}
             });
@@ -2220,10 +2230,213 @@ document.addEventListener("click", function (e) {
         }
         if (nextStatus) {
             const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-            updateTaskStatus(taskId, nextStatus, taskCard);
+            // If the destination is completed, show confirmation modal to collect
+            // complete_note (Quill), complete_urls and complete_files first.
+            if (String(nextStatus).toLowerCase() === 'completed') {
+                try { showConfirmationToCompleteModal(taskId, taskCard); } catch (err) { console.error(err); updateTaskStatus(taskId, nextStatus, taskCard); }
+            } else {
+                updateTaskStatus(taskId, nextStatus, taskCard);
+            }
         }
     }
 });
+
+// Show modal to collect completion note/urls/files before marking completed
+function showConfirmationToCompleteModal(taskId, taskCard) {
+    // Fetch task for context display (optional)
+    $.ajax({ url: appUrl + '/task/' + taskId, type: 'GET', dataType: 'json' })
+    .done(function(res){
+        const t = (res && (res.data || res)) || {};
+        const title = t.title || 'Confirm Complete';
+
+        const modalId = 'confirmation-to-complete';
+        // If modal already exists, remove it to re-create fresh
+        try { const existing = document.getElementById(modalId); if (existing) existing.remove(); } catch(_){}
+
+        const modalHtml = `
+        <div class="modal fade" id="${modalId}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-loading-overlay d-none" id="confirmationToCompleteLoader">
+                        <div class="loader-spinner"></div>
+                    </div>
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom" id="${modalId}Label">Complete Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="confirmationToCompleteForm" enctype="multipart/form-data">
+                        <div class="modal-body modal-body-custom">
+                            <div class="mb-2 text-muted" style="font-size:13px;">Please provide completion details. <span class="text-danger">Complete note is required.</span></div>
+
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Complete Note (required)</label>
+                                <div id="complete_note_toolbar">
+                                    <span class="ql-formats">
+                                        <select class="ql-header">
+                                            <option value="1"></option>
+                                            <option value="2"></option>
+                                            <option selected></option>
+                                        </select>
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button class="ql-list" value="ordered"></button>
+                                        <button class="ql-list" value="bullet"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button class="ql-link"></button>
+                                    </span>
+                                </div>
+                                <div id="complete_note_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                                <textarea class="form-control input-text d-none" id="complete_note" name="complete_note" rows="4" style="display:none;"></textarea>
+                            </div>
+
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Complete URLs (optional)</label>
+                                <div id="complete_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="input-group">
+                                        <input type="url" name="complete_urls[]" placeholder="https://example.com" class="form-control input-text">
+                                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom" for="complete_files">Complete Files (optional)</label>
+                                <input type="file" class="form-control input-text" id="complete_files" name="complete_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                <div class="form-text">Multiple files supported.</div>
+                                <div id="complete_files_preview" class="mt-2"></div>
+                            </div>
+
+                        </div>
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-submit-black" id="confirmCompleteBtn">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>`;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const mEl = document.getElementById(modalId);
+        const modal = new bootstrap.Modal(mEl);
+        modal.show();
+
+        // Remove modal from DOM when hidden
+        mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); try { mEl.remove(); } catch(_){} });
+
+        // Initialize Quill
+        try {
+            window.__quillComplete = new Quill('#complete_note_editor', {
+                theme: 'snow',
+                modules: { toolbar: [['bold','italic','underline'], ['link','image'], [{ list: 'ordered' }, { list: 'bullet' }]] }
+            });
+        } catch (e) { console.warn('Quill init failed', e); }
+
+        // Dynamic URL rows (add/remove) - reuse add-ref-url/remove-ref-url style
+        mEl.addEventListener('click', function(ev){
+            const addBtn = ev.target.closest('.add-ref-url');
+            if (addBtn) {
+                const container = document.getElementById('complete_reference_urls_container');
+                if (!container) return;
+                const row = document.createElement('div');
+                row.className = 'input-group';
+                const input = document.createElement('input'); input.type = 'url'; input.name = 'complete_urls[]'; input.placeholder = 'https://example.com'; input.className = 'form-control input-text';
+                const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn btn-danger remove-ref-url'; rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                row.appendChild(input); row.appendChild(rm);
+                addBtn.closest('.input-group').after(row);
+                return;
+            }
+            const rmBtn = ev.target.closest('.remove-ref-url');
+            if (rmBtn) {
+                const row = rmBtn.closest('.input-group'); if (row) row.remove();
+                return;
+            }
+        });
+
+        // File input preview
+        const fileInput = mEl.querySelector('#complete_files');
+        const preview = mEl.querySelector('#complete_files_preview');
+        if (fileInput && preview) {
+            fileInput.addEventListener('change', function(e){
+                const files = Array.from(e.target.files || []);
+                if (!files.length) { preview.innerHTML = ''; return; }
+                preview.innerHTML = files.map(f => `<div>${escapeHtml(f.name)} <small class="text-muted">(${formatBytes(f.size)})</small></div>`).join('');
+            });
+        }
+
+        // Submit handler
+        const submitBtn = mEl.querySelector('#confirmCompleteBtn');
+        submitBtn.addEventListener('click', function(){
+            // Validate complete_note required
+            let noteHtml = '';
+            try { noteHtml = (window.__quillComplete && typeof window.__quillComplete.root !== 'undefined') ? window.__quillComplete.root.innerHTML.trim() : ''; } catch(_) { noteHtml = ''; }
+            const plain = (noteHtml || '').replace(/<(.|\n)*?>/g, '').trim();
+            if (!plain) {
+                showFloatingAlert('Complete note is required.', 'warning');
+                try { window.__quillComplete.focus(); } catch(_){}
+                return;
+            }
+
+            // Disable button
+            submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+
+            const fd = new FormData();
+            fd.append('_method','PUT');
+            fd.append('status','completed');
+            fd.append('complete_note', noteHtml);
+
+            // collect urls
+            try {
+                const urlInputs = Array.from(mEl.querySelectorAll('input[name="complete_urls[]"]'));
+                const urls = urlInputs.map(i => (i.value||'').trim()).filter(Boolean);
+                if (urls.length) fd.append('complete_urls', JSON.stringify(urls));
+            } catch(_){}
+
+            // append files
+            try {
+                const fl = mEl.querySelector('#complete_files');
+                if (fl && fl.files && fl.files.length) {
+                    Array.from(fl.files).forEach(f => fd.append('complete_files[]', f));
+                }
+            } catch(_){}
+
+            // Send as multipart POST with _method=PUT to match server expectations
+            fetch(appUrl + '/task/' + taskId + '/status', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: fd,
+                credentials: 'same-origin'
+            }).then(function(r){
+                return r.ok ? r.json() : r.json().then(Promise.reject);
+            }).then(function(json){
+                // On success: close modal, show alert, and refresh/insert updated task
+                try { modal.hide(); } catch(_){}
+                try { showFloatingAlert(json.message || 'Task marked as completed.', 'success'); } catch(_){}
+                // Remove original card if present
+                try { if (taskCard && taskCard.parentNode) taskCard.parentNode.removeChild(taskCard); } catch(_){}
+                // Fetch updated task and insert
+                try { fetchAndInsertTask(taskId); } catch(_) { try { fetchAndRenderTasks(); } catch(_){} }
+            }).catch(function(err){
+                let msg = 'Failed to mark task as completed.';
+                try { if (err && err.message) msg = err.message; } catch(_){}
+                showFloatingAlert(msg, 'danger');
+            }).finally(function(){ submitBtn.disabled = false; submitBtn.innerHTML = 'Submit'; });
+        });
+
+    }).fail(function(){
+        showFloatingAlert('Failed to load task details.', 'danger');
+    });
+}
+
+// small helpers used in modal
+function escapeHtml(s){ return String(s||'').replace(/[&<>"]+/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])||m; }); }
+function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB','GB','TB']; const i=Math.floor(Math.log(bytes)/Math.log(1024)); return (bytes/Math.pow(1024,i)).toFixed(i?1:0)+' '+sizes[i]; }
 
 // (Removed duplicate early updateTaskStatus; using unified bulk-aware version later)
 

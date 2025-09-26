@@ -1683,14 +1683,90 @@ class TaskController extends Controller
 
             $dbStatus = $statusMap[$request->status] ?? $request->status;
 
-            // Update status and manage complete_date consistently
+            // Prepare update payload: status and manage complete_date consistently
             $update = ['status' => $dbStatus];
             if ($dbStatus === 'completed') {
+                // Additional validation when completing a task
+                $completeRules = [
+                    'complete_note' => 'required|string',
+                    'complete_urls' => 'nullable', // can be JSON string or array
+                    'complete_files' => 'nullable|array',
+                    'complete_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                ];
+                $completeValidator = Validator::make($request->all(), $completeRules);
+                if ($completeValidator->fails()) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Validation errors',
+                        'errors' => $completeValidator->errors(),
+                    ], 422);
+                }
+
                 // Set complete_date to today when marking as completed
                 $update['complete_date'] = now()->toDateString();
+
+                // Normalize and persist complete_note
+                $update['complete_note'] = $request->input('complete_note');
+
+                // Normalize complete_urls: accept JSON string or array or single value
+                $completeUrls = [];
+                if ($request->has('complete_urls')) {
+                    $incoming = $request->input('complete_urls');
+                    if (is_string($incoming)) {
+                        $decoded = json_decode($incoming, true);
+                        if (is_array($decoded)) {
+                            $incoming = $decoded;
+                        } else {
+                            // single string possibly not JSON
+                            $incoming = [$incoming];
+                        }
+                    }
+                    if (is_array($incoming)) {
+                        foreach ($incoming as $u) {
+                            if (is_string($u) && trim($u) !== '') $completeUrls[] = trim($u);
+                        }
+                    }
+                } elseif ($request->has('complete_url')) {
+                    $val = $request->input('complete_url'); if (is_string($val) && trim($val) !== '') $completeUrls[] = trim($val);
+                }
+                if (!empty($completeUrls)) {
+                    $update['complete_urls'] = $completeUrls;
+                } else {
+                    // allow explicit clearing if client sent empty array/string
+                    if ($request->has('complete_urls')) $update['complete_urls'] = [];
+                }
+
+                // Handle complete_files upload (store under public/file/task_complete_files)
+                $uploadedCompleteFiles = [];
+                if ($request->hasFile('complete_files')) {
+                    $taskCompleteDir = public_path('file/task_complete_files');
+                    if (!is_dir($taskCompleteDir)) @mkdir($taskCompleteDir, 0775, true);
+                    foreach ($request->file('complete_files') as $idx => $file) {
+                        if (!$file) continue;
+                        $ext = $file->getClientOriginalExtension();
+                        $name = 'TASK_COMPLETE_' . time() . '_' . $idx . '.' . $ext;
+                        try {
+                            $file->move($taskCompleteDir, $name);
+                            $uploadedCompleteFiles[] = $name;
+                        } catch (\Exception $e) {
+                            return response()->json([
+                                'code' => 500,
+                                'status' => 'error',
+                                'message' => 'Failed to store one of the complete files: ' . $e->getMessage(),
+                            ], 500);
+                        }
+                    }
+                }
+                if (!empty($uploadedCompleteFiles)) {
+                    $update['complete_files'] = $uploadedCompleteFiles;
+                }
+
             } else {
                 // Clear complete_date for non-completed statuses
                 $update['complete_date'] = null;
+                // Optionally clear complete fields when moving away from completed
+                // (leave as-is to preserve history) -- do nothing here
             }
 
             $oldStatus = $task->status;

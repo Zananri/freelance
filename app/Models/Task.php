@@ -21,6 +21,9 @@ class Task extends Model
         'reference_url',
     'reference_urls',
         'reference_files',
+        'complete_files',
+        'complete_urls',
+        'complete_note',
         'start_date',
         'due_date',
         'complete_date',
@@ -33,6 +36,8 @@ class Task extends Model
         'reference_files' => 'array',
     'reference_urls' => 'array',
     'read_markers' => 'array',
+    'complete_files' => 'array',
+    'complete_urls' => 'array',
     ];
 
     // Define relationship to Project
