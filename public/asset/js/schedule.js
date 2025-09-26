@@ -1074,12 +1074,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function setupEditExecutorPicker(initialExecutorIds = []) {
         const input = document.getElementById("edit_schedule_executor_input");
-        const dropdown = document.getElementById(
-            "edit_schedule_executor_dropdown"
-        );
-        const selectedContainer = document.getElementById(
-            "edit_schedule_selected_executors"
-        );
+        const dropdown = document.getElementById("edit_schedule_executor_dropdown");
+        const selectedContainer = document.getElementById("edit_schedule_selected_executors");
         const hidden = document.getElementById("edit_schedule_executors");
 
         if (!input || !dropdown || !selectedContainer || !hidden) return;
@@ -1087,8 +1083,6 @@ document.addEventListener("DOMContentLoaded", function () {
         let employees = [],
             filtered = [],
             selected = [];
-
-        // (initial fetch moved below after helper initializations to avoid TDZ issues)
 
         function buildPhotoUrl(userPhoto) {
             if (!userPhoto) return appUrl + "/asset/img/avatar.png";
@@ -1099,198 +1093,132 @@ document.addEventListener("DOMContentLoaded", function () {
             return appUrl + "/file/profile_picture/" + userPhoto;
         }
 
-        // Cached fetch helper to reduce duplicate executor loads within schedule views
-        const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+        const EMP_CACHE_TTL_MS = 5 * 60 * 1000;
         const empCache = (window.__empExecCache = window.__empExecCache || {
             map: new Map(),
             inFlight: new Map(),
         });
+
         function fetchEmployeesCached(q = "") {
-            const key = String(q || "")
-                .trim()
-                .toLowerCase();
+            const key = String(q || "").trim().toLowerCase();
             const now = Date.now();
             const hit = empCache.map.get(key);
-            if (hit && now - hit.t < EMP_CACHE_TTL_MS)
-                return Promise.resolve(hit.v);
+            if (hit && now - hit.t < EMP_CACHE_TTL_MS) return Promise.resolve(hit.v);
             if (empCache.inFlight.has(key)) return empCache.inFlight.get(key);
-            const p = fetch(
-                appUrl +
-                    "/task/employees-for-executor?q=" +
-                    encodeURIComponent(key)
-            )
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((d) => {
+            const p = fetch(appUrl + "/task/employees-for-executor?q=" + encodeURIComponent(key))
+                .then(r => r.ok ? r.json() : Promise.reject(r))
+                .then(d => {
                     empCache.map.set(key, { v: d, t: Date.now() });
                     empCache.inFlight.delete(key);
                     return d;
                 })
-                .catch((e) => {
+                .catch(e => {
                     empCache.inFlight.delete(key);
                     throw e;
                 });
             empCache.inFlight.set(key, p);
             return p;
         }
-        function fetchEmployeesForEdit(ids) {
-            fetchEmployeesCached("")
-                .then((d) => {
-                    employees = d.data || d || [];
-                    // Exclude administrators
-                    employees = employees.filter(
-                        (emp) =>
-                            String(emp.user_type || "").toUpperCase() !==
-                            "ADMINISTRATOR"
-                    );
-                    selected = employees.filter((emp) => ids.includes(emp.id));
-                    renderSelected();
-                    updateHidden();
-                })
-                .catch(() => showAlertMsg("Failed to load employees", "error"));
-        }
 
-        // Load initial selected employees if any (deferred until helpers are initialized)
-        if (initialExecutorIds.length > 0) {
-            fetchEmployeesForEdit(initialExecutorIds);
-        }
-
-        function fetchEmployees(q = "") {
-            // Backwards-compatible: allow query-based fetch but prefer to load full list once
-            return fetchEmployeesCached(q)
-                .then((d) => {
-                    employees = d.data || d || [];
-                    // Exclude administrators
-                    employees = employees.filter(
-                        (emp) =>
-                            String(emp.user_type || "").toUpperCase() !==
-                            "ADMINISTRATOR"
-                    );
-                    filtered = employees;
-                    renderDropdown();
-                })
-                .catch(() => showAlertMsg("Failed to load employees", "error"));
-        }
-
-        function fetchAllEmployeesIfNeeded() {
-            if (employees && employees.length > 0) return Promise.resolve(employees);
-            return fetchEmployeesCached("")
-                .then((d) => {
-                    employees = d.data || d || [];
-                    employees = employees.filter(
-                        (emp) =>
-                            String(emp.user_type || "").toUpperCase() !==
-                            "ADMINISTRATOR"
-                    );
-                    filtered = employees;
-                    return employees;
-                })
-                .catch(() => {
-                    showAlertMsg("Failed to load employees", "error");
-                    return [];
-                });
+        function fetchAllEmployees() {
+            return fetchEmployeesCached("").then(d => {
+                employees = (d.data || d || []).filter(emp =>
+                    String(emp.user_type || "").toUpperCase() !== "ADMINISTRATOR"
+                );
+                filtered = employees;
+                return employees;
+            }).catch(() => {
+                showAlertMsg("Failed to load employees", "error");
+                return [];
+            });
         }
 
         function renderDropdown() {
             if (filtered.length === 0) {
-                dropdown.innerHTML =
-                    '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
                 return;
             }
-            dropdown.innerHTML = filtered
-                .map((emp) => {
-                    const checked = selected.some((s) => s.id === emp.id);
-                    const photo = buildPhotoUrl(emp.user_photo);
-                    return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
-                        <div class='d-flex align-items-center'>
-                            <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
-                            <div class='d-flex flex-column'>
-                                <span class='executor-name'>${emp.name}</span>
-                                <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
-                            </div>
+            dropdown.innerHTML = filtered.map(emp => {
+                const checked = selected.some(s => s.id === emp.id);
+                const photo = buildPhotoUrl(emp.user_photo);
+                return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
+                    <div class='d-flex align-items-center'>
+                        <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
+                        <div class='d-flex flex-column'>
+                            <span class='executor-name'>${emp.name}</span>
+                            <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
                         </div>
-                        <input type='checkbox' data-id='${emp.id}' ${checked ? "checked" : ""}>
-                    </label>`;
-                })
-                .join("");
-            dropdown.style.display = "block";
-            dropdown.querySelectorAll("input[type=checkbox]").forEach((cb) =>
-                cb.addEventListener("change", function () {
-                    const id = parseInt(this.getAttribute("data-id"));
-                    if (this.checked) {
-                        if (!selected.some((s) => s.id === id)) {
-                            const emp = employees.find((e) => e.id === id);
-                            selected.push({
-                                id,
-                                name: emp.name,
-                                user_photo: emp.user_photo,
-                            });
-                        }
-                    } else {
-                        selected = selected.filter((s) => s.id !== id);
-                    }
-                    renderSelected();
-                    renderDropdown();
-                    updateHidden();
-                })
-            );
+                    </div>
+                    <input type='checkbox' data-id='${emp.id}' ${checked ? "checked" : ""}>
+                </label>`;
+            }).join("");
         }
 
         function renderSelected() {
             selectedContainer.innerHTML = "";
-            selected.forEach((emp) => {
-                const photo = buildPhotoUrl(emp.user_photo);
+            selected.forEach(emp => {
+                const photoUrl = buildPhotoUrl(emp.user_photo);
                 const badge = document.createElement("span");
-                // Use same styling/structure as Task selected badges
                 badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
-                const img = document.createElement('img');
-                img.src = photo;
-                img.alt = emp.name || '';
-                img.className = 'rounded-circle me-2';
-                img.style.width = '24px';
-                img.style.height = '24px';
-                img.style.objectFit = 'cover';
+                const img = document.createElement("img");
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = "rounded-circle me-2";
+                img.style.width = "24px";
+                img.style.height = "24px";
+                img.style.objectFit = "cover";
 
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = emp.name || '';
+                const nameCol = document.createElement("div");
+                nameCol.className = "d-flex flex-column";
+                const nameText = document.createElement("span");
+                nameText.textContent = emp.name || "";
+                nameText.style.marginBottom = "5px"
 
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'btn-close btn-sm ms-2';
-                removeBtn.setAttribute('aria-label', 'Remove');
-                removeBtn.addEventListener('click', () => {
-                    selected = selected.filter((s) => s.id !== emp.id);
+                const divSmall = document.createElement("small");
+                divSmall.className = "text-muted executor-division";
+                divSmall.textContent = emp.division || "";
+
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn-close btn-sm ms-2";
+                removeBtn.setAttribute("aria-label", "Remove");
+                removeBtn.addEventListener("click", () => {
+                    selected = selected.filter(e => e.id !== emp.id);
                     renderSelected();
-                    renderDropdown();
                     updateHidden();
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameCol);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
         }
 
         function updateHidden() {
-            hidden.value = JSON.stringify(selected.map((s) => s.id));
+            hidden.value = JSON.stringify(selected.map(s => s.id));
         }
 
         function filterEmployeesByName(val) {
             const v = String(val || "").trim().toLowerCase();
-            if (!v) filtered = employees;
-            else filtered = employees.filter((emp) => (emp.name || "").toLowerCase().includes(v));
+            filtered = !v ? employees : employees.filter(emp =>
+                (emp.name || "").toLowerCase().includes(v)
+            );
             renderDropdown();
         }
 
         input.addEventListener("input", function () {
-            const q = this.value.trim();
-            fetchAllEmployeesIfNeeded().then(() => filterEmployeesByName(q));
+            filterEmployeesByName(this.value);
+            dropdown.style.display = "block";
         });
 
         input.addEventListener("focus", function () {
-            fetchAllEmployeesIfNeeded().then(() => filterEmployeesByName(this.value));
+            filterEmployeesByName(this.value);
+            dropdown.style.display = "block";
         });
 
         document.addEventListener("click", (e) => {
@@ -1299,13 +1227,41 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Expose edit executor picker API for external preselection (used by division wiring)
         window.__scheduleEditExecPicker = {
-            clear: function(){ try{ selected = []; renderSelected(); updateHidden(); dropdown.innerHTML = ''; } catch(e){} },
-            set: function(arr){ try{ if(!Array.isArray(arr)) return; selected = arr.map(a=> ({ id: a.id, name: a.name || a.full_name || '', user_photo: a.user_photo || a.profile_picture || '' })); renderSelected(); updateHidden(); renderDropdown(); } catch(e){} }
+            clear: function () {
+                selected = [];
+                renderSelected();
+                updateHidden();
+                dropdown.innerHTML = '';
+            },
+            set: async function (arr) {
+                await fetchAllEmployees();
+                if (!Array.isArray(arr)) return;
+                selected = arr.map(a => {
+                    const empData = employees.find(e => e.id === a.id);
+                    return {
+                        id: a.id,
+                        name: a.name || a.full_name || (empData ? empData.name : ''),
+                        user_photo: a.user_photo || (empData ? empData.user_photo : ''),
+                        division: empData ? (empData.division || empData.division_name || '') : ''
+                    };
+                });
+                renderSelected();
+                updateHidden();
+                renderDropdown();
+            }
         };
 
+        // Pastikan fetch semua employee sebelum set initialExecutorIds
+        if (initialExecutorIds.length > 0) {
+            fetchAllEmployees().then(() => {
+                window.__scheduleEditExecPicker.set(initialExecutorIds.map(id => ({ id })));
+            });
+        }
+
+        dropdown.style.display = "none"; // Dropdown hide awalnya
     }
+
     function setupEditRecurrenceToggles() {
         const typeSel = document.getElementById(
             "edit_schedule_recurrence_type"

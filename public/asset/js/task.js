@@ -65,8 +65,8 @@
     function initBootstrapTooltips(root = document) {
         try {
             // More reliable mobile detection using multiple methods
-            const isMobile = window.matchMedia('(max-width: 768px)').matches ||
-                             window.innerWidth <= 768 ||
+            const isMobile = window.matchMedia('(max-width: 1024px)').matches ||
+                             window.innerWidth <= 1024 ||
                              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const defaultPlacement = isMobile ? "top" : "bottom";
 
@@ -1070,6 +1070,8 @@
                 nameCol.className = 'd-flex flex-column';
                 const nameText = document.createElement('span');
                 nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+
                 const divSmall = document.createElement('small');
                 divSmall.className = 'text-muted executor-division';
                 divSmall.textContent = emp.division || '';
@@ -1979,9 +1981,7 @@
     function setupEditExecutorInput() {
         const input = document.getElementById("edit_executor_input");
         const dropdown = document.getElementById("edit_executor_dropdown");
-        const selectedContainer = document.getElementById(
-            "edit_selected_executors"
-        );
+        const selectedContainer = document.getElementById("edit_selected_executors");
         const hiddenInput = document.getElementById("edit_executors");
 
         if (!input || !dropdown || !selectedContainer || !hiddenInput) {
@@ -1993,16 +1993,15 @@
         let selectedEmployees = [];
 
         function fetchEmployees(query = "") {
-            fetchEmployeesForExecutorCached(query)
-                .then(function(data){
+            return fetchEmployeesForExecutorCached(query)
+                .then(function(data) {
                     employees = (data && (data.data || data)) || [];
-                    // Exclude administrator users from executor pickers
                     employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filteredEmployees = employees;
                     renderDropdown();
                 })
-                .catch(function(){
-                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) {}
+                .catch(function() {
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) {}
                 });
         }
 
@@ -2014,64 +2013,49 @@
                 return;
             }
 
-        const html = filteredEmployees
+            const html = filteredEmployees
                 .map((emp) => {
-                    const isChecked = selectedEmployees.some(
-                        (e) => e.id === emp.id
-                    );
-            const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
                     return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${
-                        emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <div class="d-flex flex-column">
-                                <span class="executor-name">${emp.name}</span>
-                                <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <div class="d-flex flex-column">
+                                    <span class="executor-name">${emp.name}</span>
+                                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                                </div>
                             </div>
-                        </div>
-                        <input type="checkbox" class="executor-checkbox" data-id="${
-                            emp.id
-                        }" data-name="${emp.name}" ${
-                        isChecked ? "checked" : ""
-                    }>
-                    </label>
-                `;
+                            <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                        </label>
+                    `;
                 })
                 .join("");
             dropdown.innerHTML = html;
             dropdown.style.display = "block";
 
-            dropdown
-                .querySelectorAll(".executor-checkbox")
-                .forEach((checkbox) => {
-                    checkbox.addEventListener("change", function () {
-                        const id = parseInt(this.getAttribute("data-id"));
-                        const name = this.getAttribute("data-name");
-                        const employeeObj = employees.find(
-                            (emp) => emp.id === id
-                        );
-                        if (this.checked) {
-                            if (!selectedEmployees.some((e) => e.id === id)) {
-                                selectedEmployees.push({
-                                    id,
-                                    name,
-                                    user_photo: employeeObj
-                                        ? employeeObj.user_photo
-                                        : null,
-                                    division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
-                                });
-                            }
-                        } else {
-                            selectedEmployees = selectedEmployees.filter(
-                                (e) => e.id !== id
-                            );
+            dropdown.querySelectorAll(".executor-checkbox").forEach((checkbox) => {
+                checkbox.addEventListener("change", function () {
+                    const id = parseInt(this.getAttribute("data-id"));
+                    const name = this.getAttribute("data-name");
+                    const employeeObj = employees.find(emp => emp.id === id);
+
+                    if (this.checked) {
+                        if (!selectedEmployees.some((e) => e.id === id)) {
+                            selectedEmployees.push({
+                                id,
+                                name,
+                                user_photo: employeeObj ? employeeObj.user_photo : null,
+                                division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
+                            });
                         }
-                        renderSelected();
-                        updateHiddenInput();
-                    });
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
                 });
+            });
         }
 
         function renderSelected() {
@@ -2080,8 +2064,7 @@
                 const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
 
                 const badge = document.createElement("span");
-                badge.className =
-                    "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
+                badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -2095,9 +2078,12 @@
                 nameCol.className = 'd-flex flex-column';
                 const nameText = document.createElement('span');
                 nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+
                 const divSmall = document.createElement('small');
                 divSmall.className = 'text-muted executor-division';
                 divSmall.textContent = emp.division || '';
+
                 nameCol.appendChild(nameText);
                 nameCol.appendChild(divSmall);
 
@@ -2106,9 +2092,7 @@
                 removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
-                    selectedEmployees = selectedEmployees.filter(
-                        (e) => e.id !== emp.id
-                    );
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
                     renderSelected();
                     updateHiddenInput();
                     renderDropdown();
@@ -2122,20 +2106,14 @@
         }
 
         function updateHiddenInput() {
-            hiddenInput.value = JSON.stringify(
-                selectedEmployees.map((e) => e.id)
-            );
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
         }
 
         function filterEmployees(value) {
             const val = value.trim().toLowerCase();
-            if (val === "") {
-                filteredEmployees = employees;
-            } else {
-                filteredEmployees = employees.filter((emp) =>
-                    emp.name.toLowerCase().includes(val)
-                );
-            }
+            filteredEmployees = val === ""
+                ? employees
+                : employees.filter(emp => emp.name.toLowerCase().includes(val));
             renderDropdown();
         }
 
@@ -2163,7 +2141,16 @@
             input.value = "";
         };
 
-        window.setSelectedExecutorsEdit = function (executors) {
+        window.setSelectedExecutorsEdit = async function (executors) {
+            try {
+                // Fetch all employees to get divisions
+                const data = await fetchEmployeesForExecutorCached("");
+                employees = (data && (data.data || data)) || [];
+                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+            } catch (e) {
+                console.warn("Gagal ambil data employee:", e);
+            }
+
             selectedEmployees = executors.map((ex) => {
                 let photoUrl = "";
                 let userPhoto = ex.user_photo;
@@ -2181,24 +2168,32 @@
                     ) {
                         photoUrl = appUrl + "/" + userPhoto;
                     } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + userPhoto;
+                        photoUrl = appUrl + "/file/profile_picture/" + userPhoto;
                     }
                 } else {
-                    photoUrl =
-                        appUrl + "/asset/img/avatar.png";
+                    photoUrl = appUrl + "/asset/img/avatar.png";
                 }
+
+                // Cari division dari list employees
+                let divisionName = "";
+                const empData = employees.find(e => e.id === ex.id);
+                if (empData) {
+                    divisionName = empData.division || empData.division_name || "";
+                }
+
                 return {
                     id: ex.id,
                     name: ex.name,
                     user_photo: photoUrl,
-                    division: ex.division || ex.division_name || '',
+                    division: divisionName
                 };
             });
+
             renderSelected();
             updateHiddenInput();
         };
     }
+
 
 document.addEventListener("click", function (e) {
     if (e.target && e.target.classList.contains("arrow-forward-icon")) {
@@ -2408,6 +2403,13 @@ document.addEventListener("click", function (e) {
             } catch(_) { return false; }
         })();
 
+        function formatDueDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const options = { day: '2-digit', month: 'short', year: 'numeric' };
+            return date.toLocaleDateString('en-GB', options).replace(',', '');
+        }
+
         let statusBadge = '';
         if (task.status === 'rejected') {
             statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
@@ -2501,7 +2503,7 @@ document.addEventListener("click", function (e) {
                     </div>
                     <div style="font-size: 10px; font-weight: 400;">
                         <span style="color: #797E91;">Deadline: </span>
-                        <span style="#color: #4B4F5E">${task.due_date }</span>
+                        <span style="#color: #4B4F5E">${ formatDueDate(task.due_date) }</span>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
@@ -4450,7 +4452,7 @@ function applyCurrentSearchFilter() {
 
     // Helper: show delete confirmation modal (Bootstrap) with avatar, content and confirm/cancel
     function showDeleteConfirmModal(opts) {
-        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
         try {
             const id = opts.id;
             const type = opts.type || 'feedback';
@@ -6310,6 +6312,7 @@ function applyCurrentSearchFilter() {
                                 title.href = fileUrl;
                                 title.target = '_blank';
                                 title.textContent = fileName;
+                                title.style.color = "#444444"
                                 item.appendChild(title);
 
                                 // Add download button (read-only modal). Clicking will trigger download of the file.
@@ -6317,6 +6320,7 @@ function applyCurrentSearchFilter() {
                                 dlBtn.type = 'button';
                                 dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
                                 dlBtn.title = 'Download';
+                                dlBtn.style.color = "#444444"
                                 dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
                                 dlBtn.addEventListener('click', function (ev) {
                                     try {
@@ -6593,6 +6597,13 @@ function applyCurrentSearchFilter() {
                     }
                 }
 
+                function formatDueDate(dateStr) {
+                    if (!dateStr) return '';
+                    const date = new Date(dateStr);
+                    const options = { day: '2-digit', month: 'short', year: 'numeric' };
+                    return date.toLocaleDateString('en-GB', options).replace(',', '');
+                }
+
                 const showDelete = (function(){
                     try {
                         const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
@@ -6629,7 +6640,7 @@ function applyCurrentSearchFilter() {
                         </div>
                         <div style="font-size:12px;">
                             <span style="color:#797E91;">Deadline: </span>
-                            <span style="color:#4B4F5E;">${task.due_date || "-"}</span>
+                            <span style="color:#4B4F5E;">${formatDueDate(task.due_date) || "-"}</span>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -6678,9 +6689,6 @@ function applyCurrentSearchFilter() {
                                     : ""}
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom mt-3">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>`;
 
@@ -7305,8 +7313,8 @@ function applyCurrentSearchFilter() {
             if (idx < arr.length - 1) el.remove();
         });
 
-    $.ajax({
-        url: appUrl + "/task/" + taskId + "/edit",
+        $.ajax({
+            url: appUrl + "/task/" + taskId + "/edit",
             type: "GET",
             dataType: "json",
             success: function (res) {
@@ -7962,7 +7970,7 @@ function applyCurrentSearchFilter() {
 
     $(document).ready(function () {
     const mobileCardHtml = `
-        <div class="mobile-task-container p-3 rounded-4 d-md-none">
+        <div class="mobile-task-container p-3 rounded-4">
         <div class="task-mobile-status mb-2">
             <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
             <option value="new_request">New</option>
@@ -8016,11 +8024,21 @@ function applyCurrentSearchFilter() {
 
     function toggleDropdownFilter() {
         let dropdown = $(".dropdown-filter-container");
-        if ($(window).width() <= 768) dropdown.hide();
+        let mobileContainer = $(".mobile-task-container");
+        let desktopContainer = $("#task-cards-container");
+
+        if ($(window).width() <= 1024) {
+            mobileContainer.show();
+            desktopContainer.hide();
+        } else {
+            mobileContainer.hide();
+            desktopContainer.show();
+        }
+        if ($(window).width() <= 1024) dropdown.hide();
         else dropdown.show();
     }
     toggleDropdownFilter();
-    $(window).on("resize", toggleDropdownFilter);
+        $(window).on("resize", toggleDropdownFilter);
 
     function updateMobileBulkControlsVisibility(){
         // Show container only when status = new_request AND there is at least one selection.
@@ -8045,7 +8063,6 @@ function applyCurrentSearchFilter() {
     setTimeout(adjustMobileListHeight, 50);
     setTimeout(adjustMobileListHeight, 350); // second pass after fonts/images load
 
-    // 👇 sekarang baru init scroll + fetch
     initMobileInfiniteScroll();
     fetchMobileTasks(mobileState.status, 1, false);
 
@@ -8079,92 +8096,103 @@ function applyCurrentSearchFilter() {
 
     async function loadArchivedTasksIntoModal(page = 1, append = false) {
         try {
-            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl) ? appUrl : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''))
-            const modalEl = document.getElementById('archieveModal')
-            if (!modalEl) return
-            const body = modalEl.querySelector('.modal-body')
-            if (!body) return
+            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl)
+                ? appUrl
+                : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''));
+
+            const modalEl = document.getElementById('archieveModal');
+            if (!modalEl) return;
+            const body = modalEl.querySelector('.modal-body');
+            if (!body) return;
 
             if (!append) {
-                resetArchiveState()
-                body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>'
+                resetArchiveState();
+                body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                // reset ID set kalau reload full
+                window.__renderedArchiveIds = new Set();
             }
 
-            if (archiveLoading || !archiveHasMore) return
-            archiveLoading = true
+            if (archiveLoading || !archiveHasMore) return;
+            archiveLoading = true;
 
-            const res = await fetch(`${baseAppUrl}/task/index?status=canceled&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null)
+            const res = await fetch(`${baseAppUrl}/task/index?status=canceled&per_page=10&page=${page}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).catch(() => null);
+
             if (!res || !res.ok) {
-                if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>'
-                archiveLoading = false
-                return
+                if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+                archiveLoading = false;
+                return;
             }
 
-            const j = await res.json().catch(() => ({}))
-            const data = (j && j.data) ? j.data : {}
-            let tasks = []
+            const j = await res.json().catch(() => ({}));
+            const data = (j && j.data) ? j.data : {};
+            let tasks = [];
+
             if (data) {
-                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null
+                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
                 if (canceledSection) {
-                    if (Array.isArray(canceledSection)) tasks = canceledSection
-                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks
+                    if (Array.isArray(canceledSection)) tasks = canceledSection;
+                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
                 }
             }
             if (!tasks || tasks.length === 0) {
-                let collected = []
-                const buckets = ['new_request','in_progress','completed','rejected','canceled','CANCELED']
+                let collected = [];
+                const buckets = ['new_request', 'in_progress', 'completed', 'rejected', 'canceled', 'CANCELED'];
                 buckets.forEach(key => {
-                    const section = data[key]
-                    if (!section) return
-                    if (Array.isArray(section)) collected.push(...section)
-                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks)
-                })
-                if (Array.isArray(data)) collected.push(...data)
-                const seen = new Set()
-                const allTasks = []
+                    const section = data[key];
+                    if (!section) return;
+                    if (Array.isArray(section)) collected.push(...section);
+                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
+                });
+                if (Array.isArray(data)) collected.push(...data);
+                const seen = new Set();
+                const allTasks = [];
                 collected.forEach(t => {
-                    const id = t && (t.id || t.task_id)
-                    if (!id) return
-                    if (seen.has(String(id))) return
-                    seen.add(String(id))
-                    allTasks.push(t)
-                })
-                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'))
+                    const id = t && (t.id || t.task_id);
+                    if (!id) return;
+                    if (seen.has(String(id))) return;
+                    seen.add(String(id));
+                    allTasks.push(t);
+                });
+                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
             }
 
             try {
-                const clientMap = window.__clientArchivedTasks || new Map()
+                const clientMap = window.__clientArchivedTasks || new Map();
                 if (clientMap && typeof clientMap.forEach === 'function') {
-                    clientMap.forEach(function(t, k){
-                        if (!tasks.some(x => String(x.id) === String(t.id))) tasks.push(t)
-                    })
+                    clientMap.forEach(function (t) {
+                        if (!tasks.some(x => String(x.id) === String(t.id))) tasks.push(t);
+                    });
                 }
                 if (!tasks || !tasks.length) {
-                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>'
-                    try { window.__renderingArchiveModal = false } catch(_) {}
-                    archiveLoading = false
-                    archiveHasMore = false
-                    return
+                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
+                    try { window.__renderingArchiveModal = false } catch (_) { }
+                    archiveLoading = false;
+                    archiveHasMore = false;
+                    return;
                 }
-            } catch(_) {}
+            } catch (_) { }
 
-            let container = body.querySelector('.task-list')
+            let container = body.querySelector('.task-list');
             if (!container) {
-                container = document.createElement('div')
-                container.className = 'task-list d-flex flex-column gap-2 p-2'
+                container = document.createElement('div');
+                container.className = 'task-list d-flex flex-column gap-2 p-2';
                 if (!append) {
-                    body.innerHTML = ''
-                    body.appendChild(container)
+                    body.innerHTML = '';
+                    body.appendChild(container);
                 }
             }
 
             function buildSafeCardHtml(t) {
-                const title = (t.title || 'Untitled Task')
-                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '')
-                const desc = (t.description || '').toString()
-                const priority = t.priority || ''
-                const rawStatus = String((t.status || '')).toUpperCase()
-                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL')) ? `<span style="color:red; font-weight:600;">${rawStatus}</span>` : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`
+                const title = (t.title || 'Untitled Task');
+                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                const desc = (t.description || '').toString();
+                const priority = t.priority || '';
+                const rawStatus = String((t.status || '')).toUpperCase();
+                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL'))
+                    ? `<span style="color:red; font-weight:600;">${rawStatus}</span>`
+                    : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`;
                 return `
                     <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${t.id || ''}" data-task-status="${t.status || ''}">
                         ${proj ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${proj}</small>` : ''}
@@ -8172,137 +8200,158 @@ function applyCurrentSearchFilter() {
                         <div class="task-description-container"><p class="task-description" style="margin-top:6px;">${desc}</p></div>
                         <hr class="task-separator rounded-4">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div style="font-size: 10px; font-weight: 400;"> <span style="color: #797E91;">Priority: </span><span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span></div>
-                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Status: </span><span class="type-badge-wrapper">${typeBadge}</span></div>
+                            <div style="font-size: 10px; font-weight: 400;">
+                                <span style="color: #797E91;">Priority: </span>
+                                <span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span>
+                            </div>
+                            <div style="font-size: 10px; font-weight: 400;">
+                                <span style="color: #797E91;">Status: </span>
+                                <span class="type-badge-wrapper">${typeBadge}</span>
+                            </div>
                         </div>
-                    </div>`
+                    </div>`;
             }
 
-            try { window.__renderingArchiveModal = true } catch(_) {}
+            function safeInsertTask(container, t, html) {
+                const id = String(t.id || t.task_id || '');
+                if (!id) return;
+                window.__renderedArchiveIds = window.__renderedArchiveIds || new Set();
+                if (window.__renderedArchiveIds.has(id)) return;
+                window.__renderedArchiveIds.add(id);
+                container.insertAdjacentHTML('beforeend', html);
+            }
+
+            try { window.__renderingArchiveModal = true } catch (_) { }
             tasks.forEach(t => {
                 try {
-                    const normalized = Object.assign({}, t)
-                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '')
-                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null)
-                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null)
-                    let html = ''
+                    const normalized = Object.assign({}, t);
+                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+
+                    let html = '';
                     if (typeof createTaskCard === 'function') {
-                        try { html = createTaskCard(normalized) } catch { html = buildSafeCardHtml(normalized) }
+                        try { html = createTaskCard(normalized); } catch { html = buildSafeCardHtml(normalized); }
                     } else if (typeof window !== 'undefined' && typeof window.createTaskCard === 'function') {
-                        try { html = window.createTaskCard(normalized) } catch { html = buildSafeCardHtml(normalized) }
+                        try { html = window.createTaskCard(normalized); } catch { html = buildSafeCardHtml(normalized); }
                     } else {
-                        html = buildSafeCardHtml(normalized)
+                        html = buildSafeCardHtml(normalized);
                     }
-                    container.insertAdjacentHTML('beforeend', html)
-                } catch {
-                    const simple = document.createElement('div')
-                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0'
-                    simple.innerHTML = `<h5 class="mb-1">${(t.title||'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`
-                    container.appendChild(simple)
+
+                    safeInsertTask(container, normalized, html);
+                } catch (e) {
+                    const simple = document.createElement('div');
+                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0';
+                    simple.innerHTML = `<h5 class="mb-1">${(t.title || 'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`;
+                    safeInsertTask(container, t, simple.outerHTML);
                 }
-            })
-            try { window.__renderingArchiveModal = false } catch(_) {}
+            });
+            try { window.__renderingArchiveModal = false } catch (_) { }
 
             try {
-                body.innerHTML = ''
-                body.appendChild(container)
-                container.querySelectorAll('.custom-card').forEach(function(card){
+                body.innerHTML = '';
+                body.appendChild(container);
+                container.querySelectorAll('.custom-card').forEach(function (card) {
                     try {
-                        const ds = card.querySelectorAll('div[style*="Deadline:"]')
-                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove())
-                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove())
-                        card.querySelectorAll('.task-icon').forEach(el => el.remove())
+                        const ds = card.querySelectorAll('div[style*="Deadline:"]');
+                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove());
+                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove());
+                        card.querySelectorAll('.task-icon').forEach(el => el.remove());
                         card.querySelectorAll('button, a.btn').forEach(btn => {
-                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) btn.remove()
-                        })
-                        const status = (card.getAttribute('data-task-status') || '').toLowerCase()
-                        const dropdownMenu = card.querySelector('.dropdown-menu')
+                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) btn.remove();
+                        });
+                        const status = (card.getAttribute('data-task-status') || '').toLowerCase();
+                        const dropdownMenu = card.querySelector('.dropdown-menu');
                         if (dropdownMenu) {
-                            dropdownMenu.innerHTML = ''
+                            dropdownMenu.innerHTML = '';
                             if (status === 'completed') {
-                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div>`
+                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div>`;
                             } else {
-                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div><div class="dropdown-item">Restore Task</div>`
+                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div><div class="dropdown-item">Restore Task</div>`;
                             }
                         }
                         if (ds && ds.length) {
-                            ds.forEach(function(dd){
-                                const st = (card.getAttribute('data-task-status') || '').toUpperCase()
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`
-                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>')
-                            })
+                            ds.forEach(function (dd) {
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                    ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
+                                    : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>');
+                            });
                         } else {
-                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function(_, g1){
-                                const st = (card.getAttribute('data-task-status') || '').toUpperCase()
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`
-                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>'
-                            })
+                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function (_, g1) {
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                    ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
+                                    : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>';
+                            });
                         }
-                    } catch(_) {}
-                })
-                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function(item) {
-                    item.addEventListener('click', function(e) {
-                        e.stopPropagation()
-                        const text = this.textContent.trim()
-                        const card = this.closest('.custom-card')
-                        const taskId = card && card.getAttribute('data-task-id')
-                        if (!taskId) return
+                    } catch (_) { }
+                });
+                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function (item) {
+                    item.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        const text = this.textContent.trim();
+                        const card = this.closest('.custom-card');
+                        const taskId = card && card.getAttribute('data-task-id');
+                        if (!taskId) return;
                         if (text === 'Detail') {
-                            const archiveModal = document.getElementById('archieveModal')
+                            const archiveModal = document.getElementById('archieveModal');
                             if (archiveModal) {
-                                const bsModal = bootstrap.Modal.getInstance(archiveModal)
-                                if (bsModal) bsModal.hide()
+                                const bsModal = bootstrap.Modal.getInstance(archiveModal);
+                                if (bsModal) bsModal.hide();
                             }
-                            handleTaskDetail(taskId)
+                            handleTaskDetail(taskId);
                         }
                         if (text === 'Restore Task') {
-                            const restoreStatus = 'new_request'
+                            const restoreStatus = 'new_request';
                             updateTaskStatus(taskId, restoreStatus, card)
                                 .then(() => {
-                                    showFloatingAlert('Task restored to ' + restoreStatus, 'success')
-                                    card.remove()
+                                    showFloatingAlert('Task restored to ' + restoreStatus, 'success');
+                                    card.remove();
                                 })
                                 .catch(err => {
-                                    showFloatingAlert('Failed to restore task: ' + err, 'danger')
-                                })
+                                    showFloatingAlert('Failed to restore task: ' + err, 'danger');
+                                });
                         }
-                    })
-                })
-                initBootstrapTooltips(modalEl)
+                    });
+                });
+                initBootstrapTooltips(modalEl);
             } catch (_) {
-                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl) } catch(_) {}
+                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl); } catch (_) { }
             }
 
             if (tasks.length < 10) {
-                archiveHasMore = false
-                const sentinel = body.querySelector('.lazy-sentinel')
-                if (sentinel) sentinel.remove()
+                archiveHasMore = false;
+                const sentinel = body.querySelector('.lazy-sentinel');
+                if (sentinel) sentinel.remove();
             } else {
-                let sentinel = body.querySelector('.lazy-sentinel')
+                let sentinel = body.querySelector('.lazy-sentinel');
                 if (!sentinel) {
-                    sentinel = document.createElement('div')
-                    sentinel.className = 'lazy-sentinel text-center p-2 text-muted'
-                    sentinel.innerText = 'Loading more...'
-                    body.appendChild(sentinel)
+                    sentinel = document.createElement('div');
+                    sentinel.className = 'lazy-sentinel text-center p-2 text-muted';
+                    sentinel.innerText = 'Loading more...';
+                    body.appendChild(sentinel);
                     const io = new IntersectionObserver(entries => {
                         entries.forEach(entry => {
                             if (entry.isIntersecting && archiveHasMore && !archiveLoading) {
-                                archivePage++
-                                loadArchivedTasksIntoModal(archivePage, true)
+                                archivePage++;
+                                loadArchivedTasksIntoModal(archivePage, true);
                             }
-                        })
-                    })
-                    io.observe(sentinel)
+                        });
+                    });
+                    io.observe(sentinel);
                 }
             }
 
-            archiveLoading = false
+            archiveLoading = false;
         } catch (err) {
             try {
-                const modalEl = document.getElementById('archieveModal')
-                const body = modalEl && modalEl.querySelector('.modal-body')
-                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>'
-            } catch(_) {}
+                const modalEl = document.getElementById('archieveModal');
+                const body = modalEl && modalEl.querySelector('.modal-body');
+                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+            } catch (_) { }
         }
     }
 

@@ -248,7 +248,8 @@
                                 <option value="">Select Division</option>
                             </select>
 
-                            <div id="edit_task_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
+                            <div id="edit_task_division_activator" class="division-activator position-absolute"
+                                aria-hidden="true"></div>
                             <div id="edit_task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
                             <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
                         </div>
@@ -466,6 +467,9 @@
             <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
                     <div id="taskDetailContent"></div>
+                </div>
+                <div class="modal-footer modal-footer-custom mt-3">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
