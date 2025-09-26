@@ -677,7 +677,7 @@ document.addEventListener("DOMContentLoaded", function () {
             );
             if (!container) return;
             const row = document.createElement("div");
-            row.className = "d-flex gap-2 align-items-center";
+            row.className = "input-group";
             row.innerHTML =
                 '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                 ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
@@ -690,7 +690,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const removeBtn = e.target.closest(".remove-ref-url");
         if (removeBtn) {
             e.preventDefault();
-            const row = removeBtn.closest(".d-flex");
+            const row = removeBtn.closest(".input-group");
             if (row && row.parentNode) {
                 row.parentNode.removeChild(row);
             }
@@ -1491,7 +1491,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                                 "div"
                                                             );
                                                         row.className =
-                                                            "d-flex gap-2 align-items-center";
+                                                            "input-group";
                                                         row.innerHTML =
                                                             '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                                                             (withAdd
