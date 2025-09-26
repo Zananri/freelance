@@ -430,7 +430,14 @@
 .schedule-description-container ul,
 .schedule-description-container ol,
 .schedule-description-container li,
-.schedule-description-container span {
+.schedule-description-container span,
+.teks-description,
+.description-container,
+.description-container p,
+.description-container ul,
+.description-container ol,
+.description-container li,
+.description-container span {
     /* Force visual parity with other description styles */
     color: #4c5060 !important;
     font-size: 12px !important;

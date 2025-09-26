@@ -598,8 +598,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reference URL dynamic rows (simple) - reuse global logic in task.js if loaded; else lightweight here
     document.addEventListener('click', function(e){
-        if(e.target.closest('.add-ref-url')){ const container=document.getElementById('schedule_reference_urls_container'); const row=document.createElement('div'); row.className='d-flex gap-2 align-items-center'; row.innerHTML = `<input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-danger remove-ref-url'><span class='material-symbols-outlined'>close</span></button>`; container.appendChild(row); }
-        if(e.target.closest('.remove-ref-url')){ const row=e.target.closest('.d-flex'); if(row) row.remove(); }
+        if(e.target.closest('.add-ref-url')){ const container=document.getElementById('schedule_reference_urls_container'); const row=document.createElement('div'); row.className='input-group'; row.innerHTML = `<input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-danger remove-ref-url'><span class='material-symbols-outlined'>close</span></button>`; container.appendChild(row); }
+        if(e.target.closest('.remove-ref-url')){ const row=e.target.closest('.input-group'); if(row) row.remove(); }
     });
 
     function resetCreateScheduleForm(){
@@ -632,7 +632,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const container = document.getElementById('schedule_reference_urls_container');
                 if (container) {
-                    container.innerHTML = "<div class=\"d-flex gap-2 align-items-center\"><input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-submit-black add-ref-url' aria-label='Add URL'><span class='material-symbols-outlined'>add</span></button></div>";
+                    container.innerHTML = "<div class=\"input-group\"><input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-submit-black add-ref-url' aria-label='Add URL'><span class='material-symbols-outlined'>add</span></button></div>";
                 }
             } catch(_) {}
             // Reset recurrence toggles - set to default and trigger change to re-sync UI
