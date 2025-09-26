@@ -295,7 +295,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 item.description || ""
                                             ).trim();
                                             if (!d) return "";
-                                            return `<p class="teks-description mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${d}</p>`;
+                                            return `<p class="text-description mb-2 small text-muted">${d}</p>`;
                                         })()}
                                     </div>
 
@@ -602,12 +602,6 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.title || "";
         document.getElementById("edit_schedule_description").value =
             schedule.description || "";
-        // If Quill edit instance exists, populate it immediately so the editor UI reflects the description
-        try {
-            if (window.__quillScheduleEdit && window.__quillScheduleEdit.root) {
-                window.__quillScheduleEdit.root.innerHTML = schedule.description || '';
-            }
-        } catch (e) { /* ignore if Quill not initialized yet */ }
         document.getElementById("edit_schedule_point").value =
             schedule.point || 1;
         document.getElementById("edit_schedule_priority").value =
@@ -946,7 +940,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 e.target.closest("#edit_schedule_reference_urls_container")
             ) {
                 const row = document.createElement("div");
-                row.className = "d-flex gap-2 align-items-center";
+                row.className = "input-group";
                 row.innerHTML = `<input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-danger remove-ref-url'><span class='material-symbols-outlined'>close</span></button>`;
                 container.appendChild(row);
             }
@@ -954,7 +948,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 e.target.closest(".remove-ref-url") &&
                 e.target.closest("#edit_schedule_reference_urls_container")
             ) {
-                const row = e.target.closest(".d-flex");
+                const row = e.target.closest(".input-group");
                 if (row) row.remove();
             }
         });
@@ -1108,7 +1102,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!urls || urls.length === 0) {
             const row = document.createElement("div");
-            row.className = "d-flex gap-2 align-items-center";
+            row.className = "input-group";
             row.innerHTML = `
                 <input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'>
                 <button type='button' class='btn btn-submit-black add-ref-url' aria-label='Add URL'>
@@ -1119,7 +1113,7 @@ document.addEventListener("DOMContentLoaded", function () {
             urls.forEach((url, idx) => {
                 const safeUrl = url ?? "";
                 const row = document.createElement("div");
-                row.className = "d-flex gap-2 align-items-center";
+                row.className = "input-group";
                 row.innerHTML = `
                     <input type='url' class='form-control input-text' name='reference_urls[]' value='${safeUrl}' placeholder='https://example.com'>
                     <button type='button' class='btn ${idx === 0 ? "btn-submit-black add-ref-url" : "btn-danger remove-ref-url"}'>
@@ -1601,7 +1595,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <h5 class="mb-0" style="line-height:1.2; font-size:16px; font-weight:600;">${scheduleTitle}</h5>
                                 </div>
                             </div>
-                            ${description ? `<div class="schedule-description-container mb-2"><div class="schedule-description mb-0">${description}</div></div>` : ''}
+                            ${description ? `<div class="schedule-description-container mb-2"><p class="schedule-description mb-0" style="font-size:14px;">${description}</p></div>` : ''}
                             <hr class="task-separator rounded-4">
                             <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
                                 <div>
@@ -1636,7 +1630,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <img src="${imageUrl}" alt="Schedule Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
                                             <div class="d-flex flex-column">
                                                 <h6 class="mb-0" style="font-size:16px; font-weight:600; line-height:1;">${scheduleTitle}</h6>
-                                                <p class="schedule-description small text-muted">Are you sure want to delete this schedule?</p>
+                                                <p class="schedule-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
                                             </div>
                                         </div>
                                     </div>
@@ -1652,7 +1646,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         <div class="custom-card p-0 m-0 border-0">
                                             <h6 style="font-size:16px; font-weight:600; margin:0;">${scheduleTitle}</h6>
                                             <div class="schedule-description-container">
-                                                <p class="schedule-description small text-muted">Are you sure want to delete this schedule?</p>
+                                                <p class="schedule-description small text-muted" style="margin:0;">Are you sure want to delete this schedule?</p>
                                             </div>
                                         </div>
                                     </div>
