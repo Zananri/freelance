@@ -75,14 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // Non-image: show generic icon badge
                     const badge = document.createElement('div');
-                    badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                    badge.style.width = '28px';
-                    badge.style.height = '28px';
-                    badge.style.background = '#E9ECEF';
-                    badge.style.color = '#4B4F5E';
-                    badge.style.fontSize = '13px';
-                    badge.style.fontWeight = '600';
-                    badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
                     fileItem.appendChild(badge);
                 }
 

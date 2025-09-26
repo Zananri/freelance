@@ -430,77 +430,141 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Edit modal: manage selected files preview and existing files list
     (function initEditScheduleReferenceFiles(){
-        // Array to hold newly selected File objects for edit modal
-        window.editScheduleSelectedFiles = window.editScheduleSelectedFiles || [];
-
-        const input = document.getElementById('edit_schedule_reference_files');
-        const preview = document.getElementById('edit_schedule_reference_files_preview');
-        const existingContainer = document.getElementById('existing_edit_schedule_reference_files');
+        window.editScheduleSelectedFiles = window.editScheduleSelectedFiles || []
+        const input = document.getElementById('edit_schedule_reference_files')
+        const preview = document.getElementById('edit_schedule_reference_files_preview')
 
         function renderEditSelectedFiles(){
-            if(!preview) return;
-            preview.innerHTML = '';
+            if(!preview) return
+            preview.querySelectorAll('.selected-files-list').forEach(el=>el.remove())
             if(window.editScheduleSelectedFiles && window.editScheduleSelectedFiles.length){
-                const list = document.createElement('div'); list.className='selected-files-list mt-2';
+                const list = document.createElement('div')
+                list.className='selected-files-list mt-2'
                 window.editScheduleSelectedFiles.forEach((file, idx)=>{
-                    const item = document.createElement('div'); item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
-                    if(file && file.type && file.type.indexOf('image')===0){ const img=document.createElement('img'); const url=URL.createObjectURL(file); img.src=url; img.width=28; img.height=28; img.style.objectFit='cover'; img.style.borderRadius='50%'; img.alt=file.name; img.onload=function(){ try{ URL.revokeObjectURL(url);}catch(_){} }; item.appendChild(img); }
-                    else { const badge=document.createElement('div'); badge.className='rounded-circle d-flex align-items-center justify-content-center'; badge.style.width='28px'; badge.style.height='28px'; badge.style.background='#E9ECEF'; badge.style.color='#4B4F5E'; badge.style.fontSize='13px'; badge.style.fontWeight='600'; badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F'; item.appendChild(badge); }
-                    const title = document.createElement('span'); title.className='flex-grow-1'; title.textContent = file.name; item.appendChild(title);
-                    const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight='1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                    removeBtn.addEventListener('click', ()=>{ window.editScheduleSelectedFiles.splice(idx,1); renderEditSelectedFiles(); }); item.appendChild(removeBtn);
-                    list.appendChild(item);
-                });
-                preview.appendChild(list);
+                    const item = document.createElement('div')
+                    item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2'
+                    if(file && file.type && file.type.indexOf('image')===0){
+                        const img=document.createElement('img')
+                        const url=URL.createObjectURL(file)
+                        img.src=url
+                        img.width=28
+                        img.height=28
+                        img.style.objectFit='cover'
+                        img.style.borderRadius='50%'
+                        img.alt=file.name
+                        img.onload=function(){try{URL.revokeObjectURL(url)}catch(_){ }}
+                        item.appendChild(img)
+                    } else {
+                        const badge=document.createElement('div')
+                        item.appendChild(badge)
+                    }
+                    const title = document.createElement('span')
+                    title.className='flex-grow-1'
+                    title.textContent = file.name
+                    item.appendChild(title)
+                    const removeBtn = document.createElement('button')
+                    removeBtn.type='button'
+                    removeBtn.className='btn btn-sm btn-remove-task remove-task'
+                    removeBtn.style.lineHeight='1'
+                    removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>'
+                    removeBtn.addEventListener('click', ()=>{
+                        window.editScheduleSelectedFiles.splice(idx,1)
+                        renderEditSelectedFiles()
+                    })
+                    item.appendChild(removeBtn)
+                    list.appendChild(item)
+                })
+                preview.appendChild(list)
             }
         }
 
-        // Render existing server files (list of filenames). This function can be called from populateEditModal
         window.displayEditExistingReferenceFiles = function(files){
             try{
-                const container = document.getElementById('edit_schedule_reference_files_preview');
-                // we'll render existing files above or inside existing container area
-                const existingListId = 'edit_schedule_existing_reference_files_list';
-                // remove any previous existing list block
-                const prev = document.getElementById(existingListId);
-                if(prev) prev.remove();
-                if(!files || !files.length) return;
-                const wrapper = document.createElement('div'); wrapper.id = existingListId; wrapper.className='existing-files-list mt-2';
+                const existingListId = 'edit_schedule_existing_reference_files_list'
+                const prev = document.getElementById(existingListId)
+                if(prev) prev.remove()
+                if(!files || !files.length) return
+                const wrapper = document.createElement('div')
+                wrapper.id = existingListId
+                wrapper.className='existing-files-list mt-2'
                 files.forEach(fname=>{
-                    const item = document.createElement('div'); item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2 existing-file-item';
-                    const lower = String(fname||'').toLowerCase(); const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
-                    if(isImage){ const img=document.createElement('img'); img.src = appUrl + '/file/schedule_reference_files/' + encodeURIComponent(fname); img.width=28; img.height=28; img.style.objectFit='cover'; img.style.borderRadius='50%'; img.alt=fname; item.appendChild(img); }
-                    else { const badge=document.createElement('div'); badge.className='rounded-circle d-flex align-items-center justify-content-center'; badge.style.width='28px'; badge.style.height='28px'; badge.style.background='#E9ECEF'; badge.style.color='#4B4F5E'; badge.style.fontSize='13px'; badge.style.fontWeight='600'; badge.textContent = fname && fname.length ? fname.charAt(0).toUpperCase() : 'F'; item.appendChild(badge); }
-                    const title = document.createElement('span'); title.className='flex-grow-1'; title.textContent = fname; item.appendChild(title);
-                    const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight='1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                    removeBtn.addEventListener('click', function(){ item.remove(); updateExistingFilesHidden(); }); item.appendChild(removeBtn);
-                    wrapper.appendChild(item);
-                });
-                // append before new-files preview
-                if(preview) preview.insertAdjacentElement('afterbegin', wrapper);
-                updateExistingFilesHidden();
-            }catch(e){ console.warn('displayEditExistingReferenceFiles failed', e); }
-        };
-
-        function updateExistingFilesHidden(){
-            try{
-                const existingItems = document.querySelectorAll('#edit_schedule_reference_files_preview .existing-file-item, #edit_schedule_reference_files_preview .existing-files-list .existing-file-item');
-                const arr = [];
-                existingItems.forEach(it=>{ const sp = it.querySelector('span.flex-grow-1'); if(sp && sp.textContent) arr.push(sp.textContent.trim()); });
-                let hidden = document.getElementById('edit_existing_reference_files_input');
-                if(!hidden){ hidden = document.createElement('input'); hidden.type='hidden'; hidden.id='edit_existing_reference_files_input'; hidden.name='existing_reference_files'; document.getElementById('scheduleEditForm').appendChild(hidden); }
-                hidden.value = JSON.stringify(arr);
+                    const item = document.createElement('div')
+                    item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2 existing-file-item'
+                    const lower = String(fname||'').toLowerCase()
+                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower)
+                    if(isImage){
+                        const img=document.createElement('img')
+                        img.src = appUrl + '/file/schedule_reference_files/' + encodeURIComponent(fname)
+                        img.width=28
+                        img.height=28
+                        img.style.objectFit='cover'
+                        img.style.borderRadius='50%'
+                        img.alt=fname
+                        item.appendChild(img)
+                    } else {
+                        const badge=document.createElement('div')
+                        item.appendChild(badge)
+                    }
+                    const title = document.createElement('span')
+                    title.className='flex-grow-1'
+                    title.textContent = fname
+                    item.appendChild(title)
+                    const removeBtn = document.createElement('button')
+                    removeBtn.type='button'
+                    removeBtn.className='btn btn-sm btn-remove-task remove-task'
+                    removeBtn.style.lineHeight='1'
+                    removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>'
+                    removeBtn.addEventListener('click', function(){
+                        item.remove()
+                        updateExistingFilesHidden()
+                    })
+                    item.appendChild(removeBtn)
+                    wrapper.appendChild(item)
+                })
+                if(preview) preview.insertAdjacentElement('afterbegin', wrapper)
+                updateExistingFilesHidden()
             }catch(e){}
         }
 
-        // wire input change
-        if(input){
-            input.addEventListener('change', function(e){ const files = Array.from(this.files || []); window.editScheduleSelectedFiles = [...window.editScheduleSelectedFiles, ...files]; renderEditSelectedFiles(); this.value=''; });
+        function updateExistingFilesHidden(){
+            try{
+                const existingItems = document.querySelectorAll('#edit_schedule_reference_files_preview .existing-file-item, #edit_schedule_reference_files_preview .existing-files-list .existing-file-item')
+                const arr = []
+                existingItems.forEach(it=>{
+                    const sp = it.querySelector('span.flex-grow-1')
+                    if(sp && sp.textContent) arr.push(sp.textContent.trim())
+                })
+                let hidden = document.getElementById('edit_existing_reference_files_input')
+                if(!hidden){
+                    hidden = document.createElement('input')
+                    hidden.type='hidden'
+                    hidden.id='edit_existing_reference_files_input'
+                    hidden.name='existing_reference_files'
+                    document.getElementById('scheduleEditForm').appendChild(hidden)
+                }
+                hidden.value = JSON.stringify(arr)
+            }catch(e){}
         }
 
-        // expose small helper to render newly selected files from populateEditModal
-        window.displayEditSelectedFiles = renderEditSelectedFiles;
-    })();
+        if(input){
+            input.addEventListener('change', function(){
+                const files = Array.from(this.files || [])
+                window.editScheduleSelectedFiles = [...window.editScheduleSelectedFiles, ...files]
+                renderEditSelectedFiles()
+                this.value=''
+            })
+        }
+
+        window.displayEditSelectedFiles = renderEditSelectedFiles
+
+        window.populateEditModal = function(schedule){
+            document.getElementById('edit_schedule_title').value = schedule.title || ''
+            if(schedule.reference_files){
+                displayEditExistingReferenceFiles(schedule.reference_files)
+            }
+            displayEditSelectedFiles()
+        }
+    })()
 
     // Function to fetch schedule data for edit modal
     function fetchScheduleDataForEdit(scheduleId) {
@@ -1046,14 +1110,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 </button>`;
             container.appendChild(row);
         } else {
-            urls.forEach((url) => {
+            urls.forEach((url, idx) => {
                 const safeUrl = url ?? "";
                 const row = document.createElement("div");
                 row.className = "d-flex gap-2 align-items-center";
                 row.innerHTML = `
                     <input type='url' class='form-control input-text' name='reference_urls[]' value='${safeUrl}' placeholder='https://example.com'>
-                    <button type='button' class='btn btn-danger remove-ref-url'>
-                        <span class='material-symbols-outlined'>close</span>
+                    <button type='button' class='btn ${idx === 0 ? "btn-submit-black add-ref-url" : "btn-danger remove-ref-url"}'>
+                        <span class='material-symbols-outlined'>${idx === 0 ? "add" : "close"}</span>
                     </button>`;
                 container.appendChild(row);
             });
