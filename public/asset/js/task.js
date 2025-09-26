@@ -65,8 +65,8 @@
     function initBootstrapTooltips(root = document) {
         try {
             // More reliable mobile detection using multiple methods
-            const isMobile = window.matchMedia('(max-width: 768px)').matches ||
-                             window.innerWidth <= 768 ||
+            const isMobile = window.matchMedia('(max-width: 1024px)').matches ||
+                             window.innerWidth <= 1024 ||
                              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const defaultPlacement = isMobile ? "top" : "bottom";
 
@@ -7970,7 +7970,7 @@ function applyCurrentSearchFilter() {
 
     $(document).ready(function () {
     const mobileCardHtml = `
-        <div class="mobile-task-container p-3 rounded-4 d-md-none">
+        <div class="mobile-task-container p-3 rounded-4">
         <div class="task-mobile-status mb-2">
             <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
             <option value="new_request">New</option>
@@ -8024,11 +8024,21 @@ function applyCurrentSearchFilter() {
 
     function toggleDropdownFilter() {
         let dropdown = $(".dropdown-filter-container");
-        if ($(window).width() <= 768) dropdown.hide();
+        let mobileContainer = $(".mobile-task-container");
+        let desktopContainer = $("#task-cards-container");
+
+        if ($(window).width() <= 1024) {
+            mobileContainer.show();
+            desktopContainer.hide();
+        } else {
+            mobileContainer.hide();
+            desktopContainer.show();
+        }
+        if ($(window).width() <= 1024) dropdown.hide();
         else dropdown.show();
     }
     toggleDropdownFilter();
-    $(window).on("resize", toggleDropdownFilter);
+        $(window).on("resize", toggleDropdownFilter);
 
     function updateMobileBulkControlsVisibility(){
         // Show container only when status = new_request AND there is at least one selection.
@@ -8053,7 +8063,6 @@ function applyCurrentSearchFilter() {
     setTimeout(adjustMobileListHeight, 50);
     setTimeout(adjustMobileListHeight, 350); // second pass after fonts/images load
 
-    // 👇 sekarang baru init scroll + fetch
     initMobileInfiniteScroll();
     fetchMobileTasks(mobileState.status, 1, false);
 
