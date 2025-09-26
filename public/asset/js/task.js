@@ -6305,6 +6305,7 @@ function applyCurrentSearchFilter() {
                                 title.href = fileUrl;
                                 title.target = '_blank';
                                 title.textContent = fileName;
+                                title.style.color = "#444444"
                                 item.appendChild(title);
 
                                 // Add download button (read-only modal). Clicking will trigger download of the file.
@@ -6312,6 +6313,7 @@ function applyCurrentSearchFilter() {
                                 dlBtn.type = 'button';
                                 dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
                                 dlBtn.title = 'Download';
+                                dlBtn.style.color = "#444444"
                                 dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
                                 dlBtn.addEventListener('click', function (ev) {
                                     try {
