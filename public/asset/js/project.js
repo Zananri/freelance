@@ -1437,6 +1437,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             $("#edit_description").val(
                                                 data.description
                                             );
+                                            // If Quill editor is available for edit modal, populate it as well
+                                            try {
+                                                if (window.__quillEdit && window.__quillEdit.root) {
+                                                    window.__quillEdit.root.innerHTML = data.description || '';
+                                                }
+                                            } catch (e) {
+                                                console.warn('Failed to set edit quill content', e);
+                                            }
                                             // Prefill multiple reference URLs in Edit Project (match Task behavior)
                                             (function () {
                                                 try {
