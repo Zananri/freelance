@@ -2550,12 +2550,27 @@
                             populatePartOfProjectSelects(data.id, data.title || '', data.part_of_project || '');
 
                             // Departments/divisions
-                            loadDepartments(function () {
-                                try { $('#edit_department').val(data.department_id).trigger('change'); } catch(_){}
-                                loadDivisions(data.department_id, function () {
-                                    try { $('#edit_division').val(data.division_id); } catch(_){}
-                                });
-                            });
+                            try {
+                                var presetDeptEl = document.getElementById('edit_department');
+                                var presetDeptVal = presetDeptEl ? (presetDeptEl.value || '').toString().trim() : '';
+                                if (presetDeptVal) {
+                                    // department was prefilled by server (hidden). Load divisions for that department and set selected division.
+                                    loadDivisions(presetDeptVal, function () {
+                                        try { $('#edit_division').val(data.division_id); } catch(_){}
+                                    }, document.getElementById('edit_division'));
+                                } else {
+                                    // No preset: load departments then select the project's department and load divisions
+                                    loadDepartments(function () {
+                                        try { $('#edit_department').val(data.department_id).trigger('change'); } catch(_){ }
+                                        loadDivisions(data.department_id, function () {
+                                            try { $('#edit_division').val(data.division_id); } catch(_){}
+                                        }, document.getElementById('edit_division'));
+                                    }, document.getElementById('edit_department'));
+                                }
+                            } catch (e) {
+                                // fallback: attempt to load divisions directly
+                                try { loadDivisions(data.department_id, function () { try { $('#edit_division').val(data.division_id); } catch(_){} }, document.getElementById('edit_division')); } catch(_){}
+                            }
 
                             // Image preview
                             if (data.image) {

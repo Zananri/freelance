@@ -782,8 +782,9 @@ class ProjectController extends Controller
             $request->validate([
                 'title' => 'required|string|max:255',
                 'description' => 'required|string',
-                'department' => 'required|exists:departments,id',
-                'division' => 'required|exists:divisions,id',
+                // department/division will be derived from authenticated employee; keep optional in request
+                'department' => 'nullable|exists:departments,id',
+                'division' => 'nullable|exists:divisions,id',
                 'status' => 'string|max:50',
                 // Accept both single and multiple reference URLs
                 'reference_url' => 'nullable|url',
@@ -806,11 +807,29 @@ class ProjectController extends Controller
 
             ]);
 
+            // Force department/division to be the one of the authenticated employee
+            $authEmp = auth()->user()->employee ?? null;
+            if (!$authEmp) throw new \Exception('Authenticated user has no employee relation');
+
+            $departmentIdToUse = $authEmp->department_id;
+
+            // If client provided division, ensure it belongs to employee department; otherwise leave null
+            $providedDivision = $request->input('division');
+            if ($providedDivision) {
+                $div = Division::where('id', $providedDivision)->where('department_id', $departmentIdToUse)->first();
+                if (!$div) {
+                    throw new \Exception('Selected division is invalid for your department');
+                }
+                $divisionIdToUse = $providedDivision;
+            } else {
+                $divisionIdToUse = null;
+            }
+
             $project = new Project();
             $project->title = $request->title;
             $project->description = $request->description;
-            $project->department_id = $request->department;
-            $project->division_id = $request->division;
+            $project->department_id = $departmentIdToUse;
+            $project->division_id = $divisionIdToUse;
             $project->status = $request->status ?? 'ACTIVE';
             // Normalize reference URLs
             $refUrls = [];
@@ -1292,8 +1311,22 @@ class ProjectController extends Controller
             // Update project fields
             $project->title = $request->title;
             $project->description = $request->description;
-            $project->department_id = $request->department;
-            $project->division_id = $request->division;
+            // Force department/division to employee's department
+            $authEmp = auth()->user()->employee ?? null;
+            if (!$authEmp) throw new \Exception('Authenticated user has no employee relation');
+            $departmentIdToUse = $authEmp->department_id;
+            $providedDivision = $request->input('division');
+            if ($providedDivision) {
+                $div = Division::where('id', $providedDivision)->where('department_id', $departmentIdToUse)->first();
+                if (!$div) {
+                    throw new \Exception('Selected division is invalid for your department');
+                }
+                $divisionIdToUse = $providedDivision;
+            } else {
+                $divisionIdToUse = null;
+            }
+            $project->department_id = $departmentIdToUse;
+            $project->division_id = $divisionIdToUse;
             $project->status = $request->status ?? 'ACTIVE';
 
             // Normalize reference URLs
