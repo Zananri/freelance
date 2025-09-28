@@ -25,25 +25,18 @@ function getTaskStatus(task) {
     return "in_progress";
 }
 
+const getMonthYearEN = (date) => {
+  const formatted = formatDateENFull(date);
+  const parts = formatted.split(" ");
+  return `${parts[2]} ${parts[3]}`;
+};
+
 function renderTimeline(tasks) {
     const totalTasks = tasks.length;
     $("#totalTaskTimeline").text(`Total ${totalTasks} Tasks`);
 
-    const months = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-    ];
-    $("#monthTitleTimeline").text(`${months[currentMonth]} ${currentYear}`);
+    const displayDate = new Date(currentYear, currentMonth, 1);
+    $("#monthTitleTimeline").text(getMonthYearEN(displayDate));
 
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
