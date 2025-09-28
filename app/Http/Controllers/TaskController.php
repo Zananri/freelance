@@ -2489,13 +2489,11 @@ class TaskController extends Controller
                 'project'
             ])
                 ->where('project_id', $projectId)
-                // Hide tasks marked as CANCELED
                 ->whereRaw('LOWER(status) <> ?', ['canceled'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
-                // Get PIC
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $picData = null;
                 if ($pic && $pic->employee) {
@@ -2507,7 +2505,6 @@ class TaskController extends Controller
                     ];
                 }
 
-                // Get Executors
                 $executors = $task->assignments->where('role', 'EXECUTOR');
                 $executorsData = $executors->map(function ($executor) {
                     return [
@@ -2528,9 +2525,10 @@ class TaskController extends Controller
                     'pic' => $picData,
                     'executors' => $executorsData,
                     'status' => $task->status,
+                    'start_date' => $task->start_date,
                     'due_date' => $task->due_date,
-                    'due' => $task->due_date, // alias for compatibility
-                    'deadline' => $task->due_date, // alias for compatibility
+                    'due' => $task->due_date,
+                    'deadline' => $task->due_date,
                 ];
             });
 
@@ -2539,7 +2537,6 @@ class TaskController extends Controller
                 'status' => 'success',
                 'data' => $formattedTasks
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'code' => $this->deriveHttpStatusFromException($e),
