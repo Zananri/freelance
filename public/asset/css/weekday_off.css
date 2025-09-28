@@ -1,0 +1,382 @@
+.bg-default-1{
+    background-color: rgb(240, 241, 248);
+}
+
+.card-content{
+    background-color: #F0F1F8;
+    border-radius: 20px;
+    padding: 0px;
+}
+
+.title-content{
+    margin-bottom: 30px;
+}
+
+.btn-default{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #E9EEF4;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+.btn-default-modal {
+    background-color: #e3e4ee;
+    color: #313238;
+    font-weight: 300;
+}
+
+.btn-default-modal:hover,
+.btn-default-modal:active,
+.btn-default-modal:focus{
+    background-color: #dcdde8 !important;
+    color: #1c1d21;
+}
+
+.input-search-query{
+    
+    
+    font-size: 14px;
+    font-weight: 300;
+    border-radius: 10px;
+    background-color: #F0F1F8;
+    color: #2A3542;
+    display: inline-block;
+    
+    padding: 11px 10px 11px 10px !important;
+    
+    transition: width .3s;
+    outline: none; /* Removes the default browser outline */
+    border: none; /* Removes the border */
+
+    padding: 11px 10px 11px 40px !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3e%3cpath fill='%238C909A' d='M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3e%3c/svg%3e");
+    
+    background-repeat: no-repeat;
+    background-position: left calc(.875em + .1875rem) center;
+    background-size: calc(.75em + .375rem) calc(.75em + .375rem);
+
+
+}
+
+
+.btn-default:hover,
+.btn-default:active{
+    background-color: #f0f4f8 !important;
+    color: #2f323b !important;
+}
+
+.btn-default .text-button{
+    font-size: 14px;
+    color: #3C404B;
+}
+
+.btn-default .icon{
+    font-size: 24px;
+    margin-right: 10px;
+    color: #3C404B;
+}
+
+.btn-default .icon.download{
+    font-size: 18px;
+    margin-right: 0px;
+    color: #3C404B;
+}
+
+.btn-default-dropdown{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #F5F6FC;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+
+.btn-default-dropdown:hover,
+.btn-default-dropdown:active,
+.btn-default-dropdown.show{
+    background-color: #f9fcff !important;
+    color: #2f323b !important;
+}
+
+.text-title-content{
+    font-size: 32px;
+    font-weight: 300;
+    color: #2A3542;
+    padding: 0px;
+    margin:0px;
+}
+
+.weekday-off-container.fullscreen{
+    position: fixed;
+    top: 85px;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+}
+
+.weekday-off-container.fullscreen .table-container {
+    max-height: calc(100vh - 170px);
+    height: calc(100vh - 170px);
+
+}
+
+.white-space-nowrap{
+    white-space: nowrap;
+}
+
+
+.modal .modal-content{
+    border-radius: 20px;
+    background-color: #F0F1F8;
+    border:0px;
+}
+
+
+.header-calendar{
+    padding: 4px 8px;
+}
+
+.dropdown-select .btn-dropdown-table{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #e9eef400;
+    color: #3C404B;
+    cursor: pointer;
+}
+
+.dropdown-select .dropdown-menu{
+    max-height: calc(100vh - 280px);
+    overflow: auto;
+}
+
+.dropdown-select .dropdown-menu::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    background-color: #9ca3af4c;
+}
+
+.dropdown-select .dropdown-menu::-webkit-scrollbar-thumb {
+    background-color: #9ca3af7e;
+    border-radius: 4px;
+}
+ 
+
+.dropdown-select .dropdown-toggle::after {
+    margin-left: 10px;
+    opacity: 0.9;
+}
+
+.dropdown-select .dropdown-item:active,
+.dropdown-select .dropdown-item:hover{
+    background-color: #E9EEF4;
+    color: #313642;
+    cursor: pointer;
+}
+
+
+.title-dropdown{
+    font-size: 14px;
+    color: #2A3542;
+    font-weight: 400;
+    margin-left: 10px;
+}
+
+.calendar-next-month,
+.calendar-prev-month,
+.data-fullscreen{
+    font-size: 20px;
+    color: #474c59;
+    cursor: pointer;
+    border-radius: 20px;
+    padding: 10px 10px;
+}
+
+.calendar-next-month:hover,
+.calendar-prev-month:hover,
+.calendar-next-month:active,
+.calendar-prev-month:active,
+.data-fullscreen:hover,
+.data-fullscreen:active,
+.dropdown-select .btn-dropdown-table:hover,
+.dropdown-select .btn-dropdown-table:active{
+    color: #313642 !important;
+    background-color: #E9EEF4 !important;
+}
+
+.calendar-month-short{
+    color: #7a8190;
+    font-size: 10px;
+}
+.box-data{
+    padding: 0px 15px 15px 15px;
+}
+
+.table-container {
+    max-height: calc(100vh - 270px);
+    overflow: auto;
+    position: relative;
+    margin: auto;
+}
+
+.table-container::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    background-color: #9ca3af19;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+    background-color:  #9ca3af75;
+    border-radius: 4px;
+}
+
+.table-weekday-off {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+.table-weekday-off td {
+    padding: 0;
+    text-align: left;
+    border: 1px solid #DAE3ED;
+    white-space: nowrap;
+    font-weight: 400;
+    font-size: 12px;
+    color: #42484F;
+    border-collapse: collapse;
+    z-index:0;
+}
+
+.table-weekday-off thead th {
+    padding: 8px 16px;
+    border: 1px solid #DAE3ED;
+    font-weight: 400;
+    font-size: 12px;
+    vertical-align: top;
+    text-align: center;
+    color: #42484F;
+    background-color: #F0F1F8;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.table-weekday-off th:first-child{
+    font-weight: 600;
+    vertical-align: middle;
+}
+.table-weekday-off tbody tr:nth-child(odd) {
+    background-color:  #F0F1F8;
+}
+.table-weekday-off tbody tr:nth-child(even) {
+    background-color: #F0F1F8;
+}
+.table-weekday-off tbody td {
+    background-color: inherit;
+    position: relative;
+}
+.table-weekday-off th:first-child, 
+.table-weekday-off td:first-child {
+    position: sticky;
+    left: 0;
+}
+
+.table-weekday-off thead th:first-child {
+    z-index: 2;
+}
+
+.table-weekday-off td:first-child{
+    z-index:1;
+    padding: 0;
+    width: 210px;
+}
+
+.table-weekday-off .employee-photo{
+    width: 28px;
+    height: 28px;
+    border-radius: 30px;
+    overflow: hidden;
+    background-color: #42484F;
+    display:inline-block;
+}
+.table-weekday-off .employee-name{
+    font-size: 12px;
+    color: #343A41;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+}
+
+
+
+.table-weekday-off .col-photo{
+    height: 28px;
+    width: 28px;
+    margin-right: 10px;
+}
+.table-weekday-off .col-name{
+    overflow-x: auto;
+}
+
+
+.table-weekday-off thead .col-day .calendar-weekday{
+    color:#343A41;
+}
+
+
+.table-weekday-off thead .col-day:hover{
+    cursor: pointer;
+    background-color: #fcfcff;
+}
+
+
+.table-weekday-off .box-employee {
+    padding: 8px 8px;
+    width: 200px;
+}
+
+.table-weekday-off .box-weekday{
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    left:0;
+    top:0;
+    z-index: 1;
+    transition: all 0.2s;
+    text-align: center;
+    vertical-align: middle;
+}
+.table-weekday-off .box-weekday:hover{
+    cursor: pointer;
+    background-color: #fcfcff;
+}
+.table-weekday-off tbody .col-day.day-off{
+    border-left: 1px solid #d05b5d ;
+    border-right: 1px solid #d05b5d ;
+    
+}
+.table-weekday-off tbody .col-day.day-off .box-weekday{
+    background-color: #e06c6e;
+}
+
+
+.table-weekday-off tbody .col-day.day-off .box-weekday:hover{
+    background-color: #dd5759;
+}
+
+
+
+
+.modal .photo-employee{
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+    border-radius: 70px;
+}

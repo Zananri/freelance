@@ -1,22 +1,22 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('attendance_tracking') }}
+        {{ __('weekday_off') }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ __('Attendance Tracking') }}
+        {{ __('Weekday Off') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/attendance_tracking.css?v'.time()) }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/weekday_off.css')}}?v{{ time() }}" rel="stylesheet">
     </x-slot>
 
     <div class="title-content">
         <div class="row">
             <div class="col-12 col-md-9">
-                <h2 class="text-title-content mb-3" >Attendance Tracking</h2>
+                <h2 class="text-title-content mb-3" >Weekday Off</h2>
             </div>
             <div class="col-12 col-md-3">
                 <div class="d-flex gap-2 justify-content-end align-items-center">
-                    <div>
+                    <div class="w-100">
                         <input type="text" class="input-search-query w-100">
                     </div>
                     <div>
@@ -32,40 +32,62 @@
         
     </div>
 
-    <div class="calendar-container">
+    <div class="weekday-off-container">
         <div class="row">
 
-            <di class="col-12 col-md-12 col-calendar"> 
+            <di class="col-12 col-md-12 col-weekday-off"> 
 
                 <div class="card-content overflow-hidden">
                     <div class="header-calendar">
 
                         <div class="d-flex align-items-center">
-                            <div class="month-year w-100">
+                            <div class="w-100">
+                                <div class="d-flex">
+                                    <div>
+                                        <div class="dropdown dropdown-select">
+                                            <div class="dropdown-toggle btn btn-dropdown-table ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                
+                                                <div class="d-inline-flex align-items-center">
+                                                    <span class="title-dropdown">NSA Performance</span>
+                                                </div>
 
-                                <div class="dropdown dropdown-month">
-                                    <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        
-                                        <div class="d-inline-flex align-items-center">
-                                            <span class="calendar-month">{{ date('F') }}</span>
-                                            <span class="calendar-year">{{ date('Y') }}</span>
+                                            </div>
+
+                                            <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                                @foreach ($department as $itemDepartment)
+                                                    <li data-department="{{ $itemDepartment->id }}" class="dropdown-item department-item fs-14">
+                                                        <div class="dropdown-item fs-14">{{ $itemDepartment->name_department }}</div>
+                                                    </li>     
+                                                @endforeach
+                                            </ul>
                                         </div>
-
                                     </div>
+                                    <div class="">
+                                        <div class="dropdown dropdown-select">
+                                            <div class="dropdown-toggle btn btn-dropdown-table ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                                
+                                                <div class="d-inline-flex align-items-center">
+                                                    <span class="title-dropdown">All Divisoin</span>
+                                                </div>
 
-                                    <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                        @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
-                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
-                                        @endfor
-                                        
-                                    </ul>
+                                            </div>
+
+                                            <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                                    <li data-department="0" data-division="0" class="dropdown-item department-item fs-14">
+                                                        <div class="dropdown-item fs-14">All Division</div>
+                                                    </li>   
+                                                @foreach ($division as $itemDivision)
+                                                    <li data-department="{{ $itemDivision->department_id }}" data-division="{{ $itemDivision->id }}" class="dropdown-item department-item fs-14">
+                                                        <div class="dropdown-item fs-14">{{ $itemDivision->name_division }}</div>
+                                                    </li>     
+                                                @endforeach
+                                            </ul>
+                                        </div>
+                                    </div>
                                 </div>
-
                                 
                             </div>
                             <div class="box-view-control white-space-nowrap" >
-                                <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
-                                <span class="material-symbols-outlined calendar-next-month">chevron_right</span>
                                 <span class="material-symbols-outlined data-fullscreen">fullscreen</span>
                                 <span class="material-symbols-outlined data-fullscreen d-none">fullscreen_exit</span>
                             </div>
@@ -74,17 +96,40 @@
 
                     <div class="box-data">
                         <div class="table-container">
-                            <table class="table-attendance">
+                            <table class="table-weekday-off">
                                 <thead>
                                     <tr>
                                         <th>Employee</th>
-                                        @for ($i = 1; $i <= 31 ; $i++)
-                                            <th class="col-day" data-day="{{ $i }}">
-                                                
-                                                <div>{{ $i }}</div>
-                                                <div class="calendar-month-short">{{ date('M') }}</div>
-                                            </th>
-                                        @endfor
+                                        <th class="col-day" data-weekday="1">
+                                            <div class="calendar-weekday">
+                                                <span class="d-none d-md-inline">Monday</span>
+                                                <span class="d-inline d-md-none">M</span>
+                                            </div>
+                                        </th>
+                                        <th class="col-day" data-weekday="2">
+                                            <span class="d-none d-md-inline">Tuesday</span>
+                                            <span class="d-inline d-md-none">T</span>
+                                        </th>
+                                        <th class="col-day" data-weekday="3">
+                                            <span class="d-none d-md-inline">Wednesday</span>
+                                            <span class="d-inline d-md-none">W</span>
+                                        </th>
+                                        <th class="col-day" data-weekday="4">
+                                            <span class="d-none d-md-inline">Thursday</span>
+                                            <span class="d-inline d-md-none">T</span>  
+                                        </th>
+                                        <th class="col-day" data-weekday="5">
+                                            <span class="d-none d-md-inline">FridayTuesday</span>
+                                            <span class="d-inline d-md-none">F</span>
+                                        </th>
+                                        <th class="col-day" data-weekday="6">
+                                            <span class="d-none d-md-inline">Saturday</span>
+                                            <span class="d-inline d-md-none">S</span>
+                                        </th>
+                                        <th class="col-day" data-weekday="7">
+                                            <span class="d-none d-md-inline">Sunday</span>
+                                            <span class="d-inline d-md-none">S</span>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -110,16 +155,18 @@
                                                 </div>
                                             </td>
 
-                                             @for ($j = 1; $j <= 31 ; $j++)
-                                                <td class="col-day" data-day="{{ $j }}">
-                                                    <div class="box-attendance">
-                                                        <div class="box-time d-flex h-100 w-100 align-items-center justify-content-center">
-                                                            <div>
-                                                                <div class="time-in"></div>
-                                                                <div class="time-out"></div>
-                                                            </div>
-                                                        </div>
-                                                        
+                                             @for ($j = 1; $j <= 7 ; $j++)
+
+                                                @php
+                                                    $dayOff = '';
+                                                    $employeeWeekday = explode(',',$itemEmployee->weekday_off);
+                                                    if(in_array($j, $employeeWeekday)){
+                                                        $dayOff = 'day-off';
+                                                    }
+                                                @endphp
+
+                                                <td class="col-day {{ $dayOff }}" data-weekday="{{ $j }}">
+                                                    <div class="box-weekday">
                                                     </div>
                                                 </td>
                                             @endfor
@@ -256,12 +303,12 @@
             </div>
         </div>
         
-        
+ 
     </x-slot>
 
 
     <x-slot name="script_slot"> 
-        <script src="{{ asset('asset/js/attendance_tracking.js')}}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/weekday_off.js')}}?v={{ time() }}"></script>
     </x-slot>
 
 </x-office-layout>
