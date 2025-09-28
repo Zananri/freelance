@@ -138,3 +138,17 @@ let projectId = $('meta[name="project-id"]').attr("content");
 if (projectId) {
     getTaskByProject(projectId);
 }
+
+$("#fullscreen-btn").on("click", function () {
+    const $timeline = $(".timeline-detail-project");
+    const $icon = $(this).find("span.material-symbols-outlined");
+
+    if ($timeline.hasClass("fullscreen")) {
+        $timeline.removeClass("fullscreen");
+        $icon.text("fullscreen");
+    } else {
+        $timeline.addClass("fullscreen");
+        $icon.text("fullscreen_exit");
+    }
+});
+

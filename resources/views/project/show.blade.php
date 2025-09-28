@@ -113,7 +113,7 @@
                                 <span class="material-symbols-outlined">chevron_right</span>
                             </button>
                             <button class="btn btn-sm border-0 me-3 exit-fullscreen-btn" type="button"
-                                data-bs-dismiss="modal">
+                                id="fullscreen-btn">
                                 <span class="material-symbols-outlined">fullscreen</span>
                             </button>
                         </div>

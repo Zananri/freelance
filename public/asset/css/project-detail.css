@@ -798,6 +798,25 @@
     font-weight: 400;
 }
 
+.timeline-detail-project.fullscreen {
+    position: fixed;
+    top: 85px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: calc(100vh - 85px);
+    max-height: none;
+    z-index: 2;
+}
+
+.timeline-detail-project.fullscreen .body-content,
+.timeline-detail-project.fullscreen .timeline-wrapper {
+    height: 100%;
+    max-height: 100%;
+}
+
+
 .timeline-wrapper {
     min-height: 35vh;
     max-height: calc(100vh - 175px);
@@ -899,7 +918,6 @@
 .timeline-bar.color4 {
     background: #ffe3e3;
 }
-
 
 .legend-dot {
     display: inline-block;
