@@ -38,7 +38,7 @@
 
 .detail-icon span {
     font-size: 18px;
-    color: #797E91;
+    color: #797e91;
 }
 
 .icon-fill {
@@ -223,7 +223,6 @@
     padding: 8px 12px;
     margin-bottom: 6px;
 }
-
 
 .existing-file-item a {
     color: #1a73e8;
@@ -595,7 +594,6 @@
     color: #198754; /* Bootstrap success green */
 }
 
-
 @media (max-width: 768px) {
     .detail-project-card {
         margin-bottom: 16px;
@@ -629,7 +627,7 @@
     display: inline-block;
     width: 100px;
     height: 100px;
-    background-size: 50% ;
+    background-size: 50%;
     background-position: center;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -816,7 +814,6 @@
     max-height: 100%;
 }
 
-
 .timeline-wrapper {
     min-height: 35vh;
     max-height: calc(100vh - 175px);
@@ -832,7 +829,7 @@
 }
 
 .timeline-wrapper::-webkit-scrollbar {
-    width: 4px;
+    height: 4px;
 }
 
 .timeline-wrapper::-webkit-scrollbar-track {
@@ -932,13 +929,40 @@
 }
 
 .legend-yellow {
-    background-color: #D1DC2D;
+    background-color: #d1dc2d;
 }
 
 .legend-red {
-    background-color: #EA7878;
+    background-color: #ea7878;
 }
 
 .legend-green {
-    background-color: #4DB072;
+    background-color: #4db072;
+}
+
+@media (max-width: 1439px) {
+    .timeline-wrapper {
+        min-height: 30vh;
+        max-height: calc(100vh - 175px);
+        overflow-y: auto;
+        position: relative;
+    }
+
+    #totalTaskTimeline {
+        font-size: 12px;
+    }
+
+    #monthTitleTimeline,
+    #prevTimelineModal span,
+    #nextTimelineModal span,
+    #fullscreen-btn span {
+        font-size: 14px;
+    }
+
+    .timeline-table {
+        min-width: 400%;
+        border-collapse: collapse;
+        border: 1px solid #dae3ed;
+        table-layout: fixed;
+    }
 }
