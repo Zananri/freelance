@@ -65,8 +65,8 @@
     function initBootstrapTooltips(root = document) {
         try {
             // More reliable mobile detection using multiple methods
-            const isMobile = window.matchMedia('(max-width: 768px)').matches ||
-                             window.innerWidth <= 768 ||
+            const isMobile = window.matchMedia('(max-width: 1024px)').matches ||
+                             window.innerWidth <= 1024 ||
                              /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             const defaultPlacement = isMobile ? "top" : "bottom";
 
@@ -96,8 +96,18 @@
                 try {
                     const inst = bootstrap.Tooltip.getInstance(el);
                     if (inst) {
-                        try { inst.hide(); } catch(_) {}
-                        try { inst.dispose(); } catch(_) {}
+                        // Defensive: some Tooltip instances may have missing internal state
+                        // (e.g. _activeTrigger undefined) which causes Object.values() to throw
+                        // inside bootstrap's internals. Ensure it's an object before calling hide().
+                        try {
+                            if (!inst._activeTrigger || typeof inst._activeTrigger !== 'object') {
+                                try { inst._activeTrigger = {}; } catch(_) {}
+                            }
+                        } catch(_) {}
+
+                        // Attempt to hide, but if hide throws, still attempt dispose to clean up.
+                        try { inst.hide(); } catch(_) { /* ignore hide error */ }
+                        try { inst.dispose(); } catch(_) { /* ignore dispose error */ }
                     }
                 } catch(_) {}
             });
@@ -802,6 +812,7 @@
         addTaskModalEl.addEventListener("hidden.bs.modal", function () {
             if (addTaskForm) {
                 addTaskForm.reset();
+                try { if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root.innerHTML = ''; } catch(_){}
             }
             if (imageLabel && imageClearBtn) {
                 imageLabel.style.backgroundImage =
@@ -909,7 +920,8 @@
                 showFloatingAlert(data.message || "Task added successfully!", "success");
 
                         // Reset form and preview
-                        addTaskForm.reset();
+                    addTaskForm.reset();
+                    try { if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root.innerHTML = ''; } catch(_){}
                         imageLabel.style.backgroundImage = "";
                         imageLabel.classList.remove("has-image");
                         imageLabel.style.opacity = "0.5";
@@ -1070,6 +1082,8 @@
                 nameCol.className = 'd-flex flex-column';
                 const nameText = document.createElement('span');
                 nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+
                 const divSmall = document.createElement('small');
                 divSmall.className = 'text-muted executor-division';
                 divSmall.textContent = emp.division || '';
@@ -1446,12 +1460,11 @@
 
     // Reference URL rows: delegated handlers (Add/Edit Task + Feedback modals)
     (function initReferenceUrlDynamicRows() {
-        if (window._refUrlHandlersBound) return; // bind once
+        if (window._refUrlHandlersBound) return;
         window._refUrlHandlersBound = true;
 
         function findRefUrlsContainer(startEl) {
             if (!startEl) return null;
-            // Look for known containers up the DOM tree
             return startEl.closest('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container, #schedule_reference_urls_container');
         }
 
@@ -1462,16 +1475,23 @@
         }
 
         function createAddButton() {
-            return makeBtn('<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>');
+            return makeBtn(`
+                <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                    <span class="material-symbols-outlined">add</span>
+                </button>
+            `);
         }
 
         function createRemoveButton() {
-            return makeBtn('<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+            return makeBtn(`
+                <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            `);
         }
 
         function getRowEls(container) {
-            return Array.from(container.querySelectorAll(':scope > .d-flex'))
-                .filter(el => el.classList.contains('align-items-center'));
+            return Array.from(container.querySelectorAll(':scope > .input-group'));
         }
 
         function normalizeRows(container) {
@@ -1481,40 +1501,40 @@
             }
             const fresh = getRowEls(container);
             fresh.forEach((row, idx) => {
-                // Remove existing control buttons
                 row.querySelectorAll('.add-ref-url, .remove-ref-url').forEach(btn => btn.remove());
-                // First row keeps Add; others get Remove
+
                 const isFirst = idx === 0;
-                row.appendChild(isFirst ? createAddButton() : createRemoveButton());
+                const btn = isFirst ? createAddButton() : createRemoveButton();
+                row.appendChild(btn);
             });
         }
 
         function createRow(container, value = '') {
             const row = document.createElement('div');
-            row.className = 'd-flex gap-2 align-items-center';
+            row.className = 'input-group';
+
             const input = document.createElement('input');
             input.type = 'url';
             input.name = 'reference_urls[]';
             input.placeholder = 'https://example.com';
-            // Feedback modals used plain .form-control; task modals use .form-control.input-text
             input.className = (container && container.id === 'feedback_reference_urls_container')
                 ? 'form-control'
                 : 'form-control input-text';
+
             if (value) input.value = value;
             row.appendChild(input);
             row.appendChild(createAddButton());
             return row;
         }
 
-        // Enforce downward stacking in known containers
-        (function ensureDownwardDirection(){
+        (function ensureDownwardDirection() {
             try {
                 document.querySelectorAll('#task_reference_urls_container, #edit_task_reference_urls_container, #feedback_reference_urls_container')
                     .forEach(ct => { ct.style.flexDirection = 'column'; });
-            } catch (_) { /* noop */ }
+            } catch (_) {}
         })();
 
-    document.addEventListener('click', function (e) {
+        document.addEventListener('click', function (e) {
             const addBtn = e.target.closest('.add-ref-url');
             if (addBtn) {
                 const container = findRefUrlsContainer(addBtn);
@@ -1535,7 +1555,7 @@
             if (rmBtn) {
                 const container = findRefUrlsContainer(rmBtn);
                 if (!container) return;
-                const row = rmBtn.closest('.d-flex');
+                const row = rmBtn.closest('.input-group');
                 if (row && row.parentElement === container) row.remove();
                 let rows = getRowEls(container);
                 if (rows.length === 0) {
@@ -1979,9 +1999,7 @@
     function setupEditExecutorInput() {
         const input = document.getElementById("edit_executor_input");
         const dropdown = document.getElementById("edit_executor_dropdown");
-        const selectedContainer = document.getElementById(
-            "edit_selected_executors"
-        );
+        const selectedContainer = document.getElementById("edit_selected_executors");
         const hiddenInput = document.getElementById("edit_executors");
 
         if (!input || !dropdown || !selectedContainer || !hiddenInput) {
@@ -1993,16 +2011,15 @@
         let selectedEmployees = [];
 
         function fetchEmployees(query = "") {
-            fetchEmployeesForExecutorCached(query)
-                .then(function(data){
+            return fetchEmployeesForExecutorCached(query)
+                .then(function(data) {
                     employees = (data && (data.data || data)) || [];
-                    // Exclude administrator users from executor pickers
                     employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
                     filteredEmployees = employees;
                     renderDropdown();
                 })
-                .catch(function(){
-                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch(_) {}
+                .catch(function() {
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) {}
                 });
         }
 
@@ -2014,64 +2031,49 @@
                 return;
             }
 
-        const html = filteredEmployees
+            const html = filteredEmployees
                 .map((emp) => {
-                    const isChecked = selectedEmployees.some(
-                        (e) => e.id === emp.id
-                    );
-            const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
                     return `
-                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
-                        <div class="d-flex align-items-center">
-                            <img src="${photoUrl}" alt="${
-                        emp.name
-                    }" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
-                            <div class="d-flex flex-column">
-                                <span class="executor-name">${emp.name}</span>
-                                <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <div class="d-flex flex-column">
+                                    <span class="executor-name">${emp.name}</span>
+                                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                                </div>
                             </div>
-                        </div>
-                        <input type="checkbox" class="executor-checkbox" data-id="${
-                            emp.id
-                        }" data-name="${emp.name}" ${
-                        isChecked ? "checked" : ""
-                    }>
-                    </label>
-                `;
+                            <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                        </label>
+                    `;
                 })
                 .join("");
             dropdown.innerHTML = html;
             dropdown.style.display = "block";
 
-            dropdown
-                .querySelectorAll(".executor-checkbox")
-                .forEach((checkbox) => {
-                    checkbox.addEventListener("change", function () {
-                        const id = parseInt(this.getAttribute("data-id"));
-                        const name = this.getAttribute("data-name");
-                        const employeeObj = employees.find(
-                            (emp) => emp.id === id
-                        );
-                        if (this.checked) {
-                            if (!selectedEmployees.some((e) => e.id === id)) {
-                                selectedEmployees.push({
-                                    id,
-                                    name,
-                                    user_photo: employeeObj
-                                        ? employeeObj.user_photo
-                                        : null,
-                                    division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
-                                });
-                            }
-                        } else {
-                            selectedEmployees = selectedEmployees.filter(
-                                (e) => e.id !== id
-                            );
+            dropdown.querySelectorAll(".executor-checkbox").forEach((checkbox) => {
+                checkbox.addEventListener("change", function () {
+                    const id = parseInt(this.getAttribute("data-id"));
+                    const name = this.getAttribute("data-name");
+                    const employeeObj = employees.find(emp => emp.id === id);
+
+                    if (this.checked) {
+                        if (!selectedEmployees.some((e) => e.id === id)) {
+                            selectedEmployees.push({
+                                id,
+                                name,
+                                user_photo: employeeObj ? employeeObj.user_photo : null,
+                                division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
+                            });
                         }
-                        renderSelected();
-                        updateHiddenInput();
-                    });
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
                 });
+            });
         }
 
         function renderSelected() {
@@ -2080,8 +2082,7 @@
                 const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
 
                 const badge = document.createElement("span");
-                badge.className =
-                    "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
+                badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -2095,9 +2096,12 @@
                 nameCol.className = 'd-flex flex-column';
                 const nameText = document.createElement('span');
                 nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+
                 const divSmall = document.createElement('small');
                 divSmall.className = 'text-muted executor-division';
                 divSmall.textContent = emp.division || '';
+
                 nameCol.appendChild(nameText);
                 nameCol.appendChild(divSmall);
 
@@ -2106,9 +2110,7 @@
                 removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
-                    selectedEmployees = selectedEmployees.filter(
-                        (e) => e.id !== emp.id
-                    );
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
                     renderSelected();
                     updateHiddenInput();
                     renderDropdown();
@@ -2122,20 +2124,14 @@
         }
 
         function updateHiddenInput() {
-            hiddenInput.value = JSON.stringify(
-                selectedEmployees.map((e) => e.id)
-            );
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
         }
 
         function filterEmployees(value) {
             const val = value.trim().toLowerCase();
-            if (val === "") {
-                filteredEmployees = employees;
-            } else {
-                filteredEmployees = employees.filter((emp) =>
-                    emp.name.toLowerCase().includes(val)
-                );
-            }
+            filteredEmployees = val === ""
+                ? employees
+                : employees.filter(emp => emp.name.toLowerCase().includes(val));
             renderDropdown();
         }
 
@@ -2163,7 +2159,16 @@
             input.value = "";
         };
 
-        window.setSelectedExecutorsEdit = function (executors) {
+        window.setSelectedExecutorsEdit = async function (executors) {
+            try {
+                // Fetch all employees to get divisions
+                const data = await fetchEmployeesForExecutorCached("");
+                employees = (data && (data.data || data)) || [];
+                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+            } catch (e) {
+                console.warn("Gagal ambil data employee:", e);
+            }
+
             selectedEmployees = executors.map((ex) => {
                 let photoUrl = "";
                 let userPhoto = ex.user_photo;
@@ -2181,24 +2186,32 @@
                     ) {
                         photoUrl = appUrl + "/" + userPhoto;
                     } else {
-                        photoUrl =
-                            appUrl + "/file/profile_picture/" + userPhoto;
+                        photoUrl = appUrl + "/file/profile_picture/" + userPhoto;
                     }
                 } else {
-                    photoUrl =
-                        appUrl + "/asset/img/avatar.png";
+                    photoUrl = appUrl + "/asset/img/avatar.png";
                 }
+
+                // Cari division dari list employees
+                let divisionName = "";
+                const empData = employees.find(e => e.id === ex.id);
+                if (empData) {
+                    divisionName = empData.division || empData.division_name || "";
+                }
+
                 return {
                     id: ex.id,
                     name: ex.name,
                     user_photo: photoUrl,
-                    division: ex.division || ex.division_name || '',
+                    division: divisionName
                 };
             });
+
             renderSelected();
             updateHiddenInput();
         };
     }
+
 
 document.addEventListener("click", function (e) {
     if (e.target && e.target.classList.contains("arrow-forward-icon")) {
@@ -2217,10 +2230,213 @@ document.addEventListener("click", function (e) {
         }
         if (nextStatus) {
             const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-            updateTaskStatus(taskId, nextStatus, taskCard);
+            // If the destination is completed, show confirmation modal to collect
+            // complete_note (Quill), complete_urls and complete_files first.
+            if (String(nextStatus).toLowerCase() === 'completed') {
+                try { showConfirmationToCompleteModal(taskId, taskCard); } catch (err) { console.error(err); updateTaskStatus(taskId, nextStatus, taskCard); }
+            } else {
+                updateTaskStatus(taskId, nextStatus, taskCard);
+            }
         }
     }
 });
+
+// Show modal to collect completion note/urls/files before marking completed
+function showConfirmationToCompleteModal(taskId, taskCard) {
+    // Fetch task for context display (optional)
+    $.ajax({ url: appUrl + '/task/' + taskId, type: 'GET', dataType: 'json' })
+    .done(function(res){
+        const t = (res && (res.data || res)) || {};
+        const title = t.title || 'Confirm Complete';
+
+        const modalId = 'confirmation-to-complete';
+        // If modal already exists, remove it to re-create fresh
+        try { const existing = document.getElementById(modalId); if (existing) existing.remove(); } catch(_){}
+
+        const modalHtml = `
+        <div class="modal fade" id="${modalId}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-loading-overlay d-none" id="confirmationToCompleteLoader">
+                        <div class="loader-spinner"></div>
+                    </div>
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom" id="${modalId}Label">Complete Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="confirmationToCompleteForm" enctype="multipart/form-data">
+                        <div class="modal-body modal-body-custom">
+                            <div class="mb-2 text-muted" style="font-size:13px;">Please provide completion details. <span class="text-danger">Complete note is required.</span></div>
+
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Complete Note (required)</label>
+                                <div id="complete_note_toolbar">
+                                    <span class="ql-formats">
+                                        <select class="ql-header">
+                                            <option value="1"></option>
+                                            <option value="2"></option>
+                                            <option selected></option>
+                                        </select>
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button class="ql-list" value="ordered"></button>
+                                        <button class="ql-list" value="bullet"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button class="ql-link"></button>
+                                    </span>
+                                </div>
+                                <div id="complete_note_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                                <textarea class="form-control input-text d-none" id="complete_note" name="complete_note" rows="4" style="display:none;"></textarea>
+                            </div>
+
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Complete URLs (optional)</label>
+                                <div id="complete_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="input-group">
+                                        <input type="url" name="complete_urls[]" placeholder="https://example.com" class="form-control input-text">
+                                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom" for="complete_files">Complete Files (optional)</label>
+                                <input type="file" class="form-control input-text" id="complete_files" name="complete_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                <div class="form-text">Multiple files supported.</div>
+                                <div id="complete_files_preview" class="mt-2"></div>
+                            </div>
+
+                        </div>
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-submit-black" id="confirmCompleteBtn">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>`;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const mEl = document.getElementById(modalId);
+        const modal = new bootstrap.Modal(mEl);
+        modal.show();
+
+        // Remove modal from DOM when hidden
+        mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); try { mEl.remove(); } catch(_){} });
+
+        // Initialize Quill
+        try {
+            window.__quillComplete = new Quill('#complete_note_editor', {
+                theme: 'snow',
+                modules: { toolbar: [['bold','italic','underline'], ['link','image'], [{ list: 'ordered' }, { list: 'bullet' }]] }
+            });
+        } catch (e) { console.warn('Quill init failed', e); }
+
+        // Dynamic URL rows (add/remove) - reuse add-ref-url/remove-ref-url style
+        mEl.addEventListener('click', function(ev){
+            const addBtn = ev.target.closest('.add-ref-url');
+            if (addBtn) {
+                const container = document.getElementById('complete_reference_urls_container');
+                if (!container) return;
+                const row = document.createElement('div');
+                row.className = 'input-group';
+                const input = document.createElement('input'); input.type = 'url'; input.name = 'complete_urls[]'; input.placeholder = 'https://example.com'; input.className = 'form-control input-text';
+                const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn btn-danger remove-ref-url'; rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                row.appendChild(input); row.appendChild(rm);
+                addBtn.closest('.input-group').after(row);
+                return;
+            }
+            const rmBtn = ev.target.closest('.remove-ref-url');
+            if (rmBtn) {
+                const row = rmBtn.closest('.input-group'); if (row) row.remove();
+                return;
+            }
+        });
+
+        // File input preview
+        const fileInput = mEl.querySelector('#complete_files');
+        const preview = mEl.querySelector('#complete_files_preview');
+        if (fileInput && preview) {
+            fileInput.addEventListener('change', function(e){
+                const files = Array.from(e.target.files || []);
+                if (!files.length) { preview.innerHTML = ''; return; }
+                preview.innerHTML = files.map(f => `<div>${escapeHtml(f.name)} <small class="text-muted">(${formatBytes(f.size)})</small></div>`).join('');
+            });
+        }
+
+        // Submit handler
+        const submitBtn = mEl.querySelector('#confirmCompleteBtn');
+        submitBtn.addEventListener('click', function(){
+            // Validate complete_note required
+            let noteHtml = '';
+            try { noteHtml = (window.__quillComplete && typeof window.__quillComplete.root !== 'undefined') ? window.__quillComplete.root.innerHTML.trim() : ''; } catch(_) { noteHtml = ''; }
+            const plain = (noteHtml || '').replace(/<(.|\n)*?>/g, '').trim();
+            if (!plain) {
+                showFloatingAlert('Complete note is required.', 'warning');
+                try { window.__quillComplete.focus(); } catch(_){}
+                return;
+            }
+
+            // Disable button
+            submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+
+            const fd = new FormData();
+            fd.append('_method','PUT');
+            fd.append('status','completed');
+            fd.append('complete_note', noteHtml);
+
+            // collect urls
+            try {
+                const urlInputs = Array.from(mEl.querySelectorAll('input[name="complete_urls[]"]'));
+                const urls = urlInputs.map(i => (i.value||'').trim()).filter(Boolean);
+                if (urls.length) fd.append('complete_urls', JSON.stringify(urls));
+            } catch(_){}
+
+            // append files
+            try {
+                const fl = mEl.querySelector('#complete_files');
+                if (fl && fl.files && fl.files.length) {
+                    Array.from(fl.files).forEach(f => fd.append('complete_files[]', f));
+                }
+            } catch(_){}
+
+            // Send as multipart POST with _method=PUT to match server expectations
+            fetch(appUrl + '/task/' + taskId + '/status', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: fd,
+                credentials: 'same-origin'
+            }).then(function(r){
+                return r.ok ? r.json() : r.json().then(Promise.reject);
+            }).then(function(json){
+                // On success: close modal, show alert, and refresh/insert updated task
+                try { modal.hide(); } catch(_){}
+                try { showFloatingAlert(json.message || 'Task marked as completed.', 'success'); } catch(_){}
+                // Remove original card if present
+                try { if (taskCard && taskCard.parentNode) taskCard.parentNode.removeChild(taskCard); } catch(_){}
+                // Fetch updated task and insert
+                try { fetchAndInsertTask(taskId); } catch(_) { try { fetchAndRenderTasks(); } catch(_){} }
+            }).catch(function(err){
+                let msg = 'Failed to mark task as completed.';
+                try { if (err && err.message) msg = err.message; } catch(_){}
+                showFloatingAlert(msg, 'danger');
+            }).finally(function(){ submitBtn.disabled = false; submitBtn.innerHTML = 'Submit'; });
+        });
+
+    }).fail(function(){
+        showFloatingAlert('Failed to load task details.', 'danger');
+    });
+}
+
+// small helpers used in modal
+function escapeHtml(s){ return String(s||'').replace(/[&<>"]+/g, function(m){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m])||m; }); }
+function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB','GB','TB']; const i=Math.floor(Math.log(bytes)/Math.log(1024)); return (bytes/Math.pow(1024,i)).toFixed(i?1:0)+' '+sizes[i]; }
 
 // (Removed duplicate early updateTaskStatus; using unified bulk-aware version later)
 
@@ -2408,6 +2624,13 @@ document.addEventListener("click", function (e) {
             } catch(_) { return false; }
         })();
 
+        function formatDueDate(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            const options = { day: '2-digit', month: 'short', year: 'numeric' };
+            return date.toLocaleDateString('en-GB', options).replace(',', '');
+        }
+
         let statusBadge = '';
         if (task.status === 'rejected') {
             statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
@@ -2501,7 +2724,7 @@ document.addEventListener("click", function (e) {
                     </div>
                     <div style="font-size: 10px; font-weight: 400;">
                         <span style="color: #797E91;">Deadline: </span>
-                        <span style="#color: #4B4F5E">${task.due_date }</span>
+                        <span style="#color: #4B4F5E">${ formatDueDate(task.due_date) }</span>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
@@ -2521,15 +2744,34 @@ document.addEventListener("click", function (e) {
                                 <img class="latest-feedback-avatar rounded-circle me-1" src="" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                 <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                             </div>
-                            <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
-                                <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
-                                ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
-                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
-                            </div>
-                            <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
-                                <span class="material-symbols-outlined task-icon">attach_file</span>
-                                ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>` : ""}
-                            </div>
+                            ${task.status === 'completed'
+                                ? `
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
+                                    <span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}">playlist_add_check</span>
+                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                                </div>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
+                                    <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+                                    ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
+                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                                </div>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                                    <span class="material-symbols-outlined task-icon">attach_file</span>
+                                    ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>` : ""}
+                                </div>
+                                `
+                                : `
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
+                                    <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
+                                    ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>` : ""}
+                                    <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                                </div>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-3">
+                                    <span class="material-symbols-outlined task-icon">attach_file</span>
+                                    ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>` : ""}
+                                </div>
+                                `
+                            }
                         </div>
                         `}
                 </div>
@@ -3833,7 +4075,7 @@ function applyCurrentSearchFilter() {
                 document.getElementById("statusModalAvatar").innerHTML = avatarHtml;
                 document.getElementById("statusModalPartofProject").innerHTML = taskProject;
                 document.getElementById("statusModalTitle").textContent = taskTitle;
-                document.getElementById("statusModalDescription").textContent = taskDescription;
+                document.getElementById("statusModalDescription").innerHTML = taskDescription;
 
                 let confirmText = "Are you sure want to move this task?";
                 if (newStatus === "in_progress") confirmText = "Are you sure want to move the task to Progress?";
@@ -4450,7 +4692,7 @@ function applyCurrentSearchFilter() {
 
     // Helper: show delete confirmation modal (Bootstrap) with avatar, content and confirm/cancel
     function showDeleteConfirmModal(opts) {
-        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}} 
+        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
         try {
             const id = opts.id;
             const type = opts.type || 'feedback';
@@ -4578,6 +4820,8 @@ function applyCurrentSearchFilter() {
                 return Math.round(diff/604800)+' week ago';
             }else if(diff < 31526000){
                 return Math.round(diff/2592000)+' month ago';
+            }else if(diff < 63072000){
+                return Math.round(diff/31536000)+' year ago';
             }
 
             return time.toDateString();
@@ -6231,7 +6475,6 @@ function applyCurrentSearchFilter() {
                 target.classList.contains("task-icon") &&
                 target.textContent.trim() === "attach_file"
             ) {
-                // Cari task card terdekat (bisa desktop & mobile)
                 const taskCard = target.closest(".custom-card");
                 if (!taskCard) return;
 
@@ -6241,7 +6484,6 @@ function applyCurrentSearchFilter() {
                     return;
                 }
 
-                // Fetch task details
                 $.ajax({
                     url: appUrl + "/task/" + taskId,
                     type: "GET",
@@ -6268,11 +6510,9 @@ function applyCurrentSearchFilter() {
                         referenceFilesList.innerHTML = "";
 
                         if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
-                            // Render preview-like items (thumbnail for images, badge for others)
                             referenceFiles.forEach((fileName) => {
                                 if (!fileName) return;
 
-                                // Normalize URL: if already absolute use it, if starts with '/' prefix with appUrl, else assume stored filename under task_reference_files
                                 let fileUrl = String(fileName || '');
                                 const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
                                 const isRefPath = fileUrl.startsWith('/file/task_reference_files/') || fileUrl.startsWith('file/task_reference_files/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
@@ -6286,7 +6526,8 @@ function applyCurrentSearchFilter() {
                                 item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
                                 const lower = String(fileName || '').toLowerCase();
-                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+                                // DETEKSI khusus hanya gambar
+                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
 
                                 if (isImage) {
                                     const img = document.createElement('img');
@@ -6297,11 +6538,6 @@ function applyCurrentSearchFilter() {
                                     item.appendChild(img);
                                 } else {
                                     const badge = document.createElement('div');
-                                    badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                                    badge.style.width = '28px'; badge.style.height = '28px';
-                                    badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
-                                    badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
-                                    badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
                                     item.appendChild(badge);
                                 }
 
@@ -6310,13 +6546,14 @@ function applyCurrentSearchFilter() {
                                 title.href = fileUrl;
                                 title.target = '_blank';
                                 title.textContent = fileName;
+                                title.style.color = "#444444"
                                 item.appendChild(title);
 
-                                // Add download button (read-only modal). Clicking will trigger download of the file.
                                 const dlBtn = document.createElement('button');
                                 dlBtn.type = 'button';
                                 dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
                                 dlBtn.title = 'Download';
+                                dlBtn.style.color = "#444444"
                                 dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
                                 dlBtn.addEventListener('click', function (ev) {
                                     try {
@@ -6324,20 +6561,17 @@ function applyCurrentSearchFilter() {
                                         const a = document.createElement('a');
                                         a.style.display = 'none';
                                         a.href = fileUrl;
-                                        // Attempt to set filename for download
                                         try { a.download = String(fileName || '').split('/').pop(); } catch(_) {}
                                         a.target = '_blank';
                                         document.body.appendChild(a);
                                         a.click();
                                         setTimeout(() => { try { document.body.removeChild(a); } catch(_) {} }, 100);
                                     } catch (e) {
-                                        // fallback: open in new tab
                                         window.open(fileUrl, '_blank');
                                     }
                                 });
 
                                 item.appendChild(dlBtn);
-
                                 referenceFilesList.appendChild(item);
                             });
                         } else {
@@ -6346,20 +6580,16 @@ function applyCurrentSearchFilter() {
 
                         const modalEl = document.getElementById("referenceFilesModal");
                         if (modalEl) {
-                            // Check if modal is opened from timeline via detail modal
                             const detailEl = document.getElementById('taskDetailModal');
                             if (detailEl && bootstrap.Modal.getInstance(detailEl)) {
-                                // Mark that a child modal is opening
                                 detailEl.setAttribute('data-child-opened', '1');
 
-                                // Backup timeline handler if it exists
                                 if (detailEl._timelineHiddenHandler) {
                                     detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
                                     detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
                                     detailEl._timelineHiddenHandler = null;
                                 }
 
-                                // Hide detail modal first
                                 const detailModal = bootstrap.Modal.getInstance(detailEl);
                                 if (detailModal) {
                                     detailModal.hide();
@@ -6593,6 +6823,13 @@ function applyCurrentSearchFilter() {
                     }
                 }
 
+                function formatDueDate(dateStr) {
+                    if (!dateStr) return '';
+                    const date = new Date(dateStr);
+                    const options = { day: '2-digit', month: 'short', year: 'numeric' };
+                    return date.toLocaleDateString('en-GB', options).replace(',', '');
+                }
+
                 const showDelete = (function(){
                     try {
                         const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
@@ -6629,7 +6866,7 @@ function applyCurrentSearchFilter() {
                         </div>
                         <div style="font-size:12px;">
                             <span style="color:#797E91;">Deadline: </span>
-                            <span style="color:#4B4F5E;">${task.due_date || "-"}</span>
+                            <span style="color:#4B4F5E;">${formatDueDate(task.due_date) || "-"}</span>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -6678,9 +6915,6 @@ function applyCurrentSearchFilter() {
                                     : ""}
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom mt-3">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>`;
 
@@ -7010,14 +7244,6 @@ function applyCurrentSearchFilter() {
                 } else {
                     // Non-image: show generic icon badge
                     const badge = document.createElement('div');
-                    badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                    badge.style.width = '28px';
-                    badge.style.height = '28px';
-                    badge.style.background = '#E9ECEF';
-                    badge.style.color = '#4B4F5E';
-                    badge.style.fontSize = '13px';
-                    badge.style.fontWeight = '600';
-                    badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
                     fileItem.appendChild(badge);
                 }
 
@@ -7107,14 +7333,6 @@ function applyCurrentSearchFilter() {
                             fileItem.appendChild(img);
                         } else {
                             const badge = document.createElement('div');
-                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                            badge.style.width = '28px';
-                            badge.style.height = '28px';
-                            badge.style.background = '#E9ECEF';
-                            badge.style.color = '#4B4F5E';
-                            badge.style.fontSize = '13px';
-                            badge.style.fontWeight = '600';
-                            badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F';
                             fileItem.appendChild(badge);
                         }
 
@@ -7173,11 +7391,6 @@ function applyCurrentSearchFilter() {
                             fileItem.appendChild(img);
                         } else {
                             const badge = document.createElement('div');
-                            badge.className = 'rounded-circle d-flex align-items-center justify-content-center';
-                            badge.style.width = '28px'; badge.style.height = '28px';
-                            badge.style.background = '#E9ECEF'; badge.style.color = '#4B4F5E';
-                            badge.style.fontSize = '13px'; badge.style.fontWeight = '600';
-                            badge.textContent = (fileName && fileName.length) ? fileName.charAt(0).toUpperCase() : 'F';
                             fileItem.appendChild(badge);
                         }
 
@@ -7305,8 +7518,8 @@ function applyCurrentSearchFilter() {
             if (idx < arr.length - 1) el.remove();
         });
 
-    $.ajax({
-        url: appUrl + "/task/" + taskId + "/edit",
+        $.ajax({
+            url: appUrl + "/task/" + taskId + "/edit",
             type: "GET",
             dataType: "json",
             success: function (res) {
@@ -7324,7 +7537,14 @@ function applyCurrentSearchFilter() {
                 const titleEl = document.getElementById("edit_task_title");
                 const descEl = document.getElementById("edit_task_description");
                 if (titleEl) titleEl.value = t.title || "";
-                if (descEl) descEl.value = t.description || "";
+                if (descEl) {
+                    descEl.value = t.description || "";
+                    try {
+                        if (window.__quillTaskEdit && window.__quillTaskEdit.root) {
+                            window.__quillTaskEdit.root.innerHTML = t.description || '';
+                        }
+                    } catch (e) { /* noop */ }
+                }
 
                 const projectId = t.project_id || (t.project && t.project.id);
                 loadProjectsForEdit(projectId, function () {
@@ -7356,7 +7576,7 @@ function applyCurrentSearchFilter() {
                     if (urls.length === 0) urls = [''];
                     urls.forEach((u, idx) => {
                         const row = document.createElement('div');
-                        row.className = 'd-flex gap-2 align-items-center';
+                        row.className = 'input-group';
                         const controls = (idx === 0)
                             ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
                             : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
@@ -7962,7 +8182,7 @@ function applyCurrentSearchFilter() {
 
     $(document).ready(function () {
     const mobileCardHtml = `
-        <div class="mobile-task-container p-3 rounded-4 d-md-none">
+        <div class="mobile-task-container p-3 rounded-4">
         <div class="task-mobile-status mb-2">
             <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
             <option value="new_request">New</option>
@@ -8016,11 +8236,21 @@ function applyCurrentSearchFilter() {
 
     function toggleDropdownFilter() {
         let dropdown = $(".dropdown-filter-container");
-        if ($(window).width() <= 768) dropdown.hide();
+        let mobileContainer = $(".mobile-task-container");
+        let desktopContainer = $("#task-cards-container");
+
+        if ($(window).width() <= 1024) {
+            mobileContainer.show();
+            desktopContainer.hide();
+        } else {
+            mobileContainer.hide();
+            desktopContainer.show();
+        }
+        if ($(window).width() <= 1024) dropdown.hide();
         else dropdown.show();
     }
     toggleDropdownFilter();
-    $(window).on("resize", toggleDropdownFilter);
+        $(window).on("resize", toggleDropdownFilter);
 
     function updateMobileBulkControlsVisibility(){
         // Show container only when status = new_request AND there is at least one selection.
@@ -8045,7 +8275,6 @@ function applyCurrentSearchFilter() {
     setTimeout(adjustMobileListHeight, 50);
     setTimeout(adjustMobileListHeight, 350); // second pass after fonts/images load
 
-    // 👇 sekarang baru init scroll + fetch
     initMobileInfiniteScroll();
     fetchMobileTasks(mobileState.status, 1, false);
 
@@ -8079,92 +8308,103 @@ function applyCurrentSearchFilter() {
 
     async function loadArchivedTasksIntoModal(page = 1, append = false) {
         try {
-            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl) ? appUrl : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''))
-            const modalEl = document.getElementById('archieveModal')
-            if (!modalEl) return
-            const body = modalEl.querySelector('.modal-body')
-            if (!body) return
+            const baseAppUrl = (typeof appUrl !== 'undefined' && appUrl)
+                ? appUrl
+                : (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || (window.location.origin || ''));
+
+            const modalEl = document.getElementById('archieveModal');
+            if (!modalEl) return;
+            const body = modalEl.querySelector('.modal-body');
+            if (!body) return;
 
             if (!append) {
-                resetArchiveState()
-                body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>'
+                resetArchiveState();
+                body.innerHTML = '<div class="text-center p-3"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                // reset ID set kalau reload full
+                window.__renderedArchiveIds = new Set();
             }
 
-            if (archiveLoading || !archiveHasMore) return
-            archiveLoading = true
+            if (archiveLoading || !archiveHasMore) return;
+            archiveLoading = true;
 
-            const res = await fetch(`${baseAppUrl}/task/index?status=canceled&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null)
+            const res = await fetch(`${baseAppUrl}/task/index?status=canceled&per_page=10&page=${page}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).catch(() => null);
+
             if (!res || !res.ok) {
-                if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>'
-                archiveLoading = false
-                return
+                if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+                archiveLoading = false;
+                return;
             }
 
-            const j = await res.json().catch(() => ({}))
-            const data = (j && j.data) ? j.data : {}
-            let tasks = []
+            const j = await res.json().catch(() => ({}));
+            const data = (j && j.data) ? j.data : {};
+            let tasks = [];
+
             if (data) {
-                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null
+                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
                 if (canceledSection) {
-                    if (Array.isArray(canceledSection)) tasks = canceledSection
-                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks
+                    if (Array.isArray(canceledSection)) tasks = canceledSection;
+                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
                 }
             }
             if (!tasks || tasks.length === 0) {
-                let collected = []
-                const buckets = ['new_request','in_progress','completed','rejected','canceled','CANCELED']
+                let collected = [];
+                const buckets = ['new_request', 'in_progress', 'completed', 'rejected', 'canceled', 'CANCELED'];
                 buckets.forEach(key => {
-                    const section = data[key]
-                    if (!section) return
-                    if (Array.isArray(section)) collected.push(...section)
-                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks)
-                })
-                if (Array.isArray(data)) collected.push(...data)
-                const seen = new Set()
-                const allTasks = []
+                    const section = data[key];
+                    if (!section) return;
+                    if (Array.isArray(section)) collected.push(...section);
+                    else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
+                });
+                if (Array.isArray(data)) collected.push(...data);
+                const seen = new Set();
+                const allTasks = [];
                 collected.forEach(t => {
-                    const id = t && (t.id || t.task_id)
-                    if (!id) return
-                    if (seen.has(String(id))) return
-                    seen.add(String(id))
-                    allTasks.push(t)
-                })
-                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'))
+                    const id = t && (t.id || t.task_id);
+                    if (!id) return;
+                    if (seen.has(String(id))) return;
+                    seen.add(String(id));
+                    allTasks.push(t);
+                });
+                tasks = allTasks.filter(t => String(t.status || '').toLowerCase().includes('cancel'));
             }
 
             try {
-                const clientMap = window.__clientArchivedTasks || new Map()
+                const clientMap = window.__clientArchivedTasks || new Map();
                 if (clientMap && typeof clientMap.forEach === 'function') {
-                    clientMap.forEach(function(t, k){
-                        if (!tasks.some(x => String(x.id) === String(t.id))) tasks.push(t)
-                    })
+                    clientMap.forEach(function (t) {
+                        if (!tasks.some(x => String(x.id) === String(t.id))) tasks.push(t);
+                    });
                 }
                 if (!tasks || !tasks.length) {
-                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>'
-                    try { window.__renderingArchiveModal = false } catch(_) {}
-                    archiveLoading = false
-                    archiveHasMore = false
-                    return
+                    body.innerHTML = '<div class="text-center text-muted py-3">No archived tasks</div>';
+                    try { window.__renderingArchiveModal = false } catch (_) { }
+                    archiveLoading = false;
+                    archiveHasMore = false;
+                    return;
                 }
-            } catch(_) {}
+            } catch (_) { }
 
-            let container = body.querySelector('.task-list')
+            let container = body.querySelector('.task-list');
             if (!container) {
-                container = document.createElement('div')
-                container.className = 'task-list d-flex flex-column gap-2 p-2'
+                container = document.createElement('div');
+                container.className = 'task-list d-flex flex-column gap-2 p-2';
                 if (!append) {
-                    body.innerHTML = ''
-                    body.appendChild(container)
+                    body.innerHTML = '';
+                    body.appendChild(container);
                 }
             }
 
             function buildSafeCardHtml(t) {
-                const title = (t.title || 'Untitled Task')
-                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '')
-                const desc = (t.description || '').toString()
-                const priority = t.priority || ''
-                const rawStatus = String((t.status || '')).toUpperCase()
-                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL')) ? `<span style="color:red; font-weight:600;">${rawStatus}</span>` : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`
+                const title = (t.title || 'Untitled Task');
+                const proj = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                const desc = (t.description || '').toString();
+                const priority = t.priority || '';
+                const rawStatus = String((t.status || '')).toUpperCase();
+                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL'))
+                    ? `<span style="color:red; font-weight:600;">${rawStatus}</span>`
+                    : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`;
                 return `
                     <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${t.id || ''}" data-task-status="${t.status || ''}">
                         ${proj ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${proj}</small>` : ''}
@@ -8172,137 +8412,158 @@ function applyCurrentSearchFilter() {
                         <div class="task-description-container"><p class="task-description" style="margin-top:6px;">${desc}</p></div>
                         <hr class="task-separator rounded-4">
                         <div class="d-flex justify-content-between align-items-center">
-                            <div style="font-size: 10px; font-weight: 400;"> <span style="color: #797E91;">Priority: </span><span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span></div>
-                            <div style="font-size: 10px; font-weight: 400;"><span style="color: #797E91;">Status: </span><span class="type-badge-wrapper">${typeBadge}</span></div>
+                            <div style="font-size: 10px; font-weight: 400;">
+                                <span style="color: #797E91;">Priority: </span>
+                                <span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span>
+                            </div>
+                            <div style="font-size: 10px; font-weight: 400;">
+                                <span style="color: #797E91;">Status: </span>
+                                <span class="type-badge-wrapper">${typeBadge}</span>
+                            </div>
                         </div>
-                    </div>`
+                    </div>`;
             }
 
-            try { window.__renderingArchiveModal = true } catch(_) {}
+            function safeInsertTask(container, t, html) {
+                const id = String(t.id || t.task_id || '');
+                if (!id) return;
+                window.__renderedArchiveIds = window.__renderedArchiveIds || new Set();
+                if (window.__renderedArchiveIds.has(id)) return;
+                window.__renderedArchiveIds.add(id);
+                container.insertAdjacentHTML('beforeend', html);
+            }
+
+            try { window.__renderingArchiveModal = true } catch (_) { }
             tasks.forEach(t => {
                 try {
-                    const normalized = Object.assign({}, t)
-                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '')
-                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null)
-                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null)
-                    let html = ''
+                    const normalized = Object.assign({}, t);
+                    normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                    normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                    normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+
+                    let html = '';
                     if (typeof createTaskCard === 'function') {
-                        try { html = createTaskCard(normalized) } catch { html = buildSafeCardHtml(normalized) }
+                        try { html = createTaskCard(normalized); } catch { html = buildSafeCardHtml(normalized); }
                     } else if (typeof window !== 'undefined' && typeof window.createTaskCard === 'function') {
-                        try { html = window.createTaskCard(normalized) } catch { html = buildSafeCardHtml(normalized) }
+                        try { html = window.createTaskCard(normalized); } catch { html = buildSafeCardHtml(normalized); }
                     } else {
-                        html = buildSafeCardHtml(normalized)
+                        html = buildSafeCardHtml(normalized);
                     }
-                    container.insertAdjacentHTML('beforeend', html)
-                } catch {
-                    const simple = document.createElement('div')
-                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0'
-                    simple.innerHTML = `<h5 class="mb-1">${(t.title||'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`
-                    container.appendChild(simple)
+
+                    safeInsertTask(container, normalized, html);
+                } catch (e) {
+                    const simple = document.createElement('div');
+                    simple.className = 'custom-card rounded-4 position-relative p-3 border-0';
+                    simple.innerHTML = `<h5 class="mb-1">${(t.title || 'Untitled Task')}</h5><p class="mb-0 text-muted">${(t.project && t.project.title) || t.project_title || ''}</p>`;
+                    safeInsertTask(container, t, simple.outerHTML);
                 }
-            })
-            try { window.__renderingArchiveModal = false } catch(_) {}
+            });
+            try { window.__renderingArchiveModal = false } catch (_) { }
 
             try {
-                body.innerHTML = ''
-                body.appendChild(container)
-                container.querySelectorAll('.custom-card').forEach(function(card){
+                body.innerHTML = '';
+                body.appendChild(container);
+                container.querySelectorAll('.custom-card').forEach(function (card) {
                     try {
-                        const ds = card.querySelectorAll('div[style*="Deadline:"]')
-                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove())
-                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove())
-                        card.querySelectorAll('.task-icon').forEach(el => el.remove())
+                        const ds = card.querySelectorAll('div[style*="Deadline:"]');
+                        card.querySelectorAll('.executor-container, .executor-list, .task-executor').forEach(el => el.remove());
+                        card.querySelectorAll('.pic-container, .task-pic').forEach(el => el.remove());
+                        card.querySelectorAll('.task-icon').forEach(el => el.remove());
                         card.querySelectorAll('button, a.btn').forEach(btn => {
-                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) btn.remove()
-                        })
-                        const status = (card.getAttribute('data-task-status') || '').toLowerCase()
-                        const dropdownMenu = card.querySelector('.dropdown-menu')
+                            if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) btn.remove();
+                        });
+                        const status = (card.getAttribute('data-task-status') || '').toLowerCase();
+                        const dropdownMenu = card.querySelector('.dropdown-menu');
                         if (dropdownMenu) {
-                            dropdownMenu.innerHTML = ''
+                            dropdownMenu.innerHTML = '';
                             if (status === 'completed') {
-                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div>`
+                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div>`;
                             } else {
-                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div><div class="dropdown-item">Restore Task</div>`
+                                dropdownMenu.innerHTML = `<div class="dropdown-item">Detail</div><div class="dropdown-item">Restore Task</div>`;
                             }
                         }
                         if (ds && ds.length) {
-                            ds.forEach(function(dd){
-                                const st = (card.getAttribute('data-task-status') || '').toUpperCase()
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`
-                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>')
-                            })
+                            ds.forEach(function (dd) {
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                    ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
+                                    : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>');
+                            });
                         } else {
-                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function(_, g1){
-                                const st = (card.getAttribute('data-task-status') || '').toUpperCase()
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL')) ? `<span style="color:#D0322D; font-weight:600;">${st}</span>` : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`
-                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>'
-                            })
+                            card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function (_, g1) {
+                                const st = (card.getAttribute('data-task-status') || '').toUpperCase();
+                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                    ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
+                                    : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
+                                return 'Status: <span class="type-badge-wrapper">' + badge + '</span>';
+                            });
                         }
-                    } catch(_) {}
-                })
-                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function(item) {
-                    item.addEventListener('click', function(e) {
-                        e.stopPropagation()
-                        const text = this.textContent.trim()
-                        const card = this.closest('.custom-card')
-                        const taskId = card && card.getAttribute('data-task-id')
-                        if (!taskId) return
+                    } catch (_) { }
+                });
+                container.querySelectorAll('.custom-card .dropdown-menu .dropdown-item').forEach(function (item) {
+                    item.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        const text = this.textContent.trim();
+                        const card = this.closest('.custom-card');
+                        const taskId = card && card.getAttribute('data-task-id');
+                        if (!taskId) return;
                         if (text === 'Detail') {
-                            const archiveModal = document.getElementById('archieveModal')
+                            const archiveModal = document.getElementById('archieveModal');
                             if (archiveModal) {
-                                const bsModal = bootstrap.Modal.getInstance(archiveModal)
-                                if (bsModal) bsModal.hide()
+                                const bsModal = bootstrap.Modal.getInstance(archiveModal);
+                                if (bsModal) bsModal.hide();
                             }
-                            handleTaskDetail(taskId)
+                            handleTaskDetail(taskId);
                         }
                         if (text === 'Restore Task') {
-                            const restoreStatus = 'new_request'
+                            const restoreStatus = 'new_request';
                             updateTaskStatus(taskId, restoreStatus, card)
                                 .then(() => {
-                                    showFloatingAlert('Task restored to ' + restoreStatus, 'success')
-                                    card.remove()
+                                    showFloatingAlert('Task restored to ' + restoreStatus, 'success');
+                                    card.remove();
                                 })
                                 .catch(err => {
-                                    showFloatingAlert('Failed to restore task: ' + err, 'danger')
-                                })
+                                    showFloatingAlert('Failed to restore task: ' + err, 'danger');
+                                });
                         }
-                    })
-                })
-                initBootstrapTooltips(modalEl)
+                    });
+                });
+                initBootstrapTooltips(modalEl);
             } catch (_) {
-                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl) } catch(_) {}
+                try { body.innerHTML = ''; body.appendChild(container); initBootstrapTooltips(modalEl); } catch (_) { }
             }
 
             if (tasks.length < 10) {
-                archiveHasMore = false
-                const sentinel = body.querySelector('.lazy-sentinel')
-                if (sentinel) sentinel.remove()
+                archiveHasMore = false;
+                const sentinel = body.querySelector('.lazy-sentinel');
+                if (sentinel) sentinel.remove();
             } else {
-                let sentinel = body.querySelector('.lazy-sentinel')
+                let sentinel = body.querySelector('.lazy-sentinel');
                 if (!sentinel) {
-                    sentinel = document.createElement('div')
-                    sentinel.className = 'lazy-sentinel text-center p-2 text-muted'
-                    sentinel.innerText = 'Loading more...'
-                    body.appendChild(sentinel)
+                    sentinel = document.createElement('div');
+                    sentinel.className = 'lazy-sentinel text-center p-2 text-muted';
+                    sentinel.innerText = 'Loading more...';
+                    body.appendChild(sentinel);
                     const io = new IntersectionObserver(entries => {
                         entries.forEach(entry => {
                             if (entry.isIntersecting && archiveHasMore && !archiveLoading) {
-                                archivePage++
-                                loadArchivedTasksIntoModal(archivePage, true)
+                                archivePage++;
+                                loadArchivedTasksIntoModal(archivePage, true);
                             }
-                        })
-                    })
-                    io.observe(sentinel)
+                        });
+                    });
+                    io.observe(sentinel);
                 }
             }
 
-            archiveLoading = false
+            archiveLoading = false;
         } catch (err) {
             try {
-                const modalEl = document.getElementById('archieveModal')
-                const body = modalEl && modalEl.querySelector('.modal-body')
-                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>'
-            } catch(_) {}
+                const modalEl = document.getElementById('archieveModal');
+                const body = modalEl && modalEl.querySelector('.modal-body');
+                if (body) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
+            } catch (_) { }
         }
     }
 

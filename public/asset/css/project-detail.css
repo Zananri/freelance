@@ -163,6 +163,19 @@
     padding: 8px;
 }
 
+.modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
 .modal-footer-custom {
     width: 100%;
     border: 0;
@@ -185,9 +198,22 @@
 }
 
 /* ===== Feedback/Reply - Reference Files (match Task styling) ===== */
-.existing-files-list {
+.existing-files-list.w-100 {
     max-height: 150px;
     overflow-y: auto;
+}
+
+.existing-files-list.w-100::-webkit-scrollbar {
+    width: 4px;
+}
+
+.existing-files-list.w-100::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.existing-files-list.w-100::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
 }
 
 .existing-file-item {
@@ -197,6 +223,7 @@
     padding: 8px 12px;
     margin-bottom: 6px;
 }
+
 
 .existing-file-item a {
     color: #1a73e8;
@@ -308,7 +335,7 @@
 }
 
 .feedback-modal-body {
-    padding: 1rem 1.5rem;
+    padding: 0;
     max-height: 100%;
     overflow-y: auto;
     flex-grow: 1;
@@ -351,7 +378,7 @@
 }
 
 .feedback-modal-body {
-    padding: 1rem 1.5rem;
+    padding: 0;
     max-height: 600px;
     overflow-y: auto;
 }
@@ -383,12 +410,20 @@
     display: block;
 }
 
+.reference-files-list,
+.reference-files-list a,
+.reference-files-list .material-symbols-outlined,
+.reference-files-list .btn-link,
+.reference-files-list .rounded-circle {
+    color: #444444 !important;
+}
+
 .feedback-reference-container {
     display: flex;
     align-items: center;
     gap: 1rem;
     margin-top: 0.5rem;
-    font-size: 0.9rem;
+    font-size: 12px;
 }
 
 .feedback-reference-url,
@@ -730,4 +765,25 @@
     cursor: pointer;
     display: flex;
     align-items: center;
+}
+
+.btn-danger.remove-ref-url {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-danger.remove-ref-url:hover {
+    background-color: #c82333;
+    color: white;
 }

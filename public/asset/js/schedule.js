@@ -295,7 +295,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 item.description || ""
                                             ).trim();
                                             if (!d) return "";
-                                            return `<p class="teks-description mb-2 small text-muted" style="font-size:12px; line-height:1.4;">${d}</p>`;
+                                            return `<p class="text-description mb-2 small text-muted">${d}</p>`;
                                         })()}
                                     </div>
 
@@ -430,77 +430,141 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Edit modal: manage selected files preview and existing files list
     (function initEditScheduleReferenceFiles(){
-        // Array to hold newly selected File objects for edit modal
-        window.editScheduleSelectedFiles = window.editScheduleSelectedFiles || [];
-
-        const input = document.getElementById('edit_schedule_reference_files');
-        const preview = document.getElementById('edit_schedule_reference_files_preview');
-        const existingContainer = document.getElementById('existing_edit_schedule_reference_files');
+        window.editScheduleSelectedFiles = window.editScheduleSelectedFiles || []
+        const input = document.getElementById('edit_schedule_reference_files')
+        const preview = document.getElementById('edit_schedule_reference_files_preview')
 
         function renderEditSelectedFiles(){
-            if(!preview) return;
-            preview.innerHTML = '';
+            if(!preview) return
+            preview.querySelectorAll('.selected-files-list').forEach(el=>el.remove())
             if(window.editScheduleSelectedFiles && window.editScheduleSelectedFiles.length){
-                const list = document.createElement('div'); list.className='selected-files-list mt-2';
+                const list = document.createElement('div')
+                list.className='selected-files-list mt-2'
                 window.editScheduleSelectedFiles.forEach((file, idx)=>{
-                    const item = document.createElement('div'); item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
-                    if(file && file.type && file.type.indexOf('image')===0){ const img=document.createElement('img'); const url=URL.createObjectURL(file); img.src=url; img.width=28; img.height=28; img.style.objectFit='cover'; img.style.borderRadius='50%'; img.alt=file.name; img.onload=function(){ try{ URL.revokeObjectURL(url);}catch(_){} }; item.appendChild(img); }
-                    else { const badge=document.createElement('div'); badge.className='rounded-circle d-flex align-items-center justify-content-center'; badge.style.width='28px'; badge.style.height='28px'; badge.style.background='#E9ECEF'; badge.style.color='#4B4F5E'; badge.style.fontSize='13px'; badge.style.fontWeight='600'; badge.textContent = file.name && file.name.length ? file.name.charAt(0).toUpperCase() : 'F'; item.appendChild(badge); }
-                    const title = document.createElement('span'); title.className='flex-grow-1'; title.textContent = file.name; item.appendChild(title);
-                    const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight='1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                    removeBtn.addEventListener('click', ()=>{ window.editScheduleSelectedFiles.splice(idx,1); renderEditSelectedFiles(); }); item.appendChild(removeBtn);
-                    list.appendChild(item);
-                });
-                preview.appendChild(list);
+                    const item = document.createElement('div')
+                    item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2'
+                    if(file && file.type && file.type.indexOf('image')===0){
+                        const img=document.createElement('img')
+                        const url=URL.createObjectURL(file)
+                        img.src=url
+                        img.width=28
+                        img.height=28
+                        img.style.objectFit='cover'
+                        img.style.borderRadius='50%'
+                        img.alt=file.name
+                        img.onload=function(){try{URL.revokeObjectURL(url)}catch(_){ }}
+                        item.appendChild(img)
+                    } else {
+                        const badge=document.createElement('div')
+                        item.appendChild(badge)
+                    }
+                    const title = document.createElement('span')
+                    title.className='flex-grow-1'
+                    title.textContent = file.name
+                    item.appendChild(title)
+                    const removeBtn = document.createElement('button')
+                    removeBtn.type='button'
+                    removeBtn.className='btn btn-sm btn-remove-task remove-task'
+                    removeBtn.style.lineHeight='1'
+                    removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>'
+                    removeBtn.addEventListener('click', ()=>{
+                        window.editScheduleSelectedFiles.splice(idx,1)
+                        renderEditSelectedFiles()
+                    })
+                    item.appendChild(removeBtn)
+                    list.appendChild(item)
+                })
+                preview.appendChild(list)
             }
         }
 
-        // Render existing server files (list of filenames). This function can be called from populateEditModal
         window.displayEditExistingReferenceFiles = function(files){
             try{
-                const container = document.getElementById('edit_schedule_reference_files_preview');
-                // we'll render existing files above or inside existing container area
-                const existingListId = 'edit_schedule_existing_reference_files_list';
-                // remove any previous existing list block
-                const prev = document.getElementById(existingListId);
-                if(prev) prev.remove();
-                if(!files || !files.length) return;
-                const wrapper = document.createElement('div'); wrapper.id = existingListId; wrapper.className='existing-files-list mt-2';
+                const existingListId = 'edit_schedule_existing_reference_files_list'
+                const prev = document.getElementById(existingListId)
+                if(prev) prev.remove()
+                if(!files || !files.length) return
+                const wrapper = document.createElement('div')
+                wrapper.id = existingListId
+                wrapper.className='existing-files-list mt-2'
                 files.forEach(fname=>{
-                    const item = document.createElement('div'); item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2 existing-file-item';
-                    const lower = String(fname||'').toLowerCase(); const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
-                    if(isImage){ const img=document.createElement('img'); img.src = appUrl + '/file/schedule_reference_files/' + encodeURIComponent(fname); img.width=28; img.height=28; img.style.objectFit='cover'; img.style.borderRadius='50%'; img.alt=fname; item.appendChild(img); }
-                    else { const badge=document.createElement('div'); badge.className='rounded-circle d-flex align-items-center justify-content-center'; badge.style.width='28px'; badge.style.height='28px'; badge.style.background='#E9ECEF'; badge.style.color='#4B4F5E'; badge.style.fontSize='13px'; badge.style.fontWeight='600'; badge.textContent = fname && fname.length ? fname.charAt(0).toUpperCase() : 'F'; item.appendChild(badge); }
-                    const title = document.createElement('span'); title.className='flex-grow-1'; title.textContent = fname; item.appendChild(title);
-                    const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight='1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                    removeBtn.addEventListener('click', function(){ item.remove(); updateExistingFilesHidden(); }); item.appendChild(removeBtn);
-                    wrapper.appendChild(item);
-                });
-                // append before new-files preview
-                if(preview) preview.insertAdjacentElement('afterbegin', wrapper);
-                updateExistingFilesHidden();
-            }catch(e){ console.warn('displayEditExistingReferenceFiles failed', e); }
-        };
-
-        function updateExistingFilesHidden(){
-            try{
-                const existingItems = document.querySelectorAll('#edit_schedule_reference_files_preview .existing-file-item, #edit_schedule_reference_files_preview .existing-files-list .existing-file-item');
-                const arr = [];
-                existingItems.forEach(it=>{ const sp = it.querySelector('span.flex-grow-1'); if(sp && sp.textContent) arr.push(sp.textContent.trim()); });
-                let hidden = document.getElementById('edit_existing_reference_files_input');
-                if(!hidden){ hidden = document.createElement('input'); hidden.type='hidden'; hidden.id='edit_existing_reference_files_input'; hidden.name='existing_reference_files'; document.getElementById('scheduleEditForm').appendChild(hidden); }
-                hidden.value = JSON.stringify(arr);
+                    const item = document.createElement('div')
+                    item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2 existing-file-item'
+                    const lower = String(fname||'').toLowerCase()
+                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower)
+                    if(isImage){
+                        const img=document.createElement('img')
+                        img.src = appUrl + '/file/schedule_reference_files/' + encodeURIComponent(fname)
+                        img.width=28
+                        img.height=28
+                        img.style.objectFit='cover'
+                        img.style.borderRadius='50%'
+                        img.alt=fname
+                        item.appendChild(img)
+                    } else {
+                        const badge=document.createElement('div')
+                        item.appendChild(badge)
+                    }
+                    const title = document.createElement('span')
+                    title.className='flex-grow-1'
+                    title.textContent = fname
+                    item.appendChild(title)
+                    const removeBtn = document.createElement('button')
+                    removeBtn.type='button'
+                    removeBtn.className='btn btn-sm btn-remove-task remove-task'
+                    removeBtn.style.lineHeight='1'
+                    removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>'
+                    removeBtn.addEventListener('click', function(){
+                        item.remove()
+                        updateExistingFilesHidden()
+                    })
+                    item.appendChild(removeBtn)
+                    wrapper.appendChild(item)
+                })
+                if(preview) preview.insertAdjacentElement('afterbegin', wrapper)
+                updateExistingFilesHidden()
             }catch(e){}
         }
 
-        // wire input change
-        if(input){
-            input.addEventListener('change', function(e){ const files = Array.from(this.files || []); window.editScheduleSelectedFiles = [...window.editScheduleSelectedFiles, ...files]; renderEditSelectedFiles(); this.value=''; });
+        function updateExistingFilesHidden(){
+            try{
+                const existingItems = document.querySelectorAll('#edit_schedule_reference_files_preview .existing-file-item, #edit_schedule_reference_files_preview .existing-files-list .existing-file-item')
+                const arr = []
+                existingItems.forEach(it=>{
+                    const sp = it.querySelector('span.flex-grow-1')
+                    if(sp && sp.textContent) arr.push(sp.textContent.trim())
+                })
+                let hidden = document.getElementById('edit_existing_reference_files_input')
+                if(!hidden){
+                    hidden = document.createElement('input')
+                    hidden.type='hidden'
+                    hidden.id='edit_existing_reference_files_input'
+                    hidden.name='existing_reference_files'
+                    document.getElementById('scheduleEditForm').appendChild(hidden)
+                }
+                hidden.value = JSON.stringify(arr)
+            }catch(e){}
         }
 
-        // expose small helper to render newly selected files from populateEditModal
-        window.displayEditSelectedFiles = renderEditSelectedFiles;
-    })();
+        if(input){
+            input.addEventListener('change', function(){
+                const files = Array.from(this.files || [])
+                window.editScheduleSelectedFiles = [...window.editScheduleSelectedFiles, ...files]
+                renderEditSelectedFiles()
+                this.value=''
+            })
+        }
+
+        window.displayEditSelectedFiles = renderEditSelectedFiles
+
+        window.populateEditModal = function(schedule){
+            document.getElementById('edit_schedule_title').value = schedule.title || ''
+            if(schedule.reference_files){
+                displayEditExistingReferenceFiles(schedule.reference_files)
+            }
+            displayEditSelectedFiles()
+        }
+    })()
 
     // Function to fetch schedule data for edit modal
     function fetchScheduleDataForEdit(scheduleId) {
@@ -876,7 +940,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 e.target.closest("#edit_schedule_reference_urls_container")
             ) {
                 const row = document.createElement("div");
-                row.className = "d-flex gap-2 align-items-center";
+                row.className = "input-group";
                 row.innerHTML = `<input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-danger remove-ref-url'><span class='material-symbols-outlined'>close</span></button>`;
                 container.appendChild(row);
             }
@@ -884,7 +948,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 e.target.closest(".remove-ref-url") &&
                 e.target.closest("#edit_schedule_reference_urls_container")
             ) {
-                const row = e.target.closest(".d-flex");
+                const row = e.target.closest(".input-group");
                 if (row) row.remove();
             }
         });
@@ -1038,7 +1102,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!urls || urls.length === 0) {
             const row = document.createElement("div");
-            row.className = "d-flex gap-2 align-items-center";
+            row.className = "input-group";
             row.innerHTML = `
                 <input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'>
                 <button type='button' class='btn btn-submit-black add-ref-url' aria-label='Add URL'>
@@ -1046,14 +1110,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 </button>`;
             container.appendChild(row);
         } else {
-            urls.forEach((url) => {
+            urls.forEach((url, idx) => {
                 const safeUrl = url ?? "";
                 const row = document.createElement("div");
-                row.className = "d-flex gap-2 align-items-center";
+                row.className = "input-group";
                 row.innerHTML = `
                     <input type='url' class='form-control input-text' name='reference_urls[]' value='${safeUrl}' placeholder='https://example.com'>
-                    <button type='button' class='btn btn-danger remove-ref-url'>
-                        <span class='material-symbols-outlined'>close</span>
+                    <button type='button' class='btn ${idx === 0 ? "btn-submit-black add-ref-url" : "btn-danger remove-ref-url"}'>
+                        <span class='material-symbols-outlined'>${idx === 0 ? "add" : "close"}</span>
                     </button>`;
                 container.appendChild(row);
             });
@@ -1074,12 +1138,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function setupEditExecutorPicker(initialExecutorIds = []) {
         const input = document.getElementById("edit_schedule_executor_input");
-        const dropdown = document.getElementById(
-            "edit_schedule_executor_dropdown"
-        );
-        const selectedContainer = document.getElementById(
-            "edit_schedule_selected_executors"
-        );
+        const dropdown = document.getElementById("edit_schedule_executor_dropdown");
+        const selectedContainer = document.getElementById("edit_schedule_selected_executors");
         const hidden = document.getElementById("edit_schedule_executors");
 
         if (!input || !dropdown || !selectedContainer || !hidden) return;
@@ -1087,8 +1147,6 @@ document.addEventListener("DOMContentLoaded", function () {
         let employees = [],
             filtered = [],
             selected = [];
-
-        // (initial fetch moved below after helper initializations to avoid TDZ issues)
 
         function buildPhotoUrl(userPhoto) {
             if (!userPhoto) return appUrl + "/asset/img/avatar.png";
@@ -1099,198 +1157,132 @@ document.addEventListener("DOMContentLoaded", function () {
             return appUrl + "/file/profile_picture/" + userPhoto;
         }
 
-        // Cached fetch helper to reduce duplicate executor loads within schedule views
-        const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+        const EMP_CACHE_TTL_MS = 5 * 60 * 1000;
         const empCache = (window.__empExecCache = window.__empExecCache || {
             map: new Map(),
             inFlight: new Map(),
         });
+
         function fetchEmployeesCached(q = "") {
-            const key = String(q || "")
-                .trim()
-                .toLowerCase();
+            const key = String(q || "").trim().toLowerCase();
             const now = Date.now();
             const hit = empCache.map.get(key);
-            if (hit && now - hit.t < EMP_CACHE_TTL_MS)
-                return Promise.resolve(hit.v);
+            if (hit && now - hit.t < EMP_CACHE_TTL_MS) return Promise.resolve(hit.v);
             if (empCache.inFlight.has(key)) return empCache.inFlight.get(key);
-            const p = fetch(
-                appUrl +
-                    "/task/employees-for-executor?q=" +
-                    encodeURIComponent(key)
-            )
-                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-                .then((d) => {
+            const p = fetch(appUrl + "/task/employees-for-executor?q=" + encodeURIComponent(key))
+                .then(r => r.ok ? r.json() : Promise.reject(r))
+                .then(d => {
                     empCache.map.set(key, { v: d, t: Date.now() });
                     empCache.inFlight.delete(key);
                     return d;
                 })
-                .catch((e) => {
+                .catch(e => {
                     empCache.inFlight.delete(key);
                     throw e;
                 });
             empCache.inFlight.set(key, p);
             return p;
         }
-        function fetchEmployeesForEdit(ids) {
-            fetchEmployeesCached("")
-                .then((d) => {
-                    employees = d.data || d || [];
-                    // Exclude administrators
-                    employees = employees.filter(
-                        (emp) =>
-                            String(emp.user_type || "").toUpperCase() !==
-                            "ADMINISTRATOR"
-                    );
-                    selected = employees.filter((emp) => ids.includes(emp.id));
-                    renderSelected();
-                    updateHidden();
-                })
-                .catch(() => showAlertMsg("Failed to load employees", "error"));
-        }
 
-        // Load initial selected employees if any (deferred until helpers are initialized)
-        if (initialExecutorIds.length > 0) {
-            fetchEmployeesForEdit(initialExecutorIds);
-        }
-
-        function fetchEmployees(q = "") {
-            // Backwards-compatible: allow query-based fetch but prefer to load full list once
-            return fetchEmployeesCached(q)
-                .then((d) => {
-                    employees = d.data || d || [];
-                    // Exclude administrators
-                    employees = employees.filter(
-                        (emp) =>
-                            String(emp.user_type || "").toUpperCase() !==
-                            "ADMINISTRATOR"
-                    );
-                    filtered = employees;
-                    renderDropdown();
-                })
-                .catch(() => showAlertMsg("Failed to load employees", "error"));
-        }
-
-        function fetchAllEmployeesIfNeeded() {
-            if (employees && employees.length > 0) return Promise.resolve(employees);
-            return fetchEmployeesCached("")
-                .then((d) => {
-                    employees = d.data || d || [];
-                    employees = employees.filter(
-                        (emp) =>
-                            String(emp.user_type || "").toUpperCase() !==
-                            "ADMINISTRATOR"
-                    );
-                    filtered = employees;
-                    return employees;
-                })
-                .catch(() => {
-                    showAlertMsg("Failed to load employees", "error");
-                    return [];
-                });
+        function fetchAllEmployees() {
+            return fetchEmployeesCached("").then(d => {
+                employees = (d.data || d || []).filter(emp =>
+                    String(emp.user_type || "").toUpperCase() !== "ADMINISTRATOR"
+                );
+                filtered = employees;
+                return employees;
+            }).catch(() => {
+                showAlertMsg("Failed to load employees", "error");
+                return [];
+            });
         }
 
         function renderDropdown() {
             if (filtered.length === 0) {
-                dropdown.innerHTML =
-                    '<div class="dropdown-item disabled">No employees found</div>';
-                dropdown.style.display = "block";
+                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
                 return;
             }
-            dropdown.innerHTML = filtered
-                .map((emp) => {
-                    const checked = selected.some((s) => s.id === emp.id);
-                    const photo = buildPhotoUrl(emp.user_photo);
-                    return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
-                        <div class='d-flex align-items-center'>
-                            <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
-                            <div class='d-flex flex-column'>
-                                <span class='executor-name'>${emp.name}</span>
-                                <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
-                            </div>
+            dropdown.innerHTML = filtered.map(emp => {
+                const checked = selected.some(s => s.id === emp.id);
+                const photo = buildPhotoUrl(emp.user_photo);
+                return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
+                    <div class='d-flex align-items-center'>
+                        <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
+                        <div class='d-flex flex-column'>
+                            <span class='executor-name'>${emp.name}</span>
+                            <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
                         </div>
-                        <input type='checkbox' data-id='${emp.id}' ${checked ? "checked" : ""}>
-                    </label>`;
-                })
-                .join("");
-            dropdown.style.display = "block";
-            dropdown.querySelectorAll("input[type=checkbox]").forEach((cb) =>
-                cb.addEventListener("change", function () {
-                    const id = parseInt(this.getAttribute("data-id"));
-                    if (this.checked) {
-                        if (!selected.some((s) => s.id === id)) {
-                            const emp = employees.find((e) => e.id === id);
-                            selected.push({
-                                id,
-                                name: emp.name,
-                                user_photo: emp.user_photo,
-                            });
-                        }
-                    } else {
-                        selected = selected.filter((s) => s.id !== id);
-                    }
-                    renderSelected();
-                    renderDropdown();
-                    updateHidden();
-                })
-            );
+                    </div>
+                    <input type='checkbox' data-id='${emp.id}' ${checked ? "checked" : ""}>
+                </label>`;
+            }).join("");
         }
 
         function renderSelected() {
             selectedContainer.innerHTML = "";
-            selected.forEach((emp) => {
-                const photo = buildPhotoUrl(emp.user_photo);
+            selected.forEach(emp => {
+                const photoUrl = buildPhotoUrl(emp.user_photo);
                 const badge = document.createElement("span");
-                // Use same styling/structure as Task selected badges
                 badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
-                const img = document.createElement('img');
-                img.src = photo;
-                img.alt = emp.name || '';
-                img.className = 'rounded-circle me-2';
-                img.style.width = '24px';
-                img.style.height = '24px';
-                img.style.objectFit = 'cover';
+                const img = document.createElement("img");
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = "rounded-circle me-2";
+                img.style.width = "24px";
+                img.style.height = "24px";
+                img.style.objectFit = "cover";
 
-                const nameSpan = document.createElement('span');
-                nameSpan.textContent = emp.name || '';
+                const nameCol = document.createElement("div");
+                nameCol.className = "d-flex flex-column";
+                const nameText = document.createElement("span");
+                nameText.textContent = emp.name || "";
+                nameText.style.marginBottom = "5px"
 
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'btn-close btn-sm ms-2';
-                removeBtn.setAttribute('aria-label', 'Remove');
-                removeBtn.addEventListener('click', () => {
-                    selected = selected.filter((s) => s.id !== emp.id);
+                const divSmall = document.createElement("small");
+                divSmall.className = "text-muted executor-division";
+                divSmall.textContent = emp.division || "";
+
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn-close btn-sm ms-2";
+                removeBtn.setAttribute("aria-label", "Remove");
+                removeBtn.addEventListener("click", () => {
+                    selected = selected.filter(e => e.id !== emp.id);
                     renderSelected();
-                    renderDropdown();
                     updateHidden();
                 });
 
                 badge.appendChild(img);
-                badge.appendChild(nameSpan);
+                badge.appendChild(nameCol);
                 badge.appendChild(removeBtn);
                 selectedContainer.appendChild(badge);
             });
         }
 
         function updateHidden() {
-            hidden.value = JSON.stringify(selected.map((s) => s.id));
+            hidden.value = JSON.stringify(selected.map(s => s.id));
         }
 
         function filterEmployeesByName(val) {
             const v = String(val || "").trim().toLowerCase();
-            if (!v) filtered = employees;
-            else filtered = employees.filter((emp) => (emp.name || "").toLowerCase().includes(v));
+            filtered = !v ? employees : employees.filter(emp =>
+                (emp.name || "").toLowerCase().includes(v)
+            );
             renderDropdown();
         }
 
         input.addEventListener("input", function () {
-            const q = this.value.trim();
-            fetchAllEmployeesIfNeeded().then(() => filterEmployeesByName(q));
+            filterEmployeesByName(this.value);
+            dropdown.style.display = "block";
         });
 
         input.addEventListener("focus", function () {
-            fetchAllEmployeesIfNeeded().then(() => filterEmployeesByName(this.value));
+            filterEmployeesByName(this.value);
+            dropdown.style.display = "block";
         });
 
         document.addEventListener("click", (e) => {
@@ -1299,13 +1291,41 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Expose edit executor picker API for external preselection (used by division wiring)
         window.__scheduleEditExecPicker = {
-            clear: function(){ try{ selected = []; renderSelected(); updateHidden(); dropdown.innerHTML = ''; } catch(e){} },
-            set: function(arr){ try{ if(!Array.isArray(arr)) return; selected = arr.map(a=> ({ id: a.id, name: a.name || a.full_name || '', user_photo: a.user_photo || a.profile_picture || '' })); renderSelected(); updateHidden(); renderDropdown(); } catch(e){} }
+            clear: function () {
+                selected = [];
+                renderSelected();
+                updateHidden();
+                dropdown.innerHTML = '';
+            },
+            set: async function (arr) {
+                await fetchAllEmployees();
+                if (!Array.isArray(arr)) return;
+                selected = arr.map(a => {
+                    const empData = employees.find(e => e.id === a.id);
+                    return {
+                        id: a.id,
+                        name: a.name || a.full_name || (empData ? empData.name : ''),
+                        user_photo: a.user_photo || (empData ? empData.user_photo : ''),
+                        division: empData ? (empData.division || empData.division_name || '') : ''
+                    };
+                });
+                renderSelected();
+                updateHidden();
+                renderDropdown();
+            }
         };
 
+        // Pastikan fetch semua employee sebelum set initialExecutorIds
+        if (initialExecutorIds.length > 0) {
+            fetchAllEmployees().then(() => {
+                window.__scheduleEditExecPicker.set(initialExecutorIds.map(id => ({ id })));
+            });
+        }
+
+        dropdown.style.display = "none"; // Dropdown hide awalnya
     }
+
     function setupEditRecurrenceToggles() {
         const typeSel = document.getElementById(
             "edit_schedule_recurrence_type"

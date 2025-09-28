@@ -5,6 +5,8 @@
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/schedule.css?v=' . time()) }}">
         <link rel="stylesheet" href="{{ asset('asset/css/schedule-create.css?v=' . time()) }}">
+        <!-- Quill editor styles (only for Schedule page) -->
+        <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
 
     <div class="d-flex justify-content-between align-items-center mb-4 schedule-header">
@@ -209,10 +211,31 @@
                                 <div class="invalid-feedback">Title required.</div>
                             </div>
 
-                            <!-- Description -->
+                            <!-- Description (Quill) -->
                             <div class="mb-3 custom-form-employee">
                                 <label for="schedule_description" class="form-label label-custom">Description</label>
-                                <textarea id="schedule_description" name="description" rows="4" class="form-control input-text"></textarea>
+                                <div id="schedule_description_toolbar">
+                                    <span class="ql-formats">
+                                        <select class="ql-header">
+                                            <option value="1"></option>
+                                            <option value="2"></option>
+                                            <option selected></option>
+                                        </select>
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button class="ql-list" value="ordered"></button>
+                                        <button class="ql-list" value="bullet"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button class="ql-link"></button>
+                                    </span>
+                                </div>
+                                <div id="schedule_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                                <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
+                                <textarea class="form-control input-text d-none" id="schedule_description" name="description" rows="6" style="display:none;"></textarea>
                             </div>
 
                             <!-- Project -->
@@ -242,7 +265,7 @@
                             <div class="mb-3 custom-form-employee">
                                 <label class="form-label label-custom">Reference URLs</label>
                                 <div id="schedule_reference_urls_container" class="d-flex flex-column gap-2">
-                                    <div class="d-flex gap-2 align-items-center">
+                                    <div class="input-group">
                                         <input type="url" class="form-control input-text" name="reference_urls[]"
                                             placeholder="https://example.com">
                                         <button type="button" class="btn btn-submit-black add-ref-url"
@@ -505,11 +528,31 @@
                                 <div class="invalid-feedback">Title required.</div>
                             </div>
 
-                            <!-- Description -->
+                            <!-- Description (Quill) -->
                             <div class="mb-3 custom-form-employee">
-                                <label for="edit_schedule_description"
-                                    class="form-label label-custom">Description</label>
-                                <textarea id="edit_schedule_description" name="description" rows="4" class="form-control input-text"></textarea>
+                                <label for="edit_schedule_description" class="form-label label-custom">Description</label>
+                                <div id="edit_schedule_description_toolbar">
+                                    <span class="ql-formats">
+                                        <select class="ql-header">
+                                            <option value="1"></option>
+                                            <option value="2"></option>
+                                            <option selected></option>
+                                        </select>
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button class="ql-list" value="ordered"></button>
+                                        <button class="ql-list" value="bullet"></button>
+                                    </span>
+                                    <span class="ql-formats">
+                                        <button class="ql-link"></button>
+                                    </span>
+                                </div>
+                                <div id="edit_schedule_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                                <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
+                                <textarea class="form-control input-text d-none" id="edit_schedule_description" name="description" rows="6" style="display:none;"></textarea>
                             </div>
 
                             <div class="mb-3 custom-form-employee">
@@ -526,7 +569,7 @@
                             <div class="mb-3 custom-form-employee">
                                 <label class="form-label label-custom">Reference URLs</label>
                                 <div id="edit_schedule_reference_urls_container" class="d-flex flex-column gap-2">
-                                    <div class="d-flex gap-2 align-items-center">
+                                    <div class="input-group">
                                         <input type="url" class="form-control input-text" name="reference_urls[]"
                                             placeholder="https://example.com">
                                         <button type="button" class="btn btn-submit-black add-ref-url"
@@ -605,6 +648,49 @@
 
         <script src="{{ asset('asset/js/schedule.js?v=' . time()) }}"></script>
         <script src="{{ asset('asset/js/schedule-create.js?v=' . time()) }}"></script>
+
+        <!-- Quill JS and initializer for Schedule page -->
+        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function(){
+                try {
+                    if (document.getElementById('schedule_description_editor')) {
+                        window.__quillScheduleCreate = new Quill('#schedule_description_editor', { modules: { toolbar: '#schedule_description_toolbar' }, theme: 'snow' });
+                    }
+                    if (document.getElementById('edit_schedule_description_editor')) {
+                        window.__quillScheduleEdit = new Quill('#edit_schedule_description_editor', { modules: { toolbar: '#edit_schedule_description_toolbar' }, theme: 'snow' });
+                    }
+                } catch(_) {}
+
+                function syncQuillToTextarea(quill, textareaId){
+                    try { const ta = document.getElementById(textareaId); if(!ta) return; ta.value = (quill && quill.root && typeof quill.root.innerHTML === 'string') ? quill.root.innerHTML : ''; } catch(_) {}
+                }
+
+                // Ensure create form syncs before submit (schedule-create.js attaches submit handler so use capture phase)
+                const createForm = document.getElementById('scheduleCreateForm');
+                if (createForm) {
+                    createForm.addEventListener('submit', function(e){
+                        try { if (window.__quillScheduleCreate) syncQuillToTextarea(window.__quillScheduleCreate, 'schedule_description');
+                            const plain = (window.__quillScheduleCreate && typeof window.__quillScheduleCreate.getText === 'function') ? window.__quillScheduleCreate.getText().trim() : '';
+                            // allow empty description but keep textarea synced; do not block submit here
+                        } catch(_) {}
+                    }, true);
+                }
+
+                const editForm = document.getElementById('scheduleEditForm');
+                if (editForm) {
+                    editForm.addEventListener('submit', function(e){
+                        try { if (window.__quillScheduleEdit) syncQuillToTextarea(window.__quillScheduleEdit, 'edit_schedule_description'); } catch(_) {}
+                    }, true);
+                }
+
+                // Clear editors on modal hide
+                try {
+                    $('#scheduleCreateModal').on('hidden.bs.modal', function(){ try{ if(window.__quillScheduleCreate && window.__quillScheduleCreate.root) window.__quillScheduleCreate.root.innerHTML = ''; }catch(_){}; try{ const ta = document.getElementById('schedule_description'); if(ta) ta.value=''; }catch(_){} });
+                    $('#scheduleEditModal').on('hidden.bs.modal', function(){ try{ if(window.__quillScheduleEdit && window.__quillScheduleEdit.root) window.__quillScheduleEdit.root.innerHTML = ''; }catch(_){}; try{ const ta = document.getElementById('edit_schedule_description'); if(ta) ta.value=''; }catch(_){} });
+                } catch(_) {}
+            });
+        </script>
 
         <script>
             (function() {

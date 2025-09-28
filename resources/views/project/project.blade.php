@@ -4,6 +4,8 @@
     </x-slot>
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
+        <!-- Quill editor styles (only for Project page) -->
+        <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
         <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
@@ -268,13 +270,42 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="description" name="description" required rows="3"></textarea>
+                            <!-- Quill editor container for Add Project -->
+                            <div id="add_description_toolbar">
+                                <!-- simple toolbar -->
+                                <span class="ql-formats">
+                                    <select class="ql-header">
+                                        <option value="1"></option>
+                                        <option value="2"></option>
+                                        <option selected></option>
+                                    </select>
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="ordered"></button>
+                                    <button class="ql-list" value="bullet"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-link"></button>
+                                </span>
+                            </div>
+                            <div id="add_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                            <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
+                            <textarea class="form-control input-text d-none" id="description" name="description" rows="3" style="display:none;"></textarea>
                         </div>
-                        <div class="mb-3 input-custom">
+                        @php
+                            $__emp = auth()->user()->employee ?? null;
+                            $__deptId = $__emp ? $__emp->department_id : '';
+                            $__deptName = ($__emp && $__emp->department) ? ($__emp->department->name_department ?? $__emp->department->name ?? '') : '';
+                        @endphp
+
+                        {{-- Department is fixed to the logged-in employee's department and hidden from selection --}}
+                        <div class="mb-3 input-custom" style="display:none;">
                             <label for="department" class="form-label label-custom">Department</label>
-                            <select class="form-select input-select" id="department" name="department" required>
-                                <option value="">Select Department</option>
-                                <!-- Options to be populated dynamically -->
+                            <select class="form-select input-select" id="department" name="department">
+                                <option value="{{ $__deptId }}" selected>{{ $__deptName }}</option>
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
@@ -287,7 +318,7 @@
                         <div class="mb-3 input-custom">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="project_reference_urls_container" class="d-flex flex-column gap-2">
-                                <div class="d-flex gap-2 align-items-center">
+                                <div class="input-group">
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
                                     <button type="button" class="btn btn-submit-black add-ref-url"
@@ -400,13 +431,41 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="edit_description" name="description" required rows="3"></textarea>
+                            <!-- Quill editor container for Edit Project -->
+                            <div id="edit_description_toolbar">
+                                <span class="ql-formats">
+                                    <select class="ql-header">
+                                        <option value="1"></option>
+                                        <option value="2"></option>
+                                        <option selected></option>
+                                    </select>
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="ordered"></button>
+                                    <button class="ql-list" value="bullet"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-link"></button>
+                                </span>
+                            </div>
+                            <div id="edit_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                            <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
+                            <textarea class="form-control input-text d-none" id="edit_description" name="description" rows="3" style="display:none;"></textarea>
                         </div>
-                        <div class="mb-3 input-custom">
+                        @php
+                            $__emp = auth()->user()->employee ?? null;
+                            $__deptId = $__emp ? $__emp->department_id : '';
+                            $__deptName = ($__emp && $__emp->department) ? ($__emp->department->name_department ?? $__emp->department->name ?? '') : '';
+                        @endphp
+
+                        {{-- Department is fixed to the logged-in employee's department and hidden from selection --}}
+                        <div class="mb-3 input-custom" style="display:none;">
                             <label for="edit_department" class="form-label label-custom">Department</label>
-                            <select class="form-select input-select" id="edit_department" name="department" required>
-                                <option value="">Select Department</option>
-                                <!-- Options to be populated dynamically -->
+                            <select class="form-select input-select" id="edit_department" name="department">
+                                <option value="{{ $__deptId }}" selected>{{ $__deptName }}</option>
                             </select>
                         </div>
                         <div class="mb-3 input-custom">
@@ -419,12 +478,13 @@
                         <div class="mb-3 input-custom">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="edit_project_reference_urls_container" class="d-flex flex-column gap-2">
-                                <div class="d-flex gap-2 align-items-center">
+                                <div class="input-group">
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
                                     <button type="button" class="btn btn-submit-black add-ref-url"
-                                        aria-label="Add URL"><span
-                                            class="material-symbols-outlined">add</span></button>
+                                        aria-label="Add URL">
+                                        <span class="material-symbols-outlined">add</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -589,6 +649,152 @@
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script> {{-- PENTING: project.js dulu --}}
+        <!-- Quill JS (only for Project page) -->
+        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+        <script>
+            (function(){
+                // Defer initialization until DOM and project.js are ready
+                document.addEventListener('DOMContentLoaded', function(){
+                    // Guard: only run on pages that have the add/edit editors
+                    if (!document.getElementById('add_description_editor') && !document.getElementById('edit_description_editor')) return;
+
+                    // Create Quill instances
+                    try {
+                        window.__quillAdd = new Quill('#add_description_editor', {
+                            modules: { toolbar: '#add_description_toolbar', clipboard: { matchVisual: false } },
+                            theme: 'snow',
+                            placeholder: 'Write description...'
+                        });
+                    } catch (e) { console.warn('Quill init add failed', e); }
+
+                    try {
+                        window.__quillEdit = new Quill('#edit_description_editor', {
+                            modules: { toolbar: '#edit_description_toolbar', clipboard: { matchVisual: false } },
+                            theme: 'snow',
+                            placeholder: 'Write description...'
+                        });
+                    } catch (e) { console.warn('Quill init edit failed', e); }
+
+                    // Helper to sync quill HTML into textarea (canonical form field)
+                    function syncQuillToTextarea(quill, textareaId){
+                        try {
+                            const ta = document.getElementById(textareaId);
+                            if (!ta) return;
+                            // Use innerHTML of editor root as HTML value
+                            ta.value = (quill && quill.root) ? quill.root.innerHTML.trim() : '';
+                        } catch (e) { console.warn('syncQuillToTextarea error', e); }
+                    }
+
+                    // On add form submit, sync content before FormData is built in project.js
+                    const addForm = document.getElementById('addProjectForm');
+                    if (addForm) {
+                        addForm.addEventListener('submit', function(e){
+                            if (window.__quillAdd) syncQuillToTextarea(window.__quillAdd, 'description');
+                            // Basic client-side validation: ensure description contains text
+                            try {
+                                const ta = document.getElementById('description');
+                                const html = ta ? ta.value || '' : '';
+                                const tmp = document.createElement('div'); tmp.innerHTML = html;
+                                const text = (tmp.textContent || tmp.innerText || '').trim();
+                                if (!text) {
+                                    // prevent submission and notify user
+                                    e.preventDefault(); e.stopImmediatePropagation();
+                                    try {
+                                        if (typeof showFloatingAlert === 'function') {
+                                            showFloatingAlert('Deskripsi tidak boleh kosong.', 'warning', 3500);
+                                        } else {
+                                            alert('Deskripsi tidak boleh kosong.');
+                                        }
+                                    } catch(_){}
+                                    try { window.__quillAdd && window.__quillAdd.focus(); } catch(_){}
+                                    return false;
+                                }
+                            } catch (e) { /* ignore validation errors */ }
+                        }, true); // capture so it runs before other listeners
+                    }
+
+                    // On edit form submit, sync edit quill
+                    const editForm = document.getElementById('editProjectForm');
+                    if (editForm) {
+                        editForm.addEventListener('submit', function(e){
+                            if (window.__quillEdit) syncQuillToTextarea(window.__quillEdit, 'edit_description');
+                            // Basic client-side validation: ensure description contains text
+                            try {
+                                const ta = document.getElementById('edit_description');
+                                const html = ta ? ta.value || '' : '';
+                                const tmp = document.createElement('div'); tmp.innerHTML = html;
+                                const text = (tmp.textContent || tmp.innerText || '').trim();
+                                if (!text) {
+                                    e.preventDefault(); e.stopImmediatePropagation();
+                                    try {
+                                        if (typeof showFloatingAlert === 'function') {
+                                            showFloatingAlert('Deskripsi tidak boleh kosong.', 'warning', 3500);
+                                        } else {
+                                            alert('Deskripsi tidak boleh kosong.');
+                                        }
+                                    } catch(_){}
+                                    try { window.__quillEdit && window.__quillEdit.focus(); } catch(_){}
+                                    return false;
+                                }
+                            } catch (e) { /* ignore validation errors */ }
+                        }, true);
+                    }
+
+                    // When edit modal is shown via project.js, project.js sets #edit_description textarea value.
+                    // Observe changes on that textarea and mirror into Quill so both stay in sync.
+                    const editTextarea = document.getElementById('edit_description');
+                    if (editTextarea && window.__quillEdit) {
+                        // Use MutationObserver on value attribute by intercepting property set via polling fallback
+                        const origSet = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+                        if (origSet) {
+                            // When external code sets textarea.value, also update Quill
+                            const ta = editTextarea;
+                            const observer = new MutationObserver(function(){
+                                try {
+                                    const html = ta.value || '';
+                                    // set only if different
+                                    if ((window.__quillEdit && window.__quillEdit.root && (window.__quillEdit.root.innerHTML || '')) !== html) {
+                                        window.__quillEdit.root.innerHTML = html;
+                                    }
+                                } catch(_){}
+                            });
+                            observer.observe(ta, { attributes: true, attributeFilter: ['value'] });
+                            // Also patch programmatic assignments via polling (safe fallback)
+                            let lastVal = ta.value;
+                            setInterval(function(){
+                                try {
+                                    if (ta.value !== lastVal) {
+                                        lastVal = ta.value;
+                                        const html = ta.value || '';
+                                        if (window.__quillEdit && window.__quillEdit.root) window.__quillEdit.root.innerHTML = html;
+                                    }
+                                } catch(_){}
+                            }, 300);
+                        }
+                    }
+
+                    // Also when the edit modal is hidden, clear transient file lists and keep the editor content in sync with hidden textarea
+                    const editModalEl = document.getElementById('editProjectModal');
+                    if (editModalEl && window.__quillEdit) {
+                        editModalEl.addEventListener('hidden.bs.modal', function(){
+                            try { window.__quillEdit.root.innerHTML = ''; } catch(_){}
+                            try { document.getElementById('edit_description').value = ''; } catch(_){}
+                        });
+                    }
+
+                    // When the add modal is hidden, reset the add editor
+                    const addModalEl = document.getElementById('addProjectModal');
+                    if (addModalEl && window.__quillAdd) {
+                        addModalEl.addEventListener('hidden.bs.modal', function(){
+                            try { window.__quillAdd.root.innerHTML = ''; } catch(_){}
+                            try { document.getElementById('description').value = ''; } catch(_){}
+                            // Also reset selected files array if any (projectSelectedFiles)
+                            try { projectSelectedFiles = []; displayProjectSelectedFiles(); } catch(_){}
+                        });
+                    }
+                });
+            })();
+        </script>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 window.__projectUnread = {};

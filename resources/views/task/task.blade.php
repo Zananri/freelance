@@ -4,6 +4,8 @@
     </x-slot>
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/task.css?v=' . time()) }}">
+        <!-- Quill editor styles (only for Task page) -->
+        <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
     <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
         <symbol id="check-circle-fill" fill="currentColor" viewBox="0 0 16 16">
@@ -169,7 +171,29 @@
                         </div>
                         <div class="mb-3 custom-input">
                             <label for="edit_task_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="edit_task_description" name="description" rows="6"></textarea>
+                            <!-- Quill editor container for Edit Task -->
+                            <div id="edit_task_description_toolbar">
+                                <span class="ql-formats">
+                                    <select class="ql-header">
+                                        <option value="1"></option>
+                                        <option value="2"></option>
+                                        <option selected></option>
+                                    </select>
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="ordered"></button>
+                                    <button class="ql-list" value="bullet"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-link"></button>
+                                </span>
+                            </div>
+                            <div id="edit_task_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                            <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
+                            <textarea class="form-control input-text d-none" id="edit_task_description" name="description" rows="6" style="display:none;"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
                             <label for="edit_task_project_input" class="form-label label-custom">Project
@@ -209,12 +233,12 @@
                         <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
-                                <div class="d-flex gap-2 align-items-center">
+                                <div class="input-group">
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
-                                    <button type="button" class="btn btn-submit-black add-ref-url"
-                                        aria-label="Add URL"><span
-                                            class="material-symbols-outlined">add</span></button>
+                                    <button type="button" class="btn btn-submit-black add-ref-url aria-label="Add URL">
+                                        <span class="material-symbols-outlined">add</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -248,7 +272,8 @@
                                 <option value="">Select Division</option>
                             </select>
 
-                            <div id="edit_task_division_activator" class="division-activator position-absolute" aria-hidden="true"></div>
+                            <div id="edit_task_division_activator" class="division-activator position-absolute"
+                                aria-hidden="true"></div>
                             <div id="edit_task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
                             <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
                         </div>
@@ -354,7 +379,29 @@
                         </div>
                         <div class="mb-3 custom-input">
                             <label for="task_description" class="form-label label-custom">Description</label>
-                            <textarea class="form-control input-text" id="task_description" name="description" rows="6"></textarea>
+                            <!-- Quill editor container for Add Task -->
+                            <div id="task_description_toolbar">
+                                <span class="ql-formats">
+                                    <select class="ql-header">
+                                        <option value="1"></option>
+                                        <option value="2"></option>
+                                        <option selected></option>
+                                    </select>
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="ordered"></button>
+                                    <button class="ql-list" value="bullet"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-link"></button>
+                                </span>
+                            </div>
+                            <div id="task_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                            <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
+                            <textarea class="form-control input-text d-none" id="task_description" name="description" rows="6" style="display:none;"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Project</label>
@@ -392,12 +439,12 @@
                         <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Reference URLs</label>
                             <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
-                                <div class="d-flex gap-2 align-items-center">
+                                <div class="input-group">
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
-                                    <button type="button" class="btn btn-submit-black add-ref-url"
-                                        aria-label="Add URL"><span
-                                            class="material-symbols-outlined">add</span></button>
+                                    <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                        <span class="material-symbols-outlined">add</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -467,6 +514,9 @@
                 <div class="modal-body modal-body-custom">
                     <div id="taskDetailContent"></div>
                 </div>
+                <div class="modal-footer modal-footer-custom mt-3">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -493,7 +543,7 @@
             <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
 
-                    <div class="d-flex align-items-start mb-3">
+                    <div class="d-flex mb-3">
                         <div id="statusModalAvatar" class="me-3">
 
                         </div>
@@ -501,7 +551,7 @@
                         <div class="custom-card p-0 m-0 border-0">
                             <small class="text-muted" style="font-size: 10px" id="statusModalPartofProject"></small>
                             <h5 class="fw-bold" id="statusModalTitle">Task Title</h5>
-                            <div class="task-description-container">
+                            <div class="task-description-container flex-grow-1">
                                 <p class="task-description" id="statusModalDescription">
                                     Task short description
                                 </p>
@@ -592,6 +642,94 @@
 
         <script src="{{ asset('asset/js/task.js?v=' . time()) }}"></script>
 
-        <script></script>
+        <!-- Quill editor script and initialization for Task page -->
+        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function(){
+                try {
+                    // Initialize Quill instances for Add and Edit task modals
+                    if (document.getElementById('task_description_editor')) {
+                        window.__quillTaskAdd = new Quill('#task_description_editor', {
+                            modules: { toolbar: '#task_description_toolbar' },
+                            theme: 'snow'
+                        });
+                    }
+                    if (document.getElementById('edit_task_description_editor')) {
+                        window.__quillTaskEdit = new Quill('#edit_task_description_editor', {
+                            modules: { toolbar: '#edit_task_description_toolbar' },
+                            theme: 'snow'
+                        });
+                    }
+                } catch(_) { /* noop if Quill not available */ }
+
+                function syncQuillToTextarea(quill, textareaId){
+                    try {
+                        const ta = document.getElementById(textareaId);
+                        if (!ta) return;
+                        const html = (quill && quill.root && typeof quill.root.innerHTML === 'string') ? quill.root.innerHTML : '';
+                        ta.value = html;
+                    } catch(_) {}
+                }
+
+                // Use capture-phase submit listener to ensure sync runs before any other submit handlers
+                const addForm = document.getElementById('addTaskForm');
+                if (addForm) {
+                    addForm.addEventListener('submit', function(e){
+                        try {
+                            if (window.__quillTaskAdd) syncQuillToTextarea(window.__quillTaskAdd, 'task_description');
+                            // Basic non-empty validation (strip whitespace)
+                            const plain = (window.__quillTaskAdd && typeof window.__quillTaskAdd.getText === 'function') ? window.__quillTaskAdd.getText().trim() : '';
+                            if (!plain) {
+                                e.preventDefault(); e.stopImmediatePropagation();
+                                try { window.__quillTaskAdd.focus(); } catch(_){}
+                                return false;
+                            }
+                        } catch(_) {}
+                    }, true);
+                }
+
+                const editForm = document.getElementById('editTaskForm');
+                if (editForm) {
+                    editForm.addEventListener('submit', function(e){
+                        try {
+                            if (window.__quillTaskEdit) syncQuillToTextarea(window.__quillTaskEdit, 'edit_task_description');
+                            const plain = (window.__quillTaskEdit && typeof window.__quillTaskEdit.getText === 'function') ? window.__quillTaskEdit.getText().trim() : '';
+                            if (!plain) {
+                                e.preventDefault(); e.stopImmediatePropagation();
+                                try { window.__quillTaskEdit.focus(); } catch(_){}
+                                return false;
+                            }
+                        } catch(_) {}
+                    }, true);
+                }
+
+                // Clear editors when modals hide (keep canonical textareas in sync)
+                try {
+                    $('#addTaskModal').on('hidden.bs.modal', function(){
+                        try { if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root.innerHTML = ''; } catch(_){}
+                        try { const ta = document.getElementById('task_description'); if (ta) ta.value = ''; } catch(_){}
+                    });
+                    $('#editTaskModal').on('hidden.bs.modal', function(){
+                        try { if (window.__quillTaskEdit && window.__quillTaskEdit.root) window.__quillTaskEdit.root.innerHTML = ''; } catch(_){}
+                        try { const ta = document.getElementById('edit_task_description'); if (ta) ta.value = ''; } catch(_){}
+                    });
+                } catch(_) {}
+
+                // Polling fallback: if edit textarea is updated programmatically (task.js), mirror into Quill
+                try {
+                    let lastEditTa = document.getElementById('edit_task_description')?.value || '';
+                    setInterval(function(){
+                        try {
+                            const ta = document.getElementById('edit_task_description');
+                            if (!ta || !window.__quillTaskEdit || !window.__quillTaskEdit.root) return;
+                            if (ta.value !== lastEditTa) {
+                                lastEditTa = ta.value;
+                                window.__quillTaskEdit.root.innerHTML = ta.value || '';
+                            }
+                        } catch(_) {}
+                    }, 300);
+                } catch(_) {}
+            });
+        </script>
     </x-slot>
 </x-office-layout>
