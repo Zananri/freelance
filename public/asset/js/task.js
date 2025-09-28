@@ -2624,13 +2624,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             } catch(_) { return false; }
         })();
 
-        function formatDueDate(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            const options = { day: '2-digit', month: 'short', year: 'numeric' };
-            return date.toLocaleDateString('en-GB', options).replace(',', '');
-        }
-
         let statusBadge = '';
         if (task.status === 'rejected') {
             statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
@@ -2724,7 +2717,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     </div>
                     <div style="font-size: 10px; font-weight: 400;">
                         <span style="color: #797E91;">Deadline: </span>
-                        <span style="#color: #4B4F5E">${ formatDueDate(task.due_date) }</span>
+                        <span style="#color: #4B4F5E">${ formatDateENMedium(task.due_date) }</span>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
@@ -6823,13 +6816,6 @@ function applyCurrentSearchFilter() {
                     }
                 }
 
-                function formatDueDate(dateStr) {
-                    if (!dateStr) return '';
-                    const date = new Date(dateStr);
-                    const options = { day: '2-digit', month: 'short', year: 'numeric' };
-                    return date.toLocaleDateString('en-GB', options).replace(',', '');
-                }
-
                 const showDelete = (function(){
                     try {
                         const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
@@ -6866,7 +6852,7 @@ function applyCurrentSearchFilter() {
                         </div>
                         <div style="font-size:12px;">
                             <span style="color:#797E91;">Deadline: </span>
-                            <span style="color:#4B4F5E;">${formatDueDate(task.due_date) || "-"}</span>
+                            <span style="color:#4B4F5E;">${formatDateENMedium(task.due_date) || "-"}</span>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">

@@ -640,10 +640,11 @@
 
     <x-slot name="script_slot">
 
+        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
+        <script src="{{ asset('asset/js/date_helper.js?v=' . time()) }}"></script>
         <script src="{{ asset('asset/js/task.js?v=' . time()) }}"></script>
 
         <!-- Quill editor script and initialization for Task page -->
-        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
         <script>
             document.addEventListener('DOMContentLoaded', function(){
                 try {
