@@ -1773,6 +1773,42 @@ class TaskController extends Controller
 
             $task->update($update);
 
+            // If user completing the task has an assignment record but hasn't accepted (is_receive false/null),
+            // mark their assignment as accepted so the task will be visible in index() queries that exclude
+            // tasks for users who haven't accepted assignments.
+            try {
+                $user = $request->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                if ($dbStatus === 'completed' && $employeeId) {
+                    $assignment = \App\Models\TaskAssignment::where('task_id', $task->id)
+                        ->where('employee_id', $employeeId)
+                        ->whereIn('role', ['PIC','EXECUTOR'])
+                        ->first();
+                    if ($assignment) {
+                        if (!$assignment->is_receive || $assignment->is_receive === null) {
+                            $assignment->is_receive = true;
+                            $assignment->date_receive = now();
+                            $assignment->save();
+                        }
+                    } else {
+                        // Create assignment for completer so they can see the completed task after refresh
+                        try {
+                            \App\Models\TaskAssignment::create([
+                                'task_id' => $task->id,
+                                'employee_id' => $employeeId,
+                                'role' => 'EXECUTOR',
+                                'is_receive' => true,
+                                'date_receive' => now(),
+                                'created_by' => $user->id ?? null,
+                                'updated_by' => $user->id ?? null,
+                            ]);
+                        } catch (\Throwable $_) { /* non-fatal */ }
+                    }
+                }
+            } catch (\Throwable $_) {
+                // non-fatal: do not break the status update if assignment update fails
+            }
+
             // Record status change log if status actually changed
             try {
                 $user = $request->user();

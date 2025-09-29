@@ -88,6 +88,33 @@
     }
     window.initBootstrapTooltips = initBootstrapTooltips;
 
+    try {
+        if (window.bootstrap && bootstrap.Tooltip && bootstrap.Tooltip.prototype) {
+            (function(){
+                const proto = bootstrap.Tooltip.prototype;
+                // Avoid double-patching
+                if (proto._isWithActiveTrigger && proto._isWithActiveTrigger._patched) return;
+                const orig = proto._isWithActiveTrigger;
+                proto._isWithActiveTrigger = function() {
+                    try {
+                        if (!this._activeTrigger || typeof this._activeTrigger !== 'object') {
+                            try { this._activeTrigger = {}; } catch(_) {}
+                        }
+                        return orig.call(this);
+                    } catch (_) {
+                        // Fallback: compute safely without throwing
+                        try {
+                            const at = this._activeTrigger || {};
+                            for (const v of Object.values(at)) { if (v) return true; }
+                        } catch (_) {}
+                        return false;
+                    }
+                };
+                try { proto._isWithActiveTrigger._patched = true; } catch(_){}
+            })();
+        }
+    } catch(_) {}
+
     // Helper: hide and dispose any visible Bootstrap tooltips to avoid orphaned popper nodes
     function hideAllFloatingTooltips() {
         try {
@@ -96,9 +123,6 @@
                 try {
                     const inst = bootstrap.Tooltip.getInstance(el);
                     if (inst) {
-                        // Defensive: some Tooltip instances may have missing internal state
-                        // (e.g. _activeTrigger undefined) which causes Object.values() to throw
-                        // inside bootstrap's internals. Ensure it's an object before calling hide().
                         try {
                             if (!inst._activeTrigger || typeof inst._activeTrigger !== 'object') {
                                 try { inst._activeTrigger = {}; } catch(_) {}
@@ -2266,29 +2290,8 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                     </div>
                     <form id="confirmationToCompleteForm" enctype="multipart/form-data">
                         <div class="modal-body modal-body-custom">
-                            <div class="mb-2 text-muted" style="font-size:13px;">Please provide completion details. <span class="text-danger">Complete note is required.</span></div>
-
                             <div class="mb-3 custom-input">
                                 <label class="form-label label-custom">Complete Note (required)</label>
-                                <div id="complete_note_toolbar">
-                                    <span class="ql-formats">
-                                        <select class="ql-header">
-                                            <option value="1"></option>
-                                            <option value="2"></option>
-                                            <option selected></option>
-                                        </select>
-                                        <button class="ql-bold"></button>
-                                        <button class="ql-italic"></button>
-                                        <button class="ql-underline"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-list" value="ordered"></button>
-                                        <button class="ql-list" value="bullet"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-link"></button>
-                                    </span>
-                                </div>
                                 <div id="complete_note_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
                                 <textarea class="form-control input-text d-none" id="complete_note" name="complete_note" rows="4" style="display:none;"></textarea>
                             </div>
