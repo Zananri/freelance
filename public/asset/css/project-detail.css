@@ -828,7 +828,7 @@
 
 .timeline-wrapper {
     min-height: 35vh;
-    max-height: calc(100vh - 175px);
+    max-height: calc(100vh - 500px);
     overflow-y: auto;
     position: relative;
 }
@@ -841,7 +841,7 @@
 }
 
 .timeline-wrapper::-webkit-scrollbar {
-    height: 4px;
+    width: 4px;
 }
 
 .timeline-wrapper::-webkit-scrollbar-track {
