@@ -826,7 +826,7 @@ class ScheduleController extends Controller
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
-                'existing_reference_files' => 'nullable|array',
+                'existing_reference_files' => 'nullable|json',
                 'start_date' => 'nullable|date',
                 'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'start_at' => 'required_unless:recurrence_type,daily|nullable|date',
@@ -856,16 +856,13 @@ class ScheduleController extends Controller
             // Handle existing reference files (files to keep)
             $keptFiles = [];
             $existingRefFilesInput = $request->input('existing_reference_files');
-            if (is_array($existingRefFilesInput)) {
-                $keptFiles = array_filter(array_map('strval', $existingRefFilesInput)); // ensure strings, no empty
-            } elseif (!empty($existingRefFilesInput)) {
-                // Fallback: if sent as JSON string (unlikely, but safe)
+            if (!empty($existingRefFilesInput)) {
                 $decoded = json_decode($existingRefFilesInput, true);
                 if (is_array($decoded)) {
-                    $keptFiles = array_filter(array_map('strval', $decoded));
+                    $keptFiles = array_filter(array_map('strval', $decoded)); // ensure strings, no empty
                 }
             } else {
-                // If not provided, assume all current are kept
+                // If not provided, assume all current are kept (for backward compatibility)
                 $keptFiles = is_array($schedule->reference_files) ? $schedule->reference_files : [];
             }
 
