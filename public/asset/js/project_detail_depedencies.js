@@ -62,22 +62,32 @@ function renderTaskNode(task, $template) {
     const $card = $item.find(".task-box");
     switch (visual) {
         case "complete":
-            $card.css("background-color", "#4CAF50");
+            $card.css("background-color", "#B2EECD");
             break;
         case "in-progress":
-            $card.css("background-color", "#FFC107");
+            $card.css("background-color", "#F5EFCE");
             break;
         case "late":
-            $card.css("background-color", "#F44336");
+            $card.css("background-color", "#EBA5A5");
             break;
         case "not-started":
         default:
-            $card.css("background-color", "#9E9E9E");
+            $card.css("background-color", "#DDE4E8");
             break;
     }
 
     $item.find(".task-name").text(task.title);
-    $item.find(".task-date").text(task.due_date);
+    let startText = task.start_date ? formatDateENMediumDayMonth(task.start_date) : "";
+    let dueText   = task.due_date ? formatDateENMediumDayMonth(task.due_date) : "";
+
+    let dateText = "";
+    if (startText && dueText) {
+        dateText = `${startText} - ${dueText}`;
+    } else {
+        dateText = startText || dueText;
+    }
+
+    $item.find(".task-date").text(dateText);
 
     if (task.children && task.children.length > 0) {
         const $branch = $('<div class="task-branch"></div>');
@@ -423,8 +433,6 @@ if (projectId) {
         var $tree = $("#task-tree");
         if (!$tree.length) return;
 
-        // expose a debounced schedule function so other code (or tests) can
-        // request a recalculation after layout mutations (sidebar open/close)
         var scheduleRecalc = (function () {
             var t = null;
             var inner = function () {
@@ -437,7 +445,6 @@ if (projectId) {
                 clearTimeout(t);
                 t = setTimeout(inner, delay || 40);
             };
-            // expose on window for manual triggering if needed
             window.__taskTreeScheduleRecalc = debounced;
             return debounced;
         })();
@@ -474,13 +481,9 @@ if (projectId) {
             }, 220);
         }
 
-        // Watch for DOM mutations that commonly occur when sidebar toggles
-        // (body class changes, sidebar element resized, etc). If detected,
-        // schedule a recalculation after a short debounce so connectors stay aligned.
         try {
             var moTarget = document.body;
             var mo = new MutationObserver(function (muts) {
-                // only trigger when attributes or childList change (not every text mutation)
                 scheduleRecalc(60);
             });
             mo.observe(moTarget, {
@@ -490,7 +493,6 @@ if (projectId) {
             });
             window.__taskTreeMutationObserver = mo;
         } catch (e) {
-            // ignore if MutationObserver isn't available
         }
     } catch (e) {
         console.warn("setupTreeResizeObservers error", e);
