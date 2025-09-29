@@ -273,12 +273,7 @@
                             <!-- Quill editor container for Add Project -->
                             <div id="add_description_toolbar">
                                 <!-- simple toolbar -->
-                                <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1"></option>
-                                        <option value="2"></option>
-                                        <option selected></option>
-                                    </select>
+
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
                                     <button class="ql-underline"></button>
@@ -433,12 +428,7 @@
                             <label for="edit_description" class="form-label label-custom">Description</label>
                             <!-- Quill editor container for Edit Project -->
                             <div id="edit_description_toolbar">
-                                <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1"></option>
-                                        <option value="2"></option>
-                                        <option selected></option>
-                                    </select>
+
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
                                     <button class="ql-underline"></button>
