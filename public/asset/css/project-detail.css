@@ -828,7 +828,7 @@
 
 .timeline-wrapper {
     min-height: 35vh;
-    max-height: calc(100vh - 175px);
+    max-height: calc(100vh - 500px);
     overflow-y: auto;
     position: relative;
 }
@@ -841,7 +841,7 @@
 }
 
 .timeline-wrapper::-webkit-scrollbar {
-    height: 4px;
+    width: 4px;
 }
 
 .timeline-wrapper::-webkit-scrollbar-track {
@@ -1020,13 +1020,15 @@
 }
 
 .task-box {
-    background: #fff;
-    border: 2px solid #d1d5db;
-    border-radius: 12px;
-    padding: 12px 20px;
-    min-width: 160px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    background: #f0f1f8;
+    border: 2px solid #a9b2c3;
+    border-radius: 10px;
+    padding: 8px 12px;
+    min-width: 150px;
+    text-align: left;
     position: relative;
 }
 
@@ -1057,6 +1059,19 @@
 .structure-detail-content {
     max-height: 50vh;
     overflow: auto;
+}
+
+.structure-detail-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.structure-detail-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.structure-detail-content::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
 }
 
 #task-tree {
@@ -1092,20 +1107,6 @@
     align-items: center;
     position: relative;
     margin: 0 10px;
-}
-
-.task-box {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch; /* header spans full width */
-    background: #fff;
-    border: 2px solid #d1d5db;
-    border-radius: 10px;
-    padding: 8px 12px; /* reduced padding for rectangular look */
-    min-width: 150px;
-    text-align: left; /* left-align content */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    position: relative;
 }
 
 .task-header {
@@ -1149,11 +1150,11 @@
 }
 
 .root-row {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: 40px;
-  position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 40px;
+    position: relative;
 }
 
 .task-branch {
@@ -1166,11 +1167,11 @@
 
 .connector-horizontal {
     position: relative;
-         width: 40px;
-         height: 2px;
+    width: 40px;
+    height: 2px;
     background: #d1d5db;
     flex-shrink: 0;
-         align-self: center; /* ensure it's vertically centered between parent and child */
+    align-self: center; /* ensure it's vertically centered between parent and child */
     border-radius: 0; /* keep ends square so overlap with vertical is seamless */
     z-index: 3; /* place horizontal above the vertical connector so there's no visible gap */
 }
@@ -1185,7 +1186,9 @@
 }
 
 /* SVG overlay container inside #task-tree */
-#task-tree { position: relative; }
+#task-tree {
+    position: relative;
+}
 #task-tree-svg {
     position: absolute;
     left: 0;
@@ -1214,43 +1217,43 @@
     z-index: 1;
 }
 
-    .connector-vertical {
-         width: 1px;
-         background: #d1d5db;
-         position: absolute;
-        /* place vertical along left edge of child-group so child stubs meet it */
-        left: calc(0px - 1px); /* position at very left inside child-group */
-         top: 0;
-         bottom: 0;
-        z-index: 1; /* keep vertical below horizontal (horizontal has z-index:3) */
-    }
+.connector-vertical {
+    width: 1px;
+    background: #d1d5db;
+    position: absolute;
+    /* place vertical along left edge of child-group so child stubs meet it */
+    left: calc(0px - 1px); /* position at very left inside child-group */
+    top: 0;
+    bottom: 0;
+    z-index: 1; /* keep vertical below horizontal (horizontal has z-index:3) */
+}
 
-    /* Wrapper for each child when multiple children exist. The wrapper holds
+/* Wrapper for each child when multiple children exist. The wrapper holds
        a short horizontal stub (child-connector) followed by the actual child
        .task-item so visually each child has a stub coming from the central
        vertical line. */
-    .child-wrap {
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        gap: 12px; /* small gap between stub and box */
-        position: relative;
-    }
+.child-wrap {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px; /* small gap between stub and box */
+    position: relative;
+}
 
-    .child-connector {
-        width: 24px; /* increased stub length so it reliably meets the vertical */
-        height: 2px;
-        background: #d1d5db;
-        flex-shrink: 0;
-        border-radius: 0;
-        z-index: 3; /* ensure child stubs are above the vertical */
-    }
+.child-connector {
+    width: 24px; /* increased stub length so it reliably meets the vertical */
+    height: 2px;
+    background: #d1d5db;
+    flex-shrink: 0;
+    border-radius: 0;
+    z-index: 3; /* ensure child stubs are above the vertical */
+}
 
-    /* Ensure the child-group leaves space on the left for the central vertical
+/* Ensure the child-group leaves space on the left for the central vertical
        connector and for the child stubs to align. */
-    .child-group {
-        padding-left: 28px; /* leave space for vertical + ensure stub meets cleanly */
-    }
+.child-group {
+    padding-left: 28px; /* leave space for vertical + ensure stub meets cleanly */
+}
 .status-not-started {
     background: #9ca3af;
 }
@@ -1313,7 +1316,15 @@
     margin-bottom: 8px;
     flex-shrink: 0;
 }
-.task-status.not-started { background: #9ca3af; }
-.task-status.in-progress { background: #eab308; }
-.task-status.late { background: #ef4444; }
-.task-status.complete { background: #22c55e; }
+.task-status.not-started {
+    background: #9ca3af;
+}
+.task-status.in-progress {
+    background: #eab308;
+}
+.task-status.late {
+    background: #ef4444;
+}
+.task-status.complete {
+    background: #22c55e;
+}
