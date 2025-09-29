@@ -1041,7 +1041,6 @@
     flex-direction: column;
     align-items: stretch;
     background: #f0f1f8;
-    border: 2px solid #a9b2c3;
     border-radius: 10px;
     padding: 8px 12px;
     min-width: 150px;
@@ -1067,10 +1066,6 @@
 }
 .status-not {
     background: #9ca3af;
-}
-.task-date {
-    font-size: 12px;
-    color: #6b7280;
 }
 
 .structure-detail-content {
@@ -1166,7 +1161,7 @@
 
 .task-date {
     font-size: 8px;
-    color: #C8EFD7;
+    color: #67726C;
     margin-top: 6px;
 }
 
@@ -1265,18 +1260,6 @@
 .child-group {
     padding-left: 28px;
 }
-.status-not-started {
-    background: #9ca3af;
-}
-.status-in-progress {
-    background: #eab308;
-}
-.status-late {
-    background: #ef4444;
-}
-.status-complete {
-    background: #22c55e;
-}
 
 #task-legend {
     margin-top: 20px;
@@ -1315,46 +1298,24 @@
 }
 
 .legend-dot.not-started {
-    background: #9ca3af;
+    background: #DDE4E8;
 }
 .legend-dot.in-progress {
-    background: #eab308;
+    background: #F5EFCE;
 }
 .legend-dot.late {
-    background: #ef4444;
+    background: #EBA5A5;
 }
 .legend-dot.complete {
-    background: #22c55e;
+    background: #B2EECD;
 }
 
 .legend-text {
     font-weight: 500;
 }
 
-/* Inline legend next to project title */
 #task-legend-inline {
     gap: 8px;
-}
-
-/* task-status dot inside task-box */
-.task-status {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    margin-bottom: 8px;
-    flex-shrink: 0;
-}
-.task-status.not-started {
-    background: #9ca3af;
-}
-.task-status.in-progress {
-    background: #eab308;
-}
-.task-status.late {
-    background: #ef4444;
-}
-.task-status.complete {
-    background: #22c55e;
 }
 
 .btn-submit-black.add-ref-url,

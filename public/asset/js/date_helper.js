@@ -55,11 +55,11 @@ const getDaysInMonth = (year, month) => {
   const dates = [];
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0); // Day 0 of the next month is the last day of the current month
-  
+
   for (let d = firstDay; d <= lastDay; d = addDays(d, 1)) {
     dates.push(new Date(d));
   }
-  
+
   return dates;
 };
 
@@ -82,12 +82,12 @@ const formatDateIDMedium = (date) => {
     'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
     'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
   ];
-  
+
   const day = dayNames[date.getDay()];
   const d = date.getDate();
   const m = monthNames[date.getMonth()];
   const y = date.getFullYear();
-  
+
   return `${day}, ${d} ${m} ${y}`;
 };
 
@@ -100,12 +100,12 @@ const formatDateIDFull = (date) => {
     'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
     'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
   ];
-  
+
   const day = dayNames[date.getDay()];
   const d = date.getDate();
   const m = monthNames[date.getMonth()];
   const y = date.getFullYear();
-  
+
   return `${day}, ${d} ${m} ${y}`;
 };
 
@@ -131,13 +131,27 @@ const formatDateENMedium = (date) => {
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
-  
+
   const newDate = new Date(date);
   const d = newDate.getDate();
   const m = monthNames[newDate.getMonth()];
   const y = newDate.getFullYear();
-  
+
   return `${d} ${m} ${y}`;
+};
+
+const formatDateENMediumDayMonth = (date) => {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  const newDate = new Date(date);
+  const d = newDate.getDate();
+  const m = monthNames[newDate.getMonth()];
+
+  return `${d} ${m}`;
 };
 
 // Function to format a date into a full Indonesian format with day, month, and year names.
@@ -151,12 +165,12 @@ const formatDateENMediumWithDay = (date) => {
     'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
-  
+
   const day = dayNames[newDate.getDay()];
   const d = newDate.getDate();
   const m = monthNames[newDate.getMonth()];
   const y = date.getFullYear();
-  
+
   return `${day}, ${d} ${m} ${y}`;
 };
 
@@ -169,12 +183,12 @@ const formatDateENFull = (date) => {
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
-  
+
   const day = dayNames[date.getDay()];
   const d = date.getDate();
   const m = monthNames[date.getMonth()];
   const y = date.getFullYear();
-  
+
   return `${day}, ${d} ${m} ${y}`;
 };
 
