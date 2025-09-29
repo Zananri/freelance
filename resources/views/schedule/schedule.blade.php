@@ -276,7 +276,7 @@
                                 <label for="schedule_reference_files" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" id="schedule_reference_files" name="reference_files[]"
-                                    class="form-control input-text" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    class="form-control input-text" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                                     multiple>
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="schedule_reference_files_preview" class="mt-2"></div>
@@ -575,7 +575,7 @@
                                 <label for="edit_schedule_reference_files" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" id="edit_schedule_reference_files" name="reference_files[]"
-                                    class="form-control input-text" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    class="form-control input-text" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                                     multiple>
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="edit_schedule_reference_files_preview" class="mt-2"></div>

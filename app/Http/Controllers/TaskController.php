@@ -1013,7 +1013,7 @@ class TaskController extends Controller
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
                 // Whitelist: images, PDF, Word, Excel, ZIP
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
@@ -1453,7 +1453,7 @@ class TaskController extends Controller
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
                 // Whitelist: images, PDF, Word, Excel, ZIP
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
             ]);
@@ -1711,7 +1711,7 @@ class TaskController extends Controller
                     'complete_note' => 'required|string',
                     'complete_urls' => 'nullable', // can be JSON string or array
                     'complete_files' => 'nullable|array',
-                    'complete_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                    'complete_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
                 ];
                 $completeValidator = Validator::make($request->all(), $completeRules);
                 if ($completeValidator->fails()) {
@@ -1895,7 +1895,7 @@ class TaskController extends Controller
                 'reference_urls.*' => 'nullable|url|max:255',
                 // Multiple files: whitelist same as task reference files
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
 
             ]);
 
@@ -2075,7 +2075,7 @@ class TaskController extends Controller
                 'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 // Multiple files: whitelist
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
             ]);
 
             if ($validator->fails()) {
