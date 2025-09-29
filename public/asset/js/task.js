@@ -2798,8 +2798,12 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                             </div>
                             ${task.status === 'completed'
                                 ? `
-                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
-                                    <span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}">playlist_add_check</span>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#completedModal">
+                                    <span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" style="color: #454545; font-size: 25px;">
+                                        playlist_add_check
+                                    </span>
                                     <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                                 </div>
                                 <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
@@ -8798,5 +8802,58 @@ function applyCurrentSearchFilter() {
                     }
                 });
             });
+        }
+    });
+
+    function showCompletedModal(task) {
+        console.log("Inject ke modal:", task);
+
+        const img = task.project_image || '/asset/img/avatar.png';
+        document.getElementById("completed_task_image").src = img;
+        document.getElementById("completed_task_title").textContent = task.title || '-';
+        document.getElementById("completed_task_note").innerHTML = task.complete_note || '<em>No note</em>';
+
+        const urlsContainer = document.getElementById("completed_task_urls");
+        urlsContainer.innerHTML = "";
+        if (task.complete_urls && Array.isArray(task.complete_urls) && task.complete_urls.length) {
+            task.complete_urls.forEach(u => {
+            const a = document.createElement("a");
+            a.href = u;
+            a.textContent = u;
+            a.target = "_blank";
+            urlsContainer.appendChild(a);
+            urlsContainer.appendChild(document.createElement("br"));
+            });
+        } else {
+            urlsContainer.innerHTML = "<em>-</em>";
+        }
+
+        const filesContainer = document.getElementById("completed_task_files");
+        filesContainer.innerHTML = "";
+        if (task.complete_files && Array.isArray(task.complete_files) && task.complete_files.length) {
+            task.complete_files.forEach(f => {
+            const a = document.createElement("a");
+            a.href = f.url || f;
+            a.textContent = f.name || f;
+            a.target = "_blank";
+            filesContainer.appendChild(a);
+            filesContainer.appendChild(document.createElement("br"));
+            });
+        } else {
+            filesContainer.innerHTML = "<em>-</em>";
+        }
+    }
+
+    document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("playlist_add_check")) {
+            const taskId = e.target.getAttribute("data-task-id");
+
+            const task = (allTasksCache?.completed?.tasks || []).find(t => t.id == taskId);
+
+            if (task) {
+            showCompletedModal(task);
+            } else {
+            console.warn("Task not found for ID:", taskId);
+            }
         }
     });
