@@ -2598,7 +2598,7 @@
                                         var list = document.createElement('div');
                                         list.className = 'existing-files-list w-100';
 
-                                        existingFiles.forEach(function(fn) {
+                                        existingFiwles.forEach(function(fn) {
                                             var item = document.createElement('div');
                                             item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
 

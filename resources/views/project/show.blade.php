@@ -43,7 +43,7 @@
                         <div class="d-flex align-items-center mb-1">
                             <img id="project-image" src="{{ asset('asset/img/image.png') }}" alt="project detail image"
                                 class="project-detail-image me-3">
-                                <h4 id="project-title" class="project-detail-title m-0 d-flex align-items-center">-</h4>
+                            <h4 id="project-title" class="project-detail-title m-0 d-flex align-items-center">-</h4>
                         </div>
                         <div class="description-container mb-1">
                             <p id="project-description" class="description-detail">-</p>
@@ -327,16 +327,16 @@
                                 <!-- Quill toolbar + editor (visual) -->
                                 <div id="edit_description_toolbar">
                                     <span class="ql-formats">
-                                        <button class="ql-bold" title="Bold"></button>
-                                        <button class="ql-italic" title="Italic"></button>
-                                        <button class="ql-underline" title="Underline"></button>
+                                        <button class="ql-bold"></button>
+                                        <button class="ql-italic"></button>
+                                        <button class="ql-underline"></button>
                                     </span>
                                     <span class="ql-formats">
-                                        <button class="ql-list" value="bullet" title="Bullet list"></button>
-                                        <button class="ql-list" value="ordered" title="Ordered list"></button>
+                                        <button class="ql-list" value="ordered"></button>
+                                        <button class="ql-list" value="bullet"></button>
                                     </span>
                                     <span class="ql-formats">
-                                        <button class="ql-link" title="Link"></button>
+                                        <button class="ql-link"></button>
                                     </span>
                                 </div>
 
@@ -388,7 +388,8 @@
                                 <label for="edit_reference_file" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" class="form-control input-text" id="edit_reference_file"
-                                    name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                    name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    multiple>
                                 <div id="edit_reference_files_preview" class="mt-2"></div>
                                 <div id="existing_reference_files" class="mt-2"></div>
                                 <input type="hidden" id="existing_reference_files_input"
@@ -571,36 +572,56 @@
                 if (!document.getElementById('edit_description_editor')) return;
 
                 // helper to block image drag/drop and paste at capture phase (prevents transient insertions)
-                function preventImageDropAndPaste(quill, editorSelector){
+                function preventImageDropAndPaste(quill, editorSelector) {
                     try {
                         var editor = document.querySelector(editorSelector);
                         if (!editor || !quill) return;
                         // capture-phase listeners to stop native insertions before Quill handlers run
-                        editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); }catch(_){} }, true);
-                        editor.addEventListener('drop', function(e){
+                        editor.addEventListener('dragover', function(e) {
+                            try {
+                                e.preventDefault();
+                            } catch (_) {}
+                        }, true);
+                        editor.addEventListener('drop', function(e) {
                             try {
                                 if (!e.dataTransfer) return;
                                 var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
                                 var html = '';
-                                try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
-                                if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
-                            } catch(_) {}
+                                try {
+                                    html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || '';
+                                } catch (_) {}
+                                if (hasFiles || /<img\s*/i.test(html)) {
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
+                                    return;
+                                }
+                            } catch (_) {}
                         }, true);
-                        editor.addEventListener('paste', function(e){
+                        editor.addEventListener('paste', function(e) {
                             try {
                                 var clipboard = (e.clipboardData || window.clipboardData);
                                 if (!clipboard) return;
                                 var items = clipboard.items || [];
                                 for (var i = 0; i < items.length; i++) {
                                     var t = items[i].type || '';
-                                    if (t.indexOf && t.indexOf('image') === 0) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+                                    if (t.indexOf && t.indexOf('image') === 0) {
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return;
+                                    }
                                 }
                                 var html = '';
-                                try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
-                                if (/<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
-                            } catch(_) {}
+                                try {
+                                    html = clipboard.getData && clipboard.getData('text/html') || '';
+                                } catch (_) {}
+                                if (/<img\s*/i.test(html)) {
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
+                                    return;
+                                }
+                            } catch (_) {}
                         }, true);
-                    } catch(_) {}
+                    } catch (_) {}
                 }
 
                 function syncQuillToTextarea(quill, textareaId) {
@@ -626,19 +647,37 @@
                     // Add clipboard matcher to drop IMG nodes early in Quill pipeline
                     try {
                         var Delta = Quill.import && Quill.import('delta');
-                        if (window.__quillProjectDetailEdit && window.__quillProjectDetailEdit.clipboard && typeof window.__quillProjectDetailEdit.clipboard.addMatcher === 'function') {
-                            try { window.__quillProjectDetailEdit.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } }); } catch(_) {}
+                        if (window.__quillProjectDetailEdit && window.__quillProjectDetailEdit.clipboard && typeof window
+                            .__quillProjectDetailEdit.clipboard.addMatcher === 'function') {
+                            try {
+                                window.__quillProjectDetailEdit.clipboard.addMatcher('IMG', function(node, delta) {
+                                    try {
+                                        return new Delta();
+                                    } catch (_) {
+                                        return delta;
+                                    }
+                                });
+                            } catch (_) {}
                         }
-                    } catch(_) {}
+                    } catch (_) {}
 
                     // safety-net: remove any img elements if they somehow appear
                     try {
                         if (window.__quillProjectDetailEdit && typeof window.__quillProjectDetailEdit.on === 'function') {
-                            window.__quillProjectDetailEdit.on('text-change', function(){ try { var imgs = window.__quillProjectDetailEdit.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                            window.__quillProjectDetailEdit.on('text-change', function() {
+                                try {
+                                    var imgs = window.__quillProjectDetailEdit.root.querySelectorAll('img');
+                                    imgs.forEach(function(i) {
+                                        i.remove();
+                                    });
+                                } catch (_) {}
+                            });
                         }
-                    } catch(_) {}
+                    } catch (_) {}
 
-                    try { preventImageDropAndPaste(window.__quillProjectDetailEdit, '#edit_description_editor'); } catch(_) {}
+                    try {
+                        preventImageDropAndPaste(window.__quillProjectDetailEdit, '#edit_description_editor');
+                    } catch (_) {}
                 } catch (e) {
                     console.error('Quill init failed', e);
                 }
