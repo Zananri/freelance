@@ -22,6 +22,7 @@ use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\AttendanceTrackingController;
+use App\Http\Controllers\WeekdayOffController;
 
 use App\Http\Controllers\DashboardController;
 
@@ -290,6 +291,9 @@ Route::middleware('auth', 'management')->group(function () {
 
     Route::post('/leave/approve-employee-leave-request', [LeaveController::class, 'approveEmployeeLeaveRequest'])->name('leave.approveEmployeeLeaveRequest');
     Route::post('/leave/reject-employee-leave-request', [LeaveController::class, 'rejectEmployeeLeaveRequest'])->name('leave.rejectEmployeeLeaveRequest');
+
+    Route::get('/weekdays_off', [WeekdayOffController::class, 'showWeekdayOffPage'])->name('weekday_off');
+    Route::get('/weekdays_off/export/weekday_off_{department}_{division}.xlsx', [WeekdayOffController::class, 'exportEmployeeWeekdayOff'])->name('weekday_off.exportEmployeeWeekdayOff');
 
 });
 

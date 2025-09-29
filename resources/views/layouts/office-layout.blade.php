@@ -299,7 +299,12 @@
                             <span class="text-menu">Shift</span>
                         </a>
                     </li>
-
+                    <li>
+                        <a href="{{ route('weekday_off') }}" class="{{ $menu_active == 'weekday_off' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">date_range</span>
+                            <span class="text-menu">Weekday Off</span>
+                        </a>
+                    </li>
                     <li>
                         <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">groups</span>

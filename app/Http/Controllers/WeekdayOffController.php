@@ -19,13 +19,20 @@ use App\Models\User;
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
 use App\Models\Employee;
+use App\Models\Department;
+use App\Models\Division;
 
-
-class AttendanceTrackingController extends Controller
+class WeekdayOffController extends Controller
 {
-    public function showAttendanceTrackingPage()
+    public function showWeekdayOffPage()
     {
-        $employee = Employee::select('employees.id','employees.user_id','employees.department_id','employees.division_id','employees.name','employees.status','employees.photo',
+        $employee = Employee::select('employees.id','employees.user_id',
+            'employees.department_id',
+            'employees.division_id',
+            'employees.name',
+            'employees.status',
+            'employees.photo',
+            'employees.weekday_off',
             'job_list.job_name'
         )
         ->join('job_list','employees.job_id','=','job_list.id')
@@ -35,108 +42,18 @@ class AttendanceTrackingController extends Controller
         ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 
-        return view('attendance_tracking.attendance_tracking',[
-            'employee' => $employee
+        $department = Department::where('status','ACTIVE')->get();
+        $division = Division::where('status','ACTIVE')->get();
+
+        return view('weekday_off.weekday_off',[
+            'employee'      => $employee,
+            'department'    => $department,
+            'division'      => $division
+            
         ]);
     }
 
-    public function getAttendanceTrackingData(Request $request){
-
-        $month = Carbon::today()->format('n');
-        $year = Carbon::today()->format('Y');
-
-        if(isset($request->MONTH)){
-            $month = $request->MONTH;
-        }
-
-        if(isset($request->YEAR)){
-            $year = $request->YEAR;
-        }
-
-        $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
-        $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
-
-        $employee = Employee::select('employees.id')
-            ->join('users','employees.user_id','=','users.id')
-            ->where('employees.status',"ACTIVE")
-            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-        ->get();
-
-        $employeeIds = $employee->pluck('id');
-
-        $attendance = Attendance::where('date_attendance','>=',$firstDayOfMonth)
-            ->whereIn('employee_id',$employeeIds)
-            ->where('date_attendance','<=',$lastDayOfMonth)
-            ->get();
-
-            //dd($month,$year, $firstDayOfMonth,$lastDayOfMonth,$attendance);
-        return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'data' => $attendance,
-                'message' => 'Get attendance tracking data successfully'
-        ]);
-
-    }
-    
-    public function getAttendanceDetail(Request $request){
-
-        try{
-            
-            $employeeId = 0;
-            $dateAttendance = Carbon::now()->toDateString();
-
-            if(isset($request->EMPLOYEE_ID)){
-                $employeeId = $request->EMPLOYEE_ID;
-            }
-
-            if(isset($request->DATE_ATTENDANCE)){
-                $dateAttendance = Carbon::parse($request->DATE_ATTENDANCE)->toDateString();
-            }
-
-            $attendance = Attendance::where('employee_id', $employeeId)
-                ->where('date_attendance', $dateAttendance)
-            ->first();
- 
-            if(!$attendance){
-                throw new \Exception('Attendance not found');
-            }
-
-            $employee = Employee::where('id', $employeeId)->first();
-
-            if(!$employee){
-                throw new \Exception('Employee not found');
-            }
-
-            $attendanceTracking = AttendanceTracking::where('attendance_id', $attendance->id)
-            ->get();
-            
-
-            return response()->json([
-                    'code' => 200,
-                    'status' => 'success',
-                    'data' => [
-                        'employee'  => $employee,
-                        'attendance' => $attendance,
-                        'attendance_tracking' => $attendanceTracking
-                    ],
-                    'message' => 'Succeess get attendance detail'
-            ]);
-
-        }catch (\Exception $e){
-
-            return response()->json([
-                'code' => 500,
-                'status' => 'error',
-                'data' => [],
-                'message' => $e->getMessage()
-            ], 500);
-
-        }
-    }
-
-    public function exportAttendanceMonthly($year,$month){
+    public function exportAttendanceMonthly($deparmentId,$divisionId){
         
 
         $monthFull = $month;
@@ -153,8 +70,17 @@ class AttendanceTrackingController extends Controller
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE")
             ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-        ->get();
+        ->whereNotIn('users.user_type',["ADMINISTRATOR"]);
+
+        if($deparmentId != 'all'){
+            $employee = $employee->where('department_id', $deparmentId);
+        }
+        if($divisionId != 'all'){
+            $employee = $employee->where('division_id', $divisionId);
+        }
+
+        
+        $employee = $employee->get();
 
         $employeeIds = $employee->pluck('id');
 
@@ -369,4 +295,5 @@ class AttendanceTrackingController extends Controller
         return response()->download($tempFileName,$fileName)->deleteFileAfterSend(true);
 
     }
+    //
 }
