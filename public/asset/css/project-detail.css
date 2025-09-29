@@ -1097,34 +1097,55 @@
 .task-box {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch; /* header spans full width */
     background: #fff;
     border: 2px solid #d1d5db;
-    border-radius: 12px;
-    padding: 12px 20px;
+    border-radius: 10px;
+    padding: 8px 12px; /* reduced padding for rectangular look */
     min-width: 150px;
-    text-align: center;
+    text-align: left; /* left-align content */
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     position: relative;
+}
+
+.task-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
 }
 
 .task-status {
     width: 12px;
     height: 12px;
     border-radius: 50%;
-    margin-bottom: 8px;
     flex-shrink: 0;
+    display: inline-block;
+    /* small downward nudge so it visually sits exactly middle of the title text */
+    transform: translateY(2px);
 }
 
 .task-name {
-    font-weight: 500;
+    font-weight: 600;
     font-size: 14px;
-    margin-bottom: 4px;
+    line-height: 1;
+    color: #222;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .task-date {
     font-size: 12px;
     color: #6b7280;
+    margin-top: 6px;
+}
+
+/* Align the date under the title (not under the status dot). The left margin
+   equals the status dot width (12px) plus the gap defined in .task-header (8px).
+   This keeps the date visually starting exactly beneath the task title. */
+.task-box .task-date {
+    margin-left: calc(12px + 8px);
 }
 
 .root-row {
@@ -1278,3 +1299,21 @@
 .legend-text {
     font-weight: 500;
 }
+
+/* Inline legend next to project title */
+#task-legend-inline {
+    gap: 8px;
+}
+
+/* task-status dot inside task-box */
+.task-status {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+.task-status.not-started { background: #9ca3af; }
+.task-status.in-progress { background: #eab308; }
+.task-status.late { background: #ef4444; }
+.task-status.complete { background: #22c55e; }

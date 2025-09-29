@@ -43,7 +43,7 @@
                         <div class="d-flex align-items-center mb-1">
                             <img id="project-image" src="{{ asset('asset/img/image.png') }}" alt="project detail image"
                                 class="project-detail-image me-3">
-                            <h4 id="project-title" class="project-detail-title m-0 d-flex align-items-center">-</h4>
+                                <h4 id="project-title" class="project-detail-title m-0 d-flex align-items-center">-</h4>
                         </div>
                         <div class="description-container mb-1">
                             <p id="project-description" class="description-detail">-</p>
@@ -125,8 +125,10 @@
 
                         <div id="task-template" class="d-none task-item">
                             <div class="task-box">
-                                <span class="task-status"></span>
-                                <span class="task-name"></span>
+                                <div class="task-header">
+                                    <span class="task-status"></span>
+                                    <span class="task-name"></span>
+                                </div>
                                 <div class="task-date"></div>
                             </div>
                         </div>
