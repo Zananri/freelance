@@ -1508,7 +1508,7 @@
 
         function createRemoveButton() {
             return makeBtn(`
-                <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL">
+                <button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             `);
@@ -2350,7 +2350,7 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                 const row = document.createElement('div');
                 row.className = 'input-group';
                 const input = document.createElement('input'); input.type = 'url'; input.name = 'complete_urls[]'; input.placeholder = 'https://example.com'; input.className = 'form-control input-text';
-                const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn btn-danger remove-ref-url'; rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn btn-remove-url remove-ref-url'; rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
                 row.appendChild(input); row.appendChild(rm);
                 addBtn.closest('.input-group').after(row);
                 return;
@@ -5929,7 +5929,7 @@ function applyCurrentSearchFilter() {
                     row.className = 'd-flex gap-2 align-items-center';
                     const controls = (idx === 0)
                         ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
-                        : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                        : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
                     row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" value="${u}" placeholder="https://example.com">${controls}`;
                     container.appendChild(row);
                 });
@@ -7454,7 +7454,7 @@ function applyCurrentSearchFilter() {
                         row.className = 'input-group';
                         const controls = (idx === 0)
                             ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
-                            : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                            : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
                         row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
                         container.appendChild(row);
                     });
