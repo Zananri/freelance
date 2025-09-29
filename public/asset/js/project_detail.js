@@ -1052,7 +1052,7 @@
                         var container = modalBody.querySelector('#existing_feedback_reference_files'); var hidden = modalBody.querySelector('#existing_feedback_reference_files_input'); if (!container || !hidden) return; var files = []; if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls.slice(); else if (Array.isArray(data.reference_files)) files = data.reference_files.slice(); else if (data.reference_file_url) files = [data.reference_file_url]; else if (data.reference_file) files = [data.reference_file]; function toUrl(v) { if (!v) return ''; var s = String(v); if (s.startsWith('http://') || s.startsWith('https://')) return s; if (s.startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + s; return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + s; } function toName(u) { if (!u) return ''; var s = String(u); if (s.startsWith('http://') || s.startsWith('https://')) { try { return new URL(s).pathname.split('/').pop(); } catch(_) { return s.split('/').pop(); } } return s.split('/').pop(); }
                         container.innerHTML = '';
                         if ((files || []).length > 0) {
-                            var title = document.createElement('div'); title.className='fw-bold mb-2'; title.textContent='Current Files:'; container.appendChild(title);
+                            // var title = document.createElement('div'); title.className='fw-bold mb-2'; title.textContent='Current Files:'; container.appendChild(title);
                             var list = document.createElement('div'); list.className='existing-files-list w-100'; files.forEach(function(f){ var url = toUrl(f); var name = toName(f); if (!name) return; var item = document.createElement('div'); item.className='existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded'; var info = document.createElement('div'); info.className='d-flex align-items-center flex-grow-1'; var icon = document.createElement('span'); icon.className='material-symbols-outlined me-2'; icon.textContent='description'; var link = document.createElement('a'); link.href = url; link.textContent = name; link.className = 'text-decoration-none'; link.target = '_blank'; var removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-outline-danger'; removeBtn.innerHTML='&times;'; removeBtn.onclick = function(){ item.remove(); try { var anchors = container.querySelectorAll('.existing-file-item a'); var next = Array.from(anchors).map(function(a){ return (a.textContent||'').trim(); }).filter(Boolean); hidden.value = JSON.stringify(next); } catch(_){} }; info.appendChild(icon); info.appendChild(link); item.appendChild(info); item.appendChild(removeBtn); list.appendChild(item); }); container.appendChild(list); }
                         try { var anchors = container.querySelectorAll('.existing-file-item a'); var names = Array.from(anchors).map(function(a){ return (a.textContent||'').trim(); }).filter(Boolean); hidden.value = JSON.stringify(names); } catch(_) { hidden.value = '[]'; }
                     } catch (_) {}
@@ -2590,10 +2590,10 @@
                                 if (existingContainer) {
                                     existingContainer.innerHTML = '';
                                     if (existingFiles.length > 0) {
-                                        var title = document.createElement('div');
-                                        title.className = 'fw-bold mb-2';
-                                        title.textContent = 'Current Files:';
-                                        existingContainer.appendChild(title);
+                                        // var title = document.createElement('div');
+                                        // title.className = 'fw-bold mb-2';
+                                        // title.textContent = 'Current Files:';
+                                        // existingContainer.appendChild(title);
 
                                         var list = document.createElement('div');
                                         list.className = 'existing-files-list w-100';
