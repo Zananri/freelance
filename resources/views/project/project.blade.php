@@ -665,47 +665,68 @@
                         });
                     } catch (e) { console.warn('Quill init edit failed', e); }
 
-                    // Helper to sync quill HTML into textarea (canonical form field)
+                    // Harden: ensure pasted/dropped images are not inserted (defense-in-depth)
+                    try {
+                        var Delta = Quill.import && Quill.import('delta');
+
+                        if (window.__quillAdd && window.__quillAdd.clipboard && typeof window.__quillAdd.clipboard.addMatcher === 'function') {
+                            window.__quillAdd.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                        }
+                        if (window.__quillAdd && typeof window.__quillAdd.on === 'function') {
+                            window.__quillAdd.on('text-change', function(){ try { var imgs = window.__quillAdd.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                        }
+
+                        if (window.__quillEdit && window.__quillEdit.clipboard && typeof window.__quillEdit.clipboard.addMatcher === 'function') {
+                            window.__quillEdit.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                        }
+                        if (window.__quillEdit && typeof window.__quillEdit.on === 'function') {
+                            window.__quillEdit.on('text-change', function(){ try { var imgs = window.__quillEdit.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                        }
+                    } catch(_) {}
+
+                    // Helper: install capture-phase listeners on the editor container to block image drag/drop and paste
                     function preventImageDropAndPaste(quill, editorSelector){
                         try {
                             var editor = document.querySelector(editorSelector);
                             if (!editor || !quill) return;
-                            editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); }catch(_){}});
-                            editor.addEventListener('drop', function(e){
+
+                            // Use capture-phase listeners to intercept before Quill handlers run
+                            editor.addEventListener('dragover', function(ev){
                                 try {
-                                    if (!e.dataTransfer) return;
-                                    var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
-                                    var html = '';
-                                    try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
-                                    if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); }
-                                } catch(_) {}
-                            });
-                            editor.addEventListener('paste', function(e){
+                                    var dt = ev.dataTransfer || ev.clipboardData;
+                                    var types = dt && dt.types ? Array.from(dt.types || []) : [];
+                                    if (types.indexOf && types.indexOf('Files') !== -1) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                } catch(_){}
+                            }, true);
+
+                            editor.addEventListener('drop', function(ev){
                                 try {
-                                    var clipboard = (e.clipboardData || window.clipboardData);
-                                    if (!clipboard) return;
-                                    var items = clipboard.items || [];
-                                    var hasImage = false;
-                                    for (var i = 0; i < items.length; i++) {
-                                        var t = items[i].type || '';
-                                        if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
-                                    }
-                                    var html = '';
-                                    try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
-                                    if (hasImage || /<img\s*/i.test(html)) {
-                                        e.preventDefault(); e.stopImmediatePropagation();
-                                        if (html) {
-                                            var sanitized = html.replace(/<img[\s\S]*?>/gi, '');
-                                            if (!sanitized || !sanitized.trim()) sanitized = clipboard.getData('text/plain') || '';
-                                            try { var range = quill.getSelection(true); quill.clipboard.dangerouslyPasteHTML(range ? range.index : quill.getLength(), sanitized); } catch(_) {}
-                                        } else {
-                                            var text = clipboard.getData && clipboard.getData('text/plain') || '';
-                                            try { var range2 = quill.getSelection(true); if (text) quill.insertText(range2 ? range2.index : quill.getLength(), text); } catch(_) {}
+                                    var dt = ev.dataTransfer;
+                                    if (dt && dt.files && dt.files.length) {
+                                        for (var i=0;i<dt.files.length;i++){
+                                            var f = dt.files[i];
+                                            if (f && f.type && f.type.indexOf('image') === 0) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
                                         }
                                     }
-                                } catch(_) {}
-                            });
-                        } catch(_) {}
+                                } catch(_){}
+                            }, true);
+
+                            editor.addEventListener('paste', function(ev){
+                                try {
+                                    var cb = ev.clipboardData || window.clipboardData;
+                                    if (!cb) return;
+                                    // If clipboard contains image items, block immediately
+                                    if (cb.items && cb.items.length) {
+                                        for (var j=0;j<cb.items.length;j++){
+                                            var it = cb.items[j];
+                                            if (it && it.type && it.type.indexOf && it.type.indexOf('image') !== -1) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                        }
+                                    }
+                                    // If HTML contains <img>, block
+                                    try { var html = cb.getData && cb.getData('text/html'); if (html && /<img\s+/i.test(html)) { ev.preventDefault(); ev.stopImmediatePropagation(); return; } } catch(_){ }
+                                } catch(_){}
+                            }, true);
+                        } catch(_){}
                     }
 
                     function syncQuillToTextarea(quill, textareaId){

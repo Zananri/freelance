@@ -349,3 +349,44 @@ function getTaskByProject(projectId) {
 if (projectId) {
     getTaskByProject(projectId);
 }
+
+(function setupTreeResizeObservers(){
+    try {
+        var $tree = $('#task-tree');
+        if (!$tree.length) return;
+
+        var scheduleRecalc = function(){
+            try { setTimeout(function(){ adjustConnectors(); drawSvgConnectors(); }, 30); } catch(_){ }
+        };
+        
+        if (typeof window.ResizeObserver !== 'undefined') {
+            var ro = new ResizeObserver(function(){ scheduleRecalc(); });
+            ro.observe($tree[0]);
+            var $parent = $tree.closest('.structure-detail-content');
+            if (!$parent.length) $parent = $tree.parent();
+            if ($parent.length && $parent[0] !== $tree[0]) ro.observe($parent[0]);
+            window.__taskTreeResizeObserver = ro;
+        } else {
+            
+            var lastW = $tree.width();
+            var lastH = $tree.height();
+            var $parent2 = $tree.closest('.structure-detail-content');
+            if (!$parent2.length) $parent2 = $tree.parent();
+            var lastPW = $parent2.length ? $parent2.width() : null;
+
+            window.__taskTreeInterval = setInterval(function(){
+                try {
+                    var w = $tree.width();
+                    var h = $tree.height();
+                    var pW = $parent2.length ? $parent2.width() : null;
+                    if (w !== lastW || h !== lastH || pW !== lastPW) {
+                        lastW = w; lastH = h; lastPW = pW;
+                        scheduleRecalc();
+                    }
+                } catch(_){}
+            }, 220); 
+        }
+    } catch (e) {
+        console.warn('setupTreeResizeObservers error', e);
+    }
+})();
