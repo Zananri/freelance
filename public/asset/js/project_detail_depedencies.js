@@ -28,7 +28,34 @@ function renderTaskNode(task, $template) {
     const normalizedStatus = normalizeStatus(task.status);
     let $item = $template.clone().removeClass("d-none").removeAttr("id");
 
-    $item.find(".task-status").addClass(`status-${normalizedStatus}`);
+    // Determine visual status for legend & dot
+    let visual = 'not-started';
+    try {
+        const s = String((task.status || '')).toLowerCase();
+        if (s === 'new_request' || s === 'new request' || s === 'new-request' || s === 'new_request') {
+            visual = 'not-started';
+        } else if (s === 'in_progress' || s === 'in progress' || s === 'in-progress') {
+            visual = 'in-progress';
+        } else if (s === 'complete' || s === 'completed') {
+            visual = 'complete';
+        } else {
+            visual = normalizedStatus || 'not-started';
+        }
+
+        // late detection: if due_date present and today > due_date and not complete
+        if (task.due_date && visual !== 'complete') {
+            const due = new Date(task.due_date);
+            const today = new Date();
+            // normalize dates (midnight) for comparison
+            due.setHours(0,0,0,0);
+            today.setHours(0,0,0,0);
+            if (!isNaN(due.getTime()) && today > due) {
+                visual = 'late';
+            }
+        }
+    } catch (e) { /* ignore */ }
+
+    $item.find(".task-status").addClass(visual);
     $item.find(".task-name").text(task.title);
     $item.find(".task-date").text(task.due_date);
 
@@ -184,14 +211,24 @@ function ensureSvgOverlay() {
         $('#task-tree').append($svg);
     }
     // ensure SVG covers the full scrollable area inside #task-tree
-    const tree = document.getElementById('task-tree');
-    if (tree) {
-        const w = tree.scrollWidth;
-        const h = tree.scrollHeight;
+    const $tree = $('#task-tree');
+    if ($tree.length) {
+        const w = $tree.prop('scrollWidth');
+        const h = $tree.prop('scrollHeight');
         $svg.attr('width', w).attr('height', h).attr('viewBox', `0 0 ${w} ${h}`);
     }
     $svg.css({ left: 0, top: 0 });
     return $svg;
+}
+
+// Helper: create an SVG element with namespace then return as jQuery object
+function createSvgEl(tagName, attrs) {
+    const el = document.createElementNS('http://www.w3.org/2000/svg', tagName);
+    const $el = $(el);
+    if (attrs) {
+        $el.attr(attrs);
+    }
+    return $el;
 }
 
 function drawSvgConnectors() {
@@ -199,12 +236,11 @@ function drawSvgConnectors() {
         const $svg = ensureSvgOverlay();
         // clear
         $svg.empty();
-
     // compute bounding of tree to set SVG viewbox using scroll sizes (covers full area)
-    const tree = document.getElementById('task-tree');
-    const treeOff = $('#task-tree').offset();
-    const treeW = tree ? tree.scrollWidth : $('#task-tree').outerWidth();
-    const treeH = tree ? tree.scrollHeight : $('#task-tree').outerHeight();
+    const $tree = $('#task-tree');
+    const treeOff = $tree.offset();
+    const treeW = ($tree.prop('scrollWidth') || $tree.outerWidth());
+    const treeH = ($tree.prop('scrollHeight') || $tree.outerHeight());
     $svg.attr('width', treeW).attr('height', treeH).attr('viewBox', `0 0 ${treeW} ${treeH}`);
 
         // for each branch, find parent box and children boxes
@@ -236,44 +272,46 @@ function drawSvgConnectors() {
             const ys = childCenters.map(c => c.y).sort((a,b)=>a-b);
             const vTop = ys[0];
             const vBottom = ys[ys.length-1];
-            const vLine = document.createElementNS('http://www.w3.org/2000/svg','line');
-            vLine.setAttribute('x1', verticalX);
-            vLine.setAttribute('y1', vTop);
-            vLine.setAttribute('x2', verticalX);
-            vLine.setAttribute('y2', vBottom);
-            vLine.setAttribute('stroke','#d1d5db');
-            vLine.setAttribute('stroke-width','1');
-            vLine.setAttribute('stroke-linecap','butt');
-            vLine.setAttribute('stroke-linejoin','miter');
-            $svg[0].appendChild(vLine);
+            const $vLine = createSvgEl('line', {
+                x1: verticalX,
+                y1: vTop,
+                x2: verticalX,
+                y2: vBottom,
+                stroke: '#d1d5db',
+                'stroke-width': '1',
+                'stroke-linecap': 'butt',
+                'stroke-linejoin': 'miter'
+            });
+            $svg.append($vLine);
 
             // for each child draw a straight horizontal stub from verticalX to the child's left edge
             childCenters.forEach(function(ch){
                 const cX = ch.x;
                 const cY = ch.y;
                 // small horizontal stub from verticalX to child box left edge
-                const stub = document.createElementNS('http://www.w3.org/2000/svg','line');
-                stub.setAttribute('x1', verticalX);
-                stub.setAttribute('y1', cY);
-                // connect exactly to the child's left edge
-                stub.setAttribute('x2', cX);
-                stub.setAttribute('y2', cY);
-                stub.setAttribute('stroke','#d1d5db');
-                stub.setAttribute('stroke-width','2');
-                stub.setAttribute('stroke-linecap','butt');
-                $svg[0].appendChild(stub);
+                const $stub = createSvgEl('line', {
+                    x1: verticalX,
+                    y1: cY,
+                    x2: cX,
+                    y2: cY,
+                    stroke: '#d1d5db',
+                    'stroke-width': '2',
+                    'stroke-linecap': 'butt'
+                });
+                $svg.append($stub);
             });
 
             // also draw a short horizontal connector from parent right edge toward verticalX
-            const parentStub = document.createElementNS('http://www.w3.org/2000/svg','line');
-            parentStub.setAttribute('x1', pX);
-            parentStub.setAttribute('y1', pY);
-            parentStub.setAttribute('x2', verticalX); // meet exactly at verticalX
-            parentStub.setAttribute('y2', pY);
-            parentStub.setAttribute('stroke','#d1d5db');
-            parentStub.setAttribute('stroke-width','2');
-            parentStub.setAttribute('stroke-linecap','butt');
-            $svg[0].appendChild(parentStub);
+            const $parentStub = createSvgEl('line', {
+                x1: pX,
+                y1: pY,
+                x2: verticalX,
+                y2: pY,
+                stroke: '#d1d5db',
+                'stroke-width': '2',
+                'stroke-linecap': 'butt'
+            });
+            $svg.append($parentStub);
         });
     } catch (e) { console.warn('drawSvgConnectors error', e); }
 }
