@@ -1065,6 +1065,7 @@
 
 .structure-detail-content::-webkit-scrollbar {
     width: 4px;
+    height: 4px;
 }
 
 .structure-detail-content::-webkit-scrollbar-track {
@@ -1082,7 +1083,7 @@
     align-items: flex-start;
     justify-content: flex-start;
     gap: 40px;
-    overflow: auto;
+    /* overflow: auto; */
     padding: 20px 20px 20px 0;
 }
 
