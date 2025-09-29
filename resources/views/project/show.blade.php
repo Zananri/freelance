@@ -102,7 +102,7 @@
                         <div id="task-error" class="alert alert-danger d-none" role="alert">
                             Failed to load tasks. Please try again.
                         </div>
-                        <div class="header-structure-content d-flex justify-content-end">
+                        <div class="header-content-tree d-flex justify-content-end position-absolute">
                             <button class="btn btn-sm border-0 me-3 exit-fullscreen-btn" type="button" id="fullscreen-tree-btn">
                                 <span class="material-symbols-outlined">fullscreen</span>
                             </button>
