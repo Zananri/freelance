@@ -826,6 +826,10 @@
     max-height: 100%;
 }
 
+.header-content-tree {
+    right: 0;
+}
+
 .structure-detail-content.fullscreen {
     position: fixed;
     top: 85px;
