@@ -8809,51 +8809,65 @@ function applyCurrentSearchFilter() {
         console.log("Inject ke modal:", task);
 
         const img = task.project_image || '/asset/img/avatar.png';
-        document.getElementById("completed_task_image").src = img;
-        document.getElementById("completed_task_title").textContent = task.title || '-';
-        document.getElementById("completed_task_note").innerHTML = task.complete_note || '<em>No note</em>';
+        $("#completed_task_image").attr("src", img);
+        $("#completed_task_title").text(task.title || "-");
+        $("#completed_project_title").text(task.project_title || "-");
+        $("#completed_task_note").html(task.complete_note || "<em>No note</em>");
+        $("#completed_priority").text(task.priority || "-");
+        $("#completed_date").text(task.complete_date || "-");
 
-        const urlsContainer = document.getElementById("completed_task_urls");
-        urlsContainer.innerHTML = "";
-        if (task.complete_urls && Array.isArray(task.complete_urls) && task.complete_urls.length) {
+        const $urlsContainer = $("#completed_task_urls");
+        $urlsContainer.empty();
+        if ($.isArray(task.complete_urls) && task.complete_urls.length) {
             task.complete_urls.forEach(u => {
-            const a = document.createElement("a");
-            a.href = u;
-            a.textContent = u;
-            a.target = "_blank";
-            urlsContainer.appendChild(a);
-            urlsContainer.appendChild(document.createElement("br"));
+                $("<a>")
+                    .attr("href", u)
+                    .attr("target", "_blank")
+                    .text(u)
+                    .appendTo($urlsContainer);
+                $urlsContainer.append("<br>");
             });
         } else {
-            urlsContainer.innerHTML = "<em>-</em>";
+            $urlsContainer.html("<em>-</em>");
         }
 
-        const filesContainer = document.getElementById("completed_task_files");
-        filesContainer.innerHTML = "";
-        if (task.complete_files && Array.isArray(task.complete_files) && task.complete_files.length) {
+        const $priority = $("#completed_priority");
+        $priority.text(task.priority || "-").css({ "color": "", "font-weight": "500" });
+
+        if (task.priority === "HIGH") {
+            $priority.css("color", "#d9534f");
+        } else if (task.priority === "MEDIUM") {
+            $priority.css("color", "#f0ad4e");
+        } else if (task.priority === "LOW") {
+            $priority.css("color", "#5cb85c");
+        }
+
+        $("#completed_date").text(formatDateENMedium(task.complete_date || "-"));
+
+
+        const $filesContainer = $("#completed_task_files");
+        $filesContainer.empty();
+        if ($.isArray(task.complete_files) && task.complete_files.length) {
             task.complete_files.forEach(f => {
-            const a = document.createElement("a");
-            a.href = f.url || f;
-            a.textContent = f.name || f;
-            a.target = "_blank";
-            filesContainer.appendChild(a);
-            filesContainer.appendChild(document.createElement("br"));
+                $("<a>")
+                    .attr("href", f.url || f)
+                    .attr("target", "_blank")
+                    .text(f.name || f)
+                    .appendTo($filesContainer);
+                $filesContainer.append("<br>");
             });
         } else {
-            filesContainer.innerHTML = "<em>-</em>";
+            $filesContainer.html("<em>-</em>");
         }
     }
 
-    document.addEventListener("click", function (e) {
-        if (e.target.classList.contains("playlist_add_check")) {
-            const taskId = e.target.getAttribute("data-task-id");
+    $(document).on("click", ".playlist_add_check", function () {
+        const taskId = $(this).data("task-id");
+        const task = (allTasksCache?.completed?.tasks || []).find(t => t.id == taskId);
 
-            const task = (allTasksCache?.completed?.tasks || []).find(t => t.id == taskId);
-
-            if (task) {
+        if (task) {
             showCompletedModal(task);
-            } else {
+        } else {
             console.warn("Task not found for ID:", taskId);
-            }
         }
     });

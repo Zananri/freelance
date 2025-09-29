@@ -582,7 +582,10 @@
                     <div class="d-flex align-items-center mb-2">
                         <img id="completed_task_image" src="" alt="Project Image"
                             class="rounded-circle me-2" width="34" height="34">
-                        <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:14px;"></h6>
+                        <div>
+                            <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;"></h6>
+                            <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -590,6 +593,14 @@
                     </div>
 
                     <div class="row mb-4 link-file-task">
+                        <div class="col-6 d-flex align-items-center">
+                            <label class="fw-normal me-2 mb-0">Priority:</label>
+                            <span id="completed_priority"></span>
+                        </div>
+                        <div class="col-6 d-flex align-items-center">
+                            <label class="fw-normal me-2 mb-0">Complete Date:</label>
+                            <span id="completed_date"></span>
+                        </div>
                         <div class="col-6">
                             <label class="fw-normal d-block mb-1">Links:</label>
                             <div id="completed_task_urls"></div>
