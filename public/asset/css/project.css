@@ -2098,4 +2098,24 @@
 .btn-danger.remove-ref-url:hover {
     background-color: #c82333;
     color: white;
-}   
+}
+
+.btn-submit-black.add-ref-url,
+.btn-remove-url.remove-ref-url {
+    color: #444444;
+    background: #ffffff;
+}
+
+.btn-remove-url.remove-ref-url {
+    padding: 10px 24px;
+    height: 45px;
+    border: none;
+}
+
+input[type="file"]::-webkit-file-upload-button {
+  display: none;
+}
+
+input[type="file"]::file-selector-button {
+  display: none;
+}

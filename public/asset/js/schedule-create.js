@@ -598,7 +598,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Reference URL dynamic rows (simple) - reuse global logic in task.js if loaded; else lightweight here
     document.addEventListener('click', function(e){
-        if(e.target.closest('.add-ref-url')){ const container=document.getElementById('schedule_reference_urls_container'); const row=document.createElement('div'); row.className='input-group'; row.innerHTML = `<input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-danger remove-ref-url'><span class='material-symbols-outlined'>close</span></button>`; container.appendChild(row); }
+        if(e.target.closest('.add-ref-url')){ const container=document.getElementById('schedule_reference_urls_container'); const row=document.createElement('div'); row.className='input-group'; row.innerHTML = `<input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-remove-url remove-ref-url'><span class='material-symbols-outlined'>close</span></button>`; container.appendChild(row); }
         if(e.target.closest('.remove-ref-url')){ const row=e.target.closest('.input-group'); if(row) row.remove(); }
     });
 

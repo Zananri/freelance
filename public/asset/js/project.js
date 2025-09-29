@@ -680,7 +680,7 @@ document.addEventListener("DOMContentLoaded", function () {
             row.className = "input-group";
             row.innerHTML =
                 '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
-                ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
+                ' <button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
             container.appendChild(row);
             const input = row.querySelector('input[type="url"]');
             if (input) input.focus();
@@ -1540,7 +1540,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                             '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                                                             (withAdd
                                                                 ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>'
-                                                                : ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+                                                                : ' <button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
                                                         container.appendChild(
                                                             row
                                                         );
@@ -1730,17 +1730,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 existingContainer.innerHTML =
                                                     "";
                                                 if (existingFiles.length > 0) {
-                                                    var title =
-                                                        document.createElement(
-                                                            "div"
-                                                        );
-                                                    title.className =
-                                                        "fw-bold mb-2";
-                                                    title.textContent =
-                                                        "Current Files:";
-                                                    existingContainer.appendChild(
-                                                        title
-                                                    );
+                                                    // var title =
+                                                    //     document.createElement(
+                                                    //         "div"
+                                                    //     );
+                                                    // title.className =
+                                                    //     "fw-bold mb-2";
+                                                    // title.textContent =
+                                                    //     "Current Files:";
+                                                    // existingContainer.appendChild(
+                                                    //     title
+                                                    // );
 
                                                     var fileList = document.createElement('div');
                                                     fileList.className = 'selected-files-list mt-2 existing-files-list w-100';
@@ -5533,7 +5533,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                                     (withAdd
                                         ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>'
-                                        : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
+                                        : ' <button type="button" class="btn btn-remove-url remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
                                 container.appendChild(row);
                                 const inp =
                                     row.querySelector('input[type="url"]');
@@ -5599,8 +5599,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             container.innerHTML = "";
                             if ((files || []).length > 0) {
                                 const title = document.createElement("div");
-                                title.className = "fw-bold mb-2";
-                                title.textContent = "Current Files:";
+                                // title.className = "fw-bold mb-2";
+                                // title.textContent = "Current Files:";
                                 container.appendChild(title);
 
                                 const list = document.createElement("div");

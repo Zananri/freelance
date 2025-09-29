@@ -1042,7 +1042,7 @@
                 // prefill URLs and existing files
                 (function () {
                     try {
-                        var container = document.getElementById('feedback_reference_urls_container'); if (!container) return; container.innerHTML = ''; var urls = []; if (Array.isArray(data.reference_urls)) urls = data.reference_urls; else if (typeof data.reference_urls === 'string') { try { var arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_){} } if ((!urls || !urls.length) && data.reference_url) urls = [data.reference_url]; function addRow(value, withAdd) { var row = document.createElement('div'); row.className='d-flex gap-2 align-items-center'; row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>'); container.appendChild(row); var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value; }
+                        var container = document.getElementById('feedback_reference_urls_container'); if (!container) return; container.innerHTML = ''; var urls = []; if (Array.isArray(data.reference_urls)) urls = data.reference_urls; else if (typeof data.reference_urls === 'string') { try { var arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_){} } if ((!urls || !urls.length) && data.reference_url) urls = [data.reference_url]; function addRow(value, withAdd) { var row = document.createElement('div'); row.className='d-flex gap-2 align-items-center'; row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-remove-url remove-ref-url"><span class="material-symbols-outlined">close</span></button>'); container.appendChild(row); var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value; }
                         addRow('', true); (urls || []).forEach(function(u){ addRow(u, false); });
                     } catch (_) {}
                 })();
@@ -1052,7 +1052,7 @@
                         var container = modalBody.querySelector('#existing_feedback_reference_files'); var hidden = modalBody.querySelector('#existing_feedback_reference_files_input'); if (!container || !hidden) return; var files = []; if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls.slice(); else if (Array.isArray(data.reference_files)) files = data.reference_files.slice(); else if (data.reference_file_url) files = [data.reference_file_url]; else if (data.reference_file) files = [data.reference_file]; function toUrl(v) { if (!v) return ''; var s = String(v); if (s.startsWith('http://') || s.startsWith('https://')) return s; if (s.startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + s; return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + s; } function toName(u) { if (!u) return ''; var s = String(u); if (s.startsWith('http://') || s.startsWith('https://')) { try { return new URL(s).pathname.split('/').pop(); } catch(_) { return s.split('/').pop(); } } return s.split('/').pop(); }
                         container.innerHTML = '';
                         if ((files || []).length > 0) {
-                            var title = document.createElement('div'); title.className='fw-bold mb-2'; title.textContent='Current Files:'; container.appendChild(title);
+                            // var title = document.createElement('div'); title.className='fw-bold mb-2'; title.textContent='Current Files:'; container.appendChild(title);
                             var list = document.createElement('div'); list.className='existing-files-list w-100'; files.forEach(function(f){ var url = toUrl(f); var name = toName(f); if (!name) return; var item = document.createElement('div'); item.className='existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded'; var info = document.createElement('div'); info.className='d-flex align-items-center flex-grow-1'; var icon = document.createElement('span'); icon.className='material-symbols-outlined me-2'; icon.textContent='description'; var link = document.createElement('a'); link.href = url; link.textContent = name; link.className = 'text-decoration-none'; link.target = '_blank'; var removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-outline-danger'; removeBtn.innerHTML='&times;'; removeBtn.onclick = function(){ item.remove(); try { var anchors = container.querySelectorAll('.existing-file-item a'); var next = Array.from(anchors).map(function(a){ return (a.textContent||'').trim(); }).filter(Boolean); hidden.value = JSON.stringify(next); } catch(_){} }; info.appendChild(icon); info.appendChild(link); item.appendChild(info); item.appendChild(removeBtn); list.appendChild(item); }); container.appendChild(list); }
                         try { var anchors = container.querySelectorAll('.existing-file-item a'); var names = Array.from(anchors).map(function(a){ return (a.textContent||'').trim(); }).filter(Boolean); hidden.value = JSON.stringify(names); } catch(_) { hidden.value = '[]'; }
                     } catch (_) {}
@@ -1484,7 +1484,7 @@
                     var row = document.createElement('div');
                     row.className = 'input-group';
                     row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
-                        ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
+                        ' <button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
                     container.appendChild(row);
                     var input = row.querySelector('input[type="url"]');
                     if (input) try { input.focus(); } catch (_) {}
@@ -2590,15 +2590,15 @@
                                 if (existingContainer) {
                                     existingContainer.innerHTML = '';
                                     if (existingFiles.length > 0) {
-                                        var title = document.createElement('div');
-                                        title.className = 'fw-bold mb-2';
-                                        title.textContent = 'Current Files:';
-                                        existingContainer.appendChild(title);
+                                        // var title = document.createElement('div');
+                                        // title.className = 'fw-bold mb-2';
+                                        // title.textContent = 'Current Files:';
+                                        // existingContainer.appendChild(title);
 
                                         var list = document.createElement('div');
                                         list.className = 'existing-files-list w-100';
 
-                                        existingFiles.forEach(function(fn) {
+                                        existingFiwles.forEach(function(fn) {
                                             var item = document.createElement('div');
                                             item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
 

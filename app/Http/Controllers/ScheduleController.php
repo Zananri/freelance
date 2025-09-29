@@ -460,7 +460,35 @@ class ScheduleController extends Controller
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function ($attribute, $value, $fail) {
+                        // Allow common extensions OR a short whitelist of MIME types to handle
+                        // clients/servers that report Excel files inconsistently.
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMime = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream',
+                        ];
+                        try {
+                            $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
+                            if (in_array($ext, $allowedExt, true)) {
+                                return;
+                            }
+                            $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
+                            if (in_array($mime, $allowedMime, true)) {
+                                return;
+                            }
+                        } catch (\Throwable $_) {
+                            // fallthrough to fail message
+                        }
+                        $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
+                    }
+                ],
                 'start_date' => 'nullable|date',
                 'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'start_at' => 'required_unless:recurrence_type,daily|nullable|date',
@@ -773,7 +801,32 @@ class ScheduleController extends Controller
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function ($attribute, $value, $fail) {
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMime = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream',
+                        ];
+                        try {
+                            $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
+                            if (in_array($ext, $allowedExt, true)) {
+                                return;
+                            }
+                            $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
+                            if (in_array($mime, $allowedMime, true)) {
+                                return;
+                            }
+                        } catch (\Throwable $_) {}
+                        $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
+                    }
+                ],
+                'existing_reference_files' => 'nullable|json',
                 'start_date' => 'nullable|date',
                 'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'start_at' => 'required_unless:recurrence_type,daily|nullable|date',
@@ -800,12 +853,50 @@ class ScheduleController extends Controller
 
             $data = $validator->validated();
 
-            // Set updated_by
+            // Handle existing reference files (files to keep)
+            $keptFiles = [];
+            $existingRefFilesInput = $request->input('existing_reference_files');
+            if (!empty($existingRefFilesInput)) {
+                $decoded = json_decode($existingRefFilesInput, true);
+                if (is_array($decoded)) {
+                    $keptFiles = array_filter(array_map('strval', $decoded)); // ensure strings, no empty
+                }
+            } else {
+                // If not provided, assume all current are kept (for backward compatibility)
+                $keptFiles = is_array($schedule->reference_files) ? $schedule->reference_files : [];
+            }
+
+            // Get current files
+            $currentFiles = is_array($schedule->reference_files) ? $schedule->reference_files : [];
+
+            // Files to delete: current minus kept
+            $toDelete = array_diff($currentFiles, $keptFiles);
+
+            // Delete files from storage
+            foreach ($toDelete as $file) {
+                $path = public_path('file/schedule_reference_files/' . $file);
+                if (file_exists($path)) {
+                    @unlink($path);
+                }
+            }
+
+            // Handle new uploads
+            $newFiles = [];
+            if ($request->hasFile('reference_files')) {
+                foreach ($request->file('reference_files') as $idx => $file) {
+                    $name = 'SCHEDULE_' . time() . '_' . $idx . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/schedule_reference_files'), $name);
+                    $newFiles[] = $name;
+                }
+            }
+
+            // Set reference_files to kept + new
+            $data['reference_files'] = array_merge($keptFiles, $newFiles);
+
             if ($request->user()) {
                 $data['updated_by'] = $request->user()->id;
             }
 
-            // Normalize reference URLs
             $refUrls = [];
             if (!empty($data['reference_urls']) && is_array($data['reference_urls'])) {
                 $refUrls = array_values(array_filter($data['reference_urls']));
@@ -816,32 +907,16 @@ class ScheduleController extends Controller
                 $data['reference_urls'] = $refUrls;
             }
 
-            // Handle image
             if ($request->hasFile('image')) {
                 $img = $request->file('image');
                 $name = 'SCHEDULE_' . time() . '.' . $img->getClientOriginalExtension();
                 $img->move(public_path('file/schedule'), $name);
-
-                // hapus file lama
                 if ($schedule->image && file_exists(public_path('file/schedule/' . $schedule->image))) {
                     @unlink(public_path('file/schedule/' . $schedule->image));
                 }
-
                 $data['image'] = $name;
             }
 
-            // Handle reference files (replace full)
-            if ($request->hasFile('reference_files')) {
-                $refFiles = [];
-                foreach ($request->file('reference_files') as $idx => $file) {
-                    $name = 'SCHEDULE_' . time() . '_' . $idx . '.' . $file->getClientOriginalExtension();
-                    $file->move(public_path('file/schedule_reference_files'), $name);
-                    $refFiles[] = $name;
-                }
-                $data['reference_files'] = $refFiles;
-            }
-
-            // Normalize executor_ids
             $execIds = $request->input('executor_ids');
             if (is_string($execIds)) {
                 $decoded = json_decode($execIds, true);
@@ -850,9 +925,7 @@ class ScheduleController extends Controller
                 }
             }
 
-            // Recurrence-aware start_date/due_date handling on update
             if (!empty($data['recurrence_type']) && $data['recurrence_type'] === 'daily') {
-                // If start_at provided in update, set recurrence_start_date and start_date to its date
                 if (array_key_exists('start_at', $data) && !empty($data['start_at'])) {
                     try {
                         $data['recurrence_start_date'] = Carbon::parse($data['start_at'])->toDateString();
@@ -869,8 +942,6 @@ class ScheduleController extends Controller
                         $data['start_date'] = $schedule->start_date ?? Carbon::today()->toDateString();
                     }
                 }
-
-                // Recompute due_date from start_date + due_in_days when due_in_days is provided in payload
                 if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
                     try {
                         $start = Carbon::parse($data['start_date'])->startOfDay();
@@ -880,12 +951,9 @@ class ScheduleController extends Controller
                     }
                 }
             } else {
-                // Default start_date kalau kosong
                 if (empty($data['start_date']) && !$schedule->start_date) {
                     $data['start_date'] = Carbon::today()->toDateString();
                 }
-
-                // Hitung due_date dari start_date + due_in_days
                 if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
                     try {
                         $start = Carbon::parse($data['start_date'] ?? $schedule->start_date)->startOfDay();
@@ -896,13 +964,11 @@ class ScheduleController extends Controller
                 }
             }
 
-            // Recurrence handling
             if (!empty($data['recurrence_type'])) {
                 if (empty($data['recurrence_start_date'])) {
                     $data['recurrence_start_date'] = Carbon::today()->toDateString();
                 }
                 $data['recurrence_interval'] = 1;
-
                 if ($data['recurrence_type'] !== 'weekly') {
                     $data['recurrence_day_of_week'] = null;
                 }
@@ -920,7 +986,6 @@ class ScheduleController extends Controller
                 $data['recurrence_end_date'] = null;
             }
 
-            // Normalize recurrence_days_of_week input for update: integers, unique, sorted
             $daysInput = $request->input('recurrence_days_of_week');
             if (is_string($daysInput)) {
                 $decoded = json_decode($daysInput, true);
@@ -936,121 +1001,82 @@ class ScheduleController extends Controller
                 sort($vals, SORT_NUMERIC);
                 $data['recurrence_days_of_week'] = array_values($vals);
             }
-
             if (!empty($data['recurrence_days_of_week'])) {
                 $data['recurrence_day_of_week'] = null;
             }
 
-            // include_weekend removed
-
-            // Update schedule
             if (!empty($data)) {
                 $schedule->update($data);
             }
             $schedule->refresh();
 
-            // Ensure start_date and due_date are recomputed to follow any changed start_at
-            // or due_in_days. This applies for daily, weekly and monthly schedules.
             try {
-                // If the payload provided a start_at or start_date, normalize start_date
                 if (array_key_exists('start_at', $data) && !empty($data['start_at'])) {
                     $sdate = Carbon::parse($data['start_at'])->toDateString();
                     $schedule->start_date = $sdate;
-                    // If recurrence exists, also sync recurrence_start_date for user intent
                     if (!empty($schedule->recurrence_type)) {
                         $schedule->recurrence_start_date = $sdate;
                     }
                 } elseif (array_key_exists('start_date', $data) && !empty($data['start_date'])) {
                     $schedule->start_date = Carbon::parse($data['start_date'])->toDateString();
                 }
-
-                // If due_in_days provided in payload or schedule already has it, recompute due_date
                 if (array_key_exists('due_in_days', $data) && $data['due_in_days'] !== null) {
                     $base = Carbon::parse($schedule->start_date ?? Carbon::today()->toDateString())->startOfDay();
                     $schedule->due_date = $base->copy()->addDays((int)$data['due_in_days'])->toDateString();
                 } elseif (!is_null($schedule->due_in_days)) {
-                    // ensure existing due_in_days remains honored if start_date changed
                     $base = Carbon::parse($schedule->start_date ?? Carbon::today()->toDateString())->startOfDay();
                     $schedule->due_date = $base->copy()->addDays((int)$schedule->due_in_days)->toDateString();
                 }
-            } catch (\Throwable $e) {
-                // ignore and keep existing values
-            }
-            // Persist intermediate changes before recurrence-specific adjustments below
+            } catch (\Throwable $e) {}
             $schedule->save();
 
-            // If updated schedule is monthly, ensure its start_date/due_date/next_run_at
-            // are consistent with recurrence_start_date and due_in_days.
             if ($schedule->recurrence_type === 'monthly') {
                 try {
                     $schedule->start_date = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->toDateString() : $schedule->start_date;
-                } catch (\Throwable $e) {
-                    // ignore
-                }
+                } catch (\Throwable $e) {}
                 if (!is_null($schedule->due_in_days)) {
                     try {
                         $sdate = Carbon::parse($schedule->start_date)->startOfDay();
                         $schedule->due_date = $sdate->copy()->addDays((int) $schedule->due_in_days)->toDateString();
-                    } catch (\Throwable $e) {
-                        // ignore
-                    }
+                    } catch (\Throwable $e) {}
                 }
                 try {
-                    // If the user changed start_at/start_date, prefer to sync recurrence_day_of_month
-                    // to the chosen start date so next_run_at follows user intent.
                     if ($schedule->start_date) {
                         try {
                             $sdt = Carbon::parse($schedule->start_date)->startOfDay();
                             $schedule->recurrence_day_of_month = (int) $sdt->day;
-                        } catch (\Throwable $e) {
-                            // ignore parsing errors
-                        }
+                        } catch (\Throwable $e) {}
                     }
-
-                    // For monthly schedules, next_run_at should be the same day-of-month in the next month
                     $start = $schedule->start_date ? Carbon::parse($schedule->start_date)->startOfDay() : Carbon::now()->startOfDay();
                     $nextMonth = $start->copy()->addMonthNoOverflow();
                     $dom = (int) ($schedule->recurrence_day_of_month ?: $start->day);
                     $candidate = $this->safeMonthly($nextMonth->year, $nextMonth->month, $dom);
                     $schedule->next_run_at = $candidate->startOfDay();
                 } catch (\Throwable $e) {
-                    // fallback: compute initial run normally
                     try {
                         $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
-                    } catch (\Throwable $e) {
-                        // leave as-is
-                    }
+                    } catch (\Throwable $e) {}
                 }
                 $schedule->save();
             }
-            // For weekly schedules, ensure recurrence_start_date/start_date follow start_at
-            // and compute next_run_at using the same logic as creation (calcInitialRunAt)
+
             if ($schedule->recurrence_type === 'weekly') {
                 try {
-                    // If start_at was provided/updated, use it as recurrence_start_date and start_date
                     if ($schedule->start_at) {
                         try {
                             $rdate = Carbon::parse($schedule->start_at)->toDateString();
                             $schedule->recurrence_start_date = $rdate;
                             $schedule->start_date = $rdate;
-                        } catch (\Throwable $e) {
-                            // ignore
-                        }
+                        } catch (\Throwable $e) {}
                     }
-
-                    // If start_date present, sync recurrence_day_of_week from it (user intent)
                     if ($schedule->start_date) {
                         try {
                             $sdt = Carbon::parse($schedule->start_date)->startOfDay();
                             $schedule->recurrence_day_of_week = (int) $sdt->dayOfWeek;
-                        } catch (\Throwable $e) { /* ignore */ }
+                        } catch (\Throwable $e) {}
                     }
-
-                    // Compute next_run_at consistently with creation logic
                     $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
-                } catch (\Throwable $e) {
-                    // fallback: leave next_run_at as-is
-                }
+                } catch (\Throwable $e) {}
                 $schedule->save();
             }
 

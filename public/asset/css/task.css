@@ -2003,3 +2003,42 @@ p {
 #archieveModal .pic-executor-image {
     border: 3px solid #fff;
 }
+
+.btn-submit-black.add-ref-url,
+.btn-remove-url.remove-ref-url {
+    color: #444444;
+    background: #ffffff;
+}
+
+.btn-remove-url.remove-ref-url {
+    padding: 10px 24px;
+    height: 45px;
+    border: none;
+}
+
+input[type="file"]::-webkit-file-upload-button {
+  display: none;
+}
+
+input[type="file"]::file-selector-button {
+  display: none;
+}
+
+#completed_task_urls a,
+#completed_task_files a {
+  display: block;
+  font-size: 13px;
+  text-decoration: none;
+  color: #0d6efd;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+#completed_task_note {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.link-file-task {
+    font-size: 13px;
+}

@@ -216,11 +216,6 @@
                                 <label for="schedule_description" class="form-label label-custom">Description</label>
                                 <div id="schedule_description_toolbar">
                                     <span class="ql-formats">
-                                        <select class="ql-header">
-                                            <option value="1"></option>
-                                            <option value="2"></option>
-                                            <option selected></option>
-                                        </select>
                                         <button class="ql-bold"></button>
                                         <button class="ql-italic"></button>
                                         <button class="ql-underline"></button>
@@ -281,7 +276,7 @@
                                 <label for="schedule_reference_files" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" id="schedule_reference_files" name="reference_files[]"
-                                    class="form-control input-text" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    class="form-control input-text" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                                     multiple>
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="schedule_reference_files_preview" class="mt-2"></div>
@@ -533,11 +528,6 @@
                                 <label for="edit_schedule_description" class="form-label label-custom">Description</label>
                                 <div id="edit_schedule_description_toolbar">
                                     <span class="ql-formats">
-                                        <select class="ql-header">
-                                            <option value="1"></option>
-                                            <option value="2"></option>
-                                            <option selected></option>
-                                        </select>
                                         <button class="ql-bold"></button>
                                         <button class="ql-italic"></button>
                                         <button class="ql-underline"></button>
@@ -585,7 +575,7 @@
                                 <label for="edit_schedule_reference_files" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" id="edit_schedule_reference_files" name="reference_files[]"
-                                    class="form-control input-text" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    class="form-control input-text" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                                     multiple>
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="edit_schedule_reference_files_preview" class="mt-2"></div>
@@ -662,8 +652,74 @@
                     }
                 } catch(_) {}
 
+                // Harden: ensure pasted/dropped images are not inserted (defense-in-depth)
+                try {
+                    var Delta = Quill.import && Quill.import('delta');
+
+                    if (window.__quillScheduleCreate && window.__quillScheduleCreate.clipboard && typeof window.__quillScheduleCreate.clipboard.addMatcher === 'function') {
+                        window.__quillScheduleCreate.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                    }
+                    if (window.__quillScheduleCreate && typeof window.__quillScheduleCreate.on === 'function') {
+                        window.__quillScheduleCreate.on('text-change', function(){ try { var imgs = window.__quillScheduleCreate.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                    }
+                    try { preventImageDropAndPaste(window.__quillScheduleCreate, '#schedule_description_editor'); } catch(_) {}
+
+                    if (window.__quillScheduleEdit && window.__quillScheduleEdit.clipboard && typeof window.__quillScheduleEdit.clipboard.addMatcher === 'function') {
+                        window.__quillScheduleEdit.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                    }
+                    if (window.__quillScheduleEdit && typeof window.__quillScheduleEdit.on === 'function') {
+                        window.__quillScheduleEdit.on('text-change', function(){ try { var imgs = window.__quillScheduleEdit.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                    }
+                    try { preventImageDropAndPaste(window.__quillScheduleEdit, '#edit_schedule_description_editor'); } catch(_) {}
+                } catch(_) {}
+
                 function syncQuillToTextarea(quill, textareaId){
                     try { const ta = document.getElementById(textareaId); if(!ta) return; ta.value = (quill && quill.root && typeof quill.root.innerHTML === 'string') ? quill.root.innerHTML : ''; } catch(_) {}
+                }
+
+                // Helper: install capture-phase listeners on the editor container to block image drag/drop and paste
+                function preventImageDropAndPaste(quill, editorSelector){
+                    try {
+                        var editor = document.querySelector(editorSelector);
+                        if (!editor || !quill) return;
+
+                        // Use capture-phase listeners to intercept before Quill handlers run
+                        editor.addEventListener('dragover', function(ev){
+                            try {
+                                var dt = ev.dataTransfer || ev.clipboardData;
+                                var types = dt && dt.types ? Array.from(dt.types || []) : [];
+                                if (types.indexOf && types.indexOf('Files') !== -1) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                            } catch(_){}
+                        }, true);
+
+                        editor.addEventListener('drop', function(ev){
+                            try {
+                                var dt = ev.dataTransfer;
+                                if (dt && dt.files && dt.files.length) {
+                                    for (var i=0;i<dt.files.length;i++){
+                                        var f = dt.files[i];
+                                        if (f && f.type && f.type.indexOf('image') === 0) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                    }
+                                }
+                            } catch(_){}
+                        }, true);
+
+                        editor.addEventListener('paste', function(ev){
+                            try {
+                                var cb = ev.clipboardData || window.clipboardData;
+                                if (!cb) return;
+                                // If clipboard contains image items, block immediately
+                                if (cb.items && cb.items.length) {
+                                    for (var j=0;j<cb.items.length;j++){
+                                        var it = cb.items[j];
+                                        if (it && it.type && it.type.indexOf && it.type.indexOf('image') !== -1) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                    }
+                                }
+                                // If HTML contains <img>, block
+                                try { var html = cb.getData && cb.getData('text/html'); if (html && /<img\s+/i.test(html)) { ev.preventDefault(); ev.stopImmediatePropagation(); return; } } catch(_){ }
+                            } catch(_){}
+                        }, true);
+                    } catch(_){}
                 }
 
                 // Ensure create form syncs before submit (schedule-create.js attaches submit handler so use capture phase)

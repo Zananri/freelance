@@ -272,13 +272,7 @@
                             <label for="description" class="form-label label-custom">Description</label>
                             <!-- Quill editor container for Add Project -->
                             <div id="add_description_toolbar">
-                                <!-- simple toolbar -->
                                 <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1"></option>
-                                        <option value="2"></option>
-                                        <option selected></option>
-                                    </select>
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
                                     <button class="ql-underline"></button>
@@ -330,7 +324,7 @@
                         <div class="mb-3 input-custom">
                             <label for="reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="reference_file"
-                                name="reference_file[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                             <div class="form-text">Multiple files supported.
                             </div>
                             <div id="reference_files_preview" class="mt-2"></div>
@@ -434,11 +428,6 @@
                             <!-- Quill editor container for Edit Project -->
                             <div id="edit_description_toolbar">
                                 <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1"></option>
-                                        <option value="2"></option>
-                                        <option selected></option>
-                                    </select>
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
                                     <button class="ql-underline"></button>
@@ -491,7 +480,7 @@
                         <div class="mb-3 input-custom">
                             <label for="edit_reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="edit_reference_file"
-                                name="reference_file[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                             <div id="existing_reference_files" class="mt-2"></div>
                             <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"
@@ -675,7 +664,70 @@
                         });
                     } catch (e) { console.warn('Quill init edit failed', e); }
 
-                    // Helper to sync quill HTML into textarea (canonical form field)
+                    // Harden: ensure pasted/dropped images are not inserted (defense-in-depth)
+                    try {
+                        var Delta = Quill.import && Quill.import('delta');
+
+                        if (window.__quillAdd && window.__quillAdd.clipboard && typeof window.__quillAdd.clipboard.addMatcher === 'function') {
+                            window.__quillAdd.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                        }
+                        if (window.__quillAdd && typeof window.__quillAdd.on === 'function') {
+                            window.__quillAdd.on('text-change', function(){ try { var imgs = window.__quillAdd.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                        }
+
+                        if (window.__quillEdit && window.__quillEdit.clipboard && typeof window.__quillEdit.clipboard.addMatcher === 'function') {
+                            window.__quillEdit.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                        }
+                        if (window.__quillEdit && typeof window.__quillEdit.on === 'function') {
+                            window.__quillEdit.on('text-change', function(){ try { var imgs = window.__quillEdit.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                        }
+                    } catch(_) {}
+
+                    // Helper: install capture-phase listeners on the editor container to block image drag/drop and paste
+                    function preventImageDropAndPaste(quill, editorSelector){
+                        try {
+                            var editor = document.querySelector(editorSelector);
+                            if (!editor || !quill) return;
+
+                            // Use capture-phase listeners to intercept before Quill handlers run
+                            editor.addEventListener('dragover', function(ev){
+                                try {
+                                    var dt = ev.dataTransfer || ev.clipboardData;
+                                    var types = dt && dt.types ? Array.from(dt.types || []) : [];
+                                    if (types.indexOf && types.indexOf('Files') !== -1) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                } catch(_){}
+                            }, true);
+
+                            editor.addEventListener('drop', function(ev){
+                                try {
+                                    var dt = ev.dataTransfer;
+                                    if (dt && dt.files && dt.files.length) {
+                                        for (var i=0;i<dt.files.length;i++){
+                                            var f = dt.files[i];
+                                            if (f && f.type && f.type.indexOf('image') === 0) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                        }
+                                    }
+                                } catch(_){}
+                            }, true);
+
+                            editor.addEventListener('paste', function(ev){
+                                try {
+                                    var cb = ev.clipboardData || window.clipboardData;
+                                    if (!cb) return;
+                                    // If clipboard contains image items, block immediately
+                                    if (cb.items && cb.items.length) {
+                                        for (var j=0;j<cb.items.length;j++){
+                                            var it = cb.items[j];
+                                            if (it && it.type && it.type.indexOf && it.type.indexOf('image') !== -1) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                        }
+                                    }
+                                    // If HTML contains <img>, block
+                                    try { var html = cb.getData && cb.getData('text/html'); if (html && /<img\s+/i.test(html)) { ev.preventDefault(); ev.stopImmediatePropagation(); return; } } catch(_){ }
+                                } catch(_){}
+                            }, true);
+                        } catch(_){}
+                    }
+
                     function syncQuillToTextarea(quill, textareaId){
                         try {
                             const ta = document.getElementById(textareaId);
@@ -791,7 +843,9 @@
                             // Also reset selected files array if any (projectSelectedFiles)
                             try { projectSelectedFiles = []; displayProjectSelectedFiles(); } catch(_){}
                         });
+                        try { preventImageDropAndPaste(window.__quillAdd, '#add_description_editor'); } catch(_) {}
                     }
+                    try { preventImageDropAndPaste(window.__quillEdit, '#edit_description_editor'); } catch(_) {}
                 });
             })();
         </script>

@@ -88,6 +88,33 @@
     }
     window.initBootstrapTooltips = initBootstrapTooltips;
 
+    try {
+        if (window.bootstrap && bootstrap.Tooltip && bootstrap.Tooltip.prototype) {
+            (function(){
+                const proto = bootstrap.Tooltip.prototype;
+                // Avoid double-patching
+                if (proto._isWithActiveTrigger && proto._isWithActiveTrigger._patched) return;
+                const orig = proto._isWithActiveTrigger;
+                proto._isWithActiveTrigger = function() {
+                    try {
+                        if (!this._activeTrigger || typeof this._activeTrigger !== 'object') {
+                            try { this._activeTrigger = {}; } catch(_) {}
+                        }
+                        return orig.call(this);
+                    } catch (_) {
+                        // Fallback: compute safely without throwing
+                        try {
+                            const at = this._activeTrigger || {};
+                            for (const v of Object.values(at)) { if (v) return true; }
+                        } catch (_) {}
+                        return false;
+                    }
+                };
+                try { proto._isWithActiveTrigger._patched = true; } catch(_){}
+            })();
+        }
+    } catch(_) {}
+
     // Helper: hide and dispose any visible Bootstrap tooltips to avoid orphaned popper nodes
     function hideAllFloatingTooltips() {
         try {
@@ -96,9 +123,6 @@
                 try {
                     const inst = bootstrap.Tooltip.getInstance(el);
                     if (inst) {
-                        // Defensive: some Tooltip instances may have missing internal state
-                        // (e.g. _activeTrigger undefined) which causes Object.values() to throw
-                        // inside bootstrap's internals. Ensure it's an object before calling hide().
                         try {
                             if (!inst._activeTrigger || typeof inst._activeTrigger !== 'object') {
                                 try { inst._activeTrigger = {}; } catch(_) {}
@@ -1484,7 +1508,7 @@
 
         function createRemoveButton() {
             return makeBtn(`
-                <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL">
+                <button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL">
                     <span class="material-symbols-outlined">close</span>
                 </button>
             `);
@@ -2266,29 +2290,8 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                     </div>
                     <form id="confirmationToCompleteForm" enctype="multipart/form-data">
                         <div class="modal-body modal-body-custom">
-                            <div class="mb-2 text-muted" style="font-size:13px;">Please provide completion details. <span class="text-danger">Complete note is required.</span></div>
-
                             <div class="mb-3 custom-input">
                                 <label class="form-label label-custom">Complete Note (required)</label>
-                                <div id="complete_note_toolbar">
-                                    <span class="ql-formats">
-                                        <select class="ql-header">
-                                            <option value="1"></option>
-                                            <option value="2"></option>
-                                            <option selected></option>
-                                        </select>
-                                        <button class="ql-bold"></button>
-                                        <button class="ql-italic"></button>
-                                        <button class="ql-underline"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-list" value="ordered"></button>
-                                        <button class="ql-list" value="bullet"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-link"></button>
-                                    </span>
-                                </div>
                                 <div id="complete_note_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
                                 <textarea class="form-control input-text d-none" id="complete_note" name="complete_note" rows="4" style="display:none;"></textarea>
                             </div>
@@ -2336,6 +2339,61 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                 theme: 'snow',
                 modules: { toolbar: [['bold','italic','underline'], ['link','image'], [{ list: 'ordered' }, { list: 'bullet' }]] }
             });
+            try {
+                var Delta = Quill.import && Quill.import('delta');
+                if (window.__quillComplete && window.__quillComplete.clipboard && typeof window.__quillComplete.clipboard.addMatcher === 'function') {
+                    window.__quillComplete.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                }
+                try {
+                    if (window.__quillComplete && typeof window.__quillComplete.on === 'function') {
+                        window.__quillComplete.on('text-change', function(delta, oldDelta, source){
+                            try {
+                                setTimeout(function(){
+                                    try { var imgs = window.__quillComplete.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){}
+                                }, 0);
+                            } catch(_){}
+                        });
+                    }
+                } catch(_){}
+            } catch(_) {}
+            // prevent images via drop/paste for this editor
+            try {
+                (function preventImageDropAndPaste(quill, selector){
+                    try {
+                        var editor = document.querySelector(selector);
+                        if (!editor || !quill) return;
+                        try { editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); e.stopImmediatePropagation(); }catch(_){} }, true); } catch(_){}
+                        try {
+                            editor.addEventListener('drop', function(e){
+                                try {
+                                    if (!e.dataTransfer) return;
+                                    var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                    var html = '';
+                                    try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
+                                    if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+                                } catch(_) {}
+                            }, true);
+                        } catch(_) {}
+                        try {
+                            editor.addEventListener('paste', function(e){
+                                try {
+                                    var clipboard = (e.clipboardData || window.clipboardData);
+                                    if (!clipboard) return;
+                                    var items = clipboard.items || [];
+                                    var hasImage = false;
+                                    for (var i = 0; i < items.length; i++) {
+                                        var t = items[i].type || '';
+                                        if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
+                                    }
+                                    var html = '';
+                                    try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
+                                    if (hasImage || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+                                } catch(_) {}
+                            }, true);
+                        } catch(_) {}
+                    } catch(_) {}
+                })(window.__quillComplete, '#complete_note_editor');
+            } catch(_) {}
         } catch (e) { console.warn('Quill init failed', e); }
 
         // Dynamic URL rows (add/remove) - reuse add-ref-url/remove-ref-url style
@@ -2347,7 +2405,7 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                 const row = document.createElement('div');
                 row.className = 'input-group';
                 const input = document.createElement('input'); input.type = 'url'; input.name = 'complete_urls[]'; input.placeholder = 'https://example.com'; input.className = 'form-control input-text';
-                const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn btn-danger remove-ref-url'; rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn btn-remove-url remove-ref-url'; rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
                 row.appendChild(input); row.appendChild(rm);
                 addBtn.closest('.input-group').after(row);
                 return;
@@ -2624,13 +2682,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             } catch(_) { return false; }
         })();
 
-        function formatDueDate(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            const options = { day: '2-digit', month: 'short', year: 'numeric' };
-            return date.toLocaleDateString('en-GB', options).replace(',', '');
-        }
-
         let statusBadge = '';
         if (task.status === 'rejected') {
             statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
@@ -2723,8 +2774,9 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                         ${''}
                     </div>
                     <div style="font-size: 10px; font-weight: 400;">
-                        <span style="color: #797E91;">Deadline: </span>
-                        <span style="#color: #4B4F5E">${ formatDueDate(task.due_date) }</span>
+                        <span style="color: #4B4F5E">
+                            ${formatDateENMedium(task.start_date)} - ${formatDateENMedium(task.due_date)}
+                        </span>
                     </div>
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
@@ -2746,8 +2798,12 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                             </div>
                             ${task.status === 'completed'
                                 ? `
-                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
-                                    <span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}">playlist_add_check</span>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#completedModal">
+                                    <span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" style="color: #454545; font-size: 25px;">
+                                        playlist_add_check
+                                    </span>
                                     <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                                 </div>
                                 <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
@@ -2823,425 +2879,310 @@ const sectionMap = {
   completed: "completed-tasks"
 };
 
-let taskFetchSeq = 0; // guard untuk cegah overwrite oleh response lama
-// Track the last in-flight ajax per section to allow cancellation and avoid duplicate requests
-window.__taskAjaxRequestsMap = window.__taskAjaxRequestsMap || {};
+let taskFetchSeq = 0
+window.__taskAjaxRequestsMap = window.__taskAjaxRequestsMap || {}
+
 function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query = "") {
-    const callSeq = ++taskFetchSeq;
-    const params = {};
-    if (statusKey) params.status = statusKey; // when null => fetch all buckets
-    params.page = page;
-    if (query) params.search = query;
-    // Include active filters (project/status) if present to keep parity with mobile behavior
-    try {
-        if (currentTaskFilters && currentTaskFilters.project) {
-            // Backend expects 'project'
-            params.project = currentTaskFilters.project;
-        }
-        // Important: when a search query is present, do NOT constrain by status filter,
-        // so that results can come from New, In Progress, and Completed.
-        if (!statusKey && !query && currentTaskFilters && currentTaskFilters.status) {
-            // Backend expects 'status'
-            params.status = currentTaskFilters.status;
-        }
-    } catch(_) { /* noop */ }
+  const callSeq = ++taskFetchSeq
+  const params = {}
+  if (statusKey) params.status = statusKey
+  params.page = page
+  if (query) params.search = query
+  try {
+    if (currentTaskFilters && currentTaskFilters.project) params.project = currentTaskFilters.project
+    if (!statusKey && !query && currentTaskFilters && currentTaskFilters.status) params.status = currentTaskFilters.status
+  } catch (_) {}
+  if (statusKey && loaderMap[statusKey]) $(loaderMap[statusKey]).removeClass("d-none")
+  try {
+    const reqKey = statusKey ? String(statusKey) : "all"
+    const prev = window.__taskAjaxRequestsMap[reqKey]
+    if (prev && typeof prev.abort === "function") prev.abort()
+  } catch (_) {}
+  const jq = $.ajax({
+    url: appUrl + "/task/index",
+    type: "GET",
+    dataType: "json",
+    headers: { "X-Requested-With": "XMLHttpRequest" },
+    data: params,
+    success: function (response) {
+        console.log(response);
 
-    if (statusKey && loaderMap[statusKey]) {
-        $(loaderMap[statusKey]).removeClass("d-none");
+      if (callSeq !== taskFetchSeq) return
+      if (!response || response.code !== 200 || !response.data) return
+
+      if (!statusKey) {
+        const data = response.data
+        if (data.in_progress && data.rejected && Array.isArray(data.rejected.tasks)) {
+          const inPT = Array.isArray(data.in_progress.tasks) ? data.in_progress.tasks : []
+          const rejT = data.rejected.tasks || []
+          data.in_progress.tasks = [...inPT, ...rejT]
+        }
+        ;["new_request", "in_progress", "completed"].forEach(sk => {
+          if (!desktopState[sk]) desktopState[sk] = { page: 1, last: 1, loading: false }
+          desktopState[sk].last = data[sk]?.pagination?.last_page || 1
+          desktopState[sk].page = data[sk]?.pagination?.current_page || 1
+          allTasksCache[sk] = data[sk] || { tasks: [], pagination: {} }
+        })
+        renderTasks(data)
+        injectRejectedIfMissing(response.data)
+        return
+      }
+
+      const respSection = response.data?.[statusKey] ?? { tasks: [], pagination: {} }
+      if (statusKey === "in_progress" && !append && response.data?.rejected?.tasks) {
+        const rej = response.data.rejected.tasks
+        if (Array.isArray(rej) && rej.length) respSection.tasks = [...(respSection.tasks || []), ...rej]
+      }
+
+      if (!desktopState[statusKey]) desktopState[statusKey] = { page: 1, last: 1, loading: false }
+      desktopState[statusKey].last = respSection?.pagination?.last_page || 1
+      desktopState[statusKey].page = respSection?.pagination?.current_page || page
+
+      let renderTasksArr = []
+      if (!allTasksCache[statusKey] || !append) {
+        allTasksCache[statusKey] = respSection
+        renderTasksArr = respSection.tasks || []
+      } else {
+        const existing = new Map((allTasksCache[statusKey].tasks || []).map(t => [t.id, t]))
+        const newTasks = (respSection.tasks || []).filter(t => !existing.has(t.id))
+        newTasks.forEach(t => {
+          allTasksCache[statusKey].tasks.push(t)
+          existing.set(t.id, t)
+        })
+        allTasksCache[statusKey].pagination = respSection.pagination || allTasksCache[statusKey].pagination
+        renderTasksArr = newTasks
+      }
+
+    renderSingleSection(statusKey, respSection.tasks || [], true)
+      injectRejectedIfMissing(response.data)
+    },
+    error: function (xhr, textStatus) {
+      if (textStatus === "abort" || (xhr && xhr.status === 0)) return
+      let msg = "Failed to load tasks."
+      try {
+        if (xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
+          msg = xhr.responseJSON.message || xhr.responseJSON.error
+        }
+      } catch (_) {}
+      try {
+        if (typeof window.showAlertMsg === "function") window.showAlertMsg(msg, "light", 2500)
+        else if (typeof window.showFloatingAlert === "function") window.showFloatingAlert(msg, "light")
+        else console.warn("Task fetch error:", msg)
+      } catch (_) {}
+    },
+    complete: function () {
+      if (statusKey && loaderMap[statusKey]) $(loaderMap[statusKey]).addClass("d-none")
+      if (statusKey && desktopState[statusKey]) desktopState[statusKey].loading = false
     }
-
-    // Abort any previous in-flight request for the same key ("all" for full refresh)
-    try {
-        const reqKey = statusKey ? String(statusKey) : 'all';
-        const prev = window.__taskAjaxRequestsMap[reqKey];
-        if (prev && typeof prev.abort === 'function') {
-            prev.abort();
-        }
-    } catch(_) {}
-
-    const jq = $.ajax({
-        url: appUrl + "/task/index",
-        type: "GET",
-        dataType: "json",
-        headers: { 'X-Requested-With': 'XMLHttpRequest' },
-        data: params,
-        success: function(response) {
-            // Abaikan response lama
-            if (callSeq !== taskFetchSeq) return;
-            if (!response || response.code !== 200 || !response.data) return;
-
-            // FULL REFRESH (no specific status requested)
-            if (!statusKey) {
-                const data = response.data;
-                // Merge rejected into in_progress (same logic as renderTasks previously) to keep rejected visible
-                if (data.in_progress && data.rejected && Array.isArray(data.rejected.tasks)) {
-                    const inPT = Array.isArray(data.in_progress.tasks) ? data.in_progress.tasks : [];
-                    const rejT = data.rejected.tasks || [];
-                    data.in_progress.tasks = [...inPT, ...rejT];
-                }
-                // Update caches and pagination state
-                ["new_request", "in_progress", "completed"].forEach(sk => {
-                    if (!desktopState[sk]) desktopState[sk] = { page: 1, last: 1, loading: false };
-                    desktopState[sk].last = data[sk]?.pagination?.last_page || 1;
-                    desktopState[sk].page = 1;
-                    allTasksCache[sk] = data[sk] || { tasks: [], pagination: {} };
-                });
-                renderTasks(data);
-                injectRejectedIfMissing(response.data);
-                return;
-            }
-
-            // SINGLE SECTION REFRESH
-            const respSection = response.data?.[statusKey] ?? { tasks: [], pagination: {} };
-
-            // If refreshing in_progress, append rejected tasks (only on non-append to avoid duplicating)
-            if (statusKey === 'in_progress' && !append && response.data?.rejected?.tasks) {
-                const rej = response.data.rejected.tasks;
-                if (Array.isArray(rej) && rej.length) {
-                    respSection.tasks = [...(respSection.tasks || []), ...rej];
-                }
-            }
-
-            if (!desktopState[statusKey]) {
-                desktopState[statusKey] = { page: 1, last: 1, loading: false };
-            }
-            desktopState[statusKey].last = respSection?.pagination?.last_page || 1;
-            if (!append && page === 1) desktopState[statusKey].page = 1; // reset page ketika reload awal
-
-            if (!allTasksCache[statusKey] || !append) {
-                allTasksCache[statusKey] = respSection;
-            } else {
-                allTasksCache[statusKey].tasks = [
-                    ...(allTasksCache[statusKey].tasks || []),
-                    ...(respSection.tasks || [])
-                ];
-                allTasksCache[statusKey].pagination = respSection.pagination || allTasksCache[statusKey].pagination;
-            }
-
-            renderSingleSection(statusKey, respSection, append);
-            injectRejectedIfMissing(response.data);
-        },
-        error: function(xhr, textStatus) {
-            // Abaikan error dari request yang sengaja di-abort atau jaringan terputus
-            if (textStatus === 'abort' || (xhr && xhr.status === 0)) return;
-            // Tangani 4xx/5xx dengan alert ringan agar tidak banjiri console
-            let msg = 'Failed to load tasks.';
-            try {
-                if (xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) {
-                    msg = xhr.responseJSON.message || xhr.responseJSON.error;
-                }
-            } catch(_) {}
-            try {
-                if (typeof window.showAlertMsg === 'function') window.showAlertMsg(msg, 'light', 2500);
-                else if (typeof window.showFloatingAlert === 'function') window.showFloatingAlert(msg, 'light');
-                else console.warn('Task fetch error:', msg);
-            } catch(_) { /* noop */ }
-        },
-        complete: function() {
-            if (statusKey && loaderMap[statusKey]) $(loaderMap[statusKey]).addClass("d-none");
-            if (statusKey && desktopState[statusKey]) desktopState[statusKey].loading = false;
-        }
-    });
-
-    try {
-        const reqKey = statusKey ? String(statusKey) : 'all';
-        window.__taskAjaxRequestsMap[reqKey] = jq;
-    } catch(_) {}
-
-    // Return jqXHR so callers can optionally abort or await
-    return jq;
+  })
+  try {
+    const reqKey = statusKey ? String(statusKey) : "all"
+    window.__taskAjaxRequestsMap[reqKey] = jq
+  } catch (_) {}
+  return jq
 }
 
-    function renderTasks(data) {
-  renderSingleSection("new_request", data.new_request, false);
-  renderSingleSection("in_progress", {
-    ...data.in_progress,
-    tasks: [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])]
-  }, false);
-  renderSingleSection("completed", data.completed, false);
-    ensureRejectedCardsPlaced();
-    // Apply search filter after a full render
-    try { applyCurrentSearchFilter(); } catch(_) {}
-
-        // Sweep: if any client-archived tasks exist in DOM after render, remove them
+function renderTasks(data) {
+  renderSingleSection("new_request", data.new_request?.tasks || [], false)
+  renderSingleSection("in_progress", [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])], false)
+  renderSingleSection("completed", data.completed?.tasks || [], false)
+  ensureRejectedCardsPlaced()
+  try {
+    applyCurrentSearchFilter()
+  } catch (_) {}
+  try {
+    const clientMap = window.__clientArchivedTasks || new Map()
+    if (clientMap && typeof clientMap.forEach === "function" && clientMap.size) {
+      clientMap.forEach(function (t, k) {
         try {
-            const clientMap = window.__clientArchivedTasks || new Map();
-            if (clientMap && typeof clientMap.forEach === 'function' && clientMap.size) {
-                clientMap.forEach(function(t, k){
-                    try {
-                        const selector = '.custom-card[data-task-id="' + (t.id || t.task_id) + '"]';
-                        document.querySelectorAll(selector).forEach(function(el){ el.remove(); });
-                    } catch(_) {}
-                });
-                console.debug('[archive-client] swept DOM cards for client-archived tasks, count:', clientMap.size);
-            }
-        } catch(_) {}
-}
-
-function renderSingleSection(status, sectionData, append = false) {
-  const containerId = sectionMap[status];
-  if (!containerId) return;
-  const container = document.getElementById(containerId);
-  if (!container) return;
-
-  if (!append) {
-    container.innerHTML = "";
-  }
-
-  // Ambil current user id dengan beberapa fallback, simpan sebagai string
-  const userIdMeta = document.querySelector('meta[name="user-id"]');
-  let currentUserId = null;
-  if (userIdMeta && userIdMeta.content !== undefined && userIdMeta.content !== null) {
-    currentUserId = String(userIdMeta.content);
-  } else if (typeof window.CurrentUserId !== "undefined" && window.CurrentUserId !== null) {
-    currentUserId = String(window.CurrentUserId);
-  } else {
-    currentUserId = ""; // kosong = unknown
-  }
-
-  let incomingTasks = Array.isArray(sectionData?.tasks) ? sectionData.tasks.slice() : [];
-
-    // Ensure client-side archive buffer exists (Map of id -> task)
-    window.__clientArchivedTasks = window.__clientArchivedTasks || new Map();
-
-    function parseDateForCompare(d) {
-        if (!d) return null;
-        // Accept ISO strings or timestamps; fallback to null
-        try {
-            const dt = new Date(d);
-            if (isNaN(dt.getTime())) return null;
-            return dt;
-        } catch (e) { return null; }
-    }
-
-    function isCompletedOlderThanDays(task, days) {
-        try {
-            if (!task) return false;
-            const status = String(task.status || '').toLowerCase();
-            if (!status.includes('completed')) return false;
-            // Prefer complete_date, fallback to updated_at
-            const d = parseDateForCompare(task.complete_date || task.updated_at || task.updatedAt || null);
-            if (!d) return false;
-            const now = new Date();
-            const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24));
-            return diffDays > Number(days);
-        } catch (e) { return false; }
-    }
-
-    incomingTasks = incomingTasks.filter(task => {
-        const statusNorm = String(task.status || "").trim().toLowerCase();
-        const isRejected = statusNorm.includes("reject");
-
-        const picId = task.pic ? String(task.pic.id) : "";
-        const executorIds = (task.executors || []).map(e => String(e.id));
-        const uid = String(currentUserId || "");
-
-        const isPic = picId && uid && picId === uid
-        const isExecutor = executorIds.some(id => id === uid);
-
-        if (isRejected) {
-            if (isPic || isExecutor) return true;
-            return false;
-        }
-
-        // If the TASK itself is completed and older than 90 days, move it to client archive buffer
-        try {
-            if (statusNorm && String(statusNorm).toLowerCase().includes('completed')) {
-                if (isCompletedOlderThanDays(task, 90)) {
-                    const idKey = String(task.id || task.task_id || '');
-                    if (idKey) {
-                        const normalized = Object.assign({}, task, { status: task.status || 'completed' });
-                        window.__clientArchivedTasks.set(idKey, normalized);
-                        // Also remove any existing DOM card immediately to avoid visual leftover
-                        try {
-                            const selector = '.custom-card[data-task-id="' + idKey + '"]';
-                            document.querySelectorAll(selector).forEach(function(el){ el.remove(); });
-                        } catch(_) {}
-                        try {
-                            const d = new Date(task.complete_date || task.updated_at || task.updatedAt || null);
-                            const now = new Date();
-                            const diffDays = (d && !isNaN(d.getTime())) ? Math.floor((now - d) / (1000*60*60*24)) : null;
-                            console.debug('[archive-client] moved task -> id:', idKey, 'title:', (task.title||task.name||''), 'complete_date:', task.complete_date, 'ageDays:', diffDays);
-                        } catch(_) {}
-                    }
-                    // Skip rendering anywhere
-                    return false;
-                }
-            }
+          const selector = '.custom-card[data-task-id="' + (t.id || t.task_id) + '"]'
+          document.querySelectorAll(selector).forEach(function (el) {
+            el.remove()
+          })
         } catch (_) {}
+      })
+    }
+  } catch (_) {}
+}
 
-        return true;
-    });
+function renderSingleSection(status, tasks, append = false) {
+  const containerId = sectionMap[status]
+  if (!containerId) return
+  const container = document.getElementById(containerId)
+  if (!container) return
+  if (!append) container.innerHTML = ""
 
-    // If any incoming task exists in client archive buffer but is no longer older than 90 days,
-    // remove it from the buffer so it can be rendered again (restore case).
+  const userIdMeta = document.querySelector('meta[name="user-id"]')
+  let currentUserId = null
+  if (userIdMeta && userIdMeta.content !== undefined && userIdMeta.content !== null) currentUserId = String(userIdMeta.content)
+  else if (typeof window.CurrentUserId !== "undefined" && window.CurrentUserId !== null) currentUserId = String(window.CurrentUserId)
+  else currentUserId = ""
+
+  let incomingTasks = Array.isArray(tasks) ? tasks.slice() : []
+  window.__clientArchivedTasks = window.__clientArchivedTasks || new Map()
+
+  function parseDateForCompare(d) {
+    if (!d) return null
     try {
-        const clientMap = window.__clientArchivedTasks || new Map();
-        if (clientMap && typeof clientMap.delete === 'function' && incomingTasks.length) {
-            incomingTasks.forEach(function(task){
-                try {
-                    const idKey = String(task.id || task.task_id || '');
-                    if (!idKey) return;
-                    if (clientMap.has(idKey)) {
-                        // if this task is not older than 90 days anymore, remove from buffer
-                        try {
-                            if (!isCompletedOlderThanDays(task, 90)) {
-                                clientMap.delete(idKey);
-                                console.debug('[archive-client] restored task from buffer id:', idKey);
-                            }
-                        } catch(_) {}
-                    }
-                } catch(_) {}
-            });
-        }
-    } catch(_) {}
-
-    // Additionally, when rendering Completed column, ensure any existing DOM cards
-    // for tasks that are older than 90 days are removed (covering append/partial updates)
-    try {
-        if (String(status || '').toLowerCase() === 'completed') {
-            const originalArr = Array.isArray(sectionData?.tasks) ? sectionData.tasks : [];
-            originalArr.forEach(function(task) {
-                try {
-                    if (isCompletedOlderThanDays(task, 90)) {
-                        const idKey = String(task.id || task.task_id || '');
-                        if (idKey) {
-                            const normalized = Object.assign({}, task, { status: task.status || 'completed' });
-                            window.__clientArchivedTasks.set(idKey, normalized);
-                        }
-                        // Remove any existing card DOM in Completed column
-                        try {
-                            const c = container.querySelector('.custom-card[data-task-id="' + (task.id || task.task_id) + '"]');
-                            if (c && c.parentNode) c.parentNode.removeChild(c);
-                        } catch(_) {}
-                    }
-                } catch(_) {}
-            });
-        }
-    } catch(_) {}
-
-  if (!append) {
-    incomingTasks.forEach(task =>
-      container.insertAdjacentHTML("beforeend", createTaskCard(task))
-    );
-  } else {
-    incomingTasks.forEach(task =>
-      container.insertAdjacentHTML("beforeend", createTaskCard(task))
-    );
+      const dt = new Date(d)
+      if (isNaN(dt.getTime())) return null
+      return dt
+    } catch (e) {
+      return null
+    }
   }
 
-  addAttachFileIconListeners();
-  initBootstrapTooltips();
-        // Jadwalkan fetch latest feedback/snippets sekali (hindari banyak request beruntun)
-        scheduleRefreshLatestFeedbackSnippets();
-    // Setelah tiap section dirender, pastikan rejected selalu di kolom In Progress
-    if (!append) ensureRejectedCardsPlaced();
-    // Re-apply current search filter so new/updated cards respect it
-    try { applyCurrentSearchFilter(); } catch(_) {}
-    // If rendering New Request column, update arrow visibility according to select-all state
-    try { if (status === 'new_request' && typeof window.updateNewRequestArrowVisibility === 'function') window.updateNewRequestArrowVisibility(); } catch(_) {}
-
-    // After rendering this section, sweep DOM to remove any cards that are present in client archived buffer
+  function isCompletedOlderThanDays(task, days) {
     try {
-        const clientMap = window.__clientArchivedTasks || new Map();
-        if (clientMap && typeof clientMap.forEach === 'function' && clientMap.size) {
-            clientMap.forEach(function(t, k){
-                try {
-                    const selector = '.custom-card[data-task-id="' + (t.id || t.task_id) + '"]';
-                    document.querySelectorAll(selector).forEach(function(el){ el.remove(); });
-                } catch(_) {}
-            });
+      if (!task) return false
+      const status = String(task.status || "").toLowerCase()
+      if (!status.includes("completed")) return false
+      const d = parseDateForCompare(task.complete_date || task.updated_at || task.updatedAt || null)
+      if (!d) return false
+      const now = new Date()
+      const diffDays = Math.floor((now - d) / (1000 * 60 * 60 * 24))
+      return diffDays > Number(days)
+    } catch (e) {
+      return false
+    }
+  }
+
+  incomingTasks = incomingTasks.filter(task => {
+    const statusNorm = String(task.status || "").trim().toLowerCase()
+    const isRejected = statusNorm.includes("reject")
+    const picId = task.pic ? String(task.pic.id) : ""
+    const executorIds = (task.executors || []).map(e => String(e.id))
+    const uid = String(currentUserId || "")
+    const isPic = picId && uid && picId === uid
+    const isExecutor = executorIds.some(id => id === uid)
+    if (isRejected) {
+      if (isPic || isExecutor) return true
+      return false
+    }
+    try {
+      if (statusNorm.includes("completed")) {
+        if (isCompletedOlderThanDays(task, 90)) {
+          const idKey = String(task.id || task.task_id || "")
+          if (idKey) {
+            const normalized = Object.assign({}, task, { status: task.status || "completed" })
+            window.__clientArchivedTasks.set(idKey, normalized)
+            try {
+              const selector = '.custom-card[data-task-id="' + idKey + '"]'
+              document.querySelectorAll(selector).forEach(function (el) {
+                el.remove()
+              })
+            } catch (_) {}
+          }
+          return false
         }
-    } catch(_) {}
+      }
+    } catch (_) {}
+    return true
+  })
+
+  incomingTasks.forEach(task => container.insertAdjacentHTML("beforeend", createTaskCard(task)))
+
+  addAttachFileIconListeners()
+  initBootstrapTooltips()
+  scheduleRefreshLatestFeedbackSnippets()
+  if (!append) ensureRejectedCardsPlaced()
+  try {
+    applyCurrentSearchFilter()
+  } catch (_) {}
+  try {
+    if (status === "new_request" && typeof window.updateNewRequestArrowVisibility === "function") window.updateNewRequestArrowVisibility()
+  } catch (_) {}
+  try {
+    const clientMap = window.__clientArchivedTasks || new Map()
+    if (clientMap && typeof clientMap.forEach === "function" && clientMap.size) {
+      clientMap.forEach(function (t, k) {
+        try {
+          const selector = '.custom-card[data-task-id="' + (t.id || t.task_id) + '"]'
+          document.querySelectorAll(selector).forEach(function (el) {
+            el.remove()
+          })
+        } catch (_) {}
+      })
+    }
+  } catch (_) {}
 }
 
-// Normalisasi posisi card rejected (fallback jika ada card nyasar / tidak tergabung)
-function ensureRejectedCardsPlaced(){
-    try {
-        const inProgressCol = document.getElementById('in-progress-tasks');
-        if(!inProgressCol) return;
-        const allRejected = document.querySelectorAll('.custom-card[data-task-status]');
-        allRejected.forEach(card => {
-            const st = String(card.getAttribute('data-task-status')||'').toLowerCase();
-            if(st.includes('reject')){
-                // Tambah badge jika belum ada
-                if(!card.querySelector('.badge.bg-danger')){
-                    const badge = document.createElement('span');
-                    badge.className = 'badge bg-danger position-absolute';
-                    badge.style.cssText = 'font-size:10px;font-weight:500;top:25%;right:18px;';
-                    badge.textContent = 'REJECTED';
-                    card.appendChild(badge);
-                }
-                if(card.parentElement !== inProgressCol){
-                    card.parentElement && card.parentElement.removeChild(card);
-                    inProgressCol.prepend(card);
-                }
-            }
-        });
-        // Reinitialize tooltips after cards are moved
-        initBootstrapTooltips();
-    } catch(err){ console.warn('ensureRejectedCardsPlaced error', err); }
+function ensureRejectedCardsPlaced() {
+  try {
+    const inProgressCol = document.getElementById("in-progress-tasks")
+    if (!inProgressCol) return
+    const allRejected = document.querySelectorAll(".custom-card[data-task-status]")
+    allRejected.forEach(card => {
+      const st = String(card.getAttribute("data-task-status") || "").toLowerCase()
+      if (st.includes("reject")) {
+        if (!card.querySelector(".badge.bg-danger")) {
+          const badge = document.createElement("span")
+          badge.className = "badge bg-danger position-absolute"
+          badge.style.cssText = "font-size:10px;font-weight:500;top:25%;right:18px;"
+          badge.textContent = "REJECTED"
+          card.appendChild(badge)
+        }
+        if (card.parentElement !== inProgressCol) {
+          card.parentElement && card.parentElement.removeChild(card)
+          inProgressCol.prepend(card)
+        }
+      }
+    })
+    initBootstrapTooltips()
+  } catch (err) {
+    console.warn("ensureRejectedCardsPlaced error", err)
+  }
 }
 
-// Jika backend belum mengirim bucket rejected terpisah atau belum tergabung, force inject
-function injectRejectedIfMissing(rawData){
-    try {
-        if(!rawData) return;
-        const inProgressCol = document.getElementById('in-progress-tasks');
-        if(!inProgressCol) return;
-        // Kumpulkan semua task potensial yang statusnya rejected di semua bucket yang diterima
-        const buckets = ['new_request','in_progress','completed','rejected'];
-        const collected = [];
-        buckets.forEach(b=>{
-            const arr = rawData[b]?.tasks; if(Array.isArray(arr)) collected.push(...arr);
-        });
-        const rejected = collected.filter(t => String(t.status||'').toLowerCase().includes('reject'));
-        if(!rejected.length) return;
-        // Index existing card ids
-        const existingIds = new Set(Array.from(inProgressCol.querySelectorAll('.custom-card[data-task-id]')).map(c=>c.getAttribute('data-task-id')));
-        rejected.forEach(task => {
-            const idStr = String(task.id);
-            if(!existingIds.has(idStr)){
-                inProgressCol.insertAdjacentHTML('afterbegin', createTaskCard(task));
-                existingIds.add(idStr);
-            }
-        });
-        ensureRejectedCardsPlaced();
-    } catch(err){ console.warn('injectRejectedIfMissing error', err); }
+function injectRejectedIfMissing(rawData) {
+  try {
+    if (!rawData) return
+    const inProgressCol = document.getElementById("in-progress-tasks")
+    if (!inProgressCol) return
+    const buckets = ["new_request", "in_progress", "completed", "rejected"]
+    const collected = []
+    buckets.forEach(b => {
+      const arr = rawData[b]?.tasks
+      if (Array.isArray(arr)) collected.push(...arr)
+    })
+    const rejected = collected.filter(t => String(t.status || "").toLowerCase().includes("reject"))
+    if (!rejected.length) return
+    const existingIds = new Set(Array.from(inProgressCol.querySelectorAll(".custom-card[data-task-id]")).map(c => c.getAttribute("data-task-id")))
+    rejected.forEach(task => {
+      const idStr = String(task.id)
+      if (!existingIds.has(idStr)) {
+        inProgressCol.insertAdjacentHTML("afterbegin", createTaskCard(task))
+        existingIds.add(idStr)
+      }
+    })
+    ensureRejectedCardsPlaced()
+  } catch (err) {
+    console.warn("injectRejectedIfMissing error", err)
+  }
 }
-
-// Track current search across paginated loads
-window.__taskCurrentSearchQuery = window.__taskCurrentSearchQuery || "";
 
 function initDesktopInfiniteScroll(query = "") {
-    // initialize current search value for subsequent loads
-    try { window.__taskCurrentSearchQuery = String(query || ''); } catch(_) {}
-    ["new_request", "in_progress", "completed"].forEach(status => {
-        const containerId = sectionMap[status];
-        const el = document.getElementById(containerId);
-        if (!el) return;
-        // Bind once per container
-        if (el.dataset.infiniteScrollBound === '1') return;
-        el.dataset.infiniteScrollBound = '1';
-
-        el.addEventListener('scroll', function () {
-            const state = desktopState[status];
-            if (!state || state.loading) return;
-
-            // near-bottom detection with small threshold
-            if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
-                if (state.page < state.last) {
-                    state.loading = true;
-                    state.page++;
-                    const q = (typeof window.__taskCurrentSearchQuery === 'string') ? window.__taskCurrentSearchQuery : '';
-                    fetchAndRenderTasks(status, state.page, true, q);
-                }
-            }
-        }, { passive: true });
-    });
+  try { window.__taskCurrentSearchQuery = String(query || '') } catch(_) {}
+  ;["new_request", "in_progress", "completed"].forEach(status => {
+    const containerId = sectionMap[status]
+    const el = document.getElementById(containerId)
+    if (!el) return
+    if (el.dataset.infiniteScrollBound === '1') return
+    el.dataset.infiniteScrollBound = '1'
+    el.addEventListener('scroll', function () {
+      const state = desktopState[status]
+      if (!state || state.loading) return
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 50) {
+        if (state.page < state.last) {
+          state.loading = true
+          const nextPage = state.page + 1
+          const q = (typeof window.__taskCurrentSearchQuery === 'string') ? window.__taskCurrentSearchQuery : ''
+          fetchAndRenderTasks(status, nextPage, true, q)
+        }
+      }
+    }, { passive: true })
+  })
 }
-// Note: desktop data is fetched once in the unified init block below; scroll handlers are
-// bound via initDesktopInfiniteScroll() to avoid duplicate bindings and race conditions.
 
 // Client-side, in-place filter for visible task cards (title + project title)
 function filterVisibleTasks(queryRaw) {
@@ -6047,7 +5988,7 @@ function applyCurrentSearchFilter() {
                     row.className = 'd-flex gap-2 align-items-center';
                     const controls = (idx === 0)
                         ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
-                        : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                        : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
                     row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" value="${u}" placeholder="https://example.com">${controls}`;
                     container.appendChild(row);
                 });
@@ -6823,13 +6764,6 @@ function applyCurrentSearchFilter() {
                     }
                 }
 
-                function formatDueDate(dateStr) {
-                    if (!dateStr) return '';
-                    const date = new Date(dateStr);
-                    const options = { day: '2-digit', month: 'short', year: 'numeric' };
-                    return date.toLocaleDateString('en-GB', options).replace(',', '');
-                }
-
                 const showDelete = (function(){
                     try {
                         const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
@@ -6866,7 +6800,7 @@ function applyCurrentSearchFilter() {
                         </div>
                         <div style="font-size:12px;">
                             <span style="color:#797E91;">Deadline: </span>
-                            <span style="color:#4B4F5E;">${formatDueDate(task.due_date) || "-"}</span>
+                            <span style="color:#4B4F5E;">${formatDateENMedium(task.due_date) || "-"}</span>
                         </div>
                     </div>
                     <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -7368,8 +7302,9 @@ function applyCurrentSearchFilter() {
 
             if (files.length > 0) {
                     const title = document.createElement("div");
-                    title.className = "fw-bold mb-2";
-                    title.textContent = "Current Files:";
+                    // title.className = "fw-normal mb-2";
+                    // title.textContent = "Current Files:";
+                    // title.style.fontSize = "12px"
                     existing.appendChild(title);
 
                     const fileList = document.createElement("div");
@@ -7579,7 +7514,7 @@ function applyCurrentSearchFilter() {
                         row.className = 'input-group';
                         const controls = (idx === 0)
                             ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
-                            : `<button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                            : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
                         row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
                         container.appendChild(row);
                     });
@@ -8472,6 +8407,8 @@ function applyCurrentSearchFilter() {
                         card.querySelectorAll('button, a.btn').forEach(btn => {
                             if (btn.textContent.toLowerCase().includes('edit') || btn.textContent.toLowerCase().includes('delete')) btn.remove();
                         });
+                        card.querySelectorAll('.feedback-comments-count').forEach(el => el.remove());
+                        card.querySelectorAll('.reference-files-count').forEach(el => el.remove());
                         const status = (card.getAttribute('data-task-status') || '').toLowerCase();
                         const dropdownMenu = card.querySelector('.dropdown-menu');
                         if (dropdownMenu) {
@@ -8866,5 +8803,72 @@ function applyCurrentSearchFilter() {
                     }
                 });
             });
+        }
+    });
+
+    function showCompletedModal(task) {
+        console.log("Inject ke modal:", task);
+
+        const img = task.project_image || '/asset/img/avatar.png';
+        $("#completed_task_image").attr("src", img);
+        $("#completed_task_title").text(task.title || "-");
+        $("#completed_project_title").text(task.project_title || "-");
+        $("#completed_task_note").html(task.complete_note || "<em>No note</em>");
+        $("#completed_priority").text(task.priority || "-");
+        $("#completed_date").text(task.complete_date || "-");
+
+        const $urlsContainer = $("#completed_task_urls");
+        $urlsContainer.empty();
+        if ($.isArray(task.complete_urls) && task.complete_urls.length) {
+            task.complete_urls.forEach(u => {
+                $("<a>")
+                    .attr("href", u)
+                    .attr("target", "_blank")
+                    .text(u)
+                    .appendTo($urlsContainer);
+                $urlsContainer.append("<br>");
+            });
+        } else {
+            $urlsContainer.html("<em>-</em>");
+        }
+
+        const $priority = $("#completed_priority");
+        $priority.text(task.priority || "-").css({ "color": "", "font-weight": "500" });
+
+        if (task.priority === "HIGH") {
+            $priority.css("color", "#d9534f");
+        } else if (task.priority === "MEDIUM") {
+            $priority.css("color", "#f0ad4e");
+        } else if (task.priority === "LOW") {
+            $priority.css("color", "#5cb85c");
+        }
+
+        $("#completed_date").text(formatDateENMedium(task.complete_date || "-"));
+
+
+        const $filesContainer = $("#completed_task_files");
+        $filesContainer.empty();
+        if ($.isArray(task.complete_files) && task.complete_files.length) {
+            task.complete_files.forEach(f => {
+                $("<a>")
+                    .attr("href", f.url || f)
+                    .attr("target", "_blank")
+                    .text(f.name || f)
+                    .appendTo($filesContainer);
+                $filesContainer.append("<br>");
+            });
+        } else {
+            $filesContainer.html("<em>-</em>");
+        }
+    }
+
+    $(document).on("click", ".playlist_add_check", function () {
+        const taskId = $(this).data("task-id");
+        const task = (allTasksCache?.completed?.tasks || []).find(t => t.id == taskId);
+
+        if (task) {
+            showCompletedModal(task);
+        } else {
+            console.warn("Task not found for ID:", taskId);
         }
     });
