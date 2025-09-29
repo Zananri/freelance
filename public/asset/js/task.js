@@ -2798,8 +2798,12 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                             </div>
                             ${task.status === 'completed'
                                 ? `
-                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative">
-                                    <span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}">playlist_add_check</span>
+                                <div class="btn-attach-file-wrapper d-flex align-items-center ms-2 position-relative"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#completedModal">
+                                    <span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" style="color: #454545; font-size: 25px;">
+                                        playlist_add_check
+                                    </span>
                                     <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                                 </div>
                                 <div class="btn-attach-file-wrapper d-flex align-items-center ms-3 position-relative">
@@ -8798,5 +8802,72 @@ function applyCurrentSearchFilter() {
                     }
                 });
             });
+        }
+    });
+
+    function showCompletedModal(task) {
+        console.log("Inject ke modal:", task);
+
+        const img = task.project_image || '/asset/img/avatar.png';
+        $("#completed_task_image").attr("src", img);
+        $("#completed_task_title").text(task.title || "-");
+        $("#completed_project_title").text(task.project_title || "-");
+        $("#completed_task_note").html(task.complete_note || "<em>No note</em>");
+        $("#completed_priority").text(task.priority || "-");
+        $("#completed_date").text(task.complete_date || "-");
+
+        const $urlsContainer = $("#completed_task_urls");
+        $urlsContainer.empty();
+        if ($.isArray(task.complete_urls) && task.complete_urls.length) {
+            task.complete_urls.forEach(u => {
+                $("<a>")
+                    .attr("href", u)
+                    .attr("target", "_blank")
+                    .text(u)
+                    .appendTo($urlsContainer);
+                $urlsContainer.append("<br>");
+            });
+        } else {
+            $urlsContainer.html("<em>-</em>");
+        }
+
+        const $priority = $("#completed_priority");
+        $priority.text(task.priority || "-").css({ "color": "", "font-weight": "500" });
+
+        if (task.priority === "HIGH") {
+            $priority.css("color", "#d9534f");
+        } else if (task.priority === "MEDIUM") {
+            $priority.css("color", "#f0ad4e");
+        } else if (task.priority === "LOW") {
+            $priority.css("color", "#5cb85c");
+        }
+
+        $("#completed_date").text(formatDateENMedium(task.complete_date || "-"));
+
+
+        const $filesContainer = $("#completed_task_files");
+        $filesContainer.empty();
+        if ($.isArray(task.complete_files) && task.complete_files.length) {
+            task.complete_files.forEach(f => {
+                $("<a>")
+                    .attr("href", f.url || f)
+                    .attr("target", "_blank")
+                    .text(f.name || f)
+                    .appendTo($filesContainer);
+                $filesContainer.append("<br>");
+            });
+        } else {
+            $filesContainer.html("<em>-</em>");
+        }
+    }
+
+    $(document).on("click", ".playlist_add_check", function () {
+        const taskId = $(this).data("task-id");
+        const task = (allTasksCache?.completed?.tasks || []).find(t => t.id == taskId);
+
+        if (task) {
+            showCompletedModal(task);
+        } else {
+            console.warn("Task not found for ID:", taskId);
         }
     });

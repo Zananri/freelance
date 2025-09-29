@@ -186,9 +186,12 @@
                                     <button class="ql-link"></button>
                                 </span>
                             </div>
-                            <div id="edit_task_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                            <div id="edit_task_description_editor"
+                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                            </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
-                            <textarea class="form-control input-text d-none" id="edit_task_description" name="description" rows="6" style="display:none;"></textarea>
+                            <textarea class="form-control input-text d-none" id="edit_task_description" name="description" rows="6"
+                                style="display:none;"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
                             <label for="edit_task_project_input" class="form-label label-custom">Project
@@ -231,7 +234,8 @@
                                 <div class="input-group">
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
-                                    <button type="button" class="btn btn-submit-black add-ref-url aria-label="Add URL">
+                                    <button type="button" class="btn btn-submit-black add-ref-url aria-label="Add
+                                        URL">
                                         <span class="material-symbols-outlined">add</span>
                                     </button>
                                 </div>
@@ -389,9 +393,12 @@
                                     <button class="ql-link"></button>
                                 </span>
                             </div>
-                            <div id="task_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                            <div id="task_description_editor"
+                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                            </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
-                            <textarea class="form-control input-text d-none" id="task_description" name="description" rows="6" style="display:none;"></textarea>
+                            <textarea class="form-control input-text d-none" id="task_description" name="description" rows="6"
+                                style="display:none;"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Project</label>
@@ -432,7 +439,8 @@
                                 <div class="input-group">
                                     <input type="url" class="form-control input-text" name="reference_urls[]"
                                         placeholder="https://example.com">
-                                    <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                    <button type="button" class="btn btn-submit-black add-ref-url"
+                                        aria-label="Add URL">
                                         <span class="material-symbols-outlined">add</span>
                                     </button>
                                 </div>
@@ -565,6 +573,53 @@
         </div>
     </div>
 
+    {{-- Completed Modal --}}
+    <div class="modal fade" id="completedModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-body modal-body-custom">
+
+                    <div class="d-flex align-items-center mb-2">
+                        <img id="completed_task_image" src="" alt="Project Image"
+                            class="rounded-circle me-2" width="34" height="34">
+                        <div>
+                            <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;"></h6>
+                            <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <div id="completed_task_note" class="text-muted"></div>
+                    </div>
+
+                    <div class="row mb-4 link-file-task">
+                        <div class="col-6 d-flex align-items-center">
+                            <label class="fw-normal me-2 mb-0">Priority:</label>
+                            <span id="completed_priority"></span>
+                        </div>
+                        <div class="col-6 d-flex align-items-center">
+                            <label class="fw-normal me-2 mb-0">Complete Date:</label>
+                            <span id="completed_date"></span>
+                        </div>
+                        <div class="col-6">
+                            <label class="fw-normal d-block mb-1">Links:</label>
+                            <div id="completed_task_urls"></div>
+                        </div>
+                        <div class="col-6">
+                            <label class="fw-normal d-block mb-1">Files:</label>
+                            <div id="completed_task_files"></div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Reference Files Modal -->
     <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel"
         aria-hidden="true">
@@ -636,91 +691,135 @@
 
         <!-- Quill editor script and initialization for Task page -->
         <script>
-            document.addEventListener('DOMContentLoaded', function(){
+            document.addEventListener('DOMContentLoaded', function() {
                 try {
                     // Initialize Quill instances for Add and Edit task modals
                     if (document.getElementById('task_description_editor')) {
                         window.__quillTaskAdd = new Quill('#task_description_editor', {
-                            modules: { toolbar: '#task_description_toolbar' },
+                            modules: {
+                                toolbar: '#task_description_toolbar'
+                            },
                             theme: 'snow'
                         });
                         // Ensure pasted <img> nodes are stripped by Quill's clipboard before insertion
                         try {
                             var Delta = Quill.import && Quill.import('delta');
-                            if (window.__quillTaskAdd && window.__quillTaskAdd.clipboard && typeof window.__quillTaskAdd.clipboard.addMatcher === 'function') {
+                            if (window.__quillTaskAdd && window.__quillTaskAdd.clipboard && typeof window.__quillTaskAdd
+                                .clipboard.addMatcher === 'function') {
                                 window.__quillTaskAdd.clipboard.addMatcher('IMG', function(node, delta) {
-                                    try { return new Delta(); } catch(_) { return delta; }
+                                    try {
+                                        return new Delta();
+                                    } catch (_) {
+                                        return delta;
+                                    }
                                 });
                             }
                             // Safety: remove any <img> elements after any text-change (Edge may still insert blobs)
                             try {
-                                window.__quillTaskAdd.on && window.__quillTaskAdd.on('text-change', function(delta, oldDelta, source){
+                                window.__quillTaskAdd.on && window.__quillTaskAdd.on('text-change', function(delta,
+                                    oldDelta, source) {
                                     try {
-                                        setTimeout(function(){
-                                            try { var imgs = window.__quillTaskAdd.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){}
+                                        setTimeout(function() {
+                                            try {
+                                                var imgs = window.__quillTaskAdd.root.querySelectorAll(
+                                                    'img');
+                                                imgs.forEach(function(i) {
+                                                    i.remove();
+                                                });
+                                            } catch (_) {}
                                         }, 0);
-                                    } catch(_){}
+                                    } catch (_) {}
                                 });
-                            } catch(_){}
-                        } catch(_) {}
+                            } catch (_) {}
+                        } catch (_) {}
                         // prevent images via drop/paste
-                        try { preventImageDropAndPaste(window.__quillTaskAdd, '#task_description_editor'); } catch(_) {}
+                        try {
+                            preventImageDropAndPaste(window.__quillTaskAdd, '#task_description_editor');
+                        } catch (_) {}
                     }
                     if (document.getElementById('edit_task_description_editor')) {
                         window.__quillTaskEdit = new Quill('#edit_task_description_editor', {
-                            modules: { toolbar: '#edit_task_description_toolbar' },
+                            modules: {
+                                toolbar: '#edit_task_description_toolbar'
+                            },
                             theme: 'snow'
                         });
                         try {
                             var Delta = Quill.import && Quill.import('delta');
-                            if (window.__quillTaskEdit && window.__quillTaskEdit.clipboard && typeof window.__quillTaskEdit.clipboard.addMatcher === 'function') {
+                            if (window.__quillTaskEdit && window.__quillTaskEdit.clipboard && typeof window
+                                .__quillTaskEdit.clipboard.addMatcher === 'function') {
                                 window.__quillTaskEdit.clipboard.addMatcher('IMG', function(node, delta) {
-                                    try { return new Delta(); } catch(_) { return delta; }
+                                    try {
+                                        return new Delta();
+                                    } catch (_) {
+                                        return delta;
+                                    }
                                 });
                             }
                             try {
-                                window.__quillTaskEdit.on && window.__quillTaskEdit.on('text-change', function(delta, oldDelta, source){
+                                window.__quillTaskEdit.on && window.__quillTaskEdit.on('text-change', function(delta,
+                                    oldDelta, source) {
                                     try {
-                                        setTimeout(function(){
-                                            try { var imgs = window.__quillTaskEdit.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){}
+                                        setTimeout(function() {
+                                            try {
+                                                var imgs = window.__quillTaskEdit.root.querySelectorAll(
+                                                    'img');
+                                                imgs.forEach(function(i) {
+                                                    i.remove();
+                                                });
+                                            } catch (_) {}
                                         }, 0);
-                                    } catch(_){}
+                                    } catch (_) {}
                                 });
-                            } catch(_){}
-                        } catch(_) {}
-                        try { preventImageDropAndPaste(window.__quillTaskEdit, '#edit_task_description_editor'); } catch(_) {}
+                            } catch (_) {}
+                        } catch (_) {}
+                        try {
+                            preventImageDropAndPaste(window.__quillTaskEdit, '#edit_task_description_editor');
+                        } catch (_) {}
                     }
-                } catch(_) { /* noop if Quill not available */ }
+                } catch (_) {
+                    /* noop if Quill not available */
+                }
 
                 // Prevent images from being inserted via drag/drop or paste
-                function preventImageDropAndPaste(quill, editorSelector){
+                function preventImageDropAndPaste(quill, editorSelector) {
                     try {
                         var editor = document.querySelector(editorSelector);
                         if (!editor || !quill) return;
 
                         // Use capture-phase listeners to intercept before Quill's handlers run
-                        try { editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); e.stopImmediatePropagation(); }catch(_){} }, true); } catch(_){}
+                        try {
+                            editor.addEventListener('dragover', function(e) {
+                                try {
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
 
                         // drop: block files (including images) and HTML that contains <img>
                         try {
-                            editor.addEventListener('drop', function(e){
+                            editor.addEventListener('drop', function(e) {
                                 try {
                                     if (!e.dataTransfer) return;
                                     var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
                                     var html = '';
-                                    try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
+                                    try {
+                                        html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') ||
+                                            '';
+                                    } catch (_) {}
                                     if (hasFiles || /<img\s*/i.test(html)) {
                                         e.preventDefault();
                                         e.stopImmediatePropagation();
                                         return; // do nothing
                                     }
-                                } catch(_) {}
+                                } catch (_) {}
                             }, true);
-                        } catch(_) {}
+                        } catch (_) {}
 
                         // paste: if clipboard contains image items or HTML with <img>, prevent entirely (no insert)
                         try {
-                            editor.addEventListener('paste', function(e){
+                            editor.addEventListener('paste', function(e) {
                                 try {
                                     var clipboard = (e.clipboardData || window.clipboardData);
                                     if (!clipboard) return;
@@ -729,11 +828,16 @@
                                     var hasImage = false;
                                     for (var i = 0; i < items.length; i++) {
                                         var t = items[i].type || '';
-                                        if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
+                                        if (t.indexOf && t.indexOf('image') === 0) {
+                                            hasImage = true;
+                                            break;
+                                        }
                                     }
 
                                     var html = '';
-                                    try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
+                                    try {
+                                        html = clipboard.getData && clipboard.getData('text/html') || '';
+                                    } catch (_) {}
 
                                     if (hasImage || /<img\s*/i.test(html)) {
                                         // block default paste which would insert the image or any html containing images
@@ -742,69 +846,92 @@
                                         return; // do not insert anything (no blink)
                                     }
                                     // Otherwise allow normal paste (text or non-image html)
-                                } catch(_) {}
+                                } catch (_) {}
                             }, true);
-                        } catch(_) {}
-                    } catch(_) {}
+                        } catch (_) {}
+                    } catch (_) {}
                 }
 
-                function syncQuillToTextarea(quill, textareaId){
+                function syncQuillToTextarea(quill, textareaId) {
                     try {
                         const ta = document.getElementById(textareaId);
                         if (!ta) return;
-                        const html = (quill && quill.root && typeof quill.root.innerHTML === 'string') ? quill.root.innerHTML : '';
+                        const html = (quill && quill.root && typeof quill.root.innerHTML === 'string') ? quill.root
+                            .innerHTML : '';
                         ta.value = html;
-                    } catch(_) {}
+                    } catch (_) {}
                 }
 
                 // Use capture-phase submit listener to ensure sync runs before any other submit handlers
                 const addForm = document.getElementById('addTaskForm');
                 if (addForm) {
-                    addForm.addEventListener('submit', function(e){
+                    addForm.addEventListener('submit', function(e) {
                         try {
-                            if (window.__quillTaskAdd) syncQuillToTextarea(window.__quillTaskAdd, 'task_description');
+                            if (window.__quillTaskAdd) syncQuillToTextarea(window.__quillTaskAdd,
+                                'task_description');
                             // Basic non-empty validation (strip whitespace)
-                            const plain = (window.__quillTaskAdd && typeof window.__quillTaskAdd.getText === 'function') ? window.__quillTaskAdd.getText().trim() : '';
+                            const plain = (window.__quillTaskAdd && typeof window.__quillTaskAdd.getText ===
+                                'function') ? window.__quillTaskAdd.getText().trim() : '';
                             if (!plain) {
-                                e.preventDefault(); e.stopImmediatePropagation();
-                                try { window.__quillTaskAdd.focus(); } catch(_){}
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                try {
+                                    window.__quillTaskAdd.focus();
+                                } catch (_) {}
                                 return false;
                             }
-                        } catch(_) {}
+                        } catch (_) {}
                     }, true);
                 }
 
                 const editForm = document.getElementById('editTaskForm');
                 if (editForm) {
-                    editForm.addEventListener('submit', function(e){
+                    editForm.addEventListener('submit', function(e) {
                         try {
-                            if (window.__quillTaskEdit) syncQuillToTextarea(window.__quillTaskEdit, 'edit_task_description');
-                            const plain = (window.__quillTaskEdit && typeof window.__quillTaskEdit.getText === 'function') ? window.__quillTaskEdit.getText().trim() : '';
+                            if (window.__quillTaskEdit) syncQuillToTextarea(window.__quillTaskEdit,
+                                'edit_task_description');
+                            const plain = (window.__quillTaskEdit && typeof window.__quillTaskEdit.getText ===
+                                'function') ? window.__quillTaskEdit.getText().trim() : '';
                             if (!plain) {
-                                e.preventDefault(); e.stopImmediatePropagation();
-                                try { window.__quillTaskEdit.focus(); } catch(_){}
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                try {
+                                    window.__quillTaskEdit.focus();
+                                } catch (_) {}
                                 return false;
                             }
-                        } catch(_) {}
+                        } catch (_) {}
                     }, true);
                 }
 
                 // Clear editors when modals hide (keep canonical textareas in sync)
                 try {
-                    $('#addTaskModal').on('hidden.bs.modal', function(){
-                        try { if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root.innerHTML = ''; } catch(_){}
-                        try { const ta = document.getElementById('task_description'); if (ta) ta.value = ''; } catch(_){}
+                    $('#addTaskModal').on('hidden.bs.modal', function() {
+                        try {
+                            if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root
+                                .innerHTML = '';
+                        } catch (_) {}
+                        try {
+                            const ta = document.getElementById('task_description');
+                            if (ta) ta.value = '';
+                        } catch (_) {}
                     });
-                    $('#editTaskModal').on('hidden.bs.modal', function(){
-                        try { if (window.__quillTaskEdit && window.__quillTaskEdit.root) window.__quillTaskEdit.root.innerHTML = ''; } catch(_){}
-                        try { const ta = document.getElementById('edit_task_description'); if (ta) ta.value = ''; } catch(_){}
+                    $('#editTaskModal').on('hidden.bs.modal', function() {
+                        try {
+                            if (window.__quillTaskEdit && window.__quillTaskEdit.root) window.__quillTaskEdit
+                                .root.innerHTML = '';
+                        } catch (_) {}
+                        try {
+                            const ta = document.getElementById('edit_task_description');
+                            if (ta) ta.value = '';
+                        } catch (_) {}
                     });
-                } catch(_) {}
+                } catch (_) {}
 
                 // Polling fallback: if edit textarea is updated programmatically (task.js), mirror into Quill
                 try {
                     let lastEditTa = document.getElementById('edit_task_description')?.value || '';
-                    setInterval(function(){
+                    setInterval(function() {
                         try {
                             const ta = document.getElementById('edit_task_description');
                             if (!ta || !window.__quillTaskEdit || !window.__quillTaskEdit.root) return;
@@ -812,9 +939,9 @@
                                 lastEditTa = ta.value;
                                 window.__quillTaskEdit.root.innerHTML = ta.value || '';
                             }
-                        } catch(_) {}
+                        } catch (_) {}
                     }, 300);
-                } catch(_) {}
+                } catch (_) {}
             });
         </script>
     </x-slot>
