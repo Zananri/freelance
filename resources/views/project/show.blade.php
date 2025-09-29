@@ -92,8 +92,44 @@
 
                 {{-- Right Above Content --}}
                 <div class="col-md-8 structure-detail">
-                    <div class="body-content rounded-4 p-3">
+                    <div class="body-content rounded-4 p-3 structure-detail-content">
+                        <div id="task-loading" class="text-center py-3 d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading tasks...</span>
+                            </div>
+                            <p class="mt-2">Loading tasks...</p>
+                        </div>
+                        <div id="task-error" class="alert alert-danger d-none" role="alert">
+                            Failed to load tasks. Please try again.
+                        </div>
+                        <div id="task-tree"></div>
 
+                        <div id="task-legend" class="d-flex justify-content-center gap-3 mt-3">
+                            <div class="legend-item d-flex align-items-center gap-1">
+                                <span class="legend-dot not-started"></span>
+                                <span class="legend-text">Not Started</span>
+                            </div>
+                            <div class="legend-item d-flex align-items-center gap-1">
+                                <span class="legend-dot in-progress"></span>
+                                <span class="legend-text">In Progress</span>
+                            </div>
+                            <div class="legend-item d-flex align-items-center gap-1">
+                                <span class="legend-dot late"></span>
+                                <span class="legend-text">Late</span>
+                            </div>
+                            <div class="legend-item d-flex align-items-center gap-1">
+                                <span class="legend-dot complete"></span>
+                                <span class="legend-text">Complete</span>
+                            </div>
+                        </div>
+
+                        <div id="task-template" class="d-none task-item">
+                            <div class="task-box">
+                                <span class="task-status"></span>
+                                <span class="task-name"></span>
+                                <div class="task-date"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -666,6 +702,7 @@
         <x-slot name="script_slot">
             <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_timeline.js') }}?v={{ time() }}"></script>
+            <script src="{{ asset('asset/js/project_detail_depedencies.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
         </x-slot>
     </x-office-layout>

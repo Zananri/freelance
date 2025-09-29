@@ -38,12 +38,15 @@ class TaskController extends Controller
      */
     private function resolveEmployeeAvatar($employee)
     {
-        if (!$employee) return asset('asset/img/avatar.png');
+        if (!$employee)
+            return asset('asset/img/avatar.png');
 
         $raw = $employee->profile_picture ?: ($employee->photo ?: ($employee->user->photo ?? null));
-        if (!$raw) return asset('asset/img/avatar.png');
+        if (!$raw)
+            return asset('asset/img/avatar.png');
 
-        if (preg_match('/^(https?:)?\/\//', $raw)) return $raw; // already absolute
+        if (preg_match('/^(https?:)?\/\//', $raw))
+            return $raw; // already absolute
 
         $relative = ltrim($raw, '/');
         $publicPath = public_path($relative);
@@ -90,15 +93,16 @@ class TaskController extends Controller
                     $outer->whereHas('assignments', function ($query) use ($currentEmployeeId) {
                         $query->where(function ($q) use ($currentEmployeeId) {
                             $q->where('employee_id', $currentEmployeeId)
-                            ->where(function ($q2) {
-                                $q2->where('role', 'PIC')
-                                    ->orWhere('role', 'EXECUTOR');
-                            });
+                                ->where(function ($q2) {
+                                    $q2->where('role', 'PIC')
+                                        ->orWhere('role', 'EXECUTOR');
+                                });
                         });
                     })
-                    ->orWhere(function ($q) use ($currentUserId) {
-                        if ($currentUserId) $q->where('created_by', $currentUserId);
-                    });
+                        ->orWhere(function ($q) use ($currentUserId) {
+                            if ($currentUserId)
+                                $q->where('created_by', $currentUserId);
+                        });
                 });
 
             // By default we exclude canceled tasks from index responses. However, allow callers
@@ -120,14 +124,15 @@ class TaskController extends Controller
                 $baseQuery->whereRaw('LOWER(status) <> ?', ['canceled']);
             }
 
-            if ($projectId) $baseQuery->where('project_id', $projectId);
+            if ($projectId)
+                $baseQuery->where('project_id', $projectId);
 
             if ($search) {
-                $baseQuery->where(function($q) use ($search) {
+                $baseQuery->where(function ($q) use ($search) {
                     $q->where('title', 'like', "%{$search}%")
-                    ->orWhereHas('project', function($p) use ($search) {
-                        $p->where('title', 'like', "%{$search}%");
-                    });
+                        ->orWhereHas('project', function ($p) use ($search) {
+                            $p->where('title', 'like', "%{$search}%");
+                        });
                 });
             }
 
@@ -135,10 +140,10 @@ class TaskController extends Controller
             $currentEmployeePendingAcceptance = function ($q) use ($currentEmployeeId) {
                 $q->whereHas('assignments', function ($a) use ($currentEmployeeId) {
                     $a->where('employee_id', $currentEmployeeId)
-                    ->whereIn('role', ['EXECUTOR','PIC'])
-                    ->where(function ($r) {
-                        $r->whereNull('is_receive')->orWhere('is_receive', false);
-                    });
+                        ->whereIn('role', ['EXECUTOR', 'PIC'])
+                        ->where(function ($r) {
+                            $r->whereNull('is_receive')->orWhere('is_receive', false);
+                        });
                 });
             };
 
@@ -151,10 +156,10 @@ class TaskController extends Controller
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                ->whereIn('role', ['EXECUTOR','PIC'])
-                                ->where(function ($r) {
-                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                });
+                                    ->whereIn('role', ['EXECUTOR', 'PIC'])
+                                    ->where(function ($r) {
+                                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                    });
                             });
                         })
                         ->orderByRaw("
@@ -164,17 +169,18 @@ class TaskController extends Controller
                 } elseif ($normalizedFilter === 'new_request') {
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
-                        ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
+                            ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) {
+                                $currentEmployeePendingAcceptance($qq); });
                     })->orderBy('created_at', 'asc');
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                ->whereIn('role', ['EXECUTOR','PIC'])
-                                ->where(function ($r) {
-                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
-                                });
+                                    ->whereIn('role', ['EXECUTOR', 'PIC'])
+                                    ->where(function ($r) {
+                                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                    });
                             });
                         })
                         ->orderBy('complete_date', 'desc');
@@ -183,7 +189,7 @@ class TaskController extends Controller
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
-                                    ->whereIn('role', ['EXECUTOR','PIC'])
+                                    ->whereIn('role', ['EXECUTOR', 'PIC'])
                                     ->where(function ($r) {
                                         $r->whereNull('is_receive')->orWhere('is_receive', false);
                                     });
@@ -207,9 +213,10 @@ class TaskController extends Controller
                 $newQuery = clone $baseQuery;
                 $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
                     $q->where('status', 'new_request')
-                    ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) { $currentEmployeePendingAcceptance($qq); });
+                        ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) {
+                            $currentEmployeePendingAcceptance($qq); });
                 })
-                ->orderBy('created_at', 'desc');
+                    ->orderBy('created_at', 'desc');
                 $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
                 $response['new_request'] = [
                     'tasks' => $this->mapTasks($newPaginator->items()),
@@ -226,10 +233,10 @@ class TaskController extends Controller
                     ->where(function ($q) use ($currentEmployeeId) {
                         $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                             $a->where('employee_id', $currentEmployeeId)
-                            ->whereIn('role', ['EXECUTOR','PIC'])
-                            ->where(function ($r) {
-                                $r->whereNull('is_receive')->orWhere('is_receive', false);
-                            });
+                                ->whereIn('role', ['EXECUTOR', 'PIC'])
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
                         });
                     })
                     ->orderByRaw("
@@ -252,11 +259,11 @@ class TaskController extends Controller
                     ->where(function ($q) use ($currentEmployeeId) {
                         $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                             $a->where('employee_id', $currentEmployeeId)
-                            ->whereIn('role', ['EXECUTOR','PIC'])
-                            ->where(function ($r) {
-                                $r->whereNull('is_receive')->orWhere('is_receive', false);
-                            });
-                    });
+                                ->whereIn('role', ['EXECUTOR', 'PIC'])
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
+                        });
                     })->orderBy('complete_date', 'asc');
                 $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'completed_page');
                 $response['completed'] = [
@@ -297,7 +304,7 @@ class TaskController extends Controller
 
             $user = $request->user();
             $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
-            if (!$currentEmployeeId || (int)$feedback->employee_id !== (int)$currentEmployeeId) {
+            if (!$currentEmployeeId || (int) $feedback->employee_id !== (int) $currentEmployeeId) {
                 return response()->json([
                     'code' => 403,
                     'status' => 'error',
@@ -316,7 +323,8 @@ class TaskController extends Controller
             // Delete attached reference files if any
             $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
             foreach ($refFiles as $rf) {
-                if (!$rf) continue;
+                if (!$rf)
+                    continue;
                 $p = public_path('file/task_reference_files/' . $rf);
                 if (file_exists($p)) {
                     @unlink($p);
@@ -383,11 +391,11 @@ class TaskController extends Controller
                                 });
                         });
                     })
-                    ->orWhere(function ($q) use ($currentUserId) {
-                        if ($currentUserId) {
-                            $q->where('created_by', $currentUserId);
-                        }
-                    });
+                        ->orWhere(function ($q) use ($currentUserId) {
+                            if ($currentUserId) {
+                                $q->where('created_by', $currentUserId);
+                            }
+                        });
                 })
                 // Hide soft-deleted tasks from all aggregations
                 ->whereRaw('LOWER(status) <> ?', ['canceled']);
@@ -400,10 +408,10 @@ class TaskController extends Controller
             $userPending = function ($q) use ($currentEmployeeId) {
                 $q->whereHas('assignments', function ($a) use ($currentEmployeeId) {
                     $a->where('employee_id', $currentEmployeeId)
-                      ->whereIn('role', ['EXECUTOR','PIC'])
-                      ->where(function ($r) {
-                          $r->whereNull('is_receive')->orWhere('is_receive', false);
-                      });
+                        ->whereIn('role', ['EXECUTOR', 'PIC'])
+                        ->where(function ($r) {
+                            $r->whereNull('is_receive')->orWhere('is_receive', false);
+                        });
                 });
             };
 
@@ -411,7 +419,8 @@ class TaskController extends Controller
             $notStarted = (clone $baseQuery)
                 ->where(function ($q) use ($userPending) {
                     $q->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
-                      ->orWhere(function ($qq) use ($userPending) { $userPending($qq); });
+                        ->orWhere(function ($qq) use ($userPending) {
+                            $userPending($qq); });
                 })
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -421,10 +430,10 @@ class TaskController extends Controller
                 ->where(function ($q) use ($currentEmployeeId) {
                     $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                         $a->where('employee_id', $currentEmployeeId)
-                          ->whereIn('role', ['EXECUTOR','PIC'])
-                          ->where(function ($r) {
-                              $r->whereNull('is_receive')->orWhere('is_receive', false);
-                          });
+                            ->whereIn('role', ['EXECUTOR', 'PIC'])
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
                     });
                 })
                 ->orderBy('created_at', 'desc')
@@ -435,10 +444,10 @@ class TaskController extends Controller
                 ->where(function ($q) use ($currentEmployeeId) {
                     $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                         $a->where('employee_id', $currentEmployeeId)
-                          ->whereIn('role', ['EXECUTOR','PIC'])
-                          ->where(function ($r) {
-                              $r->whereNull('is_receive')->orWhere('is_receive', false);
-                          });
+                            ->whereIn('role', ['EXECUTOR', 'PIC'])
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
                     });
                 })
                 ->orderBy('created_at', 'desc')
@@ -449,10 +458,10 @@ class TaskController extends Controller
                 ->where(function ($q) use ($currentEmployeeId) {
                     $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                         $a->where('employee_id', $currentEmployeeId)
-                          ->whereIn('role', ['EXECUTOR','PIC'])
-                          ->where(function ($r) {
-                              $r->whereNull('is_receive')->orWhere('is_receive', false);
-                          });
+                            ->whereIn('role', ['EXECUTOR', 'PIC'])
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
                     });
                 })
                 ->orderBy('created_at', 'desc')
@@ -579,8 +588,11 @@ class TaskController extends Controller
             if ($lastLog) {
                 $employeeName = null;
                 try {
-                    if ($lastLog->employee) $employeeName = $lastLog->employee->name;
-                } catch (\Throwable $t) { $employeeName = null; }
+                    if ($lastLog->employee)
+                        $employeeName = $lastLog->employee->name;
+                } catch (\Throwable $t) {
+                    $employeeName = null;
+                }
 
                 $label = null;
                 // Map canonical statuses to labels the frontend expects
@@ -830,10 +842,11 @@ class TaskController extends Controller
                     'status_change' => (function () use ($task) {
                         try {
                             $last = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'desc')->first();
-                            if (!$last) return null;
+                            if (!$last)
+                                return null;
                             $emp = $last->employee;
                             $name = $emp?->name ?? null;
-                            $label = match($last->new_status) {
+                            $label = match ($last->new_status) {
                                 'in_progress' => 'In Progress by:',
                                 'new_request' => 'Back to request by:',
                                 'completed' => 'Completed by:',
@@ -1284,10 +1297,11 @@ class TaskController extends Controller
                 'status_change' => (function () use ($task) {
                     try {
                         $last = TaskStatusLog::where('task_id', $task->id)->orderBy('created_at', 'desc')->first();
-                        if (!$last) return null;
+                        if (!$last)
+                            return null;
                         $emp = $last->employee;
                         $name = $emp?->name ?? null;
-                        $label = match($last->new_status) {
+                        $label = match ($last->new_status) {
                             'in_progress' => 'In Progress by:',
                             'new_request' => 'Back to request by:',
                             'completed' => 'Completed by:',
@@ -1313,9 +1327,11 @@ class TaskController extends Controller
                         $arr = [];
                         foreach ($logs as $log) {
                             $emp = null;
-                            try { $emp = $log->employee; } catch (\Throwable $_) { $emp = null; }
+                            try {
+                                $emp = $log->employee; } catch (\Throwable $_) {
+                                $emp = null; }
                             $name = $emp?->name ?? null;
-                            $label = match($log->new_status) {
+                            $label = match ($log->new_status) {
                                 'in_progress' => 'In Progress by:',
                                 'new_request' => 'Back to request by:',
                                 'completed' => 'Completed by:',
@@ -1634,7 +1650,7 @@ class TaskController extends Controller
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                    // Back-end now performs same soft-delete (status set to 'CANCELED'),
+                // Back-end now performs same soft-delete (status set to 'CANCELED'),
                 // return message uses 'canceled' to match UI label change.
                 'message' => 'Task canceled successfully'
             ]);
@@ -1724,26 +1740,32 @@ class TaskController extends Controller
                     }
                     if (is_array($incoming)) {
                         foreach ($incoming as $u) {
-                            if (is_string($u) && trim($u) !== '') $completeUrls[] = trim($u);
+                            if (is_string($u) && trim($u) !== '')
+                                $completeUrls[] = trim($u);
                         }
                     }
                 } elseif ($request->has('complete_url')) {
-                    $val = $request->input('complete_url'); if (is_string($val) && trim($val) !== '') $completeUrls[] = trim($val);
+                    $val = $request->input('complete_url');
+                    if (is_string($val) && trim($val) !== '')
+                        $completeUrls[] = trim($val);
                 }
                 if (!empty($completeUrls)) {
                     $update['complete_urls'] = $completeUrls;
                 } else {
                     // allow explicit clearing if client sent empty array/string
-                    if ($request->has('complete_urls')) $update['complete_urls'] = [];
+                    if ($request->has('complete_urls'))
+                        $update['complete_urls'] = [];
                 }
 
                 // Handle complete_files upload (store under public/file/task_complete_files)
                 $uploadedCompleteFiles = [];
                 if ($request->hasFile('complete_files')) {
                     $taskCompleteDir = public_path('file/task_complete_files');
-                    if (!is_dir($taskCompleteDir)) @mkdir($taskCompleteDir, 0775, true);
+                    if (!is_dir($taskCompleteDir))
+                        @mkdir($taskCompleteDir, 0775, true);
                     foreach ($request->file('complete_files') as $idx => $file) {
-                        if (!$file) continue;
+                        if (!$file)
+                            continue;
                         $ext = $file->getClientOriginalExtension();
                         $name = 'TASK_COMPLETE_' . time() . '_' . $idx . '.' . $ext;
                         try {
@@ -1922,7 +1944,9 @@ class TaskController extends Controller
             $uploadedRefFiles = [];
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $idx => $file) {
-                    if (!$file) { continue; }
+                    if (!$file) {
+                        continue;
+                    }
                     $ext = $file->getClientOriginalExtension();
                     $name = 'TASK_FEEDBACK_' . time() . '_' . $idx . '.' . $ext;
                     try {
@@ -1962,10 +1986,10 @@ class TaskController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            $rawCode = (string)$e->getCode();
+            $rawCode = (string) $e->getCode();
             $httpCode = 500;
-            if (in_array((int)$rawCode, [400,401,403,404,409,422])) {
-                $httpCode = (int)$rawCode;
+            if (in_array((int) $rawCode, [400, 401, 403, 404, 409, 422])) {
+                $httpCode = (int) $rawCode;
             } elseif ($rawCode === '23000') { // integrity constraint
                 $httpCode = 422;
             }
@@ -2364,8 +2388,9 @@ class TaskController extends Controller
             }
             // Normalize to unique integers and drop invalids
             $taskIds = collect($ids)
-                ->map(function ($v) { return (int) $v; })
-                ->filter(fn ($v) => $v > 0)
+                ->map(function ($v) {
+                    return (int) $v; })
+                ->filter(fn($v) => $v > 0)
                 ->unique()
                 ->values()
                 ->all();
@@ -2425,7 +2450,8 @@ class TaskController extends Controller
                                 else
                                     $arr = array_filter(array_map('trim', explode(',', $latest->reference_files)));
                             }
-                            return array_map(function ($f) { return asset('file/task_reference_files/' . $f); }, $arr);
+                            return array_map(function ($f) {
+                                return asset('file/task_reference_files/' . $f); }, $arr);
                         })(),
                         'employee' => [
                             'id' => $latest->employee->id,
@@ -2484,9 +2510,11 @@ class TaskController extends Controller
     public function getTasksByProject($projectId)
     {
         try {
+            // For project detail, show all tasks in the project (assuming user has access to view the project)
             $tasks = Task::with([
                 'assignments.employee.user',
-                'project'
+                'project',
+                'parent'
             ])
                 ->where('project_id', $projectId)
                 ->whereRaw('LOWER(status) <> ?', ['canceled'])
@@ -2494,6 +2522,7 @@ class TaskController extends Controller
                 ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
+                // Ambil PIC
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $picData = null;
                 if ($pic && $pic->employee) {
@@ -2519,6 +2548,7 @@ class TaskController extends Controller
                     'id' => $task->id,
                     'title' => $task->title,
                     'parent_id' => $task->parent_id ?? null,
+                    'parent_task' => $task->parent ? $task->parent->title : null,
                     'description' => $task->description,
                     'image' => $task->image,
                     'created_at' => $task->created_at,
@@ -2529,6 +2559,7 @@ class TaskController extends Controller
                     'due_date' => $task->due_date,
                     'due' => $task->due_date,
                     'deadline' => $task->due_date,
+                    'children' => [],
                 ];
             });
 
@@ -2545,6 +2576,7 @@ class TaskController extends Controller
             ], $this->deriveHttpStatusFromException($e));
         }
     }
+
 
     /**
      * Check if task is already accepted by current user
@@ -2567,7 +2599,7 @@ class TaskController extends Controller
 
             $assignment = TaskAssignment::where('task_id', $taskId)
                 ->where('employee_id', $user->employee->id)
-                ->whereIn('role', ['EXECUTOR','PIC'])
+                ->whereIn('role', ['EXECUTOR', 'PIC'])
                 ->first();
 
             if (!$assignment) {
@@ -2620,7 +2652,7 @@ class TaskController extends Controller
 
             $assignment = TaskAssignment::where('task_id', $taskId)
                 ->where('employee_id', $user->employee->id)
-                ->whereIn('role', ['EXECUTOR','PIC'])
+                ->whereIn('role', ['EXECUTOR', 'PIC'])
                 ->first();
 
             if (!$assignment) {
@@ -2661,7 +2693,7 @@ class TaskController extends Controller
      * Reject task assignment for executor (remove assignment for current user)
      */
 
-     public function rejectTask(Request $request, $taskId)
+    public function rejectTask(Request $request, $taskId)
     {
         DB::beginTransaction();
         try {
@@ -2752,15 +2784,22 @@ class TaskController extends Controller
         try {
             $query = $request->input('q', '');
             // Include user relation for legacy photo fallback; we'll compute a universal avatar.
-           $employee = Employee::select('employees.id','employees.user_id','employees.department_id','employees.division_id','employees.name','employees.status','employees.photo',
-            'job_list.job_name'
-        )
-            ->join('job_list','employees.job_id','=','job_list.id')
-            ->join('users','employees.user_id','=','users.id')
-            ->where('employees.status',"ACTIVE")
-            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
-            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
-            ->get();
+            $employee = Employee::select(
+                'employees.id',
+                'employees.user_id',
+                'employees.department_id',
+                'employees.division_id',
+                'employees.name',
+                'employees.status',
+                'employees.photo',
+                'job_list.job_name'
+            )
+                ->join('job_list', 'employees.job_id', '=', 'job_list.id')
+                ->join('users', 'employees.user_id', '=', 'users.id')
+                ->where('employees.status', "ACTIVE")
+                ->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
+                ->whereNotIn('users.user_type', ["ADMINISTRATOR"])
+                ->get();
 
             $mapped = $employee->map(function ($emp) {
                 $resolved = $this->resolveEmployeeAvatar($emp);
@@ -2768,13 +2807,13 @@ class TaskController extends Controller
                     'id' => $emp->id,
                     'name' => $emp->name,
                     // Keep legacy user_photo field (raw original user->photo if exists) for backward compatibility
-                    'user_photo' => $emp->user && $emp->user->photo ? (preg_match('/^(https?:)?\/\//', $emp->user->photo) ? $emp->user->photo : asset(ltrim($emp->user->photo,'/'))) : null,
+                    'user_photo' => $emp->user && $emp->user->photo ? (preg_match('/^(https?:)?\/\//', $emp->user->photo) ? $emp->user->photo : asset(ltrim($emp->user->photo, '/'))) : null,
                     // Provide unified avatar fields consumed by buildPhotoUrl in task.js
                     'profile_picture' => $resolved,
                     'profile_picture_url' => $resolved,
                     // Expose division name for UI (keep compatibility with project payload)
-                    'division' => ($emp->division && (($emp->division->name_division ?? $emp->division->name) )) ? ($emp->division->name_division ?? $emp->division->name) : null,
-                    'division_name' => ($emp->division && (($emp->division->name_division ?? $emp->division->name) )) ? ($emp->division->name_division ?? $emp->division->name) : null,
+                    'division' => ($emp->division && (($emp->division->name_division ?? $emp->division->name))) ? ($emp->division->name_division ?? $emp->division->name) : null,
+                    'division_name' => ($emp->division && (($emp->division->name_division ?? $emp->division->name))) ? ($emp->division->name_division ?? $emp->division->name) : null,
                     // Expose user_type so client can filter out ADMINISTRATOR users
                     'user_type' => $emp->user && isset($emp->user->user_type) ? $emp->user->user_type : null,
                 ];

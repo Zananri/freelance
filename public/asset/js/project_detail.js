@@ -1042,7 +1042,7 @@
                 // prefill URLs and existing files
                 (function () {
                     try {
-                        var container = document.getElementById('feedback_reference_urls_container'); if (!container) return; container.innerHTML = ''; var urls = []; if (Array.isArray(data.reference_urls)) urls = data.reference_urls; else if (typeof data.reference_urls === 'string') { try { var arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_){} } if ((!urls || !urls.length) && data.reference_url) urls = [data.reference_url]; function addRow(value, withAdd) { var row = document.createElement('div'); row.className='d-flex gap-2 align-items-center'; row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-danger remove-ref-url"><span class="material-symbols-outlined">close</span></button>'); container.appendChild(row); var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value; }
+                        var container = document.getElementById('feedback_reference_urls_container'); if (!container) return; container.innerHTML = ''; var urls = []; if (Array.isArray(data.reference_urls)) urls = data.reference_urls; else if (typeof data.reference_urls === 'string') { try { var arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_){} } if ((!urls || !urls.length) && data.reference_url) urls = [data.reference_url]; function addRow(value, withAdd) { var row = document.createElement('div'); row.className='d-flex gap-2 align-items-center'; row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-remove-url remove-ref-url"><span class="material-symbols-outlined">close</span></button>'); container.appendChild(row); var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value; }
                         addRow('', true); (urls || []).forEach(function(u){ addRow(u, false); });
                     } catch (_) {}
                 })();
@@ -1484,7 +1484,7 @@
                     var row = document.createElement('div');
                     row.className = 'input-group';
                     row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
-                        ' <button type="button" class="btn btn-danger remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
+                        ' <button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
                     container.appendChild(row);
                     var input = row.querySelector('input[type="url"]');
                     if (input) try { input.focus(); } catch (_) {}

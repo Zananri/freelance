@@ -106,6 +106,8 @@ function getTaskByProject(projectId) {
         dataType: "json",
     })
         .done(function (response) {
+            console.log(response);
+
             if (response.status !== "success") return;
             renderTimeline(response.data);
         })
