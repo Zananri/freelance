@@ -386,7 +386,7 @@ if (projectId) {
             window.__taskTreeScheduleRecalc = debounced;
             return debounced;
         })();
-        
+
         if (typeof window.ResizeObserver !== 'undefined') {
             var ro = new ResizeObserver(function(){ scheduleRecalc(); });
             ro.observe($tree[0]);
@@ -395,7 +395,7 @@ if (projectId) {
             if ($parent.length && $parent[0] !== $tree[0]) ro.observe($parent[0]);
             window.__taskTreeResizeObserver = ro;
         } else {
-            
+
             var lastW = $tree.width();
             var lastH = $tree.height();
             var $parent2 = $tree.closest('.structure-detail-content');
@@ -412,7 +412,7 @@ if (projectId) {
                         scheduleRecalc(20);
                     }
                 } catch(_){}
-            }, 220); 
+            }, 220);
         }
 
         // Watch for DOM mutations that commonly occur when sidebar toggles
@@ -433,3 +433,16 @@ if (projectId) {
         console.warn('setupTreeResizeObservers error', e);
     }
 })();
+
+$("#fullscreen-tree-btn").on("click", function () {
+    const $timeline = $(".structure-detail-content");
+    const $icon = $(this).find("span.material-symbols-outlined");
+
+    if ($timeline.hasClass("fullscreen")) {
+        $timeline.removeClass("fullscreen");
+        $icon.text("fullscreen");
+    } else {
+        $timeline.addClass("fullscreen");
+        $icon.text("fullscreen_exit");
+    }
+});
