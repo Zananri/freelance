@@ -25,7 +25,7 @@ class AttendanceTrackingController extends Controller
 {
     public function showAttendanceTrackingPage()
     {
-        $employee = Employee::select('employees.id','employees.user_id','employees.department_id','employees.division_id','employees.name','employees.status','employees.photo',
+        $employee = Employee::select('employees.id','employees.user_id','employees.weekday_off','employees.department_id','employees.division_id','employees.name','employees.status','employees.photo',
             'job_list.job_name'
         )
         ->join('job_list','employees.job_id','=','job_list.id')
@@ -294,7 +294,9 @@ class AttendanceTrackingController extends Controller
             
             for ($i = 0; $i < $daysInMonth; $i++) {
 
-                $newAddDate = Carbon::parse($firstDayOfMonth)->copy()->addDays($i);                
+                $newAddDate = Carbon::parse($firstDayOfMonth)->copy()->addDays($i);
+                $weekdayIndex = $newAddDate->format('N');
+
                 $column = Coordinate::stringFromColumnIndex($i + 24); // Mengubah indeks menjadi huruf kolom (1=A, 2=B, ...)
 
                 $attendance = Attendance::where('employee_id', $employeeItem->id)
@@ -307,24 +309,40 @@ class AttendanceTrackingController extends Controller
                     $timeIn = Carbon::parse($attendance->time_in)->format('H:i');
                     $timeOut = Carbon::parse($attendance->time_out)->format('H:i');
                     
-                    if($timeIn){
-                        $activeWorksheet->setCellValue($column.$row, 1);// $timeIn." \n ".$timeOut
-                    }
+                    // if($timeIn){
+                    //     $activeWorksheet->setCellValue($column.$row, 1);// $timeIn." \n ".$timeOut
+                    // }
+
+                    $activeWorksheet->setCellValue($column.$row, 1);
+
                     //$activeWorksheet->setCellValue($column.$row, $timeIn.chr(10).$timeOut);// $timeIn." \n ".$timeOut
                     
                     
-                    if($attendance->time_late){
-                        $activeWorksheet->getStyle($column.$row)
-                            ->getFont()
-                            ->getColor()
-                        ->setARGB('ffd74e51');
-                    }
+                    // if($attendance->time_late){
+                    //     $activeWorksheet->getStyle($column.$row)
+                    //         ->getFont()
+                    //         ->getColor()
+                    //     ->setARGB('ffd74e51');
+                    // }
                     
                 }else{
                     //$activeWorksheet->setCellValue($column.$row, $employeeItem->id.' '.$newAddDate->toDateString());
                     $activeWorksheet->setCellValue($column.$row, '');
                 }
                 
+                
+                
+
+
+                if($employeeItem->weekday_off){
+                    if(str_contains($employeeItem->weekday_off,$weekdayIndex)){
+                        $activeWorksheet->getStyle($column.$row)
+                            ->getFill()
+                            ->setFillType(Fill::FILL_SOLID)
+                            ->getStartColor()
+                        ->setARGB('ffd74e51');
+                    }
+                }
             }
             
             

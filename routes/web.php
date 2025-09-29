@@ -293,7 +293,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::post('/leave/reject-employee-leave-request', [LeaveController::class, 'rejectEmployeeLeaveRequest'])->name('leave.rejectEmployeeLeaveRequest');
 
     Route::get('/weekdays_off', [WeekdayOffController::class, 'showWeekdayOffPage'])->name('weekday_off');
-    Route::get('/weekdays_off/export/weekday_off_{department}_{division}.xlsx', [WeekdayOffController::class, 'exportEmployeeWeekdayOff'])->name('weekday_off.exportEmployeeWeekdayOff');
+    Route::post('/weekday_off/save-employee-weekday-off', [WeekdayOffController::class, 'saveEmployeeWeekdayoff'])->name('weekday_off.saveEmployeeWeekdayoff');
 
 });
 

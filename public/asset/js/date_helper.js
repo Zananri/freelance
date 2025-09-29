@@ -113,6 +113,18 @@ const formatDateIDFull = (date) => {
 // Function to format a date into a full Indonesian format with day, month, and year names.
 // @param {Date} date - The date to format.
 // @returns {string} The formatted date string with full day and month names.
+
+
+const arrWeekdayNameENMedium = (indexDay) => {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  return dayNames[indexDay];
+};
+
+const arrWeekdayENISO = (indexDay) => {
+  const dayNames = [7, 1, 2, 3, 4, 5, 6];
+  return dayNames[indexDay];
+};
+
 const formatDateENMedium = (date) => {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const monthNames = [

@@ -49,8 +49,51 @@ class WeekdayOffController extends Controller
             'employee'      => $employee,
             'department'    => $department,
             'division'      => $division
-            
         ]);
+    }
+
+    public function saveEmployeeWeekdayoff(Request $request){
+
+        try{
+
+            // ADMINISTRATOR REGULAR MANAGEMENT  
+            // GENERAL_MANAGER MANAGER LEADER HR_MANAGER FINANCE_MANAGER EMPLOYEE
+            $request->validate([
+                'json_weekday_off' => 'required|json',
+            ]);
+
+            $jsonWeekdayOff = json_decode($request->json_weekday_off);
+        
+            //dd($jsonWeekdayOff);
+            foreach($jsonWeekdayOff as $item){
+                $employeeId = $item[0];
+                $divisionId = $item[1];
+                $weekDay = $item[2];
+
+                Employee::where('id',$employeeId)->where('division_id',$divisionId)
+                ->update([
+                    'weekday_off' => $weekDay
+                ]);
+            }
+
+            $successMsg = "Save weekday off successfully";
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => $successMsg
+            ]);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'code' => 406,
+                'status' => "error",
+                'message'=> $e->getMessage()
+            ], 406);
+            
+        }
+
     }
 
     public function exportAttendanceMonthly($deparmentId,$divisionId){

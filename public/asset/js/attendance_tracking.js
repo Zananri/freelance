@@ -57,9 +57,28 @@ function renderCalendar(year, month) {
         const day = parseInt($(this).attr('data-day'));
         const newDateDay = new Date(year, month, day).getDay();
 
+        $(this).find('.calendar-week-short').text(arrWeekdayNameENMedium(newDateDay))
+        
+
         if(newDateDay == 0){
             $(this).addClass('sunday');
         }
+
+        //console.log(day+'  '+newDate);
+    });
+
+    $('.table-attendance tbody .col-day').each(function(){
+        const day = parseInt($(this).attr('data-day'));
+        const weekdayOff = $(this).closest('.employee-row').attr('data-weekday-off');
+        const weekDay = arrWeekdayENISO(new Date(year, month, day).getDay());
+
+        if(weekdayOff){
+            if(weekdayOff.toLowerCase().includes(weekDay)){
+                $(this).addClass('off-day');
+            }
+        }
+
+       
 
         //console.log(day+'  '+newDate);
     });

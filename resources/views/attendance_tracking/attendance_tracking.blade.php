@@ -80,7 +80,7 @@
                                         <th>Employee</th>
                                         @for ($i = 1; $i <= 31 ; $i++)
                                             <th class="col-day" data-day="{{ $i }}">
-                                                
+                                                <div class="calendar-week-short"></div>
                                                 <div>{{ $i }}</div>
                                                 <div class="calendar-month-short">{{ date('M') }}</div>
                                             </th>
@@ -92,7 +92,7 @@
                                     @foreach ($employee as $itemEmployee)
                                             
                                         
-                                        <tr class="employee-row" data-employee-id="{{ $itemEmployee->id }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
+                                        <tr class="employee-row" data-employee-id="{{ $itemEmployee->id }}" data-weekday-off="{{ $itemEmployee->weekday_off }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
                                             <td>
                                                 <div class="box-employee">
                                                     <div class="d-flex align-items-center">
@@ -111,6 +111,7 @@
                                             </td>
 
                                              @for ($j = 1; $j <= 31 ; $j++)
+                                                
                                                 <td class="col-day" data-day="{{ $j }}">
                                                     <div class="box-attendance">
                                                         <div class="box-time d-flex h-100 w-100 align-items-center justify-content-center">
@@ -261,6 +262,7 @@
 
 
     <x-slot name="script_slot"> 
+        <script src="{{ asset('asset/js/date_helper.js')}}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/attendance_tracking.js')}}?v={{ time() }}"></script>
     </x-slot>
 

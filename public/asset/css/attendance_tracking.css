@@ -212,10 +212,20 @@
     background-color: #E9EEF4 !important;
 }
 
+.calendar-week-short{
+    color: #808794;
+    font-size: 8px;
+}
+
+.sunday .calendar-week-short{
+    color: #fff;
+}
+
 .calendar-month-short{
-    color: #7a8190;
+    color: #69707e;
     font-size: 10px;
 }
+
 .box-data{
     padding: 0px 15px 15px 15px;
 }
@@ -341,6 +351,22 @@
     color:#be3131 !important;
 }
 
+.table-attendance tbody .col-day.off-day{
+    border-right: 1px solid #ed8384;
+    border-left: 1px solid #d46062;
+    background-color:#e06c6e !important ;
+    color:#ffffff !important;
+}
+
+.table-attendance .box-attendance:hover{
+    cursor: pointer;
+    background-color: #fcfcff;
+}
+ 
+.table-attendance tbody .col-day.off-day:hover .box-attendance{
+    background-color:#cd5456 !important ;
+}
+
 .table-attendance .box-employee {
     padding: 8px 8px;
     width: 200px;
@@ -356,10 +382,7 @@
     text-align: center;
     vertical-align: middle;
 }
-.table-attendance .box-attendance:hover{
-    cursor: pointer;
-    background-color: #fcfcff;
-}
+
 
 .table-attendance .box-time{
     font-size: 10px;

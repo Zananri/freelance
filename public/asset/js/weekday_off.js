@@ -5,13 +5,27 @@ const modalAttendance = new bootstrap.Modal('#modalAttendance', {
 });
 
 $('.input-search-query').on('keyup',function(){
-    let searchQuery = $(this).val();
-    console.log(searchQuery);
+    filterEmployee();
+});
 
+function filterEmployee(){
+
+    let departmentId = $('.col-dropdown-department').attr('data-department-id');
+    let divisionId = $('.col-dropdown-division').attr('data-division-id');
+
+    let divisionFilter = `[data-division="${divisionId}"]`;
+    let searchQuery = $('.input-search-query').val();
+
+    $('.employee-row').addClass('d-none');
+    
+    if(divisionId == 0){
+        divisionFilter = '';
+    }
+
+    
     if(searchQuery){
-        $('.employee-row').addClass('d-none');
-
-        $('.employee-row').each(function(){
+        
+        $(`.employee-row[data-department="${departmentId}"]${divisionFilter}`).each(function(){
             let employeeName = $(this).find('.employee-name').text();
             if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
                 $(this).removeClass('d-none');
@@ -19,14 +33,58 @@ $('.input-search-query').on('keyup',function(){
         });
 
     }else{
-        $('.employee-row').removeClass('d-none');
+        $(`.employee-row[data-department="${departmentId}"]${divisionFilter}`).removeClass('d-none');
     }
+
+}
+
+
+$('.department-item').on('click',function(){
+    let departmentId = $(this).attr('data-department-id');
+    let departmentName = $(this).attr('data-department-name');
+
+    $('.col-dropdown-department').attr('data-department-id',departmentId);
+    $('.col-dropdown-department .title-dropdown').text(departmentName);
+    
+    $('.col-dropdown-division').attr('data-division-id',0);
+    $('.col-dropdown-division .title-dropdown').text('All Division');
+
+    $('.division-item').addClass('d-none');
+    $(`.division-item[data-department-id="${departmentId}"]`).removeClass('d-none');
+    $(`.division-item[data-department-id="0"]`).removeClass('d-none');
+    filterEmployee();
 });
 
+$('.division-item').on('click',function(){
+    let departmentId = $(this).attr('data-department-id');
+    let divisionId = $(this).attr('data-division-id');
+    let divisionName = $(this).attr('data-division-name');
+
+    $('.col-dropdown-division').attr('data-department-id',departmentId);
+    $('.col-dropdown-division').attr('data-division-id',divisionId);
+    $('.col-dropdown-division .title-dropdown').text(divisionName);
+    
+    
+    filterEmployee();
+});
+
+function setDefaultDropdown(){
 
 
-let CURRENT_DATE = new Date();
+    
+    $('.col-dropdown-department').attr('data-department-id',1);
+    $('.col-dropdown-department .title-dropdown').text('NSA Performance');
 
+    $('.col-dropdown-division').attr('data-department-id',1);
+    $('.col-dropdown-division').attr('data-division-id',0);
+    $('.col-dropdown-division .title-dropdown').text('All Division');
+
+    $('.department-item:eq(0)').click();
+
+}
+
+setDefaultDropdown();
+filterEmployee();
 
 
 $(document).on('click','.data-fullscreen, .data-fullscreen-exit',function(){
@@ -34,71 +92,63 @@ $(document).on('click','.data-fullscreen, .data-fullscreen-exit',function(){
     $('.data-fullscreen').toggleClass('d-none');
 });
 
-function getAttendanceTrackingData(month,year)
+
+$('#btn-save-weekday-off').on('click',function(){
+    
+
+    const rowEmployee = [];
+
+    $('.employee-row:not(.d-none)').each(function(){
+
+        let employeeId = $(this).attr('data-employee-id');
+        let divisionId = $(this).attr('data-division');
+        let weekDay = [];
+
+        $(this).find('.col-day.day-off').each(function(){
+            weekDay.push($(this).attr('data-weekday'));
+        });
+
+
+        rowEmployee[rowEmployee.length]= [employeeId,divisionId,`${weekDay.join(',')}`];
+
+    })
+
+    const jsonEmployee = JSON.stringify(rowEmployee);
+
+    saveWeekdayOff(jsonEmployee);
+});
+
+
+function saveWeekdayOff(jsonEmployee)
 {
 
+    const formData = new FormData();
+        // Appending a string value
+    formData.append('json_weekday_off', jsonEmployee);
+    formData.append('_token', $('meta[name="csrf-token"]').attr('content'));
+
     $.ajax({
-        url: appUrl + "/attendance_tracking/get-attendance-tracking-data",
-        type: "GET",
-        data:{
-            'YEAR' : year,
-            'MONTH' : month,
-        },
+        url: appUrl + "/weekday_off/save-employee-weekday-off",
+        type: "POST",
+        data: formData,
+        cache: false,
+        processData: false,
+        contentType: false,
         beforeSend:function(){
-            //$('.col-user-management .loader').fadeIn('fast');
+
+            $('.col-weekday-off .loader').fadeIn('fast');
         },
         error:function(res){
             var resJson = res.responseJSON;
             showAlertMsg(resJson.message,'error',5000);
-            $('.loader').fadeOut('fast');
-          //$('.col-user-management .loader').fadeOut('fast');
+            $('.col-weekday-off .loader').fadeOut('fast');
         },
         success: function(response) {
+
             var resData = response.data;
             
-            $('.employee-row .time-in, .employee-row  .time-out').text(' ');
-
-            $('.table-weekday-off .col-day').removeClass('is-late');
-
-            for (let i = 0; i < resData.length; i++) {
-                const attendance = resData[i];
-
-                const dateString = attendance.date_attendance;
-                const dateObject = new Date(dateString);
-                const dayOfMonth = dateObject.getDate();
-
-                const timeIn = formatTimeDisplay(attendance.time_in);
-                const timeOut = formatTimeDisplay(attendance.time_out);
-
-                //console.log(attendance.time_late);
-
-                if(attendance.time_late != null && attendance.time_late != '00:00:00'){
-                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"]').addClass('is-late');   
-                }
-
-                $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text(timeIn);
-                $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text(timeOut);
-                
-                
-                
-            }
-
-            // "id": 1,
-            // "employee_id": 1,
-            // "date_attendance": "2025-08-12T17:00:00.000000Z",
-            // "time_in": "15:24:00",
-            // "time_out": null,
-            // "time_late": "06:24:00",
-            // "type_attendance": "check_in",
-            // "note": null,
-            // "image": null,
-            // "status": "PRESENT",
-            // "created_by": null,
-            // "updated_by": null,
-            // "deleted_by": null,
-            // "created_at": "2025-08-13T01:24:26.000000Z",
-            // "updated_at": "2025-08-13T01:24:26.000000Z"
-        
+            showAlertMsg(response.message);
+            $('.col-weekday-off .loader').fadeOut('fast');
         }
          
     });
@@ -196,5 +246,4 @@ $('#btn-download-xlsx').on('click',function(){
     window.location.href = `${appUrl}/weekdays_off/export/weekday_off_${department}_${division}.xlsx`;
 
 });
-
 

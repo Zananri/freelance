@@ -20,8 +20,8 @@
                         <input type="text" class="input-search-query w-100">
                     </div>
                     <div>
-                        <button class="btn btn-default" type="button" id="btn-download-xlsx">
-                            <span class="material-symbols-outlined icon download" type="button">download</span>
+                        <button class="btn btn-default-dark fs-14" id="btn-save-weekday-off" type="button">
+                            Save
                         </button>
                     </div>
                 </div>
@@ -37,51 +37,53 @@
 
             <di class="col-12 col-md-12 col-weekday-off"> 
 
-                <div class="card-content overflow-hidden">
+                <div class="card-content overflow-hidden position-relative">
                     <div class="header-calendar">
 
                         <div class="d-flex align-items-center">
                             <div class="w-100">
-                                <div class="d-flex">
-                                    <div>
+                                <div class="d-flex"> 
+                                    <div class="col-dropdown-department" data-department-id="1">
                                         <div class="dropdown dropdown-select">
                                             <div class="dropdown-toggle btn btn-dropdown-table ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                 
                                                 <div class="d-inline-flex align-items-center">
-                                                    <span class="title-dropdown">NSA Performance</span>
+                                                    <span class="title-dropdown"></span>
                                                 </div>
 
                                             </div>
 
                                             <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
                                                 @foreach ($department as $itemDepartment)
-                                                    <li data-department="{{ $itemDepartment->id }}" class="dropdown-item department-item fs-14">
+                                                    <li data-department-id="{{ $itemDepartment->id }}" data-department-name="{{ $itemDepartment->name_department }}"  class="dropdown-item department-item fs-14">
                                                         <div class="dropdown-item fs-14">{{ $itemDepartment->name_department }}</div>
                                                     </li>     
                                                 @endforeach
                                             </ul>
+
                                         </div>
                                     </div>
-                                    <div class="">
+                                    <div class="col-dropdown-division">
                                         <div class="dropdown dropdown-select">
                                             <div class="dropdown-toggle btn btn-dropdown-table ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                                 
                                                 <div class="d-inline-flex align-items-center">
-                                                    <span class="title-dropdown">All Divisoin</span>
+                                                    <span class="title-dropdown">All Division</span>
                                                 </div>
 
                                             </div>
 
                                             <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                                    <li data-department="0" data-division="0" class="dropdown-item department-item fs-14">
+                                                    <li data-department="0" data-division-id="0" data-division-name="All Division" class="dropdown-item department-item fs-14">
                                                         <div class="dropdown-item fs-14">All Division</div>
                                                     </li>   
                                                 @foreach ($division as $itemDivision)
-                                                    <li data-department="{{ $itemDivision->department_id }}" data-division="{{ $itemDivision->id }}" class="dropdown-item department-item fs-14">
+                                                    <li data-department-id="{{ $itemDivision->department_id }}" data-division-id="{{ $itemDivision->id }}" data-division-name="{{ $itemDivision->name_division }}" class="dropdown-item division-item fs-14">
                                                         <div class="dropdown-item fs-14">{{ $itemDivision->name_division }}</div>
                                                     </li>     
                                                 @endforeach
                                             </ul>
+
                                         </div>
                                     </div>
                                 </div>
@@ -137,7 +139,7 @@
                                     @foreach ($employee as $itemEmployee)
                                             
                                         
-                                        <tr class="employee-row" data-employee-id="{{ $itemEmployee->id }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
+                                        <tr class="employee-row d-none" data-employee-id="{{ $itemEmployee->id }}" data-division="{{ $itemEmployee->division_id }}"  data-department="{{ $itemEmployee->department_id }}"  >
                                             <td>
                                                 <div class="box-employee">
                                                     <div class="d-flex align-items-center">
@@ -180,6 +182,15 @@
                         </div>
                     </div>
 
+                    <div class="loader" >
+                        <div class="box-loader rounded-20" >
+                            <div class="text-center">
+                                <div class="spinner-border text-secondary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             </di>
