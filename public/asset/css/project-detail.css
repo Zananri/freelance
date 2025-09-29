@@ -826,6 +826,19 @@
     max-height: 100%;
 }
 
+.structure-detail-content.fullscreen {
+    position: fixed;
+    top: 85px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: calc(100vh - 85px);
+    max-height: none;
+    z-index: 99;
+    padding: 20px;
+}
+
 .timeline-wrapper {
     min-height: 35vh;
     max-height: calc(100vh - 500px);
@@ -1059,8 +1072,8 @@
 .structure-detail-content {
     max-height: 50vh;
     overflow: auto;
-    position: relative; /* create containing block for absolute footer legend */
-    padding-bottom: 64px; /* leave space for the legend so content isn't hidden */
+    position: relative;
+    padding-bottom: 64px;
 }
 
 .structure-detail-content::-webkit-scrollbar {
