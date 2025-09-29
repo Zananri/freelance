@@ -131,7 +131,6 @@
                         <div id="task-template" class="d-none task-item">
                             <div class="task-box">
                                 <div class="task-header">
-                                    <span class="task-status"></span>
                                     <span class="task-name"></span>
                                 </div>
                                 <div class="task-date"></div>
