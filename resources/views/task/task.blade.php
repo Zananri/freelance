@@ -698,66 +698,53 @@
                         var editor = document.querySelector(editorSelector);
                         if (!editor || !quill) return;
 
-                        // dragover: allow preventing default behaviour so drop event fires on some browsers
-                        editor.addEventListener('dragover', function(e){
-                            try { e.preventDefault(); } catch(_) {}
-                        });
+                        // Use capture-phase listeners to intercept before Quill's handlers run
+                        try { editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); e.stopImmediatePropagation(); }catch(_){} }, true); } catch(_){}
 
                         // drop: block files (including images) and HTML that contains <img>
-                        editor.addEventListener('drop', function(e){
-                            try {
-                                if (!e.dataTransfer) return;
-                                var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
-                                var html = '';
-                                try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
-                                if (hasFiles || /<img\s*/i.test(html)) {
-                                    e.preventDefault();
-                                    e.stopImmediatePropagation();
-                                    // don't insert anything
-                                }
-                            } catch(_) {}
-                        });
-
-                        // paste: if clipboard contains image items or HTML with <img>, prevent and insert sanitized content
-                        editor.addEventListener('paste', function(e){
-                            try {
-                                var clipboard = (e.clipboardData || window.clipboardData);
-                                if (!clipboard) return;
-
-                                var items = clipboard.items || [];
-                                var hasImage = false;
-                                for (var i = 0; i < items.length; i++) {
-                                    var t = items[i].type || '';
-                                    if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
-                                }
-
-                                var html = '';
-                                try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
-
-                                if (hasImage || /<img\s*/i.test(html)) {
-                                    // block default paste which would insert the image
-                                    e.preventDefault();
-                                    e.stopImmediatePropagation();
-
-                                    // If HTML exists, strip <img> tags and paste the rest
-                                    if (html) {
-                                        var sanitized = html.replace(/<img[\s\S]*?>/gi, '');
-                                        if (!sanitized || !sanitized.trim()) sanitized = clipboard.getData('text/plain') || '';
-                                        try {
-                                            var range = quill.getSelection(true);
-                                            quill.clipboard.dangerouslyPasteHTML(range ? range.index : quill.getLength(), sanitized);
-                                        } catch(_) {}
-                                    } else {
-                                        // fallback to plain text
-                                        var text = clipboard.getData && clipboard.getData('text/plain') || '';
-                                        try {
-                                            var range2 = quill.getSelection(true);
-                                            if (text) quill.insertText(range2 ? range2.index : quill.getLength(), text);
-                                        } catch(_) {}
+                        try {
+                            editor.addEventListener('drop', function(e){
+                                try {
+                                    if (!e.dataTransfer) return;
+                                    var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                    var html = '';
+                                    try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
+                                    if (hasFiles || /<img\s*/i.test(html)) {
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return; // do nothing
                                     }
-                                }
-                            } catch(_) {}
-                        });
+                                } catch(_) {}
+                            }, true);
+                        } catch(_) {}
+
+                        // paste: if clipboard contains image items or HTML with <img>, prevent entirely (no insert)
+                        try {
+                            editor.addEventListener('paste', function(e){
+                                try {
+                                    var clipboard = (e.clipboardData || window.clipboardData);
+                                    if (!clipboard) return;
+
+                                    var items = clipboard.items || [];
+                                    var hasImage = false;
+                                    for (var i = 0; i < items.length; i++) {
+                                        var t = items[i].type || '';
+                                        if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
+                                    }
+
+                                    var html = '';
+                                    try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
+
+                                    if (hasImage || /<img\s*/i.test(html)) {
+                                        // block default paste which would insert the image or any html containing images
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return; // do not insert anything (no blink)
+                                    }
+                                    // Otherwise allow normal paste (text or non-image html)
+                                } catch(_) {}
+                            }, true);
+                        } catch(_) {}
                     } catch(_) {}
                 }
 
