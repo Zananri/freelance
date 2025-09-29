@@ -28,7 +28,34 @@ function renderTaskNode(task, $template) {
     const normalizedStatus = normalizeStatus(task.status);
     let $item = $template.clone().removeClass("d-none").removeAttr("id");
 
-    $item.find(".task-status").addClass(`status-${normalizedStatus}`);
+    // Determine visual status for legend & dot
+    let visual = 'not-started';
+    try {
+        const s = String((task.status || '')).toLowerCase();
+        if (s === 'new_request' || s === 'new request' || s === 'new-request' || s === 'new_request') {
+            visual = 'not-started';
+        } else if (s === 'in_progress' || s === 'in progress' || s === 'in-progress') {
+            visual = 'in-progress';
+        } else if (s === 'complete' || s === 'completed') {
+            visual = 'complete';
+        } else {
+            visual = normalizedStatus || 'not-started';
+        }
+
+        // late detection: if due_date present and today > due_date and not complete
+        if (task.due_date && visual !== 'complete') {
+            const due = new Date(task.due_date);
+            const today = new Date();
+            // normalize dates (midnight) for comparison
+            due.setHours(0,0,0,0);
+            today.setHours(0,0,0,0);
+            if (!isNaN(due.getTime()) && today > due) {
+                visual = 'late';
+            }
+        }
+    } catch (e) { /* ignore */ }
+
+    $item.find(".task-status").addClass(visual);
     $item.find(".task-name").text(task.title);
     $item.find(".task-date").text(task.due_date);
 
