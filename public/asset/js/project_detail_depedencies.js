@@ -53,7 +53,19 @@ function renderTaskNode(task, $template) {
 
         task.children.forEach(child => {
             const $child = renderTaskNode(child, $template);
-            $childGroup.append($child);
+            // If there are multiple children, render a short horizontal stub from
+            // the central vertical connector to each child box so connectors don't
+            // mistakenly join child-to-child. This matches the visual in the
+            // provided screenshot: a central vertical line with small horizontals
+            // to each child.
+            if (task.children.length > 1) {
+                const $childWrap = $('<div class="child-wrap"></div>');
+                const $childStub = $('<div class="connector-horizontal child-connector"></div>');
+                $childWrap.append($childStub).append($child);
+                $childGroup.append($childWrap);
+            } else {
+                $childGroup.append($child);
+            }
         });
 
         $branch.append($childGroup);
@@ -79,7 +91,196 @@ function renderTaskList(data) {
     });
 
     $tree.append($rootCol);
+    // After DOM is inserted, adjust connector sizes/positions so lines meet exactly
+    // Use a short timeout to allow browser to compute layout (images/fonts)
+    setTimeout(adjustConnectors, 40);
+    // Also draw SVG connectors after layout
+    setTimeout(drawSvgConnectors, 60);
 }
+
+// Ensure connectors are sized/positioned to visually meet:
+function adjustConnectors() {
+    try {
+        $('#task-tree .task-branch').each(function() {
+            const $branch = $(this);
+            const $childGroup = $branch.children('.child-group').first();
+            if (!$childGroup.length) return;
+            const $vertical = $childGroup.children('.connector-vertical').first();
+            if (!$vertical.length) return;
+
+            // Gather center Y of each child .task-box relative to childGroup
+            const childCenters = [];
+            $childGroup.find('.task-item').each(function() {
+                const $item = $(this);
+                const $box = $item.find('.task-box').first();
+                if (!$box.length) return;
+                const relTop = $box.offset().top - $childGroup.offset().top + ($box.outerHeight() / 2);
+                childCenters.push(relTop);
+            });
+            if (childCenters.length === 0) return;
+
+            const minC = Math.min.apply(null, childCenters);
+            const maxC = Math.max.apply(null, childCenters);
+
+            // Set vertical top/height to span child centers (plus tiny padding)
+            const padding = 0; // tweakable
+            const top = Math.floor(minC - padding);
+            const height = Math.ceil((maxC - minC) + (padding * 2));
+            $vertical.css({ top: top + 'px', height: Math.max(2, height) + 'px' });
+
+            // Compute vertical middle (where parent horizontal should meet)
+            const verticalMid = minC + ((maxC - minC) / 2);
+
+            // Adjust the main horizontal connector width and vertical position so it
+            // meets the verticalMid exactly.
+            const $connector = $branch.children('.connector-horizontal').first();
+            if ($connector.length) {
+                // compute absolute x of vertical left edge
+                const verticalLeft = $childGroup.offset().left + parseFloat($vertical.css('left') || 0);
+                const parentBox = $branch.children('.task-item').first().find('.task-box').first();
+                if (parentBox.length) {
+                    const parentRight = parentBox.offset().left + parentBox.outerWidth();
+                    // Ensure the horizontal line extends at least up to the vertical
+                    // including child-group padding. Provide a reasonable minimum.
+                    const childGroupPaddingLeft = parseFloat($childGroup.css('padding-left') || 0);
+                    let desiredWidth = Math.round((verticalLeft + childGroupPaddingLeft) - parentRight);
+                    if (desiredWidth < 10) desiredWidth = 10; // min width
+                    $connector.css({ width: desiredWidth + 'px' });
+
+                    // Position the horizontal vertically so it aligns to verticalMid
+                    const branchTop = $branch.offset().top;
+                    const connTop = Math.round(verticalMid + $childGroup.offset().top - branchTop - ($connector.outerHeight() / 2));
+                    // Use margin-top for positioning inside flex row
+                    $connector.css({ marginTop: connTop + 'px' });
+                }
+            }
+
+            // Align child connectors vertically to each child center (they meet vertical at child's center)
+            $childGroup.find('.child-wrap').each(function() {
+                const $wrap = $(this);
+                const $stub = $wrap.children('.child-connector').first();
+                const $childItem = $wrap.children('.task-item').first();
+                const $childBox = $childItem.find('.task-box').first();
+                if (!$stub.length || !$childBox.length) return;
+                const center = $childBox.offset().top - $childGroup.offset().top + ($childBox.outerHeight() / 2);
+                // position stub so it's vertically centered to child box (so it meets vertical at child center)
+                const stubTop = Math.round(center - ($stub.outerHeight() / 2));
+                $stub.css({ marginTop: (stubTop) + 'px' });
+            });
+        });
+    } catch (e) {
+        console.warn('adjustConnectors error', e);
+    }
+}
+
+// Recompute connectors on resize and when fonts/images may change layout
+$(window).on('resize', function() { setTimeout(adjustConnectors, 60); });
+
+// --- SVG based connectors: more accurate and curveable ---
+function ensureSvgOverlay() {
+    let $svg = $('#task-tree-svg');
+    if ($svg.length === 0) {
+        $svg = $("<svg id='task-tree-svg' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'></svg>");
+        $('#task-tree').append($svg);
+    }
+    // ensure SVG covers the full scrollable area inside #task-tree
+    const tree = document.getElementById('task-tree');
+    if (tree) {
+        const w = tree.scrollWidth;
+        const h = tree.scrollHeight;
+        $svg.attr('width', w).attr('height', h).attr('viewBox', `0 0 ${w} ${h}`);
+    }
+    $svg.css({ left: 0, top: 0 });
+    return $svg;
+}
+
+function drawSvgConnectors() {
+    try {
+        const $svg = ensureSvgOverlay();
+        // clear
+        $svg.empty();
+
+    // compute bounding of tree to set SVG viewbox using scroll sizes (covers full area)
+    const tree = document.getElementById('task-tree');
+    const treeOff = $('#task-tree').offset();
+    const treeW = tree ? tree.scrollWidth : $('#task-tree').outerWidth();
+    const treeH = tree ? tree.scrollHeight : $('#task-tree').outerHeight();
+    $svg.attr('width', treeW).attr('height', treeH).attr('viewBox', `0 0 ${treeW} ${treeH}`);
+
+        // for each branch, find parent box and children boxes
+        $('#task-tree .task-branch').each(function() {
+            const $branch = $(this);
+            const $parentBox = $branch.children('.task-item').first().find('.task-box').first();
+            const $childGroup = $branch.children('.child-group').first();
+            if (!$parentBox.length || !$childGroup.length) return;
+
+            // compute vertical center points for each child
+            const childCenters = [];
+            $childGroup.find('.task-item .task-box').each(function() {
+                const $b = $(this);
+                // coordinates relative to #task-tree (use offset minus tree offset)
+                childCenters.push({ el: $b, x: ($b.offset().left - treeOff.left), y: ($b.offset().top - treeOff.top) + ($b.outerHeight()/2) });
+            });
+            if (childCenters.length === 0) return;
+
+            // compute parent point (right center)
+            const pX = ($parentBox.offset().left - treeOff.left) + $parentBox.outerWidth();
+            const pY = ($parentBox.offset().top - treeOff.top) + ($parentBox.outerHeight()/2);
+
+            // compute vertical center line x (slightly to left of child boxes left edge)
+            // choose verticalX halfway between parent right and first child left
+            const firstChildLeft = ($childGroup.find('.task-item .task-box').first().offset().left - treeOff.left);
+            const verticalX = Math.round((pX + firstChildLeft) / 2);
+
+            // draw vertical line from top child center to bottom child center
+            const ys = childCenters.map(c => c.y).sort((a,b)=>a-b);
+            const vTop = ys[0];
+            const vBottom = ys[ys.length-1];
+            const vLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+            vLine.setAttribute('x1', verticalX);
+            vLine.setAttribute('y1', vTop);
+            vLine.setAttribute('x2', verticalX);
+            vLine.setAttribute('y2', vBottom);
+            vLine.setAttribute('stroke','#d1d5db');
+            vLine.setAttribute('stroke-width','1');
+            vLine.setAttribute('stroke-linecap','butt');
+            vLine.setAttribute('stroke-linejoin','miter');
+            $svg[0].appendChild(vLine);
+
+            // for each child draw a straight horizontal stub from verticalX to the child's left edge
+            childCenters.forEach(function(ch){
+                const cX = ch.x;
+                const cY = ch.y;
+                // small horizontal stub from verticalX to child box left edge
+                const stub = document.createElementNS('http://www.w3.org/2000/svg','line');
+                stub.setAttribute('x1', verticalX);
+                stub.setAttribute('y1', cY);
+                // connect exactly to the child's left edge
+                stub.setAttribute('x2', cX);
+                stub.setAttribute('y2', cY);
+                stub.setAttribute('stroke','#d1d5db');
+                stub.setAttribute('stroke-width','2');
+                stub.setAttribute('stroke-linecap','butt');
+                $svg[0].appendChild(stub);
+            });
+
+            // also draw a short horizontal connector from parent right edge toward verticalX
+            const parentStub = document.createElementNS('http://www.w3.org/2000/svg','line');
+            parentStub.setAttribute('x1', pX);
+            parentStub.setAttribute('y1', pY);
+            parentStub.setAttribute('x2', verticalX); // meet exactly at verticalX
+            parentStub.setAttribute('y2', pY);
+            parentStub.setAttribute('stroke','#d1d5db');
+            parentStub.setAttribute('stroke-width','2');
+            parentStub.setAttribute('stroke-linecap','butt');
+            $svg[0].appendChild(parentStub);
+        });
+    } catch (e) { console.warn('drawSvgConnectors error', e); }
+}
+
+// call SVG draw after layout changes
+setTimeout(drawSvgConnectors, 50);
+$(window).on('resize scroll', function(){ setTimeout(drawSvgConnectors, 80); });
 
 function getTaskByProject(projectId) {
     fetchProjectDueDate(projectId);
