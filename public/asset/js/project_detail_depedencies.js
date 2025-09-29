@@ -216,8 +216,9 @@ function drawSvgConnectors() {
             const pY = $parentBox.offset().top - treeOff.top + ($parentBox.outerHeight()/2);
 
             // compute vertical center line x (slightly to left of child boxes left edge)
+            // choose verticalX halfway between parent right and first child left
             const firstChildLeft = $childGroup.find('.task-item .task-box').first().offset().left - treeOff.left;
-            const verticalX = firstChildLeft - 30; // 30px left of child boxes, tweakable
+            const verticalX = Math.round((pX + firstChildLeft) / 2);
 
             // draw vertical line from top child center to bottom child center
             const ys = childCenters.map(c => c.y).sort((a,b)=>a-b);
@@ -263,7 +264,7 @@ function drawSvgConnectors() {
             const parentStub = document.createElementNS('http://www.w3.org/2000/svg','line');
             parentStub.setAttribute('x1', pX);
             parentStub.setAttribute('y1', pY);
-            parentStub.setAttribute('x2', verticalX + 4); // slight inset
+            parentStub.setAttribute('x2', verticalX); // meet exactly at verticalX
             parentStub.setAttribute('y2', pY);
             parentStub.setAttribute('stroke','#d1d5db');
             parentStub.setAttribute('stroke-width','2');
