@@ -1173,6 +1173,13 @@
     height: 100%;
     pointer-events: none; /* allow clicks through */
     overflow: visible;
+    z-index: 1; /* sit under task boxes but above background */
+}
+
+/* Make sure task boxes render above the SVG connectors */
+.task-box {
+    position: relative;
+    z-index: 2;
 }
 
 .vertical-connector {

@@ -94,6 +94,8 @@ function renderTaskList(data) {
     // After DOM is inserted, adjust connector sizes/positions so lines meet exactly
     // Use a short timeout to allow browser to compute layout (images/fonts)
     setTimeout(adjustConnectors, 40);
+    // Also draw SVG connectors after layout
+    setTimeout(drawSvgConnectors, 60);
 }
 
 // Ensure connectors are sized/positioned to visually meet:
@@ -181,6 +183,14 @@ function ensureSvgOverlay() {
         $svg = $("<svg id='task-tree-svg' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'></svg>");
         $('#task-tree').append($svg);
     }
+    // ensure SVG covers the full scrollable area inside #task-tree
+    const tree = document.getElementById('task-tree');
+    if (tree) {
+        const w = tree.scrollWidth;
+        const h = tree.scrollHeight;
+        $svg.attr('width', w).attr('height', h).attr('viewBox', `0 0 ${w} ${h}`);
+    }
+    $svg.css({ left: 0, top: 0 });
     return $svg;
 }
 
@@ -190,11 +200,12 @@ function drawSvgConnectors() {
         // clear
         $svg.empty();
 
-        // compute bounding of tree to set SVG viewbox if needed
-        const treeOff = $('#task-tree').offset();
-        const treeW = $('#task-tree').outerWidth();
-        const treeH = $('#task-tree').outerHeight();
-        $svg.attr('width', treeW).attr('height', treeH);
+    // compute bounding of tree to set SVG viewbox using scroll sizes (covers full area)
+    const tree = document.getElementById('task-tree');
+    const treeOff = $('#task-tree').offset();
+    const treeW = tree ? tree.scrollWidth : $('#task-tree').outerWidth();
+    const treeH = tree ? tree.scrollHeight : $('#task-tree').outerHeight();
+    $svg.attr('width', treeW).attr('height', treeH).attr('viewBox', `0 0 ${treeW} ${treeH}`);
 
         // for each branch, find parent box and children boxes
         $('#task-tree .task-branch').each(function() {
@@ -207,17 +218,18 @@ function drawSvgConnectors() {
             const childCenters = [];
             $childGroup.find('.task-item .task-box').each(function() {
                 const $b = $(this);
-                childCenters.push({ el: $b, x: $b.offset().left - treeOff.left, y: $b.offset().top - treeOff.top + ($b.outerHeight()/2) });
+                // coordinates relative to #task-tree (use offset minus tree offset)
+                childCenters.push({ el: $b, x: ($b.offset().left - treeOff.left), y: ($b.offset().top - treeOff.top) + ($b.outerHeight()/2) });
             });
             if (childCenters.length === 0) return;
 
             // compute parent point (right center)
-            const pX = $parentBox.offset().left - treeOff.left + $parentBox.outerWidth();
-            const pY = $parentBox.offset().top - treeOff.top + ($parentBox.outerHeight()/2);
+            const pX = ($parentBox.offset().left - treeOff.left) + $parentBox.outerWidth();
+            const pY = ($parentBox.offset().top - treeOff.top) + ($parentBox.outerHeight()/2);
 
             // compute vertical center line x (slightly to left of child boxes left edge)
             // choose verticalX halfway between parent right and first child left
-            const firstChildLeft = $childGroup.find('.task-item .task-box').first().offset().left - treeOff.left;
+            const firstChildLeft = ($childGroup.find('.task-item .task-box').first().offset().left - treeOff.left);
             const verticalX = Math.round((pX + firstChildLeft) / 2);
 
             // draw vertical line from top child center to bottom child center
@@ -231,32 +243,24 @@ function drawSvgConnectors() {
             vLine.setAttribute('y2', vBottom);
             vLine.setAttribute('stroke','#d1d5db');
             vLine.setAttribute('stroke-width','1');
+            vLine.setAttribute('stroke-linecap','butt');
+            vLine.setAttribute('stroke-linejoin','miter');
             $svg[0].appendChild(vLine);
 
-            // for each child draw a path from parent to child via verticalX
+            // for each child draw a straight horizontal stub from verticalX to the child's left edge
             childCenters.forEach(function(ch){
                 const cX = ch.x;
                 const cY = ch.y;
-                // path: parent -> mid -> verticalX -> child
-                // use simple cubic bezier for slight curve
-                const midX = (pX + verticalX) / 2;
-                const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-                const d = `M ${pX} ${pY} C ${midX} ${pY} ${midX} ${cY} ${verticalX} ${cY}`;
-                path.setAttribute('d', d);
-                path.setAttribute('stroke', '#d1d5db');
-                path.setAttribute('stroke-width', '2');
-                path.setAttribute('fill', 'none');
-                path.setAttribute('stroke-linecap','butt');
-                $svg[0].appendChild(path);
-
-                // small horizontal stub from verticalX to child box left edge (so it looks connected)
+                // small horizontal stub from verticalX to child box left edge
                 const stub = document.createElementNS('http://www.w3.org/2000/svg','line');
                 stub.setAttribute('x1', verticalX);
                 stub.setAttribute('y1', cY);
-                stub.setAttribute('x2', cX - 6); // stop a few px before box to match visual
+                // connect exactly to the child's left edge
+                stub.setAttribute('x2', cX);
                 stub.setAttribute('y2', cY);
                 stub.setAttribute('stroke','#d1d5db');
                 stub.setAttribute('stroke-width','2');
+                stub.setAttribute('stroke-linecap','butt');
                 $svg[0].appendChild(stub);
             });
 
@@ -268,6 +272,7 @@ function drawSvgConnectors() {
             parentStub.setAttribute('y2', pY);
             parentStub.setAttribute('stroke','#d1d5db');
             parentStub.setAttribute('stroke-width','2');
+            parentStub.setAttribute('stroke-linecap','butt');
             $svg[0].appendChild(parentStub);
         });
     } catch (e) { console.warn('drawSvgConnectors error', e); }
