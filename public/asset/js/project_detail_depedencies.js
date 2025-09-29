@@ -349,3 +349,31 @@ function getTaskByProject(projectId) {
 if (projectId) {
     getTaskByProject(projectId);
 }
+
+(function setupTreeResizeObservers(){
+    try {
+        const tree = document.getElementById('task-tree');
+        if (!tree) return;
+
+        const scheduleRecalc = function(){
+            try { setTimeout(function(){ adjustConnectors(); drawSvgConnectors(); }, 30); } catch(_){}
+        };
+
+        if (typeof window.ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(function(entries){
+                scheduleRecalc();
+            });
+            ro.observe(tree);
+            const parent = tree.closest('.structure-detail-content') || tree.parentElement;
+            if (parent && parent !== tree) ro.observe(parent);
+            window.__taskTreeResizeObserver = ro;
+        } else {
+      
+            const mo = new MutationObserver(function(){ scheduleRecalc(); });
+            mo.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
+            window.__taskTreeMutationObserver = mo;
+        }
+    } catch (e) {
+        console.warn('setupTreeResizeObservers error', e);
+    }
+})();
