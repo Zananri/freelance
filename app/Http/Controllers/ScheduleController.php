@@ -460,7 +460,35 @@ class ScheduleController extends Controller
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function ($attribute, $value, $fail) {
+                        // Allow common extensions OR a short whitelist of MIME types to handle
+                        // clients/servers that report Excel files inconsistently.
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMime = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream',
+                        ];
+                        try {
+                            $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
+                            if (in_array($ext, $allowedExt, true)) {
+                                return;
+                            }
+                            $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
+                            if (in_array($mime, $allowedMime, true)) {
+                                return;
+                            }
+                        } catch (\Throwable $_) {
+                            // fallthrough to fail message
+                        }
+                        $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
+                    }
+                ],
                 'start_date' => 'nullable|date',
                 'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'start_at' => 'required_unless:recurrence_type,daily|nullable|date',
@@ -773,7 +801,33 @@ class ScheduleController extends Controller
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function ($attribute, $value, $fail) {
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMime = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream',
+                        ];
+                        try {
+                            $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
+                            if (in_array($ext, $allowedExt, true)) {
+                                return;
+                            }
+                            $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
+                            if (in_array($mime, $allowedMime, true)) {
+                                return;
+                            }
+                        } catch (\Throwable $_) {
+                            // fallthrough
+                        }
+                        $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
+                    }
+                ],
                 'start_date' => 'nullable|date',
                 'due_date' => 'nullable|date|after_or_equal:recurrence_start_date',
                 'start_at' => 'required_unless:recurrence_type,daily|nullable|date',
