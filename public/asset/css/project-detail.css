@@ -1083,15 +1083,8 @@
     position: relative;
 }
 
-.root-column .task-item:not(:last-child)::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    width: 1px;
-    height: 20px;
-    background: #d1d5db;
-}
+/* Removed default vertical pseudo-lines on root-column items so
+   only explicit parent-child connectors (SVG) are shown. */
 
 .task-item {
     display: flex;
@@ -1146,16 +1139,47 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 40px;
+    gap: 36px; /* slightly reduced gap to help connectors meet */
     position: relative;
 }
 
 .connector-horizontal {
     position: relative;
-    width: 40px;
-    height: 1px;
+         width: 40px;
+         height: 2px;
     background: #d1d5db;
     flex-shrink: 0;
+         align-self: center; /* ensure it's vertically centered between parent and child */
+    border-radius: 0; /* keep ends square so overlap with vertical is seamless */
+    z-index: 3; /* place horizontal above the vertical connector so there's no visible gap */
+}
+
+/* Hide older div-based connectors — we'll render connectors using an SVG overlay
+   to get precise, curveable lines that always meet exactly. */
+.connector-horizontal,
+.connector-vertical,
+.child-connector,
+.vertical-connector {
+    display: none !important;
+}
+
+/* SVG overlay container inside #task-tree */
+#task-tree { position: relative; }
+#task-tree-svg {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* allow clicks through */
+    overflow: visible;
+    z-index: 1; /* sit under task boxes but above background */
+}
+
+/* Make sure task boxes render above the SVG connectors */
+.task-box {
+    position: relative;
+    z-index: 2;
 }
 
 .vertical-connector {
@@ -1169,6 +1193,43 @@
     z-index: 1;
 }
 
+    .connector-vertical {
+         width: 1px;
+         background: #d1d5db;
+         position: absolute;
+        /* place vertical along left edge of child-group so child stubs meet it */
+        left: calc(0px - 1px); /* position at very left inside child-group */
+         top: 0;
+         bottom: 0;
+        z-index: 1; /* keep vertical below horizontal (horizontal has z-index:3) */
+    }
+
+    /* Wrapper for each child when multiple children exist. The wrapper holds
+       a short horizontal stub (child-connector) followed by the actual child
+       .task-item so visually each child has a stub coming from the central
+       vertical line. */
+    .child-wrap {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 12px; /* small gap between stub and box */
+        position: relative;
+    }
+
+    .child-connector {
+        width: 24px; /* increased stub length so it reliably meets the vertical */
+        height: 2px;
+        background: #d1d5db;
+        flex-shrink: 0;
+        border-radius: 0;
+        z-index: 3; /* ensure child stubs are above the vertical */
+    }
+
+    /* Ensure the child-group leaves space on the left for the central vertical
+       connector and for the child stubs to align. */
+    .child-group {
+        padding-left: 28px; /* leave space for vertical + ensure stub meets cleanly */
+    }
 .status-not-started {
     background: #9ca3af;
 }
