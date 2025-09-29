@@ -632,6 +632,7 @@ class TaskController extends Controller
                 'project_image' => $projectImageUrl, // null jika tidak ada gambar
                 'project_has_image' => $projectHasImage,
                 'project_id' => $task->project_id,
+                'start_date' => $task->start_date,
                 'due_date' => $task->due_date,
                 'complete_date' => $task->complete_date,
                 'updated_at' => $task->updated_at,

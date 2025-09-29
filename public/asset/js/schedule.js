@@ -941,7 +941,7 @@ document.addEventListener("DOMContentLoaded", function () {
             ) {
                 const row = document.createElement("div");
                 row.className = "input-group";
-                row.innerHTML = `<input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-danger remove-ref-url'><span class='material-symbols-outlined'>close</span></button>`;
+                row.innerHTML = `<input type='url' class='form-control input-text' name='reference_urls[]' placeholder='https://example.com'><button type='button' class='btn btn-remove-url remove-ref-url'><span class='material-symbols-outlined'>close</span></button>`;
                 container.appendChild(row);
             }
             if (
@@ -1116,7 +1116,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 row.className = "input-group";
                 row.innerHTML = `
                     <input type='url' class='form-control input-text' name='reference_urls[]' value='${safeUrl}' placeholder='https://example.com'>
-                    <button type='button' class='btn ${idx === 0 ? "btn-submit-black add-ref-url" : "btn-danger remove-ref-url"}'>
+                    <button type='button' class='btn ${idx === 0 ? "btn-submit-black add-ref-url" : "btn-remove-url remove-ref-url"}'>
                         <span class='material-symbols-outlined'>${idx === 0 ? "add" : "close"}</span>
                     </button>`;
                 container.appendChild(row);

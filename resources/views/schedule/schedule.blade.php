@@ -216,11 +216,6 @@
                                 <label for="schedule_description" class="form-label label-custom">Description</label>
                                 <div id="schedule_description_toolbar">
                                     <span class="ql-formats">
-                                        <select class="ql-header">
-                                            <option value="1"></option>
-                                            <option value="2"></option>
-                                            <option selected></option>
-                                        </select>
                                         <button class="ql-bold"></button>
                                         <button class="ql-italic"></button>
                                         <button class="ql-underline"></button>
@@ -533,11 +528,6 @@
                                 <label for="edit_schedule_description" class="form-label label-custom">Description</label>
                                 <div id="edit_schedule_description_toolbar">
                                     <span class="ql-formats">
-                                        <select class="ql-header">
-                                            <option value="1"></option>
-                                            <option value="2"></option>
-                                            <option selected></option>
-                                        </select>
                                         <button class="ql-bold"></button>
                                         <button class="ql-italic"></button>
                                         <button class="ql-underline"></button>
