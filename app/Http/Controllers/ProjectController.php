@@ -801,9 +801,49 @@ class ProjectController extends Controller
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 // Allow multiple reference files (both new and legacy keys) with Task's whitelist and 5MB limit
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,csv,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function ($attribute, $value, $fail) {
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMime = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream',
+                        ];
+                        try {
+                            $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
+                            if (in_array($ext, $allowedExt, true)) return;
+                            $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
+                            if (in_array($mime, $allowedMime, true)) return;
+                        } catch (\Throwable $_) {}
+                        $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
+                    }
+                ],
                 'reference_file' => 'nullable|array',
-                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,csv,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_file.*' => [
+                    'file',
+                    'max:102400',
+                    function ($attribute, $value, $fail) {
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMime = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream',
+                        ];
+                        try {
+                            $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
+                            if (in_array($ext, $allowedExt, true)) return;
+                            $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
+                            if (in_array($mime, $allowedMime, true)) return;
+                        } catch (\Throwable $_) {}
+                        $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
+                    }
+                ],
 
             ]);
 
@@ -1288,9 +1328,49 @@ class ProjectController extends Controller
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,csv,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function ($attribute, $value, $fail) {
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMime = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream',
+                        ];
+                        try {
+                            $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
+                            if (in_array($ext, $allowedExt, true)) return;
+                            $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
+                            if (in_array($mime, $allowedMime, true)) return;
+                        } catch (\Throwable $_) {}
+                        $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
+                    }
+                ],
                 'reference_file' => 'nullable|array',
-                'reference_file.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,csv,doc,docx,xls,xlsx,zip|max:102400',
+                'reference_file.*' => [
+                    'file',
+                    'max:102400',
+                    function ($attribute, $value, $fail) {
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMime = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream',
+                        ];
+                        try {
+                            $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
+                            if (in_array($ext, $allowedExt, true)) return;
+                            $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
+                            if (in_array($mime, $allowedMime, true)) return;
+                        } catch (\Throwable $_) {}
+                        $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
+                    }
+                ],
                 'co_author' => 'nullable|array',
                 'co_author.*' => 'nullable|exists:employees,id',
                 'contributors' => 'nullable|array',
