@@ -571,6 +571,48 @@
                 if (!document.getElementById('edit_description_editor')) return;
 
                 // helper to sync Quill HTML into hidden textarea
+                function preventImageDropAndPaste(quill, editorSelector){
+                    try {
+                        var editor = document.querySelector(editorSelector);
+                        if (!editor || !quill) return;
+                        editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); }catch(_){}});
+                        editor.addEventListener('drop', function(e){
+                            try {
+                                if (!e.dataTransfer) return;
+                                var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                var html = '';
+                                try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
+                                if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); }
+                            } catch(_) {}
+                        });
+                        editor.addEventListener('paste', function(e){
+                            try {
+                                var clipboard = (e.clipboardData || window.clipboardData);
+                                if (!clipboard) return;
+                                var items = clipboard.items || [];
+                                var hasImage = false;
+                                for (var i = 0; i < items.length; i++) {
+                                    var t = items[i].type || '';
+                                    if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
+                                }
+                                var html = '';
+                                try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
+                                if (hasImage || /<img\s*/i.test(html)) {
+                                    e.preventDefault(); e.stopImmediatePropagation();
+                                    if (html) {
+                                        var sanitized = html.replace(/<img[\s\S]*?>/gi, '');
+                                        if (!sanitized || !sanitized.trim()) sanitized = clipboard.getData('text/plain') || '';
+                                        try { var range = quill.getSelection(true); quill.clipboard.dangerouslyPasteHTML(range ? range.index : quill.getLength(), sanitized); } catch(_) {}
+                                    } else {
+                                        var text = clipboard.getData && clipboard.getData('text/plain') || '';
+                                        try { var range2 = quill.getSelection(true); if (text) quill.insertText(range2 ? range2.index : quill.getLength(), text); } catch(_) {}
+                                    }
+                                }
+                            } catch(_) {}
+                        });
+                    } catch(_) {}
+                }
+
                 function syncQuillToTextarea(quill, textareaId) {
                     try {
                         var ta = document.getElementById(textareaId);
@@ -590,6 +632,7 @@
                         },
                         theme: 'snow'
                     });
+                    try { preventImageDropAndPaste(window.__quillProjectDetailEdit, '#edit_description_editor'); } catch(_) {}
                 } catch (e) {
                     console.error('Quill init failed', e);
                 }

@@ -2339,6 +2339,61 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                 theme: 'snow',
                 modules: { toolbar: [['bold','italic','underline'], ['link','image'], [{ list: 'ordered' }, { list: 'bullet' }]] }
             });
+            try {
+                var Delta = Quill.import && Quill.import('delta');
+                if (window.__quillComplete && window.__quillComplete.clipboard && typeof window.__quillComplete.clipboard.addMatcher === 'function') {
+                    window.__quillComplete.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                }
+                try {
+                    if (window.__quillComplete && typeof window.__quillComplete.on === 'function') {
+                        window.__quillComplete.on('text-change', function(delta, oldDelta, source){
+                            try {
+                                setTimeout(function(){
+                                    try { var imgs = window.__quillComplete.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){}
+                                }, 0);
+                            } catch(_){}
+                        });
+                    }
+                } catch(_){}
+            } catch(_) {}
+            // prevent images via drop/paste for this editor
+            try {
+                (function preventImageDropAndPaste(quill, selector){
+                    try {
+                        var editor = document.querySelector(selector);
+                        if (!editor || !quill) return;
+                        try { editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); e.stopImmediatePropagation(); }catch(_){} }, true); } catch(_){}
+                        try {
+                            editor.addEventListener('drop', function(e){
+                                try {
+                                    if (!e.dataTransfer) return;
+                                    var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                    var html = '';
+                                    try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
+                                    if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+                                } catch(_) {}
+                            }, true);
+                        } catch(_) {}
+                        try {
+                            editor.addEventListener('paste', function(e){
+                                try {
+                                    var clipboard = (e.clipboardData || window.clipboardData);
+                                    if (!clipboard) return;
+                                    var items = clipboard.items || [];
+                                    var hasImage = false;
+                                    for (var i = 0; i < items.length; i++) {
+                                        var t = items[i].type || '';
+                                        if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
+                                    }
+                                    var html = '';
+                                    try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
+                                    if (hasImage || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+                                } catch(_) {}
+                            }, true);
+                        } catch(_) {}
+                    } catch(_) {}
+                })(window.__quillComplete, '#complete_note_editor');
+            } catch(_) {}
         } catch (e) { console.warn('Quill init failed', e); }
 
         // Dynamic URL rows (add/remove) - reuse add-ref-url/remove-ref-url style
