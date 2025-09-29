@@ -1730,17 +1730,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 existingContainer.innerHTML =
                                                     "";
                                                 if (existingFiles.length > 0) {
-                                                    var title =
-                                                        document.createElement(
-                                                            "div"
-                                                        );
-                                                    title.className =
-                                                        "fw-bold mb-2";
-                                                    title.textContent =
-                                                        "Current Files:";
-                                                    existingContainer.appendChild(
-                                                        title
-                                                    );
+                                                    // var title =
+                                                    //     document.createElement(
+                                                    //         "div"
+                                                    //     );
+                                                    // title.className =
+                                                    //     "fw-bold mb-2";
+                                                    // title.textContent =
+                                                    //     "Current Files:";
+                                                    // existingContainer.appendChild(
+                                                    //     title
+                                                    // );
 
                                                     var fileList = document.createElement('div');
                                                     fileList.className = 'selected-files-list mt-2 existing-files-list w-100';
@@ -5599,8 +5599,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             container.innerHTML = "";
                             if ((files || []).length > 0) {
                                 const title = document.createElement("div");
-                                title.className = "fw-bold mb-2";
-                                title.textContent = "Current Files:";
+                                // title.className = "fw-bold mb-2";
+                                // title.textContent = "Current Files:";
                                 container.appendChild(title);
 
                                 const list = document.createElement("div");

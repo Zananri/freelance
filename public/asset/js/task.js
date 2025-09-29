@@ -7302,8 +7302,9 @@ function applyCurrentSearchFilter() {
 
             if (files.length > 0) {
                     const title = document.createElement("div");
-                    title.className = "fw-bold mb-2";
-                    title.textContent = "Current Files:";
+                    // title.className = "fw-normal mb-2";
+                    // title.textContent = "Current Files:";
+                    // title.style.fontSize = "12px"
                     existing.appendChild(title);
 
                     const fileList = document.createElement("div");

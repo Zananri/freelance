@@ -1328,3 +1328,25 @@
 .task-status.complete {
     background: #22c55e;
 }
+
+.btn-submit-black.add-ref-url,
+.btn-remove-url.remove-ref-url {
+    color: #444444;
+    background: #ffffff;
+    padding: 10px 24px;
+    height: 45px;
+}
+
+.btn-remove-url.remove-ref-url {
+    padding: 10px 24px;
+    height: 45px;
+    border: none;
+}
+
+input[type="file"]::-webkit-file-upload-button {
+  display: none;
+}
+
+input[type="file"]::file-selector-button {
+  display: none;
+}
