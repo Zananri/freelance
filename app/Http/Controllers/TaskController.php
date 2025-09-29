@@ -1012,8 +1012,27 @@ class TaskController extends Controller
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
-                // Whitelist: images, PDF, Word, Excel, ZIP
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
+                // Flexible whitelist: accept by extension or known Excel MIME types (handles client/server mime discrepancies)
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function($attribute, $value, $fail) {
+                        if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                        $ext = strtolower($value->getClientOriginalExtension() ?? '');
+                        $mime = strtolower($value->getClientMimeType() ?? '');
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMimes = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream'
+                        ];
+                        if (!in_array($ext, $allowedExt) && !in_array($mime, $allowedMimes)) {
+                            $fail("The $attribute must be a file of type: " . implode(', ', $allowedExt) . ".");
+                        }
+                    }
+                ],
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
@@ -1452,8 +1471,27 @@ class TaskController extends Controller
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
                 'reference_files' => 'nullable|array',
-                // Whitelist: images, PDF, Word, Excel, ZIP
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
+                // Flexible whitelist for edit: accept file by extension or common excel MIME types
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function($attribute, $value, $fail) {
+                        if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                        $ext = strtolower($value->getClientOriginalExtension() ?? '');
+                        $mime = strtolower($value->getClientMimeType() ?? '');
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMimes = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream'
+                        ];
+                        if (!in_array($ext, $allowedExt) && !in_array($mime, $allowedMimes)) {
+                            $fail("The $attribute must be a file of type: " . implode(', ', $allowedExt) . ".");
+                        }
+                    }
+                ],
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
             ]);
@@ -1711,7 +1749,26 @@ class TaskController extends Controller
                     'complete_note' => 'required|string',
                     'complete_urls' => 'nullable', // can be JSON string or array
                     'complete_files' => 'nullable|array',
-                    'complete_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
+                    'complete_files.*' => [
+                        'file',
+                        'max:102400',
+                        function($attribute, $value, $fail) {
+                            if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                            $ext = strtolower($value->getClientOriginalExtension() ?? '');
+                            $mime = strtolower($value->getClientMimeType() ?? '');
+                            $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                            $allowedMimes = [
+                                'application/vnd.ms-excel',
+                                'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                'text/csv',
+                                'application/csv',
+                                'application/octet-stream'
+                            ];
+                            if (!in_array($ext, $allowedExt) && !in_array($mime, $allowedMimes)) {
+                                $fail("The $attribute must be a file of type: " . implode(', ', $allowedExt) . ".");
+                            }
+                        }
+                    ],
                 ];
                 $completeValidator = Validator::make($request->all(), $completeRules);
                 if ($completeValidator->fails()) {
@@ -1895,7 +1952,26 @@ class TaskController extends Controller
                 'reference_urls.*' => 'nullable|url|max:255',
                 // Multiple files: whitelist same as task reference files
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function($attribute, $value, $fail) {
+                        if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                        $ext = strtolower($value->getClientOriginalExtension() ?? '');
+                        $mime = strtolower($value->getClientMimeType() ?? '');
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMimes = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream'
+                        ];
+                        if (!in_array($ext, $allowedExt) && !in_array($mime, $allowedMimes)) {
+                            $fail("The $attribute must be a file of type: " . implode(', ', $allowedExt) . ".");
+                        }
+                    }
+                ],
 
             ]);
 
@@ -2075,7 +2151,26 @@ class TaskController extends Controller
                 'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 // Multiple files: whitelist
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip,csv|max:102400',
+                'reference_files.*' => [
+                    'file',
+                    'max:102400',
+                    function($attribute, $value, $fail) {
+                        if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                        $ext = strtolower($value->getClientOriginalExtension() ?? '');
+                        $mime = strtolower($value->getClientMimeType() ?? '');
+                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedMimes = [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                            'application/csv',
+                            'application/octet-stream'
+                        ];
+                        if (!in_array($ext, $allowedExt) && !in_array($mime, $allowedMimes)) {
+                            $fail("The $attribute must be a file of type: " . implode(', ', $allowedExt) . ".");
+                        }
+                    }
+                ],
             ]);
 
             if ($validator->fails()) {
