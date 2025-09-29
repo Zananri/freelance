@@ -538,16 +538,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 })
 
                 // bersihin hidden lama
-                document.querySelectorAll('input[name="existing_reference_files[]"]').forEach(el=>el.remove())
+                document.querySelectorAll('input[name="existing_reference_files"]').forEach(el=>el.remove())
 
                 const form = document.getElementById('scheduleEditForm')
-                arr.forEach(f=>{
-                    const hidden = document.createElement('input')
-                    hidden.type = 'hidden'
-                    hidden.name = 'existing_reference_files[]'
-                    hidden.value = f
-                    form.appendChild(hidden)
-                })
+                // Always create a hidden input with JSON array
+                const hidden = document.createElement('input')
+                hidden.type = 'hidden'
+                hidden.name = 'existing_reference_files'
+                hidden.value = JSON.stringify(arr)
+                form.appendChild(hidden)
             }catch(e){}
         }
 

@@ -92,7 +92,7 @@
 
                 {{-- Right Above Content --}}
                 <div class="col-md-8 structure-detail">
-                    <div class="body-content rounded-4 p-3 structure-detail-content">
+                    <div class="body-content rounded-4 px-3 pt-3 pb-0 structure-detail-content">
                         <div id="task-loading" class="text-center py-3 d-none">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading tasks...</span>
@@ -104,20 +104,20 @@
                         </div>
                         <div id="task-tree"></div>
 
-                        <div id="task-legend" class="d-flex justify-content-center gap-3 mt-3">
-                            <div class="legend-item d-flex align-items-center gap-1">
+                        <div id="task-legend" class="d-flex justify-content-start mt-3">
+                            <div class="legend-item d-flex align-items-start gap-1">
                                 <span class="legend-dot not-started"></span>
                                 <span class="legend-text">Not Started</span>
                             </div>
-                            <div class="legend-item d-flex align-items-center gap-1">
+                            <div class="legend-item d-flex align-items-start gap-1">
                                 <span class="legend-dot in-progress"></span>
                                 <span class="legend-text">In Progress</span>
                             </div>
-                            <div class="legend-item d-flex align-items-center gap-1">
+                            <div class="legend-item d-flex align-items-start gap-1">
                                 <span class="legend-dot late"></span>
                                 <span class="legend-text">Late</span>
                             </div>
-                            <div class="legend-item d-flex align-items-center gap-1">
+                            <div class="legend-item d-flex align-items-start gap-1">
                                 <span class="legend-dot complete"></span>
                                 <span class="legend-text">Complete</span>
                             </div>
