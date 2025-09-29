@@ -174,11 +174,6 @@
                             <!-- Quill editor container for Edit Task -->
                             <div id="edit_task_description_toolbar">
                                 <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1"></option>
-                                        <option value="2"></option>
-                                        <option selected></option>
-                                    </select>
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
                                     <button class="ql-underline"></button>
@@ -382,11 +377,6 @@
                             <!-- Quill editor container for Add Task -->
                             <div id="task_description_toolbar">
                                 <span class="ql-formats">
-                                    <select class="ql-header">
-                                        <option value="1"></option>
-                                        <option value="2"></option>
-                                        <option selected></option>
-                                    </select>
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
                                     <button class="ql-underline"></button>
