@@ -570,46 +570,36 @@
                 // guard: only initialize if editor container exists
                 if (!document.getElementById('edit_description_editor')) return;
 
-                // helper to sync Quill HTML into hidden textarea
+                // helper to block image drag/drop and paste at capture phase (prevents transient insertions)
                 function preventImageDropAndPaste(quill, editorSelector){
                     try {
                         var editor = document.querySelector(editorSelector);
                         if (!editor || !quill) return;
-                        editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); }catch(_){}});
+                        // capture-phase listeners to stop native insertions before Quill handlers run
+                        editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); }catch(_){} }, true);
                         editor.addEventListener('drop', function(e){
                             try {
                                 if (!e.dataTransfer) return;
                                 var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
                                 var html = '';
                                 try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
-                                if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); }
+                                if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
                             } catch(_) {}
-                        });
+                        }, true);
                         editor.addEventListener('paste', function(e){
                             try {
                                 var clipboard = (e.clipboardData || window.clipboardData);
                                 if (!clipboard) return;
                                 var items = clipboard.items || [];
-                                var hasImage = false;
                                 for (var i = 0; i < items.length; i++) {
                                     var t = items[i].type || '';
-                                    if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
+                                    if (t.indexOf && t.indexOf('image') === 0) { e.preventDefault(); e.stopImmediatePropagation(); return; }
                                 }
                                 var html = '';
                                 try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
-                                if (hasImage || /<img\s*/i.test(html)) {
-                                    e.preventDefault(); e.stopImmediatePropagation();
-                                    if (html) {
-                                        var sanitized = html.replace(/<img[\s\S]*?>/gi, '');
-                                        if (!sanitized || !sanitized.trim()) sanitized = clipboard.getData('text/plain') || '';
-                                        try { var range = quill.getSelection(true); quill.clipboard.dangerouslyPasteHTML(range ? range.index : quill.getLength(), sanitized); } catch(_) {}
-                                    } else {
-                                        var text = clipboard.getData && clipboard.getData('text/plain') || '';
-                                        try { var range2 = quill.getSelection(true); if (text) quill.insertText(range2 ? range2.index : quill.getLength(), text); } catch(_) {}
-                                    }
-                                }
+                                if (/<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
                             } catch(_) {}
-                        });
+                        }, true);
                     } catch(_) {}
                 }
 
@@ -632,6 +622,22 @@
                         },
                         theme: 'snow'
                     });
+
+                    // Add clipboard matcher to drop IMG nodes early in Quill pipeline
+                    try {
+                        var Delta = Quill.import && Quill.import('delta');
+                        if (window.__quillProjectDetailEdit && window.__quillProjectDetailEdit.clipboard && typeof window.__quillProjectDetailEdit.clipboard.addMatcher === 'function') {
+                            try { window.__quillProjectDetailEdit.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } }); } catch(_) {}
+                        }
+                    } catch(_) {}
+
+                    // safety-net: remove any img elements if they somehow appear
+                    try {
+                        if (window.__quillProjectDetailEdit && typeof window.__quillProjectDetailEdit.on === 'function') {
+                            window.__quillProjectDetailEdit.on('text-change', function(){ try { var imgs = window.__quillProjectDetailEdit.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                        }
+                    } catch(_) {}
+
                     try { preventImageDropAndPaste(window.__quillProjectDetailEdit, '#edit_description_editor'); } catch(_) {}
                 } catch (e) {
                     console.error('Quill init failed', e);
