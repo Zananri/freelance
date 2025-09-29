@@ -135,9 +135,10 @@ function adjustConnectors() {
             const $vertical = $childGroup.children('.connector-vertical').first();
             if (!$vertical.length) return;
 
-            // Gather center Y of each child .task-box relative to childGroup
+            // Gather center Y of each IMMEDIATE child .task-box relative to childGroup
+            // Use children() to avoid picking up nested descendant .task-item elements
             const childCenters = [];
-            $childGroup.find('.task-item').each(function() {
+            $childGroup.children().each(function() {
                 const $item = $(this);
                 const $box = $item.find('.task-box').first();
                 if (!$box.length) return;
@@ -215,9 +216,14 @@ function ensureSvgOverlay() {
     if ($tree.length) {
         const w = $tree.prop('scrollWidth');
         const h = $tree.prop('scrollHeight');
+        // set both attributes and explicit css pixel size so the SVG coordinates
+        // line up exactly with elements inside the container even when the
+        // container is translated (for example when a sidebar opens/closes).
         $svg.attr('width', w).attr('height', h).attr('viewBox', `0 0 ${w} ${h}`);
+        $svg.css({ left: 0, top: 0, width: (w || 0) + 'px', height: (h || 0) + 'px' });
     }
-    $svg.css({ left: 0, top: 0 });
+    // keep pointer-events disabled so clicks pass through
+    $svg.css({ pointerEvents: 'none' });
     return $svg;
 }
 
@@ -238,7 +244,12 @@ function drawSvgConnectors() {
         $svg.empty();
     // compute bounding of tree to set SVG viewbox using scroll sizes (covers full area)
     const $tree = $('#task-tree');
-    const treeOff = $tree.offset();
+    // Use getBoundingClientRect plus scroll offsets so coordinates remain
+    // correct when the page layout is translated (e.g. sidebar open/close)
+    const treeEl = $tree[0];
+    const treeRect = treeEl ? treeEl.getBoundingClientRect() : { left: 0, top: 0 };
+    const treeScrollLeft = $tree.scrollLeft();
+    const treeScrollTop = $tree.scrollTop();
     const treeW = ($tree.prop('scrollWidth') || $tree.outerWidth());
     const treeH = ($tree.prop('scrollHeight') || $tree.outerHeight());
     $svg.attr('width', treeW).attr('height', treeH).attr('viewBox', `0 0 ${treeW} ${treeH}`);
@@ -250,23 +261,31 @@ function drawSvgConnectors() {
             const $childGroup = $branch.children('.child-group').first();
             if (!$parentBox.length || !$childGroup.length) return;
 
-            // compute vertical center points for each child
+            // compute vertical center points for each IMMEDIATE child only
+            // (avoid finding nested descendant boxes which belong to deeper levels)
             const childCenters = [];
-            $childGroup.find('.task-item .task-box').each(function() {
-                const $b = $(this);
-                // coordinates relative to #task-tree (use offset minus tree offset)
-                childCenters.push({ el: $b, x: ($b.offset().left - treeOff.left), y: ($b.offset().top - treeOff.top) + ($b.outerHeight()/2) });
+            $childGroup.children().each(function() {
+                const $childEl = $(this);
+                const $b = $childEl.find('.task-box').first();
+                if (!$b.length) return;
+                const bRect = $b[0].getBoundingClientRect();
+                // coordinates relative to the tree's scroll coordinate system
+                const relX = Math.round((bRect.left - treeRect.left) + treeScrollLeft);
+                const relY = Math.round((bRect.top - treeRect.top) + treeScrollTop + ($b.outerHeight()/2));
+                childCenters.push({ el: $b, x: relX, y: relY });
             });
             if (childCenters.length === 0) return;
 
             // compute parent point (right center)
-            const pX = ($parentBox.offset().left - treeOff.left) + $parentBox.outerWidth();
-            const pY = ($parentBox.offset().top - treeOff.top) + ($parentBox.outerHeight()/2);
+            const pRect = $parentBox[0].getBoundingClientRect();
+            const pX = Math.round((pRect.left - treeRect.left) + treeScrollLeft + $parentBox.outerWidth());
+            const pY = Math.round((pRect.top - treeRect.top) + treeScrollTop + ($parentBox.outerHeight()/2));
 
-            // compute vertical center line x (slightly to left of child boxes left edge)
-            // choose verticalX halfway between parent right and first child left
-            const firstChildLeft = ($childGroup.find('.task-item .task-box').first().offset().left - treeOff.left);
-            const verticalX = Math.round((pX + firstChildLeft) / 2);
+            // compute vertical center line x: halfway between parent right and
+            // the first IMMEDIATE child's left (use childCenters[0] which was
+            // collected from immediate children) so connectors don't jump to
+            // ancestor-level boxes.
+            const verticalX = Math.round((pX + (childCenters[0] ? childCenters[0].x : pX)) / 2);
 
             // draw vertical line from top child center to bottom child center
             const ys = childCenters.map(c => c.y).sort((a,b)=>a-b);
@@ -355,9 +374,18 @@ if (projectId) {
         var $tree = $('#task-tree');
         if (!$tree.length) return;
 
-        var scheduleRecalc = function(){
-            try { setTimeout(function(){ adjustConnectors(); drawSvgConnectors(); }, 30); } catch(_){ }
-        };
+        // expose a debounced schedule function so other code (or tests) can
+        // request a recalculation after layout mutations (sidebar open/close)
+        var scheduleRecalc = (function(){
+            var t = null;
+            var inner = function(){ try { adjustConnectors(); drawSvgConnectors(); } catch(_){} };
+            var debounced = function(delay){
+                clearTimeout(t); t = setTimeout(inner, delay || 40);
+            };
+            // expose on window for manual triggering if needed
+            window.__taskTreeScheduleRecalc = debounced;
+            return debounced;
+        })();
         
         if (typeof window.ResizeObserver !== 'undefined') {
             var ro = new ResizeObserver(function(){ scheduleRecalc(); });
@@ -381,10 +409,25 @@ if (projectId) {
                     var pW = $parent2.length ? $parent2.width() : null;
                     if (w !== lastW || h !== lastH || pW !== lastPW) {
                         lastW = w; lastH = h; lastPW = pW;
-                        scheduleRecalc();
+                        scheduleRecalc(20);
                     }
                 } catch(_){}
             }, 220); 
+        }
+
+        // Watch for DOM mutations that commonly occur when sidebar toggles
+        // (body class changes, sidebar element resized, etc). If detected,
+        // schedule a recalculation after a short debounce so connectors stay aligned.
+        try {
+            var moTarget = document.body;
+            var mo = new MutationObserver(function(muts){
+                // only trigger when attributes or childList change (not every text mutation)
+                scheduleRecalc(60);
+            });
+            mo.observe(moTarget, { attributes: true, childList: true, subtree: false });
+            window.__taskTreeMutationObserver = mo;
+        } catch (e) {
+            // ignore if MutationObserver isn't available
         }
     } catch (e) {
         console.warn('setupTreeResizeObservers error', e);
