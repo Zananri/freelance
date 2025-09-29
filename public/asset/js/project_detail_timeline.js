@@ -4,6 +4,7 @@ const BAR_COLORS = ["color1", "color2", "color3", "color4"];
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 let projectDueDate = null;
+let tasks = [];
 
 function fetchProjectDueDate(projectId) {
     return $.ajax({
@@ -100,20 +101,29 @@ function renderTimeline(tasks) {
 
 function getTaskByProject(projectId) {
     fetchProjectDueDate(projectId);
+    $("#task-loading").removeClass("d-none");
+    $("#task-error").addClass("d-none");
+    $("#task-tree").empty();
     return $.ajax({
         url: `${appUrl}/projects/${projectId}/tasks`,
         type: "GET",
         dataType: "json",
     })
-        .done(function (response) {
-            console.log(response);
-
-            if (response.status !== "success") return;
-            renderTimeline(response.data);
-        })
-        .fail(function (xhr, status, error) {
-            console.error("Error fetching tasks:", error);
-        });
+    .done(function (response) {
+        $("#task-loading").addClass("d-none");
+        if (response.status !== "success" || !response.data || response.data.length === 0) {
+            $("#task-tree").empty();
+            return;
+        }
+        tasks = response.data;
+        renderTimeline(response.data);
+    })
+    .fail(function (xhr, status, error) {
+        $("#task-loading").addClass("d-none");
+        console.error("Error fetching tasks:", error);
+        $("#task-error").removeClass("d-none");
+        $("#task-tree").empty();
+    });
 }
 
 $(document).on("click", "#prevTimelineModal", function () {
@@ -122,8 +132,12 @@ $(document).on("click", "#prevTimelineModal", function () {
         currentMonth = 11;
         currentYear--;
     }
-    let projectId = $('meta[name="project-id"]').attr("content");
-    getTaskByProject(projectId);
+    if (tasks.length > 0) {
+        renderTimeline(tasks);
+    } else {
+        let projectId = $('meta[name="project-id"]').attr("content");
+        getTaskByProject(projectId);
+    }
 });
 
 $(document).on("click", "#nextTimelineModal", function () {
@@ -132,8 +146,12 @@ $(document).on("click", "#nextTimelineModal", function () {
         currentMonth = 0;
         currentYear++;
     }
-    let projectId = $('meta[name="project-id"]').attr("content");
-    getTaskByProject(projectId);
+    if (tasks.length > 0) {
+        renderTimeline(tasks);
+    } else {
+        let projectId = $('meta[name="project-id"]').attr("content");
+        getTaskByProject(projectId);
+    }
 });
 
 let projectId = $('meta[name="project-id"]').attr("content");
@@ -153,4 +171,3 @@ $("#fullscreen-btn").on("click", function () {
         $icon.text("fullscreen_exit");
     }
 });
-

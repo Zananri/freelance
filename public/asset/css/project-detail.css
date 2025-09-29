@@ -1020,13 +1020,15 @@
 }
 
 .task-box {
-    background: #fff;
-    border: 2px solid #d1d5db;
-    border-radius: 12px;
-    padding: 12px 20px;
-    min-width: 160px;
-    text-align: center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    background: #F0F1F8;
+    border: 2px solid #A9B2C3;
+    border-radius: 10px;
+    padding: 8px 12px;
+    min-width: 150px;
+    text-align: left;
     position: relative;
 }
 
@@ -1092,20 +1094,6 @@
     align-items: center;
     position: relative;
     margin: 0 10px;
-}
-
-.task-box {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch; /* header spans full width */
-    background: #fff;
-    border: 2px solid #d1d5db;
-    border-radius: 10px;
-    padding: 8px 12px; /* reduced padding for rectangular look */
-    min-width: 150px;
-    text-align: left; /* left-align content */
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    position: relative;
 }
 
 .task-header {
