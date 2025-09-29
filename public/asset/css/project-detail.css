@@ -1086,6 +1086,26 @@
     padding: 20px 20px 20px 0;
 }
 
+#task-tree::-webkit-scrollbar {
+    height: 4px; /* horizontal thickness */
+    width: 4px;  /* keep width same when vertical appears */
+}
+
+#task-tree::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#task-tree::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
+
+/* Firefox fallback */
+#task-tree {
+    scrollbar-width: thin;
+    scrollbar-color: #cccccc transparent;
+}
+
 .root-column {
     display: flex;
     flex-direction: column;
@@ -1100,8 +1120,6 @@
     position: relative;
 }
 
-/* Removed default vertical pseudo-lines on root-column items so
-   only explicit parent-child connectors (SVG) are shown. */
 
 .task-item {
     display: flex;
