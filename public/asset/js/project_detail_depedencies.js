@@ -352,26 +352,39 @@ if (projectId) {
 
 (function setupTreeResizeObservers(){
     try {
-        const tree = document.getElementById('task-tree');
-        if (!tree) return;
+        var $tree = $('#task-tree');
+        if (!$tree.length) return;
 
-        const scheduleRecalc = function(){
-            try { setTimeout(function(){ adjustConnectors(); drawSvgConnectors(); }, 30); } catch(_){}
+        var scheduleRecalc = function(){
+            try { setTimeout(function(){ adjustConnectors(); drawSvgConnectors(); }, 30); } catch(_){ }
         };
-
+        
         if (typeof window.ResizeObserver !== 'undefined') {
-            const ro = new ResizeObserver(function(entries){
-                scheduleRecalc();
-            });
-            ro.observe(tree);
-            const parent = tree.closest('.structure-detail-content') || tree.parentElement;
-            if (parent && parent !== tree) ro.observe(parent);
+            var ro = new ResizeObserver(function(){ scheduleRecalc(); });
+            ro.observe($tree[0]);
+            var $parent = $tree.closest('.structure-detail-content');
+            if (!$parent.length) $parent = $tree.parent();
+            if ($parent.length && $parent[0] !== $tree[0]) ro.observe($parent[0]);
             window.__taskTreeResizeObserver = ro;
         } else {
-      
-            const mo = new MutationObserver(function(){ scheduleRecalc(); });
-            mo.observe(document.body, { attributes: true, attributeFilter: ['class', 'style'] });
-            window.__taskTreeMutationObserver = mo;
+            
+            var lastW = $tree.width();
+            var lastH = $tree.height();
+            var $parent2 = $tree.closest('.structure-detail-content');
+            if (!$parent2.length) $parent2 = $tree.parent();
+            var lastPW = $parent2.length ? $parent2.width() : null;
+
+            window.__taskTreeInterval = setInterval(function(){
+                try {
+                    var w = $tree.width();
+                    var h = $tree.height();
+                    var pW = $parent2.length ? $parent2.width() : null;
+                    if (w !== lastW || h !== lastH || pW !== lastPW) {
+                        lastW = w; lastH = h; lastPW = pW;
+                        scheduleRecalc();
+                    }
+                } catch(_){}
+            }, 220); 
         }
     } catch (e) {
         console.warn('setupTreeResizeObservers error', e);
