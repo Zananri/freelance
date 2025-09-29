@@ -527,22 +527,27 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function updateExistingFilesHidden(){
-            try{
-                const existingItems = document.querySelectorAll('#edit_schedule_reference_files_preview .existing-file-item, #edit_schedule_reference_files_preview .existing-files-list .existing-file-item')
+            try {
+                const existingItems = document.querySelectorAll(
+                    '#edit_schedule_reference_files_preview .existing-file-item'
+                )
                 const arr = []
                 existingItems.forEach(it=>{
                     const sp = it.querySelector('span.flex-grow-1')
                     if(sp && sp.textContent) arr.push(sp.textContent.trim())
                 })
-                let hidden = document.getElementById('edit_existing_reference_files_input')
-                if(!hidden){
-                    hidden = document.createElement('input')
-                    hidden.type='hidden'
-                    hidden.id='edit_existing_reference_files_input'
-                    hidden.name='existing_reference_files'
-                    document.getElementById('scheduleEditForm').appendChild(hidden)
-                }
-                hidden.value = JSON.stringify(arr)
+
+                // bersihin hidden lama
+                document.querySelectorAll('input[name="existing_reference_files[]"]').forEach(el=>el.remove())
+
+                const form = document.getElementById('scheduleEditForm')
+                arr.forEach(f=>{
+                    const hidden = document.createElement('input')
+                    hidden.type = 'hidden'
+                    hidden.name = 'existing_reference_files[]'
+                    hidden.value = f
+                    form.appendChild(hidden)
+                })
             }catch(e){}
         }
 
@@ -566,7 +571,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     })()
 
-    // Function to fetch schedule data for edit modal
     function fetchScheduleDataForEdit(scheduleId) {
         $.ajax({
             url: appUrl + "/schedules/" + scheduleId + "/edit",
