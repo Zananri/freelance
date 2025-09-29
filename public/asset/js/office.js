@@ -100,6 +100,15 @@ $(document).ready(function() {
         }else{
             document.documentElement.setAttribute('data-sidebar', isHidden);
         }
+        // If the task tree script exposed a recalc helper, call it so connectors redraw immediately
+        try {
+            if (typeof window.__taskTreeScheduleRecalc === 'function') {
+                // small debounce delay to allow layout transition to settle
+                window.__taskTreeScheduleRecalc(60);
+            }
+        } catch (e) {
+            // ignore
+        }
     }
 
     // Load saved state on page load
@@ -108,6 +117,10 @@ $(document).ready(function() {
 
     if (savedState === 'true' && windowWidth > 570) {
         $('body').addClass('hide-sidebar');
+        // Ensure task tree recalculates after restoring saved sidebar state
+        try {
+            if (typeof window.__taskTreeScheduleRecalc === 'function') window.__taskTreeScheduleRecalc(60);
+        } catch (e) {}
     }
 
     // Event listener for menu button
