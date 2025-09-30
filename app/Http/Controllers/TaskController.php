@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\TaskFeedback;
 use App\Models\TaskStatusLog;
+use App\Models\ProjectAssignment;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Employee;
@@ -2866,8 +2867,29 @@ class TaskController extends Controller
                 'date_receive' => now(),
             ]);
 
-            // Tidak mengirim notifikasi ketika assignment diterima (baik PIC maupun EXECUTOR)
-            // Hanya update status tanpa notifikasi
+            try {
+                $task = Task::find($taskId);
+                if ($task && $task->project_id) {
+                    $projectId = $task->project_id;
+                    $exists = ProjectAssignment::where('project_id', $projectId)
+                        ->where('employee_id', $user->employee->id)
+                        ->exists();
+                    if (!$exists) {
+                        ProjectAssignment::create([
+                            'project_id' => $projectId,
+                            'employee_id' => $user->employee->id,
+                            'role' => 'contributor',
+                            'is_receive' => true,
+                            'created_by' => $user->id ?? null,
+                            'updated_by' => $user->id ?? null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            } catch (\Throwable $_) {
+            }
+
 
             DB::commit();
 
