@@ -358,6 +358,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const dailyWeekdays = document.getElementById('schedule_daily_weekdays');
             if(dailyWeekdays){ dailyWeekdays.classList.toggle('d-none', v !== 'daily'); }
 
+            // If user chose 'daily' and no weekdays have been selected yet,
+            // default to selecting all weekdays so the UI shows every day selected.
+            if (v === 'daily') {
+                try {
+                    const hiddenDays = document.getElementById('schedule_recurrence_days_of_week');
+                    const buttonsContainer = document.getElementById('schedule_daily_weekdays_buttons');
+                    if (hiddenDays && buttonsContainer) {
+                        let curr = [];
+                        try { curr = JSON.parse(hiddenDays.value || '[]'); } catch(e) { curr = []; }
+                        if (!Array.isArray(curr) || curr.length === 0) {
+                            const all = [0,1,2,3,4,5,6];
+                            hiddenDays.value = JSON.stringify(all);
+                            // update visual state of buttons
+                            buttonsContainer.querySelectorAll('.weekday-btn').forEach(btn => {
+                                const d = parseInt(btn.getAttribute('data-day'));
+                                if (all.includes(d)) {
+                                    btn.classList.add('weekday-selected');
+                                    btn.classList.add('active');
+                                    btn.classList.remove('btn-outline-secondary');
+                                    btn.setAttribute('aria-pressed', 'true');
+                                } else {
+                                    btn.classList.remove('weekday-selected');
+                                    btn.classList.remove('active');
+                                    btn.classList.add('btn-outline-secondary');
+                                    btn.setAttribute('aria-pressed', 'false');
+                                }
+                            });
+                        }
+                    }
+                } catch (_) {}
+            }
+
             // show start_at for daily, weekly, monthly. (User asked: daily should allow choosing start date)
             if(startAtDiv){
                 // Show start_at for daily, weekly, monthly so user can pick which date the recurrence starts.

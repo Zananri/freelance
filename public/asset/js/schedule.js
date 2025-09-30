@@ -603,8 +603,27 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("edit_schedule_id").value = schedule.id;
         document.getElementById("edit_schedule_title").value =
             schedule.title || "";
-        document.getElementById("edit_schedule_description").value =
-            schedule.description || "";
+        // Ensure the hidden textarea is populated and, if Quill editor is available,
+        // populate the Quill editor with HTML description so the editor shows the saved content.
+        try {
+            const desc = schedule.description || "";
+            const ta = document.getElementById("edit_schedule_description");
+            if (ta) ta.value = desc;
+            if (window.__quillScheduleEdit && typeof window.__quillScheduleEdit.root !== 'undefined') {
+                try {
+                    // Use clipboard to insert HTML safely when available; fallback to innerHTML
+                    if (typeof window.__quillScheduleEdit.clipboard !== 'undefined' && typeof window.__quillScheduleEdit.clipboard.dangerouslyPasteHTML === 'function') {
+                        window.__quillScheduleEdit.clipboard.dangerouslyPasteHTML(desc || '');
+                    } else if (window.__quillScheduleEdit.root) {
+                        window.__quillScheduleEdit.root.innerHTML = desc || '';
+                    }
+                } catch (e) {
+                    try { window.__quillScheduleEdit.root.innerHTML = desc || ''; } catch(_){}
+                }
+            }
+        } catch (e) {
+            try { document.getElementById("edit_schedule_description").value = schedule.description || ""; } catch(_){}
+        }
         document.getElementById("edit_schedule_point").value =
             schedule.point || 1;
         document.getElementById("edit_schedule_priority").value =
