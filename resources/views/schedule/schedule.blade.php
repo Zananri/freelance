@@ -258,7 +258,7 @@
 
                             <!-- Parent Task selector -->
                             <div class="mb-3 custom-form-employee">
-                                <label class="form-label label-custom">Parent Task (optional)</label>
+                                <label class="form-label label-custom">Related to Task (optional)</label>
                                 <input type="text" class="form-control input-text" id="schedule_parent_input" autocomplete="off" placeholder="Search existing task...">
                                 <div id="schedule_parent_dropdown" class="dropdown-list mt-1"></div>
                                 <div id="schedule_selected_parent" class="mt-2"></div>
@@ -566,7 +566,7 @@
 
                             <!-- Parent Task selector (edit) -->
                             <div class="mb-3 custom-form-employee">
-                                <label class="form-label label-custom">Parent Task (optional)</label>
+                                <label class="form-label label-custom">Related to Task (optional)</label>
                                 <input type="text" class="form-control input-text" id="edit_schedule_parent_input" autocomplete="off" placeholder="Search existing task...">
                                 <div id="edit_schedule_parent_dropdown" class="dropdown-list mt-1"></div>
                                 <div id="edit_schedule_selected_parent" class="mt-2"></div>
