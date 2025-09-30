@@ -265,7 +265,6 @@ class AttendanceTrackingController extends Controller
             $attendanceTotalDays = Attendance::where('employee_id', $employeeItem->id)
                     ->where('date_attendance', '<=', $lastDayOfMonth)
                     ->where('date_attendance', '>=', $firstDayOfMonth)
-                    ->where('time_in', '!=', '')
                     ->count();
 
             $activeWorksheet->setCellValue('A'.$row, $no);

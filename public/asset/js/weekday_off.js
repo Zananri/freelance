@@ -59,7 +59,7 @@ $('.division-item').on('click',function(){
     let departmentId = $(this).attr('data-department-id');
     let divisionId = $(this).attr('data-division-id');
     let divisionName = $(this).attr('data-division-name');
-
+ 
     $('.col-dropdown-division').attr('data-department-id',departmentId);
     $('.col-dropdown-division').attr('data-division-id',divisionId);
     $('.col-dropdown-division .title-dropdown').text(divisionName);

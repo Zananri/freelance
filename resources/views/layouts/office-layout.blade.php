@@ -287,13 +287,6 @@
 
 
                     <li>
-                        <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">database</span>
-                            <span class="text-menu">Master</span>
-                        </a>
-                    </li>
-
-                    <li>
                         <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">schedule</span>
                             <span class="text-menu">Shift</span>
@@ -330,6 +323,14 @@
                             <span class="notification-badge">4</span>
                         </a>
                     </li> --}}
+
+                    <li>
+                        <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">database</span>
+                            <span class="text-menu">Master</span>
+                        </a>
+                    </li>
+                    
                     <li>
                         <a href="{{ route('settings') }}" class="{{ $menu_active == 'settings' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">settings</span>
