@@ -279,3 +279,46 @@
     background-color: #c82333;
     color: white;
 }
+
+/* Ensure Parent Task dropdown in Schedule modals behaves like Task/Project dropdowns:
+   open upwards (dropup), have same max-height and scrollable content */
+#schedule_parent_dropdown,
+#edit_schedule_parent_dropdown {
+    border: none;
+    border-radius: 4px;
+    max-height: 200px; /* match task/project dropdowns */
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1100; /* above modal content */
+    width: 100%;
+    bottom: 100%; /* render above the input (dropup) */
+    top: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-bottom: -1.2rem;
+}
+
+#schedule_parent_dropdown .dropdown-item,
+#edit_schedule_parent_dropdown .dropdown-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+#schedule_parent_dropdown .dropdown-item.disabled,
+#edit_schedule_parent_dropdown .dropdown-item.disabled {
+    color: #999;
+    cursor: default;
+}
+
+/* Small scrollbar styling for dropdowns */
+#schedule_parent_dropdown::-webkit-scrollbar,
+#edit_schedule_parent_dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+#schedule_parent_dropdown::-webkit-scrollbar-thumb,
+#edit_schedule_parent_dropdown::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
