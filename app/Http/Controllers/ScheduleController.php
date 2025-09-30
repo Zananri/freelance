@@ -244,6 +244,7 @@ trait ScheduleImmediateGeneration
         $task = Task::create([
             'project_id' => $s->project_id,
             'point' => $s->point,
+            'parent_id' => $s->parent_id ?? null,
             'title' => $s->title,
             'description' => $s->description,
             'image' => $taskImage,
@@ -451,6 +452,7 @@ class ScheduleController extends Controller
         try {
             $validator = \Validator::make($request->all(), [
                 'project_id' => 'required|exists:projects,id',
+                'parent_id' => 'nullable|exists:tasks,id',
                 'point' => 'required|integer|min:1',
                 'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
@@ -516,6 +518,16 @@ class ScheduleController extends Controller
             }
 
             $data = $validator->validated();
+
+            // Normalize parent_id (only accept numeric values)
+            if ($request->has('parent_id')) {
+                $pid = $request->input('parent_id');
+                if (is_numeric($pid)) {
+                    $data['parent_id'] = (int) $pid;
+                } else {
+                    $data['parent_id'] = null;
+                }
+            }
 
             // Set creator metadata
             if ($request->user()) {
@@ -792,6 +804,7 @@ class ScheduleController extends Controller
 
             $validator = \Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
+                'parent_id' => 'nullable|exists:tasks,id',
                 'point' => 'nullable|integer|min:1',
                 'title' => 'nullable|string|max:255',
                 'description' => 'nullable|string',
@@ -852,6 +865,16 @@ class ScheduleController extends Controller
             }
 
             $data = $validator->validated();
+
+            // If parent_id was provided in request, normalize it so update persists the value.
+            if ($request->has('parent_id')) {
+                $pid = $request->input('parent_id');
+                if (is_numeric($pid)) {
+                    $data['parent_id'] = (int) $pid;
+                } else {
+                    $data['parent_id'] = null;
+                }
+            }
 
             // Handle existing reference files (files to keep)
             $keptFiles = [];

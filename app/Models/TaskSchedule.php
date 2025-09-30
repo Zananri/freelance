@@ -13,6 +13,7 @@ class TaskSchedule extends Model
 
 	protected $fillable = [
 		'project_id',
+		'parent_id',
 		'point',
 		'title',
 		'description',
@@ -47,6 +48,7 @@ class TaskSchedule extends Model
 
 	protected $casts = [
 		'project_id' => 'integer',
+		'parent_id' => 'integer',
 		'point' => 'integer',
 		'reference_urls' => 'array',
 		'reference_files' => 'array',
@@ -73,6 +75,11 @@ class TaskSchedule extends Model
     {
         return $this->belongsTo(Project::class, 'project_id');
     }
+
+	public function parentTask()
+	{
+		return $this->belongsTo(Task::class, 'parent_id');
+	}
 
     public function executors()
     {

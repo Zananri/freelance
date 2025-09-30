@@ -256,6 +256,15 @@
                                 <input type="hidden" id="schedule_project_id" name="project_id" value="">
                             </div>
 
+                            <!-- Parent Task selector -->
+                            <div class="mb-3 custom-form-employee">
+                                <label class="form-label label-custom">Parent Task (optional)</label>
+                                <input type="text" class="form-control input-text" id="schedule_parent_input" autocomplete="off" placeholder="Search existing task...">
+                                <div id="schedule_parent_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="schedule_selected_parent" class="mt-2"></div>
+                                <input type="hidden" id="schedule_parent_id" name="parent_id" value="">
+                            </div>
+
                             <!-- Reference URLs -->
                             <div class="mb-3 custom-form-employee">
                                 <label class="form-label label-custom">Reference URLs</label>
@@ -555,6 +564,15 @@
                                 <input type="hidden" id="edit_schedule_project_id" name="project_id" value="">
                             </div>
 
+                            <!-- Parent Task selector (edit) -->
+                            <div class="mb-3 custom-form-employee">
+                                <label class="form-label label-custom">Parent Task (optional)</label>
+                                <input type="text" class="form-control input-text" id="edit_schedule_parent_input" autocomplete="off" placeholder="Search existing task...">
+                                <div id="edit_schedule_parent_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="edit_schedule_selected_parent" class="mt-2"></div>
+                                <input type="hidden" id="edit_schedule_parent_id" name="parent_id" value="">
+                            </div>
+
                             <!-- Reference URLs -->
                             <div class="mb-3 custom-form-employee">
                                 <label class="form-label label-custom">Reference URLs</label>
@@ -637,7 +655,8 @@
     <x-slot name="script_slot">
 
         <script src="{{ asset('asset/js/schedule.js?v=' . time()) }}"></script>
-        <script src="{{ asset('asset/js/schedule-create.js?v=' . time()) }}"></script>
+    <script src="{{ asset('asset/js/task.js?v=' . time()) }}"></script>
+    <script src="{{ asset('asset/js/schedule-create.js?v=' . time()) }}"></script>
 
         <!-- Quill JS and initializer for Schedule page -->
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
