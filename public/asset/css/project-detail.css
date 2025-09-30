@@ -847,7 +847,6 @@
     table-layout: fixed;
 }
 
-
 .timeline-wrapper::-webkit-scrollbar {
     width: 4px;
     height: 4px;
@@ -1018,9 +1017,10 @@
 }
 
 #fullscreen-tree-btn {
-  top: 10px;
-  right: 10px;
-  z-index: 2;
+    background: #f0f1f8;
+    position: fixed;
+    right: 3%;
+    z-index: 10;
 }
 
 .task-box {
@@ -1140,7 +1140,6 @@
     position: relative;
 }
 
-
 .task-item {
     display: flex;
     flex-direction: row;
@@ -1170,7 +1169,7 @@
 .task-date {
     font-weight: 500;
     font-size: 8px;
-    color: #67726C;
+    color: #67726c;
     margin-top: 6px;
 }
 
@@ -1276,7 +1275,6 @@
 }
 
 .structure-detail-content #task-legend {
-
     position: sticky;
     bottom: 0;
     left: 0;
@@ -1297,36 +1295,36 @@
 }
 
 .legend-text.not-started {
-    background: #DDE4E8;
+    background: #dde4e8;
     padding: 5px;
     border-radius: 5px;
     width: 100px;
     text-align: center;
-    color: #3B3D42;
+    color: #3b3d42;
 }
 .legend-text.in-progress {
-    background: #F5EFCE;
+    background: #f5efce;
     padding: 5px;
     border-radius: 5px;
     width: 100px;
     text-align: center;
-    color: #3B3D42;
+    color: #3b3d42;
 }
 .legend-text.late {
-    background: #EBA5A5;
+    background: #eba5a5;
     padding: 5px;
     border-radius: 5px;
     width: 100px;
     text-align: center;
-    color: #3B3D42;
+    color: #3b3d42;
 }
 .legend-text.complete {
-    background: #B2EECD;
+    background: #b2eecd;
     padding: 5px;
     border-radius: 5px;
     width: 100px;
     text-align: center;
-    color: #3B3D42;
+    color: #3b3d42;
 }
 
 .legend-text {
@@ -1352,9 +1350,9 @@
 }
 
 input[type="file"]::-webkit-file-upload-button {
-  display: none;
+    display: none;
 }
 
 input[type="file"]::file-selector-button {
-  display: none;
+    display: none;
 }

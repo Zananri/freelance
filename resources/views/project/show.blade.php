@@ -102,13 +102,13 @@
                         <div id="task-error" class="alert alert-danger d-none" role="alert">
                             Failed to load tasks. Please try again.
                         </div>
-                        <div class="position-relative">
-                            <button class="btn btn-sm border-0 position-absolute" id="fullscreen-tree-btn">
-                                <span class="material-symbols-outlined">fullscreen</span>
-                            </button>
-                        </div>
+                        <button class="btn btn-sm border-0" id="fullscreen-tree-btn">
+                            <span class="material-symbols-outlined">fullscreen</span>
+                        </button>
 
-                        <div id="task-tree"></div>
+                        <div id="task-tree">
+
+                        </div>
 
                         <div id="task-legend" class="d-flex justify-content-start mt-3">
                             <div class="legend-item d-flex align-items-start gap-1">
