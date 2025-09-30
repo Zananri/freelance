@@ -7081,7 +7081,9 @@ function applyCurrentSearchFilter() {
                     input.value = p.title;
                     dropdown.style.display = "none";
                     showSelectedProject(p);
-                    loadRelatedTasks(p.id, "edit_task", document.getElementById("edit_task_parent_id"));
+                    // Do not pass a DOM element as selectedParentId; no parent is selected by
+                    // default when user picks a project manually via the dropdown.
+                    loadRelatedTasks(p.id, "edit_task", null);
                 });
                 dropdown.appendChild(item);
             });
@@ -7131,7 +7133,11 @@ function applyCurrentSearchFilter() {
                         hiddenInput.value = project.id;
                         input.value = project.title;
                         showSelectedProject(project);
-                        loadRelatedTasks(project.id, "edit_task");
+                        // Important: do not auto-call loadRelatedTasks here. The caller that
+                        // initializes the edit modal (handleTaskEdit) is responsible for
+                        // invoking loadRelatedTasks with the correct selectedParentId and
+                        // selectedParentTitle to ensure the parent preview is accurate and
+                        // not overwritten by this initialization step.
                     }
                 }
 
@@ -7639,6 +7645,20 @@ function applyCurrentSearchFilter() {
                 }
 
                 const projectId = t.project_id || (t.project && t.project.id);
+                // Clear previous project/parent UI to avoid stale values from earlier modal opens
+                try {
+                    const editProjSelected = document.getElementById('edit_task_selected_project');
+                    const editProjInput = document.getElementById('edit_task_project_input');
+                    const editParentSel = document.getElementById('edit_task_parent_id');
+                    const editParentInput = document.getElementById('edit_task_parent_input');
+                    const editParentSelected = document.getElementById('edit_task_selected_parent');
+                    if (editProjSelected) editProjSelected.innerHTML = '';
+                    if (editProjInput) editProjInput.value = '';
+                    if (editParentSel) editParentSel.innerHTML = "<option value=''>No Parent</option>";
+                    if (editParentInput) editParentInput.value = '';
+                    if (editParentSelected) editParentSelected.innerHTML = '';
+                } catch(_) {}
+
                 loadProjectsForEdit(projectId, function () {
                     try {
                         if (window.__debugLoadRelatedTasks) {
