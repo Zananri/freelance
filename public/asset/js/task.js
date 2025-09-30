@@ -828,6 +828,14 @@
         } catch (e) { console.warn('ensureParentOption error', e); }
     }
 
+    // Export helpers to global scope so other modules (schedule.js, schedule-create.js) can call them
+    try {
+        window.loadRelatedTasks = loadRelatedTasks;
+        window.ensureParentOption = ensureParentOption;
+    } catch (e) {
+        console.warn('Failed to export loadRelatedTasks/ensureParentOption to window', e);
+    }
+
     if (imageInput && imageLabel && imageClearBtn) {
         setupImageInput(imageInput, imageLabel, imageClearBtn);
     }

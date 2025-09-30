@@ -528,10 +528,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     hiddenInput.value = "";
                     input.value = "";
                     selectedContainer.innerHTML = "";
-                    document.getElementById("task_parent_id").innerHTML = "<option value=''>No Parent</option>";
+                    // Clear any selected parent task for schedule when project is removed
+                    try {
+                        const pinput = document.getElementById('schedule_parent_input'); if(pinput) pinput.value = '';
+                        const phidden = document.getElementById('schedule_parent_id'); if(phidden) phidden.value = '';
+                        const selContainer = document.getElementById('schedule_selected_parent'); if(selContainer) selContainer.innerHTML = '';
+                    } catch(_){}
                 });
-
-            loadRelatedTasks(p.id, "task", document.getElementById("task_parent_id"));
+            // Load tasks for this project into the schedule parent selector (prefix 'schedule')
+            try { loadRelatedTasks(p.id, 'schedule', null); } catch(_) {}
         }
 
         fetch(appUrl + "/project/index?task_scope=all")
@@ -823,6 +828,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const hidden = document.getElementById('schedule_recurrence_days_of_week');
             if (hidden && !hidden.value) hidden.value = '[]';
         } catch(e) {}
+        // Ensure parent_id is only sent when valid numeric
+        try {
+            const parentHidden = document.getElementById('schedule_parent_id');
+            if (parentHidden) {
+                const pv = parentHidden.value;
+                if (pv && pv !== '' && pv !== 'null' && !isNaN(Number(pv))) {
+                    fd.set('parent_id', String(Number(pv)));
+                } else {
+                    try { fd.delete('parent_id'); } catch(_) {}
+                }
+            }
+        } catch(_) {}
         selectedFiles.forEach(f=> fd.append('reference_files[]', f));
         // Prefer due_in_days over due_date (no due_date field visible anyway)
         fetch(appUrl + '/schedules/create', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: fd })
