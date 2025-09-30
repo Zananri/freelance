@@ -826,10 +826,6 @@
     max-height: 100%;
 }
 
-.header-content-tree {
-    right: 0;
-}
-
 .structure-detail-content.fullscreen {
     position: fixed;
     top: 85px;
@@ -1100,8 +1096,8 @@
 }
 
 #task-tree::-webkit-scrollbar {
-    height: 4px; /* horizontal thickness */
-    width: 4px;  /* keep width same when vertical appears */
+    height: 4px;
+    width: 4px;
 }
 
 #task-tree::-webkit-scrollbar-track {
