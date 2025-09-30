@@ -771,6 +771,26 @@
     height: 30px;
 }
 
+/* Scrollable description used in small dashboard task cards. Matches Task page
+   behavior: limit height, allow vertical scroll, and style scrollbar to be subtle. */
+.task-desc-scroll {
+    max-height: 96px; /* same height used in JS when rendering */
+    overflow-y: auto;
+    padding-right: 6px; /* give space for scrollbar */
+}
+.task-desc-scroll p {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.3;
+    color: #333;
+}
+.task-desc-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+.task-desc-scroll::-webkit-scrollbar-track { background: transparent; }
+.task-desc-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 6px; }
+.task-desc-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.12); }
+
 /* Fixed dimensions for task card - reasonable height */
 
 /* Disable flex-grow behavior */

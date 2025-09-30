@@ -373,6 +373,19 @@ document.addEventListener("DOMContentLoaded", function () {
                     .getAttribute("content")
             );
 
+            // Ensure parent_id is only sent when valid numeric
+            try {
+                const parentHidden = document.getElementById('edit_schedule_parent_id');
+                if (parentHidden) {
+                    const pv = parentHidden.value;
+                    if (pv && pv !== '' && pv !== 'null' && !isNaN(Number(pv))) {
+                        formData.set('parent_id', String(Number(pv)));
+                    } else {
+                        try { formData.delete('parent_id'); } catch(_) {}
+                    }
+                }
+            } catch(_) {}
+
             const modalLoader = document.getElementById(
                 "editScheduleModalLoader"
             );
@@ -603,8 +616,27 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("edit_schedule_id").value = schedule.id;
         document.getElementById("edit_schedule_title").value =
             schedule.title || "";
-        document.getElementById("edit_schedule_description").value =
-            schedule.description || "";
+        // Ensure the hidden textarea is populated and, if Quill editor is available,
+        // populate the Quill editor with HTML description so the editor shows the saved content.
+        try {
+            const desc = schedule.description || "";
+            const ta = document.getElementById("edit_schedule_description");
+            if (ta) ta.value = desc;
+            if (window.__quillScheduleEdit && typeof window.__quillScheduleEdit.root !== 'undefined') {
+                try {
+                    // Use clipboard to insert HTML safely when available; fallback to innerHTML
+                    if (typeof window.__quillScheduleEdit.clipboard !== 'undefined' && typeof window.__quillScheduleEdit.clipboard.dangerouslyPasteHTML === 'function') {
+                        window.__quillScheduleEdit.clipboard.dangerouslyPasteHTML(desc || '');
+                    } else if (window.__quillScheduleEdit.root) {
+                        window.__quillScheduleEdit.root.innerHTML = desc || '';
+                    }
+                } catch (e) {
+                    try { window.__quillScheduleEdit.root.innerHTML = desc || ''; } catch(_){}
+                }
+            }
+        } catch (e) {
+            try { document.getElementById("edit_schedule_description").value = schedule.description || ""; } catch(_){}
+        }
         document.getElementById("edit_schedule_point").value =
             schedule.point || 1;
         document.getElementById("edit_schedule_priority").value =
@@ -879,6 +911,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Load projects for edit modal and set the selected project
         loadProjectsForEdit(schedule.project_id);
+
+        // Populate parent task selector for edit modal (if schedule has parent_id)
+        try {
+            const parentId = schedule.parent_id || null;
+            const parentTitle = null; // we rely on API to return tasks for project and match by id
+            if (schedule.project_id) {
+                try { loadRelatedTasks(schedule.project_id, 'edit_schedule', parentId, parentTitle); } catch(e) { console.warn('populateEditModal: loadRelatedTasks failed', e); }
+            } else if (parentId) {
+                // If schedule has parent_id but no project context, fetch task details and populate the edit parent display
+                try {
+                    fetch(appUrl + '/task/' + encodeURIComponent(String(parentId)))
+                        .then(r => r.ok ? r.json() : Promise.reject(r))
+                        .then(res => {
+                            const t = (res && (res.data || res)) || null;
+                            if (!t || !t.id) return;
+                            const input = document.getElementById('edit_schedule_parent_input');
+                            const hidden = document.getElementById('edit_schedule_parent_id');
+                            const selectedContainer = document.getElementById('edit_schedule_selected_parent');
+                            if (hidden) hidden.value = t.id;
+                            if (input) input.value = t.title || (t.id ? 'Task #' + t.id : '');
+                            if (selectedContainer) {
+                                const avatarHtml = t.image ? `<img src="${appUrl}/file/task/${t.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : `<div style="width:28px;height:28px;border-radius:50%;background:#6A5AE0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;">${(t.title||'?').charAt(0).toUpperCase()}</div>`;
+                                selectedContainer.innerHTML = `<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">${avatarHtml}<span class="flex-grow-1">${t.title||('Task #' + t.id)}</span><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1"><span class="material-symbols-outlined">close</span></button></div>`;
+                                const btn = selectedContainer.querySelector('.remove-task'); if (btn) btn.addEventListener('click', function(){ if(hidden) hidden.value=''; if(input) input.value=''; selectedContainer.innerHTML=''; });
+                            }
+                        })
+                        .catch(()=>{});
+                } catch(_){}
+            }
+        } catch(e) { console.warn('populateEditModal parent init failed', e); }
 
         // Setup reference URL functionality for edit modal
             // recompute next_run_at when recurrence type or recurrence day changes

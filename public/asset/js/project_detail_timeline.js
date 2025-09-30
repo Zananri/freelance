@@ -84,7 +84,7 @@ function renderTimeline(tasks) {
                 $("<div></div>")
                     .addClass(`timeline-bar ${barColorClass}`)
                     .css("pointer-events", "none")
-                    .html(`<span class="circle"></span>${task.title}`)
+                    .html(`${task.title}`)
             );
         row.append(barTd);
 

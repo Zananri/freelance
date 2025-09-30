@@ -348,6 +348,7 @@ class GenerateTasksFromSchedules extends Command
         // Build task payload mirroring relevant fields
         $data = [
             'project_id' => $s->project_id, // may be null
+            'parent_id' => $s->parent_id ?? null,
             'point' => $s->point,
             'title' => $s->title,
             'description' => $s->description,
@@ -425,6 +426,18 @@ class GenerateTasksFromSchedules extends Command
         }
 
         // Note: Do not notify PIC/creator; only executors receive assignment notifications
+
+        // Safety: ensure task is not accidentally set as its own parent (defensive guard)
+        try {
+            if (!is_null($task->parent_id) && (int)$task->parent_id === (int)$task->id) {
+                \Log::warning('[schedules:generate] Generated task has parent_id equal to its own id; clearing parent_id', ['task_id' => $task->id, 'parent_id' => $task->parent_id, 'schedule_id' => $s->id]);
+                $task->parent_id = null;
+                $task->save();
+            }
+        } catch (\Throwable $e) {
+            // Non-fatal: log and continue
+            \Log::warning('[schedules:generate] Failed to validate/clear self-parent for generated task ' . ($task->id ?? 'unknown') . ': ' . $e->getMessage());
+        }
 
         return $task;
     }

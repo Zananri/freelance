@@ -1657,6 +1657,70 @@ class ProjectController extends Controller
     }
 
     /**
+     * Delete a single reference file from a project (only author allowed).
+     * Expects DELETE with 'filename' parameter specifying the stored filename.
+     */
+    public function destroyReferenceFile(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $project = Project::findOrFail($id);
+
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$employeeId) {
+                return response()->json(['code' => 401, 'status' => 'error', 'message' => 'Unauthorized'], 401);
+            }
+
+            // Only author may delete project reference files
+            $isAuthor = ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'author')
+                ->exists();
+
+            if (!$isAuthor) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can remove reference files.'], 403);
+            }
+
+            $filename = $request->input('filename');
+            if (empty($filename)) {
+                return response()->json(['code' => 422, 'status' => 'error', 'message' => 'Filename is required.'], 422);
+            }
+
+            $refFiles = is_array($project->reference_files) ? $project->reference_files : (is_string($project->reference_files) ? json_decode($project->reference_files, true) ?? [] : []);
+            $found = false;
+            foreach ($refFiles as $k => $f) {
+                if ((string) $f === (string) $filename || $f === $filename) {
+                    // delete file from public storage if exists
+                    $path = public_path('file/project/' . $f);
+                    if (file_exists($path)) {
+                        @unlink($path);
+                    }
+                    unset($refFiles[$k]);
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                return response()->json(['code' => 404, 'status' => 'error', 'message' => 'Reference file not found on this project.'], 404);
+            }
+
+            // Reindex array and persist
+            $refFiles = array_values($refFiles);
+            $project->reference_files = $refFiles;
+            $project->save();
+
+            DB::commit();
+            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Reference file removed successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json(['code' => $status, 'status' => 'error', 'message' => $e->getMessage()], $status);
+        }
+    }
+
+    /**
      * Get project feedbacks for a given project.
      */
     public function getProjectFeedbacks($projectId)

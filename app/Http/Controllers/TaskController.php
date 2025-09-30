@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\TaskFeedback;
 use App\Models\TaskStatusLog;
+use App\Models\ProjectAssignment;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use App\Models\Employee;
@@ -170,7 +171,8 @@ class TaskController extends Controller
                     $query->where(function ($q) use ($currentEmployeePendingAcceptance) {
                         $q->where('status', 'new_request')
                             ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) {
-                                $currentEmployeePendingAcceptance($qq); });
+                                $currentEmployeePendingAcceptance($qq);
+                            });
                     })->orderBy('created_at', 'asc');
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
@@ -214,7 +216,8 @@ class TaskController extends Controller
                 $newQuery->where(function ($q) use ($currentEmployeePendingAcceptance) {
                     $q->where('status', 'new_request')
                         ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) {
-                            $currentEmployeePendingAcceptance($qq); });
+                            $currentEmployeePendingAcceptance($qq);
+                        });
                 })
                     ->orderBy('created_at', 'desc');
                 $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
@@ -420,7 +423,8 @@ class TaskController extends Controller
                 ->where(function ($q) use ($userPending) {
                     $q->whereIn(DB::raw('LOWER(status)'), ['new_request', 'new request'])
                         ->orWhere(function ($qq) use ($userPending) {
-                            $userPending($qq); });
+                            $userPending($qq);
+                        });
                 })
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -1016,11 +1020,12 @@ class TaskController extends Controller
                 'reference_files.*' => [
                     'file',
                     'max:102400',
-                    function($attribute, $value, $fail) {
-                        if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                    function ($attribute, $value, $fail) {
+                        if (!($value instanceof \Illuminate\Http\UploadedFile))
+                            return;
                         $ext = strtolower($value->getClientOriginalExtension() ?? '');
                         $mime = strtolower($value->getClientMimeType() ?? '');
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMimes = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1475,11 +1480,12 @@ class TaskController extends Controller
                 'reference_files.*' => [
                     'file',
                     'max:102400',
-                    function($attribute, $value, $fail) {
-                        if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                    function ($attribute, $value, $fail) {
+                        if (!($value instanceof \Illuminate\Http\UploadedFile))
+                            return;
                         $ext = strtolower($value->getClientOriginalExtension() ?? '');
                         $mime = strtolower($value->getClientMimeType() ?? '');
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMimes = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1708,6 +1714,69 @@ class TaskController extends Controller
     }
 
     /**
+     * Delete a single reference file from a task (only PIC allowed).
+     * Expects POST/DELETE with 'filename' parameter specifying the stored filename.
+     */
+    public function destroyReferenceFile(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$employeeId) {
+                return response()->json(['code' => 401, 'status' => 'error', 'message' => 'Unauthorized'], 401);
+            }
+
+            // Only PIC may delete reference files
+            $isPic = TaskAssignment::where('task_id', $task->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->exists();
+
+            if (!$isPic) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only PIC can remove reference files.'], 403);
+            }
+
+            $filename = $request->input('filename');
+            if (empty($filename)) {
+                return response()->json(['code' => 422, 'status' => 'error', 'message' => 'Filename is required.'], 422);
+            }
+
+            $refFiles = is_array($task->reference_files) ? $task->reference_files : (is_string($task->reference_files) ? json_decode($task->reference_files, true) ?? [] : []);
+            $found = false;
+            foreach ($refFiles as $k => $f) {
+                if ((string) $f === (string) $filename || $f === $filename) {
+                    // delete file from public storage if exists
+                    $path = public_path('file/task_reference_files/' . $f);
+                    if (file_exists($path)) {
+                        @unlink($path);
+                    }
+                    unset($refFiles[$k]);
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                return response()->json(['code' => 404, 'status' => 'error', 'message' => 'Reference file not found on this task.'], 404);
+            }
+
+            // Reindex array and persist
+            $refFiles = array_values($refFiles);
+            $task->reference_files = $refFiles;
+            $task->save();
+
+            DB::commit();
+            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Reference file removed successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['code' => $this->deriveHttpStatusFromException($e), 'status' => 'error', 'message' => $e->getMessage()], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
      * Update task status
      */
     public function updateStatus(Request $request, string $id)
@@ -1752,11 +1821,12 @@ class TaskController extends Controller
                     'complete_files.*' => [
                         'file',
                         'max:102400',
-                        function($attribute, $value, $fail) {
-                            if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                        function ($attribute, $value, $fail) {
+                            if (!($value instanceof \Illuminate\Http\UploadedFile))
+                                return;
                             $ext = strtolower($value->getClientOriginalExtension() ?? '');
                             $mime = strtolower($value->getClientMimeType() ?? '');
-                            $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                            $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                             $allowedMimes = [
                                 'application/vnd.ms-excel',
                                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1865,7 +1935,7 @@ class TaskController extends Controller
                 if ($dbStatus === 'completed' && $employeeId) {
                     $assignment = \App\Models\TaskAssignment::where('task_id', $task->id)
                         ->where('employee_id', $employeeId)
-                        ->whereIn('role', ['PIC','EXECUTOR'])
+                        ->whereIn('role', ['PIC', 'EXECUTOR'])
                         ->first();
                     if ($assignment) {
                         if (!$assignment->is_receive || $assignment->is_receive === null) {
@@ -1885,7 +1955,8 @@ class TaskController extends Controller
                                 'created_by' => $user->id ?? null,
                                 'updated_by' => $user->id ?? null,
                             ]);
-                        } catch (\Throwable $_) { /* non-fatal */ }
+                        } catch (\Throwable $_) { /* non-fatal */
+                        }
                     }
                 }
             } catch (\Throwable $_) {
@@ -1955,11 +2026,12 @@ class TaskController extends Controller
                 'reference_files.*' => [
                     'file',
                     'max:102400',
-                    function($attribute, $value, $fail) {
-                        if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                    function ($attribute, $value, $fail) {
+                        if (!($value instanceof \Illuminate\Http\UploadedFile))
+                            return;
                         $ext = strtolower($value->getClientOriginalExtension() ?? '');
                         $mime = strtolower($value->getClientMimeType() ?? '');
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMimes = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -2154,11 +2226,12 @@ class TaskController extends Controller
                 'reference_files.*' => [
                     'file',
                     'max:102400',
-                    function($attribute, $value, $fail) {
-                        if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
+                    function ($attribute, $value, $fail) {
+                        if (!($value instanceof \Illuminate\Http\UploadedFile))
+                            return;
                         $ext = strtolower($value->getClientOriginalExtension() ?? '');
                         $mime = strtolower($value->getClientMimeType() ?? '');
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMimes = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -2524,7 +2597,8 @@ class TaskController extends Controller
             // Normalize to unique integers and drop invalids
             $taskIds = collect($ids)
                 ->map(function ($v) {
-                    return (int) $v; })
+                    return (int) $v;
+                })
                 ->filter(fn($v) => $v > 0)
                 ->unique()
                 ->values()
@@ -2696,7 +2770,7 @@ class TaskController extends Controller
                     'deadline' => $task->due_date,
                     'children' => [],
                 ];
-            });
+            })->values();
 
             return response()->json([
                 'code' => 200,
@@ -2712,6 +2786,119 @@ class TaskController extends Controller
         }
     }
 
+    public function taskParentRelation($projectId, $maxLevel, $arrId, $count = 0, &$allIds = [])
+    {
+
+        if ($count == 0) {
+
+            $taskParentId = Task::where('project_id', $projectId)
+                ->whereNull('parent_id')
+                ->pluck('id');
+        } else {
+
+            $taskParentId = Task::where('project_id', $projectId)
+                ->whereIn('parent_id', $arrId)
+                ->pluck('id');
+        }
+
+        $allIds = array_merge($allIds, $taskParentId->toArray());
+
+        $arrId = $taskParentId->toArray();
+
+
+        if ($count < $maxLevel) {
+
+            $count++;
+
+            $this->taskParentRelation($projectId, $maxLevel, $arrId, $count, $allIds);
+        }
+
+
+        return $allIds;
+
+
+    }
+
+    public function getTasksByProjectForTree($projectId, $pageTab = 6)
+    {
+        try {
+            $qpDepth = null;
+            if (isset($_GET['depth'])) $qpDepth = (int) $_GET['depth'];
+            elseif (isset($_GET['level'])) $qpDepth = (int) $_GET['level'];
+            elseif (isset($_GET['pageTab'])) $qpDepth = (int) $_GET['pageTab'];
+
+            if ($qpDepth !== null) {
+                $pageTab = $qpDepth;
+            }
+
+            $allIds = $this->taskParentRelation($projectId, $pageTab, [], 0);
+
+            $tasks = Task::with([
+                'assignments.employee.user',
+                'project',
+                'parent'
+            ])
+                ->whereIn('id', $allIds)
+                ->where('project_id', $projectId)
+                ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $formattedTasks = $tasks->map(function ($task) {
+                // Ambil PIC
+                $pic = $task->assignments->firstWhere('role', 'PIC');
+                $picData = null;
+                if ($pic && $pic->employee) {
+                    $picData = [
+                        'id' => $pic->employee->id,
+                        'name' => $pic->employee->name ?? 'Not assigned',
+                        'user_photo' => $this->resolveEmployeeAvatar($pic->employee),
+                        'profile_picture' => $this->resolveEmployeeAvatar($pic->employee),
+                    ];
+                }
+
+                $executors = $task->assignments->where('role', 'EXECUTOR');
+                $executorsData = $executors->map(function ($executor) {
+                    return [
+                        'id' => $executor->employee->id,
+                        'name' => $executor->employee->name ?? 'Unknown',
+                        'user_photo' => $this->resolveEmployeeAvatar($executor->employee),
+                        'profile_picture' => $this->resolveEmployeeAvatar($executor->employee),
+                    ];
+                })->values();
+
+                return [
+                    'id' => $task->id,
+                    'title' => $task->title,
+                    'parent_id' => $task->parent_id ?? null,
+                    'parent_task' => $task->parent ? $task->parent->title : null,
+                    'description' => $task->description,
+                    'image' => $task->image,
+                    'created_at' => $task->created_at,
+                    'pic' => $picData,
+                    'executors' => $executorsData,
+                    'status' => $task->status,
+                    'start_date' => $task->start_date,
+                    'due_date' => $task->due_date,
+                    'due' => $task->due_date,
+                    'deadline' => $task->due_date,
+                    'children' => [],
+                ];
+            });
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $formattedTasks
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
 
     /**
      * Check if task is already accepted by current user
@@ -2803,8 +2990,29 @@ class TaskController extends Controller
                 'date_receive' => now(),
             ]);
 
-            // Tidak mengirim notifikasi ketika assignment diterima (baik PIC maupun EXECUTOR)
-            // Hanya update status tanpa notifikasi
+            try {
+                $task = Task::find($taskId);
+                if ($task && $task->project_id) {
+                    $projectId = $task->project_id;
+                    $exists = ProjectAssignment::where('project_id', $projectId)
+                        ->where('employee_id', $user->employee->id)
+                        ->exists();
+                    if (!$exists) {
+                        ProjectAssignment::create([
+                            'project_id' => $projectId,
+                            'employee_id' => $user->employee->id,
+                            'role' => 'contributor',
+                            'is_receive' => true,
+                            'created_by' => $user->id ?? null,
+                            'updated_by' => $user->id ?? null,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                    }
+                }
+            } catch (\Throwable $_) {
+            }
+
 
             DB::commit();
 

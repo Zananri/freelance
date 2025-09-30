@@ -663,7 +663,8 @@
                 });
 
             // 🔹 Trigger load related tasks
-            loadRelatedTasks(p.id, "task", document.getElementById("task_parent_id"));
+            // Use prefix string and let loadRelatedTasks query DOM by prefix (consistent with schedule usage)
+            loadRelatedTasks(p.id, "task", null);
         }
 
         fetch(appUrl + "/project/index?task_scope=all")
@@ -687,8 +688,33 @@
         });
     }
 
-    // Load related tasks for a given project into an element (select). excludeTaskId optional to avoid listing self as parent
+    // Load related tasks for a given project into an element (select).
+    // Backwards-compat: some callers historically passed DOM elements instead of prefix strings
+    // or passed the select element as the third argument. Normalize inputs so the function
+    // consistently accepts: (projectId, prefixString, selectedParentId, selectedParentTitle)
     function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
+        try {
+            // If prefix is a DOM element (e.g., a select), derive prefix from its id
+            if (prefix && typeof prefix !== 'string' && prefix.id) {
+                var match = String(prefix.id).match(/^(.+)_parent_id$/) || String(prefix.id).match(/^(.+)_parent_input$/);
+                if (match) prefix = match[1];
+            }
+        } catch (_) {}
+
+        try {
+            // If selectedParentId is actually a DOM element (e.g., passed accidentally), extract its value
+            if (selectedParentId && typeof selectedParentId !== 'string' && typeof selectedParentId !== 'number') {
+                if (selectedParentId.id && String(selectedParentId.id).match(/_parent_id$/) && typeof selectedParentId.value !== 'undefined') {
+                    selectedParentId = selectedParentId.value;
+                } else if (selectedParentId.getAttribute && selectedParentId.getAttribute('data-parent-id')) {
+                    selectedParentId = selectedParentId.getAttribute('data-parent-id');
+                } else {
+                    // fallback: not a usable value
+                    selectedParentId = selectedParentId || null;
+                }
+            }
+        } catch (_) { selectedParentId = null; }
+
         const input = document.getElementById(`${prefix}_parent_input`);
         const dropdown = document.getElementById(`${prefix}_parent_dropdown`);
         const selectedContainer = document.getElementById(`${prefix}_selected_parent`);
@@ -721,6 +747,9 @@
         }
 
         function showSelectedTask(task) {
+            try {
+                if (window.__debugLoadRelatedTasks) console.debug('loadRelatedTasks.showSelectedTask', { prefix: prefix, taskId: task && task.id, taskTitle: task && task.title });
+            } catch(_) {}
             let avatarHtml = task.image
                 ? `<img src="${appUrl}/file/task/${task.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
                 : getInitialAvatar(task.title);
@@ -826,6 +855,14 @@
                 })
                 .catch(err => { console.warn('ensureParentOption fetch failed', err); });
         } catch (e) { console.warn('ensureParentOption error', e); }
+    }
+
+    // Export helpers to global scope so other modules (schedule.js, schedule-create.js) can call them
+    try {
+        window.loadRelatedTasks = loadRelatedTasks;
+        window.ensureParentOption = ensureParentOption;
+    } catch (e) {
+        console.warn('Failed to export loadRelatedTasks/ensureParentOption to window', e);
     }
 
     if (imageInput && imageLabel && imageClearBtn) {
@@ -1204,7 +1241,8 @@
         const addParentSel = document.getElementById('task_parent_id');
         if (addProjectSel) {
             addProjectSel.addEventListener('change', function () {
-                loadRelatedTasks(this.value || null, addParentSel, null);
+                // Pass prefix string 'task' (not DOM element) for consistent behavior
+                loadRelatedTasks(this.value || null, 'task', null);
             });
         }
 
@@ -1213,7 +1251,8 @@
         if (editProjectSel) {
             editProjectSel.addEventListener('change', function () {
                 const excludeId = document.getElementById('edit_task_id') ? document.getElementById('edit_task_id').value : null;
-                loadRelatedTasks(this.value || null, editParentSel, excludeId);
+                // Use prefix 'edit_task' so loadRelatedTasks populates the edit modal parent UI
+                loadRelatedTasks(this.value || null, 'edit_task', excludeId);
             });
         }
     } catch (e) { console.warn('Failed to wire project->parent selects', e); }
@@ -2717,7 +2756,18 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             iconHtml = '';
         }
 
-        const dropdownHtml = (!viewerPending) ? `
+        // Determine if current viewer is PIC or an executor
+        const viewerIsPic = (function(){
+            try { return !!(currentEmployeeId && task.pic && String(task.pic.id) === String(currentEmployeeId)); } catch(_) { return false; }
+        })();
+        const viewerIsExecutor = (function(){
+            try { return !!(currentEmployeeId && Array.isArray(task.executors) && task.executors.some(ex => String(ex.id) === String(currentEmployeeId))); } catch(_) { return false; }
+        })();
+
+        // Show dropdown only when not pending AND either viewer is not an executor OR viewer is the PIC
+        const shouldShowDropdown = !viewerPending && (!viewerIsExecutor || viewerIsPic);
+
+        const dropdownHtml = shouldShowDropdown ? `
                 <div class="dropdown-icon-container">
                     <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                     <div class="dropdown-menu d-none">
@@ -2728,13 +2778,13 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                         ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
                     </div>
                 </div>
-                ${iconHtml}
             ` : '';
 
         return `
         <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
                 ${statusBadge}
                 ${dropdownHtml}
+                ${iconHtml}
 
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
@@ -4633,7 +4683,7 @@ function applyCurrentSearchFilter() {
 
     // Helper: show delete confirmation modal (Bootstrap) with avatar, content and confirm/cancel
     function showDeleteConfirmModal(opts) {
-        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
+        // opts: { type: 'feedback'|'reply'|'reference_file', id, parentId?, avatarUrl?, authorName?, content?, parentModalId?, parentModalEl?, onConfirm: function(done){} }
         try {
             const id = opts.id;
             const type = opts.type || 'feedback';
@@ -4645,8 +4695,19 @@ function applyCurrentSearchFilter() {
             const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
                 `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
 
-            const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
-            const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+            let title = '';
+            let confirmText = '';
+            if (type === 'reply') {
+                title = 'Delete reply';
+                confirmText = 'Are you sure you want to delete this reply?';
+            } else if (type === 'reference_file') {
+                title = 'Delete reference file';
+                // Exact text requested by user
+                confirmText = 'Are you sure want to delete this reference file?';
+            } else {
+                title = 'Delete feedback';
+                confirmText = 'Are you sure you want to delete this feedback?';
+            }
 
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
@@ -4670,8 +4731,14 @@ function applyCurrentSearchFilter() {
                     </div>
                 </div>`;
 
-            // If the task feedback modal is open, hide it first so delete modal appears alone.
-            const parentModalEl = document.getElementById('taskFeedbackModal');
+            // If a parent modal is provided in opts, hide it first so delete modal appears alone.
+            const parentModalEl = (function(){
+                try {
+                    if (opts.parentModalEl) return opts.parentModalEl;
+                    if (opts.parentModalId) return document.getElementById(opts.parentModalId);
+                } catch(_) {}
+                try { return document.getElementById('taskFeedbackModal'); } catch(_) { return null; }
+            })();
             let _parentWasOpen = false;
             let _parentModalInstance = null;
             try {
@@ -6450,6 +6517,9 @@ function applyCurrentSearchFilter() {
                         if (!referenceFilesList) return;
                         referenceFilesList.innerHTML = "";
 
+                        // keep task id on the list for later operations (delete)
+                        try { referenceFilesList.dataset.taskId = String(taskId || ''); } catch(_) {}
+
                         if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
                             referenceFiles.forEach((fileName) => {
                                 if (!fileName) return;
@@ -6513,6 +6583,93 @@ function applyCurrentSearchFilter() {
                                 });
 
                                 item.appendChild(dlBtn);
+
+                                // Delete button (only shown to PIC / authorized users on server-side enforcement)
+                                const delBtn = document.createElement('button');
+                                delBtn.type = 'button';
+                                delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                                delBtn.title = 'Delete';
+                                // color should match download (#444444)
+                                delBtn.style.color = '#444444';
+                                delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                                delBtn.addEventListener('click', function (ev) {
+                                    ev.preventDefault(); ev.stopPropagation();
+                                    try {
+                                        showDeleteConfirmModal({
+                                            type: 'reference_file',
+                                            id: fileName,
+                                            authorName: '',
+                                            content: fileName,
+                                            avatarUrl: '',
+                                            parentModalId: 'referenceFilesModal',
+                                            onConfirm: function (done) {
+                                                // Prepare remaining files array and call update endpoint
+                                                try {
+                                                    const remaining = (Array.isArray(referenceFiles) ? referenceFiles.slice() : []).filter(f => String(f) !== String(fileName));
+                                                    // Call dedicated delete endpoint to remove single reference file
+                                                    $.ajax({
+                                                        url: appUrl + '/task/' + taskId + '/reference-file',
+                                                        type: 'DELETE',
+                                                        data: { filename: fileName },
+                                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                                        success: function (res) {
+                                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reference file deleted', 'success'); } catch(_) {}
+                                                            // Remove item from DOM
+                                                            if (item && item.parentNode) item.parentNode.removeChild(item);
+                                                            // Update internal referenceFiles array so subsequent deletes are correct
+                                                            try {
+                                                                const idx = referenceFiles.indexOf(fileName);
+                                                                if (idx !== -1) referenceFiles.splice(idx, 1);
+                                                            } catch(_) {}
+                                                            // Update badge on task card if present
+                                                            try {
+                                                                const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                                                                if (card) {
+                                                                    const span = card.querySelector('.reference-files-count');
+                                                                    // compute new count (defensive); if it reaches 0, remove the badge entirely
+                                                                    let newCount = 0;
+                                                                    try {
+                                                                        newCount = Math.max((parseInt(span ? span.textContent : '0', 10) || 0) - 1, 0);
+                                                                    } catch(_) { newCount = 0; }
+                                                                    if (span) {
+                                                                        if (newCount <= 0) {
+                                                                            try { span.remove(); } catch(_) { span.style.display = 'none'; }
+                                                                        } else {
+                                                                            span.textContent = String(newCount);
+                                                                        }
+                                                                    }
+                                                                }
+                                                            } catch(_) {}
+                                                            // If there are no more reference files, show the empty message in the modal
+                                                            try {
+                                                                const rList = document.getElementById('referenceFilesList');
+                                                                if (rList) {
+                                                                    // if our in-memory referenceFiles array is empty, show default message
+                                                                    if (!(Array.isArray(referenceFiles) && referenceFiles.length > 0)) {
+                                                                        rList.innerHTML = '';
+                                                                        rList.textContent = 'No reference files available.';
+                                                                    }
+                                                                }
+                                                            } catch(_) {}
+                                                            done(true);
+                                                        },
+                                                        error: function (xhr) {
+                                                            let msg = 'Failed to delete reference file';
+                                                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                                            done(false);
+                                                        }
+                                                    });
+                                                } catch (e) {
+                                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Failed to delete reference file', 'danger'); } catch(_) { }
+                                                    done(false);
+                                                }
+                                            }
+                                        });
+                                    } catch (e) {}
+                                });
+
+                                item.appendChild(delBtn);
                                 referenceFilesList.appendChild(item);
                             });
                         } else {
@@ -6924,7 +7081,9 @@ function applyCurrentSearchFilter() {
                     input.value = p.title;
                     dropdown.style.display = "none";
                     showSelectedProject(p);
-                    loadRelatedTasks(p.id, "edit_task", document.getElementById("edit_task_parent_id"));
+                    // Do not pass a DOM element as selectedParentId; no parent is selected by
+                    // default when user picks a project manually via the dropdown.
+                    loadRelatedTasks(p.id, "edit_task", null);
                 });
                 dropdown.appendChild(item);
             });
@@ -6974,7 +7133,11 @@ function applyCurrentSearchFilter() {
                         hiddenInput.value = project.id;
                         input.value = project.title;
                         showSelectedProject(project);
-                        loadRelatedTasks(project.id, "edit_task");
+                        // Important: do not auto-call loadRelatedTasks here. The caller that
+                        // initializes the edit modal (handleTaskEdit) is responsible for
+                        // invoking loadRelatedTasks with the correct selectedParentId and
+                        // selectedParentTitle to ensure the parent preview is accurate and
+                        // not overwritten by this initialization step.
                     }
                 }
 
@@ -7482,8 +7645,28 @@ function applyCurrentSearchFilter() {
                 }
 
                 const projectId = t.project_id || (t.project && t.project.id);
+                // Clear previous project/parent UI to avoid stale values from earlier modal opens
+                try {
+                    const editProjSelected = document.getElementById('edit_task_selected_project');
+                    const editProjInput = document.getElementById('edit_task_project_input');
+                    const editParentSel = document.getElementById('edit_task_parent_id');
+                    const editParentInput = document.getElementById('edit_task_parent_input');
+                    const editParentSelected = document.getElementById('edit_task_selected_parent');
+                    if (editProjSelected) editProjSelected.innerHTML = '';
+                    if (editProjInput) editProjInput.value = '';
+                    if (editParentSel) editParentSel.innerHTML = "<option value=''>No Parent</option>";
+                    if (editParentInput) editParentInput.value = '';
+                    if (editParentSelected) editParentSelected.innerHTML = '';
+                } catch(_) {}
+
                 loadProjectsForEdit(projectId, function () {
-                    loadRelatedTasks(projectId, "edit_task", t.id, t.parent_id);
+                    try {
+                        if (window.__debugLoadRelatedTasks) {
+                            try { console.debug('handleTaskEdit: calling loadRelatedTasks', { projectId: projectId, prefix: 'edit_task', selectedParentId: t.parent_id, selectedParentTitle: (t.parent && t.parent.title) ? t.parent.title : null, t: t }); } catch(_) {}
+                        }
+                    } catch(_) {}
+                    // Pass the stored parent_id (and parent title when available) so the preview shows the chosen parent task
+                    loadRelatedTasks(projectId, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
                     ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id);
                 });
 

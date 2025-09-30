@@ -358,6 +358,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const dailyWeekdays = document.getElementById('schedule_daily_weekdays');
             if(dailyWeekdays){ dailyWeekdays.classList.toggle('d-none', v !== 'daily'); }
 
+            // If user chose 'daily' and no weekdays have been selected yet,
+            // default to selecting all weekdays so the UI shows every day selected.
+            if (v === 'daily') {
+                try {
+                    const hiddenDays = document.getElementById('schedule_recurrence_days_of_week');
+                    const buttonsContainer = document.getElementById('schedule_daily_weekdays_buttons');
+                    if (hiddenDays && buttonsContainer) {
+                        let curr = [];
+                        try { curr = JSON.parse(hiddenDays.value || '[]'); } catch(e) { curr = []; }
+                        if (!Array.isArray(curr) || curr.length === 0) {
+                            const all = [0,1,2,3,4,5,6];
+                            hiddenDays.value = JSON.stringify(all);
+                            // update visual state of buttons
+                            buttonsContainer.querySelectorAll('.weekday-btn').forEach(btn => {
+                                const d = parseInt(btn.getAttribute('data-day'));
+                                if (all.includes(d)) {
+                                    btn.classList.add('weekday-selected');
+                                    btn.classList.add('active');
+                                    btn.classList.remove('btn-outline-secondary');
+                                    btn.setAttribute('aria-pressed', 'true');
+                                } else {
+                                    btn.classList.remove('weekday-selected');
+                                    btn.classList.remove('active');
+                                    btn.classList.add('btn-outline-secondary');
+                                    btn.setAttribute('aria-pressed', 'false');
+                                }
+                            });
+                        }
+                    }
+                } catch (_) {}
+            }
+
             // show start_at for daily, weekly, monthly. (User asked: daily should allow choosing start date)
             if(startAtDiv){
                 // Show start_at for daily, weekly, monthly so user can pick which date the recurrence starts.
@@ -496,10 +528,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     hiddenInput.value = "";
                     input.value = "";
                     selectedContainer.innerHTML = "";
-                    document.getElementById("task_parent_id").innerHTML = "<option value=''>No Parent</option>";
+                    // Clear any selected parent task for schedule when project is removed
+                    try {
+                        const pinput = document.getElementById('schedule_parent_input'); if(pinput) pinput.value = '';
+                        const phidden = document.getElementById('schedule_parent_id'); if(phidden) phidden.value = '';
+                        const selContainer = document.getElementById('schedule_selected_parent'); if(selContainer) selContainer.innerHTML = '';
+                    } catch(_){}
                 });
-
-            loadRelatedTasks(p.id, "task", document.getElementById("task_parent_id"));
+            // Load tasks for this project into the schedule parent selector (prefix 'schedule')
+            try { loadRelatedTasks(p.id, 'schedule', null); } catch(_) {}
         }
 
         fetch(appUrl + "/project/index?task_scope=all")
@@ -791,6 +828,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const hidden = document.getElementById('schedule_recurrence_days_of_week');
             if (hidden && !hidden.value) hidden.value = '[]';
         } catch(e) {}
+        // Ensure parent_id is only sent when valid numeric
+        try {
+            const parentHidden = document.getElementById('schedule_parent_id');
+            if (parentHidden) {
+                const pv = parentHidden.value;
+                if (pv && pv !== '' && pv !== 'null' && !isNaN(Number(pv))) {
+                    fd.set('parent_id', String(Number(pv)));
+                } else {
+                    try { fd.delete('parent_id'); } catch(_) {}
+                }
+            }
+        } catch(_) {}
         selectedFiles.forEach(f=> fd.append('reference_files[]', f));
         // Prefer due_in_days over due_date (no due_date field visible anyway)
         fetch(appUrl + '/schedules/create', { method:'POST', headers:{ 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content }, body: fd })
