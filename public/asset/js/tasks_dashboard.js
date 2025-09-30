@@ -174,8 +174,14 @@ function getTaskToday() {
                         <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-')}</h6>
                     </div>`;
 
-                const descHtml = t.description
-                    ? `<p class="mb-2 small" style="font-size: 10px;">${escapeHtml(t.description).slice(0,140)}${t.description.length>140?'…':''}</p>`
+                const descText = t.description ? htmlToText(t.description) : '';
+                const descPreview = descText ? (descText.length > 140 ? descText.slice(0, 140) + '…' : descText) : '';
+                // Wrap preview in a scrollable container so long descriptions in the
+                // dashboard card don't stretch the card. Preserve line breaks.
+                const descHtml = descPreview
+                    ? `<div class="task-desc-scroll mb-2">
+                            <p class="mb-0 small">${escapeHtml(descPreview).replace(/\n/g, '<br>')}</p>
+                       </div>`
                     : '';
 
                 const priorityRow = `
@@ -356,8 +362,14 @@ function getTaskTomorrow() {
                         <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-')}</h6>
                     </div>`;
 
-                const descHtml = t.description
-                    ? `<p class="mb-2 small" style="font-size: 10px;">${escapeHtml(t.description).slice(0,140)}${t.description.length>140?'…':''}</p>`
+                const descText = t.description ? htmlToText(t.description) : '';
+                const descPreview = descText ? (descText.length > 140 ? descText.slice(0, 140) + '…' : descText) : '';
+                // Wrap preview in a scrollable container so long descriptions in the
+                // dashboard card don't stretch the card. Preserve line breaks.
+                const descHtml = descPreview
+                    ? `<div class="task-desc-scroll mb-2">
+                            <p class="mb-0 small">${escapeHtml(descPreview).replace(/\n/g, '<br>')}</p>
+                       </div>`
                     : '';
 
                 const priorityRow = `
@@ -421,6 +433,28 @@ function escapeHtml(text) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+// Convert HTML string to plain text safely (strip tags). Uses a detached element
+// so any markup is converted to text and scripts won't execute in the document.
+function htmlToText(html) {
+    if (!html) return '';
+    try {
+        // Convert common block/line-break tags to newline placeholders so textContent
+        // preserves separations (e.g. <p> and <br> become line breaks in the result).
+        let s = String(html || '');
+        s = s.replace(/<br\s*\/?>/gi, '\n')
+             .replace(/<\/(p|div|li|h[1-6])>/gi, '\n');
+        const div = document.createElement('div');
+        div.innerHTML = s;
+        let txt = (div.textContent || div.innerText || '').toString();
+        // Normalize line endings, trim each line and collapse multiple blank lines
+        txt = txt.split(/\r?\n/).map(l => l.trim()).filter((v,i,a) => !(v === '' && a[i-1] === '')).join('\n').trim();
+        return txt;
+    } catch (e) {
+        // Fallback: replace br/closing blocks with newlines then strip tags
+        return String(html).replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '').trim();
+    }
 }
 
 // auto-load on page ready for default active tab
