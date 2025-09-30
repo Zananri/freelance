@@ -1,6 +1,82 @@
+const taskTreeState = { roots: [], renderedCount: 0, batchSize: 2 };
+const childState = {};
+const CHILD_BATCH = 4;
+
+function renderChildGroups(task, $container, $template) {
+    if (!task.children || task.children.length === 0) return;
+    if (!childState[task.id]) childState[task.id] = 0;
+    const start = childState[task.id];
+    const end = Math.min(start + CHILD_BATCH, task.children.length);
+    for (let i = start; i < end; i++) {
+        const child = task.children[i];
+        const $child = renderTaskNode(child, $template);
+        const $childStub = $(
+            '<div class="connector-horizontal child-connector"></div>'
+        );
+        const $wrap = $('<div class="task-item"></div>');
+        $wrap.append($childStub).append($child);
+        $container.append($wrap);
+    }
+    childState[task.id] = end;
+    updateChildViewMore(task, $container, $template);
+}
+
+function updateChildViewMore(task, $container, $template) {
+    $container.find(`#child-more-${task.id}`).remove();
+    if (childState[task.id] < task.children.length) {
+        const $btn = $(`
+            <div id="child-more-${task.id}" class="text-center mt-2">
+                <button class="btn btn-outline-primary btn-sm">View More</button>
+            </div>
+        `);
+        $btn.find("button").on("click", function () {
+            renderChildGroups(task, $container, $template);
+            setTimeout(adjustConnectors, 40);
+            setTimeout(drawSvgConnectors, 60);
+        });
+        $container.append($btn);
+    }
+}
+
+function renderNextBatch() {
+    const $tree = $("#task-tree");
+    const $template = $("#task-template");
+    const roots = taskTreeState.roots;
+    if (!roots || roots.length === 0) return;
+    const start = taskTreeState.renderedCount;
+    const end = Math.min(start + taskTreeState.batchSize, roots.length);
+    const $rootCol = $tree.children(".root-column");
+    for (let i = start; i < end; i++) {
+        $rootCol.append(renderTaskNode(roots[i], $template));
+    }
+    taskTreeState.renderedCount = end;
+    updateViewMoreButton();
+    setTimeout(adjustConnectors, 40);
+    setTimeout(drawSvgConnectors, 60);
+}
+
+function updateViewMoreButton() {
+    if ($("#view-more-wrapper").length === 0) {
+        const wrapper = $(`
+            <div id="view-more-wrapper" class="text-center mt-3">
+                <button id="view-more-btn" class="btn btn-outline-primary">View More</button>
+            </div>
+        `);
+        $("#task-tree .root-column").after(wrapper);
+        $("#view-more-btn").on("click", function () {
+            renderNextBatch();
+        });
+    }
+    if (taskTreeState.renderedCount >= taskTreeState.roots.length) {
+        $("#view-more-wrapper").hide();
+    } else {
+        $("#view-more-wrapper").show();
+    }
+}
+
 function buildTaskTree(tasks) {
-    const map = {};
-    const roots = [];
+    const map = {},
+        roots = [];
     tasks.forEach((task) => {
         map[task.id] = { ...task, children: [] };
     });
@@ -34,117 +110,72 @@ function normalizeStatus(status) {
 function renderTaskNode(task, $template) {
     const normalizedStatus = normalizeStatus(task.status);
     let $item = $template.clone().removeClass("d-none").removeAttr("id");
-
     let visual = "not-started";
     try {
         const s = String(task.status || "").toLowerCase();
-        if (["new_request", "new request", "new-request"].includes(s)) {
+        if (["new_request", "new request", "new-request"].includes(s))
             visual = "not-started";
-        } else if (["in_progress", "in progress", "in-progress"].includes(s)) {
+        else if (["in_progress", "in progress", "in-progress"].includes(s))
             visual = "in-progress";
-        } else if (["complete", "completed"].includes(s)) {
-            visual = "complete";
-        } else {
-            visual = normalizedStatus || "not-started";
-        }
-
+        else if (["complete", "completed"].includes(s)) visual = "complete";
+        else visual = normalizedStatus || "not-started";
         if (task.due_date && visual !== "complete") {
             const due = new Date(task.due_date);
             const today = new Date();
             due.setHours(0, 0, 0, 0);
             today.setHours(0, 0, 0, 0);
-            if (!isNaN(due.getTime()) && today > due) {
-                visual = "late";
-            }
+            if (!isNaN(due.getTime()) && today > due) visual = "late";
         }
     } catch (e) {}
-
     const $card = $item.find(".task-box");
-    switch (visual) {
-        case "complete":
-            $card.css("background-color", "#B2EECD");
-            break;
-        case "in-progress":
-            $card.css("background-color", "#F5EFCE");
-            break;
-        case "late":
-            $card.css("background-color", "#EBA5A5");
-            break;
-        case "not-started":
-        default:
-            $card.css("background-color", "#DDE4E8");
-            break;
-    }
-
+    if (visual === "complete") $card.css("background-color", "#B2EECD");
+    else if (visual === "in-progress") $card.css("background-color", "#F5EFCE");
+    else if (visual === "late") $card.css("background-color", "#EBA5A5");
+    else $card.css("background-color", "#DDE4E8");
     $item.find(".task-name").text(task.title);
-    let startText = task.start_date ? formatDateENMediumDayMonth(task.start_date) : "";
-    let dueText   = task.due_date ? formatDateENMediumDayMonth(task.due_date) : "";
-
-    let dateText = "";
-    if (startText && dueText) {
-        dateText = `${startText} - ${dueText}`;
-    } else {
-        dateText = startText || dueText;
-    }
-
+    let startText = task.start_date
+        ? formatDateENMediumDayMonth(task.start_date)
+        : "";
+    let dueText = task.due_date
+        ? formatDateENMediumDayMonth(task.due_date)
+        : "";
+    let dateText =
+        startText && dueText
+            ? `${startText} - ${dueText}`
+            : startText || dueText;
     $item.find(".task-date").text(dateText);
-
     if (task.children && task.children.length > 0) {
         const $branch = $('<div class="task-branch"></div>');
         $branch.append($item);
-
         const $connector = $('<div class="connector-horizontal"></div>');
         $branch.append($connector);
-
         const $childGroup = $('<div class="child-group"></div>').css({
             display: "flex",
             flexDirection: "column",
             gap: "20px",
             position: "relative",
         });
-
         if (task.children.length > 1) {
             const $vertical = $('<div class="connector-vertical"></div>');
             $childGroup.append($vertical);
         }
-
-        task.children.forEach((child) => {
-            const $child = renderTaskNode(child, $template);
-            if (task.children.length > 1) {
-                const $childWrap = $('<div class="child-wrap"></div>');
-                const $childStub = $(
-                    '<div class="connector-horizontal child-connector"></div>'
-                );
-                $childWrap.append($childStub).append($child);
-                $childGroup.append($childWrap);
-            } else {
-                $childGroup.append($child);
-            }
-        });
-
+        renderChildGroups(task, $childGroup, $template);
         $branch.append($childGroup);
         return $branch;
     }
-
     return $item;
 }
 
 function renderTaskList(data) {
     const $tree = $("#task-tree");
-    const $template = $("#task-template");
     $tree.empty();
-
     if (!data || data.length === 0) return;
-
     const treeData = buildTaskTree(data);
-
     const $rootCol = $('<div class="root-column"></div>');
-
-    treeData.forEach((task) => {
-        $rootCol.append(renderTaskNode(task, $template));
-    });
-
     $tree.append($rootCol);
+    treeData.forEach((root) => {
+        $rootCol.append(renderTaskNode(root, $("#task-template")));
+    });
     setTimeout(adjustConnectors, 40);
     setTimeout(drawSvgConnectors, 60);
 }
@@ -159,7 +190,6 @@ function adjustConnectors() {
                 .children(".connector-vertical")
                 .first();
             if (!$vertical.length) return;
-
             const childCenters = [];
             $childGroup.children().each(function () {
                 const $item = $(this);
@@ -172,20 +202,15 @@ function adjustConnectors() {
                 childCenters.push(relTop);
             });
             if (childCenters.length === 0) return;
-
             const minC = Math.min.apply(null, childCenters);
             const maxC = Math.max.apply(null, childCenters);
-
-            const padding = 0;
-            const top = Math.floor(minC - padding);
-            const height = Math.ceil(maxC - minC + padding * 2);
+            const top = Math.floor(minC);
+            const height = Math.ceil(maxC - minC);
             $vertical.css({
                 top: top + "px",
                 height: Math.max(2, height) + "px",
             });
-
             const verticalMid = minC + (maxC - minC) / 2;
-
             const $connector = $branch
                 .children(".connector-horizontal")
                 .first();
@@ -209,7 +234,6 @@ function adjustConnectors() {
                     );
                     if (desiredWidth < 10) desiredWidth = 10;
                     $connector.css({ width: desiredWidth + "px" });
-
                     const branchTop = $branch.offset().top;
                     const connTop = Math.round(
                         verticalMid +
@@ -220,24 +244,33 @@ function adjustConnectors() {
                     $connector.css({ marginTop: connTop + "px" });
                 }
             }
+            $childGroup.children(".task-item, .child-group").each(function () {
+                const $item = $(this).hasClass("child-group")
+                    ? $(this).children(".task-item").first()
+                    : $(this);
+                const $box = $item.find(".task-box").first();
+                if (!$box.length) return;
 
-            $childGroup.find(".child-wrap").each(function () {
-                const $wrap = $(this);
-                const $stub = $wrap.children(".child-connector").first();
-                const $childItem = $wrap.children(".task-item").first();
-                const $childBox = $childItem.find(".task-box").first();
-                if (!$stub.length || !$childBox.length) return;
                 const center =
-                    $childBox.offset().top -
+                    $box.offset().top -
                     $childGroup.offset().top +
-                    $childBox.outerHeight() / 2;
-                const stubTop = Math.round(center - $stub.outerHeight() / 2);
-                $stub.css({ marginTop: stubTop + "px" });
+                    $box.outerHeight() / 2;
+
+                let $stub;
+                if ($(this).hasClass("child-group")) {
+                    $stub = $(this).children(".child-connector").first();
+                } else {
+                    $stub = $(this).children(".child-connector").first();
+                }
+                if ($stub.length) {
+                    const stubTop = Math.round(
+                        center - $stub.outerHeight() / 2
+                    );
+                    $stub.css({ marginTop: stubTop + "px" });
+                }
             });
         });
-    } catch (e) {
-        console.warn("adjustConnectors error", e);
-    }
+    } catch (e) {}
 }
 
 $(window).on("resize", function () {
@@ -295,7 +328,6 @@ function drawSvgConnectors() {
         $svg.attr("width", treeW)
             .attr("height", treeH)
             .attr("viewBox", `0 0 ${treeW} ${treeH}`);
-
         $("#task-tree .task-branch").each(function () {
             const $branch = $(this);
             const $parentBox = $branch
@@ -305,7 +337,6 @@ function drawSvgConnectors() {
                 .first();
             const $childGroup = $branch.children(".child-group").first();
             if (!$parentBox.length || !$childGroup.length) return;
-
             const childCenters = [];
             $childGroup.children().each(function () {
                 const $childEl = $(this);
@@ -324,7 +355,6 @@ function drawSvgConnectors() {
                 childCenters.push({ el: $b, x: relX, y: relY });
             });
             if (childCenters.length === 0) return;
-
             const pRect = $parentBox[0].getBoundingClientRect();
             const pX = Math.round(
                 pRect.left -
@@ -338,11 +368,9 @@ function drawSvgConnectors() {
                     treeScrollTop +
                     $parentBox.outerHeight() / 2
             );
-
             const verticalX = Math.round(
                 (pX + (childCenters[0] ? childCenters[0].x : pX)) / 2
             );
-
             const ys = childCenters.map((c) => c.y).sort((a, b) => a - b);
             const vTop = ys[0];
             const vBottom = ys[ys.length - 1];
@@ -357,22 +385,18 @@ function drawSvgConnectors() {
                 "stroke-linejoin": "miter",
             });
             $svg.append($vLine);
-
             childCenters.forEach(function (ch) {
-                const cX = ch.x;
-                const cY = ch.y;
                 const $stub = createSvgEl("line", {
                     x1: verticalX,
-                    y1: cY,
-                    x2: cX,
-                    y2: cY,
+                    y1: ch.y,
+                    x2: ch.x,
+                    y2: ch.y,
                     stroke: "#D2D3E1",
                     "stroke-width": "2",
                     "stroke-linecap": "butt",
                 });
                 $svg.append($stub);
             });
-
             const $parentStub = createSvgEl("line", {
                 x1: pX,
                 y1: pY,
@@ -384,9 +408,7 @@ function drawSvgConnectors() {
             });
             $svg.append($parentStub);
         });
-    } catch (e) {
-        console.warn("drawSvgConnectors error", e);
-    }
+    } catch (e) {}
 }
 
 setTimeout(drawSvgConnectors, 50);
@@ -416,23 +438,18 @@ function getTaskByProject(projectId) {
             }
             renderTaskList(response.data);
         })
-        .fail(function (xhr, status, error) {
+        .fail(function () {
             $("#task-loading").addClass("d-none");
-            console.error("Error fetching tasks:", error);
             $("#task-error").removeClass("d-none");
             $("#task-tree").empty();
         });
 }
 
-if (projectId) {
-    getTaskByProject(projectId);
-}
-
+if (projectId) getTaskByProject(projectId);
 (function setupTreeResizeObservers() {
     try {
         var $tree = $("#task-tree");
         if (!$tree.length) return;
-
         var scheduleRecalc = (function () {
             var t = null;
             var inner = function () {
@@ -448,7 +465,6 @@ if (projectId) {
             window.__taskTreeScheduleRecalc = debounced;
             return debounced;
         })();
-
         if (typeof window.ResizeObserver !== "undefined") {
             var ro = new ResizeObserver(function () {
                 scheduleRecalc();
@@ -460,17 +476,16 @@ if (projectId) {
                 ro.observe($parent[0]);
             window.__taskTreeResizeObserver = ro;
         } else {
-            var lastW = $tree.width();
-            var lastH = $tree.height();
+            var lastW = $tree.width(),
+                lastH = $tree.height();
             var $parent2 = $tree.closest(".structure-detail-content");
             if (!$parent2.length) $parent2 = $tree.parent();
             var lastPW = $parent2.length ? $parent2.width() : null;
-
             window.__taskTreeInterval = setInterval(function () {
                 try {
-                    var w = $tree.width();
-                    var h = $tree.height();
-                    var pW = $parent2.length ? $parent2.width() : null;
+                    var w = $tree.width(),
+                        h = $tree.height(),
+                        pW = $parent2.length ? $parent2.width() : null;
                     if (w !== lastW || h !== lastH || pW !== lastPW) {
                         lastW = w;
                         lastH = h;
@@ -480,29 +495,21 @@ if (projectId) {
                 } catch (_) {}
             }, 220);
         }
-
-        try {
-            var moTarget = document.body;
-            var mo = new MutationObserver(function (muts) {
-                scheduleRecalc(60);
-            });
-            mo.observe(moTarget, {
-                attributes: true,
-                childList: true,
-                subtree: false,
-            });
-            window.__taskTreeMutationObserver = mo;
-        } catch (e) {
-        }
-    } catch (e) {
-        console.warn("setupTreeResizeObservers error", e);
-    }
+        var mo = new MutationObserver(function () {
+            scheduleRecalc(60);
+        });
+        mo.observe(document.body, {
+            attributes: true,
+            childList: true,
+            subtree: false,
+        });
+        window.__taskTreeMutationObserver = mo;
+    } catch (_) {}
 })();
 
 $("#fullscreen-tree-btn").on("click", function () {
     const $timeline = $(".structure-detail");
     const $icon = $(this).find("span.material-symbols-outlined");
-
     if ($timeline.hasClass("fullscreen")) {
         $timeline.removeClass("fullscreen");
         $icon.text("fullscreen");
