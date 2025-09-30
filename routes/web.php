@@ -166,6 +166,7 @@ Route::middleware('auth')->group(function () {
 
     // Get tasks by project
     Route::get('/projects/{id}/tasks', [TaskController::class, 'getTasksByProject'])->name('project.tasks');
+    Route::get('/projects/{id}/tasks/tree', [TaskController::class, 'getTasksByProjectForTree'])->name('project.tasks.tree');
 
     // Schedules (basic endpoints for modal create & list)
     Route::post('/schedules/create', [ScheduleController::class, 'store'])->name('schedules.store');

@@ -1,12 +1,14 @@
 const taskTreeState = { roots: [], renderedCount: 0, batchSize: 2 };
-const childState = {};
-const CHILD_BATCH = 4;
+const childPage = {};
+const CHILD_BATCH = 3;
 
 function renderChildGroups(task, $container, $template) {
     if (!task.children || task.children.length === 0) return;
-    if (!childState[task.id]) childState[task.id] = 0;
-    const start = childState[task.id];
-    const end = Math.min(start + CHILD_BATCH, task.children.length);
+    if (!childPage[task.id]) childPage[task.id] = 1;
+    const page = childPage[task.id];
+    const start = 0;
+    const end = Math.min(page * CHILD_BATCH, task.children.length);
+    $container.find(".task-item").remove();
     for (let i = start; i < end; i++) {
         const child = task.children[i];
         const $child = renderTaskNode(child, $template);
@@ -17,19 +19,22 @@ function renderChildGroups(task, $container, $template) {
         $wrap.append($childStub).append($child);
         $container.append($wrap);
     }
-    childState[task.id] = end;
     updateChildViewMore(task, $container, $template);
 }
 
 function updateChildViewMore(task, $container, $template) {
     $container.find(`#child-more-${task.id}`).remove();
-    if (childState[task.id] < task.children.length) {
+    const totalChildren = task.children.length;
+    const currentPage = childPage[task.id] || 1;
+    const loadedCount = currentPage * CHILD_BATCH;
+    if (loadedCount < totalChildren) {
         const $btn = $(`
             <div id="child-more-${task.id}" class="text-center mt-2">
                 <button class="btn btn-outline-primary btn-sm">View More</button>
             </div>
         `);
         $btn.find("button").on("click", function () {
+            childPage[task.id] = currentPage + 1;
             renderChildGroups(task, $container, $template);
             setTimeout(adjustConnectors, 40);
             setTimeout(drawSvgConnectors, 60);
@@ -422,7 +427,7 @@ function getTaskByProject(projectId) {
     $("#task-error").addClass("d-none");
     $("#task-tree").empty();
     return $.ajax({
-        url: `${appUrl}/projects/${projectId}/tasks`,
+        url: `${appUrl}/projects/${projectId}/tasks/tree`,
         type: "GET",
         dataType: "json",
     })
