@@ -2717,7 +2717,18 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             iconHtml = '';
         }
 
-        const dropdownHtml = (!viewerPending) ? `
+        // Determine if current viewer is PIC or an executor
+        const viewerIsPic = (function(){
+            try { return !!(currentEmployeeId && task.pic && String(task.pic.id) === String(currentEmployeeId)); } catch(_) { return false; }
+        })();
+        const viewerIsExecutor = (function(){
+            try { return !!(currentEmployeeId && Array.isArray(task.executors) && task.executors.some(ex => String(ex.id) === String(currentEmployeeId))); } catch(_) { return false; }
+        })();
+
+        // Show dropdown only when not pending AND either viewer is not an executor OR viewer is the PIC
+        const shouldShowDropdown = !viewerPending && (!viewerIsExecutor || viewerIsPic);
+
+        const dropdownHtml = shouldShowDropdown ? `
                 <div class="dropdown-icon-container">
                     <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                     <div class="dropdown-menu d-none">
@@ -2728,13 +2739,13 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                         ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
                     </div>
                 </div>
-                ${iconHtml}
             ` : '';
 
         return `
         <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
                 ${statusBadge}
                 ${dropdownHtml}
+                ${iconHtml}
 
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
