@@ -55,7 +55,15 @@ function showDeleteConfirmModal(opts) {
             `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
 
         const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
-        const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+        let confirmText = '';
+        if (type === 'reply') {
+            confirmText = 'Are you sure you want to delete this reply?';
+        } else if (type === 'reference_file') {
+            // exact copy requested by user
+            confirmText = 'Are you sure want to delete this reference file?';
+        } else {
+            confirmText = 'Are you sure you want to delete this feedback?';
+        }
 
         const modalHtml = `
             <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
@@ -79,8 +87,14 @@ function showDeleteConfirmModal(opts) {
                 </div>
             </div>`;
 
-        // If the project feedback modal is open, hide it first so delete modal appears alone.
-        const parentModalEl = document.getElementById('projectFeedbackModal');
+        // If a parent modal is provided in opts, hide it first so delete modal appears alone.
+        const parentModalEl = (function(){
+            try {
+                if (opts.parentModalEl) return opts.parentModalEl;
+                if (opts.parentModalId) return document.getElementById(opts.parentModalId);
+            } catch(_) {}
+            try { return document.getElementById('projectFeedbackModal'); } catch(_) { return null; }
+        })();
         let _parentWasOpen = false;
         let _parentModalInstance = null;
         try {
@@ -198,8 +212,19 @@ function handleEmployeeLoadError(xhr, status, error, context = "") {
             const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
                 `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
 
-            const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
-            const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+            let title = '';
+            let confirmText = '';
+            if (type === 'reply') {
+                title = 'Delete reply';
+                confirmText = 'Are you sure you want to delete this reply?';
+            } else if (type === 'reference_file') {
+                title = 'Delete reference file';
+                // exact copy requested by user
+                confirmText = 'Are you sure want to delete this reference file?';
+            } else {
+                title = 'Delete feedback';
+                confirmText = 'Are you sure you want to delete this feedback?';
+            }
 
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
@@ -223,8 +248,14 @@ function handleEmployeeLoadError(xhr, status, error, context = "") {
                     </div>
                 </div>`;
 
-            // If the project feedback modal is open, hide it first so delete modal appears alone.
-            const parentModalEl = document.getElementById('projectFeedbackModal');
+            // If a parent modal is provided in opts, hide it first so delete modal appears alone.
+            const parentModalEl = (function(){
+                try {
+                    if (opts.parentModalEl) return opts.parentModalEl;
+                    if (opts.parentModalId) return document.getElementById(opts.parentModalId);
+                } catch(_) {}
+                try { return document.getElementById('projectFeedbackModal'); } catch(_) { return null; }
+            })();
             let _parentWasOpen = false;
             let _parentModalInstance = null;
             try {
@@ -8305,6 +8336,73 @@ document.addEventListener("DOMContentLoaded", function () {
                         });
 
                         item.appendChild(dlBtn);
+
+                        // Delete button (server-side will enforce permissions)
+                        const delBtn = document.createElement('button');
+                        delBtn.type = 'button';
+                        delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        delBtn.title = 'Delete';
+                        delBtn.style.color = '#444444';
+                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                        delBtn.addEventListener('click', function (ev) {
+                            ev.preventDefault(); ev.stopPropagation();
+                            try {
+                                const _parentModalEl = document.getElementById('projectFilesModal');
+                                showDeleteConfirmModal({
+                                    type: 'reference_file',
+                                    id: fileName,
+                                    authorName: '',
+                                    content: fileName,
+                                    avatarUrl: '',
+                                    parentModalEl: _parentModalEl,
+                                    onConfirm: function (done) {
+                                        $.ajax({
+                                            url: appUrl + '/project/' + projectId + '/reference-file',
+                                            type: 'DELETE',
+                                            data: { filename: fileName },
+                                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                            success: function (res) {
+                                                try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reference file deleted', 'success'); } catch(_) {}
+                                                // Remove DOM item
+                                                if (item && item.parentNode) item.parentNode.removeChild(item);
+                                                // Update in-memory files array if available
+                                                try {
+                                                    const idx = files.indexOf(fileName);
+                                                    if (idx !== -1) files.splice(idx, 1);
+                                                } catch(_) {}
+                                                // Update project card badge
+                                                try {
+                                                    const card = document.querySelector('.project-card[data-project-id="' + projectId + '"]') || document.querySelector('[data-project-id="' + projectId + '"]');
+                                                    const badge = (card && card.querySelector('.project-file-count')) || document.querySelector('.project-file-count[data-project-id="' + projectId + '"]');
+                                                    let newCount = 0;
+                                                    try { newCount = Math.max((parseInt(badge ? badge.textContent : '0', 10) || 0) - 1, 0); } catch(_) { newCount = 0; }
+                                                    if (badge) {
+                                                        if (newCount <= 0) { try { badge.remove(); } catch(_) { badge.style.display = 'none'; } }
+                                                        else badge.textContent = String(newCount);
+                                                    }
+                                                } catch(_) {}
+                                                // If no files left, show empty message
+                                                try {
+                                                    if (!(Array.isArray(files) && files.length > 0)) {
+                                                        listEl.innerHTML = '';
+                                                        listEl.textContent = 'No reference files available.';
+                                                    }
+                                                } catch(_) {}
+                                                done(true);
+                                            },
+                                            error: function (xhr) {
+                                                let msg = 'Failed to delete reference file';
+                                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                                try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                                done(false);
+                                            }
+                                        });
+                                    }
+                                });
+                            } catch (e) {}
+                        });
+
+                        item.appendChild(delBtn);
 
                         listEl.appendChild(item);
                     });
