@@ -134,6 +134,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
     Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
     Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
+    // Delete a single reference file attached to a task (authorized PIC only)
+    Route::delete('/task/{id}/reference-file', [TaskController::class, 'destroyReferenceFile'])->name('task.reference-file.destroy');
     Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
     // Dashboard: Today tasks for current user
     Route::get('/task/dashboard/today', [TaskController::class, 'getDashboardTasksToday'])->name('task.dashboard.today');

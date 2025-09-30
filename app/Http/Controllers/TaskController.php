@@ -1708,6 +1708,69 @@ class TaskController extends Controller
     }
 
     /**
+     * Delete a single reference file from a task (only PIC allowed).
+     * Expects POST/DELETE with 'filename' parameter specifying the stored filename.
+     */
+    public function destroyReferenceFile(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$employeeId) {
+                return response()->json(['code' => 401, 'status' => 'error', 'message' => 'Unauthorized'], 401);
+            }
+
+            // Only PIC may delete reference files
+            $isPic = TaskAssignment::where('task_id', $task->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->exists();
+
+            if (!$isPic) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only PIC can remove reference files.'], 403);
+            }
+
+            $filename = $request->input('filename');
+            if (empty($filename)) {
+                return response()->json(['code' => 422, 'status' => 'error', 'message' => 'Filename is required.'], 422);
+            }
+
+            $refFiles = is_array($task->reference_files) ? $task->reference_files : (is_string($task->reference_files) ? json_decode($task->reference_files, true) ?? [] : []);
+            $found = false;
+            foreach ($refFiles as $k => $f) {
+                if ((string) $f === (string) $filename || $f === $filename) {
+                    // delete file from public storage if exists
+                    $path = public_path('file/task_reference_files/' . $f);
+                    if (file_exists($path)) {
+                        @unlink($path);
+                    }
+                    unset($refFiles[$k]);
+                    $found = true;
+                    break;
+                }
+            }
+
+            if (!$found) {
+                return response()->json(['code' => 404, 'status' => 'error', 'message' => 'Reference file not found on this task.'], 404);
+            }
+
+            // Reindex array and persist
+            $refFiles = array_values($refFiles);
+            $task->reference_files = $refFiles;
+            $task->save();
+
+            DB::commit();
+            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Reference file removed successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['code' => $this->deriveHttpStatusFromException($e), 'status' => 'error', 'message' => $e->getMessage()], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
      * Update task status
      */
     public function updateStatus(Request $request, string $id)
