@@ -1,6 +1,8 @@
-const taskTreeState = { roots: [], renderedCount: 0, batchSize: 2 };
+const taskTreeState = { roots: [], renderedCount: 0, batchSize: 1000 };
 const childPage = {};
-const CHILD_BATCH = 3;
+const CHILD_BATCH = 6;
+let currentMaxLevel = 6;
+let allTasks = [];
 
 function renderChildGroups(task, $container, $template) {
     if (!task.children || task.children.length === 0) return;
@@ -69,14 +71,30 @@ function updateViewMoreButton() {
         `);
         $("#task-tree .root-column").after(wrapper);
         $("#view-more-btn").on("click", function () {
-            renderNextBatch();
+            currentMaxLevel += 7;
+            $.ajax({
+                url: `${appUrl}/projects/${projectId}/tasks/tree`,
+                type: "GET",
+                data: { pageTab: currentMaxLevel },
+                dataType: "json",
+            })
+            .done(function (response) {
+                if (response.status === "success" && response.data) {
+                    const previousLength = allTasks.length;
+                    allTasks = response.data;
+                    renderTaskList(allTasks);
+                    if (allTasks.length <= previousLength) {
+                        $("#view-more-wrapper").hide();
+                    }
+                }
+            })
+            .fail(function () {
+                // Optionally handle error
+            });
         });
     }
-    if (taskTreeState.renderedCount >= taskTreeState.roots.length) {
-        $("#view-more-wrapper").hide();
-    } else {
-        $("#view-more-wrapper").show();
-    }
+    // Show the button if there might be more levels
+    $("#view-more-wrapper").show();
 }
 
 function buildTaskTree(tasks) {
@@ -429,6 +447,7 @@ function getTaskByProject(projectId) {
     return $.ajax({
         url: `${appUrl}/projects/${projectId}/tasks/tree`,
         type: "GET",
+        data: { pageTab: currentMaxLevel },
         dataType: "json",
     })
         .done(function (response) {
@@ -441,7 +460,9 @@ function getTaskByProject(projectId) {
                 $("#task-tree").empty();
                 return;
             }
-            renderTaskList(response.data);
+            allTasks = response.data;
+            renderTaskList(allTasks);
+            updateViewMoreButton();
         })
         .fail(function () {
             $("#task-loading").addClass("d-none");
