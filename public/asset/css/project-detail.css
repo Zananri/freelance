@@ -1356,3 +1356,12 @@ input[type="file"]::-webkit-file-upload-button {
 input[type="file"]::file-selector-button {
     display: none;
 }
+
+#view-more-wrapper button {
+    border: none;
+    background-color: #444444;
+    color: #f0f1f8;
+    font-size: 12px;
+    padding: 10px 24px;
+    border-radius: 10px;
+}

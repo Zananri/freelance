@@ -21,7 +21,7 @@ function updateViewMoreButton() {
     if ($("#view-more-wrapper").length === 0) {
         const wrapper = $(`
             <div id="view-more-wrapper" class="text-center mt-3">
-                <button id="view-more-btn" class="btn btn-outline-primary">View More</button>
+                <button id="view-more-btn" class="btn btn-submit-black">View More</button>
             </div>
         `);
         $("#task-tree .root-column").after(wrapper);
