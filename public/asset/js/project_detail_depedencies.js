@@ -1,17 +1,11 @@
 const taskTreeState = { roots: [], renderedCount: 0, batchSize: 1000 };
-const childPage = {};
-const CHILD_BATCH = 6;
 let currentMaxLevel = 6;
 let allTasks = [];
 
 function renderChildGroups(task, $container, $template) {
     if (!task.children || task.children.length === 0) return;
-    if (!childPage[task.id]) childPage[task.id] = 1;
-    const page = childPage[task.id];
-    const start = 0;
-    const end = Math.min(page * CHILD_BATCH, task.children.length);
     $container.find(".task-item").remove();
-    for (let i = start; i < end; i++) {
+    for (let i = 0; i < task.children.length; i++) {
         const child = task.children[i];
         const $child = renderTaskNode(child, $template);
         const $childStub = $(
@@ -21,45 +15,6 @@ function renderChildGroups(task, $container, $template) {
         $wrap.append($childStub).append($child);
         $container.append($wrap);
     }
-    updateChildViewMore(task, $container, $template);
-}
-
-function updateChildViewMore(task, $container, $template) {
-    $container.find(`#child-more-${task.id}`).remove();
-    const totalChildren = task.children.length;
-    const currentPage = childPage[task.id] || 1;
-    const loadedCount = currentPage * CHILD_BATCH;
-    if (loadedCount < totalChildren) {
-        const $btn = $(`
-            <div id="child-more-${task.id}" class="text-center mt-2">
-                <button class="btn btn-outline-primary btn-sm">View More</button>
-            </div>
-        `);
-        $btn.find("button").on("click", function () {
-            childPage[task.id] = currentPage + 1;
-            renderChildGroups(task, $container, $template);
-            setTimeout(adjustConnectors, 40);
-            setTimeout(drawSvgConnectors, 60);
-        });
-        $container.append($btn);
-    }
-}
-
-function renderNextBatch() {
-    const $tree = $("#task-tree");
-    const $template = $("#task-template");
-    const roots = taskTreeState.roots;
-    if (!roots || roots.length === 0) return;
-    const start = taskTreeState.renderedCount;
-    const end = Math.min(start + taskTreeState.batchSize, roots.length);
-    const $rootCol = $tree.children(".root-column");
-    for (let i = start; i < end; i++) {
-        $rootCol.append(renderTaskNode(roots[i], $template));
-    }
-    taskTreeState.renderedCount = end;
-    updateViewMoreButton();
-    setTimeout(adjustConnectors, 40);
-    setTimeout(drawSvgConnectors, 60);
 }
 
 function updateViewMoreButton() {
