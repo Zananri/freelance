@@ -92,7 +92,7 @@
 
                 {{-- Right Above Content --}}
                 <div class="col-md-8 structure-detail">
-                    <div class="body-content rounded-4 px-3 pt-3 pb-0 structure-detail-content">
+                    <div class="body-content rounded-4 pt-3 pb-0 structure-detail-content">
                         <div id="task-loading" class="text-center py-3 d-none">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading tasks...</span>
@@ -102,7 +102,7 @@
                         <div id="task-error" class="alert alert-danger d-none" role="alert">
                             Failed to load tasks. Please try again.
                         </div>
-                        <div class="header-content-tree d-flex justify-content-end">
+                        <div class="header-content-tree d-flex justify-content-end position-absolute">
                             <button class="btn btn-sm border-0" type="button" id="fullscreen-tree-btn">
                                 <span class="material-symbols-outlined">fullscreen</span>
                             </button>
@@ -111,20 +111,16 @@
 
                         <div id="task-legend" class="d-flex justify-content-start mt-3">
                             <div class="legend-item d-flex align-items-start gap-1">
-                                <span class="legend-dot not-started"></span>
-                                <span class="legend-text">Not Started</span>
+                                <span class="legend-text not-started">Not Started</span>
                             </div>
                             <div class="legend-item d-flex align-items-start gap-1">
-                                <span class="legend-dot in-progress"></span>
-                                <span class="legend-text">In Progress</span>
+                                <span class="legend-text in-progress">In Progress</span>
                             </div>
                             <div class="legend-item d-flex align-items-start gap-1">
-                                <span class="legend-dot late"></span>
-                                <span class="legend-text">Late</span>
+                                <span class="legend-text late">Late</span>
                             </div>
                             <div class="legend-item d-flex align-items-start gap-1">
-                                <span class="legend-dot complete"></span>
-                                <span class="legend-text">Complete</span>
+                                <span class="legend-text complete">Complete</span>
                             </div>
                         </div>
 
@@ -142,47 +138,54 @@
 
 
             {{-- Bottom Content --}}
-            <div class="col-md-12 mb-3 timeline-detail-project">
-                <div class="body-content rounded-4 p-3">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <p class="m-0" id="totalTaskTimeline"></p>
-                        <div class="d-flex justify-content-end">
-                            <p class="mt-2" id="monthTitleTimeline"></p>
-                            <button class="btn btn-sm border-0 ms-3 me-2" id="prevTimelineModal">
-                                <span class="material-symbols-outlined">chevron_left</span>
-                            </button>
-                            <button class="btn btn-sm border-0 ms-2 me-3" id="nextTimelineModal">
-                                <span class="material-symbols-outlined">chevron_right</span>
-                            </button>
-                            <button class="btn btn-sm border-0 me-3 exit-fullscreen-btn" type="button"
-                                id="fullscreen-btn">
-                                <span class="material-symbols-outlined">fullscreen</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="timeline-wrapper">
-                        <table class="timeline-table w-100">
-                            <thead>
-                                <tr id="timelineHeader"></tr>
-                            </thead>
-                            <tbody id="timelineRows"></tbody>
-                        </table>
-                    </div>
-                    <div class="timeline-legend d-flex justify-content-start gap-5">
-                        <div class="legend-item d-flex align-items-center gap-2">
-                            <span class="legend-dot legend-yellow"></span>
-                            <span class="legend-text" id="inProgressCount">0 Task</span>
-                        </div>
-                        <div class="legend-item d-flex align-items-center gap-2">
-                            <span class="legend-dot legend-red"></span>
-                            <span class="legend-text" id="lateCount">0 Task</span>
-                        </div>
-                        <div class="legend-item d-flex align-items-center gap-2">
-                            <span class="legend-dot legend-green"></span>
-                            <span class="legend-text" id="completedCount">0 Task</span>
-                        </div>
-                    </div>
+            <div class="row">
+                <div class="col-md-4 mb-3 feedback-detail-project">
+                    <div class="body-content rounded-4 p-3">
 
+                    </div>
+                </div>
+                <div class="col-md-8 mb-3 timeline-detail-project">
+                    <div class="body-content rounded-4 p-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <p class="m-0" id="totalTaskTimeline"></p>
+                            <div class="d-flex justify-content-end">
+                                <p class="mt-2" id="monthTitleTimeline"></p>
+                                <button class="btn btn-sm border-0 ms-3 me-2" id="prevTimelineModal">
+                                    <span class="material-symbols-outlined">chevron_left</span>
+                                </button>
+                                <button class="btn btn-sm border-0 ms-2 me-3" id="nextTimelineModal">
+                                    <span class="material-symbols-outlined">chevron_right</span>
+                                </button>
+                                <button class="btn btn-sm border-0 me-3 exit-fullscreen-btn" type="button"
+                                    id="fullscreen-btn">
+                                    <span class="material-symbols-outlined">fullscreen</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="timeline-wrapper">
+                            <table class="timeline-table w-100">
+                                <thead>
+                                    <tr id="timelineHeader"></tr>
+                                </thead>
+                                <tbody id="timelineRows"></tbody>
+                            </table>
+                        </div>
+                        <div class="timeline-legend d-flex justify-content-start gap-5">
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-yellow"></span>
+                                <span class="legend-text" id="inProgressCount">0 Task</span>
+                            </div>
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-red"></span>
+                                <span class="legend-text" id="lateCount">0 Task</span>
+                            </div>
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-green"></span>
+                                <span class="legend-text" id="completedCount">0 Task</span>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
         </div>
