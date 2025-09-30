@@ -663,7 +663,8 @@
                 });
 
             // 🔹 Trigger load related tasks
-            loadRelatedTasks(p.id, "task", document.getElementById("task_parent_id"));
+            // Use prefix string and let loadRelatedTasks query DOM by prefix (consistent with schedule usage)
+            loadRelatedTasks(p.id, "task", null);
         }
 
         fetch(appUrl + "/project/index?task_scope=all")
@@ -687,8 +688,33 @@
         });
     }
 
-    // Load related tasks for a given project into an element (select). excludeTaskId optional to avoid listing self as parent
+    // Load related tasks for a given project into an element (select).
+    // Backwards-compat: some callers historically passed DOM elements instead of prefix strings
+    // or passed the select element as the third argument. Normalize inputs so the function
+    // consistently accepts: (projectId, prefixString, selectedParentId, selectedParentTitle)
     function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
+        try {
+            // If prefix is a DOM element (e.g., a select), derive prefix from its id
+            if (prefix && typeof prefix !== 'string' && prefix.id) {
+                var match = String(prefix.id).match(/^(.+)_parent_id$/) || String(prefix.id).match(/^(.+)_parent_input$/);
+                if (match) prefix = match[1];
+            }
+        } catch (_) {}
+
+        try {
+            // If selectedParentId is actually a DOM element (e.g., passed accidentally), extract its value
+            if (selectedParentId && typeof selectedParentId !== 'string' && typeof selectedParentId !== 'number') {
+                if (selectedParentId.id && String(selectedParentId.id).match(/_parent_id$/) && typeof selectedParentId.value !== 'undefined') {
+                    selectedParentId = selectedParentId.value;
+                } else if (selectedParentId.getAttribute && selectedParentId.getAttribute('data-parent-id')) {
+                    selectedParentId = selectedParentId.getAttribute('data-parent-id');
+                } else {
+                    // fallback: not a usable value
+                    selectedParentId = selectedParentId || null;
+                }
+            }
+        } catch (_) { selectedParentId = null; }
+
         const input = document.getElementById(`${prefix}_parent_input`);
         const dropdown = document.getElementById(`${prefix}_parent_dropdown`);
         const selectedContainer = document.getElementById(`${prefix}_selected_parent`);
@@ -721,6 +747,9 @@
         }
 
         function showSelectedTask(task) {
+            try {
+                if (window.__debugLoadRelatedTasks) console.debug('loadRelatedTasks.showSelectedTask', { prefix: prefix, taskId: task && task.id, taskTitle: task && task.title });
+            } catch(_) {}
             let avatarHtml = task.image
                 ? `<img src="${appUrl}/file/task/${task.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
                 : getInitialAvatar(task.title);
@@ -1212,7 +1241,8 @@
         const addParentSel = document.getElementById('task_parent_id');
         if (addProjectSel) {
             addProjectSel.addEventListener('change', function () {
-                loadRelatedTasks(this.value || null, addParentSel, null);
+                // Pass prefix string 'task' (not DOM element) for consistent behavior
+                loadRelatedTasks(this.value || null, 'task', null);
             });
         }
 
@@ -1221,7 +1251,8 @@
         if (editProjectSel) {
             editProjectSel.addEventListener('change', function () {
                 const excludeId = document.getElementById('edit_task_id') ? document.getElementById('edit_task_id').value : null;
-                loadRelatedTasks(this.value || null, editParentSel, excludeId);
+                // Use prefix 'edit_task' so loadRelatedTasks populates the edit modal parent UI
+                loadRelatedTasks(this.value || null, 'edit_task', excludeId);
             });
         }
     } catch (e) { console.warn('Failed to wire project->parent selects', e); }
@@ -7609,7 +7640,13 @@ function applyCurrentSearchFilter() {
 
                 const projectId = t.project_id || (t.project && t.project.id);
                 loadProjectsForEdit(projectId, function () {
-                    loadRelatedTasks(projectId, "edit_task", t.id, t.parent_id);
+                    try {
+                        if (window.__debugLoadRelatedTasks) {
+                            try { console.debug('handleTaskEdit: calling loadRelatedTasks', { projectId: projectId, prefix: 'edit_task', selectedParentId: t.parent_id, selectedParentTitle: (t.parent && t.parent.title) ? t.parent.title : null, t: t }); } catch(_) {}
+                        }
+                    } catch(_) {}
+                    // Pass the stored parent_id (and parent title when available) so the preview shows the chosen parent task
+                    loadRelatedTasks(projectId, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
                     ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id);
                 });
 
