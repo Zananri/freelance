@@ -499,6 +499,27 @@ if (projectId) {
     }
 })();
 
+function updateFullscreenButtonPosition() {
+    const $btn = $('#fullscreen-tree-btn');
+    const $container = $('.structure-detail-content');
+    if ($container.hasClass('fullscreen')) {
+        $btn.css({ position: '', top: '', right: '', zIndex: '' });
+    } else {
+        const rect = $container[0].getBoundingClientRect();
+        $btn.css({
+            position: 'fixed',
+            top: (rect.top + 10) + 'px',
+            right: (window.innerWidth - rect.right + 10) + 'px',
+            zIndex: 10,
+            background: '#f0f1f8',
+            borderRadius: '4px',
+            padding: '5px'
+        });
+    }
+}
+
+$(window).on('scroll resize', updateFullscreenButtonPosition);
+
 $("#fullscreen-tree-btn").on("click", function () {
     const $timeline = $(".structure-detail-content");
     const $icon = $(this).find("span.material-symbols-outlined");
@@ -510,4 +531,8 @@ $("#fullscreen-tree-btn").on("click", function () {
         $timeline.addClass("fullscreen");
         $icon.text("fullscreen_exit");
     }
+    updateFullscreenButtonPosition();
 });
+
+// Initial call
+updateFullscreenButtonPosition();
