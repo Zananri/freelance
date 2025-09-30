@@ -4633,7 +4633,7 @@ function applyCurrentSearchFilter() {
 
     // Helper: show delete confirmation modal (Bootstrap) with avatar, content and confirm/cancel
     function showDeleteConfirmModal(opts) {
-        // opts: { type: 'feedback'|'reply', id, parentId?, avatarUrl?, authorName?, content?, onConfirm: function(done){}}
+        // opts: { type: 'feedback'|'reply'|'reference_file', id, parentId?, avatarUrl?, authorName?, content?, parentModalId?, parentModalEl?, onConfirm: function(done){} }
         try {
             const id = opts.id;
             const type = opts.type || 'feedback';
@@ -4645,8 +4645,19 @@ function applyCurrentSearchFilter() {
             const avatarHtml = avatarUrl ? `<img src="${avatarUrl}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">` :
                 `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#6A5AE0;color:#fff;font-weight:600;font-size:16px;">${(authorName || '').split(' ').map(s=>s[0]||'').slice(0,2).join('').toUpperCase() || 'NA'}</div>`;
 
-            const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
-            const confirmText = `Are you sure you want to delete this ${type === 'reply' ? 'reply' : 'feedback'}?`;
+            let title = '';
+            let confirmText = '';
+            if (type === 'reply') {
+                title = 'Delete reply';
+                confirmText = 'Are you sure you want to delete this reply?';
+            } else if (type === 'reference_file') {
+                title = 'Delete reference file';
+                // Exact text requested by user
+                confirmText = 'Are you sure want to delete this reference file?';
+            } else {
+                title = 'Delete feedback';
+                confirmText = 'Are you sure you want to delete this feedback?';
+            }
 
             const modalHtml = `
                 <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
@@ -4670,8 +4681,14 @@ function applyCurrentSearchFilter() {
                     </div>
                 </div>`;
 
-            // If the task feedback modal is open, hide it first so delete modal appears alone.
-            const parentModalEl = document.getElementById('taskFeedbackModal');
+            // If a parent modal is provided in opts, hide it first so delete modal appears alone.
+            const parentModalEl = (function(){
+                try {
+                    if (opts.parentModalEl) return opts.parentModalEl;
+                    if (opts.parentModalId) return document.getElementById(opts.parentModalId);
+                } catch(_) {}
+                try { return document.getElementById('taskFeedbackModal'); } catch(_) { return null; }
+            })();
             let _parentWasOpen = false;
             let _parentModalInstance = null;
             try {
@@ -6450,6 +6467,9 @@ function applyCurrentSearchFilter() {
                         if (!referenceFilesList) return;
                         referenceFilesList.innerHTML = "";
 
+                        // keep task id on the list for later operations (delete)
+                        try { referenceFilesList.dataset.taskId = String(taskId || ''); } catch(_) {}
+
                         if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
                             referenceFiles.forEach((fileName) => {
                                 if (!fileName) return;
@@ -6513,6 +6533,93 @@ function applyCurrentSearchFilter() {
                                 });
 
                                 item.appendChild(dlBtn);
+
+                                // Delete button (only shown to PIC / authorized users on server-side enforcement)
+                                const delBtn = document.createElement('button');
+                                delBtn.type = 'button';
+                                delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                                delBtn.title = 'Delete';
+                                // color should match download (#444444)
+                                delBtn.style.color = '#444444';
+                                delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                                delBtn.addEventListener('click', function (ev) {
+                                    ev.preventDefault(); ev.stopPropagation();
+                                    try {
+                                        showDeleteConfirmModal({
+                                            type: 'reference_file',
+                                            id: fileName,
+                                            authorName: '',
+                                            content: fileName,
+                                            avatarUrl: '',
+                                            parentModalId: 'referenceFilesModal',
+                                            onConfirm: function (done) {
+                                                // Prepare remaining files array and call update endpoint
+                                                try {
+                                                    const remaining = (Array.isArray(referenceFiles) ? referenceFiles.slice() : []).filter(f => String(f) !== String(fileName));
+                                                    // Call dedicated delete endpoint to remove single reference file
+                                                    $.ajax({
+                                                        url: appUrl + '/task/' + taskId + '/reference-file',
+                                                        type: 'DELETE',
+                                                        data: { filename: fileName },
+                                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                                        success: function (res) {
+                                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reference file deleted', 'success'); } catch(_) {}
+                                                            // Remove item from DOM
+                                                            if (item && item.parentNode) item.parentNode.removeChild(item);
+                                                            // Update internal referenceFiles array so subsequent deletes are correct
+                                                            try {
+                                                                const idx = referenceFiles.indexOf(fileName);
+                                                                if (idx !== -1) referenceFiles.splice(idx, 1);
+                                                            } catch(_) {}
+                                                            // Update badge on task card if present
+                                                            try {
+                                                                const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                                                                if (card) {
+                                                                    const span = card.querySelector('.reference-files-count');
+                                                                    // compute new count (defensive); if it reaches 0, remove the badge entirely
+                                                                    let newCount = 0;
+                                                                    try {
+                                                                        newCount = Math.max((parseInt(span ? span.textContent : '0', 10) || 0) - 1, 0);
+                                                                    } catch(_) { newCount = 0; }
+                                                                    if (span) {
+                                                                        if (newCount <= 0) {
+                                                                            try { span.remove(); } catch(_) { span.style.display = 'none'; }
+                                                                        } else {
+                                                                            span.textContent = String(newCount);
+                                                                        }
+                                                                    }
+                                                                }
+                                                            } catch(_) {}
+                                                            // If there are no more reference files, show the empty message in the modal
+                                                            try {
+                                                                const rList = document.getElementById('referenceFilesList');
+                                                                if (rList) {
+                                                                    // if our in-memory referenceFiles array is empty, show default message
+                                                                    if (!(Array.isArray(referenceFiles) && referenceFiles.length > 0)) {
+                                                                        rList.innerHTML = '';
+                                                                        rList.textContent = 'No reference files available.';
+                                                                    }
+                                                                }
+                                                            } catch(_) {}
+                                                            done(true);
+                                                        },
+                                                        error: function (xhr) {
+                                                            let msg = 'Failed to delete reference file';
+                                                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                                            done(false);
+                                                        }
+                                                    });
+                                                } catch (e) {
+                                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Failed to delete reference file', 'danger'); } catch(_) { }
+                                                    done(false);
+                                                }
+                                            }
+                                        });
+                                    } catch (e) {}
+                                });
+
+                                item.appendChild(delBtn);
                                 referenceFilesList.appendChild(item);
                             });
                         } else {
