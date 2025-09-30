@@ -2786,7 +2786,7 @@ class TaskController extends Controller
         }
     }
 
-    public function taskParentRelation($projectId, $level, $arrId, $count = 0)
+    public function taskParentRelation($projectId, $maxLevel, $arrId, $count = 0, &$allIds = [])
     {
 
         if ($count == 0) {
@@ -2801,24 +2801,25 @@ class TaskController extends Controller
                 ->pluck('id');
         }
 
-        $arrId = $taskParentId;
+        $allIds = array_merge($allIds, $taskParentId->toArray());
+
+        $arrId = $taskParentId->toArray();
 
 
-        if ($count == $level) {
-
-            return $arrId;
-
-        } else {
+        if ($count < $maxLevel) {
 
             $count++;
 
-            return $this->taskParentRelation($projectId, $level, $arrId, $count);
+            $this->taskParentRelation($projectId, $maxLevel, $arrId, $count, $allIds);
         }
+
+
+        return $allIds;
 
 
     }
 
-    public function getTasksByProjectForTree($projectId, $pageTab = 0)
+    public function getTasksByProjectForTree($projectId, $pageTab = 6)
     {
         try {
             $qpDepth = null;
@@ -2830,30 +2831,18 @@ class TaskController extends Controller
                 $pageTab = $qpDepth;
             }
 
-            if ((int)$pageTab === 0) {
-                $tasks = Task::with([
-                    'assignments.employee.user',
-                    'project',
-                    'parent'
-                ])
-                    ->where('project_id', $projectId)
-                    ->whereRaw('LOWER(status) <> ?', ['canceled'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
-            } else {
-                $arrIdTask = $this->taskParentRelation($projectId, $pageTab, [], $count = 0);
+            $allIds = $this->taskParentRelation($projectId, $pageTab, [], 0);
 
-                $tasks = Task::with([
-                    'assignments.employee.user',
-                    'project',
-                    'parent'
-                ])
-                    ->whereIn('id', $arrIdTask)
-                    ->where('project_id', $projectId)
-                    ->whereRaw('LOWER(status) <> ?', ['canceled'])
-                    ->orderBy('created_at', 'desc')
-                    ->get();
-            }
+            $tasks = Task::with([
+                'assignments.employee.user',
+                'project',
+                'parent'
+            ])
+                ->whereIn('id', $allIds)
+                ->where('project_id', $projectId)
+                ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                ->orderBy('created_at', 'desc')
+                ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
                 // Ambil PIC
