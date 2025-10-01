@@ -6678,6 +6678,7 @@ function applyCurrentSearchFilter() {
 
                         const modalEl = document.getElementById("referenceFilesModal");
                         if (modalEl) {
+                            try { modalEl.dataset.taskId = String(taskId || ''); } catch(_) {}
                             const detailEl = document.getElementById('taskDetailModal');
                             if (detailEl && bootstrap.Modal.getInstance(detailEl)) {
                                 detailEl.setAttribute('data-child-opened', '1');
@@ -7601,7 +7602,15 @@ function applyCurrentSearchFilter() {
                 }
             } catch (_) {}
             // populate hidden task id from data attribute on reference modal if available
-            const taskId = document.getElementById('referenceFilesModal')?.dataset?.taskId || this.dataset?.taskId || document.getElementById('taskDetailModal')?.dataset?.taskId;
+            const taskId = document.getElementById('referenceFilesModal')?.dataset?.taskId
+                || document.getElementById('referenceFilesList')?.dataset?.taskId
+                || this.dataset?.taskId
+                || document.getElementById('taskDetailModal')?.dataset?.taskId;
+            // If still not found, warn early and don't open add modal
+            if (!taskId) {
+                try { showFloatingAlert && showFloatingAlert('Task ID not found. Cannot add files.', 'danger'); } catch(_) {}
+                return;
+            }
             const hidden = document.getElementById('addRefTaskId');
             if (hidden) hidden.value = taskId || '';
             // reset previous selection
@@ -7686,6 +7695,24 @@ function applyCurrentSearchFilter() {
                 body: fd
             }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
             .then(payload => {
+                // Determine new count from payload when available
+                const newCount = (function(p){
+                    try {
+                        if (!p) return undefined;
+                        if (Array.isArray(p.reference_files)) return p.reference_files.length;
+                        if (typeof p.reference_files_count === 'number') return p.reference_files_count;
+                        if (typeof p.reference_files === 'string') {
+                            try {
+                                const parsed = JSON.parse(p.reference_files);
+                                if (Array.isArray(parsed)) return parsed.length;
+                            } catch(_) {
+                                return p.reference_files.split(',').filter(Boolean).length;
+                            }
+                        }
+                        return undefined;
+                    } catch(_) { return undefined; }
+                })(payload);
+
                 showFloatingAlert && showFloatingAlert(payload.message || 'Files uploaded', 'success', 2000);
                 // hide add modal and reopen reference files modal (refresh contents)
                 refModal.hide();
@@ -7693,20 +7720,84 @@ function applyCurrentSearchFilter() {
                 window.addRefSelectedFiles = [];
                 renderAddRefSelectedFiles();
 
-                // reopen reference files modal and refresh its content by triggering click on reference files button if available
-                const refFilesModalEl = document.getElementById('referenceFilesModal');
-                if (refFilesModalEl) {
-                    // If there is a function to load reference files, call it. Otherwise, show modal.
-                    try {
-                        const rfModal = new bootstrap.Modal(refFilesModalEl);
-                        rfModal.show();
-                        // If reference files are loaded via AJAX when modal shown, trigger the shown event
-                    } catch (_) {
-                        // fallback: reload page fragment
-                        window.location.reload();
+                // Update badge immediately if server returned new count
+                try {
+                    const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                    if (card && typeof newCount !== 'undefined') {
+                        let span = card.querySelector('.reference-files-count');
+                        if (newCount > 0) {
+                            if (span) span.textContent = String(newCount);
+                            else {
+                                const s = document.createElement('span');
+                                s.className = 'reference-files-count ms-1';
+                                s.style.color = '#454545'; s.style.fontSize = '12px';
+                                s.textContent = String(newCount);
+                                // prefer attaching to the wrapper that holds the attach_file icon
+                                const wrappers = Array.from(card.querySelectorAll('.btn-attach-file-wrapper')) || [];
+                                let attachWrapper = wrappers.find(w => {
+                                    try {
+                                        const icon = w.querySelector('.material-symbols-outlined');
+                                        return icon && icon.textContent && icon.textContent.trim() === 'attach_file';
+                                    } catch(_) { return false; }
+                                });
+                                if (!attachWrapper) attachWrapper = card.querySelector('.btn-attach-file-wrapper.d-flex.align-items-center');
+                                if (attachWrapper) attachWrapper.appendChild(s);
+                            }
+                        } else if (span) {
+                            try { span.remove(); } catch(_) { span.style.display = 'none'; }
+                        }
                     }
+                } catch(_) {}
+
+                // Reopen reference files modal by triggering the task's attach_file icon click specifically
+                const cardForClick = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                let attachBtn = null;
+                if (cardForClick) {
+                    const icons = Array.from(cardForClick.querySelectorAll('.task-icon')) || [];
+                    attachBtn = icons.find(el => el && el.textContent && el.textContent.trim() === 'attach_file');
+                }
+
+                if (attachBtn && typeof attachBtn.click === 'function') {
+                    // small delay to allow modal hide animation to complete
+                    setTimeout(function () { try { attachBtn.click(); } catch(_) { /* fallback below */ } }, 200);
                 } else {
-                    window.location.reload();
+                    // Fallback: fetch latest task data and update reference files badge manually
+                    try {
+                        $.ajax({
+                            url: appUrl + '/task/' + encodeURIComponent(taskId),
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(res) {
+                                const t = res && (res.data || res) ;
+                                // Update badge count on task card
+                                try {
+                                    const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                                    if (card) {
+                                        const span = card.querySelector('.reference-files-count');
+                                        const count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0)) || 0;
+                                        if (count > 0) {
+                                            if (span) span.textContent = String(count);
+                                            else {
+                                                const s = document.createElement('span');
+                                                s.className = 'reference-files-count ms-1';
+                                                s.style.color = '#454545'; s.style.fontSize = '12px';
+                                                s.textContent = String(count);
+                                                const wrappers = Array.from(card.querySelectorAll('.btn-attach-file-wrapper')) || [];
+                                                let attachWrapper = wrappers.find(w => {
+                                                    try { const icon = w.querySelector('.material-symbols-outlined'); return icon && icon.textContent && icon.textContent.trim() === 'attach_file'; } catch(_) { return false; }
+                                                });
+                                                if (!attachWrapper) attachWrapper = card.querySelector('.btn-attach-file-wrapper.d-flex.align-items-center');
+                                                if (attachWrapper) attachWrapper.appendChild(s);
+                                            }
+                                        } else if (span) {
+                                            try { span.remove(); } catch(_) { span.style.display = 'none'; }
+                                        }
+                                    }
+                                } catch(_){ }
+                            },
+                            error: function() { /* ignore */ }
+                        });
+                    } catch(_) { /* ignore fallback */ }
                 }
             }).catch(err => {
                 console.error('Upload failed', err);

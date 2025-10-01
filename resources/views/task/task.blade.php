@@ -658,7 +658,7 @@
                         <input type="hidden" name="task_id" id="addRefTaskId" value="">
                         <div class="mb-3">
                             <label for="add_reference_files" class="form-label">Select files</label>
-                            <input type="file" class="form-control" id="add_reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <input type="file" class="form-control" id="add_reference_files" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                         </div>
 
                         <div id="add_reference_files_preview" class="mt-2"></div>
