@@ -4407,7 +4407,7 @@ function applyCurrentSearchFilter() {
                 return { allowed: false };
             }
             return { allowed: false };
-        }
+        }   
 
         function clearDropHighlights(){
             try {
