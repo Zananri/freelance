@@ -662,4 +662,197 @@ $("#fullscreen-tree-btn").on("click", function () {
             clearDropVisual($target);
         }
     });
+
+    (function setupTouchDnd(){
+        var hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+        if (!hasTouch) return;
+
+        var state = {
+            dragging: false,
+            draggedId: null,
+            originEl: null,
+            ghost: null,
+            dropTarget: null,
+            startX: 0,
+            startY: 0,
+            dx: 0,
+            dy: 0,
+            longPressTimer: null,
+            moved: false
+        };
+
+        function cleanupTouchDrag() {
+            try {
+                if (state.longPressTimer) {
+                    clearTimeout(state.longPressTimer);
+                    state.longPressTimer = null;
+                }
+                if (state.originEl) $(state.originEl).removeClass('dragging');
+                if (state.dropTarget) clearDropVisual($(state.dropTarget));
+                if (state.ghost && state.ghost.parentNode) state.ghost.parentNode.removeChild(state.ghost);
+            } catch(_){}
+            state.dragging = false;
+            state.draggedId = null;
+            state.originEl = null;
+            state.ghost = null;
+            state.dropTarget = null;
+            state.moved = false;
+        }
+
+        function createGhostFrom(el, x, y) {
+            var rect = el.getBoundingClientRect();
+            var g = el.cloneNode(true);
+            g.style.position = 'fixed';
+            g.style.left = (rect.left) + 'px';
+            g.style.top = (rect.top) + 'px';
+            g.style.width = rect.width + 'px';
+            g.style.height = rect.height + 'px';
+            g.style.pointerEvents = 'none';
+            g.style.opacity = '0.85';
+            g.style.zIndex = 9999;
+            g.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
+            document.body.appendChild(g);
+            state.dx = x - rect.left;
+            state.dy = y - rect.top;
+            return g;
+        }
+
+        function findDropTargetAt(x, y) {
+            var hidden = false;
+            if (state.ghost) { state.ghost.style.display = 'none'; hidden = true; }
+            var el = document.elementFromPoint(x, y);
+            if (hidden) state.ghost.style.display = '';
+            if (!el) return null;
+            var candidate = $(el).closest('#task-tree .task-box')[0] || null;
+            return candidate;
+        }
+
+        function isValidDrop(draggedId, targetEl) {
+            if (!targetEl) return false;
+            var targetId = targetEl.getAttribute('data-task-id');
+            if (!draggedId || !targetId) return false;
+            if (String(draggedId) === String(targetId)) return false;
+            return !isDescendant(draggedId, targetId);
+        }
+
+        function onTouchMove(e) {
+            if (!state.dragging) return;
+            var t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+            if (!t) return;
+            try { e.preventDefault(); } catch(_){}
+            var x = t.clientX, y = t.clientY;
+            if (state.ghost) {
+                state.ghost.style.left = (Math.round(x - state.dx)) + 'px';
+                state.ghost.style.top = (Math.round(y - state.dy)) + 'px';
+            }
+            var targetEl = findDropTargetAt(x, y);
+            if (state.dropTarget && state.dropTarget !== targetEl) {
+                clearDropVisual($(state.dropTarget));
+            }
+            state.dropTarget = targetEl;
+            if (targetEl) {
+                var $t = $(targetEl);
+                if (isValidDrop(state.draggedId, targetEl)) {
+                    $t.addClass('drop-ok').removeClass('drop-denied');
+                    $t.css({ outline: '2px dashed #2a7' });
+                } else {
+                    $t.addClass('drop-denied').removeClass('drop-ok');
+                    $t.css({ outline: '2px dashed #d66' });
+                }
+            }
+        }
+
+        function performDropIfValid() {
+            var targetEl = state.dropTarget;
+            var originEl = state.originEl;
+            var draggedId = state.draggedId;
+            if (!targetEl || !originEl || !draggedId) return;
+            var targetId = targetEl.getAttribute('data-task-id');
+            if (!isValidDrop(draggedId, targetEl)) return;
+
+            var $target = $(targetEl);
+            $target.css({ outline: '2px solid #2a7' });
+
+            var map = (function(){ var m={}; try{ (allTasks||[]).forEach(function(t){ m[String(t.id)] = t; }); }catch(_){ } return m; })();
+            var dragged = map[String(draggedId)];
+            if (dragged && String(dragged.parent_id || '') === String(targetId)) {
+                clearDropVisual($target);
+                return;
+            }
+
+            $.ajax({
+                url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
+                type: 'PUT',
+                data: { parent_id: String(targetId) },
+                dataType: 'json'
+            })
+            .done(function(){
+                try { if (dragged) dragged.parent_id = targetId; renderTaskList(allTasks); } catch(_){ }
+                try { if (typeof projectId !== 'undefined' && projectId) getTaskByProject(projectId); } catch(_){ }
+            })
+            .fail(function(xhr){
+                try { console.error('Failed to move task (touch)', xhr && xhr.responseText); alert('Gagal memindahkan task. Coba lagi.'); } catch(_){ }
+            })
+            .always(function(){ clearDropVisual($target); });
+        }
+
+        // Use native listeners for better control over passive behavior
+        document.addEventListener('touchmove', onTouchMove, { passive: false });
+        document.addEventListener('touchend', function(e){
+            if (!state.dragging) return;
+            performDropIfValid();
+            cleanupTouchDrag();
+        }, { passive: false });
+        document.addEventListener('touchcancel', function(){ if (state.dragging) cleanupTouchDrag(); }, { passive: true });
+
+        $(document).on('touchstart', '#task-tree .task-box', function(e){
+            try {
+                var t = e.originalEvent && (e.originalEvent.touches && e.originalEvent.touches[0]);
+                if (!t) return;
+                state.startX = t.clientX; state.startY = t.clientY; state.moved = false;
+                var el = this;
+                var id = el.getAttribute('data-task-id');
+                state.draggedId = id ? String(id) : null;
+                state.originEl = el;
+
+                // set long-press to start dragging
+                state.longPressTimer = setTimeout(function(){
+                    state.dragging = true;
+                    $(el).addClass('dragging');
+                    state.ghost = createGhostFrom(el, state.startX, state.startY);
+                }, 350);
+            } catch(_){ }
+        });
+
+        $(document).on('touchmove', '#task-tree .task-box', function(e){
+            try {
+                var t = e.originalEvent && (e.originalEvent.touches && e.originalEvent.touches[0]);
+                if (!t) return;
+                var dx = Math.abs(t.clientX - state.startX);
+                var dy = Math.abs(t.clientY - state.startY);
+                if (!state.dragging) {
+                    // If moved too far before long-press triggers, cancel drag and allow scroll
+                    if (dx > 10 || dy > 10) {
+                        state.moved = true;
+                        if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
+                        return; // do not preventDefault, allow page scroll
+                    }
+                }
+                // If dragging already started, prevent scroll here; ghost move handled in document listener
+                if (state.dragging) {
+                    try { e.preventDefault(); } catch(_){}
+                }
+            } catch(_){ }
+        });
+
+        $(document).on('touchend touchcancel', '#task-tree .task-box', function(){
+            // if drag hasn't started yet (short tap), just clear timer
+            if (!state.dragging) {
+                if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
+                state.originEl = null; state.draggedId = null; state.moved = false;
+                return;
+            }
+            // actual cleanup is handled on document touchend above to ensure we can compute drop target under finger
+        });
+    })();
 })();
