@@ -1410,8 +1410,9 @@ input[type="file"]::file-selector-button {
 
 .feedback-content {
     max-height: calc(100vh - 600px);
+    min-height: 140px;
     overflow-y: auto;
-    margin-bottom: 20px;
+    margin-bottom: 15px;
 }
 
 .feedback-content::-webkit-scrollbar {
@@ -1429,17 +1430,19 @@ input[type="file"]::file-selector-button {
 }
 
 .feedback-form {
-    background: #ffffff;
+    background: #F7F8FD;
     border-radius: 10px;
 }
 
 .feedback-form input {
     margin-bottom: 10px;
+    background: #F7F8FD;
 }
 
 .feedback-form input:focus {
     outline: none;
     box-shadow: none;
+    background: #F7F8FD;
 }
 
 .feedback-form input::placeholder {
