@@ -2756,7 +2756,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             iconHtml = '';
         }
 
-        // Determine if current viewer is PIC or an executor
         const viewerIsPic = (function(){
             try { return !!(currentEmployeeId && task.pic && String(task.pic.id) === String(currentEmployeeId)); } catch(_) { return false; }
         })();
@@ -2764,21 +2763,27 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             try { return !!(currentEmployeeId && Array.isArray(task.executors) && task.executors.some(ex => String(ex.id) === String(currentEmployeeId))); } catch(_) { return false; }
         })();
 
-        // Show dropdown only when not pending AND either viewer is not an executor OR viewer is the PIC
         const shouldShowDropdown = !viewerPending && (!viewerIsExecutor || viewerIsPic);
 
-        const dropdownHtml = shouldShowDropdown ? `
-                <div class="dropdown-icon-container">
-                    <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
-                    <div class="dropdown-menu d-none">
-                        <div class="dropdown-item">Detail</div>
-                        <div class="dropdown-item">Edit</div>
-                        <div class="dropdown-item">Feedback</div>
-                        ${statusMenuItem}
-                        ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
-                    </div>
+        const dropdownHtml = `
+            <div class="dropdown-icon-container">
+                <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
+                <div class="dropdown-menu d-none">
+                    <div class="dropdown-item">Detail</div>
+                    <div class="dropdown-item">Edit</div>
+                    <div class="dropdown-item">Feedback</div>
+                    ${statusMenuItem}
+                    ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
                 </div>
-            ` : '';
+            </div>
+        `;
+
+        if (viewerIsExecutor) {
+            $(".dropdown-icon-container").addClass("d-none");
+            $(".arrow-forward-icon").css("right", "0")
+        } else if (shouldShowDropdown) {
+            $(".dropdown-icon-container").removeClass("d-none");
+        }
 
         return `
         <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
