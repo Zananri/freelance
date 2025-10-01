@@ -4,16 +4,23 @@ var appUrl = (
 ).replace(/\/$/, "");
 
 // Provide a safe fallback for showFloatingAlert so modules can call it without checking existence.
-// If another script defines a richer implementation (e.g., division.js), that will take precedence.
+// Prefer the app's non-blocking floating alerts (showAlertMsg) when available; otherwise log.
+// If another script defines a richer implementation (e.g., task.js or project_detail.js), that will take precedence.
 if (typeof window.showFloatingAlert !== 'function') {
     window.showFloatingAlert = function(message, type = 'success', delayMs = 2500) {
         try {
-            // Very small non-blocking fallback: use console and alert for visibility in dev.
-            console.log('[floatingAlert:' + (type || '') + ']', message);
-            // Use non-modal alert only if environment likely interactive
-            if (typeof window !== 'undefined' && typeof window.alert === 'function') {
-                // Use setTimeout to avoid blocking execution in the caller
-                setTimeout(function() { try { window.alert(String(message)); } catch (_) {} }, 10);
+            // Map common types to the app's alert types used by showAlertMsg
+            const mapped = type === 'danger' ? 'error'
+                         : type === 'error' ? 'error'
+                         : type === 'warning' ? 'warning'
+                         : 'light';
+
+            if (typeof window.showAlertMsg === 'function') {
+                // Use the app-level floating alert if available
+                window.showAlertMsg(String(message || ''), mapped, delayMs);
+            } else {
+                // Fallback: log to console only. Avoid native alert to keep UX consistent.
+                console.log('[floatingAlert:' + (mapped || '') + ']', message);
             }
         } catch (_) {}
     };
@@ -7714,15 +7721,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
         } catch (e) {
-            /* no-op */
-        }
-        try {
-            alert(
-                typeof message === "string"
-                    ? message.replace(/<[^>]+>/g, "")
-                    : String(message)
-            );
-        } catch (e) {}
+                /* no-op */
+            }
+            // No blocking native alert fallback; prefer console log to avoid modal dialogs.
+            try {
+                console.log('[floatingAlert]', typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message));
+            } catch (e) {}
     }
 
     addProjectForm.addEventListener("submit", function (e) {
@@ -10307,17 +10311,37 @@ function initAddProjectReferenceFilesModal() {
             window.addProjectRefSelectedFiles = [];
             renderAddProjectRefSelectedFiles();
 
-            // Update project card badge immediately if possible
+            // Update project file count badges immediately and robustly
             try {
-                const card = document.querySelector('[data-project-id="' + projectId + '"]');
-                if (card) {
-                    const badge = card.querySelector('.project-file-count');
-                    if (badge && Array.isArray(payload.reference_files)) {
-                        badge.textContent = String(payload.reference_files.length || 0);
-                        badge.style.display = (payload.reference_files.length > 0) ? '' : 'none';
-                    }
+                var count = 0;
+                if (Array.isArray(payload.reference_files)) {
+                    count = payload.reference_files.length;
+                } else if (typeof payload.reference_files === 'number') {
+                    count = payload.reference_files;
+                } else {
+                    // fallback: use uploaded files length if server didn't return the list
+                    try { count = (window.addProjectRefSelectedFiles && Array.isArray(window.addProjectRefSelectedFiles)) ? window.addProjectRefSelectedFiles.length : 0; } catch(_) { count = 0; }
                 }
-            } catch(_){}
+
+                // Update every .project-file-count that matches this projectId
+                document.querySelectorAll('.project-file-count[data-project-id="' + projectId + '"]').forEach(function(el){
+                    try {
+                        el.textContent = String(count || 0);
+                        el.style.display = (count > 0) ? '' : 'none';
+                    } catch(_){}
+                });
+
+                // Also handle any attach button that may contain a badge without data attribute
+                document.querySelectorAll('.project-attach-file[data-project-id="' + projectId + '"]').forEach(function(btn){
+                    try {
+                        var inner = btn.querySelector('.project-file-count');
+                        if (inner) {
+                            inner.textContent = String(count || 0);
+                            inner.style.display = (count > 0) ? '' : 'none';
+                        }
+                    } catch(_){}
+                });
+            } catch(_){ }
 
             // Reopen project files modal to show the refreshed list
             try { setTimeout(function(){ window.showProjectFiles && window.showProjectFiles(projectId); }, 220); } catch(_){}
