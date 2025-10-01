@@ -25,7 +25,7 @@ function updateViewMoreButton() {
         `);
         $("#task-legend").append(wrapper);
         $("#view-more-btn").on("click", function () {
-            currentMaxLevel+=7;
+            currentMaxLevel += 7;
             $.ajax({
                 url: `${appUrl}/projects/${projectId}/tasks/tree`,
                 type: "GET",
@@ -34,10 +34,11 @@ function updateViewMoreButton() {
             })
             .done(function (response) {
                 if (response.status === "success" && response.data) {
-                    const previousLength = allTasks.length;
                     allTasks = response.data;
                     renderTaskList(allTasks);
-                    if (allTasks.length <= previousLength) {
+                    if (response.has_more) {
+                        $("#view-more-wrapper").show();
+                    } else {
                         $("#view-more-wrapper").hide();
                     }
                 }
@@ -47,13 +48,7 @@ function updateViewMoreButton() {
             });
         });
     }
-    console.log(currentMaxLevel);
-
-    if (currentMaxLevel >= 7) {
-        $("#view-more-btn").show();
-    } else {
-        $("#view-more-btn").hide();
-    }
+    $("#view-more-btn").show();
 }
 
 function buildTaskTree(tasks) {
@@ -421,7 +416,11 @@ function getTaskByProject(projectId) {
             }
             allTasks = response.data;
             renderTaskList(allTasks);
-            updateViewMoreButton();
+            if (response.has_more) {
+                updateViewMoreButton();
+            } else {
+                $("#view-more-wrapper").hide();
+            }
         })
         .fail(function () {
             $("#task-loading").addClass("d-none");

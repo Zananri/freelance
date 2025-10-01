@@ -2944,10 +2944,17 @@ class TaskController extends Controller
                 ];
             });
 
+            // Check if there are more levels beyond the current pageTab
+            $hasMore = Task::where('project_id', $projectId)
+                ->whereIn('parent_id', $allIds)
+                ->whereNotIn('id', $allIds)
+                ->exists();
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $formattedTasks
+                'data' => $formattedTasks,
+                'has_more' => $hasMore
             ]);
         } catch (\Exception $e) {
             return response()->json([
