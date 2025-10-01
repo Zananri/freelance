@@ -7718,8 +7718,18 @@ function applyCurrentSearchFilter() {
         });
     }
 
-    // Initialize add reference files modal handlers after DOM ready
-    try { document.addEventListener('DOMContentLoaded', function(){ initAddReferenceFilesModal(); }); } catch(_) {}
+    // Initialize add reference files modal handlers after DOM ready.
+    // Use readyState check so initialization runs even when this script is loaded after DOMContentLoaded.
+    (function(){
+        try {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAddReferenceFilesModal);
+            } else {
+                // DOM already ready
+                initAddReferenceFilesModal();
+            }
+        } catch (e) {}
+    })();
 
     // Open and populate Edit Task Modal
     function handleTaskEdit(taskId) {
