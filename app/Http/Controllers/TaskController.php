@@ -1464,6 +1464,78 @@ class TaskController extends Controller
             if (!$request->filled('project_id') || $request->input('project_id') === '' || $request->input('project_id') === 'null') {
                 $request->merge(['project_id' => null]);
             }
+
+            $payloadKeys = array_keys($request->all());
+            $allowedParentOnlyKeys = ['parent_id', 'project_id'];
+            $isParentOnly = $request->has('parent_id') && count(array_diff($payloadKeys, $allowedParentOnlyKeys)) === 0;
+
+            if ($isParentOnly) {
+                $parentOnlyValidator = Validator::make($request->all(), [
+                    'project_id' => 'nullable|exists:projects,id',
+                    'parent_id' => 'nullable|exists:tasks,id',
+                ]);
+
+                if ($parentOnlyValidator->fails()) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Validation errors',
+                        'errors' => $parentOnlyValidator->errors(),
+                    ], 422);
+                }
+
+                $newParentId = $request->input('parent_id');
+
+                // Prevent self-parenting
+                if (!empty($newParentId) && (string) $newParentId === (string) $task->id) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'A task cannot be its own parent.'
+                    ], 422);
+                }
+
+                $incomingProjectId = $request->input('project_id') ?? $task->project_id;
+                if (!empty($newParentId)) {
+                    $parent = Task::find($newParentId);
+                    if (!$parent || (string) $parent->project_id !== (string) $incomingProjectId) {
+                        return response()->json([
+                            'code' => 422,
+                            'status' => 'error',
+                            'message' => 'Selected parent task does not belong to the chosen project.'
+                        ], 422);
+                    }
+
+                    $seen = 0; $MAX_HOPS = 2048; $cursor = $parent;
+                    while ($cursor && $cursor->parent_id !== null && $seen < $MAX_HOPS) {
+                        if ((string) $cursor->parent_id === (string) $task->id) {
+                            return response()->json([
+                                'code' => 422,
+                                'status' => 'error',
+                                'message' => 'Invalid parent: cannot move task under its own descendant.'
+                            ], 422);
+                        }
+                        $cursor = Task::find($cursor->parent_id);
+                        $seen++;
+                    }
+                }
+
+                $task->parent_id = $newParentId ?: null;
+                $task->updated_by = auth()->id();
+                $task->save();
+
+                DB::commit();
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'message' => 'Task parent updated successfully',
+                    'data' => [
+                        'id' => $task->id,
+                        'parent_id' => $task->parent_id,
+                        'project_id' => $task->project_id,
+                    ]
+                ]);
+            }
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
                 'parent_id' => 'nullable|exists:tasks,id',
