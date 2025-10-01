@@ -4359,6 +4359,147 @@ function applyCurrentSearchFilter() {
         });
     }
 
+    (function enableKanbanDnD(){
+        const colToStatus = {
+            'new-request-tasks': 'new_request',
+            'in-progress-tasks': 'in_progress',
+            'completed-tasks':   'completed'
+        };
+
+        // Mark columns as droppable
+        $(function(){
+            $('#new-request-tasks, #in-progress-tasks, #completed-tasks').addClass('kanban-droppable');
+        });
+
+        let kanbanDrag = null; // { id, fromStatus }
+
+        function normStatus(s){
+            s = String(s || '').toLowerCase();
+            if (s === 'in progress') return 'in_progress';
+            if (s === 'new request') return 'new_request';
+            return s;
+        }
+
+        function mapTransition(fromStatus, toStatus){
+            // returns { allowed: boolean, newStatus?: string }
+            fromStatus = normStatus(fromStatus);
+            toStatus = normStatus(toStatus);
+            // same-column drop => no-op
+            if (fromStatus === toStatus) return { allowed: false };
+
+            // Treat 'rejected' as currently in-progress special state; allow sending to completed
+            if (fromStatus === 'rejected') {
+                if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
+                return { allowed: false };
+            }
+
+            if (fromStatus === 'new_request') {
+                if (toStatus === 'in_progress') return { allowed: true, newStatus: 'in_progress' };
+                return { allowed: false };
+            }
+            if (fromStatus === 'in_progress') {
+                if (toStatus === 'new_request') return { allowed: true, newStatus: 'new_request' };
+                if (toStatus === 'completed')   return { allowed: true, newStatus: 'completed' };
+                return { allowed: false };
+            }
+            if (fromStatus === 'completed') {
+                if (toStatus === 'in_progress') return { allowed: true, newStatus: 'rejected' };
+                return { allowed: false };
+            }
+            return { allowed: false };
+        }
+
+        function clearDropHighlights(){
+            try {
+                $('.kanban-droppable')
+                    .removeClass('kanban-allowed')
+                    .removeClass('kanban-denied')
+                    .removeClass('kanban-over');
+                $('.custom-card.dragging').removeClass('dragging');
+            } catch(_) {}
+        }
+
+        function refreshDropHighlights(){
+            if (!kanbanDrag) return;
+            Object.keys(colToStatus).forEach(function(colId){
+                const $col = $('#' + colId);
+                const toStatus = colToStatus[colId];
+                const m = mapTransition(kanbanDrag.fromStatus, toStatus);
+                $col.toggleClass('kanban-allowed', !!m.allowed);
+                $col.toggleClass('kanban-denied', !m.allowed);
+            });
+        }
+
+        // Make cards draggable on demand (delegated)
+        $(document).on('mouseenter', '.custom-card', function(){
+            this.setAttribute('draggable', 'true');
+        });
+
+        // Begin drag
+        $(document).on('dragstart', '.custom-card', function(ev){
+            try { hideAllFloatingTooltips && hideAllFloatingTooltips(); } catch(_) {}
+            const e = ev.originalEvent || ev;
+            const id = this.getAttribute('data-task-id');
+            const fromStatus = normStatus(this.getAttribute('data-task-status'));
+            kanbanDrag = { id: id, fromStatus: fromStatus };
+            this.classList.add('dragging');
+            try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id||'')); } catch(_){ }
+            refreshDropHighlights();
+        });
+
+        // End drag (cleanup)
+        $(document).on('dragend', '.custom-card', function(){
+            kanbanDrag = null;
+            clearDropHighlights();
+        });
+
+        // Column drag handlers
+        $(document).on('dragenter', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
+            if (!kanbanDrag) return;
+            $(this).addClass('kanban-over');
+        });
+
+        $(document).on('dragover', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(ev){
+            if (!kanbanDrag) return;
+            const e = ev.originalEvent || ev;
+            const toStatus = colToStatus[this.id];
+            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
+            if (m.allowed) {
+                try { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } catch(_){ try { e.preventDefault(); } catch(_){} }
+                $(this).addClass('kanban-allowed').removeClass('kanban-denied');
+            } else {
+                $(this).addClass('kanban-denied').removeClass('kanban-allowed');
+            }
+        });
+
+        $(document).on('dragleave', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
+            $(this).removeClass('kanban-over');
+        });
+
+        $(document).on('drop', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(ev){
+            if (!kanbanDrag) return;
+            const e = ev.originalEvent || ev;
+            try { e.preventDefault(); } catch(_) {}
+            const toStatus = colToStatus[this.id];
+            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
+            const taskId = kanbanDrag.id;
+            const taskCard = document.querySelector('.custom-card.dragging') || document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+            if (!m.allowed) {
+                try { showFloatingAlert('Move not allowed for this transition.', 'warning'); } catch(_) {}
+                kanbanDrag = null; clearDropHighlights();
+                return;
+            }
+            // If moving to completed, open modal to collect completion details
+            if (m.newStatus === 'completed') {
+                try { showConfirmationToCompleteModal(taskId, taskCard); } catch(err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch(_) {} }
+            } else {
+                // Normal transitions use existing updater
+                try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch(_) {}
+            }
+            kanbanDrag = null; clearDropHighlights();
+        });
+    })();
+
     // NEW: Bulk Progress All (across cached pages) when master checkbox is checked and user presses a dedicated trigger
     document.addEventListener('click', function(e){
         const trigger = e.target.closest('#taskNewBulkProgressAll');
