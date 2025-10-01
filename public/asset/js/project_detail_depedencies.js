@@ -796,7 +796,6 @@ $("#fullscreen-tree-btn").on("click", function () {
             .always(function(){ clearDropVisual($target); });
         }
 
-        // Use native listeners for better control over passive behavior
         document.addEventListener('touchmove', onTouchMove, { passive: false });
         document.addEventListener('touchend', function(e){
             if (!state.dragging) return;
@@ -815,7 +814,6 @@ $("#fullscreen-tree-btn").on("click", function () {
                 state.draggedId = id ? String(id) : null;
                 state.originEl = el;
 
-                // set long-press to start dragging
                 state.longPressTimer = setTimeout(function(){
                     state.dragging = true;
                     $(el).addClass('dragging');
@@ -831,14 +829,12 @@ $("#fullscreen-tree-btn").on("click", function () {
                 var dx = Math.abs(t.clientX - state.startX);
                 var dy = Math.abs(t.clientY - state.startY);
                 if (!state.dragging) {
-                    // If moved too far before long-press triggers, cancel drag and allow scroll
                     if (dx > 10 || dy > 10) {
                         state.moved = true;
                         if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
-                        return; // do not preventDefault, allow page scroll
+                        return; 
                     }
                 }
-                // If dragging already started, prevent scroll here; ghost move handled in document listener
                 if (state.dragging) {
                     try { e.preventDefault(); } catch(_){}
                 }
@@ -846,13 +842,11 @@ $("#fullscreen-tree-btn").on("click", function () {
         });
 
         $(document).on('touchend touchcancel', '#task-tree .task-box', function(){
-            // if drag hasn't started yet (short tap), just clear timer
             if (!state.dragging) {
                 if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
                 state.originEl = null; state.draggedId = null; state.moved = false;
                 return;
             }
-            // actual cleanup is handled on document touchend above to ensure we can compute drop target under finger
         });
     })();
 })();
