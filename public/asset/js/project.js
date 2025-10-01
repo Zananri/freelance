@@ -4279,7 +4279,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     repliesContainer.classList.add(
                                                         "d-none"
                                                     );
-                                                    this.textContent = `View all replies (${repliesCount})`;
+                                                    this.textContent = `View all (${repliesCount})`;
                                                 }
                                                 this.style.textDecoration =
                                                     "none";
