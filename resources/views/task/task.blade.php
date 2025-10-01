@@ -625,16 +625,48 @@
         aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceFilesModalLabel">Reference
-                        Files</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header modal-header-custom d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceFilesModalLabel">Reference
+                            Files</h5>
+                    </div>
+                    <div>
+                        <button type="button" id="openAddReferenceFilesBtn" class="btn btn-sm btn-submit-black">Add Files</button>
+                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
                 </div>
                 <hr>
                 <div class="modal-body modal-body-custom">
                     <div id="referenceFilesList" class="d-flex flex-column gap-2">
                         <!-- Reference files links will be inserted here -->
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Reference Files Modal -->
+    <div class="modal fade" id="addReferenceFilesModal" tabindex="-1" aria-labelledby="addReferenceFilesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom">
+                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="addReferenceFilesModalLabel">Add Files</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom">
+                    <form id="addReferenceFilesForm" enctype="multipart/form-data">
+                        <input type="hidden" name="task_id" id="addRefTaskId" value="">
+                        <div class="mb-3">
+                            <label for="add_reference_files" class="form-label">Select files</label>
+                            <input type="file" class="form-control" id="add_reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                        </div>
+
+                        <div id="add_reference_files_preview" class="mt-2"></div>
+                    </form>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                    <button type="button" id="submitAddReferenceFiles" class="btn btn-submit-black">Upload</button>
                 </div>
             </div>
         </div>
