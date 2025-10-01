@@ -111,6 +111,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/project/{id}', [ProjectController::class, 'destroy'])->name('project.destroy');
     // Delete a single reference file attached to a project (authorized: author only)
     Route::delete('/project/{id}/reference-file', [ProjectController::class, 'destroyReferenceFile'])->name('project.reference-file.destroy');
+    // Upload reference files to a project (authorized: author only)
+    Route::post('/project/{id}/reference-file', [ProjectController::class, 'storeReferenceFile'])->name('project.reference-file.store');
 
     // === Other project routes ===
     Route::get('/project/index/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');

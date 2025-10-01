@@ -1721,6 +1721,64 @@ class ProjectController extends Controller
     }
 
     /**
+     * Store one or more reference files for a project (only author allowed).
+     * Accepts multipart/form-data with files in `reference_files[]`.
+     */
+    public function storeReferenceFile(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $project = Project::findOrFail($id);
+
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$employeeId) {
+                return response()->json(['code' => 401, 'status' => 'error', 'message' => 'Unauthorized'], 401);
+            }
+
+            // Only author can upload project reference files
+            $isAuthor = ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'author')
+                ->exists();
+
+            if (!$isAuthor) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can add reference files.'], 403);
+            }
+
+            $files = $request->file('reference_files', []);
+            if (!is_array($files) || count($files) === 0) {
+                return response()->json(['code' => 422, 'status' => 'error', 'message' => 'No files uploaded.'], 422);
+            }
+
+            $stored = [];
+            foreach ($files as $file) {
+                if (!$file->isValid()) continue;
+                $orig = $file->getClientOriginalName();
+                $ext = $file->getClientOriginalExtension();
+                $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $destDir = public_path('file/project');
+                if (!is_dir($destDir)) @mkdir($destDir, 0755, true);
+                $file->move($destDir, $name);
+                $stored[] = $name;
+            }
+
+            // Merge with existing reference_files (cast as array)
+            $existing = is_array($project->reference_files) ? $project->reference_files : (is_string($project->reference_files) ? json_decode($project->reference_files, true) ?? [] : []);
+            $merged = array_values(array_merge($existing, $stored));
+            $project->reference_files = $merged;
+            $project->save();
+
+            DB::commit();
+            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Files uploaded', 'reference_files' => $merged]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json(['code' => $status, 'status' => 'error', 'message' => $e->getMessage()], $status);
+        }
+    }
+
+    /**
      * Get project feedbacks for a given project.
      */
     public function getProjectFeedbacks($projectId)
