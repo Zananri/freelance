@@ -382,12 +382,6 @@
     overflow-y: auto;
 }
 
-.feedback-item {
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 1rem;
-    margin-bottom: 1rem;
-}
-
 .feedback-employee-photo {
     width: 40px;
     height: 40px;
@@ -1352,6 +1346,14 @@
     font-weight: 500;
 }
 
+.timeline-legend {
+    position: sticky;
+    bottom: 0;
+    background: rgb(240, 241, 248);
+    padding: 10px 0;
+    z-index: 2;
+}
+
 #task-legend-inline {
     gap: 8px;
 }
@@ -1380,8 +1382,8 @@ input[type="file"]::file-selector-button {
 
 #view-more-wrapper {
     position: absolute  ;
-    right: 0;
-    bottom: 0;
+    right: 1%;
+    bottom: 3%;
     z-index: 10;
     display: flex;
     justify-content: end;
@@ -1394,4 +1396,67 @@ input[type="file"]::file-selector-button {
     font-size: 12px;
     padding: 10px 24px;
     border-radius: 10px;
+}
+
+.feedback-title {
+    font-size: 16px;
+    font-weight: normal;
+    color: #3B3D42;
+}
+
+#fullscreen-feedback-btn span{
+    color: #898989;
+}
+
+.feedback-content {
+    max-height: calc(100vh - 600px);
+    overflow-y: auto;
+    margin-bottom: 20px;
+}
+
+.feedback-content::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+}
+
+.feedback-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.feedback-content::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
+
+.feedback-form {
+    background: #ffffff;
+    border-radius: 10px;
+}
+
+.feedback-form input {
+    margin-bottom: 10px;
+}
+
+.feedback-form input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.feedback-form input::placeholder {
+    font-size: 10px;
+}
+
+.submit-feedback button {
+    height: 40px;
+    width: 80px;
+    font-size: 10px;
+}
+
+.btn-actions-feedback {
+    padding: 10px;
+}
+
+.feedback-photo-icon,
+.feedback-file-icon {
+    font-size: 20px;
 }
