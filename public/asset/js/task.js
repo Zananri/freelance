@@ -5010,11 +5010,11 @@ function applyCurrentSearchFilter() {
 
                                                                                             ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
 
-                                                                                            <div class="reply-actions mt-2 d-flex gap-4">
-                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                                                                            <div class="reply-actions mt-2 d-flex gap-4">
                                                                                                                                 <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
                                                                                                                                 ${canEditRep ? `<span class="d-flex align-items-center reply-delete-trigger" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
-                                                                                            </div>
+                                                                                                                            </div>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -5022,8 +5022,8 @@ function applyCurrentSearchFilter() {
                                                                 `;
                                                         }).join('');
 
-                                                        // Keep the "View all replies" button separate so it can be aligned inline
-                                                        viewRepliesBtnHtml = `<button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>`;
+                                                        // Keep the "View all" button separate so it can be aligned inline
+                                                        viewRepliesBtnHtml = `<button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all (${repliesCount})</button>`;
                                                         repliesContainerHtml = `<div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>`;
                                                 }
                                                 feedbackHtml += `
@@ -5057,10 +5057,10 @@ function applyCurrentSearchFilter() {
                             }
 
                                                                 <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
-                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
                                                                     <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
-                                                                    ${viewRepliesBtnHtml}
+                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
                                                                     ${topCanEdit ? `<span class="d-flex align-items-center feedback-delete-trigger" data-feedback-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
+                                                                    ${viewRepliesBtnHtml}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -5129,10 +5129,10 @@ function applyCurrentSearchFilter() {
                             const hidden = container.classList.contains('d-none');
                             if (hidden) {
                                 container.classList.remove('d-none');
-                                this.textContent = 'Hide replies';
+                                this.textContent = 'Hide';
                             } else {
                                 container.classList.add('d-none');
-                                this.textContent = `View all replies (${count})`;
+                                this.textContent = `View all (${count})`;
                             }
                             // Enforce style: no underline and #555 color
                             this.style.textDecoration = 'none';
@@ -5230,8 +5230,8 @@ function applyCurrentSearchFilter() {
                                     if (container && container.classList.contains('d-none')) {
                                         container.classList.remove('d-none');
                                     }
-                                    // Update toggle text to Hide replies
-                                    wrap.textContent = 'Hide replies';
+                                    // Update toggle text to Hide
+                                    wrap.textContent = 'Hide';
                                 }
                                 const replyEl = modalBody.querySelector(`.feedback-reply[data-reply-id="${target.id}"][data-parent-id="${target.parent_id}"]`);
                                 if (replyEl) {
@@ -7578,6 +7578,148 @@ function applyCurrentSearchFilter() {
                 }
             });
     }
+
+    // --- Handlers for new Add Reference Files modal ---
+    function initAddReferenceFilesModal() {
+        const openBtn = document.getElementById('openAddReferenceFilesBtn');
+        const refModalEl = document.getElementById('addReferenceFilesModal');
+        const refModal = refModalEl ? new bootstrap.Modal(refModalEl) : null;
+        const refForm = document.getElementById('addReferenceFilesForm');
+        const fileInput = document.getElementById('add_reference_files');
+        const preview = document.getElementById('add_reference_files_preview');
+        const submitBtn = document.getElementById('submitAddReferenceFiles');
+
+        if (!openBtn || !refModalEl || !refForm || !fileInput || !preview || !submitBtn) return;
+
+        // When clicking "Add Files" in Reference Files modal: close it and open add modal
+        openBtn.addEventListener('click', function (e) {
+            try {
+                const refFilesModalEl = document.getElementById('referenceFilesModal');
+                if (refFilesModalEl) {
+                    const cm = bootstrap.Modal.getInstance(refFilesModalEl) || new bootstrap.Modal(refFilesModalEl);
+                    cm.hide();
+                }
+            } catch (_) {}
+            // populate hidden task id from data attribute on reference modal if available
+            const taskId = document.getElementById('referenceFilesModal')?.dataset?.taskId || this.dataset?.taskId || document.getElementById('taskDetailModal')?.dataset?.taskId;
+            const hidden = document.getElementById('addRefTaskId');
+            if (hidden) hidden.value = taskId || '';
+            // reset previous selection
+            fileInput.value = '';
+            preview.innerHTML = '';
+            window.addRefSelectedFiles = [];
+            refModal.show();
+        });
+
+        // File input change: collect files and render preview
+        fileInput.addEventListener('change', function () {
+            const files = Array.from(this.files || []);
+            window.addRefSelectedFiles = window.addRefSelectedFiles || [];
+            window.addRefSelectedFiles = window.addRefSelectedFiles.concat(files);
+            renderAddRefSelectedFiles();
+            // clear input so same file can be selected again if needed
+            this.value = '';
+        });
+
+        function renderAddRefSelectedFiles() {
+            preview.innerHTML = '';
+            const list = document.createElement('div');
+            list.className = 'selected-files-list mt-2';
+            (window.addRefSelectedFiles || []).forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                if (file && file.type && file.type.indexOf('image') === 0) {
+                    const img = document.createElement('img');
+                    const url = URL.createObjectURL(file);
+                    img.src = url; img.width = 28; img.height = 28; img.style.objectFit = 'cover'; img.style.borderRadius = '50%'; img.alt = file.name;
+                    img.onload = function(){ try{ URL.revokeObjectURL(url); } catch(_){} };
+                    item.appendChild(img);
+                } else {
+                    const badge = document.createElement('div');
+                    item.appendChild(badge);
+                }
+
+                const title = document.createElement('span'); title.className = 'flex-grow-1'; title.textContent = file.name; item.appendChild(title);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight = '1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener('click', function () {
+                    window.addRefSelectedFiles.splice(idx, 1);
+                    renderAddRefSelectedFiles();
+                });
+                item.appendChild(removeBtn);
+
+                list.appendChild(item);
+            });
+
+            preview.appendChild(list);
+        }
+
+        // Submit handler: upload selected files to server
+        submitBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const taskId = document.getElementById('addRefTaskId')?.value;
+            if (!taskId) {
+                showFloatingAlert && showFloatingAlert('Task ID not found.', 'danger');
+                return;
+            }
+
+            const files = window.addRefSelectedFiles || [];
+            if (!files.length) {
+                showFloatingAlert && showFloatingAlert('Please select at least one file to upload.', 'warning');
+                return;
+            }
+
+            const fd = new FormData();
+            files.forEach(f => fd.append('reference_files[]', f));
+            fd.append('task_id', taskId);
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            fetch(appUrl + '/task/' + encodeURIComponent(taskId) + '/reference-file', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: fd
+            }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
+            .then(payload => {
+                showFloatingAlert && showFloatingAlert(payload.message || 'Files uploaded', 'success', 2000);
+                // hide add modal and reopen reference files modal (refresh contents)
+                refModal.hide();
+                // Reset selection
+                window.addRefSelectedFiles = [];
+                renderAddRefSelectedFiles();
+
+                // reopen reference files modal and refresh its content by triggering click on reference files button if available
+                const refFilesModalEl = document.getElementById('referenceFilesModal');
+                if (refFilesModalEl) {
+                    // If there is a function to load reference files, call it. Otherwise, show modal.
+                    try {
+                        const rfModal = new bootstrap.Modal(refFilesModalEl);
+                        rfModal.show();
+                        // If reference files are loaded via AJAX when modal shown, trigger the shown event
+                    } catch (_) {
+                        // fallback: reload page fragment
+                        window.location.reload();
+                    }
+                } else {
+                    window.location.reload();
+                }
+            }).catch(err => {
+                console.error('Upload failed', err);
+                try { const msg = (err && (err.message || (err.error || (err.errors && err.errors[0]) ) )) || 'Upload failed'; showFloatingAlert && showFloatingAlert(msg, 'danger'); } catch(_) {}
+            }).finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Upload';
+            });
+        });
+    }
+
+    // Initialize add reference files modal handlers after DOM ready
+    try { document.addEventListener('DOMContentLoaded', function(){ initAddReferenceFilesModal(); }); } catch(_) {}
 
     // Open and populate Edit Task Modal
     function handleTaskEdit(taskId) {
