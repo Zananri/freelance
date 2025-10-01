@@ -1777,6 +1777,64 @@ class TaskController extends Controller
     }
 
     /**
+     * Store one or more reference files for a task (only PIC or creator allowed).
+     * Accepts multipart/form-data with files in `reference_files[]`.
+     */
+    public function storeReferenceFile(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$employeeId) {
+                return response()->json(['code' => 401, 'status' => 'error', 'message' => 'Unauthorized'], 401);
+            }
+
+            // Only PIC or task creator can upload reference files
+            $isPic = TaskAssignment::where('task_id', $task->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->exists();
+
+            $isCreator = ((int)$task->created_by === (int)$user->id);
+            if (!($isPic || $isCreator)) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only PIC or task creator can add reference files.'], 403);
+            }
+
+            $files = $request->file('reference_files', []);
+            if (!is_array($files) || count($files) === 0) {
+                return response()->json(['code' => 422, 'status' => 'error', 'message' => 'No files uploaded.'], 422);
+            }
+
+            $stored = [];
+            foreach ($files as $file) {
+                if (!$file->isValid()) continue;
+                $orig = $file->getClientOriginalName();
+                $ext = $file->getClientOriginalExtension();
+                $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $destDir = public_path('file/task_reference_files');
+                if (!is_dir($destDir)) @mkdir($destDir, 0755, true);
+                $file->move($destDir, $name);
+                $stored[] = $name;
+            }
+
+            // Merge with existing reference_files (cast as array)
+            $existing = is_array($task->reference_files) ? $task->reference_files : (is_string($task->reference_files) ? json_decode($task->reference_files, true) ?? [] : []);
+            $merged = array_values(array_merge($existing, $stored));
+            $task->reference_files = $merged;
+            $task->save();
+
+            DB::commit();
+            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Files uploaded', 'reference_files' => $merged]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['code' => $this->deriveHttpStatusFromException($e), 'status' => 'error', 'message' => $e->getMessage()], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
      * Update task status
      */
     public function updateStatus(Request $request, string $id)
