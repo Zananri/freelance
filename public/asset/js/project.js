@@ -3,6 +3,29 @@ var appUrl = (
     ""
 ).replace(/\/$/, "");
 
+// Provide a safe fallback for showFloatingAlert so modules can call it without checking existence.
+// Prefer the app's non-blocking floating alerts (showAlertMsg) when available; otherwise log.
+// If another script defines a richer implementation (e.g., task.js or project_detail.js), that will take precedence.
+if (typeof window.showFloatingAlert !== 'function') {
+    window.showFloatingAlert = function(message, type = 'success', delayMs = 2500) {
+        try {
+            // Map common types to the app's alert types used by showAlertMsg
+            const mapped = type === 'danger' ? 'error'
+                         : type === 'error' ? 'error'
+                         : type === 'warning' ? 'warning'
+                         : 'light';
+
+            if (typeof window.showAlertMsg === 'function') {
+                // Use the app-level floating alert if available
+                window.showAlertMsg(String(message || ''), mapped, delayMs);
+            } else {
+                // Fallback: log to console only. Avoid native alert to keep UX consistent.
+                console.log('[floatingAlert:' + (mapped || '') + ']', message);
+            }
+        } catch (_) {}
+    };
+}
+
 // Global utility: escape HTML for safe insertion
 function escapeHtml(str) {
     return String(str || '').replace(/[&<>"']/g, function (m) {
@@ -7698,15 +7721,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
         } catch (e) {
-            /* no-op */
-        }
-        try {
-            alert(
-                typeof message === "string"
-                    ? message.replace(/<[^>]+>/g, "")
-                    : String(message)
-            );
-        } catch (e) {}
+                /* no-op */
+            }
+            // No blocking native alert fallback; prefer console log to avoid modal dialogs.
+            try {
+                console.log('[floatingAlert]', typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message));
+            } catch (e) {}
     }
 
     addProjectForm.addEventListener("submit", function (e) {
@@ -8258,6 +8278,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const modalEl = document.getElementById("projectFilesModal");
         const listEl = document.getElementById("projectReferenceFilesList");
         if (!modalEl || !listEl) return;
+
+        // remember project id on modal/list so Add Files button can pick it up
+        try { modalEl.dataset.projectId = projectId; listEl.dataset.projectId = projectId; } catch(_) {}
 
         // loading state
         listEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
@@ -10175,3 +10198,170 @@ function handleResponsiveTooltipUpdate() {
 // Listen for resize and orientation change events
 window.addEventListener("resize", handleResponsiveTooltipUpdate);
 window.addEventListener("orientationchange", handleResponsiveTooltipUpdate);
+
+// --- Handlers for Add Project Reference Files modal ---
+function initAddProjectReferenceFilesModal() {
+    const openBtn = document.getElementById('openAddProjectReferenceFilesBtn');
+    const refModalEl = document.getElementById('addProjectReferenceFilesModal');
+    const refModal = refModalEl ? new bootstrap.Modal(refModalEl) : null;
+    const refForm = document.getElementById('addProjectReferenceFilesForm');
+    const fileInput = document.getElementById('add_project_reference_files');
+    const preview = document.getElementById('add_project_reference_files_preview');
+    const submitBtn = document.getElementById('submitAddProjectReferenceFiles');
+
+    if (!openBtn || !refModalEl || !refForm || !fileInput || !preview || !submitBtn) return;
+
+    openBtn.addEventListener('click', function (e) {
+        try {
+            const parentModalEl = document.getElementById('projectFilesModal');
+            if (parentModalEl) {
+                const cm = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                cm.hide();
+            }
+        } catch(_) {}
+
+        // try to obtain project id from dataset on projectFilesModal or list container
+        const projectId = document.getElementById('projectFilesModal')?.dataset?.projectId || document.getElementById('projectReferenceFilesList')?.dataset?.projectId || this.dataset?.projectId || '';
+        if (!projectId) {
+            try { showFloatingAlert && showFloatingAlert('Project ID not found. Cannot add files.', 'danger'); } catch(_) {}
+            return;
+        }
+        const hidden = document.getElementById('addRefProjectId');
+        if (hidden) hidden.value = projectId || '';
+        // reset previous selection
+        fileInput.value = '';
+        preview.innerHTML = '';
+        window.addProjectRefSelectedFiles = [];
+        refModal.show();
+    });
+
+    fileInput.addEventListener('change', function () {
+        const files = Array.from(this.files || []);
+        window.addProjectRefSelectedFiles = window.addProjectRefSelectedFiles || [];
+        window.addProjectRefSelectedFiles = window.addProjectRefSelectedFiles.concat(files);
+        renderAddProjectRefSelectedFiles();
+        this.value = '';
+    });
+
+    function renderAddProjectRefSelectedFiles() {
+        preview.innerHTML = '';
+        const list = document.createElement('div');
+        list.className = 'selected-files-list mt-2';
+        (window.addProjectRefSelectedFiles || []).forEach((file, idx) => {
+            const item = document.createElement('div');
+            item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+            if (file && file.type && file.type.indexOf('image') === 0) {
+                const img = document.createElement('img');
+                const url = URL.createObjectURL(file);
+                img.src = url; img.width = 28; img.height = 28; img.style.objectFit = 'cover'; img.style.borderRadius = '50%'; img.alt = file.name;
+                img.onload = function(){ try{ URL.revokeObjectURL(url); } catch(_){} };
+                item.appendChild(img);
+            } else {
+                const badge = document.createElement('div');
+                item.appendChild(badge);
+            }
+
+            const title = document.createElement('span'); title.className = 'flex-grow-1'; title.textContent = file.name; item.appendChild(title);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button'; removeBtn.className = 'btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight = '1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+            removeBtn.addEventListener('click', function () {
+                window.addProjectRefSelectedFiles.splice(idx, 1);
+                renderAddProjectRefSelectedFiles();
+            });
+            item.appendChild(removeBtn);
+
+            list.appendChild(item);
+        });
+
+        preview.appendChild(list);
+    }
+
+    submitBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        const projectId = document.getElementById('addRefProjectId')?.value;
+        if (!projectId) {
+            showFloatingAlert && showFloatingAlert('Project ID not found.', 'danger');
+            return;
+        }
+
+        const files = window.addProjectRefSelectedFiles || [];
+        if (!files.length) {
+            showFloatingAlert && showFloatingAlert('Please select at least one file to upload.', 'warning');
+            return;
+        }
+
+        const fd = new FormData();
+        files.forEach(f => fd.append('reference_files[]', f));
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        fetch(appUrl + '/project/' + encodeURIComponent(projectId) + '/reference-file', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: fd
+        }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
+        .then(payload => {
+            showFloatingAlert && showFloatingAlert(payload.message || 'Files uploaded', 'success', 2000);
+            refModal.hide();
+            window.addProjectRefSelectedFiles = [];
+            renderAddProjectRefSelectedFiles();
+
+            // Update project file count badges immediately and robustly
+            try {
+                var count = 0;
+                if (Array.isArray(payload.reference_files)) {
+                    count = payload.reference_files.length;
+                } else if (typeof payload.reference_files === 'number') {
+                    count = payload.reference_files;
+                } else {
+                    // fallback: use uploaded files length if server didn't return the list
+                    try { count = (window.addProjectRefSelectedFiles && Array.isArray(window.addProjectRefSelectedFiles)) ? window.addProjectRefSelectedFiles.length : 0; } catch(_) { count = 0; }
+                }
+
+                // Update every .project-file-count that matches this projectId
+                document.querySelectorAll('.project-file-count[data-project-id="' + projectId + '"]').forEach(function(el){
+                    try {
+                        el.textContent = String(count || 0);
+                        el.style.display = (count > 0) ? '' : 'none';
+                    } catch(_){}
+                });
+
+                // Also handle any attach button that may contain a badge without data attribute
+                document.querySelectorAll('.project-attach-file[data-project-id="' + projectId + '"]').forEach(function(btn){
+                    try {
+                        var inner = btn.querySelector('.project-file-count');
+                        if (inner) {
+                            inner.textContent = String(count || 0);
+                            inner.style.display = (count > 0) ? '' : 'none';
+                        }
+                    } catch(_){}
+                });
+            } catch(_){ }
+
+            // Reopen project files modal to show the refreshed list
+            try { setTimeout(function(){ window.showProjectFiles && window.showProjectFiles(projectId); }, 220); } catch(_){}
+        }).catch(err => {
+            console.error('Upload failed', err);
+            try { const msg = (err && (err.message || (err.error || (err.errors && err.errors[0]) ) )) || 'Upload failed'; showFloatingAlert && showFloatingAlert(msg, 'danger'); } catch(_){}
+        }).finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Upload';
+        });
+    });
+}
+
+// Initialize add project reference files modal handlers after DOM ready
+(function(){
+    try {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAddProjectReferenceFilesModal);
+        } else {
+            initAddProjectReferenceFilesModal();
+        }
+    } catch (e) {}
+})();
