@@ -1502,7 +1502,8 @@
                                     $.ajax({
                                         url: appBase + '/project/' + projectId + '/reference-file',
                                         method: 'DELETE',
-                                        data: { fileName: fileName },
+                                        // backend expects key 'filename' (lowercase)
+                                        data: { filename: fileName },
                                         success: function () {
                                             item.remove();
                                             deleteModalInstance.hide();
