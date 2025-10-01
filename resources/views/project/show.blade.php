@@ -53,10 +53,6 @@
                                 <button id="btn-references" class="detail-icon" title="References">
                                     <span class="material-symbols-outlined me-3">attach_file</span>
                                 </button>
-
-                                <button id="btn-comments" class="detail-icon" title="Comments">
-                                    <span class="material-symbols-outlined me-3">mode_comment</span>
-                                </button>
                             </div>
                             <div class="d-flex" id="project-actions">
                                 <!-- edit / delete buttons will be injected by JS -->
@@ -141,10 +137,40 @@
             {{-- Bottom Content --}}
             <div class="row">
                 <div class="col-md-4 mb-3 feedback-detail-project">
-                    <div class="body-content rounded-4 p-3">
+                    <div class="body-content rounded-4 p-4">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="feedback-title">Feedback</h5>
+                            <button class="btn btn-sm border-0" id="fullscreen-feedback-btn">
+                                <span class="material-symbols-outlined">
+                                    fullscreen
+                                </span>
+                            </button>
+                        </div>
 
+                        <div class="feedback-content" id="projectFeedbackList">
+
+                        </div>
+                        <div class="feedback-form">
+                            <input class="form-control input-text border-0" type="text" placeholder="Write feedback...">
+                            <div class="d-flex justify-content-between btn-actions-feedback">
+                                <div class="d-flex-justify-content-start">
+                                    <button class="btn btn-sm border-0">
+                                        <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                    </button>
+                                    <button class="btn btn-sm border-0">
+                                        <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                    </button>
+                                </div>
+                                <div class="d-flex justify-content-end submit-feedback">
+                                    <button class="btn btn-submit-black">
+                                        Send
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <div class="col-md-8 mb-3 timeline-detail-project">
                     <div class="body-content rounded-4 p-3">
                         <div class="d-flex justify-content-between align-items-center">
