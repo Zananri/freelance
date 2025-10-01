@@ -1,4 +1,3 @@
-const taskTreeState = { roots: [], renderedCount: 0, batchSize: 1000 };
 let currentMaxLevel = 6;
 let allTasks = [];
 
@@ -20,13 +19,13 @@ function renderChildGroups(task, $container, $template) {
 function updateViewMoreButton() {
     if ($("#view-more-wrapper").length === 0) {
         const wrapper = $(`
-            <div id="view-more-wrapper" class="text-center mt-3">
+            <div id="view-more-wrapper" class="text-center">
                 <button id="view-more-btn" class="btn btn-submit-black">View More</button>
             </div>
         `);
-        $("#task-tree .root-column").after(wrapper);
+        $("#task-legend").append(wrapper);
         $("#view-more-btn").on("click", function () {
-            currentMaxLevel += 7;
+            currentMaxLevel+=7;
             $.ajax({
                 url: `${appUrl}/projects/${projectId}/tasks/tree`,
                 type: "GET",
@@ -48,8 +47,13 @@ function updateViewMoreButton() {
             });
         });
     }
-    // Show the button if there might be more levels
-    $("#view-more-wrapper").show();
+    console.log(currentMaxLevel);
+
+    if (currentMaxLevel >= 7) {
+        $("#view-more-btn").show();
+    } else {
+        $("#view-more-btn").hide();
+    }
 }
 
 function buildTaskTree(tasks) {
