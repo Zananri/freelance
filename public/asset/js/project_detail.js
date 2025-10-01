@@ -26,6 +26,38 @@
         }
     }
 
+    function showFloatingAlert(message, type = "success", delayMs = 2500) {
+        try {
+            if (typeof window.showAlertMsg === "function") {
+                window.showAlertMsg(message, "light", delayMs);
+                return;
+            }
+            const box = document.querySelector(
+                ".box-alert-messages .box-message"
+            );
+            if (box && box.parentElement) {
+                box.parentElement.style.display = "block";
+                box.classList.remove("success", "warning", "error", "light");
+                box.classList.add("light");
+                box.innerHTML = message;
+                setTimeout(() => {
+                    if (typeof window.hideAlertMsg === "function") {
+                        window.hideAlertMsg();
+                    } else {
+                        box.parentElement.style.display = "none";
+                    }
+                }, delayMs);
+                return;
+            }
+        } catch (e) {
+                /* no-op */
+            }
+            // No blocking native alert fallback; prefer console log to avoid modal dialogs.
+            try {
+                console.log('[floatingAlert]', typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message));
+            } catch (e) {}
+    }
+
     // Helper: human-friendly relative time formatter used in feedback modals
     function timeAgo(createdAt){
         try {
@@ -1395,13 +1427,11 @@
                             }
 
                             const item = document.createElement('div');
-                            // use same classes as project.js so styling (filename color, icon color) matches
                             item.className = 'reference-files-list d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
                             const lower = String(fileName || '').toLowerCase();
                             const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
 
-                            // Only show a thumbnail when the file is an image; for other types we don't render a preview
                             if (isImage) {
                                 const img = document.createElement('img');
                                 img.src = fileUrl;
@@ -1418,6 +1448,7 @@
                             title.textContent = fileName;
                             item.appendChild(title);
 
+                            // Download button
                             const dlBtn = document.createElement('button');
                             dlBtn.type = 'button';
                             dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
@@ -1438,8 +1469,58 @@
                                     window.open(fileUrl, '_blank');
                                 }
                             });
-
                             item.appendChild(dlBtn);
+
+                            // Delete button
+                            const delBtn = document.createElement('button');
+                            delBtn.type = 'button';
+                            delBtn.className = 'btn btn-sm btn-link p-0 ms-1 text-danger';
+                            delBtn.title = 'Delete';
+                            delBtn.innerHTML = '<span class="material-symbols-outlined">delete</span>';
+
+                            delBtn.addEventListener('click', function (ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+
+                                const deleteModalEl = document.getElementById('deleteFileModal');
+                                const deleteFileNameEl = document.getElementById('deleteFileName');
+                                const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
+
+                                if (!deleteModalEl || !deleteFileNameEl || !confirmDeleteBtn) return;
+
+                                // Simpan instance modal reference files
+                                const refModalInstance = bootstrap.Modal.getInstance(document.getElementById('projectFilesModal'));
+                                if (refModalInstance) refModalInstance.hide(); // tutup modal utama
+
+                                deleteFileNameEl.textContent = fileName;
+
+                                const deleteModalInstance = new bootstrap.Modal(deleteModalEl);
+                                deleteModalInstance.show();
+
+                                // Hapus event listener lama supaya ga numpuk
+                                confirmDeleteBtn.onclick = function () {
+                                    $.ajax({
+                                        url: appBase + '/project/' + projectId + '/reference-file',
+                                        method: 'DELETE',
+                                        data: { fileName: fileName },
+                                        success: function () {
+                                            item.remove();
+                                            deleteModalInstance.hide();
+                                        },
+                                        error: function () {
+                                            alert('Failed to delete file.');
+                                            deleteModalInstance.hide();
+                                        }
+                                    });
+                                };
+
+                                // Kalau modal delete ditutup tanpa delete (cancel)
+                                deleteModalEl.addEventListener('hidden.bs.modal', function () {
+                                    if (refModalInstance) refModalInstance.show(); // buka kembali modal reference files
+                                }, { once: true });
+                            });
+
+                            item.appendChild(delBtn);
 
                             listEl.appendChild(item);
                         });
@@ -2825,3 +2906,158 @@
         }); // end $(function)
 
     })(jQuery);
+
+    function initAddProjectReferenceFilesModal() {
+    const openBtn = document.getElementById('openAddProjectReferenceFilesBtn');
+    const refModalEl = document.getElementById('addProjectReferenceFilesModal');
+    const refModal = refModalEl ? new bootstrap.Modal(refModalEl) : null;
+    const refForm = document.getElementById('addProjectReferenceFilesForm');
+    const fileInput = document.getElementById('add_project_reference_files');
+    const preview = document.getElementById('add_project_reference_files_preview');
+    const submitBtn = document.getElementById('submitAddProjectReferenceFiles');
+
+    if (!openBtn || !refModalEl || !refForm || !fileInput || !preview || !submitBtn) return;
+
+    openBtn.addEventListener('click', function (e) {
+        try {
+            const parentModalEl = document.getElementById('projectFilesModal');
+            if (parentModalEl) {
+                const cm = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                cm.hide();
+            }
+        } catch(_) {}
+
+        // try to obtain project id from dataset on projectFilesModal or list container
+        const projectId = document.getElementById('projectFilesModal')?.dataset?.projectId || document.getElementById('projectReferenceFilesList')?.dataset?.projectId || this.dataset?.projectId || '';
+        if (!projectId) {
+            try { showFloatingAlert && showFloatingAlert('Project ID not found. Cannot add files.', 'danger'); } catch(_) {}
+            return;
+        }
+        const hidden = document.getElementById('addRefProjectId');
+        if (hidden) hidden.value = projectId || '';
+        // reset previous selection
+        fileInput.value = '';
+        preview.innerHTML = '';
+        window.addProjectRefSelectedFiles = [];
+        refModal.show();
+    });
+
+    fileInput.addEventListener('change', function () {
+        const files = Array.from(this.files || []);
+        window.addProjectRefSelectedFiles = window.addProjectRefSelectedFiles || [];
+        window.addProjectRefSelectedFiles = window.addProjectRefSelectedFiles.concat(files);
+        renderAddProjectRefSelectedFiles();
+        this.value = '';
+    });
+
+    function renderAddProjectRefSelectedFiles() {
+        preview.innerHTML = '';
+        const list = document.createElement('div');
+        list.className = 'selected-files-list mt-2';
+        (window.addProjectRefSelectedFiles || []).forEach((file, idx) => {
+            const item = document.createElement('div');
+            item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+            if (file && file.type && file.type.indexOf('image') === 0) {
+                const img = document.createElement('img');
+                const url = URL.createObjectURL(file);
+                img.src = url; img.width = 28; img.height = 28; img.style.objectFit = 'cover'; img.style.borderRadius = '50%'; img.alt = file.name;
+                img.onload = function(){ try{ URL.revokeObjectURL(url); } catch(_){} };
+                item.appendChild(img);
+            } else {
+                const badge = document.createElement('div');
+                item.appendChild(badge);
+            }
+
+            const title = document.createElement('span'); title.className = 'flex-grow-1'; title.textContent = file.name; item.appendChild(title);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button'; removeBtn.className = 'btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight = '1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+            removeBtn.addEventListener('click', function () {
+                window.addProjectRefSelectedFiles.splice(idx, 1);
+                renderAddProjectRefSelectedFiles();
+            });
+            item.appendChild(removeBtn);
+
+            list.appendChild(item);
+        });
+
+        preview.appendChild(list);
+    }
+
+    submitBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        const projectId = document.getElementById('addRefProjectId')?.value;
+        if (!projectId) {
+            showFloatingAlert && showFloatingAlert('Project ID not found.', 'danger');
+            return;
+        }
+
+        const files = window.addProjectRefSelectedFiles || [];
+        if (!files.length) {
+            showFloatingAlert && showFloatingAlert('Please select at least one file to upload.', 'warning');
+            return;
+        }
+
+        const fd = new FormData();
+        files.forEach(f => fd.append('reference_files[]', f));
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        fetch(appUrl + '/project/' + encodeURIComponent(projectId) + '/reference-file', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: fd
+        }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
+        .then(payload => {
+            showFloatingAlert && showFloatingAlert(payload.message || 'Files uploaded', 'success', 2000);
+            refModal.hide();
+            window.addProjectRefSelectedFiles = [];
+            renderAddProjectRefSelectedFiles();
+
+            // Update project file count badges immediately and robustly
+            try {
+                var count = 0;
+                if (Array.isArray(payload.reference_files)) {
+                    count = payload.reference_files.length;
+                } else if (typeof payload.reference_files === 'number') {
+                    count = payload.reference_files;
+                } else {
+                    // fallback: use uploaded files length if server didn't return the list
+                    try { count = (window.addProjectRefSelectedFiles && Array.isArray(window.addProjectRefSelectedFiles)) ? window.addProjectRefSelectedFiles.length : 0; } catch(_) { count = 0; }
+                }
+
+                // Update every .project-file-count that matches this projectId
+                document.querySelectorAll('.project-file-count[data-project-id="' + projectId + '"]').forEach(function(el){
+                    try {
+                        el.textContent = String(count || 0);
+                        el.style.display = (count > 0) ? '' : 'none';
+                    } catch(_){}
+                });
+
+                // Also handle any attach button that may contain a badge without data attribute
+                document.querySelectorAll('.project-attach-file[data-project-id="' + projectId + '"]').forEach(function(btn){
+                    try {
+                        var inner = btn.querySelector('.project-file-count');
+                        if (inner) {
+                            inner.textContent = String(count || 0);
+                            inner.style.display = (count > 0) ? '' : 'none';
+                        }
+                    } catch(_){}
+                });
+            } catch(_){ }
+
+            // Reopen project files modal to show the refreshed list
+            try { setTimeout(function(){ window.showProjectFiles && window.showProjectFiles(projectId); }, 220); } catch(_){}
+        }).catch(err => {
+            console.error('Upload failed', err);
+            try { const msg = (err && (err.message || (err.error || (err.errors && err.errors[0]) ) )) || 'Upload failed'; showFloatingAlert && showFloatingAlert(msg, 'danger'); } catch(_){}
+        }).finally(() => {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Upload';
+        });
+    });
+}
