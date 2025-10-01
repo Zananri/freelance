@@ -170,19 +170,19 @@
                                 </thead>
                                 <tbody id="timelineRows"></tbody>
                             </table>
-                        </div>
-                        <div class="timeline-legend d-flex justify-content-start gap-5">
-                            <div class="legend-item d-flex align-items-center gap-2">
-                                <span class="legend-dot legend-yellow"></span>
-                                <span class="legend-text" id="inProgressCount">0 Task</span>
-                            </div>
-                            <div class="legend-item d-flex align-items-center gap-2">
-                                <span class="legend-dot legend-red"></span>
-                                <span class="legend-text" id="lateCount">0 Task</span>
-                            </div>
-                            <div class="legend-item d-flex align-items-center gap-2">
-                                <span class="legend-dot legend-green"></span>
-                                <span class="legend-text" id="completedCount">0 Task</span>
+                            <div class="timeline-legend d-flex justify-content-start gap-5">
+                                <div class="legend-item d-flex align-items-center gap-2">
+                                    <span class="legend-dot legend-yellow"></span>
+                                    <span class="legend-text" id="inProgressCount">0 Task</span>
+                                </div>
+                                <div class="legend-item d-flex align-items-center gap-2">
+                                    <span class="legend-dot legend-red"></span>
+                                    <span class="legend-text" id="lateCount">0 Task</span>
+                                </div>
+                                <div class="legend-item d-flex align-items-center gap-2">
+                                    <span class="legend-dot legend-green"></span>
+                                    <span class="legend-text" id="completedCount">0 Task</span>
+                                </div>
                             </div>
                         </div>
 

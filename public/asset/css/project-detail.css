@@ -1352,6 +1352,14 @@
     font-weight: 500;
 }
 
+.timeline-legend {
+    position: sticky;
+    bottom: 0;
+    background: rgb(240, 241, 248);
+    padding: 10px 0;
+    z-index: 2;
+}
+
 #task-legend-inline {
     gap: 8px;
 }
@@ -1380,8 +1388,8 @@ input[type="file"]::file-selector-button {
 
 #view-more-wrapper {
     position: absolute  ;
-    right: 0;
-    bottom: 0;
+    right: 1%;
+    bottom: 3%;
     z-index: 10;
     display: flex;
     justify-content: end;
