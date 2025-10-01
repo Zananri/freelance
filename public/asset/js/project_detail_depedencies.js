@@ -1,4 +1,3 @@
-const taskTreeState = { roots: [], renderedCount: 0, batchSize: 1000 };
 let currentMaxLevel = 6;
 let allTasks = [];
 
@@ -20,11 +19,11 @@ function renderChildGroups(task, $container, $template) {
 function updateViewMoreButton() {
     if ($("#view-more-wrapper").length === 0) {
         const wrapper = $(`
-            <div id="view-more-wrapper" class="text-center mt-3">
+            <div id="view-more-wrapper" class="text-center">
                 <button id="view-more-btn" class="btn btn-submit-black">View More</button>
             </div>
         `);
-        $("#task-tree .root-column").after(wrapper);
+        $("#task-legend").append(wrapper);
         $("#view-more-btn").on("click", function () {
             currentMaxLevel += 7;
             $.ajax({
@@ -35,10 +34,11 @@ function updateViewMoreButton() {
             })
             .done(function (response) {
                 if (response.status === "success" && response.data) {
-                    const previousLength = allTasks.length;
                     allTasks = response.data;
                     renderTaskList(allTasks);
-                    if (allTasks.length <= previousLength) {
+                    if (response.has_more) {
+                        $("#view-more-wrapper").show();
+                    } else {
                         $("#view-more-wrapper").hide();
                     }
                 }
@@ -48,8 +48,7 @@ function updateViewMoreButton() {
             });
         });
     }
-    // Show the button if there might be more levels
-    $("#view-more-wrapper").show();
+    $("#view-more-btn").show();
 }
 
 function buildTaskTree(tasks) {
@@ -417,7 +416,11 @@ function getTaskByProject(projectId) {
             }
             allTasks = response.data;
             renderTaskList(allTasks);
-            updateViewMoreButton();
+            if (response.has_more) {
+                updateViewMoreButton();
+            } else {
+                $("#view-more-wrapper").hide();
+            }
         })
         .fail(function () {
             $("#task-loading").addClass("d-none");
