@@ -1039,9 +1039,15 @@
                     // use existing project Cancel style
                     cancelBtn.className = 'btn btn-custom-close';
                     cancelBtn.textContent = 'Cancel';
-                    // size to match other buttons on page
-                    cancelBtn.style.padding = '6px 12px';
-                    cancelBtn.style.fontSize = '13px';
+                    // match modal footer .btn-custom-close appearance (inline because overlay isn't inside modal footer)
+                    cancelBtn.style.backgroundColor = '#e3e4ee';
+                    cancelBtn.style.color = '#444444';
+                    cancelBtn.style.fontSize = '12px';
+                    cancelBtn.style.padding = '10px';
+                    cancelBtn.style.height = '45px';
+                    cancelBtn.style.border = 'none';
+                    cancelBtn.style.borderRadius = '10px';
+                    cancelBtn.style.minWidth = '120px';
 
                     var sendBtn = document.createElement('button');
                     sendBtn.type = 'button';
