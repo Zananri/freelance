@@ -31,24 +31,34 @@
         try {
             if (typeof window.showAlertMsg === "function") {
                 window.showAlertMsg(message, "light", delayMs);
-                return;
-            }
-            const box = document.querySelector(
-                ".box-alert-messages .box-message"
-            );
-            if (box && box.parentElement) {
-                box.parentElement.style.display = "block";
-                box.classList.remove("success", "warning", "error", "light");
-                box.classList.add("light");
-                box.innerHTML = message;
-                setTimeout(() => {
-                    if (typeof window.hideAlertMsg === "function") {
-                        window.hideAlertMsg();
-                    } else {
-                        box.parentElement.style.display = "none";
-                    }
-                }, delayMs);
-                return;
+                                    try { 
+                                        // clear native inputs
+                                        var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value = '';
+                                        var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value = '';
+                                    }catch(_){ }
+                                    try { 
+                                        // clear selected files array and remove preview node(s)
+                                        window.inlineFeedbackSelectedFiles = [];
+                                        if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview();
+                                        var pNode = document.getElementById('inline_feedback_files_preview'); if (pNode && pNode.parentNode) pNode.parentNode.removeChild(pNode);
+                                        // also clear any template preview if present
+                                        var alt = document.getElementById('add_project_reference_files_preview'); if (alt) alt.innerHTML = '';
+                                    }catch(_){ }
+                                    try {
+                                        // clear hidden textarea fallback
+                                        var tx = document.getElementById('inline_feedback_comment'); if (tx) tx.value = '';
+                                    } catch(_) {}
+                                    try {
+                                        // clear Quill editor content and selection safely
+                                        if (window.__quillProjectFeedbackInline && window.__quillProjectFeedbackInline.root) {
+                                            try { window.__quillProjectFeedbackInline.root.innerHTML = ''; window.__quillProjectFeedbackInline.setSelection && window.__quillProjectFeedbackInline.setSelection(0); } catch(_){}
+                                        }
+                                    } catch(_){}
+                                    try {
+                                        // force re-init of Quill instance (if needed)
+                                        window.__quillProjectFeedbackInline = null;
+                                        initInlineFeedback && initInlineFeedback();
+                                    } catch(_){}
             }
         } catch (e) {
             /* no-op */
@@ -1013,8 +1023,26 @@
                     var photoInput = document.getElementById('inline_feedback_image_input');
                     var filesInput = document.getElementById('inline_feedback_files_input');
 
+                    // maintain an array of selected files for inline preview & upload
+                    window.inlineFeedbackSelectedFiles = window.inlineFeedbackSelectedFiles || [];
+
                     if (photoBtn && photoInput) photoBtn.addEventListener('click', function(){ photoInput.click(); });
                     if (fileBtn && filesInput) fileBtn.addEventListener('click', function(){ filesInput.click(); });
+                    // handle file (non-image) attachments preview
+                    if (filesInput) {
+                        filesInput.addEventListener('change', function(ev){
+                            try {
+                                var files = Array.from(this.files || []);
+                                if (!files.length) return;
+                                // append to selected array
+                                window.inlineFeedbackSelectedFiles = (window.inlineFeedbackSelectedFiles || []).concat(files);
+                                renderInlineFilesPreview();
+                                // clear native input so user can reselect same file later if needed
+                                try { this.value = ''; } catch(_){}
+                            } catch(_){}
+                        });
+                    }
+
                     // show image preview overlay when a photo is selected
                     if (photoInput) {
                         photoInput.addEventListener('change', function(ev){
@@ -1027,11 +1055,75 @@
                                 reader.onload = function(e){
                                     try {
                                         showInlineImagePreview(f, e.target.result);
-                                    } catch(_){}
+                                    } catch(_){ }
                                 };
                                 reader.readAsDataURL(f);
-                            } catch(_){}
+                            } catch(_){ }
                         });
+                    }
+
+                    // render inline files preview container (insert before editor)
+                    function renderInlineFilesPreview() {
+                        try {
+                            var editorEl = document.getElementById('inline_feedback_editor');
+                            if (!editorEl) return;
+                            var parent = editorEl.parentNode;
+                            if (!parent) return;
+                            var previewId = 'inline_feedback_files_preview';
+                            var preview = document.getElementById(previewId);
+                            var sel = (window.inlineFeedbackSelectedFiles || []);
+
+                            // if no files selected, remove preview container if exists
+                            if (!sel.length) {
+                                try { if (preview && preview.parentNode) preview.parentNode.removeChild(preview); } catch(_){}
+                                return;
+                            }
+
+                            if (!preview) {
+                                preview = document.createElement('div');
+                                preview.id = previewId;
+                                preview.className = 'mt-2';
+                                parent.insertBefore(preview, editorEl);
+                            }
+                            // build list
+                            preview.innerHTML = '';
+                            var listWrap = document.createElement('div');
+                            listWrap.className = 'selected-files-list mt-2';
+                            sel.forEach(function(f, idx){
+                                try {
+                                    var item = document.createElement('div');
+                                    item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+                                    var iconWrap = document.createElement('div');
+                                    // small file icon placeholder
+                                    iconWrap.innerHTML = '<span class="material-symbols-outlined">description</span>';
+                                    iconWrap.style.minWidth = '28px';
+                                    iconWrap.style.textAlign = 'center';
+
+                                    var name = document.createElement('span');
+                                    name.className = 'flex-grow-1';
+                                    var sizeMb = (f.size || 0) / 1024 / 1024;
+                                    name.textContent = (f.name || '') + (isFinite(sizeMb) ? ' (' + sizeMb.toFixed(2) + ' MB)' : '');
+
+                                    var rm = document.createElement('button');
+                                    rm.type = 'button';
+                                    rm.className = 'btn btn-sm btn-remove-task remove-task';
+                                    rm.style.lineHeight = '1';
+                                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                    rm.addEventListener('click', function(){
+                                        try {
+                                            window.inlineFeedbackSelectedFiles.splice(idx, 1);
+                                            renderInlineFilesPreview();
+                                        } catch(_){}
+                                    });
+
+                                    item.appendChild(iconWrap);
+                                    item.appendChild(name);
+                                    item.appendChild(rm);
+                                    listWrap.appendChild(item);
+                                } catch(_){}
+                            });
+                            preview.appendChild(listWrap);
+                        } catch(e){ }
                     }
                 } catch(_){}
 
@@ -1042,10 +1134,23 @@
                         sendBtn.addEventListener('click', function(){
                             try {
                                 var q = window.__quillProjectFeedbackInline;
-                                if (!q) { window.showFloatingAlert && window.showFloatingAlert('Editor not ready','warning'); return; }
-                                var html = q.root.innerHTML || '';
-                                // require non-empty text
-                                if (!html || String(html).replace(/<[^>]+>/g,'').trim() === '') { window.showFloatingAlert && window.showFloatingAlert('Please write feedback','warning'); return; }
+                                // prefer Quill content, fallback to hidden textarea
+                                var html = '';
+                                try {
+                                    if (q && q.root) html = q.root.innerHTML || '';
+                                } catch(_) { html = ''; }
+                                try {
+                                    if ((!html || String(html).replace(/<[^>]+>/g,'').trim() === '') && document.getElementById('inline_feedback_comment')) {
+                                        var ta = document.getElementById('inline_feedback_comment'); if (ta) html = ta.value || html;
+                                    }
+                                } catch(_) {}
+
+                                // allow empty comment only if at least one file is attached (image or reference)
+                                var hasImage = false, hasRefFiles = false;
+                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) hasImage = true; } catch(_){}
+                                try { if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) hasRefFiles = true; else { var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) hasRefFiles = true; } } catch(_){}
+                                var plainText = String(html || '').replace(/<[^>]+>/g,'').trim();
+                                if (!plainText && !hasImage && !hasRefFiles) { window.showFloatingAlert && window.showFloatingAlert('Please write feedback or attach a file','warning'); return; }
 
                                 var fd = new FormData();
                                 fd.append('feedback_comment', html);
@@ -1053,13 +1158,24 @@
                                 fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
 
                                 // attach image/file inputs if present
-                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]); }catch(_){}
-                                try { var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) { Array.from(fi.files).forEach(function(f){ fd.append('reference_files[]', f); }); } }catch(_){}
+                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]); }catch(_){ }
+                                try {
+                                    // prefer selected files tracked in inlineFeedbackSelectedFiles
+                                    if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) {
+                                        window.inlineFeedbackSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); });
+                                    } else {
+                                        var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) { Array.from(fi.files).forEach(function(f){ fd.append('reference_files[]', f); }); }
+                                    }
+                                } catch(_){ }
 
                                 // basic UI feedback
                                 var original = sendBtn.innerHTML;
                                 sendBtn.disabled = true;
                                 sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+                                // Optimistic UI: hide preview immediately, but keep a backup to restore on failure
+                                var _backupSelectedFiles = (window.inlineFeedbackSelectedFiles || []).slice();
+                                try { window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); } catch(_) {}
 
                                 fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks', {
                                     method: 'POST',
@@ -1073,12 +1189,29 @@
                                     // reload feedback list
                                     try { loadFeedbackData(getMeta('project-id')); } catch(_){}
                                     // clear editor and inputs
-                                    try { if (window.__quillProjectFeedbackInline) window.__quillProjectFeedbackInline.root.innerHTML = ''; }catch(_){}
-                                    try { if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = ''; }catch(_){}
-                                    try { if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; }catch(_){}
+                                    try { 
+                                        // clear image input
+                                        if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = ''; 
+                                    }catch(_){ }
+                                    try { 
+                                        if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; 
+                                    }catch(_){ }
+                                    try { 
+                                        // clear selected files and preview
+                                        window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); 
+                                    }catch(_){ }
+                                    try {
+                                        // fully reset Quill editor instance: dispose and re-initialize
+                                        if (window.__quillProjectFeedbackInline && typeof window.__quillProjectFeedbackInline === 'object') {
+                                            try { window.__quillProjectFeedbackInline = null; } catch(_){}
+                                        }
+                                    } catch(_){} 
+                                    try { initInlineFeedback && initInlineFeedback(); } catch(_){}
                                 }).catch(function(err){
+                                    // restore preview from backup
+                                    try { window.inlineFeedbackSelectedFiles = _backupSelectedFiles || []; renderInlineFilesPreview && renderInlineFilesPreview(); } catch(_) {}
                                     var msg = 'Failed to submit feedback';
-                                    try { if (err && err.errors) msg = Object.values(err.errors).join('\n'); else if (err && err.message) msg = err.message; } catch(_){}
+                                    try { if (err && err.errors) msg = Object.values(err.errors).join('\n'); else if (err && err.message) msg = err.message; } catch(_){ }
                                     window.showFloatingAlert && window.showFloatingAlert(msg,'warning',4000);
                                 }).finally(function(){ sendBtn.disabled = false; sendBtn.innerHTML = original; });
                             } catch (e) { try { window.showFloatingAlert && window.showFloatingAlert('Failed to submit feedback','warning'); } catch(_){} }
