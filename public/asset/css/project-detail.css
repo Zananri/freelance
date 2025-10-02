@@ -1409,7 +1409,7 @@ input[type="file"]::file-selector-button {
 }
 
 .feedback-content {
-    max-height: calc(100vh - 600px);
+    max-height: calc(100vh - 585px);
     min-height: 140px;
     overflow-y: auto;
     margin-bottom: 15px;
@@ -1432,6 +1432,9 @@ input[type="file"]::file-selector-button {
 .feedback-form {
     background: #F7F8FD;
     border-radius: 10px;
+    align-items: end;
+    bottom: 0;
+    position: relative;
 }
 
 .feedback-form input {

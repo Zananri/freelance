@@ -137,7 +137,7 @@
             {{-- Bottom Content --}}
             <div class="row">
                 <div class="col-md-4 mb-3 feedback-detail-project">
-                    <div class="body-content rounded-4 p-4">
+                    <div class="body-content rounded-4 p-3">
                         <div class="d-flex justify-content-between">
                             <h5 class="feedback-title">Feedback</h5>
                             <button class="btn btn-sm border-0" id="fullscreen-feedback-btn">
