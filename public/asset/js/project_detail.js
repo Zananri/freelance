@@ -31,24 +31,34 @@
         try {
             if (typeof window.showAlertMsg === "function") {
                 window.showAlertMsg(message, "light", delayMs);
-                return;
-            }
-            const box = document.querySelector(
-                ".box-alert-messages .box-message"
-            );
-            if (box && box.parentElement) {
-                box.parentElement.style.display = "block";
-                box.classList.remove("success", "warning", "error", "light");
-                box.classList.add("light");
-                box.innerHTML = message;
-                setTimeout(() => {
-                    if (typeof window.hideAlertMsg === "function") {
-                        window.hideAlertMsg();
-                    } else {
-                        box.parentElement.style.display = "none";
-                    }
-                }, delayMs);
-                return;
+                                    try { 
+                                        // clear native inputs
+                                        var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value = '';
+                                        var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value = '';
+                                    }catch(_){ }
+                                    try { 
+                                        // clear selected files array and remove preview node(s)
+                                        window.inlineFeedbackSelectedFiles = [];
+                                        if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview();
+                                        var pNode = document.getElementById('inline_feedback_files_preview'); if (pNode && pNode.parentNode) pNode.parentNode.removeChild(pNode);
+                                        // also clear any template preview if present
+                                        var alt = document.getElementById('add_project_reference_files_preview'); if (alt) alt.innerHTML = '';
+                                    }catch(_){ }
+                                    try {
+                                        // clear hidden textarea fallback
+                                        var tx = document.getElementById('inline_feedback_comment'); if (tx) tx.value = '';
+                                    } catch(_) {}
+                                    try {
+                                        // clear Quill editor content and selection safely
+                                        if (window.__quillProjectFeedbackInline && window.__quillProjectFeedbackInline.root) {
+                                            try { window.__quillProjectFeedbackInline.root.innerHTML = ''; window.__quillProjectFeedbackInline.setSelection && window.__quillProjectFeedbackInline.setSelection(0); } catch(_){}
+                                        }
+                                    } catch(_){}
+                                    try {
+                                        // force re-init of Quill instance (if needed)
+                                        window.__quillProjectFeedbackInline = null;
+                                        initInlineFeedback && initInlineFeedback();
+                                    } catch(_){}
             }
         } catch (e) {
             /* no-op */
@@ -1061,6 +1071,14 @@
                             if (!parent) return;
                             var previewId = 'inline_feedback_files_preview';
                             var preview = document.getElementById(previewId);
+                            var sel = (window.inlineFeedbackSelectedFiles || []);
+
+                            // if no files selected, remove preview container if exists
+                            if (!sel.length) {
+                                try { if (preview && preview.parentNode) preview.parentNode.removeChild(preview); } catch(_){}
+                                return;
+                            }
+
                             if (!preview) {
                                 preview = document.createElement('div');
                                 preview.id = previewId;
@@ -1071,7 +1089,7 @@
                             preview.innerHTML = '';
                             var listWrap = document.createElement('div');
                             listWrap.className = 'selected-files-list mt-2';
-                            (window.inlineFeedbackSelectedFiles || []).forEach(function(f, idx){
+                            sel.forEach(function(f, idx){
                                 try {
                                     var item = document.createElement('div');
                                     item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
@@ -1142,6 +1160,10 @@
                                 sendBtn.disabled = true;
                                 sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
 
+                                // Optimistic UI: hide preview immediately, but keep a backup to restore on failure
+                                var _backupSelectedFiles = (window.inlineFeedbackSelectedFiles || []).slice();
+                                try { window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); } catch(_) {}
+
                                 fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks', {
                                     method: 'POST',
                                     headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
@@ -1154,13 +1176,29 @@
                                     // reload feedback list
                                     try { loadFeedbackData(getMeta('project-id')); } catch(_){}
                                     // clear editor and inputs
-                                    try { if (window.__quillProjectFeedbackInline) window.__quillProjectFeedbackInline.root.innerHTML = ''; }catch(_){}
-                                    try { if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = ''; }catch(_){ }
-                                    try { if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; }catch(_){ }
-                                    try { window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); }catch(_){ }
+                                    try { 
+                                        // clear image input
+                                        if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = ''; 
+                                    }catch(_){ }
+                                    try { 
+                                        if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; 
+                                    }catch(_){ }
+                                    try { 
+                                        // clear selected files and preview
+                                        window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); 
+                                    }catch(_){ }
+                                    try {
+                                        // fully reset Quill editor instance: dispose and re-initialize
+                                        if (window.__quillProjectFeedbackInline && typeof window.__quillProjectFeedbackInline === 'object') {
+                                            try { window.__quillProjectFeedbackInline = null; } catch(_){}
+                                        }
+                                    } catch(_){} 
+                                    try { initInlineFeedback && initInlineFeedback(); } catch(_){}
                                 }).catch(function(err){
+                                    // restore preview from backup
+                                    try { window.inlineFeedbackSelectedFiles = _backupSelectedFiles || []; renderInlineFilesPreview && renderInlineFilesPreview(); } catch(_) {}
                                     var msg = 'Failed to submit feedback';
-                                    try { if (err && err.errors) msg = Object.values(err.errors).join('\n'); else if (err && err.message) msg = err.message; } catch(_){}
+                                    try { if (err && err.errors) msg = Object.values(err.errors).join('\n'); else if (err && err.message) msg = err.message; } catch(_){ }
                                     window.showFloatingAlert && window.showFloatingAlert(msg,'warning',4000);
                                 }).finally(function(){ sendBtn.disabled = false; sendBtn.innerHTML = original; });
                             } catch (e) { try { window.showFloatingAlert && window.showFloatingAlert('Failed to submit feedback','warning'); } catch(_){} }
