@@ -49,12 +49,17 @@ class GenerateTasksFromSchedules extends Command
             }
         }
 
-        // Fetch active schedules where next_run_at is due OR within lookahead window OR needs initialization
+        // Fetch active schedules where next_run_at is due OR within lookahead window OR needs initialization OR has expired end_at
         $schedulesQuery = TaskSchedule::query()
             ->where('is_active', true)
             ->where(function ($q) use ($now, $windowEnd) {
                 $q->whereNull('next_run_at')
-                    ->orWhere('next_run_at', '<=', $windowEnd);
+                    ->orWhere('next_run_at', '<=', $windowEnd)
+                    // Also include schedules with end_at that has passed (so we can deactivate them)
+                    ->orWhere(function ($subQ) use ($now) {
+                        $subQ->whereNotNull('end_at')
+                             ->whereRaw('DATE(end_at) <= ?', [$now->toDateString()]);
+                    });
             })
             ->where(function ($q) {
                 $q->whereNull('status')->orWhere('status', '!=', 'DELETED');
@@ -82,6 +87,25 @@ class GenerateTasksFromSchedules extends Command
             try {
                 DB::beginTransaction();
 
+                // First check: if today has reached/passed end_at, deactivate schedule immediately
+                if ($schedule->end_at) {
+                    $end = Carbon::parse($schedule->end_at)->startOfDay();
+                    if ($now->startOfDay()->greaterThanOrEqualTo($end)) {
+                        // Today is at/after end date -> deactivate and skip
+                        $schedule->is_active = false;
+                        $schedule->next_run_at = null;
+                        $schedule->last_generated_at = $now;
+                        $schedule->save();
+                        \Log::info('[schedules:generate] Deactivated because today reached/passed end date', [
+                            'id' => $schedule->id,
+                            'today' => $now->startOfDay()->toDateString(),
+                            'end_date' => $end->toDateString()
+                        ]);
+                        DB::commit();
+                        continue;
+                    }
+                }
+
                 // Determine the run time to use (initialize from recurrence_start_date if next_run_at is null and start_date is in the past or today)
                 $runAt = $schedule->next_run_at ? Carbon::parse($schedule->next_run_at) : $this->calculateInitialRunAt($schedule, $now);
 
@@ -91,14 +115,15 @@ class GenerateTasksFromSchedules extends Command
                     continue;
                 }
 
-                // Respect end date (treat recurrence_end_date as exclusive: when runAt >= end, do not run)
-                if ($schedule->recurrence_end_date) {
-                    $end = Carbon::parse($schedule->recurrence_end_date)->startOfDay();
+                // Second check: ensure the calculated runAt is still before end date
+                if ($schedule->end_at) {
+                    $end = Carbon::parse($schedule->end_at)->startOfDay();
                     if ($runAt->greaterThanOrEqualTo($end)) {
-                        // At or past end (exclusive) -> deactivate
+                        // Calculated runAt is at or past end (exclusive) -> deactivate
                         $schedule->is_active = false;
+                        $schedule->next_run_at = null;
                         $schedule->save();
-                        \Log::info('[schedules:generate] Deactivated at/after end date (exclusive)', ['id' => $schedule->id]);
+                        \Log::info('[schedules:generate] Deactivated because calculated runAt at/after end date', ['id' => $schedule->id]);
                         DB::commit();
                         continue;
                     }
@@ -129,7 +154,7 @@ class GenerateTasksFromSchedules extends Command
                     $next = $this->calculateNextRunAt($schedule, $runAt);
 
                     // If we have an end date, and the computed next is at-or-after the end (exclusive), then deactivate instead of scheduling further runs
-                    if ($schedule->recurrence_end_date && $next->greaterThanOrEqualTo(Carbon::parse($schedule->recurrence_end_date)->startOfDay())) {
+                    if ($schedule->end_at && $next->greaterThanOrEqualTo(Carbon::parse($schedule->end_at)->startOfDay())) {
                         $schedule->last_generated_at = $now;
                         $schedule->next_run_at = null;
                         $schedule->is_active = false;
@@ -153,14 +178,41 @@ class GenerateTasksFromSchedules extends Command
 
                 // If we've exited loop, set next_run_at to first occurrence after windowEnd (or keep existing behavior)
                 if ($firstPostWindow) {
-                    $schedule->last_generated_at = $now;
-                    $schedule->next_run_at = $firstPostWindow->startOfDay();
-                    $schedule->save();
-                    \Log::info('[schedules:generate] Advanced schedule', [
-                        'id' => $schedule->id,
-                        'next_run_at' => $schedule->next_run_at,
-                        'last_generated_at' => $schedule->last_generated_at,
-                    ]);
+                    // If an end date is configured, ensure we don't schedule next_run_at at-or-after the end (exclusive)
+                    if ($schedule->end_at) {
+                        $end = Carbon::parse($schedule->end_at)->startOfDay();
+                        if ($firstPostWindow->greaterThanOrEqualTo($end)) {
+                            // Next occurrence would fall on/after end -> deactivate schedule instead of scheduling further runs
+                            $schedule->last_generated_at = $now;
+                            $schedule->next_run_at = null;
+                            $schedule->is_active = false;
+                            $schedule->save();
+                            \Log::info('[schedules:generate] Deactivated because next post-window run reaches/exceeds end date', [
+                                'id' => $schedule->id,
+                                'end_at' => $schedule->end_at,
+                                'first_post_window' => $firstPostWindow,
+                                'last_generated_at' => $schedule->last_generated_at,
+                            ]);
+                        } else {
+                            $schedule->last_generated_at = $now;
+                            $schedule->next_run_at = $firstPostWindow->startOfDay();
+                            $schedule->save();
+                            \Log::info('[schedules:generate] Advanced schedule', [
+                                'id' => $schedule->id,
+                                'next_run_at' => $schedule->next_run_at,
+                                'last_generated_at' => $schedule->last_generated_at,
+                            ]);
+                        }
+                    } else {
+                        $schedule->last_generated_at = $now;
+                        $schedule->next_run_at = $firstPostWindow->startOfDay();
+                        $schedule->save();
+                        \Log::info('[schedules:generate] Advanced schedule', [
+                            'id' => $schedule->id,
+                            'next_run_at' => $schedule->next_run_at,
+                            'last_generated_at' => $schedule->last_generated_at,
+                        ]);
+                    }
                 }
 
                 DB::commit();

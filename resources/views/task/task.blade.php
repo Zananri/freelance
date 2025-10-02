@@ -675,7 +675,8 @@
     <!-- Task Feedback Modal -->
     <div class="modal fade" id="taskFeedbackModal" tabindex="-1" aria-labelledby="taskFeedbackModalLabel"
         aria-hidden="true" data-task-id="{{ $taskId ?? '' }}"
-        data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
+        data-employee-id="{{ auth()->user()->employee->id ?? '' }}"
+        data-employee-department-id="{{ auth()->user()->employee->department_id ?? '' }}">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">

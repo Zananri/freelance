@@ -32,6 +32,19 @@ trait ScheduleImmediateGeneration
         $now = Carbon::now();
         $today = $now->copy()->startOfDay();
 
+        // First check: if today has reached/passed end_at, deactivate schedule immediately
+        if ($s->end_at) {
+            $end = Carbon::parse($s->end_at)->startOfDay();
+            if ($today->greaterThanOrEqualTo($end)) {
+                // Today is at/after end date -> deactivate and return
+                $s->is_active = false;
+                $s->next_run_at = null;
+                $s->last_generated_at = $now;
+                $s->save();
+                return;
+            }
+        }
+
         // Determine recurrence_start base (prefer recurrence_start_date which is set from start_at during creation)
         $base = $s->recurrence_start_date ? Carbon::parse($s->recurrence_start_date)->startOfDay() : null;
 
@@ -82,7 +95,18 @@ trait ScheduleImmediateGeneration
 
         // Advance next run
         $s->last_generated_at = $now;
-        $s->next_run_at = $this->calcNextRunAt($s, $today);
+        $next = $this->calcNextRunAt($s, $today);
+        // If end_at is set and next run would be at-or-after end (exclusive), deactivate instead
+        if ($s->end_at) {
+            $end = Carbon::parse($s->end_at)->startOfDay();
+            if ($next->greaterThanOrEqualTo($end)) {
+                $s->next_run_at = null;
+                $s->is_active = false;
+                $s->save();
+                return;
+            }
+        }
+        $s->next_run_at = $next;
         $s->save();
     }
 
@@ -342,18 +366,15 @@ class ScheduleController extends Controller
                 })
             ->orderByDesc('created_at');
 
-        // Only show schedules where current user is PIC (creator) or is listed as an executor
+        // Only show schedules where the current user is the PIC (creator)
         $currentUser = $request->user();
         $currentUserId = $currentUser?->id;
-        $currentEmployeeId = $currentUser?->employee?->id;
-        $query->where(function ($q) use ($currentUserId, $currentEmployeeId) {
-            if ($currentUserId) {
-                $q->where('created_by', $currentUserId);
-            }
-            if ($currentEmployeeId) {
-                $q->orWhereJsonContains('executor_ids', (int) $currentEmployeeId);
-            }
-        });
+        if ($currentUserId) {
+            $query->where('created_by', $currentUserId);
+        } else {
+            // If no authenticated user, ensure no schedules are returned
+            $query->whereRaw('1 = 0');
+        }
 
     // Show all schedules (including newly created ones). Tasks for monthly schedules
     // are still only created by the scheduled generator, so no task card will appear
@@ -739,9 +760,16 @@ class ScheduleController extends Controller
                 // the scheduler command can pick it up. Do NOT call maybeGenerateNow to avoid
                 // creating a Task immediately on creation.
                 try {
-                    $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
+                    $initial = $this->calcInitialRunAt($schedule, Carbon::now());
                 } catch (\Throwable $e) {
-                    $schedule->next_run_at = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->startOfDay() : null;
+                    $initial = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->startOfDay() : null;
+                }
+                // Respect end_at: if initial is at-or-after end date, deactivate immediately
+                if ($schedule->end_at && $initial && $initial->greaterThanOrEqualTo(Carbon::parse($schedule->end_at)->startOfDay())) {
+                    $schedule->next_run_at = null;
+                    $schedule->is_active = false;
+                } else {
+                    $schedule->next_run_at = $initial;
                 }
                 $schedule->save();
             } else {
@@ -749,9 +777,15 @@ class ScheduleController extends Controller
                 // the recurrence falls on today. Instead initialize `next_run_at` so the
                 // background generator/command will create the Task when it runs.
                 try {
-                    $schedule->next_run_at = $this->calcInitialRunAt($schedule, Carbon::now());
+                    $initial = $this->calcInitialRunAt($schedule, Carbon::now());
                 } catch (\Throwable $e) {
-                    $schedule->next_run_at = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->startOfDay() : null;
+                    $initial = $schedule->recurrence_start_date ? Carbon::parse($schedule->recurrence_start_date)->startOfDay() : null;
+                }
+                if ($schedule->end_at && $initial && $initial->greaterThanOrEqualTo(Carbon::parse($schedule->end_at)->startOfDay())) {
+                    $schedule->next_run_at = null;
+                    $schedule->is_active = false;
+                } else {
+                    $schedule->next_run_at = $initial;
                 }
                 $schedule->save();
             }

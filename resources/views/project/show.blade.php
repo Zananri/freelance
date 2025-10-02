@@ -133,8 +133,6 @@
                 </div>
             </div>
 
-
-            {{-- Bottom Content --}}
             <div class="row">
                 <div class="col-md-4 mb-3 feedback-detail-project">
                     <div class="body-content rounded-4 p-3">
@@ -151,7 +149,6 @@
 
                         </div>
                         <div class="feedback-form">
-                            <!-- Inline Quill editor for quick feedback -->
                             <div id="inline_feedback_toolbar" class="mb-1" style="display:none;">
                                 <span class="ql-formats">
                                     <button class="ql-bold"></button>
@@ -166,21 +163,26 @@
                                     <button class="ql-link"></button>
                                 </span>
                             </div>
-                            <div id="inline_feedback_editor" class="border-0" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"></div>
+                            <div id="inline_feedback_editor" class="border-0"
+                                style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
+                            </div>
 
-                            <!-- Hidden canonical textarea used for compatibility (will be filled by JS before submit) -->
                             <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
 
                             <div class="d-flex justify-content-between btn-actions-feedback mt-2">
                                 <div class="d-flex-justify-content-start">
-                                    <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                    <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn"
+                                        title="Upload photo">
                                         <span class="material-symbols-outlined feedback-photo-icon">photo</span>
                                     </button>
-                                    <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                    <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn"
+                                        title="Attach file">
                                         <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
                                     </button>
-                                    <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
-                                    <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" class="d-none">
+                                    <input type="file" id="inline_feedback_image_input" name="feedback_image"
+                                        accept="image/*" class="d-none">
+                                    <input type="file" id="inline_feedback_files_input" name="reference_files[]"
+                                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" class="d-none">
                                 </div>
                                 <div class="d-flex justify-content-end submit-feedback">
                                     <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
@@ -217,22 +219,21 @@
                                 </thead>
                                 <tbody id="timelineRows"></tbody>
                             </table>
-                            <div class="timeline-legend d-flex justify-content-start gap-5">
-                                <div class="legend-item d-flex align-items-center gap-2">
-                                    <span class="legend-dot legend-yellow"></span>
-                                    <span class="legend-text" id="inProgressCount">0 Task</span>
-                                </div>
-                                <div class="legend-item d-flex align-items-center gap-2">
-                                    <span class="legend-dot legend-red"></span>
-                                    <span class="legend-text" id="lateCount">0 Task</span>
-                                </div>
-                                <div class="legend-item d-flex align-items-center gap-2">
-                                    <span class="legend-dot legend-green"></span>
-                                    <span class="legend-text" id="completedCount">0 Task</span>
-                                </div>
+                        </div>
+                        <div class="timeline-legend d-flex justify-content-start gap-5">
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-yellow"></span>
+                                <span class="legend-text" id="inProgressCount">0 Task</span>
+                            </div>
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-red"></span>
+                                <span class="legend-text" id="lateCount">0 Task</span>
+                            </div>
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-green"></span>
+                                <span class="legend-text" id="completedCount">0 Task</span>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
@@ -625,10 +626,12 @@
                         </span>
                     </div>
 
-                    <div id="feedback_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                    <div id="feedback_editor"
+                        style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
 
                     <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
-                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" style="display:none;"></textarea>
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3"
+                        style="display:none;"></textarea>
                 </div>
 
                 <div class="mb-3 input-custom">
@@ -691,10 +694,12 @@
                         </span>
                     </div>
 
-                    <div id="reply_feedback_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                    <div id="reply_feedback_editor"
+                        style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
 
                     <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
-                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" style="display:none;"></textarea>
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3"
+                        style="display:none;"></textarea>
                 </div>
 
                 <div class="mb-3 input-custom">
@@ -917,10 +922,12 @@
                         </span>
                     </div>
 
-                    <div id="edit_feedback_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                    <div id="edit_feedback_editor"
+                        style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
 
                     <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
-                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" style="display:none;"></textarea>
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3"
+                        style="display:none;"></textarea>
                 </div>
 
                 <div class="mb-3 input-custom">

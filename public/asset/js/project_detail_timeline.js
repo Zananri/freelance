@@ -33,9 +33,6 @@ const getMonthYearEN = (date) => {
 };
 
 function renderTimeline(tasks) {
-    const totalTasks = tasks.length;
-    $("#totalTaskTimeline").text(`Total ${totalTasks} Tasks`);
-
     const displayDate = new Date(currentYear, currentMonth, 1);
     $("#monthTitleTimeline").text(getMonthYearEN(displayDate));
 
@@ -51,14 +48,23 @@ function renderTimeline(tasks) {
 
     const body = $("#timelineRows").empty();
     const statusCounts = { completed: 0, in_progress: 0, late: 0 };
-    tasks.forEach((task, idx) => {
+
+    const tasksInMonth = tasks.filter(task => {
+        const startDate = new Date(task.start_date);
+        const dueDate = new Date(task.due_date);
+        const monthStart = new Date(currentYear, currentMonth, 1);
+        const monthEnd = new Date(currentYear, currentMonth, daysInMonth);
+        return !(dueDate < monthStart || startDate > monthEnd);
+    });
+
+    $("#totalTaskTimeline").text(`Total ${tasksInMonth.length} Tasks`);
+
+    tasksInMonth.forEach((task, idx) => {
         const startDate = new Date(task.start_date);
         const dueDate = new Date(task.due_date);
 
         const monthStart = new Date(currentYear, currentMonth, 1);
         const monthEnd = new Date(currentYear, currentMonth, daysInMonth);
-
-        if (dueDate < monthStart || startDate > monthEnd) return;
 
         const effectiveStart = startDate < monthStart ? monthStart : startDate;
         const effectiveEnd = dueDate > monthEnd ? monthEnd : dueDate;
@@ -72,7 +78,7 @@ function renderTimeline(tasks) {
 
         const status = getTaskStatus(task);
         statusCounts[status]++;
-``
+
         const barColorClass = BAR_COLORS[idx % BAR_COLORS.length];
 
         const row = $("<tr></tr>");
@@ -110,6 +116,8 @@ function getTaskByProject(projectId) {
         dataType: "json",
     })
     .done(function (response) {
+        console.log(response);
+
         $("#task-loading").addClass("d-none");
         if (response.status !== "success" || !response.data || response.data.length === 0) {
             $("#task-tree").empty();

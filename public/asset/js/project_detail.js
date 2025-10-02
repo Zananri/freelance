@@ -31,7 +31,7 @@
         try {
             if (typeof window.showAlertMsg === "function") {
                 window.showAlertMsg(message, "light", delayMs);
-                                    try { 
+                                    try {
                                         // clear native inputs
                                         var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value = '';
                                         var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value = '';
@@ -42,7 +42,7 @@
                                             previewContainer.parentNode.removeChild(previewContainer);
                                         }
                                     }catch(_){ }
-                                    try { 
+                                    try {
                                         // clear selected files array and remove preview node(s)
                                         window.inlineFeedbackSelectedFiles = [];
                                         if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview();
@@ -324,12 +324,12 @@
             html += '<div class="modal-body modal-body-custom">';
             html += '<div class="text-center mb-2">';
             html += '<div class="task-description-container">';
-            html +=
-                '<p class="task-description mb-0">' +
-                String(content || "")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;") +
-                "</p>";
+            // render sanitized HTML (avoid showing raw tags like "<p>...</p>")
+            try {
+                html += '<div class="task-description mb-0">' + sanitizeHtml(content || "") + '</div>';
+            } catch (_) {
+                html += '<p class="task-description mb-0">' + String(content || "") + '</p>';
+            }
             html += '</div></div><hr class="my-2">';
             html +=
                 '<p class="fw-normal fs-6 text-center mb-4">Are you sure you want to delete this ' +
@@ -595,7 +595,7 @@
 
                         data.data.forEach(function (feedback) {
                             var feedbackItem = document.createElement("div");
-                            feedbackItem.className = "feedback-item mb-3 p-3";
+                            feedbackItem.className = "feedback-item p-3";
 
                             // Header Feedback
                             var headerDiv = document.createElement("div");
@@ -764,9 +764,8 @@
                                     var imgEl = document.createElement('img');
                                     imgEl.src = topImageUrl;
                                     imgEl.className = 'img-fluid rounded mb-2 feedback-image';
-                                    imgEl.style.width = '100%';
-                                    imgEl.style.maxWidth = '260px';
-                                    imgEl.style.height = 'auto';
+                                    imgEl.style.width = '60%';
+                                    imgEl.style.height = '60%';
                                     imgEl.style.borderRadius = '8px';
                                     imgEl.style.cursor = 'pointer';
                                     imgEl.addEventListener('click', function(){ try { showImageModal(topImageUrl); } catch(_) { window.open(topImageUrl, '_blank'); } });
@@ -842,7 +841,41 @@
                                         delText.textContent = 'Delete';
                                         delRep.appendChild(delIcon);
                                         delRep.appendChild(delText);
-                                        delRep.addEventListener('click', function(){ try { showDeleteConfirmModal && showDeleteConfirmModal({ id: feedback.id, type: 'feedback', content: feedback.feedback_comment||'' }); } catch(_){} });
+                                        delRep.addEventListener('click', function(){ try {
+                                            if (!showDeleteConfirmModal) return;
+                                            showDeleteConfirmModal({
+                                                id: feedback.id,
+                                                type: 'feedback',
+                                                content: feedback.feedback_comment||'',
+                                                onConfirm: function(done) {
+                                                    try {
+                                                        var fbId = feedback.id;
+                                                        var url = getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + fbId;
+                                                        fetch(url, {
+                                                            method: 'DELETE',
+                                                            headers: {
+                                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                                'Accept': 'application/json'
+                                                            }
+                                                        }).then(function(res){
+                                                            if (!res.ok) return res.json().then(function(j){ return Promise.reject(j); });
+                                                            return res.json();
+                                                        }).then(function(data){
+                                                            try { window.showFloatingAlert && window.showFloatingAlert('Feedback deleted','success',2000); } catch(_){}
+                                                            try { loadFeedbackData(getMeta('project-id')); } catch(_){}
+                                                            try { done(true); } catch(_){}
+                                                        }).catch(function(err){
+                                                            try {
+                                                                var msg = 'Failed to delete feedback';
+                                                                if (err && err.message) msg = err.message;
+                                                                window.showFloatingAlert && window.showFloatingAlert(msg,'warning',4000);
+                                                            } catch(_){}
+                                                            try { done(false); } catch(_){}
+                                                        });
+                                                    } catch (e) { try{ done(false); }catch(_){} }
+                                                }
+                                            });
+                                        } catch(_){} });
                                         actionsDiv.appendChild(delRep);
                                     } catch(_){}
                                 }
@@ -1098,15 +1131,16 @@
                             sel.forEach(function(f, idx){
                                 try {
                                     var item = document.createElement('div');
-                                    item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+                                    item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task';
                                     var iconWrap = document.createElement('div');
                                     // small file icon placeholder
                                     iconWrap.innerHTML = '<span class="material-symbols-outlined">description</span>';
-                                    iconWrap.style.minWidth = '28px';
+                                    iconWrap.style.fontSize = '10px';
                                     iconWrap.style.textAlign = 'center';
 
                                     var name = document.createElement('span');
                                     name.className = 'flex-grow-1';
+                                    name.style.fontSize = '10px'
                                     var sizeMb = (f.size || 0) / 1024 / 1024;
                                     name.textContent = (f.name || '') + (isFinite(sizeMb) ? ' (' + sizeMb.toFixed(2) + ' MB)' : '');
 
@@ -1115,6 +1149,7 @@
                                     rm.className = 'btn btn-sm btn-remove-task remove-task';
                                     rm.style.lineHeight = '1';
                                     rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                    rm.style.fontSize = "10px"
                                     rm.addEventListener('click', function(){
                                         try {
                                             window.inlineFeedbackSelectedFiles.splice(idx, 1);
@@ -1153,12 +1188,12 @@
 
                                 // allow empty comment only if at least one file is attached (image or reference)
                                 var hasImage = false, hasRefFiles = false;
-                                try { 
+                                try {
                                     if (window.__inlineFeedbackImageFile) {
                                         hasImage = true;
                                     } else {
-                                        var pi = document.getElementById('inline_feedback_image_input'); 
-                                        if (pi && pi.files && pi.files.length) hasImage = true; 
+                                        var pi = document.getElementById('inline_feedback_image_input');
+                                        if (pi && pi.files && pi.files.length) hasImage = true;
                                     }
                                 } catch(_){}
                                 try { if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) hasRefFiles = true; else { var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) hasRefFiles = true; } } catch(_){}
@@ -1171,12 +1206,12 @@
                                 fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
 
                                 // attach image from preview (if available) or file input
-                                try { 
+                                try {
                                     if (window.__inlineFeedbackImageFile) {
                                         fd.append('feedback_image', window.__inlineFeedbackImageFile);
                                     } else {
-                                        var pi = document.getElementById('inline_feedback_image_input'); 
-                                        if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]); 
+                                        var pi = document.getElementById('inline_feedback_image_input');
+                                        if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]);
                                     }
                                 }catch(_){ }
                                 try {
@@ -1209,7 +1244,7 @@
                                     // reload feedback list
                                     try { loadFeedbackData(getMeta('project-id')); } catch(_){}
                                     // clear editor and inputs
-                                    try { 
+                                    try {
                                         // clear image input and preview
                                         if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = '';
                                         window.__inlineFeedbackImageFile = null;
@@ -1218,19 +1253,19 @@
                                             previewContainer.parentNode.removeChild(previewContainer);
                                         }
                                     }catch(_){ }
-                                    try { 
-                                        if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; 
+                                    try {
+                                        if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = '';
                                     }catch(_){ }
-                                    try { 
+                                    try {
                                         // clear selected files and preview
-                                        window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); 
+                                        window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview();
                                     }catch(_){ }
                                     try {
                                         // fully reset Quill editor instance: dispose and re-initialize
                                         if (window.__quillProjectFeedbackInline && typeof window.__quillProjectFeedbackInline === 'object') {
                                             try { window.__quillProjectFeedbackInline = null; } catch(_){}
                                         }
-                                    } catch(_){} 
+                                    } catch(_){}
                                     try { initInlineFeedback && initInlineFeedback(); } catch(_){}
                                 }).catch(function(err){
                                     // restore preview from backup
@@ -1255,7 +1290,7 @@
                         previewContainer.id = 'inline_feedback_image_preview';
                         // ensure container and its children are fully opaque and do not inherit any translucent styles
                         previewContainer.style.cssText = 'display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;';
-                        
+
                         // Insert after the file button
                         var fileBtn = document.getElementById('inlineFeedbackFileBtn');
                         if (fileBtn && fileBtn.parentNode) {
@@ -1265,7 +1300,7 @@
 
                     // Create the image preview similar to modal add project style
                     previewContainer.innerHTML = '';
-                    
+
                     var imageLabel = document.createElement('div');
                     imageLabel.className = 'custom-image-upload position-relative';
                     // apply explicit opaque styles so the preview doesn't look translucent
@@ -1284,7 +1319,7 @@
                         'background-color: #ffffff; ' +
                         'box-shadow: 0 1px 3px rgba(0,0,0,0.12); ' +
                         'overflow: visible; ';
-                    
+
                     var clearBtn = document.createElement('span');
                     clearBtn.className = 'image-clear-btn';
                     clearBtn.innerHTML = '&times;';
@@ -1308,16 +1343,16 @@
                         'box-shadow: 0 2px 6px rgba(0,0,0,0.25); ' +
                         'z-index: 30; ' +
                         'opacity: 1; ';
-                    
+
                     // Store the file object for later use
                     window.__inlineFeedbackImageFile = fileObj;
-                    
+
                     clearBtn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
                         try {
                             // Clear the file input
-                            var inp = document.getElementById('inline_feedback_image_input'); 
+                            var inp = document.getElementById('inline_feedback_image_input');
                             if (inp) inp.value = '';
                             // Clear the stored file
                             window.__inlineFeedbackImageFile = null;
@@ -1327,7 +1362,7 @@
                             }
                         } catch(_){}
                     });
-                    
+
                     // Add click to preview (optional - could open larger view)
                     imageLabel.addEventListener('click', function(e) {
                         e.preventDefault();
@@ -1336,10 +1371,10 @@
                             showInlineImagePreview(fileObj, dataUrl);
                         } catch(_) {}
                     });
-                    
+
                     imageLabel.appendChild(clearBtn);
                     previewContainer.appendChild(imageLabel);
-                    
+
                 } catch(e) {
                     console.warn('Failed to show image preview:', e);
                 }
@@ -1451,7 +1486,7 @@
                             fd.append('feedback_comment', cap || '');
                             fd.append('project_id', getMeta('project-id') || '');
                             fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
-                            
+
                             // Use the file from small preview if available, otherwise use the provided fileObj
                             var imageFileToUse = window.__inlineFeedbackImageFile || fileObj;
                             if (imageFileToUse) fd.append('feedback_image', imageFileToUse);
@@ -5746,3 +5781,21 @@ function initAddProjectReferenceFilesModal() {
             });
     });
 }
+
+$("#fullscreen-feedback-btn").on("click", function () {
+    const $feedback = $(".feedback-detail-project");
+    const $projectDetail = $(".detail-project-card");
+    const $icon = $(this).find("span.material-symbols-outlined");
+
+    if ($feedback.hasClass("fullscreen")) {
+        $feedback.removeClass("fullscreen");
+        // $projectDetail.removeClass("d-none");
+        $icon.text("fullscreen");
+        $("body").css("overflow", "auto");
+    } else {
+        $feedback.addClass("fullscreen");
+        // $projectDetail.addClass("d-none");
+        $icon.text("fullscreen_exit");
+        $("body").css("overflow", "hidden");
+    }
+});
