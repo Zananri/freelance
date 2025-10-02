@@ -121,7 +121,7 @@
                                             <span class="d-inline d-md-none">T</span>  
                                         </th>
                                         <th class="col-day" data-weekday="5">
-                                            <span class="d-none d-md-inline">FridayTuesday</span>
+                                            <span class="d-none d-md-inline">Tuesday</span>
                                             <span class="d-inline d-md-none">F</span>
                                         </th>
                                         <th class="col-day" data-weekday="6">

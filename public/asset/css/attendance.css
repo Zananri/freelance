@@ -524,10 +524,61 @@
 
 
 
+.col-total-day,
+.col-total-hour{
+    width: calc(50% - 50px);
+    max-width: 170px;
+}
+
+.col-total-day{
+    margin-right: 25px;
+}
+
+.box-total-day,
+.box-total-hour{
+    border-radius: 8px;    
+    padding: 5px 10px;
+}
+
+.box-total-day{
+    background-color: #DEF6E7;
+}
+.box-total-hour{
+    background-color: #F7EDE4;
+}
+
+.box-total-day .title,
+.box-total-hour .title{
+    font-size: 14px;
+    font-weight: 500;
+    color: #4C4D5D;
+}
+
+
+.box-total-day .day-over,
+.box-total-hour .hour-over{
+    font-size: 32px;
+    font-weight: 500;
+    text-align: right;
+    line-height: 26px;
+    color:#4C4D5D;
+    margin: 6px 0px;
+}
+
+.box-total-day .text-day-over,
+.box-total-hour .text-hour-over{
+    font-size: 12px;
+    font-weight: 300;
+    text-align: right;
+    color:#56565a;
+}
+
+
+
 
 .col-leave,
 .col-sick{
-    width: 50%;
+    width: calc(50% - 50px);
     max-width: 170px;
 }
 
@@ -536,8 +587,7 @@
 }
 
 .box-leave{
-    border-radius: 8px;
-    
+    border-radius: 8px;    
     background-color: #e2eafc;
     padding: 5px 10px;
 }
@@ -572,6 +622,9 @@
     text-align: right;
     color:#56565a;
 }
+
+
+
 
 .wrapper-form {
     max-height: calc(100vh - 230px);
