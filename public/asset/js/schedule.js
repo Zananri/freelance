@@ -349,20 +349,46 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Event for Edit Schedule Form Submission
     document.addEventListener("submit", function (e) {
         if (e.target.id === "scheduleEditForm") {
             e.preventDefault();
-            // include_weekend removed; no frontend validation needed here
 
             const form = e.target;
+
+            if (!form.checkValidity()) {
+                e.stopPropagation();
+                form.classList.add('was-validated');
+                showFloatingAlert("Please fill in all required fields.", "warning", 3000);
+                return;
+            }
+            form.classList.remove('was-validated');
+
+            const projectHidden = document.getElementById("edit_schedule_project_id");
+            const projectSearchInput = document.getElementById("edit_schedule_project_search");
+            if (projectHidden && projectHidden.required && (!projectHidden.value || projectHidden.value.trim() === "")) {
+                if (projectSearchInput) {
+                    projectSearchInput.classList.add("is-invalid");
+                }
+                showFloatingAlert("Please select a project.", "warning", 3000);
+                return;
+            } else {
+                if (projectSearchInput) {
+                    projectSearchInput.classList.remove("is-invalid");
+                }
+            }
+
             const formData = new FormData(form);
 
-            // Append newly selected reference files for edit (if any)
             try {
-                const newFiles = Array.isArray(window.editScheduleSelectedFiles) ? window.editScheduleSelectedFiles : [];
-                newFiles.forEach(f => formData.append('reference_files[]', f));
-            } catch(e) { console.warn('append edit files failed', e); }
+                const newFiles = Array.isArray(window.editScheduleSelectedFiles)
+                    ? window.editScheduleSelectedFiles
+                    : [];
+                newFiles.forEach((f) =>
+                    formData.append("reference_files[]", f)
+                );
+            } catch (e) {
+                console.warn("append edit files failed", e);
+            }
 
             formData.append("_method", "PUT");
 
@@ -373,18 +399,26 @@ document.addEventListener("DOMContentLoaded", function () {
                     .getAttribute("content")
             );
 
-            // Ensure parent_id is only sent when valid numeric
             try {
-                const parentHidden = document.getElementById('edit_schedule_parent_id');
+                const parentHidden = document.getElementById(
+                    "edit_schedule_parent_id"
+                );
                 if (parentHidden) {
                     const pv = parentHidden.value;
-                    if (pv && pv !== '' && pv !== 'null' && !isNaN(Number(pv))) {
-                        formData.set('parent_id', String(Number(pv)));
+                    if (
+                        pv &&
+                        pv !== "" &&
+                        pv !== "null" &&
+                        !isNaN(Number(pv))
+                    ) {
+                        formData.set("parent_id", String(Number(pv)));
                     } else {
-                        try { formData.delete('parent_id'); } catch(_) {}
+                        try {
+                            formData.delete("parent_id");
+                        } catch (_) {}
                     }
                 }
-            } catch(_) {}
+            } catch (_) {}
 
             const modalLoader = document.getElementById(
                 "editScheduleModalLoader"
@@ -442,146 +476,177 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Edit modal: manage selected files preview and existing files list
-    (function initEditScheduleReferenceFiles(){
-        window.editScheduleSelectedFiles = window.editScheduleSelectedFiles || []
-        const input = document.getElementById('edit_schedule_reference_files')
-        const preview = document.getElementById('edit_schedule_reference_files_preview')
+    (function initEditScheduleReferenceFiles() {
+        window.editScheduleSelectedFiles =
+            window.editScheduleSelectedFiles || [];
+        const input = document.getElementById("edit_schedule_reference_files");
+        const preview = document.getElementById(
+            "edit_schedule_reference_files_preview"
+        );
 
-        function renderEditSelectedFiles(){
-            if(!preview) return
-            preview.querySelectorAll('.selected-files-list').forEach(el=>el.remove())
-            if(window.editScheduleSelectedFiles && window.editScheduleSelectedFiles.length){
-                const list = document.createElement('div')
-                list.className='selected-files-list mt-2'
-                window.editScheduleSelectedFiles.forEach((file, idx)=>{
-                    const item = document.createElement('div')
-                    item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2'
-                    if(file && file.type && file.type.indexOf('image')===0){
-                        const img=document.createElement('img')
-                        const url=URL.createObjectURL(file)
-                        img.src=url
-                        img.width=28
-                        img.height=28
-                        img.style.objectFit='cover'
-                        img.style.borderRadius='50%'
-                        img.alt=file.name
-                        img.onload=function(){try{URL.revokeObjectURL(url)}catch(_){ }}
-                        item.appendChild(img)
+        function renderEditSelectedFiles() {
+            if (!preview) return;
+            preview
+                .querySelectorAll(".selected-files-list")
+                .forEach((el) => el.remove());
+            if (
+                window.editScheduleSelectedFiles &&
+                window.editScheduleSelectedFiles.length
+            ) {
+                const list = document.createElement("div");
+                list.className = "selected-files-list mt-2";
+                window.editScheduleSelectedFiles.forEach((file, idx) => {
+                    const item = document.createElement("div");
+                    item.className =
+                        "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+                    if (file && file.type && file.type.indexOf("image") === 0) {
+                        const img = document.createElement("img");
+                        const url = URL.createObjectURL(file);
+                        img.src = url;
+                        img.width = 28;
+                        img.height = 28;
+                        img.style.objectFit = "cover";
+                        img.style.borderRadius = "50%";
+                        img.alt = file.name;
+                        img.onload = function () {
+                            try {
+                                URL.revokeObjectURL(url);
+                            } catch (_) {}
+                        };
+                        item.appendChild(img);
                     } else {
-                        const badge=document.createElement('div')
-                        item.appendChild(badge)
+                        const badge = document.createElement("div");
+                        item.appendChild(badge);
                     }
-                    const title = document.createElement('span')
-                    title.className='flex-grow-1'
-                    title.textContent = file.name
-                    item.appendChild(title)
-                    const removeBtn = document.createElement('button')
-                    removeBtn.type='button'
-                    removeBtn.className='btn btn-sm btn-remove-task remove-task'
-                    removeBtn.style.lineHeight='1'
-                    removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>'
-                    removeBtn.addEventListener('click', ()=>{
-                        window.editScheduleSelectedFiles.splice(idx,1)
-                        renderEditSelectedFiles()
-                    })
-                    item.appendChild(removeBtn)
-                    list.appendChild(item)
-                })
-                preview.appendChild(list)
+                    const title = document.createElement("span");
+                    title.className = "flex-grow-1";
+                    title.textContent = file.name;
+                    item.appendChild(title);
+                    const removeBtn = document.createElement("button");
+                    removeBtn.type = "button";
+                    removeBtn.className =
+                        "btn btn-sm btn-remove-task remove-task";
+                    removeBtn.style.lineHeight = "1";
+                    removeBtn.innerHTML =
+                        '<span class="material-symbols-outlined">close</span>';
+                    removeBtn.addEventListener("click", () => {
+                        window.editScheduleSelectedFiles.splice(idx, 1);
+                        renderEditSelectedFiles();
+                    });
+                    item.appendChild(removeBtn);
+                    list.appendChild(item);
+                });
+                preview.appendChild(list);
             }
         }
 
-        window.displayEditExistingReferenceFiles = function(files){
-            try{
-                const existingListId = 'edit_schedule_existing_reference_files_list'
-                const prev = document.getElementById(existingListId)
-                if(prev) prev.remove()
-                if(!files || !files.length) return
-                const wrapper = document.createElement('div')
-                wrapper.id = existingListId
-                wrapper.className='existing-files-list mt-2'
-                files.forEach(fname=>{
-                    const item = document.createElement('div')
-                    item.className='d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2 existing-file-item'
-                    const lower = String(fname||'').toLowerCase()
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower)
-                    if(isImage){
-                        const img=document.createElement('img')
-                        img.src = appUrl + '/file/schedule_reference_files/' + encodeURIComponent(fname)
-                        img.width=28
-                        img.height=28
-                        img.style.objectFit='cover'
-                        img.style.borderRadius='50%'
-                        img.alt=fname
-                        item.appendChild(img)
+        window.displayEditExistingReferenceFiles = function (files) {
+            try {
+                const existingListId =
+                    "edit_schedule_existing_reference_files_list";
+                const prev = document.getElementById(existingListId);
+                if (prev) prev.remove();
+                if (!files || !files.length) return;
+                const wrapper = document.createElement("div");
+                wrapper.id = existingListId;
+                wrapper.className = "existing-files-list mt-2";
+                files.forEach((fname) => {
+                    const item = document.createElement("div");
+                    item.className =
+                        "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2 existing-file-item";
+                    const lower = String(fname || "").toLowerCase();
+                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
+                        lower
+                    );
+                    if (isImage) {
+                        const img = document.createElement("img");
+                        img.src =
+                            appUrl +
+                            "/file/schedule_reference_files/" +
+                            encodeURIComponent(fname);
+                        img.width = 28;
+                        img.height = 28;
+                        img.style.objectFit = "cover";
+                        img.style.borderRadius = "50%";
+                        img.alt = fname;
+                        item.appendChild(img);
                     } else {
-                        const badge=document.createElement('div')
-                        item.appendChild(badge)
+                        const badge = document.createElement("div");
+                        item.appendChild(badge);
                     }
-                    const title = document.createElement('span')
-                    title.className='flex-grow-1'
-                    title.textContent = fname
-                    item.appendChild(title)
-                    const removeBtn = document.createElement('button')
-                    removeBtn.type='button'
-                    removeBtn.className='btn btn-sm btn-remove-task remove-task'
-                    removeBtn.style.lineHeight='1'
-                    removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>'
-                    removeBtn.addEventListener('click', function(){
-                        item.remove()
-                        updateExistingFilesHidden()
-                    })
-                    item.appendChild(removeBtn)
-                    wrapper.appendChild(item)
-                })
-                if(preview) preview.insertAdjacentElement('afterbegin', wrapper)
-                updateExistingFilesHidden()
-            }catch(e){}
-        }
+                    const title = document.createElement("span");
+                    title.className = "flex-grow-1";
+                    title.textContent = fname;
+                    item.appendChild(title);
+                    const removeBtn = document.createElement("button");
+                    removeBtn.type = "button";
+                    removeBtn.className =
+                        "btn btn-sm btn-remove-task remove-task";
+                    removeBtn.style.lineHeight = "1";
+                    removeBtn.innerHTML =
+                        '<span class="material-symbols-outlined">close</span>';
+                    removeBtn.addEventListener("click", function () {
+                        item.remove();
+                        updateExistingFilesHidden();
+                    });
+                    item.appendChild(removeBtn);
+                    wrapper.appendChild(item);
+                });
+                if (preview)
+                    preview.insertAdjacentElement("afterbegin", wrapper);
+                updateExistingFilesHidden();
+            } catch (e) {}
+        };
 
-        function updateExistingFilesHidden(){
+        function updateExistingFilesHidden() {
             try {
                 const existingItems = document.querySelectorAll(
-                    '#edit_schedule_reference_files_preview .existing-file-item'
-                )
-                const arr = []
-                existingItems.forEach(it=>{
-                    const sp = it.querySelector('span.flex-grow-1')
-                    if(sp && sp.textContent) arr.push(sp.textContent.trim())
-                })
+                    "#edit_schedule_reference_files_preview .existing-file-item"
+                );
+                const arr = [];
+                existingItems.forEach((it) => {
+                    const sp = it.querySelector("span.flex-grow-1");
+                    if (sp && sp.textContent) arr.push(sp.textContent.trim());
+                });
 
                 // bersihin hidden lama
-                document.querySelectorAll('input[name="existing_reference_files"]').forEach(el=>el.remove())
+                document
+                    .querySelectorAll('input[name="existing_reference_files"]')
+                    .forEach((el) => el.remove());
 
-                const form = document.getElementById('scheduleEditForm')
+                const form = document.getElementById("scheduleEditForm");
                 // Always create a hidden input with JSON array
-                const hidden = document.createElement('input')
-                hidden.type = 'hidden'
-                hidden.name = 'existing_reference_files'
-                hidden.value = JSON.stringify(arr)
-                form.appendChild(hidden)
-            }catch(e){}
+                const hidden = document.createElement("input");
+                hidden.type = "hidden";
+                hidden.name = "existing_reference_files";
+                hidden.value = JSON.stringify(arr);
+                form.appendChild(hidden);
+            } catch (e) {}
         }
 
-        if(input){
-            input.addEventListener('change', function(){
-                const files = Array.from(this.files || [])
-                window.editScheduleSelectedFiles = [...window.editScheduleSelectedFiles, ...files]
-                renderEditSelectedFiles()
-                this.value=''
-            })
+        if (input) {
+            input.addEventListener("change", function () {
+                const files = Array.from(this.files || []);
+                window.editScheduleSelectedFiles = [
+                    ...window.editScheduleSelectedFiles,
+                    ...files,
+                ];
+                renderEditSelectedFiles();
+                this.value = "";
+            });
         }
 
-        window.displayEditSelectedFiles = renderEditSelectedFiles
+        window.displayEditSelectedFiles = renderEditSelectedFiles;
 
-        window.populateEditModal = function(schedule){
-            document.getElementById('edit_schedule_title').value = schedule.title || ''
-            if(schedule.reference_files){
-                displayEditExistingReferenceFiles(schedule.reference_files)
+        window.populateEditModal = function (schedule) {
+            document.getElementById("edit_schedule_title").value =
+                schedule.title || "";
+            if (schedule.reference_files) {
+                displayEditExistingReferenceFiles(schedule.reference_files);
             }
-            displayEditSelectedFiles()
-        }
-    })()
+            displayEditSelectedFiles();
+        };
+    })();
 
     function fetchScheduleDataForEdit(scheduleId) {
         $.ajax({
@@ -612,30 +677,42 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Function to populate edit modal fields
     function populateEditModal(schedule) {
-        // Populate basic fields
         document.getElementById("edit_schedule_id").value = schedule.id;
         document.getElementById("edit_schedule_title").value =
             schedule.title || "";
-        // Ensure the hidden textarea is populated and, if Quill editor is available,
-        // populate the Quill editor with HTML description so the editor shows the saved content.
         try {
             const desc = schedule.description || "";
             const ta = document.getElementById("edit_schedule_description");
             if (ta) ta.value = desc;
-            if (window.__quillScheduleEdit && typeof window.__quillScheduleEdit.root !== 'undefined') {
+            if (
+                window.__quillScheduleEdit &&
+                typeof window.__quillScheduleEdit.root !== "undefined"
+            ) {
                 try {
                     // Use clipboard to insert HTML safely when available; fallback to innerHTML
-                    if (typeof window.__quillScheduleEdit.clipboard !== 'undefined' && typeof window.__quillScheduleEdit.clipboard.dangerouslyPasteHTML === 'function') {
-                        window.__quillScheduleEdit.clipboard.dangerouslyPasteHTML(desc || '');
+                    if (
+                        typeof window.__quillScheduleEdit.clipboard !==
+                            "undefined" &&
+                        typeof window.__quillScheduleEdit.clipboard
+                            .dangerouslyPasteHTML === "function"
+                    ) {
+                        window.__quillScheduleEdit.clipboard.dangerouslyPasteHTML(
+                            desc || ""
+                        );
                     } else if (window.__quillScheduleEdit.root) {
-                        window.__quillScheduleEdit.root.innerHTML = desc || '';
+                        window.__quillScheduleEdit.root.innerHTML = desc || "";
                     }
                 } catch (e) {
-                    try { window.__quillScheduleEdit.root.innerHTML = desc || ''; } catch(_){}
+                    try {
+                        window.__quillScheduleEdit.root.innerHTML = desc || "";
+                    } catch (_) {}
                 }
             }
         } catch (e) {
-            try { document.getElementById("edit_schedule_description").value = schedule.description || ""; } catch(_){}
+            try {
+                document.getElementById("edit_schedule_description").value =
+                    schedule.description || "";
+            } catch (_) {}
         }
         document.getElementById("edit_schedule_point").value =
             schedule.point || 1;
@@ -643,162 +720,259 @@ document.addEventListener("DOMContentLoaded", function () {
             schedule.priority || "";
         document.getElementById("edit_schedule_due_in_days").value =
             schedule.due_in_days || "";
-    // Use only start_at/end_at for edit modal (do not fallback to legacy start_date/due_date)
-    const startVal = schedule.start_at ?? "";
-    const endVal = schedule.end_at ?? "";
-    const startEl = document.getElementById("edit_schedule_start_at");
-    const endEl = document.getElementById("edit_schedule_end_at");
+        // Use only start_at/end_at for edit modal (do not fallback to legacy start_date/due_date)
+        const startVal = schedule.start_at ?? "";
+        const endVal = schedule.end_at ?? "";
+        const startEl = document.getElementById("edit_schedule_start_at");
+        const endEl = document.getElementById("edit_schedule_end_at");
 
-    // Early-parse recurrence days so we can decide whether to touch start_at
-    let parsedDays = schedule.recurrence_days_of_week ?? schedule.recurrence_days_of_week_raw ?? null;
-    if (!Array.isArray(parsedDays) && typeof parsedDays === 'string') {
-        try {
-            parsedDays = JSON.parse(parsedDays);
-        } catch (e) {
-            parsedDays = parsedDays.split(',').map(s => s.trim()).filter(Boolean).map(Number);
-        }
-    }
-    if (!Array.isArray(parsedDays)) parsedDays = [];
-
-    function toLocalDateInput(val) {
-        if (!val) return "";
-        const s = String(val).trim();
-        // If it's already in YYYY-MM-DD form, return it
-        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-        // Try to extract a YYYY-MM-DD substring first
-        const m = s.match(/\d{4}-\d{2}-\d{2}/);
-        // Try to parse into Date and use local components to avoid timezone shift
-        const d = new Date(s);
-        if (!isNaN(d.getTime())) {
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, "0");
-            const dd = String(d.getDate()).padStart(2, "0");
-            return `${yyyy}-${mm}-${dd}`;
-        }
-        return (m && m[0]) || "";
-    }
-
-    try {
-        const newStart = toLocalDateInput(startVal);
-        const newEnd = toLocalDateInput(endVal);
-        // Debug log to help trace unexpected date shifts (can be removed later)
-        if (window.__scheduleDebug) console.debug('populateEditModal: startVal, endVal, parsedDays', startVal, endVal, parsedDays);
-
-        // If recurrence is daily and user already selected weekdays (parsedDays non-empty),
-        // avoid overwriting an existing start_at value to prevent repeat-adjust behavior.
-        const isDailyWithDays = (schedule.recurrence_type === 'daily' && parsedDays.length > 0);
-        if (startEl) {
-            const shouldSetStart = !isDailyWithDays || !startEl.value;
-            if (shouldSetStart) startEl.value = newStart;
-            else if (window.__scheduleDebug) console.debug('populateEditModal: skip setting start_at because daily with selected weekdays and input already has value');
-        }
-        if (endEl) endEl.value = newEnd;
-    } catch (e) {
-        if (startEl) startEl.value = (startVal || "").toString().slice(0, 10);
-        if (endEl) endEl.value = (endVal || "").toString().slice(0, 10);
-    }
-
-    // Sync hidden recurrence start/end fields and compute next run date when start_at or due_in_days changes
-    function computeEditDerivedDates(){
-        try{
-            const startInput = document.getElementById('edit_schedule_start_at');
-            const dueInDaysInput = document.getElementById('edit_schedule_due_in_days');
-            const hiddenStart = document.getElementById('edit_schedule_recurrence_start_date');
-            const hiddenEnd = document.getElementById('edit_schedule_recurrence_end_date');
-            const hiddenNext = document.getElementById('edit_schedule_next_run_at');
-            if(!startInput || !hiddenStart || !hiddenEnd) return;
-            // Set recurrence_start_date = start_at
-            hiddenStart.value = startInput.value || '';
-            // Compute end date = start_at + due_in_days (if provided)
-            const days = parseInt(dueInDaysInput?.value || '0',10);
-            if(startInput.value){
-                const parts = startInput.value.split('-').map(n=>parseInt(n,10));
-                if(parts.length===3 && !parts.some(isNaN)){
-                    const d = new Date(parts[0], parts[1]-1, parts[2]);
-                    if(!isNaN(d.getTime())){
-                        if(!Number.isNaN(days) && days>0){
-                            const endDate = new Date(d);
-                            endDate.setDate(d.getDate() + days);
-                            hiddenEnd.value = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`;
-                        } else {
-                            hiddenEnd.value = '';
-                        }
-                    }
-                }
-            } else {
-                hiddenEnd.value = '';
-            }
-
-            // compute next_run_at based on recurrence type
+        // Early-parse recurrence days so we can decide whether to touch start_at
+        let parsedDays =
+            schedule.recurrence_days_of_week ??
+            schedule.recurrence_days_of_week_raw ??
+            null;
+        if (!Array.isArray(parsedDays) && typeof parsedDays === "string") {
             try {
-                if(!hiddenNext) return;
-                const recurrenceType = document.getElementById('edit_schedule_recurrence_type')?.value || '';
-                const daysJson = document.getElementById('edit_schedule_recurrence_days_of_week')?.value || '[]';
-                let daysArr = [];
-                try{ daysArr = JSON.parse(daysJson||'[]'); }catch(e){ daysArr = []; }
+                parsedDays = JSON.parse(parsedDays);
+            } catch (e) {
+                parsedDays = parsedDays
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean)
+                    .map(Number);
+            }
+        }
+        if (!Array.isArray(parsedDays)) parsedDays = [];
 
-                function isoDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-                const parseYMD = (s)=>{ if(!s) return null; const p = s.split('-').map(n=>parseInt(n,10)); if(p.length!==3 || p.some(isNaN)) return null; return new Date(p[0], p[1]-1, p[2]); };
-                const startDate = parseYMD(startInput.value);
-                const today = new Date();
-                let nextRun = null;
+        function toLocalDateInput(val) {
+            if (!val) return "";
+            const s = String(val).trim();
+            // If it's already in YYYY-MM-DD form, return it
+            if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+            // Try to extract a YYYY-MM-DD substring first
+            const m = s.match(/\d{4}-\d{2}-\d{2}/);
+            // Try to parse into Date and use local components to avoid timezone shift
+            const d = new Date(s);
+            if (!isNaN(d.getTime())) {
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, "0");
+                const dd = String(d.getDate()).padStart(2, "0");
+                return `${yyyy}-${mm}-${dd}`;
+            }
+            return (m && m[0]) || "";
+        }
 
-                if(recurrenceType === 'daily'){
-                    if(Array.isArray(daysArr) && daysArr.length>0){
-                        const base = startDate || today;
-                        for(let i=0;i<14;i++){
-                            const cand = new Date(base);
-                            cand.setDate(base.getDate()+i);
-                            if(daysArr.includes(cand.getDay())){ nextRun = cand; break; }
+        try {
+            const newStart = toLocalDateInput(startVal);
+            const newEnd = toLocalDateInput(endVal);
+            // Debug log to help trace unexpected date shifts (can be removed later)
+            if (window.__scheduleDebug)
+                console.debug(
+                    "populateEditModal: startVal, endVal, parsedDays",
+                    startVal,
+                    endVal,
+                    parsedDays
+                );
+
+            // If recurrence is daily and user already selected weekdays (parsedDays non-empty),
+            // avoid overwriting an existing start_at value to prevent repeat-adjust behavior.
+            const isDailyWithDays =
+                schedule.recurrence_type === "daily" && parsedDays.length > 0;
+            if (startEl) {
+                const shouldSetStart = !isDailyWithDays || !startEl.value;
+                if (shouldSetStart) startEl.value = newStart;
+                else if (window.__scheduleDebug)
+                    console.debug(
+                        "populateEditModal: skip setting start_at because daily with selected weekdays and input already has value"
+                    );
+            }
+            if (endEl) endEl.value = newEnd;
+        } catch (e) {
+            if (startEl)
+                startEl.value = (startVal || "").toString().slice(0, 10);
+            if (endEl) endEl.value = (endVal || "").toString().slice(0, 10);
+        }
+
+        // Sync hidden recurrence start/end fields and compute next run date when start_at or due_in_days changes
+        function computeEditDerivedDates() {
+            try {
+                const startInput = document.getElementById(
+                    "edit_schedule_start_at"
+                );
+                const dueInDaysInput = document.getElementById(
+                    "edit_schedule_due_in_days"
+                );
+                const hiddenStart = document.getElementById(
+                    "edit_schedule_recurrence_start_date"
+                );
+                const hiddenEnd = document.getElementById(
+                    "edit_schedule_recurrence_end_date"
+                );
+                const hiddenNext = document.getElementById(
+                    "edit_schedule_next_run_at"
+                );
+                if (!startInput || !hiddenStart || !hiddenEnd) return;
+                // Set recurrence_start_date = start_at
+                hiddenStart.value = startInput.value || "";
+                // Compute end date = start_at + due_in_days (if provided)
+                const days = parseInt(dueInDaysInput?.value || "0", 10);
+                if (startInput.value) {
+                    const parts = startInput.value
+                        .split("-")
+                        .map((n) => parseInt(n, 10));
+                    if (parts.length === 3 && !parts.some(isNaN)) {
+                        const d = new Date(parts[0], parts[1] - 1, parts[2]);
+                        if (!isNaN(d.getTime())) {
+                            if (!Number.isNaN(days) && days > 0) {
+                                const endDate = new Date(d);
+                                endDate.setDate(d.getDate() + days);
+                                hiddenEnd.value = `${endDate.getFullYear()}-${String(
+                                    endDate.getMonth() + 1
+                                ).padStart(2, "0")}-${String(
+                                    endDate.getDate()
+                                ).padStart(2, "0")}`;
+                            } else {
+                                hiddenEnd.value = "";
+                            }
                         }
-                    } else {
-                        nextRun = startDate || today;
                     }
-                } else if(recurrenceType === 'weekly'){
-                    const dow = parseInt(document.getElementById('edit_schedule_recurrence_day_of_week')?.value);
-                    if(!isNaN(dow)){
-                        const base = startDate || today;
-                        for(let i=0;i<14;i++){
-                            const cand = new Date(base);
-                            cand.setDate(base.getDate()+i);
-                            if(cand.getDay() === dow){ nextRun = cand; break; }
-                        }
-                    }
-                } else if(recurrenceType === 'monthly'){
-                    const dom = parseInt(document.getElementById('edit_schedule_recurrence_day_of_month')?.value);
-                    const base = startDate || today;
-                    if(!isNaN(dom) && dom>0){
-                        let cand = null;
-                        for(let i=0;i<12;i++){
-                            const tryDate = new Date(base.getFullYear(), base.getMonth()+i, 1);
-                            const daysInMonth = new Date(tryDate.getFullYear(), tryDate.getMonth()+1, 0).getDate();
-                            const day = Math.min(dom, daysInMonth);
-                            cand = new Date(tryDate.getFullYear(), tryDate.getMonth(), day);
-                            if(startDate){
-                                if(cand.getTime() >= startDate.getTime()){ nextRun = cand; break; }
-                            } else { nextRun = cand; break; }
-                        }
-                    } else if(startDate){
-                        nextRun = startDate;
-                    }
+                } else {
+                    hiddenEnd.value = "";
                 }
 
-                if(nextRun){ hiddenNext.value = isoDate(nextRun); }
-                else { hiddenNext.value = ''; }
-            } catch(e){}
-        }catch(e){}
-    }
+                // compute next_run_at based on recurrence type
+                try {
+                    if (!hiddenNext) return;
+                    const recurrenceType =
+                        document.getElementById("edit_schedule_recurrence_type")
+                            ?.value || "";
+                    const daysJson =
+                        document.getElementById(
+                            "edit_schedule_recurrence_days_of_week"
+                        )?.value || "[]";
+                    let daysArr = [];
+                    try {
+                        daysArr = JSON.parse(daysJson || "[]");
+                    } catch (e) {
+                        daysArr = [];
+                    }
 
-    // Attach listeners so when user edits start_at or due_in_days in edit modal we recompute derived dates
-    try{
-            const hiddenNext = document.getElementById('edit_schedule_next_run_at');
-        const startInputEdit = document.getElementById('edit_schedule_start_at');
-        const dueInEdit = document.getElementById('edit_schedule_due_in_days');
-        if(startInputEdit) startInputEdit.addEventListener('change', function(){ computeEditDerivedDates(); });
-        if(dueInEdit) dueInEdit.addEventListener('input', function(){ computeEditDerivedDates(); });
-        // run once to initialize
-        computeEditDerivedDates();
-    }catch(e){}
+                    function isoDate(d) {
+                        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                    }
+                    const parseYMD = (s) => {
+                        if (!s) return null;
+                        const p = s.split("-").map((n) => parseInt(n, 10));
+                        if (p.length !== 3 || p.some(isNaN)) return null;
+                        return new Date(p[0], p[1] - 1, p[2]);
+                    };
+                    const startDate = parseYMD(startInput.value);
+                    const today = new Date();
+                    let nextRun = null;
+
+                    if (recurrenceType === "daily") {
+                        if (Array.isArray(daysArr) && daysArr.length > 0) {
+                            const base = startDate || today;
+                            for (let i = 0; i < 14; i++) {
+                                const cand = new Date(base);
+                                cand.setDate(base.getDate() + i);
+                                if (daysArr.includes(cand.getDay())) {
+                                    nextRun = cand;
+                                    break;
+                                }
+                            }
+                        } else {
+                            nextRun = startDate || today;
+                        }
+                    } else if (recurrenceType === "weekly") {
+                        const dow = parseInt(
+                            document.getElementById(
+                                "edit_schedule_recurrence_day_of_week"
+                            )?.value
+                        );
+                        if (!isNaN(dow)) {
+                            const base = startDate || today;
+                            for (let i = 0; i < 14; i++) {
+                                const cand = new Date(base);
+                                cand.setDate(base.getDate() + i);
+                                if (cand.getDay() === dow) {
+                                    nextRun = cand;
+                                    break;
+                                }
+                            }
+                        }
+                    } else if (recurrenceType === "monthly") {
+                        const dom = parseInt(
+                            document.getElementById(
+                                "edit_schedule_recurrence_day_of_month"
+                            )?.value
+                        );
+                        const base = startDate || today;
+                        if (!isNaN(dom) && dom > 0) {
+                            let cand = null;
+                            for (let i = 0; i < 12; i++) {
+                                const tryDate = new Date(
+                                    base.getFullYear(),
+                                    base.getMonth() + i,
+                                    1
+                                );
+                                const daysInMonth = new Date(
+                                    tryDate.getFullYear(),
+                                    tryDate.getMonth() + 1,
+                                    0
+                                ).getDate();
+                                const day = Math.min(dom, daysInMonth);
+                                cand = new Date(
+                                    tryDate.getFullYear(),
+                                    tryDate.getMonth(),
+                                    day
+                                );
+                                if (startDate) {
+                                    if (cand.getTime() >= startDate.getTime()) {
+                                        nextRun = cand;
+                                        break;
+                                    }
+                                } else {
+                                    nextRun = cand;
+                                    break;
+                                }
+                            }
+                        } else if (startDate) {
+                            nextRun = startDate;
+                        }
+                    }
+
+                    if (nextRun) {
+                        hiddenNext.value = isoDate(nextRun);
+                    } else {
+                        hiddenNext.value = "";
+                    }
+                } catch (e) {}
+            } catch (e) {}
+        }
+
+        // Attach listeners so when user edits start_at or due_in_days in edit modal we recompute derived dates
+        try {
+            const hiddenNext = document.getElementById(
+                "edit_schedule_next_run_at"
+            );
+            const startInputEdit = document.getElementById(
+                "edit_schedule_start_at"
+            );
+            const dueInEdit = document.getElementById(
+                "edit_schedule_due_in_days"
+            );
+            if (startInputEdit)
+                startInputEdit.addEventListener("change", function () {
+                    computeEditDerivedDates();
+                });
+            if (dueInEdit)
+                dueInEdit.addEventListener("input", function () {
+                    computeEditDerivedDates();
+                });
+            // run once to initialize
+            computeEditDerivedDates();
+        } catch (e) {}
         document.getElementById("edit_schedule_recurrence_type").value =
             schedule.recurrence_type || "";
 
@@ -836,124 +1010,244 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Handle reference files (existing on server)
         try {
-            let refFiles = schedule.reference_files ?? schedule.reference_files_raw ?? [];
-            if (typeof refFiles === 'string') {
-                try { refFiles = JSON.parse(refFiles); } catch(e) { refFiles = refFiles.split(',').map(s=>s.trim()).filter(Boolean); }
+            let refFiles =
+                schedule.reference_files ?? schedule.reference_files_raw ?? [];
+            if (typeof refFiles === "string") {
+                try {
+                    refFiles = JSON.parse(refFiles);
+                } catch (e) {
+                    refFiles = refFiles
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean);
+                }
             }
             if (!Array.isArray(refFiles)) refFiles = [];
             // expose existing files list and render into preview
-            if (typeof window.displayEditExistingReferenceFiles === 'function') {
+            if (
+                typeof window.displayEditExistingReferenceFiles === "function"
+            ) {
                 window.displayEditExistingReferenceFiles(refFiles);
             }
             // reset any previously selected new files for edit modal
             window.editScheduleSelectedFiles = [];
-            if (typeof window.displayEditSelectedFiles === 'function') window.displayEditSelectedFiles();
-        } catch(e) { console.warn('populateEditModal: failed render existing reference files', e); }
+            if (typeof window.displayEditSelectedFiles === "function")
+                window.displayEditSelectedFiles();
+        } catch (e) {
+            console.warn(
+                "populateEditModal: failed render existing reference files",
+                e
+            );
+        }
 
         // Handle executors
         populateEditExecutors(schedule.executor_ids || []);
 
         // Set division select value for edit modal (do not dispatch change to avoid overwriting selected executors)
         try {
-            const divSel = document.getElementById('edit_schedule_division_id');
+            const divSel = document.getElementById("edit_schedule_division_id");
             if (divSel) {
                 let divId = null;
                 if (schedule.division_id) divId = schedule.division_id;
-                else if (schedule.division && (schedule.division.id || schedule.division.division_id)) divId = schedule.division.id || schedule.division.division_id;
-                else if (schedule.project && schedule.project.division && (schedule.project.division.id || schedule.project.division.division_id)) divId = schedule.project.division.id || schedule.project.division.division_id;
+                else if (
+                    schedule.division &&
+                    (schedule.division.id || schedule.division.division_id)
+                )
+                    divId =
+                        schedule.division.id || schedule.division.division_id;
+                else if (
+                    schedule.project &&
+                    schedule.project.division &&
+                    (schedule.project.division.id ||
+                        schedule.project.division.division_id)
+                )
+                    divId =
+                        schedule.project.division.id ||
+                        schedule.project.division.division_id;
 
                 if (divId) {
                     // try to select if option exists, else add temporary option then select
-                    const opt = divSel.querySelector('option[value="' + divId + '"]');
+                    const opt = divSel.querySelector(
+                        'option[value="' + divId + '"]'
+                    );
                     if (!opt) {
-                        const tmp = document.createElement('option');
+                        const tmp = document.createElement("option");
                         tmp.value = divId;
-                        tmp.text = 'Division #' + divId;
+                        tmp.text = "Division #" + divId;
                         divSel.appendChild(tmp);
                     }
                     divSel.value = divId;
                 } else {
                     // attempt to match by name if provided
-                    const divName = schedule.division || (schedule.project && schedule.project.division && (schedule.project.division.name_division || schedule.project.division.name || ''));
+                    const divName =
+                        schedule.division ||
+                        (schedule.project &&
+                            schedule.project.division &&
+                            (schedule.project.division.name_division ||
+                                schedule.project.division.name ||
+                                ""));
                     if (divName) {
                         // try find option by text content
                         const opts = Array.from(divSel.options || []);
-                        const found = opts.find(o => String((o.textContent||o.innerText||'')).trim().toLowerCase() === String(divName).trim().toLowerCase());
+                        const found = opts.find(
+                            (o) =>
+                                String(o.textContent || o.innerText || "")
+                                    .trim()
+                                    .toLowerCase() ===
+                                String(divName).trim().toLowerCase()
+                        );
                         if (found) divSel.value = found.value;
                     }
                 }
             }
-        } catch(e) { /* ignore */ }
+        } catch (e) {
+            /* ignore */
+        }
 
         // After setting division value, automatically seed executors for edit modal
         try {
-            const divSel2 = document.getElementById('edit_schedule_division_id');
+            const divSel2 = document.getElementById(
+                "edit_schedule_division_id"
+            );
             if (divSel2 && divSel2.value) {
                 const val = divSel2.value;
-                const selectedName = (divSel2.selectedOptions && divSel2.selectedOptions[0] && divSel2.selectedOptions[0].dataset && divSel2.selectedOptions[0].dataset.name) ? divSel2.selectedOptions[0].dataset.name : '';
-                fetch(appUrl + '/employees-for-projects')
-                    .then(r => r.ok ? r.json() : Promise.reject('fail'))
-                    .then(res => {
+                const selectedName =
+                    divSel2.selectedOptions &&
+                    divSel2.selectedOptions[0] &&
+                    divSel2.selectedOptions[0].dataset &&
+                    divSel2.selectedOptions[0].dataset.name
+                        ? divSel2.selectedOptions[0].dataset.name
+                        : "";
+                fetch(appUrl + "/employees-for-projects")
+                    .then((r) => (r.ok ? r.json() : Promise.reject("fail")))
+                    .then((res) => {
                         const arr = (res && res.data) || [];
-                        const nameLower = String(selectedName || '').toLowerCase();
-                        const filteredByName = arr.filter(emp => String(emp.division || '').toLowerCase() === nameLower);
-                        const filteredById = arr.filter(emp => String(emp.division_id || '').toLowerCase() === String(val).toLowerCase());
-                        const final = filteredByName.length ? filteredByName : (filteredById.length ? filteredById : []);
+                        const nameLower = String(
+                            selectedName || ""
+                        ).toLowerCase();
+                        const filteredByName = arr.filter(
+                            (emp) =>
+                                String(emp.division || "").toLowerCase() ===
+                                nameLower
+                        );
+                        const filteredById = arr.filter(
+                            (emp) =>
+                                String(emp.division_id || "").toLowerCase() ===
+                                String(val).toLowerCase()
+                        );
+                        const final = filteredByName.length
+                            ? filteredByName
+                            : filteredById.length
+                            ? filteredById
+                            : [];
                         if (!final.length) return; // do not overwrite existing selected executors if none found
-                        const mapped = final.map(e => ({ id: e.id, name: e.name || e.full_name || '', user_photo: e.user_photo || e.profile_picture || '' }));
-                        try { window.setSelectedExecutorsEdit?.(mapped); } catch(_){}
+                        const mapped = final.map((e) => ({
+                            id: e.id,
+                            name: e.name || e.full_name || "",
+                            user_photo: e.user_photo || e.profile_picture || "",
+                        }));
+                        try {
+                            window.setSelectedExecutorsEdit?.(mapped);
+                        } catch (_) {}
                     })
-                    .catch(()=>{
+                    .catch(() => {
                         // ignore fetch failure on auto-seed: keep existing executor selection
                     });
             }
-        } catch(e) { /* ignore */ }
+        } catch (e) {
+            /* ignore */
+        }
 
         // Load projects for edit modal and set the selected project
-        loadProjectsForEdit(schedule.project_id);
+        loadProjectsForEdit(schedule.project_id, schedule.parent_id, schedule.parent ? schedule.parent.title : null);
 
-        // Populate parent task selector for edit modal (if schedule has parent_id)
         try {
             const parentId = schedule.parent_id || null;
-            const parentTitle = null; // we rely on API to return tasks for project and match by id
-            if (schedule.project_id) {
-                try { loadRelatedTasks(schedule.project_id, 'edit_schedule', parentId, parentTitle); } catch(e) { console.warn('populateEditModal: loadRelatedTasks failed', e); }
-            } else if (parentId) {
+            if (!schedule.project_id && parentId) {
                 // If schedule has parent_id but no project context, fetch task details and populate the edit parent display
                 try {
-                    fetch(appUrl + '/task/' + encodeURIComponent(String(parentId)))
-                        .then(r => r.ok ? r.json() : Promise.reject(r))
-                        .then(res => {
+                    fetch(
+                        appUrl + "/task/" + encodeURIComponent(String(parentId))
+                    )
+                        .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                        .then((res) => {
                             const t = (res && (res.data || res)) || null;
                             if (!t || !t.id) return;
-                            const input = document.getElementById('edit_schedule_parent_input');
-                            const hidden = document.getElementById('edit_schedule_parent_id');
-                            const selectedContainer = document.getElementById('edit_schedule_selected_parent');
+                            const input = document.getElementById(
+                                "edit_schedule_parent_input"
+                            );
+                            const hidden = document.getElementById(
+                                "edit_schedule_parent_id"
+                            );
+                            const selectedContainer = document.getElementById(
+                                "edit_schedule_selected_parent"
+                            );
                             if (hidden) hidden.value = t.id;
-                            if (input) input.value = t.title || (t.id ? 'Task #' + t.id : '');
+                            if (input)
+                                input.value =
+                                    t.title || (t.id ? "Task #" + t.id : "");
                             if (selectedContainer) {
-                                const avatarHtml = t.image ? `<img src="${appUrl}/file/task/${t.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : `<div style="width:28px;height:28px;border-radius:50%;background:#6A5AE0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;">${(t.title||'?').charAt(0).toUpperCase()}</div>`;
-                                selectedContainer.innerHTML = `<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">${avatarHtml}<span class="flex-grow-1">${t.title||('Task #' + t.id)}</span><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1"><span class="material-symbols-outlined">close</span></button></div>`;
-                                const btn = selectedContainer.querySelector('.remove-task'); if (btn) btn.addEventListener('click', function(){ if(hidden) hidden.value=''; if(input) input.value=''; selectedContainer.innerHTML=''; });
+                                const avatarHtml = t.image
+                                    ? `<img src="${appUrl}/file/task/${t.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                                    : `<div style="width:28px;height:28px;border-radius:50%;background:#6A5AE0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:600;">${(
+                                          t.title || "?"
+                                      )
+                                          .charAt(0)
+                                          .toUpperCase()}</div>`;
+                                selectedContainer.innerHTML = `<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">${avatarHtml}<span class="flex-grow-1">${
+                                    t.title || "Task #" + t.id
+                                }</span><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1"><span class="material-symbols-outlined">close</span></button></div>`;
+                                const btn =
+                                    selectedContainer.querySelector(
+                                        ".remove-task"
+                                    );
+                                if (btn)
+                                    btn.addEventListener("click", function () {
+                                        if (hidden) hidden.value = "";
+                                        if (input) input.value = "";
+                                        selectedContainer.innerHTML = "";
+                                    });
                             }
                         })
-                        .catch(()=>{});
-                } catch(_){}
+                        .catch(() => {});
+                } catch (_) {}
             }
-        } catch(e) { console.warn('populateEditModal parent init failed', e); }
+        } catch (e) {
+            console.warn("populateEditModal parent init failed", e);
+        }
 
         // Setup reference URL functionality for edit modal
-            // recompute next_run_at when recurrence type or recurrence day changes
-            try{
-                const recType = document.getElementById('edit_schedule_recurrence_type');
-                const recDow = document.getElementById('edit_schedule_recurrence_day_of_week');
-                const recDays = document.getElementById('edit_schedule_recurrence_days_of_week');
-                const recDom = document.getElementById('edit_schedule_recurrence_day_of_month');
-                if(recType) recType.addEventListener('change', function(){ computeEditDerivedDates(); });
-                if(recDow) recDow.addEventListener('change', function(){ computeEditDerivedDates(); });
-                if(recDays) recDays.addEventListener('change', function(){ computeEditDerivedDates(); });
-                if(recDom) recDom.addEventListener('change', function(){ computeEditDerivedDates(); });
-            }catch(e){}
+        // recompute next_run_at when recurrence type or recurrence day changes
+        try {
+            const recType = document.getElementById(
+                "edit_schedule_recurrence_type"
+            );
+            const recDow = document.getElementById(
+                "edit_schedule_recurrence_day_of_week"
+            );
+            const recDays = document.getElementById(
+                "edit_schedule_recurrence_days_of_week"
+            );
+            const recDom = document.getElementById(
+                "edit_schedule_recurrence_day_of_month"
+            );
+            if (recType)
+                recType.addEventListener("change", function () {
+                    computeEditDerivedDates();
+                });
+            if (recDow)
+                recDow.addEventListener("change", function () {
+                    computeEditDerivedDates();
+                });
+            if (recDays)
+                recDays.addEventListener("change", function () {
+                    computeEditDerivedDates();
+                });
+            if (recDom)
+                recDom.addEventListener("change", function () {
+                    computeEditDerivedDates();
+                });
+        } catch (e) {}
         setupEditReferenceUrls();
 
         // Setup recurrence toggle functionality for edit modal
@@ -961,35 +1255,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Setup/edit weekday picker state for daily recurrence
         try {
-            const buttonsContainer = document.getElementById('edit_schedule_daily_weekdays_buttons');
-            const hidden = document.getElementById('edit_schedule_recurrence_days_of_week');
+            const buttonsContainer = document.getElementById(
+                "edit_schedule_daily_weekdays_buttons"
+            );
+            const hidden = document.getElementById(
+                "edit_schedule_recurrence_days_of_week"
+            );
             if (hidden && buttonsContainer) {
-                    // initialize hidden value from schedule (controller may send recurrence_days_of_week as array or comma string)
-                    let days = schedule.recurrence_days_of_week ?? schedule.recurrence_days_of_week_raw ?? null;
-                    if (!Array.isArray(days) && typeof days === 'string') {
-                        try { days = JSON.parse(days); } catch (e) { days = days.split(',').map(s=>s.trim()).filter(Boolean).map(Number); }
+                // initialize hidden value from schedule (controller may send recurrence_days_of_week as array or comma string)
+                let days =
+                    schedule.recurrence_days_of_week ??
+                    schedule.recurrence_days_of_week_raw ??
+                    null;
+                if (!Array.isArray(days) && typeof days === "string") {
+                    try {
+                        days = JSON.parse(days);
+                    } catch (e) {
+                        days = days
+                            .split(",")
+                            .map((s) => s.trim())
+                            .filter(Boolean)
+                            .map(Number);
                     }
-                    if (!Array.isArray(days)) days = [];
-                    hidden.value = JSON.stringify(days);
-                    // Update buttons: use weekday-selected class for consistency with create modal
-                    buttonsContainer.querySelectorAll('.edit-weekday-btn').forEach(btn=>{
-                        const d = parseInt(btn.getAttribute('data-day'));
+                }
+                if (!Array.isArray(days)) days = [];
+                hidden.value = JSON.stringify(days);
+                // Update buttons: use weekday-selected class for consistency with create modal
+                buttonsContainer
+                    .querySelectorAll(".edit-weekday-btn")
+                    .forEach((btn) => {
+                        const d = parseInt(btn.getAttribute("data-day"));
                         // initialize accessible pressed state and classes
-                        btn.setAttribute('aria-pressed','false');
+                        btn.setAttribute("aria-pressed", "false");
                         if (days.includes(d)) {
-                            btn.classList.add('weekday-selected');
-                            btn.classList.add('active');
-                            btn.classList.remove('btn-outline-secondary');
-                            btn.setAttribute('aria-pressed','true');
+                            btn.classList.add("weekday-selected");
+                            btn.classList.add("active");
+                            btn.classList.remove("btn-outline-secondary");
+                            btn.setAttribute("aria-pressed", "true");
                         } else {
-                            btn.classList.remove('weekday-selected');
-                            btn.classList.remove('active');
-                            btn.classList.add('btn-outline-secondary');
-                            btn.setAttribute('aria-pressed','false');
+                            btn.classList.remove("weekday-selected");
+                            btn.classList.remove("active");
+                            btn.classList.add("btn-outline-secondary");
+                            btn.setAttribute("aria-pressed", "false");
                         }
                     });
-                }
-        } catch(e) { /* ignore */ }
+            }
+        } catch (e) {
+            /* ignore */
+        }
     }
 
     function setupEditReferenceUrls() {
@@ -1019,10 +1332,14 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function loadProjectsForEdit(selectedProjectId = null) {
-        const input = document.getElementById("edit_schedule_project_id");
-        const dropdown = document.getElementById("edit_schedule_project_dropdown");
-        const selectedContainer = document.getElementById("edit_schedule_selected_project");
+    function loadProjectsForEdit(selectedProjectId = null, selectedParentId = null, selectedParentTitle = null) {
+        const input = document.getElementById("edit_schedule_project_search");
+        const dropdown = document.getElementById(
+            "edit_schedule_project_dropdown"
+        );
+        const selectedContainer = document.getElementById(
+            "edit_schedule_selected_project"
+        );
         const hiddenInput = document.getElementById("edit_schedule_project_id");
 
         if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
@@ -1044,11 +1361,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>`;
 
                 const item = document.createElement("div");
-                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.className =
+                    "dropdown-item d-flex align-items-center gap-2";
                 item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
                 item.addEventListener("click", () => {
-                    hiddenInput.value = p.id;
-                    input.value = p.title;
+                    hiddenInput.value = p.id; // isi ke hidden
+                    input.value = p.title; // tampil di text box
                     dropdown.style.display = "none";
                     showSelectedProject(p);
                 });
@@ -1076,11 +1394,22 @@ document.addEventListener("DOMContentLoaded", function () {
                 </div>
             `;
 
-            selectedContainer.querySelector(".btn-remove-project").addEventListener("click", () => {
-                hiddenInput.value = "";
-                input.value = "";
-                selectedContainer.innerHTML = "";
-            });
+            selectedContainer
+                .querySelector(".btn-remove-project")
+                .addEventListener("click", () => {
+                    hiddenInput.value = "";
+                    input.value = "";
+                    selectedContainer.innerHTML = "";
+                    // Clear related task when project is removed
+                    try {
+                        const pinput = document.getElementById('edit_schedule_parent_input'); if(pinput) pinput.value = '';
+                        const phidden = document.getElementById('edit_schedule_parent_id'); if(phidden) phidden.value = '';
+                        const selContainer = document.getElementById('edit_schedule_selected_parent'); if(selContainer) selContainer.innerHTML = '';
+                    } catch(_){}
+                });
+
+            // Load tasks for this project into the edit schedule parent selector
+            try { loadRelatedTasks(p.id, 'edit_schedule', selectedParentId, selectedParentTitle); } catch(_) {}
         }
 
         fetch(appUrl + "/project/index?task_scope=all")
@@ -1093,7 +1422,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 }));
 
                 if (selectedProjectId) {
-                    const selected = projects.find((p) => p.id == selectedProjectId);
+                    const selected = projects.find(
+                        (p) => p.id == selectedProjectId
+                    );
                     if (selected) {
                         hiddenInput.value = selected.id;
                         input.value = selected.title;
@@ -1118,7 +1449,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const monthlyOpts = document.getElementById(
             "edit_schedule_monthly_opts"
         );
-        const startAtDiv = document.getElementById("edit_schedule_start_at_div");
+        const startAtDiv = document.getElementById(
+            "edit_schedule_start_at_div"
+        );
 
         if (!weeklyOpts || !monthlyOpts || !startAtDiv) {
             return;
@@ -1181,8 +1514,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 row.className = "input-group";
                 row.innerHTML = `
                     <input type='url' class='form-control input-text' name='reference_urls[]' value='${safeUrl}' placeholder='https://example.com'>
-                    <button type='button' class='btn ${idx === 0 ? "btn-submit-black add-ref-url" : "btn-remove-url remove-ref-url"}'>
-                        <span class='material-symbols-outlined'>${idx === 0 ? "add" : "close"}</span>
+                    <button type='button' class='btn ${
+                        idx === 0
+                            ? "btn-submit-black add-ref-url"
+                            : "btn-remove-url remove-ref-url"
+                    }'>
+                        <span class='material-symbols-outlined'>${
+                            idx === 0 ? "add" : "close"
+                        }</span>
                     </button>`;
                 container.appendChild(row);
             });
@@ -1203,8 +1542,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function setupEditExecutorPicker(initialExecutorIds = []) {
         const input = document.getElementById("edit_schedule_executor_input");
-        const dropdown = document.getElementById("edit_schedule_executor_dropdown");
-        const selectedContainer = document.getElementById("edit_schedule_selected_executors");
+        const dropdown = document.getElementById(
+            "edit_schedule_executor_dropdown"
+        );
+        const selectedContainer = document.getElementById(
+            "edit_schedule_selected_executors"
+        );
         const hidden = document.getElementById("edit_schedule_executors");
 
         if (!input || !dropdown || !selectedContainer || !hidden) return;
@@ -1229,19 +1572,26 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         function fetchEmployeesCached(q = "") {
-            const key = String(q || "").trim().toLowerCase();
+            const key = String(q || "")
+                .trim()
+                .toLowerCase();
             const now = Date.now();
             const hit = empCache.map.get(key);
-            if (hit && now - hit.t < EMP_CACHE_TTL_MS) return Promise.resolve(hit.v);
+            if (hit && now - hit.t < EMP_CACHE_TTL_MS)
+                return Promise.resolve(hit.v);
             if (empCache.inFlight.has(key)) return empCache.inFlight.get(key);
-            const p = fetch(appUrl + "/task/employees-for-executor?q=" + encodeURIComponent(key))
-                .then(r => r.ok ? r.json() : Promise.reject(r))
-                .then(d => {
+            const p = fetch(
+                appUrl +
+                    "/task/employees-for-executor?q=" +
+                    encodeURIComponent(key)
+            )
+                .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+                .then((d) => {
                     empCache.map.set(key, { v: d, t: Date.now() });
                     empCache.inFlight.delete(key);
                     return d;
                 })
-                .catch(e => {
+                .catch((e) => {
                     empCache.inFlight.delete(key);
                     throw e;
                 });
@@ -1250,45 +1600,57 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function fetchAllEmployees() {
-            return fetchEmployeesCached("").then(d => {
-                employees = (d.data || d || []).filter(emp =>
-                    String(emp.user_type || "").toUpperCase() !== "ADMINISTRATOR"
-                );
-                filtered = employees;
-                return employees;
-            }).catch(() => {
-                showAlertMsg("Failed to load employees", "error");
-                return [];
-            });
+            return fetchEmployeesCached("")
+                .then((d) => {
+                    employees = (d.data || d || []).filter(
+                        (emp) =>
+                            String(emp.user_type || "").toUpperCase() !==
+                            "ADMINISTRATOR"
+                    );
+                    filtered = employees;
+                    return employees;
+                })
+                .catch(() => {
+                    showAlertMsg("Failed to load employees", "error");
+                    return [];
+                });
         }
 
         function renderDropdown() {
             if (filtered.length === 0) {
-                dropdown.innerHTML = '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.innerHTML =
+                    '<div class="dropdown-item disabled">No employees found</div>';
                 return;
             }
-            dropdown.innerHTML = filtered.map(emp => {
-                const checked = selected.some(s => s.id === emp.id);
-                const photo = buildPhotoUrl(emp.user_photo);
-                return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
+            dropdown.innerHTML = filtered
+                .map((emp) => {
+                    const checked = selected.some((s) => s.id === emp.id);
+                    const photo = buildPhotoUrl(emp.user_photo);
+                    return `<label class='dropdown-item d-flex align-items-center justify-content-between'>
                     <div class='d-flex align-items-center'>
                         <img src='${photo}' class='rounded-circle me-2' style='width:30px;height:30px;object-fit:cover;'>
                         <div class='d-flex flex-column'>
                             <span class='executor-name'>${emp.name}</span>
-                            <small class='text-muted executor-division'>${emp.division || emp.division_name || ''}</small>
+                            <small class='text-muted executor-division'>${
+                                emp.division || emp.division_name || ""
+                            }</small>
                         </div>
                     </div>
-                    <input type='checkbox' data-id='${emp.id}' ${checked ? "checked" : ""}>
+                    <input type='checkbox' data-id='${emp.id}' ${
+                        checked ? "checked" : ""
+                    }>
                 </label>`;
-            }).join("");
+                })
+                .join("");
         }
 
         function renderSelected() {
             selectedContainer.innerHTML = "";
-            selected.forEach(emp => {
+            selected.forEach((emp) => {
                 const photoUrl = buildPhotoUrl(emp.user_photo);
                 const badge = document.createElement("span");
-                badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
+                badge.className =
+                    "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
 
                 const img = document.createElement("img");
                 img.src = photoUrl;
@@ -1302,7 +1664,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 nameCol.className = "d-flex flex-column";
                 const nameText = document.createElement("span");
                 nameText.textContent = emp.name || "";
-                nameText.style.marginBottom = "5px"
+                nameText.style.marginBottom = "5px";
 
                 const divSmall = document.createElement("small");
                 divSmall.className = "text-muted executor-division";
@@ -1316,7 +1678,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
                 removeBtn.addEventListener("click", () => {
-                    selected = selected.filter(e => e.id !== emp.id);
+                    selected = selected.filter((e) => e.id !== emp.id);
                     renderSelected();
                     updateHidden();
                 });
@@ -1329,14 +1691,18 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         function updateHidden() {
-            hidden.value = JSON.stringify(selected.map(s => s.id));
+            hidden.value = JSON.stringify(selected.map((s) => s.id));
         }
 
         function filterEmployeesByName(val) {
-            const v = String(val || "").trim().toLowerCase();
-            filtered = !v ? employees : employees.filter(emp =>
-                (emp.name || "").toLowerCase().includes(v)
-            );
+            const v = String(val || "")
+                .trim()
+                .toLowerCase();
+            filtered = !v
+                ? employees
+                : employees.filter((emp) =>
+                      (emp.name || "").toLowerCase().includes(v)
+                  );
             renderDropdown();
         }
 
@@ -1361,30 +1727,38 @@ document.addEventListener("DOMContentLoaded", function () {
                 selected = [];
                 renderSelected();
                 updateHidden();
-                dropdown.innerHTML = '';
+                dropdown.innerHTML = "";
             },
             set: async function (arr) {
                 await fetchAllEmployees();
                 if (!Array.isArray(arr)) return;
-                selected = arr.map(a => {
-                    const empData = employees.find(e => e.id === a.id);
+                selected = arr.map((a) => {
+                    const empData = employees.find((e) => e.id === a.id);
                     return {
                         id: a.id,
-                        name: a.name || a.full_name || (empData ? empData.name : ''),
-                        user_photo: a.user_photo || (empData ? empData.user_photo : ''),
-                        division: empData ? (empData.division || empData.division_name || '') : ''
+                        name:
+                            a.name ||
+                            a.full_name ||
+                            (empData ? empData.name : ""),
+                        user_photo:
+                            a.user_photo || (empData ? empData.user_photo : ""),
+                        division: empData
+                            ? empData.division || empData.division_name || ""
+                            : "",
                     };
                 });
                 renderSelected();
                 updateHidden();
                 renderDropdown();
-            }
+            },
         };
 
         // Pastikan fetch semua employee sebelum set initialExecutorIds
         if (initialExecutorIds.length > 0) {
             fetchAllEmployees().then(() => {
-                window.__scheduleEditExecPicker.set(initialExecutorIds.map(id => ({ id })));
+                window.__scheduleEditExecPicker.set(
+                    initialExecutorIds.map((id) => ({ id }))
+                );
             });
         }
 
@@ -1398,7 +1772,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const weekly = document.getElementById("edit_schedule_weekly_opts");
         const monthly = document.getElementById("edit_schedule_monthly_opts");
         const dateOpts = document.getElementById("edit_schedule_date_opts");
-        const startAtDiv = document.getElementById("edit_schedule_start_at_div");
+        const startAtDiv = document.getElementById(
+            "edit_schedule_start_at_div"
+        );
         const monthlyDateInput = document.getElementById(
             "edit_schedule_monthly_date"
         );
@@ -1408,22 +1784,32 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!typeSel || !weekly || !monthly) return;
 
-        function updateEditWeeklyStartDate(){
+        function updateEditWeeklyStartDate() {
             try {
-                const weeklyDay = document.getElementById('edit_schedule_recurrence_day_of_week');
-                const startAt = document.getElementById('edit_schedule_start_at');
-                if(!weeklyDay || !startAt) return;
+                const weeklyDay = document.getElementById(
+                    "edit_schedule_recurrence_day_of_week"
+                );
+                const startAt = document.getElementById(
+                    "edit_schedule_start_at"
+                );
+                if (!weeklyDay || !startAt) return;
                 const selectedDow = parseInt(weeklyDay.value);
-                if(Number.isNaN(selectedDow)) return;
+                if (Number.isNaN(selectedDow)) return;
                 const today = new Date();
                 const currentDow = today.getDay();
                 let daysToAdd = selectedDow - currentDow;
-                if(daysToAdd <= 0) daysToAdd += 7; // ensure next occurrence (today -> next week)
+                if (daysToAdd <= 0) daysToAdd += 7; // ensure next occurrence (today -> next week)
                 const newDate = new Date(today);
                 newDate.setDate(today.getDate() + daysToAdd);
-                startAt.value = newDate.toISOString().split('T')[0];
-                if(window.__scheduleDebug) console.debug('updateEditWeeklyStartDate', { selectedDow, currentDow, daysToAdd, startAt: startAt.value });
-            } catch(e) {}
+                startAt.value = newDate.toISOString().split("T")[0];
+                if (window.__scheduleDebug)
+                    console.debug("updateEditWeeklyStartDate", {
+                        selectedDow,
+                        currentDow,
+                        daysToAdd,
+                        startAt: startAt.value,
+                    });
+            } catch (e) {}
         }
 
         function sync() {
@@ -1482,8 +1868,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Toggle weekday picker visibility for edit modal when daily
             try {
-                const editDaily = document.getElementById('edit_schedule_daily_weekdays');
-                if (editDaily) editDaily.classList.toggle('d-none', v !== 'daily');
+                const editDaily = document.getElementById(
+                    "edit_schedule_daily_weekdays"
+                );
+                if (editDaily)
+                    editDaily.classList.toggle("d-none", v !== "daily");
             } catch (e) {}
         }
 
@@ -1491,41 +1880,65 @@ document.addEventListener("DOMContentLoaded", function () {
         sync();
         // Attach change listener to weekly select so user selection immediately adjusts start_at
         try {
-            const editWeeklyDay = document.getElementById('edit_schedule_recurrence_day_of_week');
-            if(editWeeklyDay) editWeeklyDay.addEventListener('change', updateEditWeeklyStartDate);
-        } catch(e) {}
+            const editWeeklyDay = document.getElementById(
+                "edit_schedule_recurrence_day_of_week"
+            );
+            if (editWeeklyDay)
+                editWeeklyDay.addEventListener(
+                    "change",
+                    updateEditWeeklyStartDate
+                );
+        } catch (e) {}
     }
 
     // Setup edit modal weekday buttons handler
-    (function setupEditWeekdayButtons(){
-        const container = document.getElementById('edit_schedule_daily_weekdays_buttons');
-        const hidden = document.getElementById('edit_schedule_recurrence_days_of_week');
-        if(!container || !hidden) return;
-        function getSel(){ try{ return JSON.parse(hidden.value||'[]').map(d=>parseInt(d)); }catch(e){ return []; } }
-        function setSel(arr){
+    (function setupEditWeekdayButtons() {
+        const container = document.getElementById(
+            "edit_schedule_daily_weekdays_buttons"
+        );
+        const hidden = document.getElementById(
+            "edit_schedule_recurrence_days_of_week"
+        );
+        if (!container || !hidden) return;
+        function getSel() {
             try {
-                const vals = Array.from(new Set((arr||[]).map(Number))).filter(n=>!Number.isNaN(n));
+                return JSON.parse(hidden.value || "[]").map((d) => parseInt(d));
+            } catch (e) {
+                return [];
+            }
+        }
+        function setSel(arr) {
+            try {
+                const vals = Array.from(
+                    new Set((arr || []).map(Number))
+                ).filter((n) => !Number.isNaN(n));
                 hidden.value = JSON.stringify(vals);
-            } catch(e) {
+            } catch (e) {
                 hidden.value = JSON.stringify([]);
             }
         }
-        container.querySelectorAll('.edit-weekday-btn').forEach(btn=> btn.addEventListener('click', function(){
-            const day = parseInt(this.getAttribute('data-day'));
-            let sel = getSel();
-            if(sel.includes(day)){
-                sel = sel.filter(s=>s!==day);
-                this.classList.remove('weekday-selected'); this.classList.remove('active'); this.classList.add('btn-outline-secondary');
-                this.setAttribute('aria-pressed','false');
-            } else {
-                sel.push(day);
-                this.classList.add('weekday-selected'); this.classList.add('active'); this.classList.remove('btn-outline-secondary');
-                this.setAttribute('aria-pressed','true');
-            }
-            setSel(sel);
-        }));
+        container.querySelectorAll(".edit-weekday-btn").forEach((btn) =>
+            btn.addEventListener("click", function () {
+                const day = parseInt(this.getAttribute("data-day"));
+                let sel = getSel();
+                if (sel.includes(day)) {
+                    sel = sel.filter((s) => s !== day);
+                    this.classList.remove("weekday-selected");
+                    this.classList.remove("active");
+                    this.classList.add("btn-outline-secondary");
+                    this.setAttribute("aria-pressed", "false");
+                } else {
+                    sel.push(day);
+                    this.classList.add("weekday-selected");
+                    this.classList.add("active");
+                    this.classList.remove("btn-outline-secondary");
+                    this.setAttribute("aria-pressed", "true");
+                }
+                setSel(sel);
+            })
+        );
         // expose for debug
-        window.__editScheduleWeekdayPicker = { get:getSel, set:setSel };
+        window.__editScheduleWeekdayPicker = { get: getSel, set: setSel };
     })();
 
     // Handle edit image input change
@@ -1592,28 +2005,40 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const contentEl = document.getElementById("deleteScheduleContent");
             // show loader immediately
-            if (contentEl) contentEl.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+            if (contentEl)
+                contentEl.innerHTML =
+                    '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
 
             // Use the API endpoint that includes department/division info: GET /get-schedule-data/{id}
-            fetch(appUrl + '/get-schedule-data/' + scheduleId, { headers: { 'Accept': 'application/json' } })
-                .then(res => res.ok ? res.json() : Promise.reject(res))
-                .then(data => {
+            fetch(appUrl + "/get-schedule-data/" + scheduleId, {
+                headers: { Accept: "application/json" },
+            })
+                .then((res) => (res.ok ? res.json() : Promise.reject(res)))
+                .then((data) => {
                     // The controller returns an object with data => { schedule, executors, department, division }
                     const payload = data.data || data;
                     const schedule = payload.schedule || payload;
-                    let avatarHtml = '';
+                    let avatarHtml = "";
 
                     // Determine image URL similar to task.js logic
                     if (schedule && schedule.image) {
-                        let imgUrl = String(schedule.image || '');
-                        const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
-                        const isFile = imgUrl.startsWith('/file/schedule/') || imgUrl.startsWith('file/schedule/');
-                        const isPublic = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+                        let imgUrl = String(schedule.image || "");
+                        const isAbsolute =
+                            imgUrl.startsWith("http://") ||
+                            imgUrl.startsWith("https://");
+                        const isFile =
+                            imgUrl.startsWith("/file/schedule/") ||
+                            imgUrl.startsWith("file/schedule/");
+                        const isPublic =
+                            imgUrl.startsWith("/storage/") ||
+                            imgUrl.startsWith("storage/");
 
                         if (!isAbsolute && !isFile && !isPublic) {
-                            imgUrl = appUrl + '/file/schedule/' + imgUrl;
+                            imgUrl = appUrl + "/file/schedule/" + imgUrl;
                         } else if (!isAbsolute && (isFile || isPublic)) {
-                            imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                            imgUrl = imgUrl.startsWith("/")
+                                ? appUrl + imgUrl
+                                : appUrl + "/" + imgUrl;
                         }
 
                         avatarHtml = `<img src="${imgUrl}" alt="Schedule Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
@@ -1623,71 +2048,108 @@ document.addEventListener("DOMContentLoaded", function () {
                         avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${initials}</div>`;
                     }
 
-                    const priority = schedule.priority || '-';
+                    const priority = schedule.priority || "-";
 
                     // Department/Division: prefer controller-provided strings (payload.department/payload.division)
                     // or fall back to related project objects (different shapes handled)
-                    let department = '-';
+                    let department = "-";
                     if (payload.department) {
                         department = payload.department;
-                    } else if (schedule && schedule.project && schedule.project.department) {
+                    } else if (
+                        schedule &&
+                        schedule.project &&
+                        schedule.project.department
+                    ) {
                         const pd = schedule.project.department;
-                        if (typeof pd === 'string') department = pd;
-                        else department = pd.name_department || pd.name || pd.department_name || pd.department || '-';
+                        if (typeof pd === "string") department = pd;
+                        else
+                            department =
+                                pd.name_department ||
+                                pd.name ||
+                                pd.department_name ||
+                                pd.department ||
+                                "-";
                     } else if (schedule && schedule.department) {
                         department = schedule.department;
                     }
 
-                    let division = '-';
+                    let division = "-";
                     if (payload.division) {
                         division = payload.division;
-                    } else if (schedule && schedule.project && schedule.project.division) {
+                    } else if (
+                        schedule &&
+                        schedule.project &&
+                        schedule.project.division
+                    ) {
                         const dv = schedule.project.division;
-                        if (typeof dv === 'string') division = dv;
-                        else division = dv.name_division || dv.name || dv.division_name || dv.division || '-';
+                        if (typeof dv === "string") division = dv;
+                        else
+                            division =
+                                dv.name_division ||
+                                dv.name ||
+                                dv.division_name ||
+                                dv.division ||
+                                "-";
                     } else if (schedule && schedule.division) {
                         division = schedule.division;
                     }
 
-                    const description = schedule.description || '';
+                    const description = schedule.description || "";
 
                     const cardHtml = `
                         <div class="custom-card rounded-4 position-relative p-3 border-0">
                             <div class="d-flex align-items-center mb-2">
                                 ${avatarHtml}
                                 <div class="d-flex flex-column">
-                                    ${schedule.project && schedule.project.id ? `<p class="text-muted mb-0" style="line-height:1; font-size: 10px;">${schedule.project.title || '-'}</p>` : ''}
+                                    ${
+                                        schedule.project && schedule.project.id
+                                            ? `<p class="text-muted mb-0" style="line-height:1; font-size: 10px;">${
+                                                  schedule.project.title || "-"
+                                              }</p>`
+                                            : ""
+                                    }
                                     <h5 class="mb-0" style="line-height:1.2; font-size:16px; font-weight:600;">${scheduleTitle}</h5>
                                 </div>
                             </div>
-                            ${description ? `<div class="schedule-description-container mb-2"><p class="schedule-description mb-0" style="font-size:14px;">${description}</p></div>` : ''}
+                            ${
+                                description
+                                    ? `<div class="schedule-description-container mb-2"><p class="schedule-description mb-0" style="font-size:14px;">${description}</p></div>`
+                                    : ""
+                            }
                             <hr class="task-separator rounded-4">
                             <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:12px;">
                                 <div>
                                     <span style="color:#797E91;">Priority: </span>
-                                    <span style="color:${priority === 'HIGH' ? 'red' : '#4B4F5E'}">${priority}</span>
+                                    <span style="color:${
+                                        priority === "HIGH" ? "red" : "#4B4F5E"
+                                    }">${priority}</span>
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
                                 <span class="text-muted">Department:</span>
-                                <span>${department || '-'}</span>
+                                <span>${department || "-"}</span>
                             </div>
                             <div class="d-flex justify-content-between" style="font-size:12px;">
                                 <span class="text-muted">Division:</span>
-                                <span>${division || '-'}</span>
+                                <span>${division || "-"}</span>
                             </div>
                         </div>
                     `;
 
                     if (contentEl) contentEl.innerHTML = cardHtml;
                 })
-                .catch(err => {
+                .catch((err) => {
                     // Fallback to simple view if fetch fails
-                    console.error('Failed to fetch schedule for delete modal', err);
+                    console.error(
+                        "Failed to fetch schedule for delete modal",
+                        err
+                    );
                     try {
-                        const contentEl = document.getElementById('deleteScheduleContent');
+                        const contentEl = document.getElementById(
+                            "deleteScheduleContent"
+                        );
                         if (contentEl) {
-                            let html = '';
+                            let html = "";
                             if (imageUrl) {
                                 html = `
                                     <div class="custom-card rounded-4 position-relative p-0 border-0">
@@ -1719,15 +2181,21 @@ document.addEventListener("DOMContentLoaded", function () {
                             }
                             contentEl.innerHTML = html;
                         }
-                    } catch (e) { console.error(e); }
+                    } catch (e) {
+                        console.error(e);
+                    }
                 })
                 .finally(() => {
-                    const modal = new bootstrap.Modal(document.getElementById('deleteScheduleModal'));
+                    const modal = new bootstrap.Modal(
+                        document.getElementById("deleteScheduleModal")
+                    );
                     modal.show();
                 });
         } catch (e) {
-            console.error('Failed to render delete modal content', e);
-            const modal = new bootstrap.Modal(document.getElementById('deleteScheduleModal'));
+            console.error("Failed to render delete modal content", e);
+            const modal = new bootstrap.Modal(
+                document.getElementById("deleteScheduleModal")
+            );
             modal.show();
         }
     }
@@ -1747,8 +2215,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         1500
                     );
                     // Close the delete modal after successful deletion
-                    const deleteModalEl = document.getElementById("deleteScheduleModal");
-                    const deleteModal = bootstrap.Modal.getInstance(deleteModalEl);
+                    const deleteModalEl = document.getElementById(
+                        "deleteScheduleModal"
+                    );
+                    const deleteModal =
+                        bootstrap.Modal.getInstance(deleteModalEl);
                     if (deleteModal) {
                         deleteModal.hide();
                     }
@@ -1804,19 +2275,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 // try to find an image inside the card (img tag or background-image)
                 let imageUrl = null;
                 try {
-                    const imgEl = card.querySelector('img');
+                    const imgEl = card.querySelector("img");
                     if (imgEl && imgEl.src) {
                         imageUrl = imgEl.src;
                     } else {
                         // attempt to read background-image from element inside card
-                        const bgEl = card.querySelector('.item-card, .custom-card, .project-image, .rounded-circle');
+                        const bgEl = card.querySelector(
+                            ".item-card, .custom-card, .project-image, .rounded-circle"
+                        );
                         if (bgEl) {
-                            const bg = window.getComputedStyle(bgEl).backgroundImage || '';
+                            const bg =
+                                window.getComputedStyle(bgEl).backgroundImage ||
+                                "";
                             const m = bg.match(/url\(["']?(.*?)["']?\)/);
                             if (m && m[1]) imageUrl = m[1];
                         }
                     }
-                } catch (e) { /* ignore */ }
+                } catch (e) {
+                    /* ignore */
+                }
 
                 openDeleteModal(scheduleId, scheduleTitle, imageUrl);
             }

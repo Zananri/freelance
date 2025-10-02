@@ -803,13 +803,13 @@ class ScheduleController extends Controller
             $schedule = TaskSchedule::findOrFail($id);
 
             $validator = \Validator::make($request->all(), [
-                'project_id' => 'nullable|exists:projects,id',
+                'project_id' => 'required|exists:projects,id',
                 'parent_id' => 'nullable|exists:tasks,id',
-                'point' => 'nullable|integer|min:1',
-                'title' => 'nullable|string|max:255',
+                'point' => 'required|integer|min:1',
+                'title' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:10240',
-                'priority' => 'nullable|in:HIGH,MEDIUM,LOW',
+                'priority' => 'required|in:HIGH,MEDIUM,LOW',
                 'reference_url' => 'nullable|url|max:255',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url|max:255',
