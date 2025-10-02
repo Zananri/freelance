@@ -366,18 +366,15 @@ class ScheduleController extends Controller
                 })
             ->orderByDesc('created_at');
 
-        // Only show schedules where current user is PIC (creator) or is listed as an executor
+        // Only show schedules where the current user is the PIC (creator)
         $currentUser = $request->user();
         $currentUserId = $currentUser?->id;
-        $currentEmployeeId = $currentUser?->employee?->id;
-        $query->where(function ($q) use ($currentUserId, $currentEmployeeId) {
-            if ($currentUserId) {
-                $q->where('created_by', $currentUserId);
-            }
-            if ($currentEmployeeId) {
-                $q->orWhereJsonContains('executor_ids', (int) $currentEmployeeId);
-            }
-        });
+        if ($currentUserId) {
+            $query->where('created_by', $currentUserId);
+        } else {
+            // If no authenticated user, ensure no schedules are returned
+            $query->whereRaw('1 = 0');
+        }
 
     // Show all schedules (including newly created ones). Tasks for monthly schedules
     // are still only created by the scheduled generator, so no task card will appear
