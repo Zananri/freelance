@@ -592,7 +592,7 @@
                         <input type="hidden" name="project_id" id="addRefProjectId" value="">
                         <div class="mb-3">
                             <label for="add_project_reference_files" class="form-label label-custom">Select files</label>
-                            <input type="file" class="form-control input-text" id="add_project_reference_files" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <input type="file" class="form-control border-0 input-text" id="add_project_reference_files" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                         </div>
 
                         <div id="add_project_reference_files_preview" class="mt-2"></div>

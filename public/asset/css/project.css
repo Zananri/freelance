@@ -715,6 +715,19 @@
     padding: 8px;
 }
 
+.modal-custom .modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-custom .modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-custom .modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
 /* Collaborators list inside Project Detail modal */
 #projectDetailContent .collab-list {
     max-height: 300px; /* allow scrolling if many employees */
@@ -1461,10 +1474,23 @@
 }
 
 .feedback-modal-body {
-    padding: 0;
+    padding: 8px;
     max-height: 100%;
     overflow-y: auto;
     flex-grow: 1;
+}
+
+.feedback-modal-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.feedback-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.feedback-modal-body::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
 }
 
 .feedback-modal-header {
