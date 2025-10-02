@@ -866,11 +866,97 @@
                         </div>
                              
   
-                        
+                        <div class="wrapper-filter-search">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="">
+                                    <div class="dropdown dropdown-month">
+                                        <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            
+                                            <div class="d-inline-flex align-items-center">
+                                                <span class="calendar-month">{{ date('F') }}</span>
+                                                <span class="calendar-year">{{ date('Y') }}</span>
+                                            </div>
+
+                                        </div>
+
+                                        <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
+                                            @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
+                                                <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                            @endfor
+                                            
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div>
+                                    <input type="text" class="input-search-query sm-input w-100">
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="wrapper-data-overtime">
 
-                            <div class="box-data scrollbar-transparent pe-1">
-                                
+                            <div class="box-data scrollbar-transparent pe-1 pt-2">
+                                {{-- 
+                                <div class="item-overtime">
+                                    <div class="item-header mb-2">
+                                        <div class="mb-0">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="col-title">
+                                                    <div class="item-title me-2">Wed, 2 Oct 2025</div>
+                                                </div>
+                                                <div class="col-hour-minute">
+                                                    <div class="item-hour-minute">1h 30m</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="col-hour-start-end"> 
+                                                    <div class="item-hour-start-end">
+                                                        18 : 00 - 21 : 00
+                                                    </div>
+                                                </div>
+                                                <div class="col-status">
+                                                    <div class="item-status">Request</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                    </div>
+                                    <div class="item-body mb-2">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="col-description">
+                                                <div class="item-description">
+                                                    Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                                                </div>
+                                            </div> 
+                                        </div>
+                                    </div>
+                                    <div class="item-footer mb-1">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            
+                                            <div class="">
+                                                <img src="{{ asset('asset/img/logo.png') }}" class="img-stamp" alt="">
+                                                <img src="{{ asset('asset/img/logo.png') }}" class="img-stamp" alt="">
+                                            </div>
+                                            
+                                            <div class="col-item-action">
+                                                <div class="item-action item-action d-flex gap-2">
+                                                    <div class="btn-action">
+                                                        <span class="material-symbols-outlined">edit</span>
+                                                    </div>
+                                                    <div class="btn-action">
+                                                        <span class="material-symbols-outlined">delete</span>
+                                                    </div>
+                                                    <div class="btn-stop">
+                                                        Stop
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                 --}}
 
                             </div>
 
