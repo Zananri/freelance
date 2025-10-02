@@ -324,12 +324,12 @@
             html += '<div class="modal-body modal-body-custom">';
             html += '<div class="text-center mb-2">';
             html += '<div class="task-description-container">';
-            html +=
-                '<p class="task-description mb-0">' +
-                String(content || "")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;") +
-                "</p>";
+            // render sanitized HTML (avoid showing raw tags like "<p>...</p>")
+            try {
+                html += '<div class="task-description mb-0">' + sanitizeHtml(content || "") + '</div>';
+            } catch (_) {
+                html += '<p class="task-description mb-0">' + String(content || "") + '</p>';
+            }
             html += '</div></div><hr class="my-2">';
             html +=
                 '<p class="fw-normal fs-6 text-center mb-4">Are you sure you want to delete this ' +
@@ -841,7 +841,41 @@
                                         delText.textContent = 'Delete';
                                         delRep.appendChild(delIcon);
                                         delRep.appendChild(delText);
-                                        delRep.addEventListener('click', function(){ try { showDeleteConfirmModal && showDeleteConfirmModal({ id: feedback.id, type: 'feedback', content: feedback.feedback_comment||'' }); } catch(_){} });
+                                        delRep.addEventListener('click', function(){ try {
+                                            if (!showDeleteConfirmModal) return;
+                                            showDeleteConfirmModal({
+                                                id: feedback.id,
+                                                type: 'feedback',
+                                                content: feedback.feedback_comment||'',
+                                                onConfirm: function(done) {
+                                                    try {
+                                                        var fbId = feedback.id;
+                                                        var url = getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + fbId;
+                                                        fetch(url, {
+                                                            method: 'DELETE',
+                                                            headers: {
+                                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                                'Accept': 'application/json'
+                                                            }
+                                                        }).then(function(res){
+                                                            if (!res.ok) return res.json().then(function(j){ return Promise.reject(j); });
+                                                            return res.json();
+                                                        }).then(function(data){
+                                                            try { window.showFloatingAlert && window.showFloatingAlert('Feedback deleted','success',2000); } catch(_){}
+                                                            try { loadFeedbackData(getMeta('project-id')); } catch(_){}
+                                                            try { done(true); } catch(_){}
+                                                        }).catch(function(err){
+                                                            try {
+                                                                var msg = 'Failed to delete feedback';
+                                                                if (err && err.message) msg = err.message;
+                                                                window.showFloatingAlert && window.showFloatingAlert(msg,'warning',4000);
+                                                            } catch(_){}
+                                                            try { done(false); } catch(_){}
+                                                        });
+                                                    } catch (e) { try{ done(false); }catch(_){} }
+                                                }
+                                            });
+                                        } catch(_){} });
                                         actionsDiv.appendChild(delRep);
                                     } catch(_){}
                                 }
