@@ -2798,10 +2798,16 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             try { return !!(currentEmployeeId && Array.isArray(task.executors) && task.executors.some(ex => String(ex.id) === String(currentEmployeeId))); } catch(_) { return false; }
         })();
 
-        const shouldShowDropdown = !viewerPending && (!viewerIsExecutor || viewerIsPic);
+        // Show the dropdown only when the viewer is the PIC and not pending
+        const shouldShowDropdown = !!(viewerIsPic && !viewerPending);
+
+        // If dropdown isn't shown, make sure the arrow icon aligns to the right on THIS card only
+        if (iconHtml && !shouldShowDropdown) {
+            iconHtml = iconHtml.replace('style="cursor: pointer;"', 'style="cursor: pointer; right: 0;"');
+        }
 
         const dropdownHtml = `
-            <div class="dropdown-icon-container">
+            <div class="dropdown-icon-container${shouldShowDropdown ? '' : ' d-none'}">
                 <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
                 <div class="dropdown-menu d-none">
                     <div class="dropdown-item">Detail</div>
@@ -2812,13 +2818,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
             </div>
         `;
-
-        if (viewerIsExecutor) {
-            $(".dropdown-icon-container").addClass("d-none");
-            $(".arrow-forward-icon").css("right", "0")
-        } else if (shouldShowDropdown) {
-            $(".dropdown-icon-container").removeClass("d-none");
-        }
 
         return `
         <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
