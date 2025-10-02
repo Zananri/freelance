@@ -1261,16 +1261,34 @@
     try {
         const addDivisionSel = document.getElementById('task_division_id');
         if (addDivisionSel) {
-            // Populate divisions on page load using divisions-for-projects (no department filter)
-            fetch(appUrl + '/divisions-for-projects')
-                .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
-                .then(d => {
-                    if (!d || !d.data) return;
-                    let opts = '<option value="">Select Division</option>';
-                    d.data.forEach(function(div){ opts += `<option value="${div.id}" data-name="${(div.name_division||div.name)}">${(div.name_division||div.name)}</option>`; });
-                    addDivisionSel.innerHTML = opts;
-                })
-                .catch(err => { /* ignore */ });
+            // Read logged-in employee's department id from DOM if present
+            let empDeptId = null;
+            try { empDeptId = document.getElementById('taskFeedbackModal')?.dataset?.employeeDepartmentId || null; } catch(_) { empDeptId = null; }
+            // Populate divisions on page load: prefer department-scoped list when department id available
+            const populateAddDivisions = (data) => {
+                if (!data || !data.data) return;
+                let opts = '<option value="">Select Division</option>';
+                data.data.forEach(function(div){ opts += `<option value="${div.id}" data-name="${(div.name_division||div.name)}">${(div.name_division||div.name)}</option>`; });
+                addDivisionSel.innerHTML = opts;
+            };
+
+            if (empDeptId) {
+                fetch(appUrl + '/divisions-for-projects?department_id=' + encodeURIComponent(empDeptId))
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateAddDivisions)
+                    .catch(err => {
+                        // fallback to unfiltered list
+                        fetch(appUrl + '/divisions-for-projects')
+                            .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                            .then(populateAddDivisions)
+                            .catch(() => {});
+                    });
+            } else {
+                fetch(appUrl + '/divisions-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateAddDivisions)
+                    .catch(err => { /* ignore */ });
+            }
 
             addDivisionSel.addEventListener('change', function () {
                 const val = this.value;
@@ -1394,22 +1412,39 @@
     try {
         const editDivisionSel = document.getElementById('edit_task_division_id');
         if (editDivisionSel) {
-            // Load divisions on page load
-            fetch(appUrl + '/divisions-for-projects')
-                .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
-                .then(d => {
-                    if (!d || !d.data) return;
-                    let opts = '<option value="">Select Division</option>';
-                    d.data.forEach(function (div) {
-                        opts += `
-                            <option value="${div.id}"
-                                    data-name="${(div.name_division || div.name || '').trim()}">
-                                ${(div.name_division || div.name || '').trim()}
-                            </option>`;
+            // Read logged-in employee's department id from DOM if present
+            let empDeptIdEdit = null;
+            try { empDeptIdEdit = document.getElementById('taskFeedbackModal')?.dataset?.employeeDepartmentId || null; } catch(_) { empDeptIdEdit = null; }
+            // Load divisions on page load (prefer department-scoped)
+            const populateEditDivisions = (d) => {
+                if (!d || !d.data) return;
+                let opts = '<option value="">Select Division</option>';
+                d.data.forEach(function (div) {
+                    opts += `
+                        <option value="${div.id}"
+                                data-name="${(div.name_division || div.name || '').trim()}">
+                            ${(div.name_division || div.name || '').trim()}
+                        </option>`;
+                });
+                editDivisionSel.innerHTML = opts;
+            };
+
+            if (empDeptIdEdit) {
+                fetch(appUrl + '/divisions-for-projects?department_id=' + encodeURIComponent(empDeptIdEdit))
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateEditDivisions)
+                    .catch(err => {
+                        fetch(appUrl + '/divisions-for-projects')
+                            .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                            .then(populateEditDivisions)
+                            .catch(() => {});
                     });
-                    editDivisionSel.innerHTML = opts;
-                })
-                .catch(err => console.warn('Failed to load divisions for edit', err));
+            } else {
+                fetch(appUrl + '/divisions-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateEditDivisions)
+                    .catch(err => console.warn('Failed to load divisions for edit', err));
+            }
 
             // Division change → fetch employees
             editDivisionSel.addEventListener('change', function () {

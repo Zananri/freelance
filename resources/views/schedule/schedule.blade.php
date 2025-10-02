@@ -69,7 +69,7 @@
 
     {{-- Create Schedule modal --}}
     <div class="modal fade" id="scheduleCreateModal" tabindex="-1" aria-labelledby="scheduleCreateModalLabel"
-        aria-hidden="true">
+        aria-hidden="true" data-employee-department-id="{{ auth()->user()->employee->department_id ?? '' }}">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="editTaskModalLoader">
@@ -369,7 +369,7 @@
 
     {{-- Edit Schedule modal --}}
     <div class="modal fade" id="scheduleEditModal" tabindex="-1" aria-labelledby="scheduleEditModalLabel"
-        aria-hidden="true">
+        aria-hidden="true" data-employee-department-id="{{ auth()->user()->employee->department_id ?? '' }}">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">
                 <div class="modal-loading-overlay d-none" id="editScheduleModalLoader">
