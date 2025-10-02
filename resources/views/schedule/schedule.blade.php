@@ -294,7 +294,7 @@
 
                                 <select aria-label="Division (optional)"
                                     class="form-select input-select position-absolute" id="schedule_division_id"
-                                    name="division_id" required>
+                                    name="division_id">
                                     <option value="">Select Division</option>
                                 </select>
 
@@ -307,9 +307,9 @@
 
                             <div class="mb-3 custom-form-employee position-relative">
                                 <input type="text" id="schedule_executor_input" class="form-control input-text"
-                                    placeholder="Search employees..." autocomplete="off" required>
+                                    placeholder="Search employees..." autocomplete="off">
                                 <div id="schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
-                                <input type="hidden" id="schedule_executors" name="executor_ids" value="[]" required>
+                                <input type="hidden" id="schedule_executors" name="executor_ids" value="[]">
                             </div>
                         </div>
                     </div>
@@ -606,7 +606,7 @@
                                 <!-- Division (optional) - same behavior as edit task modal -->
                                 <select aria-label="Division (optional)"
                                     class="form-select input-select position-absolute" id="edit_schedule_division_id"
-                                    name="division_id" required>
+                                    name="division_id">
                                     <option value="">Select Division</option>
                                 </select>
                                 <div id="edit_schedule_division_activator"
@@ -621,10 +621,10 @@
                             <div class="mb-3 custom-form-employee position-relative">
                                 <input type="text" id="edit_schedule_executor_input"
                                     class="form-control input-text" placeholder="Search employees..."
-                                    autocomplete="off" required>
+                                    autocomplete="off">
                                 <div id="edit_schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                                 <input type="hidden" id="edit_schedule_executors" name="executor_ids"
-                                    value="[]" required>
+                                    value="[]">
                             </div>
                         </div>
                     </div>
