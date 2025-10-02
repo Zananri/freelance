@@ -61,67 +61,6 @@
                     ? message.replace(/<[^>]+>/g, "")
                     : String(message)
             );
-        } catch (e) {}
-    }
-
-    // Helper: human-friendly relative time formatter used in feedback modals
-    function timeAgo(createdAt) {
-        try {
-            const time = new Date(createdAt);
-            if (isNaN(time.getTime())) return "";
-            const now = new Date();
-            const diff = (now.getTime() - time.getTime()) / 1000;
-
-            if (diff < 60) {
-                return "just now";
-            } else if (diff < 3600) {
-                return Math.round(diff / 60) + " minute ago";
-            } else if (diff < 86400) {
-                return Math.round(diff / 3600) + " hour ago";
-            } else if (diff < 604800) {
-                return Math.round(diff / 86400) + " day ago";
-            } else if (diff < 2592000) {
-                return Math.round(diff / 604800) + " week ago";
-            } else if (diff < 31526000) {
-                return Math.round(diff / 2592000) + " month ago";
-            } else if (diff < 630720000) {
-                return Math.round(diff / 31526000) + " year ago";
-            }
-
-            return time.toDateString();
-        } catch (e) {
-            return "";
-        }
-    }
-
-    function resolveAvatar(url) {
-        if (!url) return "/asset/img/avatar.png";
-        return url;
-    }
-
-    function showFloatingAlert(message, type = "success", delayMs = 2500) {
-        try {
-            if (typeof window.showAlertMsg === "function") {
-                window.showAlertMsg(message, "light", delayMs);
-                return;
-            }
-            const box = document.querySelector(
-                ".box-alert-messages .box-message"
-            );
-            if (box && box.parentElement) {
-                box.parentElement.style.display = "block";
-                box.classList.remove("success", "warning", "error", "light");
-                box.classList.add("light");
-                box.innerHTML = message;
-                setTimeout(() => {
-                    if (typeof window.hideAlertMsg === "function") {
-                        window.hideAlertMsg();
-                    } else {
-                        box.parentElement.style.display = "none";
-                    }
-                }, delayMs);
-                return;
-            }
         } catch (e) {
             /* no-op */
         }
@@ -179,6 +118,50 @@
     }
 
     // Build 1-2 character initials from a title/name
+    // Fallback helper: human-friendly relative time formatter (used in feedback rendering)
+    function timeAgo(createdAt) {
+        try {
+            var time = new Date(createdAt);
+            if (isNaN(time.getTime())) return "";
+            var now = new Date();
+            var diff = (now.getTime() - time.getTime()) / 1000;
+
+            if (diff < 60) {
+                return "just now";
+            } else if (diff < 3600) {
+                return Math.round(diff / 60) + " minute ago";
+            } else if (diff < 86400) {
+                return Math.round(diff / 3600) + " hour ago";
+            } else if (diff < 604800) {
+                return Math.round(diff / 86400) + " day ago";
+            } else if (diff < 2592000) {
+                return Math.round(diff / 604800) + " week ago";
+            } else if (diff < 31526000) {
+                return Math.round(diff / 2592000) + " month ago";
+            } else if (diff < 630720000) {
+                return Math.round(diff / 31526000) + " year ago";
+            }
+
+            return time.toDateString();
+        } catch (e) {
+            return "";
+        }
+    }
+
+    // Fallback helper: normalize avatar URL or return default avatar
+    function resolveAvatar(raw) {
+        try {
+            if (!raw) return getMeta('app-url').replace(/\/$/, '') + '/asset/img/avatar.png';
+            var s = String(raw || '');
+            if (s.indexOf('http://') === 0 || s.indexOf('https://') === 0) return s;
+            if (s.indexOf('/') === 0) return getMeta('app-url').replace(/\/$/, '') + s;
+            // assume stored filename
+            return getMeta('app-url').replace(/\/$/, '') + '/file/profile_picture/' + s;
+        } catch (e) {
+            return getMeta('app-url').replace(/\/$/, '') + '/asset/img/avatar.png';
+        }
+    }
+
     function buildInitials(title) {
         try {
             if (!title) return "";
