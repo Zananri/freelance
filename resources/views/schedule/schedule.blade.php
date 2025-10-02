@@ -235,8 +235,7 @@
 
                             <!-- Project -->
                             {{-- <div class="mb-3 custom-form-employee">
-                                <label for="schedule_project_id" class="form-label label-custom">Project
-                                </label>
+                                <label for="schedule_project_id" class="form-label label-custom">Project <span class="text-danger">*</span></label>
                                 <!-- Hidden field to indicate modal opened from a project context -->
                                 <input type="hidden" id="schedule_project_context_id" name="project_context_id"
                                     value="">
@@ -247,13 +246,13 @@
                                 <div class="invalid-feedback">Please select a project.</div>
                             </div> --}}
                             <div class="mb-3 custom-form-employee">
-                                <label class="form-label label-custom">Project</label>
+                                <label class="form-label label-custom">Project <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control input-text"
                                     id="schedule_project_context_id" autocomplete="off"
-                                    placeholder="Search project...">
+                                    placeholder="Search project..." required>
                                 <div id="schedule_project_dropdown" class="dropdown-list mt-1"></div>
                                 <div id="schedule_selected_project" class="mt-2"></div>
-                                <input type="hidden" id="schedule_project_id" name="project_id" value="">
+                                <input type="hidden" id="schedule_project_id" name="project_id" value="" required>
                             </div>
 
                             <!-- Parent Task selector -->
@@ -291,11 +290,11 @@
                                 <div id="schedule_reference_files_preview" class="mt-2"></div>
                             </div>
                             <div class="mb-1 custom-form-employee position-relative">
-                                <label for="schedule_executor_input" class="form-label label-custom">Executor</label>
+                                <label for="schedule_executor_input" class="form-label label-custom">Executor <span class="text-danger">*</span></label>
 
                                 <select aria-label="Division (optional)"
                                     class="form-select input-select position-absolute" id="schedule_division_id"
-                                    name="division_id">
+                                    name="division_id" required>
                                     <option value="">Select Division</option>
                                 </select>
 
@@ -308,9 +307,9 @@
 
                             <div class="mb-3 custom-form-employee position-relative">
                                 <input type="text" id="schedule_executor_input" class="form-control input-text"
-                                    placeholder="Search employees..." autocomplete="off">
+                                    placeholder="Search employees..." autocomplete="off" required>
                                 <div id="schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
-                                <input type="hidden" id="schedule_executors" name="executor_ids" value="[]">
+                                <input type="hidden" id="schedule_executors" name="executor_ids" value="[]" required>
                             </div>
                         </div>
                     </div>
@@ -555,7 +554,7 @@
                             </div>
 
                             <div class="mb-3 custom-form-employee">
-                                <label for="edit_schedule_project_id" class="form-label label-custom">Project</label>
+                                <label for="edit_schedule_project_id" class="form-label label-custom">Project <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control input-text" id="edit_schedule_project_search"
                                     autocomplete="off" placeholder="Search project..." required>
 
@@ -603,11 +602,11 @@
                             <!-- Executors -->
                             <div class="mb-1 custom-form-employee">
                                 <label for="edit_schedule_executor_input"
-                                    class="form-label label-custom">Executor</label>
+                                    class="form-label label-custom">Executor <span class="text-danger">*</span></label>
                                 <!-- Division (optional) - same behavior as edit task modal -->
                                 <select aria-label="Division (optional)"
                                     class="form-select input-select position-absolute" id="edit_schedule_division_id"
-                                    name="division_id">
+                                    name="division_id" required>
                                     <option value="">Select Division</option>
                                 </select>
                                 <div id="edit_schedule_division_activator"
@@ -622,10 +621,10 @@
                             <div class="mb-3 custom-form-employee position-relative">
                                 <input type="text" id="edit_schedule_executor_input"
                                     class="form-control input-text" placeholder="Search employees..."
-                                    autocomplete="off">
+                                    autocomplete="off" required>
                                 <div id="edit_schedule_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
                                 <input type="hidden" id="edit_schedule_executors" name="executor_ids"
-                                    value="[]">
+                                    value="[]" required>
                             </div>
                         </div>
                     </div>
