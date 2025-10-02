@@ -178,6 +178,51 @@
         }
     }
 
+    // Basic sanitizer: allow a small whitelist of tags (p, br, strong, em, b, i, ul, ol, li, a)
+    function sanitizeHtml(input) {
+        try {
+            if (!input) return "";
+            var allowed = ['p','br','strong','em','b','i','ul','ol','li','a'];
+            // Decode HTML entities first (handle cases where server stored escaped HTML like &lt;p&gt;)
+            var decoder = document.createElement('textarea');
+            decoder.innerHTML = String(input);
+            var decoded = decoder.value || decoder.textContent || String(input);
+            // Create a template element to parse HTML
+            var template = document.createElement('template');
+            template.innerHTML = decoded;
+            var walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null, false);
+            var node;
+            var removeStack = [];
+            while ((node = walker.nextNode())) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    var tag = node.tagName.toLowerCase();
+                    if (allowed.indexOf(tag) === -1) {
+                        // replace disallowed element with its text content
+                        var txt = document.createTextNode(node.textContent || '');
+                        node.parentNode.replaceChild(txt, node);
+                        // reposition walker safely by starting over
+                        walker = document.createTreeWalker(template.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null, false);
+                    } else {
+                        // sanitize attributes: only allow href on <a>
+                        if (tag === 'a') {
+                            var href = node.getAttribute('href') || '';
+                            if (!href || (!href.match(/^https?:\/\//) && href.indexOf('/') !== 0 && href.indexOf('#') !== 0)) {
+                                node.removeAttribute('href');
+                            }
+                        } else {
+                            // remove all attributes on allowed tags except href on a
+                            var attrs = Array.from(node.attributes || []);
+                            attrs.forEach(function(a){ if (a.name !== 'href') node.removeAttribute(a.name); });
+                        }
+                    }
+                }
+            }
+            return template.innerHTML;
+        } catch (e) {
+            return String(input).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        }
+    }
+
     // Deterministic color pick from text
     function getRandomColorFromText(text) {
         try {
@@ -597,8 +642,12 @@
                             var commentDiv = document.createElement("div");
                             commentDiv.className = "feedback-comment";
                             commentDiv.style.fontSize = "10px";
-                            commentDiv.textContent =
-                                feedback.feedback_comment || "";
+                            // allow a small whitelist of HTML (p, br, a, strong, em, ul/ol/li)
+                            try {
+                                commentDiv.innerHTML = sanitizeHtml(feedback.feedback_comment || "");
+                            } catch (_) {
+                                commentDiv.textContent = feedback.feedback_comment || "";
+                            }
 
                             feedbackItem.appendChild(headerDiv);
                             feedbackItem.appendChild(commentDiv);
