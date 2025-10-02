@@ -620,6 +620,112 @@
                             feedbackItem.appendChild(headerDiv);
                             feedbackItem.appendChild(commentDiv);
 
+                            // Normalize top-level image URL (accept absolute, /file/* or relative filename)
+                            try {
+                                var topImageUrl = feedback.image || "";
+                                if (topImageUrl) {
+                                    var isAbs = typeof topImageUrl === 'string' && (topImageUrl.indexOf('http://') === 0 || topImageUrl.indexOf('https://') === 0);
+                                    var isFilePath = typeof topImageUrl === 'string' && (topImageUrl.indexOf('/file/') === 0 || topImageUrl.indexOf('file/') === 0);
+                                    var isStorage = typeof topImageUrl === 'string' && (topImageUrl.indexOf('/storage/') === 0 || topImageUrl.indexOf('storage/') === 0);
+                                    if (!isAbs && !isFilePath && !isStorage) {
+                                        topImageUrl = getMeta('app-url').replace(/\/$/, '') + '/file/project_feedback/' + topImageUrl;
+                                    } else if (!isAbs && (isFilePath || isStorage)) {
+                                        topImageUrl = topImageUrl.indexOf('/') === 0 ? (getMeta('app-url').replace(/\/$/, '') + topImageUrl) : (getMeta('app-url').replace(/\/$/, '') + '/' + topImageUrl);
+                                    }
+                                }
+                            } catch (e) {
+                                topImageUrl = feedback.image || '';
+                            }
+
+                            // Reference files normalization (array-first, fallback single)
+                            var topRefFiles = [];
+                            try {
+                                var topRfVal = feedback.reference_files;
+                                if (!Array.isArray(topRfVal) && typeof topRfVal === 'string') {
+                                    try { var parsed = JSON.parse(topRfVal); if (Array.isArray(parsed)) topRfVal = parsed; } catch(_) {}
+                                }
+                                if (Array.isArray(topRfVal) && topRfVal.length > 0) {
+                                    topRefFiles = topRfVal.map(function(f){
+                                        if (!f) return null;
+                                        var isAbs = typeof f === 'string' && (f.indexOf('http://') === 0 || f.indexOf('https://') === 0);
+                                        var isRefPath = typeof f === 'string' && (f.indexOf('/file/project_reference_files/') === 0 || f.indexOf('file/project_reference_files/') === 0 || f.indexOf('/file/') === 0);
+                                        if (!isAbs && !isRefPath) return getMeta('app-url').replace(/\/$/, '') + '/file/project_reference_files/' + f;
+                                        if (!isAbs && isRefPath) return f.indexOf('/') === 0 ? (getMeta('app-url').replace(/\/$/, '') + f) : (getMeta('app-url').replace(/\/$/, '') + '/' + f);
+                                        return f;
+                                    }).filter(Boolean);
+                                } else {
+                                    var singleTop = feedback.reference_file || '';
+                                    if (singleTop) {
+                                        var isAbs2 = typeof singleTop === 'string' && (singleTop.indexOf('http://') === 0 || singleTop.indexOf('https://') === 0);
+                                        var isRefPath2 = typeof singleTop === 'string' && (singleTop.indexOf('/file/project_reference_files/') === 0 || singleTop.indexOf('file/project_reference_files/') === 0 || singleTop.indexOf('/file/') === 0);
+                                        if (!isAbs2 && !isRefPath2) singleTop = getMeta('app-url').replace(/\/$/, '') + '/file/project_reference_files/' + singleTop;
+                                        else if (!isAbs2 && isRefPath2) singleTop = singleTop.indexOf('/') === 0 ? (getMeta('app-url').replace(/\/$/, '') + singleTop) : (getMeta('app-url').replace(/\/$/, '') + '/' + singleTop);
+                                        topRefFiles = [singleTop];
+                                    }
+                                }
+                            } catch(_) { topRefFiles = []; }
+
+                            // Reference URLs normalization
+                            var topRefUrls = [];
+                            try {
+                                var topRuVal = feedback.reference_urls;
+                                if (!Array.isArray(topRuVal) && typeof topRuVal === 'string') {
+                                    try { var parsed2 = JSON.parse(topRuVal); if (Array.isArray(parsed2)) topRuVal = parsed2; } catch(_) {}
+                                }
+                                if (Array.isArray(topRuVal) && topRuVal.length > 0) {
+                                    topRefUrls = topRuVal.filter(function(u){ return typeof u === 'string' && u.trim() !== ''; });
+                                } else if (feedback.reference_url) {
+                                    topRefUrls = [feedback.reference_url];
+                                }
+                            } catch(_) { topRefUrls = []; }
+
+                            // Render reference URLs / files if any
+                            if ((Array.isArray(topRefUrls) && topRefUrls.length > 0) || (Array.isArray(topRefFiles) && topRefFiles.length > 0)) {
+                                var refWrap = document.createElement('div');
+                                refWrap.className = 'feedback-reference-container mb-2';
+                                if (Array.isArray(topRefUrls) && topRefUrls.length > 0) {
+                                    topRefUrls.forEach(function(u, idx){
+                                        try {
+                                            var a = document.createElement('a');
+                                            a.href = u;
+                                            a.target = '_blank';
+                                            a.className = 'feedback-reference-url me-2';
+                                            a.innerHTML = '<span class="material-symbols-outlined">link</span> Link ' + (idx+1);
+                                            refWrap.appendChild(a);
+                                        } catch(_) {}
+                                    });
+                                }
+                                if (Array.isArray(topRefFiles) && topRefFiles.length > 0) {
+                                    topRefFiles.forEach(function(f, idx){
+                                        try {
+                                            var af = document.createElement('a');
+                                            af.href = f;
+                                            af.download = '';
+                                            af.className = 'feedback-reference-file ms-2';
+                                            af.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx+1);
+                                            refWrap.appendChild(af);
+                                        } catch(_) {}
+                                    });
+                                }
+                                feedbackItem.appendChild(refWrap);
+                            }
+
+                            // Render top image if present
+                            if (topImageUrl) {
+                                try {
+                                    var imgEl = document.createElement('img');
+                                    imgEl.src = topImageUrl;
+                                    imgEl.className = 'img-fluid rounded mb-2 feedback-image';
+                                    imgEl.style.width = '100%';
+                                    imgEl.style.maxWidth = '260px';
+                                    imgEl.style.height = 'auto';
+                                    imgEl.style.borderRadius = '8px';
+                                    imgEl.style.cursor = 'pointer';
+                                    imgEl.addEventListener('click', function(){ try { showImageModal(topImageUrl); } catch(_) { window.open(topImageUrl, '_blank'); } });
+                                    feedbackItem.appendChild(imgEl);
+                                } catch(_) {}
+                            }
+
                             feedbackListEl.appendChild(feedbackItem);
                         });
                     })
