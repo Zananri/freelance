@@ -1013,8 +1013,26 @@
                     var photoInput = document.getElementById('inline_feedback_image_input');
                     var filesInput = document.getElementById('inline_feedback_files_input');
 
+                    // maintain an array of selected files for inline preview & upload
+                    window.inlineFeedbackSelectedFiles = window.inlineFeedbackSelectedFiles || [];
+
                     if (photoBtn && photoInput) photoBtn.addEventListener('click', function(){ photoInput.click(); });
                     if (fileBtn && filesInput) fileBtn.addEventListener('click', function(){ filesInput.click(); });
+                    // handle file (non-image) attachments preview
+                    if (filesInput) {
+                        filesInput.addEventListener('change', function(ev){
+                            try {
+                                var files = Array.from(this.files || []);
+                                if (!files.length) return;
+                                // append to selected array
+                                window.inlineFeedbackSelectedFiles = (window.inlineFeedbackSelectedFiles || []).concat(files);
+                                renderInlineFilesPreview();
+                                // clear native input so user can reselect same file later if needed
+                                try { this.value = ''; } catch(_){}
+                            } catch(_){}
+                        });
+                    }
+
                     // show image preview overlay when a photo is selected
                     if (photoInput) {
                         photoInput.addEventListener('change', function(ev){
@@ -1027,11 +1045,67 @@
                                 reader.onload = function(e){
                                     try {
                                         showInlineImagePreview(f, e.target.result);
-                                    } catch(_){}
+                                    } catch(_){ }
                                 };
                                 reader.readAsDataURL(f);
-                            } catch(_){}
+                            } catch(_){ }
                         });
+                    }
+
+                    // render inline files preview container (insert before editor)
+                    function renderInlineFilesPreview() {
+                        try {
+                            var editorEl = document.getElementById('inline_feedback_editor');
+                            if (!editorEl) return;
+                            var parent = editorEl.parentNode;
+                            if (!parent) return;
+                            var previewId = 'inline_feedback_files_preview';
+                            var preview = document.getElementById(previewId);
+                            if (!preview) {
+                                preview = document.createElement('div');
+                                preview.id = previewId;
+                                preview.className = 'mt-2';
+                                parent.insertBefore(preview, editorEl);
+                            }
+                            // build list
+                            preview.innerHTML = '';
+                            var listWrap = document.createElement('div');
+                            listWrap.className = 'selected-files-list mt-2';
+                            (window.inlineFeedbackSelectedFiles || []).forEach(function(f, idx){
+                                try {
+                                    var item = document.createElement('div');
+                                    item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+                                    var iconWrap = document.createElement('div');
+                                    // small file icon placeholder
+                                    iconWrap.innerHTML = '<span class="material-symbols-outlined">description</span>';
+                                    iconWrap.style.minWidth = '28px';
+                                    iconWrap.style.textAlign = 'center';
+
+                                    var name = document.createElement('span');
+                                    name.className = 'flex-grow-1';
+                                    var sizeMb = (f.size || 0) / 1024 / 1024;
+                                    name.textContent = (f.name || '') + (isFinite(sizeMb) ? ' (' + sizeMb.toFixed(2) + ' MB)' : '');
+
+                                    var rm = document.createElement('button');
+                                    rm.type = 'button';
+                                    rm.className = 'btn btn-sm btn-remove-task remove-task';
+                                    rm.style.lineHeight = '1';
+                                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                    rm.addEventListener('click', function(){
+                                        try {
+                                            window.inlineFeedbackSelectedFiles.splice(idx, 1);
+                                            renderInlineFilesPreview();
+                                        } catch(_){}
+                                    });
+
+                                    item.appendChild(iconWrap);
+                                    item.appendChild(name);
+                                    item.appendChild(rm);
+                                    listWrap.appendChild(item);
+                                } catch(_){}
+                            });
+                            preview.appendChild(listWrap);
+                        } catch(e){ }
                     }
                 } catch(_){}
 
@@ -1053,8 +1127,15 @@
                                 fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
 
                                 // attach image/file inputs if present
-                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]); }catch(_){}
-                                try { var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) { Array.from(fi.files).forEach(function(f){ fd.append('reference_files[]', f); }); } }catch(_){}
+                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]); }catch(_){ }
+                                try {
+                                    // prefer selected files tracked in inlineFeedbackSelectedFiles
+                                    if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) {
+                                        window.inlineFeedbackSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); });
+                                    } else {
+                                        var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) { Array.from(fi.files).forEach(function(f){ fd.append('reference_files[]', f); }); }
+                                    }
+                                } catch(_){ }
 
                                 // basic UI feedback
                                 var original = sendBtn.innerHTML;
@@ -1074,8 +1155,9 @@
                                     try { loadFeedbackData(getMeta('project-id')); } catch(_){}
                                     // clear editor and inputs
                                     try { if (window.__quillProjectFeedbackInline) window.__quillProjectFeedbackInline.root.innerHTML = ''; }catch(_){}
-                                    try { if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = ''; }catch(_){}
-                                    try { if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; }catch(_){}
+                                    try { if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = ''; }catch(_){ }
+                                    try { if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; }catch(_){ }
+                                    try { window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); }catch(_){ }
                                 }).catch(function(err){
                                     var msg = 'Failed to submit feedback';
                                     try { if (err && err.errors) msg = Object.values(err.errors).join('\n'); else if (err && err.message) msg = err.message; } catch(_){}
