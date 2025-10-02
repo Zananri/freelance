@@ -281,7 +281,7 @@
                     )
                     .attr("data-project-id", proj.id || "")
                     .html(
-                        `<span class="circle border-0 ${proj.color}"></span>${proj.name}`
+                        `<span class="circle border-0 ${proj.color}"></span><div class="bar-name">${proj.name}</div>`
                     );
 
                 $row.append($bar);

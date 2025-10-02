@@ -4407,7 +4407,7 @@ function applyCurrentSearchFilter() {
                 return { allowed: false };
             }
             return { allowed: false };
-        }   
+        }
 
         function clearDropHighlights(){
             try {
@@ -7079,7 +7079,7 @@ function applyCurrentSearchFilter() {
 
                 const html = `
                 <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
                         <div class="d-flex align-items-center">
                             ${avatarHtml}
                             <div class="d-flex flex-column">
@@ -7095,7 +7095,11 @@ function applyCurrentSearchFilter() {
                             </div>
                         </div>
                     </div>
-                    ${task.description ? `<p style="font-size:14px;" class="mb-2">${task.description}</p>` : ""}
+                    <div class="task-detail-description-container">
+                        <div class="task-description">
+                            ${task.description ? task.description : ''}
+                        </div>
+                    </div>
                     <hr class="task-separator rounded-4">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div style="font-size:12px;">
@@ -9185,9 +9189,9 @@ function applyCurrentSearchFilter() {
         headerLabels.forEach((day) => {
             const th = document.createElement("th");
             th.textContent = day;
-            th.classList.add("timeline-cell");                 // << wajib
+            th.classList.add("timeline-cell");
             if (new Date(year, month, day).getDay() === 0) {
-            th.classList.add("sunday");                      // << jadi match .timeline-cell.sunday
+            th.classList.add("sunday");
             }
             headerRow.appendChild(th);
         });
@@ -9239,7 +9243,7 @@ function applyCurrentSearchFilter() {
             barTd.colSpan = endDay - startDay + 1;
             barTd.classList.add("timeline-cell");
             if (task.id) barTd.setAttribute('data-task-id', String(task.id));
-            barTd.innerHTML = `<div class="timeline-bar ${task.color}" data-task-id="${task.id || ''}" style="cursor:pointer; pointer-events:auto; z-index:2; position:relative;"><span class="circle"></span>${task.name}</div>`;
+            barTd.innerHTML = `<div class="timeline-bar ${task.color}" data-task-id="${task.id || ''}" style="cursor:pointer; pointer-events:auto; z-index:2; position:relative;"><span class="circle"></span><p class="bar-name">${task.name}</p></div>`;
             tr.appendChild(barTd);
 
             // Empty cells after the bar

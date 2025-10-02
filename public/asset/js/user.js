@@ -42,11 +42,12 @@ document.addEventListener("DOMContentLoaded", function () {
         return `${appUrl}/${u.replace(/^\//,'')}`;
     }
 
-    function fetchUsers(cb) {
+    function fetchUsers(cb, search = "") {
         $.ajax({
             url: appUrl + "/user/index",
             type: "GET",
             dataType: "json",
+            data: { search: search },
             success: function (response) {
                 renderUsers(response.data || []);
                 if (typeof cb === 'function') cb();
@@ -170,6 +171,18 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 
+    function initSearchFilter() {
+        $(document).on("keydown", "#search_filter", function (e) {
+            if (e.key === "Enter") {
+                e.preventDefault();
+
+                const query = $(this).val().trim();
+                fetchUsers(null, query);
+            }
+        });
+    }
+
+    initSearchFilter();
     fetchUsers();
 
     // Listen for global profile picture updates and refetch users to update displayed avatar for current logged user row

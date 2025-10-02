@@ -21,16 +21,26 @@ class UserController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            // Include employee relation with photo field so frontend can use employee.photo consistently
-            $users = User::with(['employee:id,user_id,photo,division_id'])
-                ->select('id', 'name', 'email', 'user_type', 'user_role')
-                ->get();
+            $query = User::with(['employee:id,user_id,photo,division_id'])
+                ->select('id', 'name', 'email', 'user_type', 'user_role');
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('user_type', 'like', "%{$search}%")
+                    ->orWhere('user_role', 'like', "%{$search}%");
+                });
+            }
+
+            $users = $query->get();
+
             return response()->json(['data' => $users]);
         }
 
         return view('master.user.user');
     }
-
 
     public function login(Request $request)
     {

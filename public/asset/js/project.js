@@ -4541,7 +4541,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 }">
                                 <input type="hidden" name="parent_id" value="">
                                     <div class="mb-3">
-                                        <label class="form-label">Upload Image</label>
+                                        <label class="form-label label-custom">Upload Image</label>
                                         <div class="image-upload-container">
                                             <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
                                                 style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
@@ -4552,23 +4552,24 @@ document.addEventListener("DOMContentLoaded", function () {
                                     </div>
 
                                     <div class="mb-3 input-custom">
-                                        <label for="feedback_comment" class="form-label">Feedback Comment</label>
+                                        <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
                                         <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
                                     </div>
-
                                     <div class="mb-3 input-custom">
-                                        <label class="form-label">Reference URLs (Optional)</label>
+                                        <label class="form-label label-custom">Reference URLs (Optional)</label>
                                         <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
-                                            <div class="d-flex gap-2 align-items-center">
+                                            <div class="input-group">
                                                 <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
-                                                <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                                <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                                    <span class="material-symbols-outlined">add</span>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div class="mb-3 input-custom">
-                                        <label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>
-                                        <input type="file" class="form-control" id="feedback_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                        <label for="feedback_reference_files" class="form-label label-custom">Reference Files (Optional)</label>
+                                        <input type="file" class="form-control input-text" id="feedback_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
                                         <div id="feedback_reference_files_preview" class="mt-2"></div>
                                     </div>
                             </form>
@@ -4946,7 +4947,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             }">
 
                             <div class="mb-3 input-custom">
-                                <label class="form-label">Upload Image</label>
+                                <label class="form-label label-custom">Upload Image</label>
                                 <div class="image-upload-container">
                                     <label for="feedback_image" class="custom-image-upload position-relative label-custom" id="feedbackImageLabel"
                                         style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
@@ -4964,16 +4965,18 @@ document.addEventListener("DOMContentLoaded", function () {
                             <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Reference URLs (Optional)</label>
                                 <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
-                                    <div class="d-flex gap-2 align-items-center">
+                                    <div class="input-group">
                                         <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
-                                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
+                                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="mb-3 input-custom">
                                 <label for="reply_reference_files" class="form-label label-custom">Reference Files (Optional)</label>
-                                <input type="file" class="form-control" id="reply_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                <input type="file" class="form-control input-text" id="reply_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
                                 <div id="reply_reference_files_preview" class="mt-2"></div>
                             </div>
                         </form>`;
@@ -5300,12 +5303,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
                             <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Reference URLs (Optional)</label>
-                                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
+                                <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="input-group">
+                                        <input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">
+                                        <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="mb-3 input-custom">
                                 <label for="edit_reference_files" class="form-label label-custom">Reference Files (Optional)</label>
-                                <input type="file" class="form-control" id="edit_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                <input type="file" class="form-control input-text" id="edit_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
                                 <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
                                 <div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>
                                 <div id="edit_feedback_reference_files_preview" class="mt-2"></div>
@@ -5582,7 +5592,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             function addRow(value, withAdd) {
                                 const row = document.createElement("div");
                                 row.className =
-                                    "d-flex gap-2 align-items-center";
+                                    "input-group";
                                 row.innerHTML =
                                     '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                                     (withAdd
@@ -9926,7 +9936,7 @@ function renderTimeline(
             const barTd = document.createElement("td");
             barTd.colSpan = projEndIdx - projStartIdx + 1;
             const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
-            barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+            barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span><div class="bar-name">${proj.name}</div></div>`;
             tr.appendChild(barTd);
         }
 
