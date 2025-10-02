@@ -846,7 +846,7 @@
 }
 
 .timeline-wrapper {
-    min-height: 35vh;
+    min-height: 38vh;
     max-height: calc(100vh - 500px);
     width: 100%;
     overflow-x: auto;
@@ -856,6 +856,7 @@
 
 .timeline-table {
     min-width: 200%;
+    min-height: 35vh;
     border-collapse: collapse;
     border: 1px solid #dae3ed;
     table-layout: fixed;
@@ -1112,13 +1113,16 @@
 }
 
 #task-tree {
+    position: relative;
     display: flex;
     flex-direction: row;
     align-items: flex-start;
     justify-content: flex-start;
+    min-height: calc(100vh - 475px);
     gap: 40px;
-    /* overflow: auto; */
     padding: 20px 20px 20px 0;
+    scrollbar-width: thin;
+    scrollbar-color: #cccccc transparent;
 }
 
 #task-tree::-webkit-scrollbar {
@@ -1133,12 +1137,6 @@
 #task-tree::-webkit-scrollbar-thumb {
     background-color: #cccccc;
     border-radius: 4px;
-}
-
-/* Firefox fallback */
-#task-tree {
-    scrollbar-width: thin;
-    scrollbar-color: #cccccc transparent;
 }
 
 .root-column {
@@ -1222,10 +1220,6 @@
     display: none !important;
 }
 
-/* SVG overlay container inside #task-tree */
-#task-tree {
-    position: relative;
-}
 #task-tree-svg {
     position: absolute;
     left: 0;
@@ -1381,7 +1375,7 @@ input[type="file"]::file-selector-button {
 }
 
 #view-more-wrapper {
-    position: absolute  ;
+    position: absolute;
     right: 1%;
     bottom: 3%;
     z-index: 10;
@@ -1401,10 +1395,10 @@ input[type="file"]::file-selector-button {
 .feedback-title {
     font-size: 16px;
     font-weight: normal;
-    color: #3B3D42;
+    color: #3b3d42;
 }
 
-#fullscreen-feedback-btn span{
+#fullscreen-feedback-btn span {
     color: #898989;
 }
 
@@ -1430,7 +1424,7 @@ input[type="file"]::file-selector-button {
 }
 
 .feedback-form {
-    background: #F7F8FD;
+    background: #f7f8fd;
     border-radius: 10px;
     align-items: end;
     bottom: 0;
@@ -1439,13 +1433,13 @@ input[type="file"]::file-selector-button {
 
 .feedback-form input {
     margin-bottom: 10px;
-    background: #F7F8FD;
+    background: #f7f8fd;
 }
 
 .feedback-form input:focus {
     outline: none;
     box-shadow: none;
-    background: #F7F8FD;
+    background: #f7f8fd;
 }
 
 .feedback-form input::placeholder {
@@ -1484,4 +1478,22 @@ input[type="file"]::file-selector-button {
 #inline_feedback_files_preview::-webkit-scrollbar-thumb {
     background-color: #cccccc;
     border-radius: 4px;
+}
+
+.feedback-content-clone {
+    position: fixed;
+    top: 165px;
+    left: 279px;
+    width: 25.6vw;
+    min-height: calc(100vh - 200px);
+    z-index: 1050;
+    border-radius: 12px;
+    overflow-y: auto;
+    padding: 15px;
+}
+
+.feedback-content-clone .feedback-content {
+    max-height: calc(100vh - 410px);
+    overflow-y: auto;
+    margin-bottom: 15px;
 }

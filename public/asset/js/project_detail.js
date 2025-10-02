@@ -5799,3 +5799,28 @@ $("#fullscreen-feedback-btn").on("click", function () {
         $("body").css("overflow", "hidden");
     }
 });
+
+$("#fullscreen-feedback-btn").on("click", function () {
+    const $feedbackContent = $(".feedback-detail-project .feedback-content-detail");
+    const $icon = $(this).find("span.material-symbols-outlined");
+    const $clone = $(".feedback-content-clone");
+    const $detailCard = $(".detail-project-card");
+
+    if ($clone.length) {
+        $clone.remove();
+        $feedbackContent.removeClass("invisible");
+        $detailCard.removeClass("invisible");
+        $icon.text("fullscreen");
+        $("body").css("overflow", "auto");
+    } else {
+        const $newClone = $feedbackContent.clone(true, true);
+        $newClone.removeClass("feedback-content-detail")
+                 .addClass("feedback-content-clone");
+        $("body").append($newClone);
+
+        $feedbackContent.addClass("invisible");
+        $detailCard.addClass("invisible");
+        $icon.text("fullscreen_exit");
+        $("body").css("overflow", "hidden");
+    }
+});
