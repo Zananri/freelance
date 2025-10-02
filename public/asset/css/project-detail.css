@@ -1033,8 +1033,9 @@
 
 #fullscreen-tree-btn {
     background: #f0f1f8;
-    position: fixed;
-    right: 3%;
+    position: sticky;
+    top: 0;
+    right: 0;
     z-index: 10;
 }
 
@@ -1091,25 +1092,10 @@
 }
 
 .structure-detail-content {
-    height: 50vh;
+    height: calc(100vh - 450px);
     z-index: 12;
-    overflow: auto;
     position: relative;
-    padding-bottom: 64px;
-}
-
-.structure-detail-content::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
-}
-
-.structure-detail-content::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.structure-detail-content::-webkit-scrollbar-thumb {
-    background-color: #cccccc;
-    border-radius: 4px;
+    padding: 10px;
 }
 
 #task-tree {
@@ -1118,11 +1104,10 @@
     flex-direction: row;
     align-items: flex-start;
     justify-content: flex-start;
-    min-height: calc(100vh - 475px);
+    height: calc(100vh - 525px);
+    padding: 20px;
     gap: 40px;
-    padding: 20px 20px 20px 0;
-    scrollbar-width: thin;
-    scrollbar-color: #cccccc transparent;
+    overflow: auto;
 }
 
 #task-tree::-webkit-scrollbar {
