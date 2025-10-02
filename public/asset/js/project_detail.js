@@ -726,6 +726,82 @@
                                 } catch(_) {}
                             }
 
+                            // Actions: Reply always; Edit/Delete only if this feedback belongs to current user
+                            try {
+                                var actionsDiv = document.createElement('div');
+                                actionsDiv.className = 'feedback-actions mt-2 d-flex gap-3 align-items-center';
+                                // make actions occupy full width and align to right
+                                actionsDiv.style.width = '100%';
+                                actionsDiv.style.justifyContent = 'flex-end';
+
+                                // Reply (icon + text) — same markup as project.js
+                                try {
+                                    var replyRep = document.createElement('span');
+                                    replyRep.className = 'd-flex align-items-center feedback-reply-trigger';
+                                    replyRep.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                    replyRep.setAttribute('data-feedback-id', String(feedback.id));
+                                    replyRep.setAttribute('data-project-id', String(getMeta('project-id')));
+                                    var replyIcon = document.createElement('span');
+                                    replyIcon.className = 'material-symbols-outlined';
+                                    replyIcon.style.cssText = 'font-size:14px; line-height:1; margin-right:5px;';
+                                    replyIcon.textContent = 'reply';
+                                    var replyText = document.createElement('span');
+                                    replyText.textContent = 'Reply';
+                                    replyRep.appendChild(replyIcon);
+                                    replyRep.appendChild(replyText);
+                                    replyRep.addEventListener('click', function(){ try { showReplyFeedbackForm && showReplyFeedbackForm(getMeta('project-id'), feedback.id); } catch(_){} });
+                                    actionsDiv.appendChild(replyRep);
+                                } catch(_){}
+
+                                // current user id
+                                var currentEmployeeId = null;
+                                try { currentEmployeeId = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || getMeta('employee-id') || null; } catch(_){}
+                                var fbEmployeeId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || (feedback.employee && feedback.employee.employee_id) || null;
+
+                                var isOwner = false;
+                                try { if (fbEmployeeId && currentEmployeeId && String(fbEmployeeId) === String(currentEmployeeId)) isOwner = true; } catch(_){}
+
+                                if (isOwner) {
+                                    // Edit (icon + text) — match project.js
+                                    try {
+                                        var editRep = document.createElement('span');
+                                        editRep.className = 'd-flex align-items-center reply-edit-trigger';
+                                        editRep.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                        editRep.setAttribute('data-feedback-id', String(feedback.id));
+                                        var editIcon = document.createElement('span');
+                                        editIcon.className = 'material-symbols-outlined';
+                                        editIcon.style.cssText = 'font-size:14px; line-height:1; margin-right:5px;';
+                                        editIcon.textContent = 'edit';
+                                        var editText = document.createElement('span');
+                                        editText.textContent = 'Edit';
+                                        editRep.appendChild(editIcon);
+                                        editRep.appendChild(editText);
+                                        editRep.addEventListener('click', function(){ try { showEditFeedbackForm && showEditFeedbackForm(getMeta('project-id'), feedback.id, feedback); } catch(_){} });
+                                        actionsDiv.appendChild(editRep);
+                                    } catch(_){}
+
+                                    // Delete (icon + text) — match project.js style
+                                    try {
+                                        var delRep = document.createElement('span');
+                                        delRep.className = 'd-flex align-items-center reply-delete-trigger';
+                                        delRep.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                        delRep.setAttribute('data-feedback-id', String(feedback.id));
+                                        var delIcon = document.createElement('span');
+                                        delIcon.className = 'material-symbols-outlined';
+                                        delIcon.style.cssText = 'font-size:14px; line-height:1; margin-right:5px;';
+                                        delIcon.textContent = 'delete';
+                                        var delText = document.createElement('span');
+                                        delText.textContent = 'Delete';
+                                        delRep.appendChild(delIcon);
+                                        delRep.appendChild(delText);
+                                        delRep.addEventListener('click', function(){ try { showDeleteConfirmModal && showDeleteConfirmModal({ id: feedback.id, type: 'feedback', content: feedback.feedback_comment||'' }); } catch(_){} });
+                                        actionsDiv.appendChild(delRep);
+                                    } catch(_){}
+                                }
+
+                                feedbackItem.appendChild(actionsDiv);
+                            } catch(_){}
+
                             feedbackListEl.appendChild(feedbackItem);
                         });
                     })
