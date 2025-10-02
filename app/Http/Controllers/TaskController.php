@@ -1864,15 +1864,15 @@ class TaskController extends Controller
                 return response()->json(['code' => 401, 'status' => 'error', 'message' => 'Unauthorized'], 401);
             }
 
-            // Only PIC or task creator can upload reference files
-            $isPic = TaskAssignment::where('task_id', $task->id)
+            // Only PIC, EXECUTOR or task creator can upload reference files
+            $isAssigned = TaskAssignment::where('task_id', $task->id)
                 ->where('employee_id', $employeeId)
-                ->where('role', 'PIC')
+                ->whereIn('role', ['PIC', 'EXECUTOR'])
                 ->exists();
 
             $isCreator = ((int)$task->created_by === (int)$user->id);
-            if (!($isPic || $isCreator)) {
-                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only PIC or task creator can add reference files.'], 403);
+            if (!($isAssigned || $isCreator)) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only PIC, executor or task creator can add reference files.'], 403);
             }
 
             $files = $request->file('reference_files', []);
