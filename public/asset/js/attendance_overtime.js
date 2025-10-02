@@ -1,4 +1,2 @@
-const overtimeModal = new bootstrap.Modal('#overtimeModal', {
-  keyboard: false
-});
+const overtimeModal = new bootstrap.Modal('#overtimeModal', { keyboard: false });
 
