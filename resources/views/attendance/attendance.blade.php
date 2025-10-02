@@ -129,7 +129,7 @@
                             </div>
                         </div>
                         <div>
-                            <div class="box-overtime">
+                            <div class="box-overtime" data-bs-toggle="modal" data-bs-target="#overtimeModal">
                                 <div class="d-flex h-100 flex-column justify-content-center align-items-center">
                                     <div>
                                         <div class="icon-off-time">
@@ -832,6 +832,68 @@
             </div>
         </div>            
 
+
+        <!-- Modal Overtime -->
+        <div class="modal fade" id="overtimeModal" tabindex="-1" role="dialog" aria-labelledby="overtimeModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0 py-4">
+                        <h5 class="modal-title modal-title-custom text-center w-100" id="overtimeModalLabel">Overtime</h5>
+                        <button type="button" class="btn-close me-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body px-4 border-0 ">
+                        
+                        <div class="wrapper-overitme mb-4">
+                            <div class="d-flex align-items-start">
+                                <div class="col-total-day">
+                                    <div class="box-total-day">
+                                        <div class="title">Total Day</div>
+                                        <div class="day-over">0</div>
+                                        <div class="text-day-over">Day</div>
+                                    </div>
+                                </div>
+
+                                <div class="col-total-hour">
+                                    <div class="box-total-hour">
+                                        <div class="title">Total Hour</div>
+                                        <div class="hour-over">0</div>
+                                        <div class="text-hour-over">Hour</div>
+                                    </div>
+                                </div>
+                                
+
+                            </div>
+                        </div>
+                             
+  
+                        
+                        <div class="wrapper-data-overtime">
+
+                            <div class="box-data scrollbar-transparent pe-1">
+                                
+
+                            </div>
+
+                        </div>
+
+                        <div class="mt-5 mb-2">
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100" data-bs-dismiss="modal">Close</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Request Overtime</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </x-slot>
 
 
@@ -840,6 +902,7 @@
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
         <script src="{{ asset('asset/js/attendance.js?v=' . time()) }}"></script>
         <script src="{{ asset('asset/js/attendance_time_off.js?v=' . time()) }}"></script>
+        <script src="{{ asset('asset/js/attendance_overtime.js?v=' . time()) }}"></script>
     
     </x-slot>
 
