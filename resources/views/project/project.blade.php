@@ -155,17 +155,17 @@
                                 <input class="form-control custom-form-filter ps-5" type="text"
                                     name="search_filter" id="search_filter">
                             </div>
-                            <button class="btn btn-icon-toggle btn-filter-custom me-3" type="button"
+                            <button class="btn btn-filter-custom me-3" type="button"
                                 data-label="Filter" id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">filter_list</span> <span
                                     class="btn-text-filter">Filter</span>
                             </button>
-                            <button class="btn btn-icon-toggle btn-export-custom me-3" type="button"
+                            <button class="btn btn-export-custom me-3" type="button"
                                 data-label="Export" id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">file_export</span> <span
                                     class="btn-text-filter">Export</span>
                             </button>
-                            <button class="btn btn-icon-toggle btn-timeline-filter-custom" type="button"
+                            <button class="btn btn-timeline-filter-custom" type="button"
                                 data-bs-toggle="modal" data-bs-target="#timelineModal" data-label="TImeline"
                                 id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">view_timeline</span> <span
