@@ -5,7 +5,165 @@
         return $('meta[name="' + name + '"]').attr("content") || "";
     }
 
-    var appUrl = getMeta("app-url") || "";
+    var appUrl = (
+        document
+            .querySelector('meta[name="app-url"]')
+            ?.getAttribute("content") || ""
+    ).replace(/\/$/, "");
+
+    function safeText(str) {
+        return str === null || typeof str === "undefined" ? "-" : String(str);
+    }
+
+    function formatDate(dateStr) {
+        if (!dateStr) return "-";
+        try {
+            var d = new Date(dateStr);
+            if (isNaN(d.getTime())) return "-";
+            var opts = { year: "numeric", month: "short", day: "2-digit" };
+            return d.toLocaleDateString(undefined, opts);
+        } catch (e) {
+            return "-";
+        }
+    }
+
+    function showFloatingAlert(message, type = "success", delayMs = 2500) {
+        try {
+            if (typeof window.showAlertMsg === "function") {
+                window.showAlertMsg(message, "light", delayMs);
+                                    try {
+                                        // clear native inputs
+                                        var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value = '';
+                                        var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value = '';
+                                        // clear image preview
+                                        window.__inlineFeedbackImageFile = null;
+                                        var previewContainer = document.getElementById('inline_feedback_image_preview');
+                                        if (previewContainer && previewContainer.parentNode) {
+                                            previewContainer.parentNode.removeChild(previewContainer);
+                                        }
+                                    }catch(_){ }
+                                    try {
+                                        // clear selected files array and remove preview node(s)
+                                        window.inlineFeedbackSelectedFiles = [];
+                                        if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview();
+                                        var pNode = document.getElementById('inline_feedback_files_preview'); if (pNode && pNode.parentNode) pNode.parentNode.removeChild(pNode);
+                                        // also clear any template preview if present
+                                        var alt = document.getElementById('add_project_reference_files_preview'); if (alt) alt.innerHTML = '';
+                                    }catch(_){ }
+                                    try {
+                                        // clear hidden textarea fallback
+                                        var tx = document.getElementById('inline_feedback_comment'); if (tx) tx.value = '';
+                                    } catch(_) {}
+                                    try {
+                                        // clear Quill editor content and selection safely
+                                        if (window.__quillProjectFeedbackInline && window.__quillProjectFeedbackInline.root) {
+                                            try { window.__quillProjectFeedbackInline.root.innerHTML = ''; window.__quillProjectFeedbackInline.setSelection && window.__quillProjectFeedbackInline.setSelection(0); } catch(_){}
+                                        }
+                                    } catch(_){}
+                                    try {
+                                        // force re-init of Quill instance (if needed)
+                                        window.__quillProjectFeedbackInline = null;
+                                        initInlineFeedback && initInlineFeedback();
+                                    } catch(_){}
+            }
+        } catch (e) {
+            /* no-op */
+        }
+        // No blocking native alert fallback; prefer console log to avoid modal dialogs.
+        try {
+            console.log(
+                "[floatingAlert]",
+                typeof message === "string"
+                    ? message.replace(/<[^>]+>/g, "")
+                    : String(message)
+            );
+        } catch (e) {
+            /* no-op */
+        }
+        try {
+            // Fallback: create a lightweight in-page toast so we never trigger browser native alert()
+            var tmsg =
+                typeof message === "string"
+                    ? message.replace(/<[^>]+>/g, "")
+                    : String(message);
+            try {
+                var tmpId = "tmp-floating-alert";
+                var existing = document.getElementById(tmpId);
+                if (existing) {
+                    // update text and reset timer
+                    existing.textContent = tmsg;
+                    existing.className =
+                        "tmp-floating-alert show " + (type || "");
+                    clearTimeout(existing._tmpTimeout);
+                    existing._tmpTimeout = setTimeout(function () {
+                        try {
+                            existing.remove();
+                        } catch (_) {}
+                    }, delayMs || 2500);
+                } else {
+                    var div = document.createElement("div");
+                    div.id = tmpId;
+                    div.textContent = tmsg;
+                    div.className = "tmp-floating-alert show " + (type || "");
+                    var s = div.style;
+                    s.position = "fixed";
+                    s.right = "18px";
+                    s.top = "18px";
+                    s.zIndex = 1060;
+                    s.background = "rgba(0,0,0,0.8)";
+                    s.color = "#fff";
+                    s.padding = "10px 14px";
+                    s.borderRadius = "6px";
+                    s.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+                    s.maxWidth = "320px";
+                    s.fontSize = "13px";
+                    document.body.appendChild(div);
+                    div._tmpTimeout = setTimeout(function () {
+                        try {
+                            div.remove();
+                        } catch (_) {}
+                    }, delayMs || 2500);
+                }
+            } catch (e) {
+                // as an absolute last resort, log to console (do not use native alert)
+                try {
+                    console.log(tmsg);
+                } catch (_) {}
+            }
+        } catch (e) {}
+    }
+
+    // Build 1-2 character initials from a title/name
+    // Fallback helper: human-friendly relative time formatter (used in feedback rendering)
+    function timeAgo(createdAt) {
+        try {
+            var time = new Date(createdAt);
+            if (isNaN(time.getTime())) return "";
+            var now = new Date();
+            var diff = (now.getTime() - time.getTime()) / 1000;
+
+            if (diff < 60) {
+                return "just now";
+            } else if (diff < 3600) {
+                return Math.round(diff / 60) + " minute ago";
+            } else if (diff < 86400) {
+                return Math.round(diff / 3600) + " hour ago";
+            } else if (diff < 604800) {
+                return Math.round(diff / 86400) + " day ago";
+            } else if (diff < 2592000) {
+                return Math.round(diff / 604800) + " week ago";
+            } else if (diff < 31526000) {
+                return Math.round(diff / 2592000) + " month ago";
+            } else if (diff < 630720000) {
+                return Math.round(diff / 31526000) + " year ago";
+            }
+
+            return time.toDateString();
+        } catch (e) {
+            return "";
+        }
+    }
+
     // Fallback helper: normalize avatar URL or return default avatar
     function resolveAvatar(raw) {
         try {
@@ -79,293 +237,6 @@
         } catch (e) {
             return String(input).replace(/</g,'&lt;').replace(/>/g,'&gt;');
         }
-    }
-
-    // Escape plain text for safe insertion into HTML (prevents XSS when injecting text)
-    function safeText(str) {
-        try {
-            return String(str || '').replace(/[&<>"']/g, function (m) {
-                return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]) || m;
-            });
-        } catch (e) {
-            return String(str || '');
-        }
-    }
-
-    // Helper: human-friendly relative time formatter used in feedback modals
-    function timeAgo(createdAt){
-        try {
-            var time = new Date(createdAt);
-            if (isNaN(time.getTime())) return '';
-            var now = new Date();
-            var diff = (now.getTime() - time.getTime()) / 1000;
-
-            if (diff < 60) {
-                return 'just now';
-            } else if (diff < 3600) {
-                return Math.round(diff/60) + ' minute ago';
-            } else if (diff < 86400) {
-                return Math.round(diff/3600) + ' hour ago';
-            } else if (diff < 604800) {
-                return Math.round(diff/86400) + ' day ago';
-            } else if (diff < 2592000) {
-                return Math.round(diff/604800) + ' week ago';
-            } else if (diff < 31526000) {
-                return Math.round(diff/2592000) + ' month ago';
-            } else if (diff < 630720000) {
-                return Math.round(diff/31526000) + ' year ago';
-            }
-
-            return time.toDateString();
-        } catch (e) {
-            return '';
-        }
-    }
-
-    // Find the inline feedback list container (avoid the one inside the modal)
-    function getInlineFeedbackContainer() {
-        try {
-            var nodes = document.querySelectorAll('#projectFeedbackList');
-            for (var i = 0; i < nodes.length; i++) {
-                var n = nodes[i];
-                if (!n.closest('.feedback-detail-project')) return n; // prefer non-modal container
-            }
-            return nodes[0] || null;
-        } catch (_) { return null; }
-    }
-
-    // Get current employee id reliably: prefer meta tag, then modal attribute, then empty
-    function getCurrentEmployeeId() {
-        try {
-            var mid = getMeta('employee-id') || '';
-            if (mid) return mid;
-            var el = document.getElementById('projectFeedbackModal');
-            if (el) return el.getAttribute('data-employee-id') || '';
-            return '';
-        } catch (_) { return ''; }
-    }
-
-    // Provide a global inline edit handler so Edit works without modal
-    if (typeof window.showInlineEditFeedback !== 'function') {
-        window.showInlineEditFeedback = function (projectId, data, isReply) {
-            try {
-                var container = getInlineFeedbackContainer();
-                if (!container) { console.warn('Inline feedback container not found'); return; }
-
-                // Build inline edit form
-                var html = '';
-                html += '<div class="edit-feedback-form p-3 border rounded bg-light">';
-                html += '<h5 class="mb-3">' + (isReply ? 'Edit Reply' : 'Edit Feedback') + '</h5>';
-                html += '<form id="inlineEditFeedbackForm" enctype="multipart/form-data">';
-                html += '<input type="hidden" name="feedback_id" value="' + (data && data.id || '') + '">';
-                html += '<input type="hidden" id="inline_edit_remove_image" name="remove_image" value="0">';
-
-                // Image upload area
-                html += '<div class="mb-3">';
-                html += '  <label class="form-label">Upload Image</label>';
-                html += '  <div class="image-upload-container">';
-                html += '    <label for="inline_feedback_image" class="custom-image-upload position-relative" id="inlineEditFeedbackImageLabel" style="background-position:center center;background-repeat:no-repeat;background-size:cover;cursor:pointer;display:block;width:100%;height:200px;border:2px dashed #ddd;border-radius:8px;">';
-                html += '      <input type="file" id="inline_feedback_image" name="feedback_image" accept="image/*" class="d-none">';
-                html += '      <span class="image-clear-btn d-none position-absolute" id="inlineEditFeedbackImageClearBtn" style="top:10px;right:10px;background:rgba(255,0,0,0.85);color:#fff;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;">&times;</span>';
-                html += '    </label>';
-                html += '  </div>';
-                html += '</div>';
-
-                // Comment editor
-                html += '<div class="mb-3">';
-                html += '  <label for="inline_feedback_comment" class="form-label">Feedback Comment</label>';
-                html += '  <div id="inline_feedback_toolbar" style="border:1px solid #ddd;border-bottom:none;">';
-                html += '    <span class="ql-formats"><button class="ql-bold"></button><button class="ql-italic"></button><button class="ql-underline"></button></span>';
-                html += '    <span class="ql-formats"><button class="ql-list" value="ordered"></button><button class="ql-list" value="bullet"></button></span>';
-                html += '  </div>';
-                html += '  <div id="inline_feedback_editor" style="height:120px;border:1px solid #ddd;"></div>';
-                html += '  <textarea id="inline_feedback_comment" name="feedback_comment" style="display:none;">' + (data && data.feedback_comment ? data.feedback_comment : '') + '</textarea>';
-                html += '</div>';
-
-                // Reference files
-                html += '<div class="mb-3">';
-                html += '  <label class="form-label">Reference Files</label>';
-                html += '  <div id="inline_existing_feedback_files" class="mb-2"></div>';
-                html += '  <input type="hidden" id="inline_existing_files_input" name="existing_reference_files" value="[]">';
-                html += '  <input type="file" class="form-control" id="inline_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">';
-                html += '  <div id="inline_new_files_preview" class="mt-2"></div>';
-                html += '</div>';
-
-                // Buttons
-                html += '<div class="d-flex gap-2">';
-                html += '  <button type="button" class="btn btn-secondary" id="cancelInlineEdit">Cancel</button>';
-                html += '  <button type="submit" class="btn btn-primary">Update</button>';
-                html += '</div>';
-                html += '</form>';
-                html += '</div>';
-
-                container.innerHTML = html;
-
-                // Helpers
-                function toFullUrl(v) {
-                    try {
-                        if (!v) return '';
-                        var s = String(v);
-                        if (s.indexOf('http://') === 0 || s.indexOf('https://') === 0) return s;
-                        if (s.indexOf('/') === 0) return getMeta('app-url').replace(/\/$/, '') + s;
-                        return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + s;
-                    } catch(_) { return String(v||''); }
-                }
-
-                // Image preview setup
-                (function(){
-                    try {
-                        var imageInput = document.getElementById('inline_feedback_image');
-                        var imageLabel = document.getElementById('inlineEditFeedbackImageLabel');
-                        var imageClearBtn = document.getElementById('inlineEditFeedbackImageClearBtn');
-                        var existingImg = (data && (data.image_url || data.image || data.image_path)) || '';
-                        if (existingImg) {
-                            var url = toFullUrl(existingImg);
-                            imageLabel.style.backgroundImage = "url('" + url + "')";
-                            imageLabel.style.backgroundSize = 'cover';
-                            imageLabel.style.opacity = '1';
-                            imageClearBtn.classList.remove('d-none');
-                        } else {
-                            imageLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
-                            imageLabel.style.backgroundSize = '50%';
-                            imageLabel.style.opacity = '0.5';
-                        }
-                        imageInput && imageInput.addEventListener('change', function(){
-                            if (this.files && this.files[0]) {
-                                var reader = new FileReader();
-                                reader.onload = function(e){
-                                    imageLabel.style.backgroundImage = "url('" + e.target.result + "')";
-                                    imageLabel.style.backgroundSize = 'cover';
-                                    imageLabel.style.opacity = '1';
-                                    imageClearBtn.classList.remove('d-none');
-                                };
-                                reader.readAsDataURL(this.files[0]);
-                            }
-                        });
-                        imageClearBtn && imageClearBtn.addEventListener('click', function(ev){
-                            ev.preventDefault();
-                            try { imageInput.value = ''; } catch(_){ }
-                            imageLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
-                            imageLabel.style.backgroundSize = '50%';
-                            imageLabel.style.opacity = '0.5';
-                            imageClearBtn.classList.add('d-none');
-                            var hid = document.getElementById('inline_edit_remove_image'); if (hid) hid.value = '1';
-                        });
-                    } catch(_){}
-                })();
-
-                // Quill editor setup
-                (function(){
-                    try {
-                        if (typeof Quill !== 'undefined') {
-                            var q = new Quill('#inline_feedback_editor', { modules: { toolbar: '#inline_feedback_toolbar', clipboard: { matchVisual: false } }, theme: 'snow' });
-                            if (data && data.feedback_comment) q.root.innerHTML = data.feedback_comment;
-                            q.on && q.on('text-change', function(){ try { document.getElementById('inline_feedback_comment').value = q.root.innerHTML; } catch(_){} });
-                            window.__inlineQuillEdit = q;
-                        } else {
-                            // fallback: ensure textarea has value
-                            try { var ta = document.getElementById('inline_feedback_comment'); if (ta && data && data.feedback_comment) ta.value = data.feedback_comment; } catch(_){}
-                        }
-                    } catch(_){}
-                })();
-
-                // Existing files setup
-                (function(){
-                    try {
-                        var container2 = document.getElementById('inline_existing_feedback_files');
-                        var hiddenInput = document.getElementById('inline_existing_files_input');
-                        if (!container2 || !hiddenInput) return;
-                        var files = [];
-                        if (Array.isArray(data && data.reference_files_urls)) files = data.reference_files_urls.slice();
-                        else if (Array.isArray(data && data.reference_files)) files = data.reference_files.slice();
-                        else if (data && data.reference_file_url) files = [data.reference_file_url];
-                        else if (data && data.reference_file) files = [data.reference_file];
-                        if (files.length > 0) {
-                            var htmlFiles = '<div class="existing-files-list">';
-                            files.forEach(function(f, idx){
-                                var name = (typeof f === 'string') ? f.split('/').pop() : (f && (f.name || ('File ' + (idx+1))));
-                                var url = (typeof f === 'string') ? f : (f && f.url) || '';
-                                url = toFullUrl(url || f);
-                                htmlFiles += '<div class="existing-file-item d-flex align-items-center justify-content-between p-2 mb-2 bg-white border rounded" data-file="' + (name||'') + '">';
-                                htmlFiles += '  <div class="d-flex align-items-center">';
-                                htmlFiles += '    <span class="material-symbols-outlined me-2">description</span>';
-                                htmlFiles += '    <a href="' + (url||'#') + '" target="_blank" class="text-decoration-none">' + (name||'') + '</a>';
-                                htmlFiles += '  </div>';
-                                htmlFiles += '  <button type="button" class="btn btn-sm btn-outline-danger remove-existing-file">&times;</button>';
-                                htmlFiles += '</div>';
-                            });
-                            htmlFiles += '</div>';
-                            container2.innerHTML = htmlFiles;
-                            hiddenInput.value = JSON.stringify(files.map(function(f){ return (typeof f === 'string') ? f.split('/').pop() : (f && f.name) || ''; }));
-                            Array.from(container2.querySelectorAll('.remove-existing-file')).forEach(function(btn){
-                                btn.addEventListener('click', function(){
-                                    var item = this.closest('.existing-file-item');
-                                    if (item) item.remove();
-                                    var remain = Array.from(container2.querySelectorAll('.existing-file-item')).map(function(it){ return it.getAttribute('data-file'); });
-                                    hiddenInput.value = JSON.stringify(remain);
-                                });
-                            });
-                        }
-                    } catch(_){}
-                })();
-
-                // New files preview
-                (function(){
-                    try {
-                        var input = document.getElementById('inline_reference_files');
-                        var preview = document.getElementById('inline_new_files_preview');
-                        if (!input || !preview) return;
-                        var selectedFiles = [];
-                        function render(){
-                            if (!selectedFiles.length) { preview.innerHTML = ''; return; }
-                            var htmlL = '<div class="new-files-list">';
-                            selectedFiles.forEach(function(file, idx){
-                                htmlL += '<div class="new-file-item d-flex align-items-center justify-content-between p-2 mb-2 bg-light border rounded">';
-                                htmlL += '  <div class="d-flex align-items-center">';
-                                htmlL += '    <span class="material-symbols-outlined me-2">description</span>';
-                                htmlL += '    <span>' + file.name + '</span>';
-                                htmlL += '    <small class="text-muted ms-2">(' + (file.size/1024/1024).toFixed(2) + ' MB)</small>';
-                                htmlL += '  </div>';
-                                htmlL += '  <button type="button" class="btn btn-sm btn-outline-danger remove-new-file" data-index="' + idx + '">&times;</button>';
-                                htmlL += '</div>';
-                            });
-                            htmlL += '</div>';
-                            preview.innerHTML = htmlL;
-                            Array.from(preview.querySelectorAll('.remove-new-file')).forEach(function(btn){
-                                btn.addEventListener('click', function(){ var i = parseInt(this.getAttribute('data-index')||'0',10); selectedFiles.splice(i,1); render(); });
-                            });
-                        }
-                        input.addEventListener('change', function(){ var files = Array.from(this.files||[]); selectedFiles = selectedFiles.concat(files); render(); this.value=''; });
-                        window.__inlineSelectedFiles = selectedFiles;
-                    } catch(_){}
-                })();
-
-                // Submit handler
-                (function(){
-                    try {
-                        var form = document.getElementById('inlineEditFeedbackForm');
-                        if (!form) return;
-                        form.addEventListener('submit', function(ev){
-                            ev.preventDefault();
-                            try { if (window.__inlineQuillEdit) document.getElementById('inline_feedback_comment').value = window.__inlineQuillEdit.root.innerHTML; } catch(_){}
-                            var fd = new FormData(form);
-                            try {
-                                if (window.__inlineSelectedFiles && window.__inlineSelectedFiles.length) {
-                                    window.__inlineSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); });
-                                }
-                            } catch(_){}
-                            fd.append('_method','PUT');
-                            fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + (data && data.id), {
-                                method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd
-                            }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ try { window.showFloatingAlert && window.showFloatingAlert(res.message || 'Feedback updated','success',1500); } catch(_){} try { window.loadFeedbackData && window.loadFeedbackData(projectId); } catch(_){} }).catch(function(err){ var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to update feedback'; try { window.showFloatingAlert && window.showFloatingAlert(msg,'warning',3500); } catch(_){} });
-                        });
-                        var cancelBtn = document.getElementById('cancelInlineEdit');
-                        cancelBtn && cancelBtn.addEventListener('click', function(){ try { window.loadFeedbackData && window.loadFeedbackData(projectId); } catch(_){} });
-                    } catch(_){}
-                })();
-
-            } catch (e) { console.warn('showInlineEditFeedback error', e); }
-        };
     }
 
     // Deterministic color pick from text
@@ -952,15 +823,7 @@
                                         editText.textContent = 'Edit';
                                         editRep.appendChild(editIcon);
                                         editRep.appendChild(editText);
-                                        editRep.addEventListener('click', function(){ 
-                                            try { 
-                                                console.log('Edit clicked, feedback:', feedback);
-                                                // Call inline edit function - no modal needed
-                                                if (window.showInlineEditFeedback) {
-                                                    window.showInlineEditFeedback(getMeta('project-id'), feedback, false);
-                                                }
-                                            } catch(e){ console.error('Edit error:', e); } 
-                                        });
+                                        editRep.addEventListener('click', function(){ try { showEditFeedbackForm && showEditFeedbackForm(getMeta('project-id'), feedback.id, feedback); } catch(_){} });
                                         actionsDiv.appendChild(editRep);
                                     } catch(_){}
 
@@ -1340,7 +1203,7 @@
                                 var fd = new FormData();
                                 fd.append('feedback_comment', html);
                                 fd.append('project_id', getMeta('project-id') || '');
-                                fd.append('employee_id', getCurrentEmployeeId());
+                                fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
 
                                 // attach image from preview (if available) or file input
                                 try {
@@ -1359,15 +1222,6 @@
                                         var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) { Array.from(fi.files).forEach(function(f){ fd.append('reference_files[]', f); }); }
                                     }
                                 } catch(_){ }
-
-                                // debug: log FormData entries (non-file values) to help diagnose server 500
-                                try {
-                                    try {
-                                        var _dbg = {};
-                                        fd.forEach && fd.forEach(function(v,k){ if (v instanceof File) { _dbg[k] = (v.name || 'FILE'); } else { _dbg[k] = v; } });
-                                        console.debug('DEBUG: sending feedback FormData:', _dbg);
-                                    } catch(_){}
-                                } catch(_){}
 
                                 // basic UI feedback
                                 var original = sendBtn.innerHTML;
@@ -1631,7 +1485,7 @@
                             var fd = new FormData();
                             fd.append('feedback_comment', cap || '');
                             fd.append('project_id', getMeta('project-id') || '');
-                            fd.append('employee_id', getCurrentEmployeeId());
+                            fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
 
                             // Use the file from small preview if available, otherwise use the provided fileObj
                             var imageFileToUse = window.__inlineFeedbackImageFile || fileObj;
@@ -2971,717 +2825,7 @@
                 window.loadFeedbackData = loadFeedbackData;
                 window.showAddFeedbackForm = showAddFeedbackForm;
                 window.showReplyFeedbackForm = showReplyFeedbackForm;
-                // If showEditFeedbackForm is available in this scope, expose it; otherwise provide a safe wrapper
-                try {
-                    // Full edit handler: ported/adapted from project.js
-                    function showEditFeedbackForm(projectId, data, isReply) {
-                        try {
-                            console.log('showEditFeedbackForm called with:', { projectId, data, isReply });
-                            // Find modal elements
-                            var projectModal = document.querySelector('.feedback-detail-project') || document.getElementById('projectFeedbackModal');
-                            if (!projectModal) { console.warn('Project feedback modal not found'); return; }
-                            
-                            // Show modal safely
-                            try {
-                                // Check if modal is already shown
-                                if (!projectModal.classList.contains('show')) {
-                                    // Use jQuery if available, otherwise use vanilla JS
-                                    if (typeof $ !== 'undefined' && $.fn.modal) {
-                                        $(projectModal).modal('show');
-                                    } else {
-                                        // Vanilla Bootstrap 5 approach
-                                        projectModal.classList.add('show');
-                                        projectModal.style.display = 'block';
-                                        projectModal.setAttribute('aria-hidden', 'false');
-                                        document.body.classList.add('modal-open');
-                                        
-                                        // Add backdrop if not exists
-                                        if (!document.querySelector('.modal-backdrop')) {
-                                            var backdrop = document.createElement('div');
-                                            backdrop.className = 'modal-backdrop fade show';
-                                            document.body.appendChild(backdrop);
-                                        }
-                                    }
-                                }
-                            } catch(e) { console.error('Error showing modal:', e); }
-                            
-                            var modalTitle = projectModal.querySelector('.feedback-modal-title');
-                            var modalBody = projectModal.querySelector('.feedback-content');
-                            if (!modalTitle || !modalBody) { console.warn('Modal title or body not found'); return; }
-                            
-                            console.log('Setting modal title and preparing edit form...');
-                            modalTitle.textContent = isReply ? 'Edit Reply' : 'Edit Feedback';
-                            var existingImgRaw = (data && (data.image || data.image_url || data.image_path || data.imageUrl || data.image_url_full)) || '';
-                            var removeFlag = false;
-                            try {
-                                if (data && (data.remove_image === 1 || data.remove_image === '1' || data.remove_image === true)) removeFlag = true;
-                                if (data && (data.removeImage === 1 || data.removeImage === '1' || data.removeImage === true)) removeFlag = true;
-                            } catch(_) { removeFlag = false; }
-
-                            function toFullImageUrl(v) {
-                                if (!v) return '';
-                                try {
-                                    var s = String(v);
-                                    if (s.indexOf('http://') === 0 || s.indexOf('https://') === 0) return s;
-                                    if (s.indexOf('/') === 0) return getMeta('app-url').replace(/\/$/, '') + s;
-                                    return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + s.replace(/^\//, '');
-                                } catch(_) { return String(v); }
-                            }
-
-                            var existingImg = toFullImageUrl(existingImgRaw || '');
-                            var hasExistingImage = existingImg && !removeFlag;
-                            var bgStyle = hasExistingImage ? "background-image: url('" + existingImg + "'); background-size: cover; opacity: 1;" : "background-image: url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;";
-                            var clearClass = hasExistingImage ? '' : 'd-none';
-
-                            // Insert the edit template (blade provides #template-edit-feedback)
-                            console.log('Clearing modal body and loading template...');
-                            modalBody.innerHTML = '';
-                            var tpl = document.getElementById('template-edit-feedback');
-                            console.log('Template found:', !!tpl);
-                            if (tpl) {
-                                var node = tpl.tagName && tpl.tagName.toLowerCase() === 'template' ? tpl.content.cloneNode(true) : tpl.cloneNode(true);
-                                modalBody.appendChild(node);
-                                console.log('Template inserted into modal body');
-
-                                // set remove flag if present
-                                try { var hid = modalBody.querySelector('#edit_remove_image'); if (hid) { hid.value = removeFlag ? '1' : '0'; console.log('Set remove flag to:', hid.value); } } catch(_){}
-                                
-                                // Set feedback comment
-                                try { 
-                                    var comment = modalBody.querySelector('#feedback_comment'); 
-                                    if (comment) { 
-                                        comment.value = data.feedback_comment || ''; 
-                                        console.log('Set feedback comment to:', comment.value);
-                                    } else {
-                                        console.log('Feedback comment field not found');
-                                    }
-                                } catch(_){}
-                                
-                                // Set image preview
-                                try {
-                                    var labelEl = modalBody.querySelector('#editFeedbackImageLabel');
-                                    console.log('Image label found:', !!labelEl, 'hasExistingImage:', hasExistingImage, 'existingImg:', existingImg);
-                                    if (labelEl) {
-                                        if (hasExistingImage) {
-                                            labelEl.style.backgroundImage = "url('" + existingImg + "')";
-                                            labelEl.style.backgroundSize = 'cover';
-                                            labelEl.style.opacity = '1';
-                                            // Show clear button
-                                            var clearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
-                                            if (clearBtn) clearBtn.classList.remove('d-none');
-                                            console.log('Set existing image preview');
-                                        } else {
-                                            labelEl.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
-                                            labelEl.style.backgroundSize = '50%';
-                                            labelEl.style.opacity = '0.5';
-                                            console.log('Set default image preview');
-                                        }
-                                    }
-                                } catch(e){ console.error('Error setting image:', e); }
-                            } else {
-                                var existingForm = modalBody.querySelector('#editFeedbackForm');
-                                if (existingForm) {
-                                    try { var hid2 = existingForm.querySelector('#edit_remove_image'); if (hid2) hid2.value = removeFlag ? '1' : '0'; } catch(_){}
-                                    try { var c2 = existingForm.querySelector('#feedback_comment'); if (c2) c2.value = data.feedback_comment || ''; } catch(_){}
-                                    try { var label2 = existingForm.querySelector('#editFeedbackImageLabel'); if (label2) {
-                                        if (hasExistingImage) { label2.style.backgroundImage = "url('" + existingImg + "')"; label2.style.backgroundSize = 'cover'; label2.style.opacity = '1'; }
-                                        else { label2.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')"; label2.style.backgroundSize = '50%'; label2.style.opacity = '0.5'; }
-                                    } } catch(_){}
-                                } else {
-                                    console.error('Edit Feedback template/form not found. Provide #template-edit-feedback or an element #editFeedbackForm in the Blade view.');
-                                    return;
-                                }
-                            }
-
-                            // Image preview/clear handlers
-                            try {
-                                var imgInput = modalBody.querySelector('#feedback_image');
-                                var imgLabel = modalBody.querySelector('#editFeedbackImageLabel');
-                                var imgClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
-                                if (imgInput && imgLabel && imgClearBtn) {
-                                    imgInput.addEventListener('change', function () {
-                                        if (this.files && this.files[0]) {
-                                            var reader = new FileReader();
-                                            reader.onload = function (e) {
-                                                imgLabel.style.backgroundImage = "url('" + e.target.result + "')";
-                                                imgLabel.classList.add('has-image');
-                                                imgLabel.style.backgroundSize = 'cover';
-                                                imgLabel.style.opacity = '1';
-                                                imgClearBtn.classList.remove('d-none');
-                                            };
-                                            reader.readAsDataURL(this.files[0]);
-                                        }
-                                    });
-                                    imgClearBtn.addEventListener('click', function (e) {
-                                        e.preventDefault();
-                                        try { imgInput.value = ''; } catch(_){}
-                                        imgLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
-                                        imgLabel.style.backgroundPosition = 'center center';
-                                        imgLabel.style.backgroundRepeat = 'no-repeat';
-                                        imgLabel.style.backgroundSize = '50%';
-                                        imgLabel.classList.remove('has-image');
-                                        imgLabel.style.opacity = '0.5';
-                                        imgClearBtn.classList.add('d-none');
-                                        var hidden = modalBody.querySelector('#edit_remove_image'); if (hidden) hidden.value = '1';
-                                    });
-                                }
-                            } catch(_){}
-
-                            // Setup multi-file preview for Edit reference files
-                            (function () {
-                                try {
-                                    window.editFeedbackSelectedFiles = [];
-                                    var input = modalBody.querySelector('#edit_reference_files');
-                                    var preview = modalBody.querySelector('#edit_feedback_reference_files_preview');
-                                    if (!input || !preview) return;
-                                    function render() {
-                                        preview.innerHTML = '';
-                                        if (!window.editFeedbackSelectedFiles.length) return;
-                                        var list = document.createElement('div'); list.className = 'selected-files-list mt-2';
-                                        window.editFeedbackSelectedFiles.forEach(function (file, idx) {
-                                            var item = document.createElement('div'); item.className = 'selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
-                                            var info = document.createElement('div'); info.className = 'd-flex align-items-center flex-grow-1';
-                                            var icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description';
-                                            var name = document.createElement('span'); name.className = 'file-name'; name.textContent = file.name;
-                                            var size = document.createElement('small'); size.className = 'text-muted ms-1'; size.textContent = ' (' + (file.size/1024/1024).toFixed(2) + ' MB)';
-                                            var rm = document.createElement('button'); rm.type='button'; rm.className='btn btn-sm btn-outline-danger'; rm.innerHTML='&times;'; rm.onclick = function(){ window.editFeedbackSelectedFiles.splice(idx,1); render(); };
-                                            info.appendChild(icon); info.appendChild(name); info.appendChild(size); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
-                                        });
-                                        preview.appendChild(list);
-                                    }
-                                    input.addEventListener('change', function () {
-                                        var files = Array.from(this.files || []);
-                                        window.editFeedbackSelectedFiles = window.editFeedbackSelectedFiles.concat(files);
-                                        render();
-                                        this.value = '';
-                                    });
-                                } catch(_){}
-                            })();
-
-                            // Change Add button to Update and wire submit
-                            try {
-                                var addBtn = document.getElementById('addFeedbackButton');
-                                if (addBtn) {
-                                    addBtn.textContent = 'Update';
-                                    var fresh = addBtn.cloneNode(true);
-                                    addBtn.parentNode.replaceChild(fresh, addBtn);
-                                    fresh.addEventListener('click', function (e) {
-                                        e.preventDefault();
-                                        var form = document.getElementById('editFeedbackForm');
-                                        if (!form) return;
-                                        var fd = new FormData(form);
-                                        try {
-                                            var urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
-                                            var urls = Array.from(urlInputs).map(function(i){ return (i.value||'').trim(); }).filter(Boolean);
-                                            if (urls.length) fd.set('reference_url', urls[0]); else fd.set('reference_url','');
-                                        } catch(_){}
-                                        try {
-                                            var existingHidden = form.querySelector('#existing_feedback_reference_files_input');
-                                            var existingList = form.querySelectorAll('#existing_feedback_reference_files .existing-file-item a');
-                                            var keep = [];
-                                            existingList.forEach(function(a){ var name = (a.textContent||'').trim(); if (name) keep.push(name); });
-                                            if (existingHidden) existingHidden.value = JSON.stringify(keep);
-                                        } catch(_){}
-                                        try {
-                                            if (window.editFeedbackSelectedFiles && window.editFeedbackSelectedFiles.length) {
-                                                window.editFeedbackSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); });
-                                            } else {
-                                                var rfInput = form.querySelector('#edit_reference_files');
-                                                if (rfInput && rfInput.files && rfInput.files.length) Array.from(rfInput.files).forEach(function(f){ fd.append('reference_files[]', f); });
-                                            }
-                                        } catch(_){}
-                                        try { var editRemove = form.querySelector('#edit_remove_image'); if (editRemove) fd.set('remove_image', editRemove.value); } catch(_){}
-                                        fd.append('_method','PUT');
-                                        fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + data.id, {
-                                            method: 'POST',
-                                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                            body: fd
-                                        }).then(function(r){ return r.ok ? r.json() : r.json().then(Promise.reject); }).then(function(res){ try{ showFloatingAlert && showFloatingAlert(res.message || 'Feedback updated','success',1500); }catch(_){} try{ loadFeedbackData(projectId); }catch(_){} }).catch(function(err){ var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to update feedback'; showFloatingAlert && showFloatingAlert(msg,'warning',3500); });
-                                    });
-                                }
-                            } catch(_){}
-
-                            // Prefill reference URLs
-                            (function(){
-                                try {
-                                    var container = document.getElementById('feedback_reference_urls_container'); if (!container) return; container.innerHTML = '';
-                                    var urls = [];
-                                    if (Array.isArray(data.reference_urls)) urls = data.reference_urls;
-                                    else if (typeof data.reference_urls === 'string') { try { var arr = JSON.parse(data.reference_urls); if (Array.isArray(arr)) urls = arr; } catch(_){} }
-                                    if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
-                                    function addRow(value, withAdd) { var row = document.createElement('div'); row.className = 'input-group'; row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-remove-url remove-ref-url"><span class="material-symbols-outlined">close</span></button>'); container.appendChild(row); var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value; }
-                                    addRow('', true); (urls || []).forEach(function(u){ addRow(u, false); });
-                                } catch(_){}
-                            })();
-
-                            // Initialize Quill editor after template is loaded
-                            setTimeout(function(){
-                                try {
-                                    if (typeof Quill !== 'undefined') {
-                                        var quillContainer = modalBody.querySelector('#edit_feedback_editor');
-                                        if (quillContainer && !window.__quillProjectFeedbackEdit) {
-                                            console.log('Initializing Quill editor for edit form');
-                                            window.__quillProjectFeedbackEdit = new Quill('#edit_feedback_editor', {
-                                                modules: { toolbar: '#edit_feedback_toolbar', clipboard: { matchVisual: false } },
-                                                theme: 'snow'
-                                            });
-                                            // Set content if available
-                                            if (data.feedback_comment) {
-                                                window.__quillProjectFeedbackEdit.root.innerHTML = data.feedback_comment;
-                                                console.log('Set Quill content to:', data.feedback_comment);
-                                            }
-                                        }
-                                    }
-                                } catch(e) { console.error('Error initializing Quill:', e); }
-                            }, 50);
-
-                            // Prefill existing reference files
-                            (function(){
-                                try {
-                                    console.log('Processing existing reference files...');
-                                    var container = modalBody.querySelector('#existing_feedback_reference_files');
-                                    var hidden = modalBody.querySelector('#existing_feedback_reference_files_input');
-                                    console.log('Reference files container found:', !!container, 'hidden input found:', !!hidden);
-                                    if (!container || !hidden) return;
-                                    var files = [];
-                                    if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls.slice();
-                                    else if (Array.isArray(data.reference_files)) files = data.reference_files.slice();
-                                    else if (data.reference_file_url) files = [data.reference_file_url];
-                                    else if (data.reference_file) files = [data.reference_file];
-                                    
-                                    console.log('Found existing files:', files, 'from data:', {
-                                        reference_files_urls: data.reference_files_urls,
-                                        reference_files: data.reference_files,
-                                        reference_file_url: data.reference_file_url,
-                                        reference_file: data.reference_file
-                                    });
-
-                                    function toUrl(v) { if (!v) return ''; var s = String(v); if (s.indexOf('http://') === 0 || s.indexOf('https://') === 0) return s; if (s.indexOf('/') === 0) return getMeta('app-url').replace(/\/$/, '') + s; return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + s; }
-                                    function toName(u) { if (!u) return ''; var s = String(u); if (s.indexOf('http://') === 0 || s.indexOf('https://') === 0) { try { return new URL(s).pathname.split('/').pop(); } catch(_) { return s.split('/').pop(); } } return s.split('/').pop(); }
-
-                                    container.innerHTML = '';
-                                    if ((files || []).length > 0) {
-                                        console.log('Rendering', files.length, 'existing files');
-                                        var list = document.createElement('div'); list.className = 'existing-files-list w-100';
-                                        (files || []).forEach(function(f){ var url = toUrl(f); var name = toName(f); if (!name) return; var item = document.createElement('div'); item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded'; var info = document.createElement('div'); info.className = 'd-flex align-items-center flex-grow-1'; var icon = document.createElement('span'); icon.className = 'material-symbols-outlined me-2'; icon.textContent = 'description'; var link = document.createElement('a'); link.href = url; link.textContent = name; link.className = 'text-decoration-none'; link.target = '_blank'; var removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-outline-danger'; removeBtn.innerHTML='&times;'; removeBtn.onclick = function(){ item.remove(); try { var anchors = container.querySelectorAll('.existing-file-item a'); var next = Array.from(anchors).map(function(a){ return (a.textContent||'').trim(); }).filter(Boolean); hidden.value = JSON.stringify(next); } catch(_){} }; info.appendChild(icon); info.appendChild(link); item.appendChild(info); item.appendChild(removeBtn); list.appendChild(item); }); container.appendChild(list); }
-                                    try { var anchors = container.querySelectorAll('.existing-file-item a'); var names = Array.from(anchors).map(function(a){ return (a.textContent||'').trim(); }).filter(Boolean); hidden.value = JSON.stringify(names); } catch(_) { hidden.value = '[]'; }
-                                } catch(_){}
-                            })();
-
-                            // Adjust footer: add Cancel/Close behavior near Add button
-                            (function(){
-                                try {
-                                    console.log('Setting up footer with Update and Cancel buttons...');
-                                    var footer = projectModal.querySelector('.feedback-modal-footer') || projectModal.querySelector('.modal-footer') || projectModal.querySelector('.modal-footer-custom'); 
-                                    console.log('Footer found:', !!footer);
-                                    if (!footer) return; 
-                                    var submitBtnRef = document.getElementById('addFeedbackButton'); 
-                                    console.log('Submit button found:', !!submitBtnRef);
-                                    if (!submitBtnRef) return; 
-                                    
-                                    submitBtnRef.textContent = 'Update';
-                                    submitBtnRef.classList.remove('w-100'); 
-                                    submitBtnRef.classList.add('flex-grow-1'); 
-                                    
-                                    var oldWrapper = footer.querySelector('#feedbackFormButtonsWrapper'); 
-                                    if (oldWrapper) oldWrapper.remove(); 
-                                    
-                                    var wrap = document.createElement('div'); 
-                                    wrap.id = 'feedbackFormButtonsWrapper'; 
-                                    wrap.className = 'd-flex gap-2 w-100'; 
-                                    
-                                    var closeBtn = document.createElement('button'); 
-                                    closeBtn.id = 'replyCloseButton'; 
-                                    closeBtn.type='button'; 
-                                    closeBtn.className='btn btn-close-reply flex-grow-1'; 
-                                    closeBtn.textContent = 'Cancel'; 
-                                    closeBtn.addEventListener('click', function(){ 
-                                        try{ 
-                                            footer.innerHTML = ''; 
-                                            var restore = document.createElement('button'); 
-                                            restore.type='button'; 
-                                            restore.className='btn btn-submit-black w-100'; 
-                                            restore.id='addFeedbackButton'; 
-                                            restore.textContent='Add Feedback'; 
-                                            restore.addEventListener('click', function(){ 
-                                                window.showAddFeedbackForm && window.showAddFeedbackForm(projectId); 
-                                            }); 
-                                            footer.appendChild(restore); 
-                                        } catch(_){} 
-                                        try{ 
-                                            window.loadFeedbackData && window.loadFeedbackData(projectId); 
-                                        } catch(_){} 
-                                    }); 
-                                    
-                                    wrap.appendChild(closeBtn); 
-                                    wrap.appendChild(submitBtnRef); 
-                                    footer.innerHTML=''; 
-                                    footer.appendChild(wrap);
-                                    console.log('Footer updated with Update and Cancel buttons');
-                                } catch(e){ console.error('Error setting up footer:', e); }
-                            })();
-
-                        } catch (e) { console.warn('showEditFeedbackForm error', e); }
-                    }
-                    window.showEditFeedbackForm = showEditFeedbackForm;
-                    
-                    // Inline edit feedback function (no modal)
-                    function showInlineEditFeedback(projectId, data, isReply) {
-                        try {
-                            console.log('showInlineEditFeedback called with:', { projectId, data, isReply });
-                            
-                            // Find the main feedback container in project detail page (not modal)
-                            var feedbackContainer = document.querySelector('#projectFeedbackList') || document.querySelector('.project-feedback-container') || document.querySelector('.feedback-list-container');
-                            if (!feedbackContainer) {
-                                console.warn('Feedback container not found');
-                                return;
-                            }
-                            
-                            console.log('Found feedback container, setting up inline edit...');
-                            
-                            // Clear the existing feedback list and show edit form
-                            feedbackContainer.innerHTML = '';
-                            
-                            // Create edit form HTML
-                            var editFormHtml = `
-                                <div class="edit-feedback-form p-3 border rounded bg-light">
-                                    <h5 class="mb-3">${isReply ? 'Edit Reply' : 'Edit Feedback'}</h5>
-                                    
-                                    <form id="inlineEditFeedbackForm" enctype="multipart/form-data">
-                                        <input type="hidden" name="feedback_id" value="${data.id}">
-                                        <input type="hidden" id="inline_edit_remove_image" name="remove_image" value="0">
-                                        
-                                        <!-- Image Upload Section -->
-                                        <div class="mb-3">
-                                            <label class="form-label">Upload Image</label>
-                                            <div class="image-upload-container">
-                                                <label for="inline_feedback_image" class="custom-image-upload position-relative" id="inlineEditFeedbackImageLabel" 
-                                                    style="background-position: center center; background-repeat: no-repeat; background-size: cover; cursor: pointer; display: block; width: 100%; height: 200px; border: 2px dashed #ddd; border-radius: 8px;">
-                                                    <input type="file" id="inline_feedback_image" name="feedback_image" accept="image/*" class="d-none">
-                                                    <span class="image-clear-btn d-none position-absolute" id="inlineEditFeedbackImageClearBtn" 
-                                                        style="top: 10px; right: 10px; background: rgba(255,0,0,0.8); color: white; border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer;">&times;</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        
-                                        <!-- Feedback Comment Section -->
-                                        <div class="mb-3">
-                                            <label for="inline_feedback_comment" class="form-label">Feedback Comment</label>
-                                            <div id="inline_feedback_toolbar" style="border: 1px solid #ddd; border-bottom: none;">
-                                                <span class="ql-formats">
-                                                    <button class="ql-bold"></button>
-                                                    <button class="ql-italic"></button>
-                                                    <button class="ql-underline"></button>
-                                                </span>
-                                                <span class="ql-formats">
-                                                    <button class="ql-list" value="ordered"></button>
-                                                    <button class="ql-list" value="bullet"></button>
-                                                </span>
-                                            </div>
-                                            <div id="inline_feedback_editor" style="height: 120px; border: 1px solid #ddd;"></div>
-                                            <textarea id="inline_feedback_comment" name="feedback_comment" style="display: none;">${data.feedback_comment || ''}</textarea>
-                                        </div>
-                                        
-                                        <!-- Reference Files Section -->
-                                        <div class="mb-3">
-                                            <label class="form-label">Reference Files</label>
-                                            
-                                            <!-- Existing Files -->
-                                            <div id="inline_existing_feedback_files" class="mb-2"></div>
-                                            <input type="hidden" id="inline_existing_files_input" name="existing_reference_files" value="[]">
-                                            
-                                            <!-- New File Upload -->
-                                            <input type="file" class="form-control" id="inline_reference_files" name="reference_files[]" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                                            <div id="inline_new_files_preview" class="mt-2"></div>
-                                        </div>
-                                        
-                                        <!-- Action Buttons -->
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-secondary" id="cancelInlineEdit">Cancel</button>
-                                            <button type="submit" class="btn btn-primary">Update</button>
-                                        </div>
-                                    </form>
-                                </div>
-                            `;
-                            
-                            feedbackContainer.innerHTML = editFormHtml;
-                            
-                            // Setup image preview
-                            setupInlineImagePreview(data);
-                            
-                            // Setup Quill editor
-                            setupInlineQuillEditor(data);
-                            
-                            // Setup existing files display
-                            setupInlineExistingFiles(data);
-                            
-                            // Setup new files preview
-                            setupInlineNewFilesPreview();
-                            
-                            // Setup form submission
-                            setupInlineFormSubmission(projectId, data);
-                            
-                            // Setup cancel button
-                            document.getElementById('cancelInlineEdit').addEventListener('click', function() {
-                                // Reload the feedback list to cancel edit mode
-                                window.loadFeedbackData && window.loadFeedbackData(projectId);
-                            });
-                            
-                        } catch (e) { 
-                            console.error('showInlineEditFeedback error:', e); 
-                        }
-                    }
-                    
-                    function setupInlineImagePreview(data) {
-                        try {
-                            var imageInput = document.getElementById('inline_feedback_image');
-                            var imageLabel = document.getElementById('inlineEditFeedbackImageLabel');
-                            var imageClearBtn = document.getElementById('inlineEditFeedbackImageClearBtn');
-                            
-                            if (!imageInput || !imageLabel || !imageClearBtn) return;
-                            
-                            // Set existing image if available
-                            var existingImg = data.image_url || data.image || '';
-                            if (existingImg) {
-                                var imgUrl = existingImg;
-                                if (!imgUrl.startsWith('http')) {
-                                    imgUrl = getMeta('app-url').replace(/\/$/, '') + (imgUrl.startsWith('/') ? imgUrl : '/file/project/' + imgUrl);
-                                }
-                                imageLabel.style.backgroundImage = "url('" + imgUrl + "')";
-                                imageLabel.style.backgroundSize = 'cover';
-                                imageClearBtn.classList.remove('d-none');
-                                console.log('Set existing image preview:', imgUrl);
-                            } else {
-                                imageLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
-                                imageLabel.style.backgroundSize = '50%';
-                                imageLabel.style.opacity = '0.5';
-                            }
-                            
-                            // Handle new image selection
-                            imageInput.addEventListener('change', function() {
-                                if (this.files && this.files[0]) {
-                                    var reader = new FileReader();
-                                    reader.onload = function(e) {
-                                        imageLabel.style.backgroundImage = "url('" + e.target.result + "')";
-                                        imageLabel.style.backgroundSize = 'cover';
-                                        imageLabel.style.opacity = '1';
-                                        imageClearBtn.classList.remove('d-none');
-                                    };
-                                    reader.readAsDataURL(this.files[0]);
-                                }
-                            });
-                            
-                            // Handle image clear
-                            imageClearBtn.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                imageInput.value = '';
-                                imageLabel.style.backgroundImage = "url('" + getMeta('app-url').replace(/\/$/, '') + "/asset/img/background/add-image.png')";
-                                imageLabel.style.backgroundSize = '50%';
-                                imageLabel.style.opacity = '0.5';
-                                imageClearBtn.classList.add('d-none');
-                                document.getElementById('inline_edit_remove_image').value = '1';
-                            });
-                            
-                        } catch(e) {
-                            console.error('Error setting up image preview:', e);
-                        }
-                    }
-                    
-                    function setupInlineQuillEditor(data) {
-                        try {
-                            if (typeof Quill !== 'undefined') {
-                                setTimeout(function() {
-                                    var quillEditor = new Quill('#inline_feedback_editor', {
-                                        modules: { toolbar: '#inline_feedback_toolbar', clipboard: { matchVisual: false } },
-                                        theme: 'snow'
-                                    });
-                                    
-                                    // Set content
-                                    if (data.feedback_comment) {
-                                        quillEditor.root.innerHTML = data.feedback_comment;
-                                        console.log('Set Quill content:', data.feedback_comment);
-                                    }
-                                    
-                                    // Sync to textarea on change
-                                    quillEditor.on('text-change', function() {
-                                        document.getElementById('inline_feedback_comment').value = quillEditor.root.innerHTML;
-                                    });
-                                    
-                                    window.__inlineQuillEdit = quillEditor;
-                                }, 100);
-                            }
-                        } catch(e) {
-                            console.error('Error setting up Quill editor:', e);
-                        }
-                    }
-                    
-                    function setupInlineExistingFiles(data) {
-                        try {
-                            var container = document.getElementById('inline_existing_feedback_files');
-                            var hiddenInput = document.getElementById('inline_existing_files_input');
-                            
-                            if (!container || !hiddenInput) return;
-                            
-                            var files = [];
-                            if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls.slice();
-                            else if (Array.isArray(data.reference_files)) files = data.reference_files.slice();
-                            else if (data.reference_file_url) files = [data.reference_file_url];
-                            else if (data.reference_file) files = [data.reference_file];
-                            
-                            console.log('Setting up existing files:', files);
-                            
-                            if (files.length > 0) {
-                                var filesHtml = '<div class="existing-files-list">';
-                                files.forEach(function(file, index) {
-                                    var fileName = typeof file === 'string' ? file.split('/').pop() : file.name || 'File ' + (index + 1);
-                                    var fileUrl = typeof file === 'string' ? file : file.url || '';
-                                    if (!fileUrl.startsWith('http') && fileUrl) {
-                                        fileUrl = getMeta('app-url').replace(/\/$/, '') + (fileUrl.startsWith('/') ? fileUrl : '/file/project/' + fileUrl);
-                                    }
-                                    
-                                    filesHtml += `
-                                        <div class="existing-file-item d-flex align-items-center justify-content-between p-2 mb-2 bg-white border rounded" data-file="${fileName}">
-                                            <div class="d-flex align-items-center">
-                                                <span class="material-symbols-outlined me-2">description</span>
-                                                <a href="${fileUrl}" target="_blank" class="text-decoration-none">${fileName}</a>
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-outline-danger remove-existing-file">&times;</button>
-                                        </div>
-                                    `;
-                                });
-                                filesHtml += '</div>';
-                                container.innerHTML = filesHtml;
-                                
-                                // Update hidden input
-                                hiddenInput.value = JSON.stringify(files.map(f => typeof f === 'string' ? f.split('/').pop() : f.name));
-                                
-                                // Add remove handlers
-                                container.querySelectorAll('.remove-existing-file').forEach(function(btn) {
-                                    btn.addEventListener('click', function() {
-                                        var fileItem = this.closest('.existing-file-item');
-                                        fileItem.remove();
-                                        
-                                        // Update hidden input
-                                        var remainingFiles = Array.from(container.querySelectorAll('.existing-file-item')).map(function(item) {
-                                            return item.getAttribute('data-file');
-                                        });
-                                        hiddenInput.value = JSON.stringify(remainingFiles);
-                                    });
-                                });
-                            }
-                        } catch(e) {
-                            console.error('Error setting up existing files:', e);
-                        }
-                    }
-                    
-                    function setupInlineNewFilesPreview() {
-                        try {
-                            var input = document.getElementById('inline_reference_files');
-                            var preview = document.getElementById('inline_new_files_preview');
-                            
-                            if (!input || !preview) return;
-                            
-                            var selectedFiles = [];
-                            
-                            input.addEventListener('change', function() {
-                                var files = Array.from(this.files || []);
-                                selectedFiles = selectedFiles.concat(files);
-                                renderNewFilesPreview();
-                                this.value = ''; // Clear input to allow same file selection
-                            });
-                            
-                            function renderNewFilesPreview() {
-                                if (selectedFiles.length === 0) {
-                                    preview.innerHTML = '';
-                                    return;
-                                }
-                                
-                                var html = '<div class="new-files-list">';
-                                selectedFiles.forEach(function(file, index) {
-                                    html += `
-                                        <div class="new-file-item d-flex align-items-center justify-content-between p-2 mb-2 bg-light border rounded">
-                                            <div class="d-flex align-items-center">
-                                                <span class="material-symbols-outlined me-2">description</span>
-                                                <span>${file.name}</span>
-                                                <small class="text-muted ms-2">(${(file.size / 1024 / 1024).toFixed(2)} MB)</small>
-                                            </div>
-                                            <button type="button" class="btn btn-sm btn-outline-danger remove-new-file" data-index="${index}">&times;</button>
-                                        </div>
-                                    `;
-                                });
-                                html += '</div>';
-                                preview.innerHTML = html;
-                                
-                                // Add remove handlers
-                                preview.querySelectorAll('.remove-new-file').forEach(function(btn) {
-                                    btn.addEventListener('click', function() {
-                                        var index = parseInt(this.getAttribute('data-index'));
-                                        selectedFiles.splice(index, 1);
-                                        renderNewFilesPreview();
-                                    });
-                                });
-                            }
-                            
-                            window.__inlineSelectedFiles = selectedFiles;
-                        } catch(e) {
-                            console.error('Error setting up new files preview:', e);
-                        }
-                    }
-                    
-                    function setupInlineFormSubmission(projectId, data) {
-                        try {
-                            var form = document.getElementById('inlineEditFeedbackForm');
-                            if (!form) return;
-                            
-                            form.addEventListener('submit', function(e) {
-                                e.preventDefault();
-                                
-                                // Sync Quill content
-                                if (window.__inlineQuillEdit) {
-                                    document.getElementById('inline_feedback_comment').value = window.__inlineQuillEdit.root.innerHTML;
-                                }
-                                
-                                var formData = new FormData(form);
-                                
-                                // Add new files
-                                if (window.__inlineSelectedFiles && window.__inlineSelectedFiles.length > 0) {
-                                    window.__inlineSelectedFiles.forEach(function(file) {
-                                        formData.append('reference_files[]', file);
-                                    });
-                                }
-                                
-                                formData.append('_method', 'PUT');
-                                
-                                // Submit form
-                                fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + data.id, {
-                                    method: 'POST',
-                                    headers: {
-                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                    },
-                                    body: formData
-                                })
-                                .then(function(response) {
-                                    return response.ok ? response.json() : response.json().then(Promise.reject);
-                                })
-                                .then(function(result) {
-                                    console.log('Feedback updated successfully:', result);
-                                    window.showFloatingAlert && window.showFloatingAlert(result.message || 'Feedback updated successfully', 'success', 1500);
-                                    // Reload feedback list
-                                    window.loadFeedbackData && window.loadFeedbackData(projectId);
-                                })
-                                .catch(function(error) {
-                                    console.error('Error updating feedback:', error);
-                                    var message = error.message || 'Failed to update feedback';
-                                    window.showFloatingAlert && window.showFloatingAlert(message, 'error', 3000);
-                                });
-                            });
-                        } catch(e) {
-                            console.error('Error setting up form submission:', e);
-                        }
-                    }
-                    
-                    window.showInlineEditFeedback = showInlineEditFeedback;
-                } catch(_){}
+                window.showEditFeedbackForm = showEditFeedbackForm;
                 window.markProjectFeedbacksRead = markProjectFeedbacksRead;
             } catch (_) {}
         }
