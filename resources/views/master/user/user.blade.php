@@ -22,7 +22,11 @@
     <div class="body-content scrollable-container rounded-4 px-3 py-3">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="mb-0 table-title">List User</h5>
-
+            <div class="search-input-container position-relative me-3">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input class="form-control custom-form-filter ps-5" type="text" name="search_filter"
+                    id="search_filter">
+            </div>
         </div>
 
         <div class="table-responsive">
