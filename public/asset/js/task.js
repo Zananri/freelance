@@ -2756,7 +2756,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             iconHtml = '';
         }
 
-        // Determine if current viewer is PIC or an executor
         const viewerIsPic = (function(){
             try { return !!(currentEmployeeId && task.pic && String(task.pic.id) === String(currentEmployeeId)); } catch(_) { return false; }
         })();
@@ -2764,21 +2763,27 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             try { return !!(currentEmployeeId && Array.isArray(task.executors) && task.executors.some(ex => String(ex.id) === String(currentEmployeeId))); } catch(_) { return false; }
         })();
 
-        // Show dropdown only when not pending AND either viewer is not an executor OR viewer is the PIC
         const shouldShowDropdown = !viewerPending && (!viewerIsExecutor || viewerIsPic);
 
-        const dropdownHtml = shouldShowDropdown ? `
-                <div class="dropdown-icon-container">
-                    <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
-                    <div class="dropdown-menu d-none">
-                        <div class="dropdown-item">Detail</div>
-                        <div class="dropdown-item">Edit</div>
-                        <div class="dropdown-item">Feedback</div>
-                        ${statusMenuItem}
-                        ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
-                    </div>
+        const dropdownHtml = `
+            <div class="dropdown-icon-container">
+                <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
+                <div class="dropdown-menu d-none">
+                    <div class="dropdown-item">Detail</div>
+                    <div class="dropdown-item">Edit</div>
+                    <div class="dropdown-item">Feedback</div>
+                    ${statusMenuItem}
+                    ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
                 </div>
-            ` : '';
+            </div>
+        `;
+
+        if (viewerIsExecutor) {
+            $(".dropdown-icon-container").addClass("d-none");
+            $(".arrow-forward-icon").css("right", "0")
+        } else if (shouldShowDropdown) {
+            $(".dropdown-icon-container").removeClass("d-none");
+        }
 
         return `
         <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
@@ -4354,6 +4359,147 @@ function applyCurrentSearchFilter() {
         });
     }
 
+    (function enableKanbanDnD(){
+        const colToStatus = {
+            'new-request-tasks': 'new_request',
+            'in-progress-tasks': 'in_progress',
+            'completed-tasks':   'completed'
+        };
+
+        // Mark columns as droppable
+        $(function(){
+            $('#new-request-tasks, #in-progress-tasks, #completed-tasks').addClass('kanban-droppable');
+        });
+
+        let kanbanDrag = null; // { id, fromStatus }
+
+        function normStatus(s){
+            s = String(s || '').toLowerCase();
+            if (s === 'in progress') return 'in_progress';
+            if (s === 'new request') return 'new_request';
+            return s;
+        }
+
+        function mapTransition(fromStatus, toStatus){
+            // returns { allowed: boolean, newStatus?: string }
+            fromStatus = normStatus(fromStatus);
+            toStatus = normStatus(toStatus);
+            // same-column drop => no-op
+            if (fromStatus === toStatus) return { allowed: false };
+
+            // Treat 'rejected' as currently in-progress special state; allow sending to completed
+            if (fromStatus === 'rejected') {
+                if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
+                return { allowed: false };
+            }
+
+            if (fromStatus === 'new_request') {
+                if (toStatus === 'in_progress') return { allowed: true, newStatus: 'in_progress' };
+                return { allowed: false };
+            }
+            if (fromStatus === 'in_progress') {
+                if (toStatus === 'new_request') return { allowed: true, newStatus: 'new_request' };
+                if (toStatus === 'completed')   return { allowed: true, newStatus: 'completed' };
+                return { allowed: false };
+            }
+            if (fromStatus === 'completed') {
+                if (toStatus === 'in_progress') return { allowed: true, newStatus: 'rejected' };
+                return { allowed: false };
+            }
+            return { allowed: false };
+        }   
+
+        function clearDropHighlights(){
+            try {
+                $('.kanban-droppable')
+                    .removeClass('kanban-allowed')
+                    .removeClass('kanban-denied')
+                    .removeClass('kanban-over');
+                $('.custom-card.dragging').removeClass('dragging');
+            } catch(_) {}
+        }
+
+        function refreshDropHighlights(){
+            if (!kanbanDrag) return;
+            Object.keys(colToStatus).forEach(function(colId){
+                const $col = $('#' + colId);
+                const toStatus = colToStatus[colId];
+                const m = mapTransition(kanbanDrag.fromStatus, toStatus);
+                $col.toggleClass('kanban-allowed', !!m.allowed);
+                $col.toggleClass('kanban-denied', !m.allowed);
+            });
+        }
+
+        // Make cards draggable on demand (delegated)
+        $(document).on('mouseenter', '.custom-card', function(){
+            this.setAttribute('draggable', 'true');
+        });
+
+        // Begin drag
+        $(document).on('dragstart', '.custom-card', function(ev){
+            try { hideAllFloatingTooltips && hideAllFloatingTooltips(); } catch(_) {}
+            const e = ev.originalEvent || ev;
+            const id = this.getAttribute('data-task-id');
+            const fromStatus = normStatus(this.getAttribute('data-task-status'));
+            kanbanDrag = { id: id, fromStatus: fromStatus };
+            this.classList.add('dragging');
+            try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id||'')); } catch(_){ }
+            refreshDropHighlights();
+        });
+
+        // End drag (cleanup)
+        $(document).on('dragend', '.custom-card', function(){
+            kanbanDrag = null;
+            clearDropHighlights();
+        });
+
+        // Column drag handlers
+        $(document).on('dragenter', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
+            if (!kanbanDrag) return;
+            $(this).addClass('kanban-over');
+        });
+
+        $(document).on('dragover', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(ev){
+            if (!kanbanDrag) return;
+            const e = ev.originalEvent || ev;
+            const toStatus = colToStatus[this.id];
+            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
+            if (m.allowed) {
+                try { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } catch(_){ try { e.preventDefault(); } catch(_){} }
+                $(this).addClass('kanban-allowed').removeClass('kanban-denied');
+            } else {
+                $(this).addClass('kanban-denied').removeClass('kanban-allowed');
+            }
+        });
+
+        $(document).on('dragleave', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
+            $(this).removeClass('kanban-over');
+        });
+
+        $(document).on('drop', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(ev){
+            if (!kanbanDrag) return;
+            const e = ev.originalEvent || ev;
+            try { e.preventDefault(); } catch(_) {}
+            const toStatus = colToStatus[this.id];
+            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
+            const taskId = kanbanDrag.id;
+            const taskCard = document.querySelector('.custom-card.dragging') || document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+            if (!m.allowed) {
+                try { showFloatingAlert('Move not allowed for this transition.', 'warning'); } catch(_) {}
+                kanbanDrag = null; clearDropHighlights();
+                return;
+            }
+            // If moving to completed, open modal to collect completion details
+            if (m.newStatus === 'completed') {
+                try { showConfirmationToCompleteModal(taskId, taskCard); } catch(err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch(_) {} }
+            } else {
+                // Normal transitions use existing updater
+                try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch(_) {}
+            }
+            kanbanDrag = null; clearDropHighlights();
+        });
+    })();
+
     // NEW: Bulk Progress All (across cached pages) when master checkbox is checked and user presses a dedicated trigger
     document.addEventListener('click', function(e){
         const trigger = e.target.closest('#taskNewBulkProgressAll');
@@ -5010,11 +5156,11 @@ function applyCurrentSearchFilter() {
 
                                                                                             ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
 
-                                                                                            <div class="reply-actions mt-2 d-flex gap-4">
-                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                                                                            <div class="reply-actions mt-2 d-flex gap-4">
                                                                                                                                 <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
                                                                                                                                 ${canEditRep ? `<span class="d-flex align-items-center reply-delete-trigger" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
-                                                                                            </div>
+                                                                                                                            </div>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -5022,8 +5168,8 @@ function applyCurrentSearchFilter() {
                                                                 `;
                                                         }).join('');
 
-                                                        // Keep the "View all replies" button separate so it can be aligned inline
-                                                        viewRepliesBtnHtml = `<button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all replies (${repliesCount})</button>`;
+                                                        // Keep the "View all" button separate so it can be aligned inline
+                                                        viewRepliesBtnHtml = `<button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all (${repliesCount})</button>`;
                                                         repliesContainerHtml = `<div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>`;
                                                 }
                                                 feedbackHtml += `
@@ -5057,10 +5203,10 @@ function applyCurrentSearchFilter() {
                             }
 
                                                                 <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
-                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
                                                                     <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
-                                                                    ${viewRepliesBtnHtml}
+                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
                                                                     ${topCanEdit ? `<span class="d-flex align-items-center feedback-delete-trigger" data-feedback-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
+                                                                    ${viewRepliesBtnHtml}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -5129,10 +5275,10 @@ function applyCurrentSearchFilter() {
                             const hidden = container.classList.contains('d-none');
                             if (hidden) {
                                 container.classList.remove('d-none');
-                                this.textContent = 'Hide replies';
+                                this.textContent = 'Hide';
                             } else {
                                 container.classList.add('d-none');
-                                this.textContent = `View all replies (${count})`;
+                                this.textContent = `View all (${count})`;
                             }
                             // Enforce style: no underline and #555 color
                             this.style.textDecoration = 'none';
@@ -5230,8 +5376,8 @@ function applyCurrentSearchFilter() {
                                     if (container && container.classList.contains('d-none')) {
                                         container.classList.remove('d-none');
                                     }
-                                    // Update toggle text to Hide replies
-                                    wrap.textContent = 'Hide replies';
+                                    // Update toggle text to Hide
+                                    wrap.textContent = 'Hide';
                                 }
                                 const replyEl = modalBody.querySelector(`.feedback-reply[data-reply-id="${target.id}"][data-parent-id="${target.parent_id}"]`);
                                 if (replyEl) {
@@ -6678,6 +6824,7 @@ function applyCurrentSearchFilter() {
 
                         const modalEl = document.getElementById("referenceFilesModal");
                         if (modalEl) {
+                            try { modalEl.dataset.taskId = String(taskId || ''); } catch(_) {}
                             const detailEl = document.getElementById('taskDetailModal');
                             if (detailEl && bootstrap.Modal.getInstance(detailEl)) {
                                 detailEl.setAttribute('data-child-opened', '1');
@@ -7578,6 +7725,248 @@ function applyCurrentSearchFilter() {
                 }
             });
     }
+
+    // --- Handlers for new Add Reference Files modal ---
+    function initAddReferenceFilesModal() {
+        const openBtn = document.getElementById('openAddReferenceFilesBtn');
+        const refModalEl = document.getElementById('addReferenceFilesModal');
+        const refModal = refModalEl ? new bootstrap.Modal(refModalEl) : null;
+        const refForm = document.getElementById('addReferenceFilesForm');
+        const fileInput = document.getElementById('add_reference_files');
+        const preview = document.getElementById('add_reference_files_preview');
+        const submitBtn = document.getElementById('submitAddReferenceFiles');
+
+        if (!openBtn || !refModalEl || !refForm || !fileInput || !preview || !submitBtn) return;
+
+        // When clicking "Add Files" in Reference Files modal: close it and open add modal
+        openBtn.addEventListener('click', function (e) {
+            try {
+                const refFilesModalEl = document.getElementById('referenceFilesModal');
+                if (refFilesModalEl) {
+                    const cm = bootstrap.Modal.getInstance(refFilesModalEl) || new bootstrap.Modal(refFilesModalEl);
+                    cm.hide();
+                }
+            } catch (_) {}
+            // populate hidden task id from data attribute on reference modal if available
+            const taskId = document.getElementById('referenceFilesModal')?.dataset?.taskId
+                || document.getElementById('referenceFilesList')?.dataset?.taskId
+                || this.dataset?.taskId
+                || document.getElementById('taskDetailModal')?.dataset?.taskId;
+            // If still not found, warn early and don't open add modal
+            if (!taskId) {
+                try { showFloatingAlert && showFloatingAlert('Task ID not found. Cannot add files.', 'danger'); } catch(_) {}
+                return;
+            }
+            const hidden = document.getElementById('addRefTaskId');
+            if (hidden) hidden.value = taskId || '';
+            // reset previous selection
+            fileInput.value = '';
+            preview.innerHTML = '';
+            window.addRefSelectedFiles = [];
+            refModal.show();
+        });
+
+        // File input change: collect files and render preview
+        fileInput.addEventListener('change', function () {
+            const files = Array.from(this.files || []);
+            window.addRefSelectedFiles = window.addRefSelectedFiles || [];
+            window.addRefSelectedFiles = window.addRefSelectedFiles.concat(files);
+            renderAddRefSelectedFiles();
+            // clear input so same file can be selected again if needed
+            this.value = '';
+        });
+
+        function renderAddRefSelectedFiles() {
+            preview.innerHTML = '';
+            const list = document.createElement('div');
+            list.className = 'selected-files-list mt-2';
+            (window.addRefSelectedFiles || []).forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                if (file && file.type && file.type.indexOf('image') === 0) {
+                    const img = document.createElement('img');
+                    const url = URL.createObjectURL(file);
+                    img.src = url; img.width = 28; img.height = 28; img.style.objectFit = 'cover'; img.style.borderRadius = '50%'; img.alt = file.name;
+                    img.onload = function(){ try{ URL.revokeObjectURL(url); } catch(_){} };
+                    item.appendChild(img);
+                } else {
+                    const badge = document.createElement('div');
+                    item.appendChild(badge);
+                }
+
+                const title = document.createElement('span'); title.className = 'flex-grow-1'; title.textContent = file.name; item.appendChild(title);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight = '1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener('click', function () {
+                    window.addRefSelectedFiles.splice(idx, 1);
+                    renderAddRefSelectedFiles();
+                });
+                item.appendChild(removeBtn);
+
+                list.appendChild(item);
+            });
+
+            preview.appendChild(list);
+        }
+
+        // Submit handler: upload selected files to server
+        submitBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const taskId = document.getElementById('addRefTaskId')?.value;
+            if (!taskId) {
+                showFloatingAlert && showFloatingAlert('Task ID not found.', 'danger');
+                return;
+            }
+
+            const files = window.addRefSelectedFiles || [];
+            if (!files.length) {
+                showFloatingAlert && showFloatingAlert('Please select at least one file to upload.', 'warning');
+                return;
+            }
+
+            const fd = new FormData();
+            files.forEach(f => fd.append('reference_files[]', f));
+            fd.append('task_id', taskId);
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            fetch(appUrl + '/task/' + encodeURIComponent(taskId) + '/reference-file', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: fd
+            }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
+            .then(payload => {
+                // Determine new count from payload when available
+                const newCount = (function(p){
+                    try {
+                        if (!p) return undefined;
+                        if (Array.isArray(p.reference_files)) return p.reference_files.length;
+                        if (typeof p.reference_files_count === 'number') return p.reference_files_count;
+                        if (typeof p.reference_files === 'string') {
+                            try {
+                                const parsed = JSON.parse(p.reference_files);
+                                if (Array.isArray(parsed)) return parsed.length;
+                            } catch(_) {
+                                return p.reference_files.split(',').filter(Boolean).length;
+                            }
+                        }
+                        return undefined;
+                    } catch(_) { return undefined; }
+                })(payload);
+
+                showFloatingAlert && showFloatingAlert(payload.message || 'Files uploaded', 'success', 2000);
+                // hide add modal and reopen reference files modal (refresh contents)
+                refModal.hide();
+                // Reset selection
+                window.addRefSelectedFiles = [];
+                renderAddRefSelectedFiles();
+
+                // Update badge immediately if server returned new count
+                try {
+                    const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                    if (card && typeof newCount !== 'undefined') {
+                        let span = card.querySelector('.reference-files-count');
+                        if (newCount > 0) {
+                            if (span) span.textContent = String(newCount);
+                            else {
+                                const s = document.createElement('span');
+                                s.className = 'reference-files-count ms-1';
+                                s.style.color = '#454545'; s.style.fontSize = '12px';
+                                s.textContent = String(newCount);
+                                // prefer attaching to the wrapper that holds the attach_file icon
+                                const wrappers = Array.from(card.querySelectorAll('.btn-attach-file-wrapper')) || [];
+                                let attachWrapper = wrappers.find(w => {
+                                    try {
+                                        const icon = w.querySelector('.material-symbols-outlined');
+                                        return icon && icon.textContent && icon.textContent.trim() === 'attach_file';
+                                    } catch(_) { return false; }
+                                });
+                                if (!attachWrapper) attachWrapper = card.querySelector('.btn-attach-file-wrapper.d-flex.align-items-center');
+                                if (attachWrapper) attachWrapper.appendChild(s);
+                            }
+                        } else if (span) {
+                            try { span.remove(); } catch(_) { span.style.display = 'none'; }
+                        }
+                    }
+                } catch(_) {}
+
+                // Reopen reference files modal by triggering the task's attach_file icon click specifically
+                const cardForClick = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                let attachBtn = null;
+                if (cardForClick) {
+                    const icons = Array.from(cardForClick.querySelectorAll('.task-icon')) || [];
+                    attachBtn = icons.find(el => el && el.textContent && el.textContent.trim() === 'attach_file');
+                }
+
+                if (attachBtn && typeof attachBtn.click === 'function') {
+                    // small delay to allow modal hide animation to complete
+                    setTimeout(function () { try { attachBtn.click(); } catch(_) { /* fallback below */ } }, 200);
+                } else {
+                    // Fallback: fetch latest task data and update reference files badge manually
+                    try {
+                        $.ajax({
+                            url: appUrl + '/task/' + encodeURIComponent(taskId),
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(res) {
+                                const t = res && (res.data || res) ;
+                                // Update badge count on task card
+                                try {
+                                    const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                                    if (card) {
+                                        const span = card.querySelector('.reference-files-count');
+                                        const count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0)) || 0;
+                                        if (count > 0) {
+                                            if (span) span.textContent = String(count);
+                                            else {
+                                                const s = document.createElement('span');
+                                                s.className = 'reference-files-count ms-1';
+                                                s.style.color = '#454545'; s.style.fontSize = '12px';
+                                                s.textContent = String(count);
+                                                const wrappers = Array.from(card.querySelectorAll('.btn-attach-file-wrapper')) || [];
+                                                let attachWrapper = wrappers.find(w => {
+                                                    try { const icon = w.querySelector('.material-symbols-outlined'); return icon && icon.textContent && icon.textContent.trim() === 'attach_file'; } catch(_) { return false; }
+                                                });
+                                                if (!attachWrapper) attachWrapper = card.querySelector('.btn-attach-file-wrapper.d-flex.align-items-center');
+                                                if (attachWrapper) attachWrapper.appendChild(s);
+                                            }
+                                        } else if (span) {
+                                            try { span.remove(); } catch(_) { span.style.display = 'none'; }
+                                        }
+                                    }
+                                } catch(_){ }
+                            },
+                            error: function() { /* ignore */ }
+                        });
+                    } catch(_) { /* ignore fallback */ }
+                }
+            }).catch(err => {
+                console.error('Upload failed', err);
+                try { const msg = (err && (err.message || (err.error || (err.errors && err.errors[0]) ) )) || 'Upload failed'; showFloatingAlert && showFloatingAlert(msg, 'danger'); } catch(_) {}
+            }).finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Upload';
+            });
+        });
+    }
+
+    // Initialize add reference files modal handlers after DOM ready.
+    // Use readyState check so initialization runs even when this script is loaded after DOMContentLoaded.
+    (function(){
+        try {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAddReferenceFilesModal);
+            } else {
+                // DOM already ready
+                initAddReferenceFilesModal();
+            }
+        } catch (e) {}
+    })();
 
     // Open and populate Edit Task Modal
     function handleTaskEdit(taskId) {

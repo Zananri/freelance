@@ -53,10 +53,6 @@
                                 <button id="btn-references" class="detail-icon" title="References">
                                     <span class="material-symbols-outlined me-3">attach_file</span>
                                 </button>
-
-                                <button id="btn-comments" class="detail-icon" title="Comments">
-                                    <span class="material-symbols-outlined me-3">mode_comment</span>
-                                </button>
                             </div>
                             <div class="d-flex" id="project-actions">
                                 <!-- edit / delete buttons will be injected by JS -->
@@ -142,9 +138,60 @@
             <div class="row">
                 <div class="col-md-4 mb-3 feedback-detail-project">
                     <div class="body-content rounded-4 p-3">
+                        <div class="d-flex justify-content-between">
+                            <h5 class="feedback-title">Feedback</h5>
+                            <button class="btn btn-sm border-0" id="fullscreen-feedback-btn">
+                                <span class="material-symbols-outlined">
+                                    fullscreen
+                                </span>
+                            </button>
+                        </div>
 
+                        <div class="feedback-content" id="projectFeedbackList">
+
+                        </div>
+                        <div class="feedback-form">
+                            <!-- Inline Quill editor for quick feedback -->
+                            <div id="inline_feedback_toolbar" class="mb-1" style="display:none;">
+                                <span class="ql-formats">
+                                    <button class="ql-bold"></button>
+                                    <button class="ql-italic"></button>
+                                    <button class="ql-underline"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-list" value="ordered"></button>
+                                    <button class="ql-list" value="bullet"></button>
+                                </span>
+                                <span class="ql-formats">
+                                    <button class="ql-link"></button>
+                                </span>
+                            </div>
+                            <div id="inline_feedback_editor" class="border-0" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"></div>
+
+                            <!-- Hidden canonical textarea used for compatibility (will be filled by JS before submit) -->
+                            <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+
+                            <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                                <div class="d-flex-justify-content-start">
+                                    <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                        <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                    </button>
+                                    <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                        <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                    </button>
+                                    <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                                    <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" class="d-none">
+                                </div>
+                                <div class="d-flex justify-content-end submit-feedback">
+                                    <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
+                                        Send
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <div class="col-md-8 mb-3 timeline-detail-project">
                     <div class="body-content rounded-4 p-3">
                         <div class="d-flex justify-content-between align-items-center">
@@ -170,19 +217,19 @@
                                 </thead>
                                 <tbody id="timelineRows"></tbody>
                             </table>
-                        </div>
-                        <div class="timeline-legend d-flex justify-content-start gap-5">
-                            <div class="legend-item d-flex align-items-center gap-2">
-                                <span class="legend-dot legend-yellow"></span>
-                                <span class="legend-text" id="inProgressCount">0 Task</span>
-                            </div>
-                            <div class="legend-item d-flex align-items-center gap-2">
-                                <span class="legend-dot legend-red"></span>
-                                <span class="legend-text" id="lateCount">0 Task</span>
-                            </div>
-                            <div class="legend-item d-flex align-items-center gap-2">
-                                <span class="legend-dot legend-green"></span>
-                                <span class="legend-text" id="completedCount">0 Task</span>
+                            <div class="timeline-legend d-flex justify-content-start gap-5">
+                                <div class="legend-item d-flex align-items-center gap-2">
+                                    <span class="legend-dot legend-yellow"></span>
+                                    <span class="legend-text" id="inProgressCount">0 Task</span>
+                                </div>
+                                <div class="legend-item d-flex align-items-center gap-2">
+                                    <span class="legend-dot legend-red"></span>
+                                    <span class="legend-text" id="lateCount">0 Task</span>
+                                </div>
+                                <div class="legend-item d-flex align-items-center gap-2">
+                                    <span class="legend-dot legend-green"></span>
+                                    <span class="legend-text" id="completedCount">0 Task</span>
+                                </div>
                             </div>
                         </div>
 
@@ -459,20 +506,80 @@
                 <div class="alert-container mt-2" style="width: 100%;"></div>
             </div>
         </div>
+
+        {{-- Reference Files Modal --}}
         <div class="modal fade modal-custom" id="projectFilesModal" tabindex="-1"
             aria-labelledby="projectFilesModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="projectFilesModalLabel">
-                            Reference Files</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
+                    <div class="modal-header modal-header-custom d-flex justify-content-between">
+                        <div>
+                            <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="projectFilesModalLabel">
+                                Reference Files
+                            </h5>
+                        </div>
+                        <div>
+                            <button type="button" data-bs-toggle="modal"
+                                data-bs-target="#addProjectReferenceFilesModal" class="btn btn-submit-black">Add
+                                Files</button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
                     </div>
                     <hr>
                     <div class="modal-body modal-body-custom">
                         <div id="projectReferenceFilesList" class="d-flex flex-column gap-2">
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Project Reference Files Modal -->
+        <div class="modal fade" id="addProjectReferenceFilesModal" tabindex="-1"
+            aria-labelledby="addProjectReferenceFilesModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom fs-5 fw-normal"
+                            id="addProjectReferenceFilesModalLabel">Add Files</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body modal-body-custom">
+                        <form id="addProjectReferenceFilesForm" enctype="multipart/form-data">
+                            <input type="hidden" name="project_id" id="addRefProjectId" value="">
+                            <div class="mb-3">
+                                <label for="add_project_reference_files" class="form-label label-custom">Select
+                                    files</label>
+                                <input type="file" class="form-control input-text"
+                                    id="add_project_reference_files" name="reference_files[]"
+                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            </div>
+
+                            <div id="add_project_reference_files_preview" class="mt-2"></div>
+                        </form>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                        <button type="button" id="submitAddProjectReferenceFiles"
+                            class="btn btn-submit-black">Upload</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Delete Confirmation -->
+        <div class="modal fade" id="deleteFileModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-body modal-body-custom">
+                        <p id="deleteFileName" class="fw-normal text-center"></p>
+                        <p class="text-center fs-6">Are you sure you want to delete this file?</p>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Delete</button>
                     </div>
                 </div>
             </div>
@@ -501,7 +608,27 @@
 
                 <div class="mb-3 input-custom">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
-                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+
+                    <!-- Quill toolbar + editor (visual) -->
+                    <div id="feedback_toolbar">
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                        </span>
+                    </div>
+
+                    <div id="feedback_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+
+                    <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" style="display:none;"></textarea>
                 </div>
 
                 <div class="mb-3 input-custom">
@@ -547,7 +674,27 @@
 
                 <div class="mb-3 input-custom">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
-                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+
+                    <!-- Quill toolbar + editor (visual) -->
+                    <div id="reply_feedback_toolbar">
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                        </span>
+                    </div>
+
+                    <div id="reply_feedback_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+
+                    <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" style="display:none;"></textarea>
                 </div>
 
                 <div class="mb-3 input-custom">
@@ -753,7 +900,27 @@
 
                 <div class="mb-3 input-custom">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
-                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
+
+                    <!-- Quill toolbar + editor (visual) -->
+                    <div id="edit_feedback_toolbar">
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                        </span>
+                    </div>
+
+                    <div id="edit_feedback_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+
+                    <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" style="display:none;"></textarea>
                 </div>
 
                 <div class="mb-3 input-custom">

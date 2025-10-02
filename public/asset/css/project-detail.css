@@ -382,12 +382,6 @@
     overflow-y: auto;
 }
 
-.feedback-item {
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 1rem;
-    margin-bottom: 1rem;
-}
-
 .feedback-employee-photo {
     width: 40px;
     height: 40px;
@@ -610,6 +604,26 @@
     .detail-project-card {
         margin-bottom: 16px;
     }
+
+    .structure-detail {
+        position: relative;
+    }
+
+    .structure-detail-content {
+        position: relative;
+    }
+
+    #fullscreen-tree-btn {
+        position: absolute;
+        top: 30%;
+        right: 10%;
+    }
+
+    #view-more-wrapper {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+    }
 }
 
 .input-custom {
@@ -817,7 +831,7 @@
     width: 100%;
     height: calc(100vh - 85px);
     max-height: none;
-    z-index: 2;
+    z-index: 21;
 }
 
 .timeline-detail-project.fullscreen .body-content,
@@ -1061,22 +1075,23 @@
     left: 0;
     right: 0;
     bottom: 0;
-    width: 100%;
+    width: 100vw;
     height: calc(100vh - 85px);
-    max-height: none;
-    z-index: 12;
+    max-height: 100vh;
+    z-index: 21;
 }
 
 .structure-detail.fullscreen .body-content,
 .structure-detail.fullscreen .structure-detail-content {
-    height: 100%;
-    max-height: 100%;
-    width: 100%;
+    height: 100vh;
+    max-height: 100vh;
+    width: 100vw;
     padding: 10px;
 }
 
 .structure-detail-content {
-    max-height: 50vh;
+    height: 50vh;
+    z-index: 12;
     overflow: auto;
     position: relative;
     padding-bottom: 64px;
@@ -1331,6 +1346,14 @@
     font-weight: 500;
 }
 
+.timeline-legend {
+    position: sticky;
+    bottom: 0;
+    background: rgb(240, 241, 248);
+    padding: 10px 0;
+    z-index: 2;
+}
+
 #task-legend-inline {
     gap: 8px;
 }
@@ -1357,6 +1380,15 @@ input[type="file"]::file-selector-button {
     display: none;
 }
 
+#view-more-wrapper {
+    position: absolute  ;
+    right: 1%;
+    bottom: 3%;
+    z-index: 10;
+    display: flex;
+    justify-content: end;
+}
+
 #view-more-wrapper button {
     border: none;
     background-color: #444444;
@@ -1364,4 +1396,73 @@ input[type="file"]::file-selector-button {
     font-size: 12px;
     padding: 10px 24px;
     border-radius: 10px;
+}
+
+.feedback-title {
+    font-size: 16px;
+    font-weight: normal;
+    color: #3B3D42;
+}
+
+#fullscreen-feedback-btn span{
+    color: #898989;
+}
+
+.feedback-content {
+    max-height: calc(100vh - 585px);
+    min-height: 140px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+}
+
+.feedback-content::-webkit-scrollbar {
+    height: 4px;
+    width: 4px;
+}
+
+.feedback-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.feedback-content::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
+
+.feedback-form {
+    background: #F7F8FD;
+    border-radius: 10px;
+    align-items: end;
+    bottom: 0;
+    position: relative;
+}
+
+.feedback-form input {
+    margin-bottom: 10px;
+    background: #F7F8FD;
+}
+
+.feedback-form input:focus {
+    outline: none;
+    box-shadow: none;
+    background: #F7F8FD;
+}
+
+.feedback-form input::placeholder {
+    font-size: 10px;
+}
+
+.submit-feedback button {
+    height: 40px;
+    width: 80px;
+    font-size: 10px;
+}
+
+.btn-actions-feedback {
+    padding: 10px;
+}
+
+.feedback-photo-icon,
+.feedback-file-icon {
+    font-size: 20px;
 }

@@ -1464,6 +1464,78 @@ class TaskController extends Controller
             if (!$request->filled('project_id') || $request->input('project_id') === '' || $request->input('project_id') === 'null') {
                 $request->merge(['project_id' => null]);
             }
+
+            $payloadKeys = array_keys($request->all());
+            $allowedParentOnlyKeys = ['parent_id', 'project_id'];
+            $isParentOnly = $request->has('parent_id') && count(array_diff($payloadKeys, $allowedParentOnlyKeys)) === 0;
+
+            if ($isParentOnly) {
+                $parentOnlyValidator = Validator::make($request->all(), [
+                    'project_id' => 'nullable|exists:projects,id',
+                    'parent_id' => 'nullable|exists:tasks,id',
+                ]);
+
+                if ($parentOnlyValidator->fails()) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Validation errors',
+                        'errors' => $parentOnlyValidator->errors(),
+                    ], 422);
+                }
+
+                $newParentId = $request->input('parent_id');
+
+                // Prevent self-parenting
+                if (!empty($newParentId) && (string) $newParentId === (string) $task->id) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'A task cannot be its own parent.'
+                    ], 422);
+                }
+
+                $incomingProjectId = $request->input('project_id') ?? $task->project_id;
+                if (!empty($newParentId)) {
+                    $parent = Task::find($newParentId);
+                    if (!$parent || (string) $parent->project_id !== (string) $incomingProjectId) {
+                        return response()->json([
+                            'code' => 422,
+                            'status' => 'error',
+                            'message' => 'Selected parent task does not belong to the chosen project.'
+                        ], 422);
+                    }
+
+                    $seen = 0; $MAX_HOPS = 2048; $cursor = $parent;
+                    while ($cursor && $cursor->parent_id !== null && $seen < $MAX_HOPS) {
+                        if ((string) $cursor->parent_id === (string) $task->id) {
+                            return response()->json([
+                                'code' => 422,
+                                'status' => 'error',
+                                'message' => 'Invalid parent: cannot move task under its own descendant.'
+                            ], 422);
+                        }
+                        $cursor = Task::find($cursor->parent_id);
+                        $seen++;
+                    }
+                }
+
+                $task->parent_id = $newParentId ?: null;
+                $task->updated_by = auth()->id();
+                $task->save();
+
+                DB::commit();
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'message' => 'Task parent updated successfully',
+                    'data' => [
+                        'id' => $task->id,
+                        'parent_id' => $task->parent_id,
+                        'project_id' => $task->project_id,
+                    ]
+                ]);
+            }
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
                 'parent_id' => 'nullable|exists:tasks,id',
@@ -1770,6 +1842,64 @@ class TaskController extends Controller
 
             DB::commit();
             return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Reference file removed successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['code' => $this->deriveHttpStatusFromException($e), 'status' => 'error', 'message' => $e->getMessage()], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
+     * Store one or more reference files for a task (only PIC or creator allowed).
+     * Accepts multipart/form-data with files in `reference_files[]`.
+     */
+    public function storeReferenceFile(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$employeeId) {
+                return response()->json(['code' => 401, 'status' => 'error', 'message' => 'Unauthorized'], 401);
+            }
+
+            // Only PIC or task creator can upload reference files
+            $isPic = TaskAssignment::where('task_id', $task->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->exists();
+
+            $isCreator = ((int)$task->created_by === (int)$user->id);
+            if (!($isPic || $isCreator)) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only PIC or task creator can add reference files.'], 403);
+            }
+
+            $files = $request->file('reference_files', []);
+            if (!is_array($files) || count($files) === 0) {
+                return response()->json(['code' => 422, 'status' => 'error', 'message' => 'No files uploaded.'], 422);
+            }
+
+            $stored = [];
+            foreach ($files as $file) {
+                if (!$file->isValid()) continue;
+                $orig = $file->getClientOriginalName();
+                $ext = $file->getClientOriginalExtension();
+                $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
+                $destDir = public_path('file/task_reference_files');
+                if (!is_dir($destDir)) @mkdir($destDir, 0755, true);
+                $file->move($destDir, $name);
+                $stored[] = $name;
+            }
+
+            // Merge with existing reference_files (cast as array)
+            $existing = is_array($task->reference_files) ? $task->reference_files : (is_string($task->reference_files) ? json_decode($task->reference_files, true) ?? [] : []);
+            $merged = array_values(array_merge($existing, $stored));
+            $task->reference_files = $merged;
+            $task->save();
+
+            DB::commit();
+            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Files uploaded', 'reference_files' => $merged]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['code' => $this->deriveHttpStatusFromException($e), 'status' => 'error', 'message' => $e->getMessage()], $this->deriveHttpStatusFromException($e));
@@ -2886,10 +3016,17 @@ class TaskController extends Controller
                 ];
             });
 
+            // Check if there are more levels beyond the current pageTab
+            $hasMore = Task::where('project_id', $projectId)
+                ->whereIn('parent_id', $allIds)
+                ->whereNotIn('id', $allIds)
+                ->exists();
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $formattedTasks
+                'data' => $formattedTasks,
+                'has_more' => $hasMore
             ]);
         } catch (\Exception $e) {
             return response()->json([

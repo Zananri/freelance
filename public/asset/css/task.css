@@ -378,6 +378,11 @@
     color: #444444;
 }
 
+/* Reference Files modal: remove any bottom margin from header to make header flush with body */
+#referenceFilesModal .modal-header-custom {
+    margin-bottom: 0 !important;
+}
+
 .modal-footer-custom .btn-submit-custom {
     background-color: #444444;
     color: #ebecf2;
