@@ -35,6 +35,12 @@
                                         // clear native inputs
                                         var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value = '';
                                         var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value = '';
+                                        // clear image preview
+                                        window.__inlineFeedbackImageFile = null;
+                                        var previewContainer = document.getElementById('inline_feedback_image_preview');
+                                        if (previewContainer && previewContainer.parentNode) {
+                                            previewContainer.parentNode.removeChild(previewContainer);
+                                        }
                                     }catch(_){ }
                                     try { 
                                         // clear selected files array and remove preview node(s)
@@ -1043,7 +1049,7 @@
                         });
                     }
 
-                    // show image preview overlay when a photo is selected
+                    // show small image preview next to attach file icon when a photo is selected
                     if (photoInput) {
                         photoInput.addEventListener('change', function(ev){
                             try {
@@ -1054,7 +1060,7 @@
                                 var reader = new FileReader();
                                 reader.onload = function(e){
                                     try {
-                                        showInlineImagePreview(f, e.target.result);
+                                        showInlineImagePreviewSmall(f, e.target.result);
                                     } catch(_){ }
                                 };
                                 reader.readAsDataURL(f);
@@ -1147,7 +1153,14 @@
 
                                 // allow empty comment only if at least one file is attached (image or reference)
                                 var hasImage = false, hasRefFiles = false;
-                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) hasImage = true; } catch(_){}
+                                try { 
+                                    if (window.__inlineFeedbackImageFile) {
+                                        hasImage = true;
+                                    } else {
+                                        var pi = document.getElementById('inline_feedback_image_input'); 
+                                        if (pi && pi.files && pi.files.length) hasImage = true; 
+                                    }
+                                } catch(_){}
                                 try { if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) hasRefFiles = true; else { var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) hasRefFiles = true; } } catch(_){}
                                 var plainText = String(html || '').replace(/<[^>]+>/g,'').trim();
                                 if (!plainText && !hasImage && !hasRefFiles) { window.showFloatingAlert && window.showFloatingAlert('Please write feedback or attach a file','warning'); return; }
@@ -1157,8 +1170,15 @@
                                 fd.append('project_id', getMeta('project-id') || '');
                                 fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
 
-                                // attach image/file inputs if present
-                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]); }catch(_){ }
+                                // attach image from preview (if available) or file input
+                                try { 
+                                    if (window.__inlineFeedbackImageFile) {
+                                        fd.append('feedback_image', window.__inlineFeedbackImageFile);
+                                    } else {
+                                        var pi = document.getElementById('inline_feedback_image_input'); 
+                                        if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]); 
+                                    }
+                                }catch(_){ }
                                 try {
                                     // prefer selected files tracked in inlineFeedbackSelectedFiles
                                     if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) {
@@ -1190,8 +1210,13 @@
                                     try { loadFeedbackData(getMeta('project-id')); } catch(_){}
                                     // clear editor and inputs
                                     try { 
-                                        // clear image input
-                                        if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = ''; 
+                                        // clear image input and preview
+                                        if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = '';
+                                        window.__inlineFeedbackImageFile = null;
+                                        var previewContainer = document.getElementById('inline_feedback_image_preview');
+                                        if (previewContainer && previewContainer.parentNode) {
+                                            previewContainer.parentNode.removeChild(previewContainer);
+                                        }
                                     }catch(_){ }
                                     try { 
                                         if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; 
@@ -1219,6 +1244,106 @@
                     }
                 } catch(_){}
             } catch(_){ }
+
+            // show small inline image preview next to attach file icon
+            function showInlineImagePreviewSmall(fileObj, dataUrl) {
+                try {
+                    // Create or get the preview container
+                    var previewContainer = document.getElementById('inline_feedback_image_preview');
+                    if (!previewContainer) {
+                        previewContainer = document.createElement('div');
+                        previewContainer.id = 'inline_feedback_image_preview';
+                        // ensure container and its children are fully opaque and do not inherit any translucent styles
+                        previewContainer.style.cssText = 'display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;';
+                        
+                        // Insert after the file button
+                        var fileBtn = document.getElementById('inlineFeedbackFileBtn');
+                        if (fileBtn && fileBtn.parentNode) {
+                            fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                        }
+                    }
+
+                    // Create the image preview similar to modal add project style
+                    previewContainer.innerHTML = '';
+                    
+                    var imageLabel = document.createElement('div');
+                    imageLabel.className = 'custom-image-upload position-relative';
+                    // apply explicit opaque styles so the preview doesn't look translucent
+                    imageLabel.style.cssText = '' +
+                        'width: 32px; ' +
+                        'height: 32px; ' +
+                        "background-image: url('" + dataUrl + "'); " +
+                        'background-size: cover; ' +
+                        'background-position: center center; ' +
+                        'background-repeat: no-repeat; ' +
+                        'border-radius: 6px; ' +
+                        'cursor: pointer; ' +
+                        'border: 1px solid #ddd; ' +
+                        'margin-right: 4px; ' +
+                        'opacity: 1; ' +
+                        'background-color: #ffffff; ' +
+                        'box-shadow: 0 1px 3px rgba(0,0,0,0.12); ' +
+                        'overflow: visible; ';
+                    
+                    var clearBtn = document.createElement('span');
+                    clearBtn.className = 'image-clear-btn';
+                    clearBtn.innerHTML = '&times;';
+                    clearBtn.title = 'Remove image';
+                    // make the clear button visually prominent and above other elements
+                    clearBtn.style.cssText = '' +
+                        'position: absolute; ' +
+                        'top: -6px; ' +
+                        'right: -6px; ' +
+                        'background: #ff4444; ' +
+                        'color: #ffffff; ' +
+                        'border-radius: 50%; ' +
+                        'width: 16px; ' +
+                        'height: 16px; ' +
+                        'font-size: 12px; ' +
+                        'line-height: 16px; ' +
+                        'text-align: center; ' +
+                        'cursor: pointer; ' +
+                        'font-weight: 700; ' +
+                        'border: none; ' +
+                        'box-shadow: 0 2px 6px rgba(0,0,0,0.25); ' +
+                        'z-index: 30; ' +
+                        'opacity: 1; ';
+                    
+                    // Store the file object for later use
+                    window.__inlineFeedbackImageFile = fileObj;
+                    
+                    clearBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        try {
+                            // Clear the file input
+                            var inp = document.getElementById('inline_feedback_image_input'); 
+                            if (inp) inp.value = '';
+                            // Clear the stored file
+                            window.__inlineFeedbackImageFile = null;
+                            // Remove the preview container
+                            if (previewContainer && previewContainer.parentNode) {
+                                previewContainer.parentNode.removeChild(previewContainer);
+                            }
+                        } catch(_){}
+                    });
+                    
+                    // Add click to preview (optional - could open larger view)
+                    imageLabel.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        // Optional: show larger preview or do nothing
+                        try {
+                            showInlineImagePreview(fileObj, dataUrl);
+                        } catch(_) {}
+                    });
+                    
+                    imageLabel.appendChild(clearBtn);
+                    previewContainer.appendChild(imageLabel);
+                    
+                } catch(e) {
+                    console.warn('Failed to show image preview:', e);
+                }
+            }
 
             // show inline image preview overlay (WhatsApp-like)
             function showInlineImagePreview(fileObj, dataUrl) {
@@ -1326,7 +1451,10 @@
                             fd.append('feedback_comment', cap || '');
                             fd.append('project_id', getMeta('project-id') || '');
                             fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
-                            if (fileObj) fd.append('feedback_image', fileObj);
+                            
+                            // Use the file from small preview if available, otherwise use the provided fileObj
+                            var imageFileToUse = window.__inlineFeedbackImageFile || fileObj;
+                            if (imageFileToUse) fd.append('feedback_image', imageFileToUse);
 
                             // UI feedback
                             var origText = sendBtn.innerHTML;
@@ -1345,6 +1473,14 @@
                                 try { loadFeedbackData(getMeta('project-id')); } catch(_){ }
                                 cleanup();
                                 try { if (window.__quillProjectFeedbackInline) window.__quillProjectFeedbackInline.root.innerHTML = ''; }catch(_){ }
+                                // Clear small image preview
+                                try {
+                                    window.__inlineFeedbackImageFile = null;
+                                    var previewContainer = document.getElementById('inline_feedback_image_preview');
+                                    if (previewContainer && previewContainer.parentNode) {
+                                        previewContainer.parentNode.removeChild(previewContainer);
+                                    }
+                                } catch(_){};
                             }).catch(function(err){
                                 var msg = 'Failed to submit feedback';
                                 try { if (err && err.errors) msg = Object.values(err.errors).join('\n'); else if (err && err.message) msg = err.message; } catch(_){ }
