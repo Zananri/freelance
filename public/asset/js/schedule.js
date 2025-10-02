@@ -1642,6 +1642,31 @@ document.addEventListener("DOMContentLoaded", function () {
                 </label>`;
                 })
                 .join("");
+
+            // Bind change listeners so selections persist and preview updates
+            dropdown
+                .querySelectorAll('input[type=checkbox]')
+                .forEach((cb) => {
+                    cb.addEventListener('change', function () {
+                        const id = parseInt(this.getAttribute('data-id'));
+                        if (this.checked) {
+                            if (!selected.some((s) => s.id === id)) {
+                                const emp = employees.find((e) => e.id === id) || {};
+                                selected.push({
+                                    id,
+                                    name: emp.name || '',
+                                    user_photo: emp.user_photo || '',
+                                    division: emp.division || emp.division_name || '',
+                                });
+                            }
+                        } else {
+                            selected = selected.filter((s) => s.id !== id);
+                        }
+                        renderSelected();
+                        updateHidden();
+                        renderDropdown();
+                    });
+                });
         }
 
         function renderSelected() {
@@ -1752,6 +1777,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 renderDropdown();
             },
         };
+
+    // Expose setter for edit modal to allow other modules to seed selected executors
+    window.setSelectedExecutorsEdit = execs => window.__scheduleEditExecPicker && typeof window.__scheduleEditExecPicker.set === 'function' ? window.__scheduleEditExecPicker.set(execs||[]) : null;
 
         // Pastikan fetch semua employee sebelum set initialExecutorIds
         if (initialExecutorIds.length > 0) {

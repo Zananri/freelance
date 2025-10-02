@@ -297,9 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        // alias lama
-        window.setSelectedExecutorsAdd = execs => window.__scheduleExecPicker.set(execs||[]);
-        window.setSelectedExecutorsEdit = execs => window.__scheduleExecPicker.set(execs||[]);
+    // alias for create-picker only (do not override edit picker)
+    window.setSelectedExecutorsAdd = execs => window.__scheduleExecPicker.set(execs||[]);
 
     })();
 
