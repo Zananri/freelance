@@ -88,7 +88,7 @@
 
                 {{-- Right Above Content --}}
                 <div class="col-md-8 structure-detail">
-                    <div class="body-content rounded-4 pt-3 pb-0 structure-detail-content">
+                    <div class="body-content rounded-4 pb-0 structure-detail-content">
                         <div id="task-loading" class="text-center py-3 d-none">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading tasks...</span>
@@ -98,10 +98,11 @@
                         <div id="task-error" class="alert alert-danger d-none" role="alert">
                             Failed to load tasks. Please try again.
                         </div>
-                        <button class="btn btn-sm border-0" id="fullscreen-tree-btn">
-                            <span class="material-symbols-outlined">fullscreen</span>
-                        </button>
-
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-sm border-0" id="fullscreen-tree-btn">
+                                <span class="material-symbols-outlined">fullscreen</span>
+                            </button>
+                        </div>
                         <div id="task-tree">
 
                         </div>
@@ -135,7 +136,7 @@
 
             <div class="row">
                 <div class="col-md-4 mb-3 feedback-detail-project">
-                    <div class="body-content rounded-4 p-3">
+                    <div class="body-content rounded-4 p-3 feedback-content-detail">
                         <div class="d-flex justify-content-between">
                             <h5 class="feedback-title">Feedback</h5>
                             <button class="btn btn-sm border-0" id="fullscreen-feedback-btn">
@@ -183,6 +184,8 @@
                                         accept="image/*" class="d-none">
                                     <input type="file" id="inline_feedback_files_input" name="reference_files[]"
                                         multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" class="d-none">
+                                    <input type="text" id="inline_edit_feedback_input" name="edit_feedback"
+                                        class="d-none">
                                 </div>
                                 <div class="d-flex justify-content-end submit-feedback">
                                     <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
@@ -520,9 +523,6 @@
                             </h5>
                         </div>
                         <div>
-                            <button type="button" data-bs-toggle="modal"
-                                data-bs-target="#addProjectReferenceFilesModal" class="btn btn-submit-black">Add
-                                Files</button>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"
                                 aria-label="Close"></button>
                         </div>
@@ -531,6 +531,11 @@
                     <div class="modal-body modal-body-custom">
                         <div id="projectReferenceFilesList" class="d-flex flex-column gap-2">
                         </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" data-bs-toggle="modal" data-bs-target="#addProjectReferenceFilesModal"
+                            class="btn btn-submit-black">Add
+                            Files</button>
                     </div>
                 </div>
             </div>

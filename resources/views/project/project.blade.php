@@ -155,19 +155,18 @@
                                 <input class="form-control custom-form-filter ps-5" type="text"
                                     name="search_filter" id="search_filter">
                             </div>
-                            <button class="btn btn-filter-custom me-3" type="button"
-                                data-label="Filter" id="openProjectFilterBtn">
+                            <button class="btn btn-filter-custom me-3" type="button" data-label="Filter"
+                                id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">filter_list</span> <span
                                     class="btn-text-filter">Filter</span>
                             </button>
-                            <button class="btn btn-export-custom me-3" type="button"
-                                data-label="Export" id="openProjectFilterBtn">
+                            <button class="btn btn-export-custom me-3" type="button" data-label="Export"
+                                id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">file_export</span> <span
                                     class="btn-text-filter">Export</span>
                             </button>
-                            <button class="btn btn-timeline-filter-custom" type="button"
-                                data-bs-toggle="modal" data-bs-target="#timelineModal" data-label="TImeline"
-                                id="openProjectFilterBtn">
+                            <button class="btn btn-timeline-filter-custom" type="button" data-bs-toggle="modal"
+                                data-bs-target="#timelineModal" data-label="TImeline" id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">view_timeline</span> <span
                                     class="btn-text-filter">Timeline</span>
                             </button>
@@ -285,14 +284,20 @@
                                     <button class="ql-link"></button>
                                 </span>
                             </div>
-                            <div id="add_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                            <div id="add_description_editor"
+                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                            </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
-                            <textarea class="form-control input-text d-none" id="description" name="description" rows="3" style="display:none;"></textarea>
+                            <textarea class="form-control input-text d-none" id="description" name="description" rows="3"
+                                style="display:none;"></textarea>
                         </div>
                         @php
                             $__emp = auth()->user()->employee ?? null;
                             $__deptId = $__emp ? $__emp->department_id : '';
-                            $__deptName = ($__emp && $__emp->department) ? ($__emp->department->name_department ?? $__emp->department->name ?? '') : '';
+                            $__deptName =
+                                $__emp && $__emp->department
+                                    ? $__emp->department->name_department ?? ($__emp->department->name ?? '')
+                                    : '';
                         @endphp
 
                         {{-- Department is fixed to the logged-in employee's department and hidden from selection --}}
@@ -324,7 +329,8 @@
                         <div class="mb-3 input-custom">
                             <label for="reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="reference_file"
-                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                multiple>
                             <div class="form-text">Multiple files supported.
                             </div>
                             <div id="reference_files_preview" class="mt-2"></div>
@@ -440,14 +446,20 @@
                                     <button class="ql-link"></button>
                                 </span>
                             </div>
-                            <div id="edit_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                            <div id="edit_description_editor"
+                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                            </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
-                            <textarea class="form-control input-text d-none" id="edit_description" name="description" rows="3" style="display:none;"></textarea>
+                            <textarea class="form-control input-text d-none" id="edit_description" name="description" rows="3"
+                                style="display:none;"></textarea>
                         </div>
                         @php
                             $__emp = auth()->user()->employee ?? null;
                             $__deptId = $__emp ? $__emp->department_id : '';
-                            $__deptName = ($__emp && $__emp->department) ? ($__emp->department->name_department ?? $__emp->department->name ?? '') : '';
+                            $__deptName =
+                                $__emp && $__emp->department
+                                    ? $__emp->department->name_department ?? ($__emp->department->name ?? '')
+                                    : '';
                         @endphp
 
                         {{-- Department is fixed to the logged-in employee's department and hidden from selection --}}
@@ -480,7 +492,8 @@
                         <div class="mb-3 input-custom">
                             <label for="edit_reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="edit_reference_file"
-                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                multiple>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                             <div id="existing_reference_files" class="mt-2"></div>
                             <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"
@@ -565,8 +578,8 @@
                         <h5 class="modal-title modal-title-custom" id="projectFilesModalLabel">Reference Files</h5>
                     </div>
                     <div>
-                        <button type="button" id="openAddProjectReferenceFilesBtn" class="btn btn-sm btn-submit-black">Add Files</button>
-                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
                 </div>
                 <hr>
@@ -575,24 +588,33 @@
                         <!-- File links will be inserted here -->
                     </div>
                 </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" id="openAddProjectReferenceFilesBtn"
+                        class="btn btn-sm btn-submit-black">Add Files</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Add Project Reference Files Modal -->
-    <div class="modal fade" id="addProjectReferenceFilesModal" tabindex="-1" aria-labelledby="addProjectReferenceFilesModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addProjectReferenceFilesModal" tabindex="-1"
+        aria-labelledby="addProjectReferenceFilesModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="addProjectReferenceFilesModalLabel">Add Files</h5>
+                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="addProjectReferenceFilesModalLabel">
+                        Add Files</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom">
                     <form id="addProjectReferenceFilesForm" enctype="multipart/form-data">
                         <input type="hidden" name="project_id" id="addRefProjectId" value="">
                         <div class="mb-3">
-                            <label for="add_project_reference_files" class="form-label label-custom">Select files</label>
-                            <input type="file" class="form-control border-0 input-text" id="add_project_reference_files" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <label for="add_project_reference_files" class="form-label label-custom">Select
+                                files</label>
+                            <input type="file" class="form-control border-0 input-text"
+                                id="add_project_reference_files" name="reference_files[]"
+                                accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                         </div>
 
                         <div id="add_project_reference_files_preview" class="mt-2"></div>
@@ -600,7 +622,8 @@
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                    <button type="button" id="submitAddProjectReferenceFiles" class="btn btn-submit-black">Upload</button>
+                    <button type="button" id="submitAddProjectReferenceFiles"
+                        class="btn btn-submit-black">Upload</button>
                 </div>
             </div>
         </div>
@@ -673,154 +696,232 @@
         <!-- Quill JS (only for Project page) -->
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
         <script>
-            (function(){
+            (function() {
                 // Defer initialization until DOM and project.js are ready
-                document.addEventListener('DOMContentLoaded', function(){
+                document.addEventListener('DOMContentLoaded', function() {
                     // Guard: only run on pages that have the add/edit editors
-                    if (!document.getElementById('add_description_editor') && !document.getElementById('edit_description_editor')) return;
+                    if (!document.getElementById('add_description_editor') && !document.getElementById(
+                            'edit_description_editor')) return;
 
                     // Create Quill instances
                     try {
                         window.__quillAdd = new Quill('#add_description_editor', {
-                            modules: { toolbar: '#add_description_toolbar', clipboard: { matchVisual: false } },
+                            modules: {
+                                toolbar: '#add_description_toolbar',
+                                clipboard: {
+                                    matchVisual: false
+                                }
+                            },
                             theme: 'snow',
                             placeholder: 'Write description...'
                         });
-                    } catch (e) { console.warn('Quill init add failed', e); }
+                    } catch (e) {
+                        console.warn('Quill init add failed', e);
+                    }
 
                     try {
                         window.__quillEdit = new Quill('#edit_description_editor', {
-                            modules: { toolbar: '#edit_description_toolbar', clipboard: { matchVisual: false } },
+                            modules: {
+                                toolbar: '#edit_description_toolbar',
+                                clipboard: {
+                                    matchVisual: false
+                                }
+                            },
                             theme: 'snow',
                             placeholder: 'Write description...'
                         });
-                    } catch (e) { console.warn('Quill init edit failed', e); }
+                    } catch (e) {
+                        console.warn('Quill init edit failed', e);
+                    }
 
                     // Harden: ensure pasted/dropped images are not inserted (defense-in-depth)
                     try {
                         var Delta = Quill.import && Quill.import('delta');
 
-                        if (window.__quillAdd && window.__quillAdd.clipboard && typeof window.__quillAdd.clipboard.addMatcher === 'function') {
-                            window.__quillAdd.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                        if (window.__quillAdd && window.__quillAdd.clipboard && typeof window.__quillAdd.clipboard
+                            .addMatcher === 'function') {
+                            window.__quillAdd.clipboard.addMatcher('IMG', function(node, delta) {
+                                try {
+                                    return new Delta();
+                                } catch (_) {
+                                    return delta;
+                                }
+                            });
                         }
                         if (window.__quillAdd && typeof window.__quillAdd.on === 'function') {
-                            window.__quillAdd.on('text-change', function(){ try { var imgs = window.__quillAdd.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                            window.__quillAdd.on('text-change', function() {
+                                try {
+                                    var imgs = window.__quillAdd.root.querySelectorAll('img');
+                                    imgs.forEach(function(i) {
+                                        i.remove();
+                                    });
+                                } catch (_) {}
+                            });
                         }
 
-                        if (window.__quillEdit && window.__quillEdit.clipboard && typeof window.__quillEdit.clipboard.addMatcher === 'function') {
-                            window.__quillEdit.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
+                        if (window.__quillEdit && window.__quillEdit.clipboard && typeof window.__quillEdit
+                            .clipboard.addMatcher === 'function') {
+                            window.__quillEdit.clipboard.addMatcher('IMG', function(node, delta) {
+                                try {
+                                    return new Delta();
+                                } catch (_) {
+                                    return delta;
+                                }
+                            });
                         }
                         if (window.__quillEdit && typeof window.__quillEdit.on === 'function') {
-                            window.__quillEdit.on('text-change', function(){ try { var imgs = window.__quillEdit.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){} });
+                            window.__quillEdit.on('text-change', function() {
+                                try {
+                                    var imgs = window.__quillEdit.root.querySelectorAll('img');
+                                    imgs.forEach(function(i) {
+                                        i.remove();
+                                    });
+                                } catch (_) {}
+                            });
                         }
-                    } catch(_) {}
+                    } catch (_) {}
 
                     // Helper: install capture-phase listeners on the editor container to block image drag/drop and paste
-                    function preventImageDropAndPaste(quill, editorSelector){
+                    function preventImageDropAndPaste(quill, editorSelector) {
                         try {
                             var editor = document.querySelector(editorSelector);
                             if (!editor || !quill) return;
 
                             // Use capture-phase listeners to intercept before Quill handlers run
-                            editor.addEventListener('dragover', function(ev){
+                            editor.addEventListener('dragover', function(ev) {
                                 try {
                                     var dt = ev.dataTransfer || ev.clipboardData;
                                     var types = dt && dt.types ? Array.from(dt.types || []) : [];
-                                    if (types.indexOf && types.indexOf('Files') !== -1) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
-                                } catch(_){}
+                                    if (types.indexOf && types.indexOf('Files') !== -1) {
+                                        ev.preventDefault();
+                                        ev.stopImmediatePropagation();
+                                        return;
+                                    }
+                                } catch (_) {}
                             }, true);
 
-                            editor.addEventListener('drop', function(ev){
+                            editor.addEventListener('drop', function(ev) {
                                 try {
                                     var dt = ev.dataTransfer;
                                     if (dt && dt.files && dt.files.length) {
-                                        for (var i=0;i<dt.files.length;i++){
+                                        for (var i = 0; i < dt.files.length; i++) {
                                             var f = dt.files[i];
-                                            if (f && f.type && f.type.indexOf('image') === 0) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                            if (f && f.type && f.type.indexOf('image') === 0) {
+                                                ev.preventDefault();
+                                                ev.stopImmediatePropagation();
+                                                return;
+                                            }
                                         }
                                     }
-                                } catch(_){}
+                                } catch (_) {}
                             }, true);
 
-                            editor.addEventListener('paste', function(ev){
+                            editor.addEventListener('paste', function(ev) {
                                 try {
                                     var cb = ev.clipboardData || window.clipboardData;
                                     if (!cb) return;
                                     // If clipboard contains image items, block immediately
                                     if (cb.items && cb.items.length) {
-                                        for (var j=0;j<cb.items.length;j++){
+                                        for (var j = 0; j < cb.items.length; j++) {
                                             var it = cb.items[j];
-                                            if (it && it.type && it.type.indexOf && it.type.indexOf('image') !== -1) { ev.preventDefault(); ev.stopImmediatePropagation(); return; }
+                                            if (it && it.type && it.type.indexOf && it.type.indexOf(
+                                                'image') !== -1) {
+                                                ev.preventDefault();
+                                                ev.stopImmediatePropagation();
+                                                return;
+                                            }
                                         }
                                     }
                                     // If HTML contains <img>, block
-                                    try { var html = cb.getData && cb.getData('text/html'); if (html && /<img\s+/i.test(html)) { ev.preventDefault(); ev.stopImmediatePropagation(); return; } } catch(_){ }
-                                } catch(_){}
+                                    try {
+                                        var html = cb.getData && cb.getData('text/html');
+                                        if (html && /<img\s+/i.test(html)) {
+                                            ev.preventDefault();
+                                            ev.stopImmediatePropagation();
+                                            return;
+                                        }
+                                    } catch (_) {}
+                                } catch (_) {}
                             }, true);
-                        } catch(_){}
+                        } catch (_) {}
                     }
 
-                    function syncQuillToTextarea(quill, textareaId){
+                    function syncQuillToTextarea(quill, textareaId) {
                         try {
                             const ta = document.getElementById(textareaId);
                             if (!ta) return;
                             // Use innerHTML of editor root as HTML value
                             ta.value = (quill && quill.root) ? quill.root.innerHTML.trim() : '';
-                        } catch (e) { console.warn('syncQuillToTextarea error', e); }
+                        } catch (e) {
+                            console.warn('syncQuillToTextarea error', e);
+                        }
                     }
 
                     // On add form submit, sync content before FormData is built in project.js
                     const addForm = document.getElementById('addProjectForm');
                     if (addForm) {
-                        addForm.addEventListener('submit', function(e){
+                        addForm.addEventListener('submit', function(e) {
                             if (window.__quillAdd) syncQuillToTextarea(window.__quillAdd, 'description');
                             // Basic client-side validation: ensure description contains text
                             try {
                                 const ta = document.getElementById('description');
                                 const html = ta ? ta.value || '' : '';
-                                const tmp = document.createElement('div'); tmp.innerHTML = html;
+                                const tmp = document.createElement('div');
+                                tmp.innerHTML = html;
                                 const text = (tmp.textContent || tmp.innerText || '').trim();
                                 if (!text) {
                                     // prevent submission and notify user
-                                    e.preventDefault(); e.stopImmediatePropagation();
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
                                     try {
                                         if (typeof showFloatingAlert === 'function') {
-                                            showFloatingAlert('Deskripsi tidak boleh kosong.', 'warning', 3500);
+                                            showFloatingAlert('Deskripsi tidak boleh kosong.', 'warning',
+                                                3500);
                                         } else {
                                             alert('Deskripsi tidak boleh kosong.');
                                         }
-                                    } catch(_){}
-                                    try { window.__quillAdd && window.__quillAdd.focus(); } catch(_){}
+                                    } catch (_) {}
+                                    try {
+                                        window.__quillAdd && window.__quillAdd.focus();
+                                    } catch (_) {}
                                     return false;
                                 }
-                            } catch (e) { /* ignore validation errors */ }
+                            } catch (e) {
+                                /* ignore validation errors */ }
                         }, true); // capture so it runs before other listeners
                     }
 
                     // On edit form submit, sync edit quill
                     const editForm = document.getElementById('editProjectForm');
                     if (editForm) {
-                        editForm.addEventListener('submit', function(e){
-                            if (window.__quillEdit) syncQuillToTextarea(window.__quillEdit, 'edit_description');
+                        editForm.addEventListener('submit', function(e) {
+                            if (window.__quillEdit) syncQuillToTextarea(window.__quillEdit,
+                                'edit_description');
                             // Basic client-side validation: ensure description contains text
                             try {
                                 const ta = document.getElementById('edit_description');
                                 const html = ta ? ta.value || '' : '';
-                                const tmp = document.createElement('div'); tmp.innerHTML = html;
+                                const tmp = document.createElement('div');
+                                tmp.innerHTML = html;
                                 const text = (tmp.textContent || tmp.innerText || '').trim();
                                 if (!text) {
-                                    e.preventDefault(); e.stopImmediatePropagation();
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
                                     try {
                                         if (typeof showFloatingAlert === 'function') {
-                                            showFloatingAlert('Deskripsi tidak boleh kosong.', 'warning', 3500);
+                                            showFloatingAlert('Deskripsi tidak boleh kosong.', 'warning',
+                                                3500);
                                         } else {
                                             alert('Deskripsi tidak boleh kosong.');
                                         }
-                                    } catch(_){}
-                                    try { window.__quillEdit && window.__quillEdit.focus(); } catch(_){}
+                                    } catch (_) {}
+                                    try {
+                                        window.__quillEdit && window.__quillEdit.focus();
+                                    } catch (_) {}
                                     return false;
                                 }
-                            } catch (e) { /* ignore validation errors */ }
+                            } catch (e) {
+                                /* ignore validation errors */ }
                         }, true);
                     }
 
@@ -829,30 +930,36 @@
                     const editTextarea = document.getElementById('edit_description');
                     if (editTextarea && window.__quillEdit) {
                         // Use MutationObserver on value attribute by intercepting property set via polling fallback
-                        const origSet = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')?.set;
+                        const origSet = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')
+                        ?.set;
                         if (origSet) {
                             // When external code sets textarea.value, also update Quill
                             const ta = editTextarea;
-                            const observer = new MutationObserver(function(){
+                            const observer = new MutationObserver(function() {
                                 try {
                                     const html = ta.value || '';
                                     // set only if different
-                                    if ((window.__quillEdit && window.__quillEdit.root && (window.__quillEdit.root.innerHTML || '')) !== html) {
+                                    if ((window.__quillEdit && window.__quillEdit.root && (window
+                                            .__quillEdit.root.innerHTML || '')) !== html) {
                                         window.__quillEdit.root.innerHTML = html;
                                     }
-                                } catch(_){}
+                                } catch (_) {}
                             });
-                            observer.observe(ta, { attributes: true, attributeFilter: ['value'] });
+                            observer.observe(ta, {
+                                attributes: true,
+                                attributeFilter: ['value']
+                            });
                             // Also patch programmatic assignments via polling (safe fallback)
                             let lastVal = ta.value;
-                            setInterval(function(){
+                            setInterval(function() {
                                 try {
                                     if (ta.value !== lastVal) {
                                         lastVal = ta.value;
                                         const html = ta.value || '';
-                                        if (window.__quillEdit && window.__quillEdit.root) window.__quillEdit.root.innerHTML = html;
+                                        if (window.__quillEdit && window.__quillEdit.root) window
+                                            .__quillEdit.root.innerHTML = html;
                                     }
-                                } catch(_){}
+                                } catch (_) {}
                             }, 300);
                         }
                     }
@@ -860,24 +967,39 @@
                     // Also when the edit modal is hidden, clear transient file lists and keep the editor content in sync with hidden textarea
                     const editModalEl = document.getElementById('editProjectModal');
                     if (editModalEl && window.__quillEdit) {
-                        editModalEl.addEventListener('hidden.bs.modal', function(){
-                            try { window.__quillEdit.root.innerHTML = ''; } catch(_){}
-                            try { document.getElementById('edit_description').value = ''; } catch(_){}
+                        editModalEl.addEventListener('hidden.bs.modal', function() {
+                            try {
+                                window.__quillEdit.root.innerHTML = '';
+                            } catch (_) {}
+                            try {
+                                document.getElementById('edit_description').value = '';
+                            } catch (_) {}
                         });
                     }
 
                     // When the add modal is hidden, reset the add editor
                     const addModalEl = document.getElementById('addProjectModal');
                     if (addModalEl && window.__quillAdd) {
-                        addModalEl.addEventListener('hidden.bs.modal', function(){
-                            try { window.__quillAdd.root.innerHTML = ''; } catch(_){}
-                            try { document.getElementById('description').value = ''; } catch(_){}
+                        addModalEl.addEventListener('hidden.bs.modal', function() {
+                            try {
+                                window.__quillAdd.root.innerHTML = '';
+                            } catch (_) {}
+                            try {
+                                document.getElementById('description').value = '';
+                            } catch (_) {}
                             // Also reset selected files array if any (projectSelectedFiles)
-                            try { projectSelectedFiles = []; displayProjectSelectedFiles(); } catch(_){}
+                            try {
+                                projectSelectedFiles = [];
+                                displayProjectSelectedFiles();
+                            } catch (_) {}
                         });
-                        try { preventImageDropAndPaste(window.__quillAdd, '#add_description_editor'); } catch(_) {}
+                        try {
+                            preventImageDropAndPaste(window.__quillAdd, '#add_description_editor');
+                        } catch (_) {}
                     }
-                    try { preventImageDropAndPaste(window.__quillEdit, '#edit_description_editor'); } catch(_) {}
+                    try {
+                        preventImageDropAndPaste(window.__quillEdit, '#edit_description_editor');
+                    } catch (_) {}
                 });
             })();
         </script>

@@ -7799,6 +7799,7 @@ function applyCurrentSearchFilter() {
             if (hidden) hidden.value = taskId || '';
             // reset previous selection
             fileInput.value = '';
+            fileInput.style.border = "none"
             preview.innerHTML = '';
             window.addRefSelectedFiles = [];
             refModal.show();

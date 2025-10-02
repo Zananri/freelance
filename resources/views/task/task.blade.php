@@ -245,7 +245,8 @@
                             <label for="edit_task_reference_files" class="form-label label-custom">Reference
                                 Files</label>
                             <input type="file" class="form-control input-text" id="edit_task_reference_files"
-                                name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                multiple>
                             <div class="form-text">Multiple files supported.</div>
                             <div id="existing_reference_files" class="mt-2"></div>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
@@ -449,7 +450,8 @@
                         <div class="mb-3 custom-input">
                             <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="task_reference_files"
-                                name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                multiple>
                             <div class="form-text">Multiple files supported.</div>
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
@@ -627,12 +629,13 @@
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom d-flex align-items-center justify-content-between">
                     <div>
-                        <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceFilesModalLabel">Reference
+                        <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceFilesModalLabel">
+                            Reference
                             Files</h5>
                     </div>
                     <div>
-                        <button type="button" id="openAddReferenceFilesBtn" class="btn btn-sm btn-submit-black">Add Files</button>
-                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close ms-2" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
                 </div>
                 <hr>
@@ -641,16 +644,22 @@
                         <!-- Reference files links will be inserted here -->
                     </div>
                 </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" id="openAddReferenceFilesBtn" class="btn btn-sm btn-submit-black">Add
+                        Files</button>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Add Reference Files Modal -->
-    <div class="modal fade" id="addReferenceFilesModal" tabindex="-1" aria-labelledby="addReferenceFilesModalLabel" aria-hidden="true">
+    <div class="modal fade" id="addReferenceFilesModal" tabindex="-1" aria-labelledby="addReferenceFilesModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom">
-                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="addReferenceFilesModalLabel">Add Files</h5>
+                    <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="addReferenceFilesModalLabel">Add
+                        Files</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body modal-body-custom">
@@ -658,7 +667,9 @@
                         <input type="hidden" name="task_id" id="addRefTaskId" value="">
                         <div class="mb-3">
                             <label for="add_reference_files" class="form-label">Select files</label>
-                            <input type="file" class="form-control" id="add_reference_files" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                            <input type="file" class="form-control" id="add_reference_files"
+                                name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                multiple>
                         </div>
 
                         <div id="add_reference_files_preview" class="mt-2"></div>
