@@ -166,10 +166,7 @@
                                     <button class="ql-link"></button>
                                 </span>
                             </div>
-                            <div id="inline_feedback_editor" class="border-0" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
-                                <!-- placeholder text node -->
-                                <div class="ql-placeholder" style="color:#9aa0a6;">Write feedback...</div>
-                            </div>
+                            <div id="inline_feedback_editor" class="border-0" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"></div>
 
                             <!-- Hidden canonical textarea used for compatibility (will be filled by JS before submit) -->
                             <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>

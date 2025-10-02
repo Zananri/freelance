@@ -845,11 +845,51 @@
                         // Remove images if pasted
                         try { var Delta = Quill.import && Quill.import('delta'); if (q && q.clipboard && typeof q.clipboard.addMatcher === 'function') { try{ q.clipboard.addMatcher('IMG', function(node, delta){ try{ return new Delta(); }catch(_){ return delta; } }); }catch(_){} } }catch(_){}
 
-                        // Placeholder emulation: clear placeholder node on focus
+                        // prevent image drag/drop and paste at capture phase (like other Quill instances)
                         try {
-                            var ph = editorEl.querySelector('.ql-placeholder');
-                            q.on('selection-change', function(range){ try{ if (range && ph && ph.parentNode) { ph.style.display = 'none'; } else { if (ph) ph.style.display = ''; } }catch(_){} });
+                            var editorContainer = document.querySelector('#inline_feedback_editor');
+                            if (editorContainer) {
+                                editorContainer.addEventListener('dragover', function(e){ try{ e.preventDefault(); }catch(_){} }, true);
+                                editorContainer.addEventListener('drop', function(e){
+                                    try {
+                                        if (!e.dataTransfer) return;
+                                        var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                        var html = '';
+                                        try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) { html = ''; }
+                                        if (hasFiles || /<img\s*/i.test(html)) {
+                                            e.preventDefault();
+                                            e.stopImmediatePropagation();
+                                            return;
+                                        }
+                                    } catch(_){}
+                                }, true);
+
+                                editorContainer.addEventListener('paste', function(e){
+                                    try {
+                                        var clipboard = (e.clipboardData || window.clipboardData);
+                                        if (!clipboard) return;
+                                        var items = clipboard.items || [];
+                                        for (var i = 0; i < items.length; i++) {
+                                            var t = items[i].type || '';
+                                            if (t.indexOf && t.indexOf('image') === 0) {
+                                                e.preventDefault();
+                                                e.stopImmediatePropagation();
+                                                return;
+                                            }
+                                        }
+                                        var html = '';
+                                        try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) { html = ''; }
+                                        if (/<img\s*/i.test(html)) {
+                                            e.preventDefault();
+                                            e.stopImmediatePropagation();
+                                            return;
+                                        }
+                                    } catch(_){}
+                                }, true);
+                            }
                         } catch(_){}
+
+                        // rely on Quill's built-in placeholder option
 
                         window.__quillProjectFeedbackInline = q;
                         return q;
