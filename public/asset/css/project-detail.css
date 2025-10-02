@@ -1466,3 +1466,22 @@ input[type="file"]::file-selector-button {
 .feedback-file-icon {
     font-size: 20px;
 }
+
+#inline_feedback_files_preview {
+    max-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+#inline_feedback_files_preview::-webkit-scrollbar {
+    width: 4px;
+}
+
+#inline_feedback_files_preview::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#inline_feedback_files_preview::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
