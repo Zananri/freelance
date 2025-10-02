@@ -907,6 +907,24 @@
 
                     if (photoBtn && photoInput) photoBtn.addEventListener('click', function(){ photoInput.click(); });
                     if (fileBtn && filesInput) fileBtn.addEventListener('click', function(){ filesInput.click(); });
+                    // show image preview overlay when a photo is selected
+                    if (photoInput) {
+                        photoInput.addEventListener('change', function(ev){
+                            try {
+                                var f = (this.files && this.files[0]) || null;
+                                if (!f) return;
+                                if (!f.type || f.type.indexOf('image/') !== 0) return;
+
+                                var reader = new FileReader();
+                                reader.onload = function(e){
+                                    try {
+                                        showInlineImagePreview(f, e.target.result);
+                                    } catch(_){}
+                                };
+                                reader.readAsDataURL(f);
+                            } catch(_){}
+                        });
+                    }
                 } catch(_){}
 
                 // Send button: collect quill content + files and POST to /project-feedbacks
@@ -959,7 +977,136 @@
                         });
                     }
                 } catch(_){}
-            } catch(_){}
+            } catch(_){ }
+
+            // show inline image preview overlay (WhatsApp-like)
+            function showInlineImagePreview(fileObj, dataUrl) {
+                try {
+                    // avoid duplicate overlays
+                    if (document.getElementById('inlineImagePreviewOverlay')) return;
+
+                    var overlay = document.createElement('div');
+                    overlay.id = 'inlineImagePreviewOverlay';
+                    overlay.style.position = 'fixed';
+                    overlay.style.inset = '0';
+                    overlay.style.zIndex = '9999';
+                    overlay.style.background = 'rgba(0,0,0,0.6)';
+                    overlay.style.display = 'flex';
+                    overlay.style.alignItems = 'center';
+                    overlay.style.justifyContent = 'center';
+
+                    var box = document.createElement('div');
+                    box.style.background = '#fff';
+                    box.style.padding = '12px';
+                    box.style.borderRadius = '8px';
+                    box.style.maxWidth = '720px';
+                    box.style.width = '90%';
+                    box.style.maxHeight = '90%';
+                    box.style.overflow = 'auto';
+                    box.style.boxShadow = '0 8px 30px rgba(0,0,0,0.4)';
+
+                    // image
+                    var imgWrap = document.createElement('div');
+                    imgWrap.style.textAlign = 'center';
+                    imgWrap.style.marginBottom = '8px';
+                    var img = document.createElement('img');
+                    img.src = dataUrl;
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '60vh';
+                    img.style.borderRadius = '6px';
+                    imgWrap.appendChild(img);
+
+                    // caption input (single-line-ish)
+                    var caption = document.createElement('textarea');
+                    caption.placeholder = 'Add a caption...';
+                    caption.style.width = '100%';
+                    caption.style.minHeight = '56px';
+                    caption.style.resize = 'vertical';
+                    caption.style.marginTop = '8px';
+                    caption.style.padding = '8px';
+                    caption.style.border = '1px solid #ddd';
+                    caption.style.borderRadius = '6px';
+
+                    // buttons wrapper
+                    var actions = document.createElement('div');
+                    actions.style.display = 'flex';
+                    actions.style.justifyContent = 'flex-end';
+                    actions.style.gap = '8px';
+                    actions.style.marginTop = '10px';
+
+                    var cancelBtn = document.createElement('button');
+                    cancelBtn.type = 'button';
+                    // use existing project Cancel style
+                    cancelBtn.className = 'btn btn-custom-close';
+                    cancelBtn.textContent = 'Cancel';
+                    // size to match other buttons on page
+                    cancelBtn.style.padding = '6px 12px';
+                    cancelBtn.style.fontSize = '13px';
+
+                    var sendBtn = document.createElement('button');
+                    sendBtn.type = 'button';
+                    // use existing project Send style (black submit button)
+                    sendBtn.className = 'btn btn-submit-black';
+                    // use material icon as requested
+                    sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+                    sendBtn.setAttribute('aria-label','Send');
+                    sendBtn.style.padding = '6px 12px';
+                    sendBtn.style.fontSize = '13px';
+
+                    actions.appendChild(cancelBtn);
+                    actions.appendChild(sendBtn);
+
+                    box.appendChild(imgWrap);
+                    box.appendChild(caption);
+                    box.appendChild(actions);
+                    overlay.appendChild(box);
+                    document.body.appendChild(overlay);
+
+                    // focus caption
+                    try { caption.focus(); } catch(_){}
+
+                    function cleanup() {
+                        try { var inp = document.getElementById('inline_feedback_image_input'); if (inp) inp.value = ''; } catch(_){ }
+                        try { if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch(_){}
+                    }
+
+                    cancelBtn.addEventListener('click', function(){ try{ cleanup(); }catch(_){}});
+
+                    sendBtn.addEventListener('click', function(){
+                        try {
+                            var cap = (caption.value || '').trim();
+                            var fd = new FormData();
+                            fd.append('feedback_comment', cap || '');
+                            fd.append('project_id', getMeta('project-id') || '');
+                            fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
+                            if (fileObj) fd.append('feedback_image', fileObj);
+
+                            // UI feedback
+                            var origText = sendBtn.innerHTML;
+                            sendBtn.disabled = true;
+                            sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+                            fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks', {
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                body: fd
+                            }).then(function(res){
+                                if (!res.ok) return res.json().then(function(j){ return Promise.reject(j); });
+                                return res.json();
+                            }).then(function(data){
+                                window.showFloatingAlert && window.showFloatingAlert('Feedback submitted','success',2000);
+                                try { loadFeedbackData(getMeta('project-id')); } catch(_){ }
+                                cleanup();
+                                try { if (window.__quillProjectFeedbackInline) window.__quillProjectFeedbackInline.root.innerHTML = ''; }catch(_){ }
+                            }).catch(function(err){
+                                var msg = 'Failed to submit feedback';
+                                try { if (err && err.errors) msg = Object.values(err.errors).join('\n'); else if (err && err.message) msg = err.message; } catch(_){ }
+                                window.showFloatingAlert && window.showFloatingAlert(msg,'warning',4000);
+                            }).finally(function(){ sendBtn.disabled = false; sendBtn.innerHTML = origText; });
+                        } catch(_){}
+                    });
+                } catch(_){}
+            }
 
             // function showAddFeedbackForm(projectId) {
             //     modalTitle.textContent = "Add Feedback";
