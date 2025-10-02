@@ -9926,7 +9926,7 @@ function renderTimeline(
             const barTd = document.createElement("td");
             barTd.colSpan = projEndIdx - projStartIdx + 1;
             const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
-            barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+            barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span><div class="bar-name">${proj.name}</div></div>`;
             tr.appendChild(barTd);
         }
 
