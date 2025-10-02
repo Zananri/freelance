@@ -574,14 +574,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         function populate(sel){
             if(!sel) return;
-            fetch(appUrl + '/divisions-for-projects')
-                .then(r=> r.ok? r.json(): Promise.reject('fail'))
-                .then(d=>{
-                    if(!d||!d.data) return;
-                    let opts = '<option value="">Select Division</option>';
-                    d.data.forEach(function(div){ opts += `<option value="${div.id}" data-name="${(div.name_division||div.name||'').trim()}">${(div.name_division||div.name||'').trim()}</option>`; });
-                    sel.innerHTML = opts;
-                }).catch(()=>{});
+            // Try to scope divisions to logged-in employee's department when available
+            var deptId = null;
+            try {
+                var modal = document.getElementById('scheduleCreateModal') || document.getElementById('scheduleEditModal');
+                if(modal && modal.dataset && modal.dataset.employeeDepartmentId) deptId = String(modal.dataset.employeeDepartmentId || '').trim();
+            } catch(e) { deptId = null; }
+
+            var tryLoad = function(url){
+                return fetch(url).then(r=> r.ok? r.json(): Promise.reject('fail'));
+            };
+
+            var buildAndSet = function(d){
+                if(!d||!d.data) return;
+                let opts = '<option value="">Select Division</option>';
+                d.data.forEach(function(div){ opts += `<option value="${div.id}" data-name="${(div.name_division||div.name||'').trim()}">${(div.name_division||div.name||'').trim()}</option>`; });
+                sel.innerHTML = opts;
+            };
+
+            if(deptId){
+                tryLoad(appUrl + '/divisions-for-projects?department_id=' + encodeURIComponent(deptId))
+                    .then(buildAndSet)
+                    .catch(function(){
+                        // fallback to unfiltered list on error
+                        tryLoad(appUrl + '/divisions-for-projects')
+                            .then(buildAndSet)
+                            .catch(function(){ /* ignore final failure */ });
+                    });
+            } else {
+                // no department id available; load unfiltered list
+                tryLoad(appUrl + '/divisions-for-projects')
+                    .then(buildAndSet)
+                    .catch(function(){ /* ignore */ });
+            }
         }
 
         populate(addDivSel); populate(editDivSel);
