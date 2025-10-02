@@ -133,8 +133,6 @@
                 </div>
             </div>
 
-
-            {{-- Bottom Content --}}
             <div class="row">
                 <div class="col-md-4 mb-3 feedback-detail-project">
                     <div class="body-content rounded-4 p-3">
@@ -151,7 +149,6 @@
 
                         </div>
                         <div class="feedback-form">
-                            <!-- Inline Quill editor for quick feedback -->
                             <div id="inline_feedback_toolbar" class="mb-1" style="display:none;">
                                 <span class="ql-formats">
                                     <button class="ql-bold"></button>
@@ -170,7 +167,6 @@
                                 style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
                             </div>
 
-                            <!-- Hidden canonical textarea used for compatibility (will be filled by JS before submit) -->
                             <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
 
                             <div class="d-flex justify-content-between btn-actions-feedback mt-2">

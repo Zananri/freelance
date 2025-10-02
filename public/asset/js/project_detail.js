@@ -595,7 +595,7 @@
 
                         data.data.forEach(function (feedback) {
                             var feedbackItem = document.createElement("div");
-                            feedbackItem.className = "feedback-item mb-3 p-3";
+                            feedbackItem.className = "feedback-item p-3";
 
                             // Header Feedback
                             var headerDiv = document.createElement("div");
@@ -5747,3 +5747,21 @@ function initAddProjectReferenceFilesModal() {
             });
     });
 }
+
+$("#fullscreen-feedback-btn").on("click", function () {
+    const $feedback = $(".feedback-detail-project");
+    const $projectDetail = $(".detail-project-card");
+    const $icon = $(this).find("span.material-symbols-outlined");
+
+    if ($feedback.hasClass("fullscreen")) {
+        $feedback.removeClass("fullscreen");
+        // $projectDetail.removeClass("d-none");
+        $icon.text("fullscreen");
+        $("body").css("overflow", "auto");
+    } else {
+        $feedback.addClass("fullscreen");
+        // $projectDetail.addClass("d-none");
+        $icon.text("fullscreen_exit");
+        $("body").css("overflow", "hidden");
+    }
+});
