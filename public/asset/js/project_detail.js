@@ -1134,10 +1134,23 @@
                         sendBtn.addEventListener('click', function(){
                             try {
                                 var q = window.__quillProjectFeedbackInline;
-                                if (!q) { window.showFloatingAlert && window.showFloatingAlert('Editor not ready','warning'); return; }
-                                var html = q.root.innerHTML || '';
-                                // require non-empty text
-                                if (!html || String(html).replace(/<[^>]+>/g,'').trim() === '') { window.showFloatingAlert && window.showFloatingAlert('Please write feedback','warning'); return; }
+                                // prefer Quill content, fallback to hidden textarea
+                                var html = '';
+                                try {
+                                    if (q && q.root) html = q.root.innerHTML || '';
+                                } catch(_) { html = ''; }
+                                try {
+                                    if ((!html || String(html).replace(/<[^>]+>/g,'').trim() === '') && document.getElementById('inline_feedback_comment')) {
+                                        var ta = document.getElementById('inline_feedback_comment'); if (ta) html = ta.value || html;
+                                    }
+                                } catch(_) {}
+
+                                // allow empty comment only if at least one file is attached (image or reference)
+                                var hasImage = false, hasRefFiles = false;
+                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) hasImage = true; } catch(_){}
+                                try { if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) hasRefFiles = true; else { var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) hasRefFiles = true; } } catch(_){}
+                                var plainText = String(html || '').replace(/<[^>]+>/g,'').trim();
+                                if (!plainText && !hasImage && !hasRefFiles) { window.showFloatingAlert && window.showFloatingAlert('Please write feedback or attach a file','warning'); return; }
 
                                 var fd = new FormData();
                                 fd.append('feedback_comment', html);
