@@ -739,6 +739,188 @@
 
             loadFeedbackData(projectId);
 
+            // Initialize Quill editors for feedback forms when modal content changes
+            function initFeedbackQuillEditors(containerEl) {
+                try {
+                    // helper to prevent image paste/drop
+                    function preventImageDropAndPaste(quill, selector) {
+                        try {
+                            var editor = document.querySelector(selector);
+                            if (!editor || !quill) return;
+                            editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); }catch(_){} }, true);
+                            editor.addEventListener('drop', function(e){ try{ if (!e.dataTransfer) return; var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length>0; var html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; if (hasFiles || /<img\s*/i.test(html)){ e.preventDefault(); e.stopImmediatePropagation(); return; } }catch(_){} }, true);
+                            editor.addEventListener('paste', function(e){ try{ var clipboard = (e.clipboardData || window.clipboardData); if (!clipboard) return; var items = clipboard.items || []; for (var i=0;i<items.length;i++){ var t = items[i].type||''; if (t.indexOf && t.indexOf('image')===0){ e.preventDefault(); e.stopImmediatePropagation(); return; } } var html = clipboard.getData && clipboard.getData('text/html') || ''; if (/<img\s*/i.test(html)){ e.preventDefault(); e.stopImmediatePropagation(); return; } }catch(_){} }, true);
+                        } catch(_){}
+                    }
+
+                    // safe create quill if container exists and not already created
+                    function createQuillIfNeeded(editorSelector, toolbarSelector, globalName) {
+                        try {
+                            if (!document.querySelector(editorSelector)) return null;
+                            if (window[globalName]) return window[globalName];
+                            var q = new Quill(editorSelector, {
+                                modules: { toolbar: toolbarSelector, clipboard: { matchVisual: false } },
+                                theme: 'snow'
+                            });
+                            // remove any images inserted
+                            try { var Delta = Quill.import && Quill.import('delta'); if (q && q.clipboard && typeof q.clipboard.addMatcher === 'function') { try{ q.clipboard.addMatcher('IMG', function(node, delta){ try{ return new Delta(); }catch(_){ return delta; } }); }catch(_){} } }catch(_){}
+                            try { q.on && q.on('text-change', function(){ try{ var imgs = q.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); }catch(_){} }); }catch(_){}
+                            try { preventImageDropAndPaste(q, editorSelector); }catch(_){}
+                            window[globalName] = q;
+                            return q;
+                        } catch (e) { return null; }
+                    }
+
+                    // initialize any editors present inside modal body
+                    try {
+                        createQuillIfNeeded('#feedback_editor', '#feedback_toolbar', '__quillProjectFeedbackAdd');
+                        createQuillIfNeeded('#reply_feedback_editor', '#reply_feedback_toolbar', '__quillProjectFeedbackReply');
+                        createQuillIfNeeded('#edit_feedback_editor', '#edit_feedback_toolbar', '__quillProjectFeedbackEdit');
+                    } catch (_) {}
+                } catch (_) {}
+            }
+
+            // Call init on initial load and whenever modal body is reassigned
+            try { initFeedbackQuillEditors(document.getElementById('projectFeedbackList')); } catch(_){}
+
+            // Ensure Quill content is synced to hidden textarea before forms are submitted
+            function syncAllFeedbackQuills() {
+                try {
+                    try { if (window.__quillProjectFeedbackAdd) { var ta = document.querySelector('#addFeedbackForm #feedback_comment'); if (ta) ta.value = window.__quillProjectFeedbackAdd.root.innerHTML || ''; } } catch(_){}
+                    try { if (window.__quillProjectFeedbackReply) { var ta2 = document.querySelector('#replyFeedbackForm #feedback_comment'); if (ta2) ta2.value = window.__quillProjectFeedbackReply.root.innerHTML || ''; } } catch(_){}
+                    try { if (window.__quillProjectFeedbackEdit) { var ta3 = document.querySelector('#editFeedbackForm #feedback_comment'); if (ta3) ta3.value = window.__quillProjectFeedbackEdit.root.innerHTML || ''; } } catch(_){}
+                } catch(_){}
+            }
+
+            // Hook capture-phase submit on modal to ensure sync
+            try {
+                document.addEventListener('submit', function(ev){
+                    try { var form = ev.target || null; if (!form) return; if (form.id === 'addFeedbackForm' || form.id === 'replyFeedbackForm' || form.id === 'editFeedbackForm') { syncAllFeedbackQuills(); // basic validation
+                            try {
+                                var tmp = (form.querySelector('#feedback_comment') || {}).value || '';
+                                if (!tmp || String(tmp).replace(/<[^>]+>/g,'').trim() === '') {
+                                    ev.preventDefault();
+                                    window.showFloatingAlert && window.showFloatingAlert('Feedback is required','warning',3000);
+                                    return false;
+                                }
+                            } catch(_){}
+                        }
+                    } catch(_){}
+                }, true);
+            } catch(_){}
+
+            // Clean up Quill instances when modal hidden to avoid stale instances
+            try {
+                var pfModal = document.getElementById('projectFeedbackModal');
+                if (pfModal) {
+                    pfModal.addEventListener('hidden.bs.modal', function(){
+                        try { if (window.__quillProjectFeedbackAdd) { window.__quillProjectFeedbackAdd = null; } } catch(_){}
+                        try { if (window.__quillProjectFeedbackReply) { window.__quillProjectFeedbackReply = null; } } catch(_){}
+                        try { if (window.__quillProjectFeedbackEdit) { window.__quillProjectFeedbackEdit = null; } } catch(_){}
+                        // also clear editors' DOM if forms are present and were inserted
+                        try { var ed = document.querySelector('#feedback_editor'); if (ed) ed.innerHTML = ''; } catch(_){}
+                        try { var ed2 = document.querySelector('#reply_feedback_editor'); if (ed2) ed2.innerHTML = ''; } catch(_){}
+                        try { var ed3 = document.querySelector('#edit_feedback_editor'); if (ed3) ed3.innerHTML = ''; } catch(_){}
+                    });
+                }
+            } catch(_){}
+
+            // --- Inline quick feedback editor (on project detail panel) ---
+            try {
+                // Initialize inline Quill when DOM ready
+                function initInlineFeedback() {
+                    try {
+                        if (typeof Quill === 'undefined') return;
+                        if (window.__quillProjectFeedbackInline) return window.__quillProjectFeedbackInline;
+                        var editorEl = document.getElementById('inline_feedback_editor');
+                        if (!editorEl) return null;
+
+                        // create Quill with minimal toolbar (toolbar hidden by default)
+                        var q = new Quill('#inline_feedback_editor', {
+                            modules: { toolbar: '#inline_feedback_toolbar', clipboard: { matchVisual: false } },
+                            theme: 'snow',
+                            placeholder: 'Write feedback...'
+                        });
+
+                        // Remove images if pasted
+                        try { var Delta = Quill.import && Quill.import('delta'); if (q && q.clipboard && typeof q.clipboard.addMatcher === 'function') { try{ q.clipboard.addMatcher('IMG', function(node, delta){ try{ return new Delta(); }catch(_){ return delta; } }); }catch(_){} } }catch(_){}
+
+                        // Placeholder emulation: clear placeholder node on focus
+                        try {
+                            var ph = editorEl.querySelector('.ql-placeholder');
+                            q.on('selection-change', function(range){ try{ if (range && ph && ph.parentNode) { ph.style.display = 'none'; } else { if (ph) ph.style.display = ''; } }catch(_){} });
+                        } catch(_){}
+
+                        window.__quillProjectFeedbackInline = q;
+                        return q;
+                    } catch (e) { return null; }
+                }
+
+                var inlineQ = initInlineFeedback();
+
+                // Photo/file button handlers
+                try {
+                    var photoBtn = document.getElementById('inlineFeedbackPhotoBtn');
+                    var fileBtn = document.getElementById('inlineFeedbackFileBtn');
+                    var photoInput = document.getElementById('inline_feedback_image_input');
+                    var filesInput = document.getElementById('inline_feedback_files_input');
+
+                    if (photoBtn && photoInput) photoBtn.addEventListener('click', function(){ photoInput.click(); });
+                    if (fileBtn && filesInput) fileBtn.addEventListener('click', function(){ filesInput.click(); });
+                } catch(_){}
+
+                // Send button: collect quill content + files and POST to /project-feedbacks
+                try {
+                    var sendBtn = document.getElementById('inlineFeedbackSendBtn');
+                    if (sendBtn) {
+                        sendBtn.addEventListener('click', function(){
+                            try {
+                                var q = window.__quillProjectFeedbackInline;
+                                if (!q) { window.showFloatingAlert && window.showFloatingAlert('Editor not ready','warning'); return; }
+                                var html = q.root.innerHTML || '';
+                                // require non-empty text
+                                if (!html || String(html).replace(/<[^>]+>/g,'').trim() === '') { window.showFloatingAlert && window.showFloatingAlert('Please write feedback','warning'); return; }
+
+                                var fd = new FormData();
+                                fd.append('feedback_comment', html);
+                                fd.append('project_id', getMeta('project-id') || '');
+                                fd.append('employee_id', document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || '');
+
+                                // attach image/file inputs if present
+                                try { var pi = document.getElementById('inline_feedback_image_input'); if (pi && pi.files && pi.files.length) fd.append('feedback_image', pi.files[0]); }catch(_){}
+                                try { var fi = document.getElementById('inline_feedback_files_input'); if (fi && fi.files && fi.files.length) { Array.from(fi.files).forEach(function(f){ fd.append('reference_files[]', f); }); } }catch(_){}
+
+                                // basic UI feedback
+                                var original = sendBtn.innerHTML;
+                                sendBtn.disabled = true;
+                                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+                                fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks', {
+                                    method: 'POST',
+                                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                    body: fd
+                                }).then(function(res){
+                                    if (!res.ok) return res.json().then(function(j){ return Promise.reject(j); });
+                                    return res.json();
+                                }).then(function(data){
+                                    window.showFloatingAlert && window.showFloatingAlert('Feedback submitted','success',2000);
+                                    // reload feedback list
+                                    try { loadFeedbackData(getMeta('project-id')); } catch(_){}
+                                    // clear editor and inputs
+                                    try { if (window.__quillProjectFeedbackInline) window.__quillProjectFeedbackInline.root.innerHTML = ''; }catch(_){}
+                                    try { if (document.getElementById('inline_feedback_image_input')) document.getElementById('inline_feedback_image_input').value = ''; }catch(_){}
+                                    try { if (document.getElementById('inline_feedback_files_input')) document.getElementById('inline_feedback_files_input').value = ''; }catch(_){}
+                                }).catch(function(err){
+                                    var msg = 'Failed to submit feedback';
+                                    try { if (err && err.errors) msg = Object.values(err.errors).join('\n'); else if (err && err.message) msg = err.message; } catch(_){}
+                                    window.showFloatingAlert && window.showFloatingAlert(msg,'warning',4000);
+                                }).finally(function(){ sendBtn.disabled = false; sendBtn.innerHTML = original; });
+                            } catch (e) { try { window.showFloatingAlert && window.showFloatingAlert('Failed to submit feedback','warning'); } catch(_){} }
+                        });
+                    }
+                } catch(_){}
+            } catch(_){}
+
             // function showAddFeedbackForm(projectId) {
             //     modalTitle.textContent = "Add Feedback";
             //     modalBody.innerHTML = "";
