@@ -4407,7 +4407,7 @@ function applyCurrentSearchFilter() {
                 return { allowed: false };
             }
             return { allowed: false };
-        }   
+        }
 
         function clearDropHighlights(){
             try {
@@ -9185,9 +9185,9 @@ function applyCurrentSearchFilter() {
         headerLabels.forEach((day) => {
             const th = document.createElement("th");
             th.textContent = day;
-            th.classList.add("timeline-cell");                 // << wajib
+            th.classList.add("timeline-cell");
             if (new Date(year, month, day).getDay() === 0) {
-            th.classList.add("sunday");                      // << jadi match .timeline-cell.sunday
+            th.classList.add("sunday");
             }
             headerRow.appendChild(th);
         });
@@ -9239,7 +9239,7 @@ function applyCurrentSearchFilter() {
             barTd.colSpan = endDay - startDay + 1;
             barTd.classList.add("timeline-cell");
             if (task.id) barTd.setAttribute('data-task-id', String(task.id));
-            barTd.innerHTML = `<div class="timeline-bar ${task.color}" data-task-id="${task.id || ''}" style="cursor:pointer; pointer-events:auto; z-index:2; position:relative;"><span class="circle"></span>${task.name}</div>`;
+            barTd.innerHTML = `<div class="timeline-bar ${task.color}" data-task-id="${task.id || ''}" style="cursor:pointer; pointer-events:auto; z-index:2; position:relative;"><span class="circle"></span><p class="bar-name">${task.name}</p></div>`;
             tr.appendChild(barTd);
 
             // Empty cells after the bar
