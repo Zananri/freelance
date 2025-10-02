@@ -326,24 +326,15 @@
     padding: 8px;
 }
 
-#taskDetailContent {
-    max-height: calc(80vh - 250px);
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-.modal-body-custom::-webkit-scrollbar,
-#taskDetailContent::-webkit-scrollbar {
+.modal-body-custom::-webkit-scrollbar {
     width: 4px;
 }
 
-.modal-body-custom::-webkit-scrollbar-track,
-#taskDetailContent::-webkit-scrollbar-track {
+.modal-body-custom::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.modal-body-custom::-webkit-scrollbar-thumb,
-#taskDetailContent::-webkit-scrollbar-thumb {
+.modal-body-custom::-webkit-scrollbar-thumb {
     background-color: #a0a0a0;
     border-radius: 4px;
 }
@@ -687,6 +678,14 @@ p {
     margin-bottom: 0;
 }
 
+.task-card-header {
+    position: sticky;
+    top: -10px;
+    background: rgb(240, 241, 248);
+    z-index: 10;
+    padding: 8px 0;
+}
+
 .task-description-toggle {
     color: #007bff;
     cursor: pointer;
@@ -705,20 +704,31 @@ p {
     overflow-x: hidden;
 }
 
-.task-description-container::-webkit-scrollbar {
+.task-detail-description-container {
+    max-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+}
+
+.task-description-container::-webkit-scrollbar,
+.task-detail-description-container::-webkit-scrollbar {
     width: 4px;
 }
 
-.task-description-container::-webkit-scrollbar-track {
+.task-description-container::-webkit-scrollbar-track
+.task-detail-description-container::-webkit-scrollbar-track{
     background: transparent;
 }
 
-.task-description-container::-webkit-scrollbar-thumb {
+.task-description-container::-webkit-scrollbar-thumb,
+.task-detail-description-container::-webkit-scrollbar-thumb {
     background-color: #a0a0a0;
     border-radius: 4px;
 }
 
-.task-description {
+.task-description,
+.task-description p {
     margin-top: 0.25rem;
     color: #4c5060;
     overflow: visible;

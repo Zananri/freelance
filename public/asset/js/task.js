@@ -7079,7 +7079,7 @@ function applyCurrentSearchFilter() {
 
                 const html = `
                 <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
                         <div class="d-flex align-items-center">
                             ${avatarHtml}
                             <div class="d-flex flex-column">
@@ -7095,7 +7095,11 @@ function applyCurrentSearchFilter() {
                             </div>
                         </div>
                     </div>
-                    ${task.description ? `<p style="font-size:14px;" class="mb-2">${task.description}</p>` : ""}
+                    <div class="task-detail-description-container">
+                        <div class="task-description">
+                            ${task.description ? task.description : ''}
+                        </div>
+                    </div>
                     <hr class="task-separator rounded-4">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div style="font-size:12px;">
