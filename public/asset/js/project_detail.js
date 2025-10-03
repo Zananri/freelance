@@ -523,6 +523,9 @@
         }
     }
 
+    // expose helper globally so other modules can call window.showDeleteConfirmModal
+    try { window.showDeleteConfirmModal = showDeleteConfirmModal; } catch(_) {}
+
     function renderAssignments(container, author, coAuthors, contributors) {
         container.empty();
         var makeEntry = function (person, roleLabel) {
@@ -1381,6 +1384,133 @@
                                                 }
                                                 repContent.appendChild(repComment);
 
+                                                // Normalize reply image URL (accept absolute, /file/* or relative filename)
+                                                try {
+                                                    var repImageUrl = rep.image || "";
+                                                    if (repImageUrl) {
+                                                        var isAbsR =
+                                                            typeof repImageUrl === "string" &&
+                                                            (repImageUrl.indexOf("http://") === 0 || repImageUrl.indexOf("https://") === 0);
+                                                        var isFilePathR =
+                                                            typeof repImageUrl === "string" &&
+                                                            (repImageUrl.indexOf("/file/") === 0 || repImageUrl.indexOf("file/") === 0);
+                                                        var isStorageR =
+                                                            typeof repImageUrl === "string" &&
+                                                            (repImageUrl.indexOf("/storage/") === 0 || repImageUrl.indexOf("storage/") === 0);
+                                                        if (!isAbsR && !isFilePathR && !isStorageR) {
+                                                            repImageUrl = getMeta("app-url").replace(/\/$/, "") + "/file/project_feedback/" + repImageUrl;
+                                                        } else if (!isAbsR && (isFilePathR || isStorageR)) {
+                                                            repImageUrl = repImageUrl.indexOf("/") === 0 ? getMeta("app-url").replace(/\/$/, "") + repImageUrl : getMeta("app-url").replace(/\/$/, "") + "/" + repImageUrl;
+                                                        }
+                                                    }
+                                                } catch (e) {
+                                                    repImageUrl = rep.image || "";
+                                                }
+
+                                                // Normalize reply reference files
+                                                var repRefFiles = [];
+                                                try {
+                                                    var rfVal = rep.reference_files;
+                                                    if (!Array.isArray(rfVal) && typeof rfVal === "string") {
+                                                        try {
+                                                            var parsedRf = JSON.parse(rfVal);
+                                                            if (Array.isArray(parsedRf)) rfVal = parsedRf;
+                                                        } catch (_) {}
+                                                    }
+                                                    if (Array.isArray(rfVal) && rfVal.length > 0) {
+                                                        repRefFiles = rfVal
+                                                            .map(function (f) {
+                                                                if (!f) return null;
+                                                                var isAbsF = typeof f === "string" && (f.indexOf("http://") === 0 || f.indexOf("https://") === 0);
+                                                                var isRefPathF = typeof f === "string" && (f.indexOf("/file/project_reference_files/") === 0 || f.indexOf("file/project_reference_files/") === 0 || f.indexOf("/file/") === 0);
+                                                                if (!isAbsF && !isRefPathF) return getMeta("app-url").replace(/\/$/, "") + "/file/project_reference_files/" + f;
+                                                                if (!isAbsF && isRefPathF) return f.indexOf("/") === 0 ? getMeta("app-url").replace(/\/$/, "") + f : getMeta("app-url").replace(/\/$/, "") + "/" + f;
+                                                                return f;
+                                                            })
+                                                            .filter(Boolean);
+                                                    } else {
+                                                        var singleRf = rep.reference_file || "";
+                                                        if (singleRf) {
+                                                            var isAbsSf = typeof singleRf === "string" && (singleRf.indexOf("http://") === 0 || singleRf.indexOf("https://") === 0);
+                                                            var isRefPathSf = typeof singleRf === "string" && (singleRf.indexOf("/file/project_reference_files/") === 0 || singleRf.indexOf("file/project_reference_files/") === 0 || singleRf.indexOf("/file/") === 0);
+                                                            if (!isAbsSf && !isRefPathSf) singleRf = getMeta("app-url").replace(/\/$/, "") + "/file/project_reference_files/" + singleRf;
+                                                            else if (!isAbsSf && isRefPathSf) singleRf = singleRf.indexOf("/") === 0 ? getMeta("app-url").replace(/\/$/, "") + singleRf : getMeta("app-url").replace(/\/$/, "") + "/" + singleRf;
+                                                            repRefFiles = [singleRf];
+                                                        }
+                                                    }
+                                                } catch (_) {
+                                                    repRefFiles = [];
+                                                }
+
+                                                // Normalize reply reference URLs
+                                                var repRefUrls = [];
+                                                try {
+                                                    var ruVal = rep.reference_urls;
+                                                    if (!Array.isArray(ruVal) && typeof ruVal === "string") {
+                                                        try {
+                                                            var parsedRu = JSON.parse(ruVal);
+                                                            if (Array.isArray(parsedRu)) ruVal = parsedRu;
+                                                        } catch (_) {}
+                                                    }
+                                                    if (Array.isArray(ruVal) && ruVal.length > 0) {
+                                                        repRefUrls = ruVal.filter(function (u) {
+                                                            return typeof u === "string" && u.trim() !== "";
+                                                        });
+                                                    } else if (rep.reference_url) {
+                                                        repRefUrls = [rep.reference_url];
+                                                    }
+                                                } catch (_) {
+                                                    repRefUrls = [];
+                                                }
+
+                                                // Render reply reference URLs / files if any
+                                                if ((Array.isArray(repRefUrls) && repRefUrls.length > 0) || (Array.isArray(repRefFiles) && repRefFiles.length > 0)) {
+                                                    var repRefWrap = document.createElement('div');
+                                                    repRefWrap.className = 'feedback-reference-container mt-1';
+                                                    if (Array.isArray(repRefUrls) && repRefUrls.length > 0) {
+                                                        repRefUrls.forEach(function (u, idx) {
+                                                            try {
+                                                                var a = document.createElement('a');
+                                                                a.href = u;
+                                                                a.target = '_blank';
+                                                                a.className = 'feedback-reference-url me-2';
+                                                                a.innerHTML = '<span class="material-symbols-outlined">link</span> Link ' + (idx + 1);
+                                                                repRefWrap.appendChild(a);
+                                                            } catch (_) {}
+                                                        });
+                                                    }
+                                                    if (Array.isArray(repRefFiles) && repRefFiles.length > 0) {
+                                                        repRefFiles.forEach(function (f, idx) {
+                                                            try {
+                                                                var af = document.createElement('a');
+                                                                af.href = f;
+                                                                af.download = '';
+                                                                af.className = 'feedback-reference-file ms-2';
+                                                                af.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx + 1);
+                                                                repRefWrap.appendChild(af);
+                                                            } catch (_) {}
+                                                        });
+                                                    }
+                                                    try { repContent.appendChild(repRefWrap); } catch(_) {}
+                                                }
+
+                                                // Render reply image if present
+                                                if (repImageUrl) {
+                                                    try {
+                                                        var repImgEl = document.createElement('img');
+                                                        repImgEl.src = repImageUrl;
+                                                        repImgEl.className = 'img-fluid rounded mb-2 feedback-image';
+                                                        repImgEl.style.width = '40%';
+                                                        repImgEl.style.height = '40%';
+                                                        repImgEl.style.borderRadius = '6px';
+                                                        repImgEl.style.cursor = 'pointer';
+                                                        repImgEl.addEventListener('click', function () {
+                                                            try { showImageModal(repImageUrl); } catch (_) { window.open(repImageUrl, '_blank'); }
+                                                        });
+                                                        repContent.appendChild(repImgEl);
+                                                    } catch (_) {}
+                                                }
+
                                                 // Reply / Edit / Delete actions (reply always; edit/delete only if owner)
                                                 var replyActionsDiv = document.createElement('div');
                                                 // Align actions to the right edge of the reply container and make them compact
@@ -1426,7 +1556,19 @@
                                                         editRep2.addEventListener('click', function () {
                                                             try {
                                                                 var payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ var v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ var p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ var p2 = JSON.parse(rf); if (Array.isArray(p2)) rf = p2; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ var img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + img; return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + img; })() };
-                                                                showEditFeedbackForm && showEditFeedbackForm(getMeta('project-id'), payload, true);
+                                                                // Prefer inline edit on the page if available
+                                                                var inlineEditor = document.getElementById('inline_feedback_editor');
+                                                                if (inlineEditor && typeof window.startInlineEditFeedback === 'function') {
+                                                                    try {
+                                                                        window.startInlineEditFeedback(payload);
+                                                                        try { inlineEditor.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (_) {}
+                                                                    } catch (_) {}
+                                                                    return;
+                                                                }
+                                                                // Fallback to modal-based edit
+                                                                if (typeof window.showEditFeedbackForm === 'function') {
+                                                                    window.showEditFeedbackForm(getMeta('project-id'), payload, true);
+                                                                }
                                                             } catch (_) {}
                                                         });
                                                         replyActionsDiv.appendChild(editRep2);
@@ -1750,6 +1892,11 @@
                         }
                         if (!node) return;
                         modalBody.appendChild(node);
+                        // If this is an edit for a reply, ensure the modal form's hidden parent_id is set
+                        try {
+                            var parentHidden = modalBody.querySelector('#editFeedbackForm input[name="parent_id"]');
+                            if (parentHidden) parentHidden.value = data.parent_id || '';
+                        } catch(_) {}
                     } catch (_) {
                         return;
                     }
@@ -2255,16 +2402,16 @@
                                             urls.length ? urls[0] : ""
                                         );
                                     } catch (_) {}
-                                    // Existing kept files
+                                    // Existing kept files (ensure hidden input is present)
                                     try {
                                         var existingHidden = form.querySelector(
                                             "#existing_feedback_reference_files_input"
                                         );
-                                        if (
-                                            existingHidden &&
-                                            !existingHidden.value
-                                        )
+                                        if (existingHidden && !existingHidden.value)
                                             existingHidden.value = "[]";
+                                        // explicitly set into FormData to be safe
+                                        if (existingHidden)
+                                            fd.set('existing_reference_files', existingHidden.value || '[]');
                                     } catch (_) {}
                                     // Newly added files
                                     try {
@@ -2283,6 +2430,12 @@
                                             );
                                         }
                                     } catch (_) {}
+                                    // Ensure parent_id is included (reply edit)
+                                    try {
+                                        var ph = form.querySelector('input[name="parent_id"]');
+                                        if (ph && ph.value) fd.set('parent_id', ph.value);
+                                        else if (data && data.parent_id) fd.set('parent_id', data.parent_id);
+                                    } catch(_) {}
                                     // PUT method override
                                     fd.append("_method", "PUT");
 
@@ -2958,6 +3111,20 @@
                     window.startInlineEditFeedback = function(data){
                         try {
                             var hid = document.getElementById("inline_edit_feedback_input"); if (hid) hid.value = data.id || "";
+                            // ensure inline parent_id hidden input exists and set it so inline edit submits with parent_id
+                            try {
+                                var inlinePid = document.getElementById('inline_parent_id_input');
+                                if (!inlinePid) {
+                                    var inlineForm = document.querySelector('.feedback-form');
+                                    inlinePid = document.createElement('input');
+                                    inlinePid.type = 'hidden';
+                                    inlinePid.id = 'inline_parent_id_input';
+                                    inlinePid.name = 'parent_id';
+                                    if (inlineForm && inlineForm.appendChild) inlineForm.appendChild(inlinePid);
+                                    else document.body.appendChild(inlinePid);
+                                }
+                                inlinePid.value = data.parent_id || '';
+                            } catch(_) {}
                             if (window.__quillProjectFeedbackInline && window.__quillProjectFeedbackInline.root)
                                 window.__quillProjectFeedbackInline.root.innerHTML = data.feedback_comment || "";
                             try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
