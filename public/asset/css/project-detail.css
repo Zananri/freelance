@@ -1413,7 +1413,7 @@ input[type="file"]::file-selector-button {
     width: 25.5vw;
     height: calc(100vh - 190px);
     max-height: 100vh;
-    z-index: 21;
+    z-index: 15;
     padding: 20px;
     border-radius: 16px;
     margin: 0;
