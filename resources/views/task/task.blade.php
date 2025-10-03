@@ -194,8 +194,7 @@
                                 style="display:none;"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="edit_task_project_input" class="form-label label-custom">Project
-                                (optional)</label>
+                            <label for="edit_task_project_input" class="form-label label-custom">Project</label>
                             <input type="text" class="form-control input-text" id="edit_task_project_input"
                                 autocomplete="off" placeholder="Search project..." required>
                             <div id="edit_task_project_dropdown" class="dropdown-list mt-1"></div>
@@ -404,7 +403,7 @@
                         <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Project</label>
                             <input type="text" class="form-control input-text" id="task_project_input"
-                                autocomplete="off" placeholder="Search project...">
+                                autocomplete="off" placeholder="Search project..." required>
                             <div id="task_project_dropdown" class="dropdown-list mt-1"></div>
                             <div id="task_selected_project" class="mt-2"></div>
                             <input type="hidden" id="task_project_id" name="project_id" value="">
