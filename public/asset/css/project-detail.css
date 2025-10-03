@@ -822,7 +822,7 @@
     font-weight: 400;
 }
 
-.timeline-detail-project.fullscreen {
+.timeline-content.fullscreen {
     position: fixed;
     top: 85px;
     left: 0;
@@ -830,19 +830,20 @@
     bottom: 0;
     width: 100%;
     height: calc(100vh - 85px);
-    max-height: none;
+    max-height: 100vh;
     z-index: 21;
 }
 
-.timeline-detail-project.fullscreen .body-content,
-.timeline-detail-project.fullscreen .timeline-wrapper {
+.timeline-content.fullscreen .body-content,
+.timeline-content.fullscreen .timeline-wrapper {
     height: 100%;
-    max-height: 100%;
+    max-height: calc(100vh - 210px);
     width: 100%;
 }
 
-.timeline-detail-project.fullscreen .timeline-table {
+.timeline-content.fullscreen .timeline-table {
     min-width: 100%;
+    max-height: calc(100vh - 500px);
 }
 
 .timeline-wrapper {
@@ -1112,6 +1113,11 @@
     max-height: calc(100vh - 500px);
 }
 
+.task-tree-wrapper {
+    overflow: auto;
+    max-height: calc(100vh - 210px);
+}
+
 #task-tree {
     position: relative;
     display: flex;
@@ -1120,20 +1126,19 @@
     justify-content: flex-start;
     padding: 20px;
     gap: 40px;
-    overflow: auto;
     width: 100%;
 }
 
-#task-tree::-webkit-scrollbar {
+.task-tree-wrapper::-webkit-scrollbar {
     height: 4px;
     width: 4px;
 }
 
-#task-tree::-webkit-scrollbar-track {
+.task-tree-wrapper::-webkit-scrollbar-track {
     background: transparent;
 }
 
-#task-tree::-webkit-scrollbar-thumb {
+.task-tree-wrapper::-webkit-scrollbar-thumb {
     background-color: #cccccc;
     border-radius: 4px;
 }
