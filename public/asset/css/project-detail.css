@@ -1511,4 +1511,20 @@ input[type="file"]::file-selector-button {
     transform: scale(0.98);
 }
 
-/* Empty space drop styling removed as per user request */
+/* Free positioned tasks styling */
+.free-positioned-task {
+    position: absolute !important;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+.free-positioned-task .task-box {
+    cursor: move;
+}
+
+.free-positioned-task:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}

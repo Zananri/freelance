@@ -176,7 +176,9 @@ function renderTaskList(data) {
         return !isFreePositioned;
     });
     
-    // Render task list with free positioning support
+    console.log("renderTaskList - All data:", data);
+    console.log("renderTaskList - Free positioned tasks:", freePositionedTasks);
+    console.log("renderTaskList - Tree tasks:", treeTaskData);
     
     // Render tree structure
     const treeData = buildTaskTree(treeTaskData);
@@ -188,6 +190,7 @@ function renderTaskList(data) {
     
     // Render free-positioned tasks
     freePositionedTasks.forEach((task) => {
+        console.log("Rendering free-positioned task:", task);
         const $freeTask = renderTaskNode(task, $("#task-template"));
         $freeTask.addClass("free-positioned-task");
         $freeTask.css({
@@ -195,6 +198,10 @@ function renderTaskList(data) {
             left: task.position_x + "px",
             top: task.position_y + "px",
             zIndex: 10
+        });
+        console.log("Applied CSS to free task:", {
+            left: task.position_x + "px",
+            top: task.position_y + "px"
         });
         $tree.append($freeTask);
     });
@@ -722,7 +729,11 @@ $("#fullscreen-tree-btn").on("click", function () {
             dropY = Math.max(20, dropY);
 
             // Move task to free position with coordinates
-            // Moving task to free position
+            console.log("Moving task to empty space - setting parent_id to null", {
+                draggedId: draggedId,
+                previousParentId: dragged ? dragged.parent_id : 'unknown',
+                newPosition: { x: Math.round(dropX), y: Math.round(dropY) }
+            });
             
             $.ajax({
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
@@ -736,20 +747,32 @@ $("#fullscreen-tree-btn").on("click", function () {
                 dataType: "json"
             })
                 .done(function (response) {
+                    console.log("AJAX Success Response:", response);
                     try {
                         var map = taskMap();
                         var dragged = map[String(draggedId)];
+                        console.log("Before update - dragged task:", dragged);
                         if (dragged) {
                             dragged.parent_id = null;
                             dragged.position_x = parseInt(Math.round(dropX));
                             dragged.position_y = parseInt(Math.round(dropY));
-                            dragged.free_positioned = 1;
+                            dragged.free_positioned = 1; // Use 1 instead of true for consistency
                         }
+                        console.log("After update - dragged task:", dragged);
+                        console.log("All tasks before render:", allTasks);
                         renderTaskList(allTasks);
-                    } catch (_) {}
+                    } catch (e) {
+                        console.error("Error in done callback:", e);
+                    }
                     
-                    // Don't reload from server to preserve positioning
-                    // Local data is already updated above
+                    // Don't reload from server - use local data to avoid overwriting changes
+                    // setTimeout(function() {
+                    //     try { 
+                    //         if (typeof projectId !== "undefined" && projectId) {
+                    //             getTaskByProject(projectId);
+                    //         }
+                    //     } catch (_) {}
+                    // }, 300);
                     
                     // Show success message
                     try {
@@ -808,30 +831,24 @@ $("#fullscreen-tree-btn").on("click", function () {
 
             $target.css({ outline: "2px solid #2a7" });
 
-            // Moving task under another task (making it a child)
+            console.log("Moving task to another task - setting parent_id", {
+                draggedId: draggedId,
+                previousParentId: dragged ? dragged.parent_id : 'unknown',
+                newParentId: targetId
+            });
             
             $.ajax({
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                 type: "PUT",
-                data: { 
-                    parent_id: String(targetId),
-                    free_positioned: 0,
-                    position_x: null,
-                    position_y: null
-                },
+                data: { parent_id: String(targetId) },
                 dataType: "json"
             })
                 .done(function () {
                     try {
-                        if (dragged) {
-                            dragged.parent_id = targetId;
-                            dragged.free_positioned = 0;
-                            dragged.position_x = null;
-                            dragged.position_y = null;
-                        }
+                        if (dragged) dragged.parent_id = targetId;
                         renderTaskList(allTasks);
                     } catch (_) {}
-                    // Don't reload from server to maintain consistent behavior
+                    try { if (typeof projectId !== "undefined" && projectId) getTaskByProject(projectId); } catch (_) {}
                 })
                 .fail(function (xhr) {
                     try {
@@ -1040,8 +1057,12 @@ $("#fullscreen-tree-btn").on("click", function () {
                         renderTaskList(allTasks); 
                     } catch(_){ }
                     
-                    // Don't reload from server to preserve positioning
-                    // Local data is already updated above
+                    // Don't reload from server - use local data to avoid overwriting changes
+                    // setTimeout(function() {
+                    //     try { 
+                    //         if (typeof projectId !== 'undefined' && projectId) getTaskByProject(projectId); 
+                    //     } catch(_){ }
+                    // }, 300);
                     try {
                         if (typeof window.showFloatingAlert === "function") {
                             window.showFloatingAlert("Task berhasil dipindahkan ke posisi bebas", "success", 2000);
@@ -1070,30 +1091,21 @@ $("#fullscreen-tree-btn").on("click", function () {
                 var $target = $(targetEl);
                 $target.css({ outline: '2px solid #2a7' });
 
-                // Touch: Moving task under another task
+                console.log("Touch: Moving task to another task - setting parent_id", {
+                    draggedId: draggedId,
+                    previousParentId: dragged ? dragged.parent_id : 'unknown',
+                    newParentId: targetId
+                });
                 
                 $.ajax({
                     url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                     type: 'PUT',
-                    data: { 
-                        parent_id: String(targetId),
-                        free_positioned: 0,
-                        position_x: null,
-                        position_y: null
-                    },
+                    data: { parent_id: String(targetId) },
                     dataType: 'json'
                 })
                 .done(function(){
-                    try { 
-                        if (dragged) {
-                            dragged.parent_id = targetId;
-                            dragged.free_positioned = 0;
-                            dragged.position_x = null;
-                            dragged.position_y = null;
-                        }
-                        renderTaskList(allTasks); 
-                    } catch(_){ }
-                    // Don't reload from server to maintain consistent behavior
+                    try { if (dragged) dragged.parent_id = targetId; renderTaskList(allTasks); } catch(_){ }
+                    try { if (typeof projectId !== 'undefined' && projectId) getTaskByProject(projectId); } catch(_){ }
                 })
                 .fail(function(xhr){
                     try { 
