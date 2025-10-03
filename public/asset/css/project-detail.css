@@ -926,6 +926,18 @@
     z-index: 2;
 }
 
+.timeline-bar .bar-name {
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.timeline-bar .bar-name::-webkit-scrollbar {
+    display: none;
+}
+
 /* Warna bar */
 .timeline-bar.color1 {
     background: #e3f3ff;

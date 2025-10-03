@@ -100,16 +100,12 @@ class TaskController extends Controller
                                 });
                         });
                     })
-                        ->orWhere(function ($q) use ($currentUserId) {
-                            if ($currentUserId)
-                                $q->where('created_by', $currentUserId);
-                        });
+                    ->orWhere(function ($q) use ($currentUserId) {
+                        if ($currentUserId)
+                            $q->where('created_by', $currentUserId);
+                    });
                 });
 
-            // By default we exclude canceled tasks from index responses. However, allow callers
-            // to request canceled tasks explicitly by using `status=canceled` or
-            // `include_canceled=1`. This keeps current behavior unchanged while enabling
-            // the archive modal to fetch canceled items.
             $includeCanceled = false;
             if ($statusFilter && strtolower($statusFilter) === 'canceled') {
                 $includeCanceled = true;
@@ -173,7 +169,7 @@ class TaskController extends Controller
                             ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) {
                                 $currentEmployeePendingAcceptance($qq);
                             });
-                    })->orderBy('created_at', 'asc');
+                    })->orderBy('created_at', 'desc');
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
                         ->where(function ($q) use ($currentEmployeeId) {
@@ -220,7 +216,7 @@ class TaskController extends Controller
                         });
                 })
                     ->orderBy('created_at', 'desc');
-                $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
+                $newPaginator = $newQuery->paginate($perPage, ['*'], 'page', $page);
                 $response['new_request'] = [
                     'tasks' => $this->mapTasks($newPaginator->items()),
                     'pagination' => [
@@ -246,7 +242,7 @@ class TaskController extends Controller
                         CASE WHEN LOWER(status) = 'rejected' THEN 0 ELSE 1 END,
                         start_date DESC
                     ");
-                $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'in_progress_page');
+                $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'page', $page);
                 $response['in_progress'] = [
                     'tasks' => $this->mapTasks($progressPaginator->items()),
                     'pagination' => [
@@ -267,8 +263,8 @@ class TaskController extends Controller
                                     $r->whereNull('is_receive')->orWhere('is_receive', false);
                                 });
                         });
-                    })->orderBy('complete_date', 'asc');
-                $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'completed_page');
+                    })->orderBy('complete_date', 'desc');
+                $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'page', $page);
                 $response['completed'] = [
                     'tasks' => $this->mapTasks($completedPaginator->items()),
                     'pagination' => [

@@ -2070,3 +2070,16 @@ input[type="file"]::file-selector-button {
 .link-file-task {
     font-size: 13px;
 }
+
+#completed_priority,
+#completed_date,
+#completed_task_urls,
+#completed_task_files {
+    font-size: 12px;
+}
+
+#completed_task_urls a,
+#completed_task_files a {
+    text-decoration: none;
+    color: #444444;
+}
