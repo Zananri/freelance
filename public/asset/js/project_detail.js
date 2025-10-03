@@ -2208,17 +2208,7 @@
                                         .innerHTML || "";
                         }
                     } catch (_) {}
-                    try {
-                        if (window.__quillProjectFeedbackReply) {
-                            var ta2 = document.querySelector(
-                                "#replyFeedbackForm #feedback_comment"
-                            );
-                            if (ta2)
-                                ta2.value =
-                                    window.__quillProjectFeedbackReply.root
-                                        .innerHTML || "";
-                        }
-                    } catch (_) {}
+                    // reply-specific Quill instance removed: nothing to sync here (page inline editor handles input)
                     try {
                         if (window.__quillProjectFeedbackEdit) {
                             var ta3 = document.querySelector(
@@ -2288,9 +2278,7 @@
                             }
                         } catch (_) {}
                         try {
-                            if (window.__quillProjectFeedbackReply) {
-                                window.__quillProjectFeedbackReply = null;
-                            }
+                            // no reply-specific quill to cleanup
                         } catch (_) {}
                         try {
                             if (window.__quillProjectFeedbackEdit) {
@@ -2902,6 +2890,11 @@
 
                                 var fd = new FormData();
                                 fd.append("feedback_comment", html);
+                                // include parent_id if replying via inline form
+                                try {
+                                    var pid = document.getElementById('inline_parent_id_input');
+                                    if (pid && pid.value) fd.append('parent_id', pid.value);
+                                } catch(_){}
                                 fd.append("project_id", getMeta("project-id") || "");
                                 fd.append(
                                     "employee_id",
@@ -3849,342 +3842,274 @@
             //         });
             // }
 
-            // function showReplyFeedbackForm(projectId, parentId) {
-            //     // Reply form should be provided by blade as #template-reply-feedback
-            //     modalTitle.textContent = "Reply Feedback";
-            //     modalBody.innerHTML = "";
-            //     var tplReply = document.getElementById(
-            //         "template-reply-feedback"
-            //     );
-            //     if (tplReply) {
-            //         var nodeR =
-            //             tplReply.tagName &&
-            //             tplReply.tagName.toLowerCase() === "template"
-            //                 ? tplReply.content.cloneNode(true)
-            //                 : tplReply.cloneNode(true);
-            //         modalBody.appendChild(nodeR);
-            //         try {
-            //             var inProjectR = modalBody.querySelector(
-            //                 'input[name="project_id"]'
-            //             );
-            //             if (inProjectR) inProjectR.value = projectId;
-            //         } catch (_) {}
-            //         try {
-            //             var inParentR = modalBody.querySelector(
-            //                 'input[name="parent_id"]'
-            //             );
-            //             if (inParentR) inParentR.value = parentId;
-            //         } catch (_) {}
-            //         try {
-            //             var inEmployeeR = modalBody.querySelector(
-            //                 'input[name="employee_id"]'
-            //             );
-            //             if (inEmployeeR)
-            //                 inEmployeeR.value =
-            //                     projectFeedbackModalEl.getAttribute(
-            //                         "data-employee-id"
-            //                     ) || "";
-            //         } catch (_) {}
-            //     } else {
-            //         var existingReplyForm =
-            //             modalBody.querySelector("#replyFeedbackForm");
-            //         if (existingReplyForm) {
-            //             try {
-            //                 var p = existingReplyForm.querySelector(
-            //                     'input[name="project_id"]'
-            //                 );
-            //                 if (p) p.value = projectId;
-            //             } catch (_) {}
-            //             try {
-            //                 var pr = existingReplyForm.querySelector(
-            //                     'input[name="parent_id"]'
-            //                 );
-            //                 if (pr) pr.value = parentId;
-            //             } catch (_) {}
-            //             try {
-            //                 var e = existingReplyForm.querySelector(
-            //                     'input[name="employee_id"]'
-            //                 );
-            //                 if (e)
-            //                     e.value =
-            //                         projectFeedbackModalEl.getAttribute(
-            //                             "data-employee-id"
-            //                         ) || "";
-            //             } catch (_) {}
-            //         } else {
-            //             console.error(
-            //                 "Reply Feedback template/form not found. Provide #template-reply-feedback or an element #replyFeedbackForm in the Blade view."
-            //             );
-            //             return;
-            //         }
-            //     }
+            function showReplyFeedbackForm(projectId, parentId) {
+                try {
+                    // DEBUG: mark when our handler runs (helps detect cached/other handlers)
+                    try { console.log('[project_detail] showReplyFeedbackForm called', projectId, parentId); } catch(_){}
+                    try { if (modalBody && modalBody.setAttribute) modalBody.setAttribute('data-reply-handler','project_detail.js'); } catch(_){}
 
-            //     // image + file preview + submit handler
-            //     (function () {
-            //         try {
-            //             window.replyFeedbackSelectedFiles = [];
-            //             var input = modalBody.querySelector(
-            //                 "#reply_reference_files"
-            //             );
-            //             var preview = modalBody.querySelector(
-            //                 "#reply_reference_files_preview"
-            //             );
-            //             if (input && preview) {
-            //                 function render() {
-            //                     preview.innerHTML = "";
-            //                     if (!window.replyFeedbackSelectedFiles.length)
-            //                         return;
-            //                     var list = document.createElement("div");
-            //                     list.className = "selected-files-list mt-2";
-            //                     window.replyFeedbackSelectedFiles.forEach(
-            //                         function (file, idx) {
-            //                             var item =
-            //                                 document.createElement("div");
-            //                             item.className =
-            //                                 "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
-            //                             var info =
-            //                                 document.createElement("div");
-            //                             info.className =
-            //                                 "d-flex align-items-center flex-grow-1";
-            //                             var icon =
-            //                                 document.createElement("span");
-            //                             icon.className =
-            //                                 "material-symbols-outlined me-2";
-            //                             icon.textContent = "description";
-            //                             var name =
-            //                                 document.createElement("span");
-            //                             name.className = "file-name";
-            //                             name.textContent = file.name;
-            //                             var size =
-            //                                 document.createElement("small");
-            //                             size.className = "text-muted ms-1";
-            //                             size.textContent =
-            //                                 " (" +
-            //                                 (file.size / 1024 / 1024).toFixed(
-            //                                     2
-            //                                 ) +
-            //                                 " MB)";
-            //                             var rm =
-            //                                 document.createElement("button");
-            //                             rm.type = "button";
-            //                             rm.className =
-            //                                 "btn btn-sm btn-outline-danger";
-            //                             rm.innerHTML = "&times;";
-            //                             rm.onclick = function () {
-            //                                 window.replyFeedbackSelectedFiles.splice(
-            //                                     idx,
-            //                                     1
-            //                                 );
-            //                                 render();
-            //                             };
-            //                             info.appendChild(icon);
-            //                             info.appendChild(name);
-            //                             info.appendChild(size);
-            //                             item.appendChild(info);
-            //                             item.appendChild(rm);
-            //                             list.appendChild(item);
-            //                         }
-            //                     );
-            //                     preview.appendChild(list);
-            //                 }
-            //                 input.addEventListener("change", function () {
-            //                     var files = Array.from(this.files || []);
-            //                     window.replyFeedbackSelectedFiles =
-            //                         window.replyFeedbackSelectedFiles.concat(
-            //                             files
-            //                         );
-            //                     render();
-            //                     this.value = "";
-            //                 });
-            //             }
-            //         } catch (_) {}
-            //     })();
+                    // If an inline feedback form exists on the page, insert the preview there and set a hidden parent_id.
+                    try {
+                        var inlineForm = document.querySelector('.feedback-form');
+                        if (inlineForm) {
+                            // ensure inline editor initialized
+                            try { initInlineFeedback && initInlineFeedback(); } catch(_){}
 
-            //     try {
-            //         var imageInput = modalBody.querySelector("#feedback_image");
-            //         var imageLabel = modalBody.querySelector(
-            //             "#feedbackImageLabel"
-            //         );
-            //         var imageClearBtn = modalBody.querySelector(
-            //             "#feedbackImageClearBtn"
-            //         );
-            //         if (imageInput && imageLabel && imageClearBtn) {
-            //             imageInput.addEventListener("change", function () {
-            //                 if (this.files && this.files[0]) {
-            //                     var reader = new FileReader();
-            //                     reader.onload = function (e) {
-            //                         imageLabel.style.backgroundImage =
-            //                             "url('" + e.target.result + "')";
-            //                         imageLabel.classList.add("has-image");
-            //                         imageLabel.style.backgroundSize = "cover";
-            //                         imageLabel.style.opacity = "1";
-            //                         imageClearBtn.classList.remove("d-none");
-            //                     };
-            //                     reader.readAsDataURL(this.files[0]);
-            //                 }
-            //             });
-            //             imageClearBtn.addEventListener("click", function (e) {
-            //                 e.preventDefault();
-            //                 imageInput.value = "";
-            //                 imageLabel.style.backgroundImage =
-            //                     "url('" +
-            //                     getMeta("app-url").replace(/\/$/, "") +
-            //                     "/asset/img/background/add-image.png')";
-            //                 imageLabel.style.backgroundPosition =
-            //                     "center center";
-            //                 imageLabel.style.backgroundRepeat = "no-repeat";
-            //                 imageLabel.style.backgroundSize = "50%";
-            //                 imageLabel.classList.remove("has-image");
-            //                 imageLabel.style.opacity = "0.5";
-            //                 imageClearBtn.classList.add("d-none");
-            //             });
-            //         }
-            //     } catch (_) {}
+                            // create or update hidden parent id input
+                            try {
+                                var inlinePid = inlineForm.querySelector('#inline_parent_id_input');
+                                if (!inlinePid) {
+                                    inlinePid = document.createElement('input');
+                                    inlinePid.type = 'hidden';
+                                    inlinePid.id = 'inline_parent_id_input';
+                                    inlinePid.name = 'parent_id';
+                                    inlineForm.appendChild(inlinePid);
+                                }
+                                inlinePid.value = parentId || '';
+                            } catch(_){}
 
-            //     try {
-            //         var addBtn = document.getElementById("addFeedbackButton");
-            //         if (addBtn) {
-            //             addBtn.textContent = "Submit";
-            //             var fresh = addBtn.cloneNode(true);
-            //             addBtn.parentNode.replaceChild(fresh, addBtn);
-            //             fresh.addEventListener("click", function (e) {
-            //                 e.preventDefault();
-            //                 var form =
-            //                     document.getElementById("replyFeedbackForm");
-            //                 if (!form) return;
-            //                 var fd = new FormData(form);
-            //                 try {
-            //                     var urlInputs = form.querySelectorAll(
-            //                         'input[name="reference_urls[]"]'
-            //                     );
-            //                     var urls = Array.from(urlInputs)
-            //                         .map(function (i) {
-            //                             return (i.value || "").trim();
-            //                         })
-            //                         .filter(Boolean);
-            //                     if (urls.length)
-            //                         fd.set("reference_url", urls[0]);
-            //                 } catch (_) {}
-            //                 try {
-            //                     if (
-            //                         window.replyFeedbackSelectedFiles &&
-            //                         window.replyFeedbackSelectedFiles.length
-            //                     ) {
-            //                         window.replyFeedbackSelectedFiles.forEach(
-            //                             function (f) {
-            //                                 fd.append("reference_files[]", f);
-            //                             }
-            //                         );
-            //                     } else {
-            //                         var rfInput = form.querySelector(
-            //                             "#reply_reference_files"
-            //                         );
-            //                         if (
-            //                             rfInput &&
-            //                             rfInput.files &&
-            //                             rfInput.files.length
-            //                         )
-            //                             Array.from(rfInput.files).forEach(
-            //                                 function (f) {
-            //                                     fd.append(
-            //                                         "reference_files[]",
-            //                                         f
-            //                                     );
-            //                                 }
-            //                             );
-            //                     }
-            //                 } catch (_) {}
-            //                 fetch(
-            //                     getMeta("app-url").replace(/\/$/, "") +
-            //                         "/project-feedbacks",
-            //                     {
-            //                         method: "POST",
-            //                         headers: {
-            //                             "X-CSRF-TOKEN": document
-            //                                 .querySelector(
-            //                                     'meta[name="csrf-token"]'
-            //                                 )
-            //                                 .getAttribute("content"),
-            //                         },
-            //                         body: fd,
-            //                     }
-            //                 )
-            //                     .then(function (r) {
-            //                         return r.ok
-            //                             ? r.json()
-            //                             : r.json().then(Promise.reject);
-            //                     })
-            //                     .then(function (res) {
-            //                         window.showFloatingAlert(
-            //                             res.message || "Reply submitted",
-            //                             "success",
-            //                             1500
-            //                         );
-            //                         loadFeedbackData(projectId);
-            //                     })
-            //                     .catch(function (err) {
-            //                         var msg =
-            //                             (err &&
-            //                                 (err.message ||
-            //                                     (err.errors &&
-            //                                         Object.values(
-            //                                             err.errors
-            //                                         ).join("\n")))) ||
-            //                             "Failed to submit reply";
-            //                         window.showFloatingAlert(
-            //                             msg,
-            //                             "warning",
-            //                             3500
-            //                         );
-            //                     });
-            //             });
-            //         }
-            //     } catch (_) {}
+                            // prepare preview container inside inline form (place near files preview)
+                            try {
+                                var previewContainer = inlineForm.querySelector('#reply_parent_preview_inline');
+                                if (!previewContainer) {
+                                    previewContainer = document.createElement('div');
+                                    previewContainer.id = 'reply_parent_preview_inline';
+                                }
+                                // default preview while fetching
+                                previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="font-size: 10px; text-align: center;"><span class="material-symbols-outlined">person</span></div><span class="flex-grow-1" style="font-size: 10px;">Unknown</span><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
 
-            //     (function () {
-            //         try {
-            //             var footer = getProjectFeedbackFooter();
-            //             if (!footer) return;
-            //             var submitBtnRef =
-            //                 document.getElementById("addFeedbackButton");
-            //             if (!submitBtnRef) return;
-            //             submitBtnRef.classList.remove("w-100");
-            //             submitBtnRef.classList.add("flex-grow-1");
-            //             var oldWrapper = footer.querySelector(
-            //                 "#feedbackFormButtonsWrapper"
-            //             );
-            //             if (oldWrapper) oldWrapper.remove();
-            //             var wrap = document.createElement("div");
-            //             wrap.id = "feedbackFormButtonsWrapper";
-            //             wrap.className = "d-flex gap-2 w-100";
-            //             var closeBtn = document.createElement("button");
-            //             closeBtn.id = "replyCloseButton";
-            //             closeBtn.type = "button";
-            //             closeBtn.className = "btn btn-close-reply flex-grow-1";
-            //             closeBtn.textContent = "Close";
-            //             closeBtn.addEventListener("click", function () {
-            //                 try {
-            //                     footer.innerHTML = "";
-            //                     var restore = document.createElement("button");
-            //                     restore.type = "button";
-            //                     restore.className =
-            //                         "btn btn-submit-black w-100";
-            //                     restore.id = "addFeedbackButton";
-            //                     restore.textContent = "Add Feedback";
-            //                     restore.addEventListener("click", function () {
-            //                         showAddFeedbackForm(projectId);
-            //                     });
-            //                     footer.appendChild(restore);
-            //                 } catch (_) {}
-            //                 loadFeedbackData(projectId);
-            //             });
-            //             wrap.appendChild(closeBtn);
-            //             wrap.appendChild(submitBtnRef);
-            //             footer.innerHTML = "";
-            //             footer.appendChild(wrap);
-            //         } catch (_) {}
-            //     })();
-            // }
+                                // fetch parent feedback to get employee name
+                                try {
+                                    fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + parentId)
+                                        .then(function(res){ if(!res.ok) return res.json().then(Promise.reject); return res.json(); })
+                                        .then(function(json){ var fb = json && json.data ? json.data : json; var title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || fb.employee_name || fb.employee_fullname || 'Unknown'; try{ previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="font-size: 10px; text-align: center;"><span class="material-symbols-outlined">person</span></div><span class="flex-grow-1" style="font-size: 10px;">' + safeText(title) + '</span><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>'; }catch(_){} try{ var btn = previewContainer.querySelector('.remove-task'); if(btn) btn.addEventListener('click', function(){ try{ previewContainer.remove(); inlinePid.value=''; }catch(_){} }); }catch(_){} })
+                                        .catch(function(){ try{ var btn = previewContainer.querySelector('.remove-task'); if(btn) btn.addEventListener('click', function(){ try{ previewContainer.remove(); inlinePid.value=''; }catch(_){} }); }catch(_){} });
+                                } catch(_){}
+
+                                // insert preview before inline files preview if present
+                                try {
+                                    var filesPreview = inlineForm.querySelector('#inline_feedback_files_preview');
+                                    if (filesPreview && filesPreview.parentNode) filesPreview.parentNode.insertBefore(previewContainer, filesPreview);
+                                    else inlineForm.insertBefore(previewContainer, inlineForm.querySelector('#inline_feedback_editor') || inlineForm.firstChild);
+                                } catch(_){}
+                            } catch(_){}
+
+                            // focus inline editor
+                            try { var q = window.__quillProjectFeedbackInline; if (!q) initInlineFeedback && initInlineFeedback(); q = window.__quillProjectFeedbackInline; if (q && typeof q.focus === 'function') q.focus(); } catch(_){}
+
+                            return; // handled via inline form
+                        }
+                    } catch(_){}
+                    // Resolve modal title/body with fallbacks in case DOM structure differs
+                    try {
+                        modalTitle = projectFeedbackModalEl.querySelector('.feedback-modal-title') || projectFeedbackModalEl.querySelector('.modal-title') || projectFeedbackModalEl.querySelector('[data-feedback-title]') || modalTitle;
+                    } catch (_) {}
+                    try {
+                        modalBody = projectFeedbackModalEl.querySelector('.feedback-content') || projectFeedbackModalEl.querySelector('.modal-body') || projectFeedbackModalEl.querySelector('.modal-body-custom') || modalBody;
+                    } catch (_) {}
+
+                    // Title (guarded). Do NOT clear entire modalBody — we must keep feedback list visible.
+                    if (modalTitle) modalTitle.textContent = "Reply Feedback";
+
+                    // Always insert a minimal inline reply form + preview (we do not want the heavy server template here)
+                    try { var existingReplyForm = modalBody && modalBody.querySelector && modalBody.querySelector('#replyFeedbackForm'); if (existingReplyForm) existingReplyForm.remove(); } catch (_) {}
+                    var inlineFormHtml = '';
+                    inlineFormHtml += '<form id="replyFeedbackForm" enctype="multipart/form-data">';
+                    inlineFormHtml += '<input type="hidden" name="project_id" value="' + (projectId || '') + '">';
+                    inlineFormHtml += '<input type="hidden" name="parent_id" value="' + (parentId || '') + '">';
+                    inlineFormHtml += '<input type="hidden" name="employee_id" value="' + (projectFeedbackModalEl.getAttribute('data-employee-id') || '') + '">';
+                    // only insert preview; the reply editor is not needed here — use the page's inline editor
+                    inlineFormHtml += '<div id="reply_parent_preview" class="mt-2"></div>';
+                    inlineFormHtml += '</form>';
+                    modalBody.appendChild((function(){ var d=document.createElement('div'); d.innerHTML = inlineFormHtml; return d.firstChild; })());
+                    // no editor is created here — we'll rely on the existing inline editor on the page
+                    // remove any leftover heavy elements to keep UI consistent
+                    try {
+                        ['#feedback_image','#feedbackImageLabel','.custom-image-upload','#reply_feedback_editor','#reply_feedback_toolbar','#reply_reference_files','#reply_reference_files_preview'].forEach(function(s){ try{ var el=modalBody.querySelector(s); if(el) el.remove(); }catch(_){}});
+                    } catch(_){}
+
+                    // Fetch parent feedback and render preview (employee name + comment)
+                    (function () {
+                        try {
+                            fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks/" + parentId)
+                                .then(function (res) {
+                                    if (!res.ok) return res.json().then(Promise.reject);
+                                    return res.json();
+                                })
+                                .then(function (json) {
+                                    // response may be {data: {...}} or the object itself
+                                    var fb = json && json.data ? json.data : json;
+                                    var title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || fb.employee_name || fb.employee_fullname || "Unknown";
+                                    var comment = (fb && (fb.feedback_comment || fb.comment || fb.description)) || "";
+                                    // Insert preview immediately above the reply form so feedback list stays visible
+                                    var previewEl = modalBody.querySelector("#reply_parent_preview");
+                                    var replyFormEl = modalBody.querySelector('#replyFeedbackForm');
+                                    if (!previewEl) {
+                                        previewEl = document.createElement("div");
+                                        previewEl.id = "reply_parent_preview";
+                                        // place preview before form if possible, otherwise append to modalBody
+                                        if (replyFormEl && replyFormEl.parentNode) replyFormEl.parentNode.insertBefore(previewEl, replyFormEl);
+                                        else modalBody.appendChild(previewEl);
+                                    }
+                                    previewEl.innerHTML = "";
+                                    // build preview using same markup as selected-files-list (small rounded light box)
+                                    try {
+                                        var plain = "";
+                                        try {
+                                            plain = (sanitizeHtml(comment || "") || "").replace(/<[^>]+>/g, "");
+                                        } catch (_) {
+                                            plain = (comment || "") + "";
+                                        }
+                                        var html = '';
+                                        html += '<div class="selected-files-list mt-2">';
+                                        html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                                        html += '<div style="font-size: 10px; text-align: center;"><span class="material-symbols-outlined">person</span></div>';
+                                        html += '<span class="flex-grow-1" style="font-size: 10px;">' + safeText(title) + '</span>';
+                                        html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                                        html += '</div></div>';
+                                        previewEl.innerHTML = html;
+                                        // attach close handler
+                                        try {
+                                            var btn = previewEl.querySelector('.remove-task');
+                                            if (btn) btn.addEventListener('click', function () {
+                                                try { previewEl.remove(); } catch (_) {}
+                                            });
+                                        } catch (_) {}
+                                    } catch (_) {}
+                                })
+                                .catch(function () {
+                                    // ignore fetch errors for preview
+                                });
+                        } catch (_) {}
+                    })();
+
+                    // File input preview handling
+                    (function () {
+                        try {
+                            window.replyFeedbackSelectedFiles = window.replyFeedbackSelectedFiles || [];
+                            var input = modalBody.querySelector("#reply_reference_files");
+                            var preview = modalBody.querySelector("#reply_reference_files_preview");
+                            if (!preview) {
+                                preview = document.createElement("div");
+                                preview.id = "reply_reference_files_preview";
+                                (modalBody.querySelector('#reply_parent_preview') || modalBody).appendChild(preview);
+                            }
+                            function render() {
+                                preview.innerHTML = "";
+                                if (!window.replyFeedbackSelectedFiles || !window.replyFeedbackSelectedFiles.length) return;
+                                var list = document.createElement("div");
+                                list.className = "selected-files-list mt-2";
+                                window.replyFeedbackSelectedFiles.forEach(function (file, idx) {
+                                    var item = document.createElement("div");
+                                    item.className = "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                    var info = document.createElement("div");
+                                    info.className = "d-flex align-items-center flex-grow-1";
+                                    var icon = document.createElement("span");
+                                    icon.className = "material-symbols-outlined me-2";
+                                    icon.textContent = "description";
+                                    var name = document.createElement("span");
+                                    name.className = "file-name";
+                                    name.textContent = file.name;
+                                    var size = document.createElement("small");
+                                    size.className = "text-muted ms-1";
+                                    size.textContent = " (" + (((file.size || 0) / 1024 / 1024).toFixed(2)) + " MB)";
+                                    var rm = document.createElement("button");
+                                    rm.type = "button";
+                                    rm.className = "btn btn-sm btn-outline-danger";
+                                    rm.innerHTML = "&times;";
+                                    rm.onclick = function () {
+                                        window.replyFeedbackSelectedFiles.splice(idx, 1);
+                                        render();
+                                    };
+                                    info.appendChild(icon);
+                                    info.appendChild(name);
+                                    info.appendChild(size);
+                                    item.appendChild(info);
+                                    item.appendChild(rm);
+                                    list.appendChild(item);
+                                });
+                                preview.appendChild(list);
+                            }
+                            if (input) {
+                                input.addEventListener("change", function () {
+                                    var files = Array.from(this.files || []);
+                                    window.replyFeedbackSelectedFiles = (window.replyFeedbackSelectedFiles || []).concat(files);
+                                    render();
+                                    this.value = "";
+                                });
+                            }
+                        } catch (_) {}
+                    })();
+
+                    // Submit button in footer (use existing footer helper)
+                    try {
+                        var footer = getProjectFeedbackFooter();
+                        if (footer) {
+                            footer.innerHTML = "";
+                            var submitBtn = document.createElement("button");
+                            submitBtn.type = "button";
+                            submitBtn.className = "btn btn-submit-black w-100";
+                            submitBtn.id = "addFeedbackButton";
+                            submitBtn.textContent = "Submit";
+                            submitBtn.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                var form = modalBody.querySelector("#replyFeedbackForm");
+                                if (!form) return;
+                                // prefer Quill content from the initialized inline editor
+                                var html = "";
+                                try {
+                                    var q = window.__quillProjectFeedbackInline;
+                                    if (q && q.root) html = q.root.innerHTML || "";
+                                } catch (_) { html = ""; }
+                                try {
+                                    if ((!html || String(html).replace(/<[^>]+>/g, "").trim() === "") && form.querySelector('#feedback_comment')) {
+                                        var ta = form.querySelector('#feedback_comment');
+                                        if (ta) html = ta.value || html;
+                                    }
+                                } catch (_) {}
+
+                                var fd = new FormData(form);
+                                // ensure feedback_comment in form data is set to Quill html (override if necessary)
+                                try { fd.set('feedback_comment', html); } catch(_){}
+
+                                try {
+                                    if (window.replyFeedbackSelectedFiles && window.replyFeedbackSelectedFiles.length) {
+                                        window.replyFeedbackSelectedFiles.forEach(function (f) {
+                                            fd.append("reference_files[]", f);
+                                        });
+                                    }
+                                } catch (_) {}
+
+                                fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks", {
+                                    method: "POST",
+                                    headers: {
+                                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                                    },
+                                    body: fd,
+                                })
+                                    .then(function (r) {
+                                        return r.ok ? r.json() : r.json().then(Promise.reject);
+                                    })
+                                    .then(function (res) {
+                                        try {
+                                            window.showFloatingAlert && window.showFloatingAlert(res.message || "Reply submitted", "success", 1500);
+                                        } catch (_) {}
+                                        try {
+                                            loadFeedbackData(projectId);
+                                        } catch (_) {}
+                                    })
+                                    .catch(function (err) {
+                                        var msg = (err && (err.message || (err.errors && Object.values(err.errors).join("\n")))) || "Failed to submit reply";
+                                        window.showFloatingAlert && window.showFloatingAlert(msg, "warning", 3500);
+                                    });
+                            });
+                            footer.appendChild(submitBtn);
+                        }
+                    } catch (_) {}
+                } catch (e) {
+                    console.warn("showReplyFeedbackForm error", e);
+                }
+            }
 
             // function showEditFeedbackForm(projectId, data, isReply) {
             //     modalTitle.textContent = isReply
@@ -4787,6 +4712,28 @@
                 window.showReplyFeedbackForm = showReplyFeedbackForm;
                 window.showEditFeedbackForm = showEditFeedbackForm;
                 window.markProjectFeedbacksRead = markProjectFeedbacksRead;
+            } catch (_) {}
+
+            // Delegate reply clicks to our handler to avoid conflicts with other scripts
+            try {
+                document.addEventListener('click', function (ev) {
+                    try {
+                        var trg = ev.target && ev.target.closest && ev.target.closest('.feedback-reply-trigger');
+                        if (!trg) return;
+                        ev.preventDefault();
+                        var p = trg.getAttribute('data-project-id') || getMeta('project-id');
+                        var f = trg.getAttribute('data-feedback-id');
+                        if (!f) return;
+                        // call our function if available
+                        if (typeof showReplyFeedbackForm === 'function') {
+                            showReplyFeedbackForm(p, f);
+                            return;
+                        }
+                        if (typeof window.showReplyFeedbackForm === 'function') {
+                            window.showReplyFeedbackForm(p, f);
+                        }
+                    } catch (_) {}
+                }, true);
             } catch (_) {}
         }
 
