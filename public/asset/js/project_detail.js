@@ -1292,6 +1292,116 @@
                                 }
 
                                 feedbackItem.appendChild(actionsDiv);
+
+                                // Replies list (hidden by default) with View all / Hide toggle
+                                try {
+                                    if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                        var repliesCount = feedback.replies.length;
+                                        var toggleBtn = document.createElement('button');
+                                        toggleBtn.type = 'button';
+                                        toggleBtn.className = 'btn btn-link p-0 view-replies-toggle feedback-toggle-replies d-flex align-items-center';
+                                        toggleBtn.style.cssText = 'cursor:pointer; color:rgb(85,85,85); font-size:10px; text-decoration: none; display:flex; align-items:center;';
+                                        toggleBtn.setAttribute('data-feedback-id', String(feedback.id));
+                                        toggleBtn.setAttribute('data-replies-count', String(repliesCount));
+                                        toggleBtn.textContent = 'View all (' + String(repliesCount) + ')';
+                                        var repliesContainer = document.createElement('div');
+                                        repliesContainer.className = 'feedback-replies d-none';
+
+                                        // append toggle into actions row
+                                        actionsDiv.appendChild(toggleBtn);
+
+                                        // render replies into container (simple structure matching project.js replies)
+                                        feedback.replies.forEach(function (rep) {
+                                            try {
+                                                var repEmp = rep.employee || {};
+                                                var repDiv = document.createElement('div');
+                                                // smaller spacing and padding to match top-level feedback
+                                                repDiv.className = 'feedback-reply ms-4 mt-1 p-1 rounded';
+                                                if (rep && rep.id != null) {
+                                                    repDiv.setAttribute('data-reply-id', String(rep.id));
+                                                    if (feedback && feedback.id != null) repDiv.setAttribute('data-parent-id', String(feedback.id));
+                                                }
+                                                repDiv.style.background = '#fafafa';
+
+                                                // header
+                                                var repHeader = document.createElement('div');
+                                                repHeader.className = 'd-flex align-items-start mb-1';
+                                                var repImg = document.createElement('img');
+                                                (function(){
+                                                    var raw = repEmp.user_photo || repEmp.profile_picture || repEmp.photo || '';
+                                                    var rurl = getMeta('app-url').replace(/\/$/, '') + '/asset/img/avatar.png';
+                                                    try {
+                                                        if (raw) {
+                                                            if (String(raw).startsWith('http')) rurl = raw;
+                                                            else if (String(raw).startsWith('/')) rurl = getMeta('app-url').replace(/\/$/, '') + raw;
+                                                            else rurl = getMeta('app-url').replace(/\/$/, '') + '/file/profile_picture/' + raw;
+                                                        }
+                                                    } catch(_){}
+                                                    repImg.src = rurl;
+                                                })();
+                                                repImg.alt = repEmp.name || 'Employee';
+                                                repImg.className = 'rounded-circle me-2';
+                                                repImg.style.width = '20px'; repImg.style.height = '20px'; repImg.style.objectFit = 'cover';
+
+                                                var repInfo = document.createElement('div');
+                                                repInfo.className = 'flex-grow-1';
+                                                // name + time
+                                                var repNameWrap = document.createElement('div');
+                                                var repNameRow = document.createElement('div');
+                                                repNameRow.className = 'd-flex align-items-center';
+                                                var repNameStrong = document.createElement('strong');
+                                                repNameStrong.style.fontSize = '11px'; repNameStrong.style.fontWeight = '600';
+                                                repNameStrong.textContent = repEmp.name || 'Unknown';
+                                                repNameRow.appendChild(repNameStrong);
+                                                var repDateDiv = document.createElement('div');
+                                                repDateDiv.className = 'text-muted small'; repDateDiv.style.fontSize = '10px';
+                                                if (rep.created_at) repDateDiv.textContent = timeAgo(rep.created_at);
+                                                repNameWrap.appendChild(repNameRow);
+                                                repNameWrap.appendChild(repDateDiv);
+
+                                                // content
+                                                var repContent = document.createElement('div');
+                                                repContent.className = 'mt-2';
+                                                var repComment = document.createElement('p');
+                                                repComment.className = 'mb-1'; repComment.style.fontSize = '10px'; repComment.style.margin = '0';
+                                                try {
+                                                    // show sanitized HTML (allow simple tags) so HTML like <p> is rendered correctly
+                                                    repComment.innerHTML = sanitizeHtml(rep.feedback_comment || '');
+                                                } catch (_) {
+                                                    try { repComment.textContent = rep.feedback_comment || ''; } catch(_) { repComment.textContent = rep.feedback_comment || ''; }
+                                                }
+                                                repContent.appendChild(repComment);
+
+                                                // assemble reply
+                                                repInfo.appendChild(repNameWrap);
+                                                repInfo.appendChild(repContent);
+                                                repHeader.appendChild(repImg);
+                                                repHeader.appendChild(repInfo);
+                                                repDiv.appendChild(repHeader);
+
+                                                repliesContainer.appendChild(repDiv);
+                                            } catch(_){}
+                                        });
+
+                                        feedbackItem.appendChild(repliesContainer);
+
+                                        // toggle behavior: show/hide replies
+                                        try {
+                                            toggleBtn.addEventListener('click', function () {
+                                                try {
+                                                    var isHidden = repliesContainer.classList.contains('d-none');
+                                                    if (isHidden) {
+                                                        repliesContainer.classList.remove('d-none');
+                                                        toggleBtn.textContent = 'Hide';
+                                                    } else {
+                                                        repliesContainer.classList.add('d-none');
+                                                        toggleBtn.textContent = 'View all (' + String(repliesCount) + ')';
+                                                    }
+                                                } catch (_) {}
+                                            });
+                                        } catch(_){}
+                                    }
+                                } catch(_){}
                             } catch (_) {}
 
                             feedbackListEl.appendChild(feedbackItem);
