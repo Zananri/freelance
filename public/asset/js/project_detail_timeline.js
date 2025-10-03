@@ -173,7 +173,7 @@ if (projectId) {
 }
 
 $("#fullscreen-btn").on("click", function () {
-    const $timeline = $(".timeline-detail-project");
+    const $timeline = $(".timeline-content");
     const $icon = $(this).find("span.material-symbols-outlined");
 
     if ($timeline.hasClass("fullscreen")) {
