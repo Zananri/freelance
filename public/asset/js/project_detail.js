@@ -1127,14 +1127,21 @@
                                             "click",
                                             function () {
                                                 try {
-                                                    showEditFeedbackForm &&
-                                                        showEditFeedbackForm(
-                                                            getMeta(
-                                                                "project-id"
-                                                            ),
+                                                    // Prefer inline edit in the sidebar panel
+                                                    var inlineEditor = document.getElementById("inline_feedback_editor");
+                                                    if (inlineEditor && typeof window.startInlineEditFeedback === "function") {
+                                                        window.startInlineEditFeedback(feedback);
+                                                        try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                                        return;
+                                                    }
+                                                    // Fallback to modal-based edit if inline not available
+                                                    if (typeof window.showEditFeedbackForm === "function") {
+                                                        window.showEditFeedbackForm(
+                                                            getMeta("project-id"),
                                                             feedback.id,
                                                             feedback
                                                         );
+                                                    }
                                                 } catch (_) {}
                                             }
                                         );
@@ -1477,6 +1484,715 @@
                     document.getElementById("projectFeedbackList")
                 );
             } catch (_) {}
+
+            // Provide Edit Feedback modal with prefilling for comment, image, urls, and files
+            function showEditFeedbackForm(projectId, arg2, arg3) {
+                try {
+                    // Overloaded args: (projectId, id, data) OR (projectId, data, isReply)
+                    var data = null;
+                    var isReply = false;
+                    var id = null;
+                    if (arg2 && typeof arg2 === "object") {
+                        data = arg2;
+                        id = data.id;
+                        isReply = !!arg3;
+                    } else {
+                        id = arg2;
+                        data = arg3 || {};
+                        isReply = false;
+                    }
+
+                    if (!data) data = {};
+
+                    // Set modal title
+                    try {
+                        var tEl = projectFeedbackModalEl.querySelector(
+                            ".feedback-modal-title"
+                        );
+                        if (tEl)
+                            tEl.textContent = isReply
+                                ? "Edit Reply"
+                                : "Edit Feedback";
+                    } catch (_) {}
+
+                    // Clear modal body and insert template content
+                    try {
+                        modalBody.innerHTML = "";
+                        var tpl = document.getElementById(
+                            "template-edit-feedback"
+                        );
+                        var node = null;
+                        if (tpl) {
+                            node =
+                                tpl.tagName &&
+                                tpl.tagName.toLowerCase() === "template"
+                                    ? tpl.content.cloneNode(true)
+                                    : tpl.cloneNode(true);
+                        }
+                        if (!node) return;
+                        modalBody.appendChild(node);
+                    } catch (_) {
+                        return;
+                    }
+
+                    // Prefill comment (textarea will be synced from Quill on submit)
+                    try {
+                        var ta = modalBody.querySelector(
+                            "#editFeedbackForm #feedback_comment"
+                        );
+                        if (ta) ta.value = data.feedback_comment || "";
+                    } catch (_) {}
+
+                    // Setup image preview and clear flag
+                    (function () {
+                        try {
+                            function toFullImageUrl(v) {
+                                if (!v) return "";
+                                var s = String(v);
+                                if (
+                                    s.indexOf("http://") === 0 ||
+                                    s.indexOf("https://") === 0
+                                )
+                                    return s;
+                                if (s.indexOf("/") === 0)
+                                    return appUrl.replace(/\/$/, "") + s;
+                                return (
+                                    appUrl.replace(/\/$/, "") +
+                                    "/file/project/" +
+                                    s.replace(/^\//, "")
+                                );
+                            }
+                            var rawImg =
+                                data.image_url ||
+                                data.image ||
+                                data.image_path ||
+                                data.imageUrl ||
+                                "";
+                            var existingImg = toFullImageUrl(rawImg);
+                            var hasImg = !!existingImg;
+                            var imgInput = modalBody.querySelector(
+                                "#feedback_image"
+                            );
+                            var imgLabel = modalBody.querySelector(
+                                "#editFeedbackImageLabel"
+                            );
+                            var imgClearBtn = modalBody.querySelector(
+                                "#editFeedbackImageClearBtn"
+                            );
+                            var rmHidden = modalBody.querySelector(
+                                "#edit_remove_image"
+                            );
+                            if (imgLabel) {
+                                if (hasImg) {
+                                    imgLabel.style.backgroundImage =
+                                        "url('" + existingImg + "')";
+                                    imgLabel.style.backgroundSize = "cover";
+                                    imgLabel.style.opacity = "1";
+                                } else {
+                                    imgLabel.style.backgroundImage =
+                                        "url('" +
+                                        appUrl.replace(/\/$/, "") +
+                                        "/asset/img/background/add-image.png')";
+                                    imgLabel.style.backgroundSize = "50%";
+                                    imgLabel.style.opacity = "0.5";
+                                }
+                            }
+                            if (imgClearBtn)
+                                imgClearBtn.classList.toggle(
+                                    "d-none",
+                                    !hasImg
+                                );
+                            if (rmHidden) rmHidden.value = "0";
+
+                            if (imgInput && imgLabel && imgClearBtn) {
+                                imgInput.addEventListener("change", function () {
+                                    if (this.files && this.files[0]) {
+                                        var reader = new FileReader();
+                                        reader.onload = function (e) {
+                                            try {
+                                                imgLabel.style.backgroundImage =
+                                                    "url('" + e.target.result + "')";
+                                                imgLabel.classList.add(
+                                                    "has-image"
+                                                );
+                                                imgLabel.style.backgroundSize =
+                                                    "cover";
+                                                imgLabel.style.opacity = "1";
+                                                imgClearBtn.classList.remove(
+                                                    "d-none"
+                                                );
+                                                if (rmHidden)
+                                                    rmHidden.value = "0";
+                                            } catch (_) {}
+                                        };
+                                        reader.readAsDataURL(this.files[0]);
+                                    }
+                                });
+                                imgClearBtn.addEventListener(
+                                    "click",
+                                    function (e) {
+                                        e.preventDefault();
+                                        try {
+                                            imgInput.value = "";
+                                        } catch (_) {}
+                                        imgLabel.style.backgroundImage =
+                                            "url('" +
+                                            appUrl.replace(/\/$/, "") +
+                                            "/asset/img/background/add-image.png')";
+                                        imgLabel.style.backgroundPosition =
+                                            "center center";
+                                        imgLabel.style.backgroundRepeat =
+                                            "no-repeat";
+                                        imgLabel.style.backgroundSize = "50%";
+                                        imgLabel.classList.remove("has-image");
+                                        imgLabel.style.opacity = "0.5";
+                                        imgClearBtn.classList.add("d-none");
+                                        if (rmHidden) rmHidden.value = "1";
+                                    }
+                                );
+                            }
+                        } catch (_) {}
+                    })();
+
+                    // Prefill reference URLs
+                    (function () {
+                        try {
+                            var container = modalBody.querySelector(
+                                "#feedback_reference_urls_container"
+                            );
+                            if (!container) return;
+                            container.innerHTML = "";
+                            var urls = [];
+                            try {
+                                if (Array.isArray(data.reference_urls))
+                                    urls = data.reference_urls.slice();
+                                else if (
+                                    typeof data.reference_urls === "string" &&
+                                    data.reference_urls.trim() !== ""
+                                ) {
+                                    try {
+                                        var arr = JSON.parse(
+                                            data.reference_urls
+                                        );
+                                        if (Array.isArray(arr)) urls = arr;
+                                    } catch (_) {}
+                                }
+                                if (
+                                    (!urls || !urls.length) &&
+                                    data.reference_url
+                                )
+                                    urls = [data.reference_url];
+                            } catch (_) {}
+                            function addRow(value, withAdd) {
+                                var row = document.createElement("div");
+                                row.className = "d-flex gap-2 align-items-center";
+                                row.innerHTML =
+                                    '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                                    (withAdd
+                                        ? ' <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>'
+                                        : ' <button type="button" class="btn btn-remove-url remove-ref-url"><span class="material-symbols-outlined">close</span></button>');
+                                container.appendChild(row);
+                                var inp = row.querySelector(
+                                    'input[type="url"]'
+                                );
+                                if (inp && value) inp.value = value;
+                            }
+                            addRow("", true);
+                            (urls || []).forEach(function (u) {
+                                addRow(u, false);
+                            });
+                        } catch (_) {}
+                    })();
+
+                    // Existing files list + preview for new files
+                    (function () {
+                        try {
+                            var container = modalBody.querySelector(
+                                "#existing_feedback_reference_files"
+                            );
+                            var hidden = modalBody.querySelector(
+                                "#existing_feedback_reference_files_input"
+                            );
+                            var preview = modalBody.querySelector(
+                                "#edit_feedback_reference_files_preview"
+                            );
+                            var input = modalBody.querySelector(
+                                "#edit_reference_files"
+                            );
+                            if (!container || !hidden || !preview || !input)
+                                return;
+
+                            // Gather existing files from various shapes
+                            var files = [];
+                            try {
+                                if (
+                                    Array.isArray(data.reference_files_urls)
+                                )
+                                    files = data.reference_files_urls.slice();
+                                else if (Array.isArray(data.reference_files))
+                                    files = data.reference_files.slice();
+                                else if (data.reference_file_url)
+                                    files = [data.reference_file_url];
+                                else if (data.reference_file)
+                                    files = [data.reference_file];
+                                else if (
+                                    typeof data.reference_files ===
+                                        "string" &&
+                                    data.reference_files.trim() !== ""
+                                ) {
+                                    try {
+                                        var arr2 = JSON.parse(
+                                            data.reference_files
+                                        );
+                                        if (Array.isArray(arr2)) files = arr2;
+                                    } catch (_) {}
+                                }
+                            } catch (_) {}
+
+                            function toUrl(v) {
+                                if (!v) return "";
+                                var s = String(v);
+                                if (
+                                    s.indexOf("http://") === 0 ||
+                                    s.indexOf("https://") === 0
+                                )
+                                    return s;
+                                if (s.indexOf("/") === 0)
+                                    return appUrl.replace(/\/$/, "") + s;
+                                return (
+                                    appUrl.replace(/\/$/, "") +
+                                    "/file/project/" +
+                                    s
+                                );
+                            }
+                            function toName(u) {
+                                if (!u) return "";
+                                var s = String(u);
+                                try {
+                                    var last = s.split("/").pop();
+                                    return last || s;
+                                } catch (_) {
+                                    return s;
+                                }
+                            }
+
+                            container.innerHTML = "";
+                            if ((files || []).length > 0) {
+                                var list = document.createElement("div");
+                                list.className = "existing-files-list w-100";
+                                files.forEach(function (f) {
+                                    var url = toUrl(f);
+                                    var name = toName(f);
+                                    if (!name) return;
+                                    var item = document.createElement("div");
+                                    item.className =
+                                        "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                    var info = document.createElement("div");
+                                    info.className =
+                                        "d-flex align-items-center flex-grow-1";
+                                    var icon = document.createElement("span");
+                                    icon.className =
+                                        "material-symbols-outlined me-2";
+                                    icon.textContent = "description";
+                                    var link = document.createElement("a");
+                                    link.href = url;
+                                    link.textContent = name;
+                                    link.className = "text-decoration-none";
+                                    link.target = "_blank";
+                                    var removeBtn =
+                                        document.createElement("button");
+                                    removeBtn.type = "button";
+                                    removeBtn.className =
+                                        "btn btn-sm btn-outline-danger";
+                                    removeBtn.innerHTML = "&times;";
+                                    removeBtn.onclick = function () {
+                                        item.remove();
+                                        try {
+                                            var anchors =
+                                                container.querySelectorAll(
+                                                    ".existing-file-item a"
+                                                );
+                                            var keep = Array.from(anchors)
+                                                .map(function (a) {
+                                                    return (
+                                                        a.textContent || ""
+                                                    ).trim();
+                                                })
+                                                .filter(Boolean);
+                                            hidden.value =
+                                                JSON.stringify(keep);
+                                        } catch (_) {}
+                                    };
+                                    info.appendChild(icon);
+                                    info.appendChild(link);
+                                    item.appendChild(info);
+                                    item.appendChild(removeBtn);
+                                    list.appendChild(item);
+                                });
+                                container.appendChild(list);
+                            }
+                            try {
+                                var anchors2 = container.querySelectorAll(
+                                    ".existing-file-item a"
+                                );
+                                var names2 = Array.from(anchors2)
+                                    .map(function (a) {
+                                        return (a.textContent || "").trim();
+                                    })
+                                    .filter(Boolean);
+                                hidden.value = JSON.stringify(names2);
+                            } catch (_) {
+                                hidden.value = "[]";
+                            }
+
+                            // Preview for newly added files
+                            try {
+                                window.editFeedbackSelectedFiles = [];
+                                function renderPreview() {
+                                    preview.innerHTML = "";
+                                    if (
+                                        !window.editFeedbackSelectedFiles ||
+                                        !window.editFeedbackSelectedFiles
+                                            .length
+                                    )
+                                        return;
+                                    var list = document.createElement("div");
+                                    list.className =
+                                        "selected-files-list mt-2";
+                                    window.editFeedbackSelectedFiles.forEach(
+                                        function (file, idx) {
+                                            var item =
+                                                document.createElement("div");
+                                            item.className =
+                                                "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                            var info =
+                                                document.createElement("div");
+                                            info.className =
+                                                "d-flex align-items-center flex-grow-1";
+                                            var icon =
+                                                document.createElement(
+                                                    "span"
+                                                );
+                                            icon.className =
+                                                "material-symbols-outlined me-2";
+                                            icon.textContent = "description";
+                                            var name =
+                                                document.createElement(
+                                                    "span"
+                                                );
+                                            name.className = "file-name";
+                                            name.textContent = file.name;
+                                            var size =
+                                                document.createElement(
+                                                    "small"
+                                                );
+                                            size.className =
+                                                "text-muted ms-1";
+                                            size.textContent =
+                                                " (" +
+                                                (
+                                                    (file.size || 0) /
+                                                    1024 /
+                                                    1024
+                                                ).toFixed(2) +
+                                                " MB)";
+                                            var rm =
+                                                document.createElement(
+                                                    "button"
+                                                );
+                                            rm.type = "button";
+                                            rm.className =
+                                                "btn btn-sm btn-outline-danger";
+                                            rm.innerHTML = "&times;";
+                                            rm.onclick = function () {
+                                                try {
+                                                    window.editFeedbackSelectedFiles.splice(
+                                                        idx,
+                                                        1
+                                                    );
+                                                    renderPreview();
+                                                } catch (_) {}
+                                            };
+                                            info.appendChild(icon);
+                                            info.appendChild(name);
+                                            info.appendChild(size);
+                                            item.appendChild(info);
+                                            item.appendChild(rm);
+                                            list.appendChild(item);
+                                        }
+                                    );
+                                    preview.appendChild(list);
+                                }
+                                input.addEventListener("change", function () {
+                                    try {
+                                        var files = Array.from(
+                                            this.files || []
+                                        );
+                                        window.editFeedbackSelectedFiles = (
+                                            window.editFeedbackSelectedFiles ||
+                                            []
+                                        ).concat(files);
+                                        renderPreview();
+                                        this.value = "";
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        } catch (_) {}
+                    })();
+
+                    // Initialize Quill editor for edit form and set content
+                    try {
+                        initFeedbackQuillEditors(modalBody);
+                        if (
+                            window.__quillProjectFeedbackEdit &&
+                            window.__quillProjectFeedbackEdit.root
+                        ) {
+                            window.__quillProjectFeedbackEdit.root.innerHTML =
+                                data.feedback_comment || "";
+                        }
+                    } catch (_) {}
+
+                    // Turn footer primary button into Update and wire submit
+                    (function () {
+                        try {
+                            var footer = (function () {
+                                try {
+                                    return (
+                                        projectFeedbackModalEl.querySelector(
+                                            ".feedback-modal-footer"
+                                        ) ||
+                                        projectFeedbackModalEl.querySelector(
+                                            ".modal-footer"
+                                        )
+                                    );
+                                } catch (_) {
+                                    return null;
+                                }
+                            })();
+                            var btn = document.getElementById(
+                                "addFeedbackButton"
+                            );
+                            if (!btn) {
+                                // Fallback for sidebar (no modal footer/button). Create local buttons.
+                                var localWrap = document.createElement("div");
+                                localWrap.className =
+                                    "d-flex gap-2 w-100 mt-2 justify-content-end";
+                                var closeBtn = document.createElement("button");
+                                closeBtn.type = "button";
+                                closeBtn.className = "btn btn-close-reply";
+                                closeBtn.textContent = "Close";
+                                closeBtn.addEventListener("click", function () {
+                                    try {
+                                        loadFeedbackData(projectId);
+                                    } catch (_) {}
+                                });
+                                var updateBtn = document.createElement("button");
+                                updateBtn.type = "button";
+                                updateBtn.className = "btn btn-submit-black";
+                                updateBtn.textContent = "Update";
+                                modalBody.appendChild(localWrap);
+                                localWrap.appendChild(closeBtn);
+                                localWrap.appendChild(updateBtn);
+                                btn = updateBtn; // reuse common handler below
+                            } else {
+                                btn.textContent = "Update";
+                                var fresh = btn.cloneNode(true);
+                                btn.parentNode.replaceChild(fresh, btn);
+                                btn = fresh;
+                            }
+
+                            btn.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                try {
+                                    // ensure quill -> textarea sync
+                                    try {
+                                        if (window.__quillProjectFeedbackEdit) {
+                                            var ta = document.querySelector(
+                                                "#editFeedbackForm #feedback_comment"
+                                            );
+                                            if (ta)
+                                                ta.value =
+                                                    window.__quillProjectFeedbackEdit.root.innerHTML ||
+                                                    "";
+                                        }
+                                    } catch (_) {}
+                                    var form = document.getElementById(
+                                        "editFeedbackForm"
+                                    );
+                                    if (!form) return;
+                                    var fd = new FormData(form);
+                                    // Map first URL to reference_url (backend compatibility)
+                                    try {
+                                        var urlInputs = form.querySelectorAll(
+                                            'input[name="reference_urls[]"]'
+                                        );
+                                        var urls = Array.from(urlInputs)
+                                            .map(function (i) {
+                                                return (i.value || "").trim();
+                                            })
+                                            .filter(Boolean);
+                                        fd.set(
+                                            "reference_url",
+                                            urls.length ? urls[0] : ""
+                                        );
+                                    } catch (_) {}
+                                    // Existing kept files
+                                    try {
+                                        var existingHidden = form.querySelector(
+                                            "#existing_feedback_reference_files_input"
+                                        );
+                                        if (
+                                            existingHidden &&
+                                            !existingHidden.value
+                                        )
+                                            existingHidden.value = "[]";
+                                    } catch (_) {}
+                                    // Newly added files
+                                    try {
+                                        if (
+                                            window.editFeedbackSelectedFiles &&
+                                            window.editFeedbackSelectedFiles
+                                                .length
+                                        ) {
+                                            window.editFeedbackSelectedFiles.forEach(
+                                                function (f) {
+                                                    fd.append(
+                                                        "reference_files[]",
+                                                        f
+                                                    );
+                                                }
+                                            );
+                                        }
+                                    } catch (_) {}
+                                    // PUT method override
+                                    fd.append("_method", "PUT");
+
+                                    var submitBtn = btn;
+                                    var originalText = submitBtn.innerHTML;
+                                    submitBtn.disabled = true;
+                                    submitBtn.innerHTML =
+                                        '<span class="spinner-border spinner-border-sm me-1"></span>Updating...';
+
+                                    fetch(
+                                        appUrl.replace(/\/$/, "") +
+                                            "/project-feedbacks/" +
+                                            id,
+                                        {
+                                            method: "POST",
+                                            headers: {
+                                                "X-CSRF-TOKEN": document
+                                                    .querySelector(
+                                                        'meta[name="csrf-token"]'
+                                                    )
+                                                    .getAttribute("content"),
+                                            },
+                                            body: fd,
+                                        }
+                                    )
+                                        .then(function (r) {
+                                            return r.ok
+                                                ? r.json()
+                                                : r.json().then(
+                                                      Promise.reject
+                                                  );
+                                        })
+                                        .then(function (res) {
+                                            try {
+                                                window.showFloatingAlert &&
+                                                    window.showFloatingAlert(
+                                                        res.message ||
+                                                            "Feedback updated",
+                                                        "success",
+                                                        1500
+                                                    );
+                                            } catch (_) {}
+                                            try {
+                                                loadFeedbackData(projectId);
+                                            } catch (_) {}
+                                        })
+                                        .catch(function (err) {
+                                            var msg =
+                                                (err &&
+                                                    (err.message ||
+                                                        (err.errors &&
+                                                            Object.values(
+                                                                err.errors
+                                                            ).join("\n")))) ||
+                                                "Failed to update feedback";
+                                            try {
+                                                window.showFloatingAlert &&
+                                                    window.showFloatingAlert(
+                                                        msg,
+                                                        "warning",
+                                                        3500
+                                                    );
+                                            } catch (_) {}
+                                        })
+                                        .finally(function () {
+                                            submitBtn.disabled = false;
+                                            submitBtn.innerHTML = originalText;
+                                        });
+                                } catch (_) {}
+                            });
+
+                            // Arrange Close + Update buttons nicely
+                            try {
+                                if (!footer) return;
+                                var submitRef = document.getElementById(
+                                    "addFeedbackButton"
+                                );
+                                if (!submitRef) return; // sidebar fallback already created
+                                submitRef.classList.remove("w-100");
+                                submitRef.classList.add("flex-grow-1");
+                                var old = footer.querySelector(
+                                    "#feedbackFormButtonsWrapper"
+                                );
+                                if (old) old.remove();
+                                var wrap = document.createElement("div");
+                                wrap.id = "feedbackFormButtonsWrapper";
+                                wrap.className = "d-flex gap-2 w-100";
+                                var closeBtn = document.createElement("button");
+                                closeBtn.type = "button";
+                                closeBtn.className =
+                                    "btn btn-close-reply flex-grow-1";
+                                closeBtn.textContent = "Close";
+                                closeBtn.addEventListener("click", function () {
+                                    try {
+                                        footer.innerHTML = "";
+                                        var restore = document.createElement(
+                                            "button"
+                                        );
+                                        restore.type = "button";
+                                        restore.className =
+                                            "btn btn-submit-black w-100";
+                                        restore.id = "addFeedbackButton";
+                                        restore.textContent = "Add Feedback";
+                                        restore.addEventListener(
+                                            "click",
+                                            function () {
+                                                try {
+                                                    if (typeof showAddFeedbackForm === "function")
+                                                        showAddFeedbackForm(projectId);
+                                                } catch (_) {}
+                                            }
+                                        );
+                                        footer.appendChild(restore);
+                                    } catch (_) {}
+                                    try {
+                                        loadFeedbackData(projectId);
+                                    } catch (_) {}
+                                });
+                                wrap.appendChild(closeBtn);
+                                wrap.appendChild(submitRef);
+                                footer.innerHTML = "";
+                                footer.appendChild(wrap);
+                            } catch (_) {}
+                        } catch (_) {}
+                    })();
+                } catch (e) {
+                    console.warn("showEditFeedbackForm error", e);
+                }
+            }
 
             // Ensure Quill content is synced to hidden textarea before forms are submitted
             function syncAllFeedbackQuills() {
@@ -1906,6 +2622,91 @@
                     }
                 } catch (_) {}
 
+                // Inline edit helpers (global) — render existing files, show existing image, enter/exit edit mode
+                (function(){
+                    // Render existing files (from fetched feedback) with ability to remove/keep
+                    window.renderInlineExistingFiles = function(files){
+                        try {
+                            var editorEl = document.getElementById("inline_feedback_editor");
+                            if (!editorEl || !editorEl.parentNode) return;
+                            var parent = editorEl.parentNode;
+                            var id = "inline_existing_files_preview";
+                            var box = document.getElementById(id);
+                            var arr = Array.isArray(files) ? files.slice() : [];
+                            window.inlineExistingFilesKeep = [];
+                            function toUrl(v){
+                                if (!v) return "";
+                                var s = String(v);
+                                if (s.indexOf("http://")===0 || s.indexOf("https://")===0) return s;
+                                if (s.indexOf("/")===0) return appUrl.replace(/\/$/, "") + s;
+                                return appUrl.replace(/\/$/, "") + "/file/project/" + s;
+                            }
+                            function toName(u){
+                                var s = String(u||"");
+                                try { return s.split("/").pop(); } catch(_){ return s; }
+                            }
+                            if (!arr.length){ if (box && box.parentNode) box.parentNode.removeChild(box); return; }
+                            if (!box){ box = document.createElement("div"); box.id = id; box.className = "mt-2"; parent.insertBefore(box, editorEl); }
+                            box.innerHTML = "";
+                            var list = document.createElement("div"); list.className = "existing-files-list w-100";
+                            arr.forEach(function(f){
+                                var url = toUrl(f); var name = toName(f); if (!name) return;
+                                window.inlineExistingFilesKeep.push(name);
+                                var item = document.createElement("div"); item.className = "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                var info = document.createElement("div"); info.className = "d-flex align-items-center flex-grow-1";
+                                var icon = document.createElement("span"); icon.className = "material-symbols-outlined me-2"; icon.textContent = "description";
+                                var link = document.createElement("a"); link.href = url; link.target = "_blank"; link.textContent = name; link.className = "text-decoration-none";
+                                var rm = document.createElement("button"); rm.type = "button"; rm.className = "btn btn-sm btn-outline-danger"; rm.innerHTML = "&times;";
+                                rm.addEventListener("click", function(){ try { item.remove(); var idx = window.inlineExistingFilesKeep.indexOf(name); if (idx>-1) window.inlineExistingFilesKeep.splice(idx,1); } catch(_){}});
+                                info.appendChild(icon); info.appendChild(link); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
+                            });
+                            box.appendChild(list);
+                        } catch(_){ }
+                    };
+
+                    // Show small image preview from an existing URL (not a File)
+                    window.showInlineImagePreviewFromUrl = function(url){
+                        try {
+                            var editorEl = document.getElementById("inline_feedback_editor"); if (!editorEl || !editorEl.parentNode) return;
+                            var parent = editorEl.parentNode; var previewContainer = document.getElementById("inline_feedback_image_preview");
+                            if (!previewContainer){ previewContainer = document.createElement("div"); previewContainer.id = "inline_feedback_image_preview"; previewContainer.className = "mt-2"; parent.insertBefore(previewContainer, editorEl); }
+                            previewContainer.innerHTML = "";
+                            var wrap = document.createElement("div"); wrap.style.position = "relative"; wrap.style.display = "inline-block";
+                            var img = document.createElement("img"); img.src = url; img.style.maxWidth = "140px"; img.style.borderRadius = "8px";
+                            var rm = document.createElement("button"); rm.type = "button"; rm.className = "btn btn-sm btn-outline-danger"; rm.style.position = "absolute"; rm.style.top = "-8px"; rm.style.right = "-8px"; rm.innerHTML = "&times;";
+                            rm.addEventListener("click", function(){ try { previewContainer.remove(); } catch(_){} window.__inlineRemoveImage = true; });
+                            wrap.appendChild(img); wrap.appendChild(rm); previewContainer.appendChild(wrap); window.__inlineRemoveImage = false;
+                        } catch(_){ }
+                    };
+
+                    // Enter inline EDIT mode: prefill editor, show existing assets, switch Send->Update, add Cancel
+                    window.startInlineEditFeedback = function(data){
+                        try {
+                            var hid = document.getElementById("inline_edit_feedback_input"); if (hid) hid.value = data.id || "";
+                            if (window.__quillProjectFeedbackInline && window.__quillProjectFeedbackInline.root)
+                                window.__quillProjectFeedbackInline.root.innerHTML = data.feedback_comment || "";
+                            try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
+                            try { var files = []; if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls; else if (Array.isArray(data.reference_files)) files = data.reference_files; else if (data.reference_file_url) files = [data.reference_file_url]; else if (data.reference_file) files = [data.reference_file]; window.renderInlineExistingFiles(files); } catch(_){ }
+                            var sendBtn = document.getElementById("inlineFeedbackSendBtn"); if (sendBtn){ sendBtn._origText = sendBtn._origText || sendBtn.textContent; sendBtn.textContent = "Update"; }
+                            var actions = document.querySelector('.btn-actions-feedback .submit-feedback'); if (actions && !document.getElementById('inlineFeedbackCancelBtn')){ var cancel = document.createElement('button'); cancel.type='button'; cancel.id='inlineFeedbackCancelBtn'; cancel.className='btn btn-custom-close me-2'; cancel.textContent='Cancel'; cancel.addEventListener('click', function(){ try { window.cancelInlineEditFeedback(); } catch(_){ } }); actions.insertBefore(cancel, actions.firstChild); }
+                        } catch(_){ }
+                    };
+
+                    // Exit inline EDIT mode and reset UI
+                    window.cancelInlineEditFeedback = function(){
+                        try {
+                            var hid = document.getElementById('inline_edit_feedback_input'); if (hid) hid.value = '';
+                            window.inlineExistingFilesKeep = [];
+                            try { var ex = document.getElementById('inline_existing_files_preview'); if (ex && ex.parentNode) ex.parentNode.removeChild(ex); } catch(_){}
+                            try { var ip = document.getElementById('inline_feedback_image_preview'); if (ip && ip.parentNode) ip.parentNode.removeChild(ip); } catch(_){}
+                            window.__inlineFeedbackImageFile = null; window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview();
+                            var sendBtn = document.getElementById('inlineFeedbackSendBtn'); if (sendBtn && sendBtn._origText) sendBtn.textContent = sendBtn._origText;
+                            var cancel = document.getElementById('inlineFeedbackCancelBtn'); if (cancel && cancel.parentNode) cancel.parentNode.removeChild(cancel);
+                            window.__inlineRemoveImage = false;
+                        } catch(_){ }
+                    };
+                })();
+
                 // Send button: collect quill content + files and POST to /project-feedbacks
                 try {
                     var sendBtn = document.getElementById(
@@ -1983,15 +2784,10 @@
 
                                 var fd = new FormData();
                                 fd.append("feedback_comment", html);
-                                fd.append(
-                                    "project_id",
-                                    getMeta("project-id") || ""
-                                );
+                                fd.append("project_id", getMeta("project-id") || "");
                                 fd.append(
                                     "employee_id",
-                                    document
-                                        .getElementById("projectFeedbackModal")
-                                        ?.getAttribute("data-employee-id") || ""
+                                    document.getElementById("projectFeedbackModal")?.getAttribute("data-employee-id") || ""
                                 );
 
                                 // attach image from preview (if available) or file input
@@ -2044,37 +2840,45 @@
                                     }
                                 } catch (_) {}
 
+                                // Detect inline edit mode
+                                var editId = (document.getElementById('inline_edit_feedback_input')||{}).value || '';
+                                var isEdit = String(editId).trim() !== '';
+                                if (isEdit) {
+                                    try {
+                                        // include keep-list for existing files
+                                        var keep = window.inlineExistingFilesKeep || [];
+                                        fd.set('existing_reference_files', JSON.stringify(keep));
+                                    } catch(_) {}
+                                    try {
+                                        // include remove_image flag
+                                        if (typeof window.__inlineRemoveImage !== 'undefined') {
+                                            fd.set('remove_image', window.__inlineRemoveImage ? '1' : '0');
+                                        }
+                                    } catch(_) {}
+                                    // method override
+                                    fd.append('_method','PUT');
+                                }
+
                                 // basic UI feedback
                                 var original = sendBtn.innerHTML;
                                 sendBtn.disabled = true;
-                                sendBtn.innerHTML =
-                                    '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+                                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + (isEdit ? 'Updating...' : 'Sending...');
 
-                                // Optimistic UI: hide preview immediately, but keep a backup to restore on failure
-                                var _backupSelectedFiles = (
-                                    window.inlineFeedbackSelectedFiles || []
-                                ).slice();
-                                try {
-                                    window.inlineFeedbackSelectedFiles = [];
-                                    renderInlineFilesPreview &&
-                                        renderInlineFilesPreview();
-                                } catch (_) {}
+                                // Optimistic UI: hide selected files preview immediately, but keep a backup to restore on failure
+                                var _backupSelectedFiles = (window.inlineFeedbackSelectedFiles || []).slice();
+                                try { window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); } catch (_) {}
 
-                                fetch(
-                                    getMeta("app-url").replace(/\/$/, "") +
-                                        "/project-feedbacks",
-                                    {
-                                        method: "POST",
-                                        headers: {
-                                            "X-CSRF-TOKEN": document
-                                                .querySelector(
-                                                    'meta[name="csrf-token"]'
-                                                )
-                                                .getAttribute("content"),
-                                        },
-                                        body: fd,
-                                    }
-                                )
+                                var reqUrl = isEdit
+                                    ? getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + editId
+                                    : getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks';
+                                var reqMethod = 'POST';
+                                fetch(reqUrl, {
+                                    method: reqMethod,
+                                    headers: {
+                                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                    },
+                                    body: fd,
+                                })
                                     .then(function (res) {
                                         if (!res.ok)
                                             return res
@@ -2085,12 +2889,11 @@
                                         return res.json();
                                     })
                                     .then(function (data) {
-                                        window.showFloatingAlert &&
-                                            window.showFloatingAlert(
-                                                "Feedback submitted",
-                                                "success",
-                                                2000
-                                            );
+                                        window.showFloatingAlert && window.showFloatingAlert(
+                                            isEdit ? "Feedback updated" : "Feedback submitted",
+                                            "success",
+                                            2000
+                                        );
                                         // reload feedback list
                                         try {
                                             loadFeedbackData(
@@ -2157,6 +2960,9 @@
                                             initInlineFeedback &&
                                                 initInlineFeedback();
                                         } catch (_) {}
+                                        if (isEdit) {
+                                            try { window.cancelInlineEditFeedback && window.cancelInlineEditFeedback(); } catch(_) {}
+                                        }
                                     })
                                     .catch(function (err) {
                                         // restore preview from backup
@@ -2166,7 +2972,7 @@
                                             renderInlineFilesPreview &&
                                                 renderInlineFilesPreview();
                                         } catch (_) {}
-                                        var msg = "Failed to submit feedback";
+                                        var msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
                                         try {
                                             if (err && err.errors)
                                                 msg = Object.values(
@@ -2462,21 +3268,38 @@
                             sendBtn.innerHTML =
                                 '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
 
-                            fetch(
-                                getMeta("app-url").replace(/\/$/, "") +
-                                    "/project-feedbacks",
-                                {
-                                    method: "POST",
-                                    headers: {
-                                        "X-CSRF-TOKEN": document
-                                            .querySelector(
-                                                'meta[name="csrf-token"]'
-                                            )
-                                            .getAttribute("content"),
-                                    },
-                                    body: fd,
-                                }
-                            )
+                            var editId = (document.getElementById('inline_edit_feedback_input')||{}).value || '';
+                            var isEdit = String(editId).trim() !== '';
+                            if (isEdit) {
+                                try {
+                                    // include edit extras
+                                    // existing files kept
+                                    var keep = window.inlineExistingFilesKeep || [];
+                                    fd.set('existing_reference_files', JSON.stringify(keep));
+                                    // remove_image flag
+                                    if (typeof window.__inlineRemoveImage !== 'undefined') {
+                                        fd.set('remove_image', window.__inlineRemoveImage ? '1' : '0');
+                                    }
+                                    // ensure new files appended
+                                    if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length){
+                                        window.inlineFeedbackSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); });
+                                    }
+                                    // method override
+                                    fd.append('_method','PUT');
+                                } catch(_){}
+                            }
+
+                            var reqUrl = isEdit
+                                ? getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + editId
+                                : getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks';
+                            var reqMethod = 'POST';
+                            fetch(reqUrl, {
+                                method: reqMethod,
+                                headers: {
+                                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                },
+                                body: fd,
+                            })
                                 .then(function (res) {
                                     if (!res.ok)
                                         return res.json().then(function (j) {
@@ -2485,16 +3308,18 @@
                                     return res.json();
                                 })
                                 .then(function (data) {
-                                    window.showFloatingAlert &&
-                                        window.showFloatingAlert(
-                                            "Feedback submitted",
-                                            "success",
-                                            2000
-                                        );
+                                    window.showFloatingAlert && window.showFloatingAlert(
+                                        isEdit ? "Feedback updated" : "Feedback submitted",
+                                        "success",
+                                        2000
+                                    );
                                     try {
                                         loadFeedbackData(getMeta("project-id"));
                                     } catch (_) {}
                                     cleanup();
+                                    if (isEdit) {
+                                        try { cancelInlineEditFeedback(); } catch(_){}
+                                    }
                                     try {
                                         if (window.__quillProjectFeedbackInline)
                                             window.__quillProjectFeedbackInline.root.innerHTML =
