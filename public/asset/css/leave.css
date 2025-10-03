@@ -320,7 +320,7 @@
     height: 28px;
     border-radius: 30px;
     overflow: hidden;
-    background-color: #42484F;
+    background-color: #ededed;
     display:inline-block;
 }
 
@@ -532,7 +532,7 @@
 }
 
 .item-time-off .item-status.approved{
-    color: #22854b;
+    color: #01a646;
     background-color: #e6eee9;
 }
 
@@ -569,7 +569,7 @@
 
 
 .item-time-off .item-action  .btn-action.reject {
-    background-color: #e9e0e0 !important;
+    background-color: #f5cece !important;
     color: #42484F;
 }
 .item-time-off .item-action  .btn-action.reject:hover {
@@ -580,12 +580,12 @@
 
 
 .item-time-off .item-action  .btn-action.approve {
-    background-color: #e0e9e4 !important;
+    background-color: #c4f0d7 !important;
     color: #42484F;
 }
 .item-time-off .item-action  .btn-action.approve:hover {
-    background-color: #e1f0e8 !important;
-    color: #42484F;
+    background-color: #b8f0d0 !important;
+    color: #353b40;
 }
 
 

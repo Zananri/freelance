@@ -968,13 +968,149 @@
                                     <button type="button" class="btn btn-close-modal w-100" data-bs-dismiss="modal">Close</button>
                                 </div>
                                 <div class="col-6">
-                                    <button type="button" class="btn btn-submit-modal w-100" >Request Overtime</button>
+                                    <button type="button" class="btn btn-submit-modal w-100 btn-new-overtime" >New Overtime</button>
                                 </div>
                             </div>
                             
                         </div>
 
+                    </div>
+                </div>
+            </div>
+        </div>
 
+        <!-- Modal New Overtime -->
+        <div class="modal fade" id="overtimeNewModal" tabindex="-1" role="dialog" aria-labelledby="overtimeNewModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
+                    
+                    <div class="modal-body p-0 border-0 ">
+
+                        <div class="form-header p-4">
+                            <h5 class="modal-title fs-18">New Overtime</h5>
+                        </div>
+
+                        <div class="wrapper-form px-4 scrollbar-transparent">
+
+                            <form action="" id="form-new-overtime" class="needs-validation" novalidate enctype="multipart/form-data"  >
+
+                                @csrf
+
+                                <div class="mb-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <div>
+                                            {{ date('D j M Y') }}
+                                        </div>
+                                        <div>
+                                            <span class="text-clock-digital">{{ date('H : i : s') }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <style>
+                                    .btn-camera{
+                                        position: relative;
+                                        display: inline-block;
+
+                                    }
+                                </style>
+
+                                <div class="mb-3">
+
+                                    <div class="row">
+                                        <div class="col-6 col-photo">
+                                            <div class="position-realtive">
+
+                                                <div class="d-none">
+                                                    <label for="imageInputCheckIn" class="label-photo-checkin">Label file</label>
+                                                    <input type="file" name="overtime_photo_start" id="imageInputCheckIn" accept="image/*" capture="environment">
+                                                </div>
+
+                                                <div class="ratio ratio-1x1">
+
+                                                    <div class="box-photo border rounded-2" id="openCameraCheckIn">
+                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
+                                                            <div class="text-center">
+                                                                <span class="material-symbols-outlined fs-4 opacity-50">photo_camera</span>
+                                                                <div>
+                                                                    <span class="fs-14 text-secondary">Take Photo</span>
+                                                                </div>
+                                                            </div>
+                                                            <img id="overtimePhotoResultStart" class="object-fit-cover d-none w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="overtime-description-start" class="form-label">Description</label>
+                                    <textarea class="form-control" name="description" id="overtime-description-start" rows="3" attr-validation="required"></textarea>
+                                    <div class="invalid-feedback fs-12">Please input a description</div>
+                                </div>
+
+                                {{-- <div class="mb-3">
+                                    <label for="file-2" class="form-label">File 2</label>
+                                    <input class="form-control" type="file" name="file_2" id="file-2"  accept="image/*,.pdf">
+                                    <div class="invalid-feedback fs-12">Please add a file</div>
+                                </div> --}}
+
+
+                            </form>
+
+                        </div>
+
+                        <div class="p-4">
+
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Submit</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="box-camera z-3 rounded-4 bg-black bg-opacity-75 position-absolute top-0 start-0 w-100 h-100">
+                        <video id="overtimeVideoElement" muted playsinline class="z-3 w-100 h-100 position-absolute top-0 start-0 rounded-4 object-fit-cover" ></video>
+                        <canvas id="overtimeCanvasElement" style="display:none;"></canvas>
+
+
+                        <div class="z-3 position-absolute bottom-0 start-0 w-100 text-center">
+                            <div id="overtimeCaptureButton" class="btn-capture-photo">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                            </div>
+                        </div>
+
+                        <div class="z-3 position-absolute h-auto top-0 end-0 text-end">
+                            <div id="overtimeCloseButton" class="btn-close-capture">
+                                <span class="material-symbols-outlined">close</span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fs-14">Loading...</div>
+                            </div>
+                            
+                        </div>
+                        
                     </div>
                 </div>
             </div>
