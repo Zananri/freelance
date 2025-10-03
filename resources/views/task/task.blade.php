@@ -197,7 +197,7 @@
                             <label for="edit_task_project_input" class="form-label label-custom">Project
                                 (optional)</label>
                             <input type="text" class="form-control input-text" id="edit_task_project_input"
-                                autocomplete="off" placeholder="Search project...">
+                                autocomplete="off" placeholder="Search project..." required>
                             <div id="edit_task_project_dropdown" class="dropdown-list mt-1"></div>
                             <div id="edit_task_selected_project" class="mt-2"></div>
                             <input type="hidden" id="edit_task_project_id" name="project_id" value="">
