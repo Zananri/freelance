@@ -2668,6 +2668,8 @@
                                 link.target = "_blank";
                                 link.className = "flex-grow-1";
                                 link.style.fontSize = "10px";
+                                // user's request: filename color and no text decoration
+                                try { link.style.color = '#444444'; link.style.textDecoration = 'none'; } catch(_) {}
                                 link.textContent = name;
 
                                 // remove button styled small
