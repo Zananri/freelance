@@ -98,17 +98,7 @@
         } catch (e) {
             /* no-op */
         }
-        // No blocking native alert fallback; prefer console log to avoid modal dialogs.
-        try {
-            console.log(
-                "[floatingAlert]",
-                typeof message === "string"
-                    ? message.replace(/<[^>]+>/g, "")
-                    : String(message)
-            );
-        } catch (e) {
-            /* no-op */
-        }
+                // DEBUG: mark when our handler runs (helps detect cached/other handlers)
         try {
             // Fallback: create a lightweight in-page toast so we never trigger browser native alert()
             var tmsg =
@@ -3845,7 +3835,6 @@
             function showReplyFeedbackForm(projectId, parentId) {
                 try {
                     // DEBUG: mark when our handler runs (helps detect cached/other handlers)
-                    try { console.log('[project_detail] showReplyFeedbackForm called', projectId, parentId); } catch(_){}
                     try { if (modalBody && modalBody.setAttribute) modalBody.setAttribute('data-reply-handler','project_detail.js'); } catch(_){}
 
                     // If an inline feedback form exists on the page, insert the preview there and set a hidden parent_id.
@@ -3875,16 +3864,78 @@
                                     previewContainer = document.createElement('div');
                                     previewContainer.id = 'reply_parent_preview_inline';
                                 }
-                                // default preview while fetching
-                                previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="font-size: 10px; text-align: center;"><span class="material-symbols-outlined">person</span></div><span class="flex-grow-1" style="font-size: 10px;">Unknown</span><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
+                                // default preview while fetching (simple placeholder)
+                                previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Unknown</div><div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
 
-                                // fetch parent feedback to get employee name
+                                // fetch project feedback list, then find the specific feedback/reply by parentId
                                 try {
-                                    fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + parentId)
-                                        .then(function(res){ if(!res.ok) return res.json().then(Promise.reject); return res.json(); })
-                                        .then(function(json){ var fb = json && json.data ? json.data : json; var title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || fb.employee_name || fb.employee_fullname || 'Unknown'; try{ previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="font-size: 10px; text-align: center;"><span class="material-symbols-outlined">person</span></div><span class="flex-grow-1" style="font-size: 10px;">' + safeText(title) + '</span><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>'; }catch(_){} try{ var btn = previewContainer.querySelector('.remove-task'); if(btn) btn.addEventListener('click', function(){ try{ previewContainer.remove(); inlinePid.value=''; }catch(_){} }); }catch(_){} })
-                                        .catch(function(){ try{ var btn = previewContainer.querySelector('.remove-task'); if(btn) btn.addEventListener('click', function(){ try{ previewContainer.remove(); inlinePid.value=''; }catch(_){} }); }catch(_){} });
-                                } catch(_){}
+                                    fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + projectId)
+                                        .then(function (res) {
+                                            if (!res.ok) return res.json().then(Promise.reject);
+                                            return res.json();
+                                        })
+                                        .then(function (json) {
+                                            var payload = json && json.data ? json.data : json;
+                                            var fb = null;
+                                            try {
+                                                function findById(node, id) {
+                                                    if (!node) return null;
+                                                    if (Array.isArray(node)) {
+                                                        for (var k = 0; k < node.length; k++) {
+                                                            var r = findById(node[k], id);
+                                                            if (r) return r;
+                                                        }
+                                                        return null;
+                                                    }
+                                                    try {
+                                                        if (node && String(node.id) === String(id)) return node;
+                                                        if (node && node.replies && Array.isArray(node.replies)) {
+                                                            var rr = findById(node.replies, id);
+                                                            if (rr) return rr;
+                                                        }
+                                                    } catch (_ ) { }
+                                                    return null;
+                                                }
+                                                fb = findById(payload, parentId);
+                                            } catch (_) { fb = null; }
+                                            var title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
+                                            var commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
+                                            if (!fb) {
+                                                // preview: feedback not found in payload (debug logging removed)
+                                            }
+                                            try {
+                                                var empRaw = (fb && fb.employee) || {};
+                                                var avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                                                var avatarUrl = resolveAvatar(avatarRaw);
+                                                var plain = '';
+                                                try { plain = (sanitizeHtml(commentRaw || '') || '').replace(/<[^>]+>/g, ''); } catch (_) { plain = (commentRaw || '') + ''; }
+                                                if (plain && plain.length > 120) plain = plain.substring(0, 120).trim() + '...';
+                                                var html = '';
+                                                html += '<div class="selected-files-list mt-2">';
+                                                html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                                                html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                                                html += '<img src="' + avatarUrl + '" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;">';
+                                                html += '</div>';
+                                                html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                                                html += '<div style="font-weight:500;font-size:11px">' + safeText(title) + '</div>';
+                                                html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">' + (plain || '') + '</div>';
+                                                html += '</div>';
+                                                html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                                                html += '</div></div>';
+                                                previewContainer.innerHTML = html;
+                                            } catch (_) { }
+                                            try {
+                                                var btn = previewContainer.querySelector('.remove-task');
+                                                if (btn) btn.addEventListener('click', function () { try { previewContainer.remove(); inlinePid.value = ''; } catch (_) { } });
+                                            } catch (_) { }
+                                        })
+                                        .catch(function () {
+                                            try {
+                                                var btn = previewContainer.querySelector('.remove-task');
+                                                if (btn) btn.addEventListener('click', function () { try { previewContainer.remove(); inlinePid.value = ''; } catch (_) { } });
+                                            } catch (_) { }
+                                        });
+                                } catch (_) { }
 
                                 // insert preview before inline files preview if present
                                 try {
@@ -3931,15 +3982,40 @@
                     // Fetch parent feedback and render preview (employee name + comment)
                     (function () {
                         try {
-                            fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks/" + parentId)
+                            // fetch feedback list for the project and locate the target feedback/reply
+                            fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks/" + projectId)
                                 .then(function (res) {
                                     if (!res.ok) return res.json().then(Promise.reject);
                                     return res.json();
                                 })
                                 .then(function (json) {
-                                    // response may be {data: {...}} or the object itself
-                                    var fb = json && json.data ? json.data : json;
-                                    var title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || fb.employee_name || fb.employee_fullname || "Unknown";
+                                    var payload = json && json.data ? json.data : json;
+                                    var fb = null;
+                                    try {
+                                        function findById(node, id) {
+                                            if (!node) return null;
+                                            if (Array.isArray(node)) {
+                                                for (var k=0;k<node.length;k++){
+                                                    var r = findById(node[k], id);
+                                                    if (r) return r;
+                                                }
+                                                return null;
+                                            }
+                                            try {
+                                                if (node && (String(node.id) === String(id))) return node;
+                                                if (node && node.replies && Array.isArray(node.replies)) {
+                                                    var rr = findById(node.replies, id);
+                                                    if (rr) return rr;
+                                                }
+                                            } catch(_){}
+                                            return null;
+                                        }
+                                        fb = findById(payload, parentId);
+                                    } catch(_) { fb = null; }
+                                    var title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || (fb && (fb.employee_name || fb.employee_fullname)) || "Unknown";
+                                    if (!fb) {
+                                        // modal preview: feedback not found in payload (debug logging removed)
+                                    }
                                     var comment = (fb && (fb.feedback_comment || fb.comment || fb.description)) || "";
                                     // Insert preview immediately above the reply form so feedback list stays visible
                                     var previewEl = modalBody.querySelector("#reply_parent_preview");
@@ -3960,11 +4036,21 @@
                                         } catch (_) {
                                             plain = (comment || "") + "";
                                         }
+                                        var empRaw = (fb && fb.employee) || {};
+                                        var avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                                        var avatarUrl = resolveAvatar(avatarRaw);
+                                        var plain2 = plain || '';
+                                        if (plain2 && plain2.length > 120) plain2 = plain2.substring(0,120).trim() + '...';
                                         var html = '';
                                         html += '<div class="selected-files-list mt-2">';
                                         html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
-                                        html += '<div style="font-size: 10px; text-align: center;"><span class="material-symbols-outlined">person</span></div>';
-                                        html += '<span class="flex-grow-1" style="font-size: 10px;">' + safeText(title) + '</span>';
+                                        html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                                        html += '<img src="'+avatarUrl+'" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;">';
+                                        html += '</div>';
+                                        html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                                        html += '<div style="font-weight:500;font-size:11px">'+safeText(title)+'</div>';
+                                        html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">'+(plain2||'')+'</div>';
+                                        html += '</div>';
                                         html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
                                         html += '</div></div>';
                                         previewEl.innerHTML = html;
