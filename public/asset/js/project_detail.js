@@ -2761,13 +2761,54 @@
                     // Exit inline EDIT mode and reset UI
                     window.cancelInlineEditFeedback = function(){
                         try {
+                            // clear edit marker
                             var hid = document.getElementById('inline_edit_feedback_input'); if (hid) hid.value = '';
+
+                            // clear any existing-files keep list and remove its preview
                             window.inlineExistingFilesKeep = [];
-                            try { var ex = document.getElementById('inline_existing_files_preview'); if (ex && ex.parentNode) ex.parentNode.removeChild(ex); } catch(_){}
-                            try { var ip = document.getElementById('inline_feedback_image_preview'); if (ip && ip.parentNode) ip.parentNode.removeChild(ip); } catch(_){}
-                            window.__inlineFeedbackImageFile = null; window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview();
-                            var sendBtn = document.getElementById('inlineFeedbackSendBtn'); if (sendBtn && sendBtn._origText) sendBtn.textContent = sendBtn._origText;
-                            var cancel = document.getElementById('inlineFeedbackCancelBtn'); if (cancel && cancel.parentNode) cancel.parentNode.removeChild(cancel);
+                            try {
+                                var ex = document.getElementById('inline_existing_files_preview');
+                                if (ex && ex.parentNode) ex.parentNode.removeChild(ex);
+                            } catch(_){}
+
+                            // remove image preview container and clear any stored image file
+                            try {
+                                var ip = document.getElementById('inline_feedback_image_preview');
+                                if (ip && ip.parentNode) ip.parentNode.removeChild(ip);
+                            } catch(_){}
+                            window.__inlineFeedbackImageFile = null;
+
+                            // clear native file inputs
+                            try { var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value = ''; } catch(_){}
+                            try { var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value = ''; } catch(_){}
+
+                            // clear selected files array and file previews
+                            try { window.inlineFeedbackSelectedFiles = []; renderInlineFilesPreview && renderInlineFilesPreview(); } catch(_){}
+
+                            // clear Quill and fallback textarea
+                            try {
+                                if (window.__quillProjectFeedbackInline && window.__quillProjectFeedbackInline.root) {
+                                    window.__quillProjectFeedbackInline.root.innerHTML = '';
+                                    if (typeof window.__quillProjectFeedbackInline.setSelection === 'function') {
+                                        try { window.__quillProjectFeedbackInline.setSelection(0); } catch(_){}
+                                    }
+                                }
+                            } catch(_){}
+                            try { var ta = document.getElementById('inline_feedback_comment'); if (ta) ta.value = ''; } catch(_){}
+
+                            // restore send button text
+                            try {
+                                var sendBtn = document.getElementById('inlineFeedbackSendBtn');
+                                if (sendBtn) {
+                                    if (sendBtn._origText) sendBtn.textContent = sendBtn._origText;
+                                    else sendBtn.textContent = 'Send';
+                                }
+                            } catch(_){}
+
+                            // remove cancel button
+                            try { var cancel = document.getElementById('inlineFeedbackCancelBtn'); if (cancel && cancel.parentNode) cancel.parentNode.removeChild(cancel); } catch(_){}
+
+                            // reset remove-image flag
                             window.__inlineRemoveImage = false;
                         } catch(_){ }
                     };
