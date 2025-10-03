@@ -1327,7 +1327,6 @@
 }
 
 .timeline-legend {
-    position: sticky;
     bottom: 0;
     background: rgb(240, 241, 248);
     padding: 10px 0;
