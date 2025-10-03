@@ -561,6 +561,24 @@ $("#fullscreen-tree-btn").on("click", function () {
         } catch (_) {}
     }
 
+    function clearEmptySpaceDropVisuals() {
+        try {
+            $("#task-tree").removeClass("empty-space-drop-ok");
+            $("#task-tree").css({ outline: "", backgroundColor: "" });
+        } catch (_) {}
+    }
+
+    function canMoveToEmptySpace(taskId) {
+        // Allow tasks without parent_id or any task to be moved to empty space
+        try {
+            var map = taskMap();
+            var task = map[String(taskId)];
+            return task != null; // Any task can be moved to empty space
+        } catch (_) {
+            return false;
+        }
+    }
+
     $(document).on("dragstart", "#task-tree .task-box", function (e) {
         try {
             var id = $(this).attr("data-task-id");
@@ -575,6 +593,7 @@ $("#fullscreen-tree-btn").on("click", function () {
 
     $(document).on("dragend", "#task-tree .task-box", function () {
         clearDropVisual($(this));
+        clearEmptySpaceDropVisuals();
         window.__dragTaskId = null;
     });
 
@@ -602,6 +621,113 @@ $("#fullscreen-tree-btn").on("click", function () {
 
     $(document).on("dragleave", "#task-tree .task-box", function () {
         clearDropVisual($(this));
+    });
+
+    // Empty space drag and drop handlers
+    $(document).on("dragover dragenter", "#task-tree", function (e) {
+        try {
+            // Only handle empty space drops, not when over task boxes
+            var $target = $(e.target);
+            if ($target.closest(".task-box").length > 0) {
+                return;
+            }
+
+            e.preventDefault();
+            var draggedId = window.__dragTaskId;
+            
+            if (!draggedId || !canMoveToEmptySpace(draggedId)) {
+                return;
+            }
+
+            if (e.originalEvent && e.originalEvent.dataTransfer) {
+                e.originalEvent.dataTransfer.dropEffect = "move";
+            }
+        } catch (_) {}
+    });
+
+    $(document).on("dragleave", "#task-tree", function (e) {
+        try {
+            // Only clear if we're leaving the task-tree completely
+            var relatedTarget = e.originalEvent ? e.originalEvent.relatedTarget : null;
+            if (relatedTarget && $(relatedTarget).closest("#task-tree").length > 0) {
+                return;
+            }
+            clearEmptySpaceDropVisuals();
+        } catch (_) {}
+    });
+
+    $(document).on("drop", "#task-tree", function (e) {
+        try {
+            // Only handle empty space drops, not when over task boxes
+            var $target = $(e.target);
+            if ($target.closest(".task-box").length > 0) {
+                return;
+            }
+
+            e.preventDefault();
+            
+            var dragData = null;
+            try {
+                if (e.originalEvent && e.originalEvent.dataTransfer) {
+                    dragData = e.originalEvent.dataTransfer.getData("text/plain");
+                }
+            } catch (_) {}
+            
+            var draggedId = dragData || window.__dragTaskId;
+            
+            if (!draggedId || !canMoveToEmptySpace(draggedId)) {
+                clearEmptySpaceDropVisuals();
+                return;
+            }
+
+            // Show visual feedback for successful drop to empty space
+            $("#task-tree").css({ outline: "3px solid #2a7", backgroundColor: "rgba(42, 167, 42, 0.1)" });
+
+            // Move task to root level (parent_id = null)
+            $.ajax({
+                url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
+                type: "PUT",
+                data: { parent_id: null },
+                dataType: "json"
+            })
+                .done(function () {
+                    try {
+                        var map = taskMap();
+                        var dragged = map[String(draggedId)];
+                        if (dragged) {
+                            dragged.parent_id = null;
+                        }
+                        renderTaskList(allTasks);
+                    } catch (_) {}
+                    try { 
+                        if (typeof projectId !== "undefined" && projectId) {
+                            getTaskByProject(projectId);
+                        }
+                    } catch (_) {}
+                    
+                    // Show success message
+                    try {
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Task berhasil dipindahkan ke root level", "success", 2000);
+                        }
+                    } catch (_) {}
+                })
+                .fail(function (xhr) {
+                    try {
+                        console.error("Failed to move task to empty space", xhr && xhr.responseText);
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
+                        } else {
+                            alert("Gagal memindahkan task. Coba lagi.");
+                        }
+                    } catch (_) {}
+                })
+                .always(function () {
+                    clearEmptySpaceDropVisuals();
+                });
+        } catch (_) {
+            clearEmptySpaceDropVisuals();
+        }
     });
 
     $(document).on("drop", "#task-tree .task-box", function (e) {
@@ -688,7 +814,13 @@ $("#fullscreen-tree-btn").on("click", function () {
                     state.longPressTimer = null;
                 }
                 if (state.originEl) $(state.originEl).removeClass('dragging');
-                if (state.dropTarget) clearDropVisual($(state.dropTarget));
+                if (state.dropTarget) {
+                    if (state.dropTarget.isEmptySpace) {
+                        clearEmptySpaceDropVisuals();
+                    } else {
+                        clearDropVisual($(state.dropTarget));
+                    }
+                }
                 if (state.ghost && state.ghost.parentNode) state.ghost.parentNode.removeChild(state.ghost);
             } catch(_){}
             state.dragging = false;
@@ -723,12 +855,27 @@ $("#fullscreen-tree-btn").on("click", function () {
             var el = document.elementFromPoint(x, y);
             if (hidden) state.ghost.style.display = '';
             if (!el) return null;
-            var candidate = $(el).closest('#task-tree .task-box')[0] || null;
-            return candidate;
+            
+            // Check if we're over a task box
+            var taskBoxCandidate = $(el).closest('#task-tree .task-box')[0] || null;
+            if (taskBoxCandidate) return taskBoxCandidate;
+            
+            // Check if we're over empty space in task-tree
+            var treeCandidate = $(el).closest('#task-tree')[0] || null;
+            if (treeCandidate) return { isEmptySpace: true, element: treeCandidate };
+            
+            return null;
         }
 
         function isValidDrop(draggedId, targetEl) {
             if (!targetEl) return false;
+            
+            // Handle empty space drops
+            if (targetEl.isEmptySpace) {
+                return draggedId && canMoveToEmptySpace(draggedId);
+            }
+            
+            // Handle task-to-task drops
             var targetId = targetEl.getAttribute('data-task-id');
             if (!draggedId || !targetId) return false;
             if (String(draggedId) === String(targetId)) return false;
@@ -747,17 +894,30 @@ $("#fullscreen-tree-btn").on("click", function () {
             }
             var targetEl = findDropTargetAt(x, y);
             if (state.dropTarget && state.dropTarget !== targetEl) {
-                clearDropVisual($(state.dropTarget));
+                if (state.dropTarget.isEmptySpace) {
+                    clearEmptySpaceDropVisuals();
+                } else {
+                    clearDropVisual($(state.dropTarget));
+                }
             }
             state.dropTarget = targetEl;
             if (targetEl) {
-                var $t = $(targetEl);
-                if (isValidDrop(state.draggedId, targetEl)) {
-                    $t.addClass('drop-ok').removeClass('drop-denied');
-                    $t.css({ outline: '2px dashed #2a7' });
+                if (targetEl.isEmptySpace) {
+                    // Handle empty space visual feedback
+                    if (isValidDrop(state.draggedId, targetEl)) {
+                        $("#task-tree").addClass("empty-space-drop-ok");
+                        $("#task-tree").css({ outline: "3px dashed #2a7", backgroundColor: "rgba(42, 167, 42, 0.05)" });
+                    }
                 } else {
-                    $t.addClass('drop-denied').removeClass('drop-ok');
-                    $t.css({ outline: '2px dashed #d66' });
+                    // Handle task box visual feedback
+                    var $t = $(targetEl);
+                    if (isValidDrop(state.draggedId, targetEl)) {
+                        $t.addClass('drop-ok').removeClass('drop-denied');
+                        $t.css({ outline: '2px dashed #2a7' });
+                    } else {
+                        $t.addClass('drop-denied').removeClass('drop-ok');
+                        $t.css({ outline: '2px dashed #d66' });
+                    }
                 }
             }
         }
@@ -767,33 +927,80 @@ $("#fullscreen-tree-btn").on("click", function () {
             var originEl = state.originEl;
             var draggedId = state.draggedId;
             if (!targetEl || !originEl || !draggedId) return;
-            var targetId = targetEl.getAttribute('data-task-id');
+            
             if (!isValidDrop(draggedId, targetEl)) return;
-
-            var $target = $(targetEl);
-            $target.css({ outline: '2px solid #2a7' });
 
             var map = (function(){ var m={}; try{ (allTasks||[]).forEach(function(t){ m[String(t.id)] = t; }); }catch(_){ } return m; })();
             var dragged = map[String(draggedId)];
-            if (dragged && String(dragged.parent_id || '') === String(targetId)) {
-                clearDropVisual($target);
-                return;
-            }
 
-            $.ajax({
-                url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
-                type: 'PUT',
-                data: { parent_id: String(targetId) },
-                dataType: 'json'
-            })
-            .done(function(){
-                try { if (dragged) dragged.parent_id = targetId; renderTaskList(allTasks); } catch(_){ }
-                try { if (typeof projectId !== 'undefined' && projectId) getTaskByProject(projectId); } catch(_){ }
-            })
-            .fail(function(xhr){
-                try { console.error('Failed to move task (touch)', xhr && xhr.responseText); alert('Gagal memindahkan task. Coba lagi.'); } catch(_){ }
-            })
-            .always(function(){ clearDropVisual($target); });
+            if (targetEl.isEmptySpace) {
+                // Handle drop to empty space
+                $("#task-tree").css({ outline: "3px solid #2a7", backgroundColor: "rgba(42, 167, 42, 0.1)" });
+                
+                $.ajax({
+                    url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
+                    type: 'PUT',
+                    data: { parent_id: null },
+                    dataType: 'json'
+                })
+                .done(function(){
+                    try { 
+                        if (dragged) dragged.parent_id = null; 
+                        renderTaskList(allTasks); 
+                    } catch(_){ }
+                    try { 
+                        if (typeof projectId !== 'undefined' && projectId) getTaskByProject(projectId); 
+                    } catch(_){ }
+                    try {
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Task berhasil dipindahkan ke root level", "success", 2000);
+                        }
+                    } catch (_) {}
+                })
+                .fail(function(xhr){
+                    try { 
+                        console.error('Failed to move task to empty space (touch)', xhr && xhr.responseText); 
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
+                        } else {
+                            alert('Gagal memindahkan task. Coba lagi.');
+                        }
+                    } catch(_){ }
+                })
+                .always(function(){ clearEmptySpaceDropVisuals(); });
+            } else {
+                // Handle drop to another task
+                var targetId = targetEl.getAttribute('data-task-id');
+                if (dragged && String(dragged.parent_id || '') === String(targetId)) {
+                    clearDropVisual($(targetEl));
+                    return;
+                }
+
+                var $target = $(targetEl);
+                $target.css({ outline: '2px solid #2a7' });
+
+                $.ajax({
+                    url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
+                    type: 'PUT',
+                    data: { parent_id: String(targetId) },
+                    dataType: 'json'
+                })
+                .done(function(){
+                    try { if (dragged) dragged.parent_id = targetId; renderTaskList(allTasks); } catch(_){ }
+                    try { if (typeof projectId !== 'undefined' && projectId) getTaskByProject(projectId); } catch(_){ }
+                })
+                .fail(function(xhr){
+                    try { 
+                        console.error('Failed to move task (touch)', xhr && xhr.responseText); 
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
+                        } else {
+                            alert('Gagal memindahkan task. Coba lagi.');
+                        }
+                    } catch(_){ }
+                })
+                .always(function(){ clearDropVisual($target); });
+            }
         }
 
         document.addEventListener('touchmove', onTouchMove, { passive: false });

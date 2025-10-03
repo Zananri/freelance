@@ -1482,3 +1482,33 @@ input[type="file"]::file-selector-button {
     overflow-y: auto;
     margin-bottom: 15px;
 }
+
+/* Drag and Drop Styles */
+.task-box.draggable-task {
+    cursor: grab;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.task-box.draggable-task:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.task-box.dragging {
+    opacity: 0.7;
+    transform: rotate(3deg);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+}
+
+.task-box.drop-ok {
+    border: 2px dashed #007bff !important;
+    transform: scale(1.02);
+}
+
+.task-box.drop-denied {
+    border: 2px dashed #dc3545 !important;
+    transform: scale(0.98);
+}
+
+/* Empty space drop styling removed as per user request */
