@@ -665,6 +665,8 @@
                         feedbackListEl.innerHTML = "";
 
                         data.data.forEach(function (feedback) {
+                            window.feedbackData = window.feedbackData || {};
+                            window.feedbackData[feedback.id] = feedback;
                             var feedbackItem = document.createElement("div");
                             feedbackItem.className = "feedback-item p-3";
 
@@ -5308,11 +5310,11 @@
                 if (!pid) {
                     if (typeof window.showFloatingAlert === "function")
                         window.showFloatingAlert(
-                            "Project ID tidak ditemukan",
+                            "Project ID no found",
                             "warning",
                             3500
                         );
-                    else alert("Project ID tidak ditemukan");
+                    else alert("Project ID not found");
                     return;
                 }
                 var appUrlLocal = getMeta("app-url") || "";
@@ -5436,22 +5438,22 @@
                     console.error("Invalid project payload", res);
                     if (typeof window.showFloatingAlert === "function")
                         window.showFloatingAlert(
-                            "Gagal mengambil data project",
+                            "Failed to load project data",
                             "warning",
                             3500
                         );
-                    else alert("Gagal mengambil data project");
+                    else alert("Failed to load project data");
                 }
             },
             error: function (xhr) {
                 console.error("Error fetching project", xhr);
                 if (typeof window.showFloatingAlert === "function")
                     window.showFloatingAlert(
-                        "Gagal mengambil data project",
+                        "Failed to load project data",
                         "warning",
                         3500
                     );
-                else alert("Gagal mengambil data project");
+                else alert("Failed to load project data");
             },
         });
     }
@@ -7780,11 +7782,11 @@
                 if (!projectId) {
                     if (typeof window.showFloatingAlert === "function")
                         window.showFloatingAlert(
-                            "Project ID tidak ditemukan",
+                            "Project ID not found",
                             "warning",
                             3500
                         );
-                    else alert("Project ID tidak ditemukan");
+                    else alert("Project ID not found");
                     isSubmitting = false;
                     return;
                 }
@@ -7915,27 +7917,17 @@
 })(jQuery);
 
 $("#fullscreen-feedback-btn").on("click", function () {
-    const $feedbackContent = $(
-        ".feedback-detail-project .feedback-content-detail"
-    );
+    const $feedbackContent = $(".feedback-detail-project .feedback-content-detail");
     const $icon = $(this).find("span.material-symbols-outlined");
-    const $clone = $(".feedback-content-clone");
     const $detailCard = $(".detail-project-card");
 
-    if ($clone.length) {
-        $clone.remove();
-        $feedbackContent.removeClass("invisible");
+    if ($feedbackContent.hasClass("fullscreen")) {
+        $feedbackContent.removeClass("fullscreen");
         $detailCard.removeClass("invisible");
         $icon.text("fullscreen");
         $("body").css("overflow", "auto");
     } else {
-        const $newClone = $feedbackContent.clone(true, true);
-        $newClone
-            .removeClass("feedback-content-detail")
-            .addClass("feedback-content-clone");
-        $("body").append($newClone);
-
-        $feedbackContent.addClass("invisible");
+        $feedbackContent.addClass("fullscreen");
         $detailCard.addClass("invisible");
         $icon.text("fullscreen_exit");
         $("body").css("overflow", "hidden");
