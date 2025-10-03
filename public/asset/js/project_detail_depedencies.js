@@ -164,12 +164,41 @@ function renderTaskList(data) {
     const $tree = $("#task-tree");
     $tree.empty();
     if (!data || data.length === 0) return;
-    const treeData = buildTaskTree(data);
+    
+    // Separate free-positioned tasks from tree tasks
+    const freePositionedTasks = data.filter(task => {
+        const isFreePositioned = task.free_positioned == 1 || task.free_positioned === true || task.free_positioned === "1";
+        const hasValidPosition = task.position_x != null && task.position_y != null;
+        return isFreePositioned && hasValidPosition;
+    });
+    const treeTaskData = data.filter(task => {
+        const isFreePositioned = task.free_positioned == 1 || task.free_positioned === true || task.free_positioned === "1";
+        return !isFreePositioned;
+    });
+    
+    // Render task list with free positioning support
+    
+    // Render tree structure
+    const treeData = buildTaskTree(treeTaskData);
     const $rootCol = $('<div class="root-column"></div>');
     $tree.append($rootCol);
     treeData.forEach((root) => {
         $rootCol.append(renderTaskNode(root, $("#task-template")));
     });
+    
+    // Render free-positioned tasks
+    freePositionedTasks.forEach((task) => {
+        const $freeTask = renderTaskNode(task, $("#task-template"));
+        $freeTask.addClass("free-positioned-task");
+        $freeTask.css({
+            position: "absolute",
+            left: task.position_x + "px",
+            top: task.position_y + "px",
+            zIndex: 10
+        });
+        $tree.append($freeTask);
+    });
+    
     setTimeout(adjustConnectors, 40);
     setTimeout(drawSvgConnectors, 60);
 }
@@ -561,6 +590,24 @@ $("#fullscreen-tree-btn").on("click", function () {
         } catch (_) {}
     }
 
+    function clearEmptySpaceDropVisuals() {
+        try {
+            $("#task-tree").removeClass("empty-space-drop-ok");
+            $("#task-tree").css({ outline: "", backgroundColor: "" });
+        } catch (_) {}
+    }
+
+    function canMoveToEmptySpace(taskId) {
+        // Allow tasks without parent_id or any task to be moved to empty space
+        try {
+            var map = taskMap();
+            var task = map[String(taskId)];
+            return task != null; // Any task can be moved to empty space
+        } catch (_) {
+            return false;
+        }
+    }
+
     $(document).on("dragstart", "#task-tree .task-box", function (e) {
         try {
             var id = $(this).attr("data-task-id");
@@ -575,6 +622,7 @@ $("#fullscreen-tree-btn").on("click", function () {
 
     $(document).on("dragend", "#task-tree .task-box", function () {
         clearDropVisual($(this));
+        clearEmptySpaceDropVisuals();
         window.__dragTaskId = null;
     });
 
@@ -602,6 +650,130 @@ $("#fullscreen-tree-btn").on("click", function () {
 
     $(document).on("dragleave", "#task-tree .task-box", function () {
         clearDropVisual($(this));
+    });
+
+    // Empty space drag and drop handlers
+    $(document).on("dragover dragenter", "#task-tree", function (e) {
+        try {
+            // Only handle empty space drops, not when over task boxes
+            var $target = $(e.target);
+            if ($target.closest(".task-box").length > 0) {
+                return;
+            }
+
+            e.preventDefault();
+            var draggedId = window.__dragTaskId;
+            
+            if (!draggedId || !canMoveToEmptySpace(draggedId)) {
+                return;
+            }
+
+            if (e.originalEvent && e.originalEvent.dataTransfer) {
+                e.originalEvent.dataTransfer.dropEffect = "move";
+            }
+        } catch (_) {}
+    });
+
+    $(document).on("dragleave", "#task-tree", function (e) {
+        try {
+            // Only clear if we're leaving the task-tree completely
+            var relatedTarget = e.originalEvent ? e.originalEvent.relatedTarget : null;
+            if (relatedTarget && $(relatedTarget).closest("#task-tree").length > 0) {
+                return;
+            }
+            clearEmptySpaceDropVisuals();
+        } catch (_) {}
+    });
+
+    $(document).on("drop", "#task-tree", function (e) {
+        try {
+            // Only handle empty space drops, not when over task boxes
+            var $target = $(e.target);
+            if ($target.closest(".task-box").length > 0) {
+                return;
+            }
+
+            e.preventDefault();
+            
+            var dragData = null;
+            try {
+                if (e.originalEvent && e.originalEvent.dataTransfer) {
+                    dragData = e.originalEvent.dataTransfer.getData("text/plain");
+                }
+            } catch (_) {}
+            
+            var draggedId = dragData || window.__dragTaskId;
+            
+            if (!draggedId || !canMoveToEmptySpace(draggedId)) {
+                clearEmptySpaceDropVisuals();
+                return;
+            }
+
+            // Get drop coordinates relative to task-tree container
+            var treeOffset = $("#task-tree").offset();
+            var scrollLeft = $("#task-tree").scrollLeft();
+            var scrollTop = $("#task-tree").scrollTop();
+            
+            var dropX = e.originalEvent.clientX - treeOffset.left + scrollLeft;
+            var dropY = e.originalEvent.clientY - treeOffset.top + scrollTop;
+            
+            // Ensure minimum distance from edges
+            dropX = Math.max(20, dropX);
+            dropY = Math.max(20, dropY);
+
+            // Move task to free position with coordinates
+            // Moving task to free position
+            
+            $.ajax({
+                url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
+                type: "PUT",
+                data: { 
+                    parent_id: null,
+                    position_x: Math.round(dropX),
+                    position_y: Math.round(dropY),
+                    free_positioned: 1
+                },
+                dataType: "json"
+            })
+                .done(function (response) {
+                    try {
+                        var map = taskMap();
+                        var dragged = map[String(draggedId)];
+                        if (dragged) {
+                            dragged.parent_id = null;
+                            dragged.position_x = parseInt(Math.round(dropX));
+                            dragged.position_y = parseInt(Math.round(dropY));
+                            dragged.free_positioned = 1;
+                        }
+                        renderTaskList(allTasks);
+                    } catch (_) {}
+                    
+                    // Don't reload from server to preserve positioning
+                    // Local data is already updated above
+                    
+                    // Show success message
+                    try {
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Task berhasil dipindahkan ke posisi bebas", "success", 2000);
+                        }
+                    } catch (_) {}
+                })
+                .fail(function (xhr) {
+                    try {
+                        console.error("Failed to move task to free position", xhr && xhr.responseText);
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
+                        } else {
+                            alert("Gagal memindahkan task. Coba lagi.");
+                        }
+                    } catch (_) {}
+                })
+                .always(function () {
+                    clearEmptySpaceDropVisuals();
+                });
+        } catch (_) {
+            clearEmptySpaceDropVisuals();
+        }
     });
 
     $(document).on("drop", "#task-tree .task-box", function (e) {
@@ -636,18 +808,30 @@ $("#fullscreen-tree-btn").on("click", function () {
 
             $target.css({ outline: "2px solid #2a7" });
 
+            // Moving task under another task (making it a child)
+            
             $.ajax({
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                 type: "PUT",
-                data: { parent_id: String(targetId) },
+                data: { 
+                    parent_id: String(targetId),
+                    free_positioned: 0,
+                    position_x: null,
+                    position_y: null
+                },
                 dataType: "json"
             })
                 .done(function () {
                     try {
-                        if (dragged) dragged.parent_id = targetId;
+                        if (dragged) {
+                            dragged.parent_id = targetId;
+                            dragged.free_positioned = 0;
+                            dragged.position_x = null;
+                            dragged.position_y = null;
+                        }
                         renderTaskList(allTasks);
                     } catch (_) {}
-                    try { if (typeof projectId !== "undefined" && projectId) getTaskByProject(projectId); } catch (_) {}
+                    // Don't reload from server to maintain consistent behavior
                 })
                 .fail(function (xhr) {
                     try {
@@ -677,6 +861,8 @@ $("#fullscreen-tree-btn").on("click", function () {
             startY: 0,
             dx: 0,
             dy: 0,
+            lastTouchX: 0,
+            lastTouchY: 0,
             longPressTimer: null,
             moved: false
         };
@@ -688,7 +874,13 @@ $("#fullscreen-tree-btn").on("click", function () {
                     state.longPressTimer = null;
                 }
                 if (state.originEl) $(state.originEl).removeClass('dragging');
-                if (state.dropTarget) clearDropVisual($(state.dropTarget));
+                if (state.dropTarget) {
+                    if (state.dropTarget.isEmptySpace) {
+                        clearEmptySpaceDropVisuals();
+                    } else {
+                        clearDropVisual($(state.dropTarget));
+                    }
+                }
                 if (state.ghost && state.ghost.parentNode) state.ghost.parentNode.removeChild(state.ghost);
             } catch(_){}
             state.dragging = false;
@@ -723,12 +915,27 @@ $("#fullscreen-tree-btn").on("click", function () {
             var el = document.elementFromPoint(x, y);
             if (hidden) state.ghost.style.display = '';
             if (!el) return null;
-            var candidate = $(el).closest('#task-tree .task-box')[0] || null;
-            return candidate;
+            
+            // Check if we're over a task box
+            var taskBoxCandidate = $(el).closest('#task-tree .task-box')[0] || null;
+            if (taskBoxCandidate) return taskBoxCandidate;
+            
+            // Check if we're over empty space in task-tree
+            var treeCandidate = $(el).closest('#task-tree')[0] || null;
+            if (treeCandidate) return { isEmptySpace: true, element: treeCandidate };
+            
+            return null;
         }
 
         function isValidDrop(draggedId, targetEl) {
             if (!targetEl) return false;
+            
+            // Handle empty space drops
+            if (targetEl.isEmptySpace) {
+                return draggedId && canMoveToEmptySpace(draggedId);
+            }
+            
+            // Handle task-to-task drops
             var targetId = targetEl.getAttribute('data-task-id');
             if (!draggedId || !targetId) return false;
             if (String(draggedId) === String(targetId)) return false;
@@ -741,23 +948,40 @@ $("#fullscreen-tree-btn").on("click", function () {
             if (!t) return;
             try { e.preventDefault(); } catch(_){}
             var x = t.clientX, y = t.clientY;
+            
+            // Store last touch position for coordinate calculation
+            state.lastTouchX = x;
+            state.lastTouchY = y;
+            
             if (state.ghost) {
                 state.ghost.style.left = (Math.round(x - state.dx)) + 'px';
                 state.ghost.style.top = (Math.round(y - state.dy)) + 'px';
             }
             var targetEl = findDropTargetAt(x, y);
             if (state.dropTarget && state.dropTarget !== targetEl) {
-                clearDropVisual($(state.dropTarget));
+                if (state.dropTarget.isEmptySpace) {
+                    clearEmptySpaceDropVisuals();
+                } else {
+                    clearDropVisual($(state.dropTarget));
+                }
             }
             state.dropTarget = targetEl;
             if (targetEl) {
-                var $t = $(targetEl);
-                if (isValidDrop(state.draggedId, targetEl)) {
-                    $t.addClass('drop-ok').removeClass('drop-denied');
-                    $t.css({ outline: '2px dashed #2a7' });
+                if (targetEl.isEmptySpace) {
+                    // Handle empty space visual feedback (minimal)
+                    if (isValidDrop(state.draggedId, targetEl)) {
+                        // No visual feedback for empty space drops
+                    }
                 } else {
-                    $t.addClass('drop-denied').removeClass('drop-ok');
-                    $t.css({ outline: '2px dashed #d66' });
+                    // Handle task box visual feedback
+                    var $t = $(targetEl);
+                    if (isValidDrop(state.draggedId, targetEl)) {
+                        $t.addClass('drop-ok').removeClass('drop-denied');
+                        $t.css({ outline: '2px dashed #007bff' });
+                    } else {
+                        $t.addClass('drop-denied').removeClass('drop-ok');
+                        $t.css({ outline: '2px dashed #dc3545' });
+                    }
                 }
             }
         }
@@ -767,33 +991,122 @@ $("#fullscreen-tree-btn").on("click", function () {
             var originEl = state.originEl;
             var draggedId = state.draggedId;
             if (!targetEl || !originEl || !draggedId) return;
-            var targetId = targetEl.getAttribute('data-task-id');
+            
             if (!isValidDrop(draggedId, targetEl)) return;
-
-            var $target = $(targetEl);
-            $target.css({ outline: '2px solid #2a7' });
 
             var map = (function(){ var m={}; try{ (allTasks||[]).forEach(function(t){ m[String(t.id)] = t; }); }catch(_){ } return m; })();
             var dragged = map[String(draggedId)];
-            if (dragged && String(dragged.parent_id || '') === String(targetId)) {
-                clearDropVisual($target);
-                return;
-            }
 
-            $.ajax({
-                url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
-                type: 'PUT',
-                data: { parent_id: String(targetId) },
-                dataType: 'json'
-            })
-            .done(function(){
-                try { if (dragged) dragged.parent_id = targetId; renderTaskList(allTasks); } catch(_){ }
-                try { if (typeof projectId !== 'undefined' && projectId) getTaskByProject(projectId); } catch(_){ }
-            })
-            .fail(function(xhr){
-                try { console.error('Failed to move task (touch)', xhr && xhr.responseText); alert('Gagal memindahkan task. Coba lagi.'); } catch(_){ }
-            })
-            .always(function(){ clearDropVisual($target); });
+            if (targetEl.isEmptySpace) {
+                // Handle drop to empty space with coordinates
+                var treeOffset = $("#task-tree").offset();
+                var scrollLeft = $("#task-tree").scrollLeft();
+                var scrollTop = $("#task-tree").scrollTop();
+                
+                // Calculate drop position from last touch position
+                var dropX = (state.lastTouchX || 0) - treeOffset.left + scrollLeft;
+                var dropY = (state.lastTouchY || 0) - treeOffset.top + scrollTop;
+                
+                // Ensure minimum distance from edges
+                dropX = Math.max(20, dropX);
+                dropY = Math.max(20, dropY);
+                
+                console.log("Touch: Moving task to empty space - setting parent_id to null", {
+                    draggedId: draggedId,
+                    previousParentId: dragged ? dragged.parent_id : 'unknown',
+                    newPosition: { x: Math.round(dropX), y: Math.round(dropY) }
+                });
+                
+                $.ajax({
+                    url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
+                    type: 'PUT',
+                    data: { 
+                        parent_id: null,
+                        position_x: Math.round(dropX),
+                        position_y: Math.round(dropY),
+                        free_positioned: 1
+                    },
+                    dataType: 'json'
+                })
+                .done(function(){
+                    try { 
+                        if (dragged) {
+                            dragged.parent_id = null;
+                            dragged.position_x = parseInt(Math.round(dropX));
+                            dragged.position_y = parseInt(Math.round(dropY));
+                            dragged.free_positioned = 1; // Use 1 instead of true for consistency
+                        }
+                        console.log("Touch: Updated local task data:", dragged);
+                        renderTaskList(allTasks); 
+                    } catch(_){ }
+                    
+                    // Don't reload from server to preserve positioning
+                    // Local data is already updated above
+                    try {
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Task berhasil dipindahkan ke posisi bebas", "success", 2000);
+                        }
+                    } catch (_) {}
+                })
+                .fail(function(xhr){
+                    try { 
+                        console.error('Failed to move task to free position (touch)', xhr && xhr.responseText); 
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
+                        } else {
+                            alert('Gagal memindahkan task. Coba lagi.');
+                        }
+                    } catch(_){ }
+                })
+                .always(function(){ clearEmptySpaceDropVisuals(); });
+            } else {
+                // Handle drop to another task
+                var targetId = targetEl.getAttribute('data-task-id');
+                if (dragged && String(dragged.parent_id || '') === String(targetId)) {
+                    clearDropVisual($(targetEl));
+                    return;
+                }
+
+                var $target = $(targetEl);
+                $target.css({ outline: '2px solid #2a7' });
+
+                // Touch: Moving task under another task
+                
+                $.ajax({
+                    url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
+                    type: 'PUT',
+                    data: { 
+                        parent_id: String(targetId),
+                        free_positioned: 0,
+                        position_x: null,
+                        position_y: null
+                    },
+                    dataType: 'json'
+                })
+                .done(function(){
+                    try { 
+                        if (dragged) {
+                            dragged.parent_id = targetId;
+                            dragged.free_positioned = 0;
+                            dragged.position_x = null;
+                            dragged.position_y = null;
+                        }
+                        renderTaskList(allTasks); 
+                    } catch(_){ }
+                    // Don't reload from server to maintain consistent behavior
+                })
+                .fail(function(xhr){
+                    try { 
+                        console.error('Failed to move task (touch)', xhr && xhr.responseText); 
+                        if (typeof window.showFloatingAlert === "function") {
+                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
+                        } else {
+                            alert('Gagal memindahkan task. Coba lagi.');
+                        }
+                    } catch(_){ }
+                })
+                .always(function(){ clearDropVisual($target); });
+            }
         }
 
         document.addEventListener('touchmove', onTouchMove, { passive: false });
