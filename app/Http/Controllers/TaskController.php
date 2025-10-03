@@ -100,16 +100,12 @@ class TaskController extends Controller
                                 });
                         });
                     })
-                        ->orWhere(function ($q) use ($currentUserId) {
-                            if ($currentUserId)
-                                $q->where('created_by', $currentUserId);
-                        });
+                    ->orWhere(function ($q) use ($currentUserId) {
+                        if ($currentUserId)
+                            $q->where('created_by', $currentUserId);
+                    });
                 });
 
-            // By default we exclude canceled tasks from index responses. However, allow callers
-            // to request canceled tasks explicitly by using `status=canceled` or
-            // `include_canceled=1`. This keeps current behavior unchanged while enabling
-            // the archive modal to fetch canceled items.
             $includeCanceled = false;
             if ($statusFilter && strtolower($statusFilter) === 'canceled') {
                 $includeCanceled = true;
@@ -173,7 +169,7 @@ class TaskController extends Controller
                             ->orWhere(function ($qq) use ($currentEmployeePendingAcceptance) {
                                 $currentEmployeePendingAcceptance($qq);
                             });
-                    })->orderBy('created_at', 'asc');
+                    })->orderBy('created_at', 'desc');
                 } elseif ($normalizedFilter === 'completed') {
                     $query->where('status', 'completed')
                         ->where(function ($q) use ($currentEmployeeId) {
@@ -220,7 +216,7 @@ class TaskController extends Controller
                         });
                 })
                     ->orderBy('created_at', 'desc');
-                $newPaginator = $newQuery->paginate($perPage, ['*'], 'new_request_page');
+                $newPaginator = $newQuery->paginate($perPage, ['*'], 'page', $page);
                 $response['new_request'] = [
                     'tasks' => $this->mapTasks($newPaginator->items()),
                     'pagination' => [
@@ -246,7 +242,7 @@ class TaskController extends Controller
                         CASE WHEN LOWER(status) = 'rejected' THEN 0 ELSE 1 END,
                         start_date DESC
                     ");
-                $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'in_progress_page');
+                $progressPaginator = $progressQuery->paginate($perPage, ['*'], 'page', $page);
                 $response['in_progress'] = [
                     'tasks' => $this->mapTasks($progressPaginator->items()),
                     'pagination' => [
@@ -267,8 +263,8 @@ class TaskController extends Controller
                                     $r->whereNull('is_receive')->orWhere('is_receive', false);
                                 });
                         });
-                    })->orderBy('complete_date', 'asc');
-                $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'completed_page');
+                    })->orderBy('complete_date', 'desc');
+                $completedPaginator = $completedQuery->paginate($perPage, ['*'], 'page', $page);
                 $response['completed'] = [
                     'tasks' => $this->mapTasks($completedPaginator->items()),
                     'pagination' => [
@@ -1468,6 +1464,11 @@ class TaskController extends Controller
             $payloadKeys = array_keys($request->all());
             $allowedParentOnlyKeys = ['parent_id', 'project_id'];
             $isParentOnly = $request->has('parent_id') && count(array_diff($payloadKeys, $allowedParentOnlyKeys)) === 0;
+            
+            // Check if this is a positioning-only update
+            $allowedPositioningKeys = ['parent_id', 'project_id', 'position_x', 'position_y', 'free_positioned'];
+            $isPositioningOnly = ($request->has('position_x') || $request->has('position_y') || $request->has('free_positioned')) 
+                                && count(array_diff($payloadKeys, $allowedPositioningKeys)) === 0;
 
             if ($isParentOnly) {
                 $parentOnlyValidator = Validator::make($request->all(), [
@@ -1536,6 +1537,100 @@ class TaskController extends Controller
                     ]
                 ]);
             }
+            
+            // Handle positioning-only updates (drag and drop positioning)
+            if ($isPositioningOnly) {
+                $positionValidator = Validator::make($request->all(), [
+                    'project_id' => 'nullable|exists:projects,id',
+                    'parent_id' => 'nullable|exists:tasks,id',
+                    'position_x' => 'nullable|numeric',
+                    'position_y' => 'nullable|numeric',
+                    'free_positioned' => 'nullable|boolean',
+                ]);
+
+                if ($positionValidator->fails()) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Validation errors',
+                        'errors' => $positionValidator->errors(),
+                    ], 422);
+                }
+
+                $positionData = $positionValidator->validated();
+
+                // Handle parent_id validation if provided
+                if (array_key_exists('parent_id', $positionData)) {
+                    $newParentId = $positionData['parent_id'];
+
+                    // Prevent self-parenting
+                    if (!empty($newParentId) && (string) $newParentId === (string) $task->id) {
+                        return response()->json([
+                            'code' => 422,
+                            'status' => 'error',
+                            'message' => 'A task cannot be its own parent.'
+                        ], 422);
+                    }
+
+                    $incomingProjectId = $positionData['project_id'] ?? $task->project_id;
+                    if (!empty($newParentId)) {
+                        $parent = Task::find($newParentId);
+                        if (!$parent || (string) $parent->project_id !== (string) $incomingProjectId) {
+                            return response()->json([
+                                'code' => 422,
+                                'status' => 'error',
+                                'message' => 'Selected parent task does not belong to the chosen project.'
+                            ], 422);
+                        }
+
+                        // Check for circular dependency
+                        $seen = 0; $MAX_HOPS = 2048; $cursor = $parent;
+                        while ($cursor && $cursor->parent_id !== null && $seen < $MAX_HOPS) {
+                            if ((string) $cursor->parent_id === (string) $task->id) {
+                                return response()->json([
+                                    'code' => 422,
+                                    'status' => 'error',
+                                    'message' => 'Invalid parent: cannot move task under its own descendant.'
+                                ], 422);
+                            }
+                            $cursor = Task::find($cursor->parent_id);
+                            $seen++;
+                        }
+                    }
+
+                    $task->parent_id = $newParentId ?: null;
+                }
+
+                // Update positioning fields
+                if (array_key_exists('position_x', $positionData)) {
+                    $task->position_x = $positionData['position_x'];
+                }
+                if (array_key_exists('position_y', $positionData)) {
+                    $task->position_y = $positionData['position_y'];
+                }
+                if (array_key_exists('free_positioned', $positionData)) {
+                    $task->free_positioned = $positionData['free_positioned'] ? 1 : 0;
+                }
+
+                $task->updated_by = auth()->id();
+                $task->save();
+
+                DB::commit();
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'message' => 'Task positioning updated successfully',
+                    'data' => [
+                        'id' => $task->id,
+                        'parent_id' => $task->parent_id,
+                        'position_x' => $task->position_x,
+                        'position_y' => $task->position_y,
+                        'free_positioned' => $task->free_positioned,
+                        'project_id' => $task->project_id,
+                    ]
+                ]);
+            }
+            
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
                 'parent_id' => 'nullable|exists:tasks,id',

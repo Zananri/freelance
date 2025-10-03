@@ -103,11 +103,14 @@
                                 <span class="material-symbols-outlined">fullscreen</span>
                             </button>
                         </div>
-                        <div id="task-tree">
 
+                        <div class="task-tree-wrapper">
+                            <div id="task-tree">
+
+                            </div>
                         </div>
 
-                        <div id="task-legend" class="d-flex justify-content-start mt-3">
+                        <div id="task-legend" class="d-flex justify-content-start">
                             <div class="legend-item d-flex align-items-start gap-1">
                                 <span class="legend-text not-started">Not Started</span>
                             </div>
@@ -198,7 +201,7 @@
                 </div>
 
                 <div class="col-md-8 mb-3 timeline-detail-project">
-                    <div class="body-content rounded-4 p-3">
+                    <div class="body-content rounded-4 p-3 timeline-content">
                         <div class="d-flex justify-content-between align-items-center">
                             <p class="m-0" id="totalTaskTimeline"></p>
                             <div class="d-flex justify-content-end">

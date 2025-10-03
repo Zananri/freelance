@@ -12,6 +12,9 @@ class Task extends Model
     protected $fillable = [
         'project_id',
         'parent_id',
+        'position_x',
+        'position_y',
+        'free_positioned',
         'point',
         'title',
         'description',
@@ -19,7 +22,7 @@ class Task extends Model
         'priority',
         'status',
         'reference_url',
-    'reference_urls',
+        'reference_urls',
         'reference_files',
         'complete_files',
         'complete_urls',
@@ -34,10 +37,13 @@ class Task extends Model
 
     protected $casts = [
         'reference_files' => 'array',
-    'reference_urls' => 'array',
-    'read_markers' => 'array',
-    'complete_files' => 'array',
-    'complete_urls' => 'array',
+        'reference_urls' => 'array',
+        'read_markers' => 'array',
+        'complete_files' => 'array',
+        'complete_urls' => 'array',
+        'free_positioned' => 'boolean',
+        'position_x' => 'integer',
+        'position_y' => 'integer',
     ];
 
     // Define relationship to Project

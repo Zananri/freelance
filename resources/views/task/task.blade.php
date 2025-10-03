@@ -194,10 +194,9 @@
                                 style="display:none;"></textarea>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="edit_task_project_input" class="form-label label-custom">Project
-                                (optional)</label>
+                            <label for="edit_task_project_input" class="form-label label-custom">Project</label>
                             <input type="text" class="form-control input-text" id="edit_task_project_input"
-                                autocomplete="off" placeholder="Search project...">
+                                autocomplete="off" placeholder="Search project..." required>
                             <div id="edit_task_project_dropdown" class="dropdown-list mt-1"></div>
                             <div id="edit_task_selected_project" class="mt-2"></div>
                             <input type="hidden" id="edit_task_project_id" name="project_id" value="">
@@ -404,7 +403,7 @@
                         <div class="mb-3 custom-input">
                             <label class="form-label label-custom">Project</label>
                             <input type="text" class="form-control input-text" id="task_project_input"
-                                autocomplete="off" placeholder="Search project...">
+                                autocomplete="off" placeholder="Search project..." required>
                             <div id="task_project_dropdown" class="dropdown-list mt-1"></div>
                             <div id="task_selected_project" class="mt-2"></div>
                             <input type="hidden" id="task_project_id" name="project_id" value="">
@@ -590,25 +589,25 @@
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <div id="completed_task_note" class="text-muted"></div>
+                    <div class="mb-4 task-description-container">
+                        <div id="completed_task_note" class="text-muted task-description"></div>
                     </div>
 
                     <div class="row mb-4 link-file-task">
                         <div class="col-6 d-flex align-items-center">
-                            <label class="fw-normal me-2 mb-0">Priority:</label>
+                            <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
                             <span id="completed_priority"></span>
                         </div>
                         <div class="col-6 d-flex align-items-center">
-                            <label class="fw-normal me-2 mb-0">Complete Date:</label>
+                            <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
                             <span id="completed_date"></span>
                         </div>
-                        <div class="col-6">
-                            <label class="fw-normal d-block mb-1">Links:</label>
+                        <div class="col-12">
+                            <label class="fw-normal text-muted d-block mb-1">Links:</label>
                             <div id="completed_task_urls"></div>
                         </div>
-                        <div class="col-6">
-                            <label class="fw-normal d-block mb-1">Files:</label>
+                        <div class="col-12">
+                            <label class="fw-normal text-muted d-block mb-1">Files:</label>
                             <div id="completed_task_files"></div>
                         </div>
                     </div>
