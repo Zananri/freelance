@@ -2573,11 +2573,12 @@
                             sel.forEach(function (f, idx) {
                                 try {
                                     var item = document.createElement("div");
+                                    // match user's requested styling for selected file item
                                     item.className =
                                         "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task";
-                                    var iconWrap =
-                                        document.createElement("div");
-                                    // small file icon placeholder
+
+                                    var iconWrap = document.createElement("div");
+                                    // small file icon placeholder (compact)
                                     iconWrap.innerHTML =
                                         '<span class="material-symbols-outlined">description</span>';
                                     iconWrap.style.fontSize = "10px";
@@ -2597,10 +2598,11 @@
                                     rm.type = "button";
                                     rm.className =
                                         "btn btn-sm btn-remove-task remove-task";
+                                    // inline styles to match requested snippet
                                     rm.style.lineHeight = "1";
+                                    rm.style.fontSize = "10px";
                                     rm.innerHTML =
                                         '<span class="material-symbols-outlined">close</span>';
-                                    rm.style.fontSize = "10px";
                                     rm.addEventListener("click", function () {
                                         try {
                                             window.inlineFeedbackSelectedFiles.splice(
@@ -2652,13 +2654,35 @@
                             arr.forEach(function(f){
                                 var url = toUrl(f); var name = toName(f); if (!name) return;
                                 window.inlineExistingFilesKeep.push(name);
-                                var item = document.createElement("div"); item.className = "existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
-                                var info = document.createElement("div"); info.className = "d-flex align-items-center flex-grow-1";
-                                var icon = document.createElement("span"); icon.className = "material-symbols-outlined me-2"; icon.textContent = "description";
-                                var link = document.createElement("a"); link.href = url; link.target = "_blank"; link.textContent = name; link.className = "text-decoration-none";
-                                var rm = document.createElement("button"); rm.type = "button"; rm.className = "btn btn-sm btn-outline-danger"; rm.innerHTML = "&times;";
-                                rm.addEventListener("click", function(){ try { item.remove(); var idx = window.inlineExistingFilesKeep.indexOf(name); if (idx>-1) window.inlineExistingFilesKeep.splice(idx,1); } catch(_){}});
-                                info.appendChild(icon); info.appendChild(link); item.appendChild(info); item.appendChild(rm); list.appendChild(item);
+                                // Create item matching requested appearance
+                                var item = document.createElement("div");
+                                item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task";
+
+                                var iconWrap = document.createElement("div");
+                                iconWrap.style.fontSize = "10px";
+                                iconWrap.style.textAlign = "center";
+                                iconWrap.innerHTML = '<span class="material-symbols-outlined">description</span>';
+
+                                var link = document.createElement("a");
+                                link.href = url;
+                                link.target = "_blank";
+                                link.className = "flex-grow-1";
+                                link.style.fontSize = "10px";
+                                link.textContent = name;
+
+                                // remove button styled small
+                                var rm = document.createElement("button");
+                                rm.type = "button";
+                                rm.className = "btn btn-sm btn-remove-task remove-task";
+                                rm.style.lineHeight = "1";
+                                rm.style.fontSize = "10px";
+                                rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                rm.addEventListener("click", function(){ try { item.remove(); var idx = window.inlineExistingFilesKeep.indexOf(name); if (idx>-1) window.inlineExistingFilesKeep.splice(idx,1); } catch(_){} });
+
+                                item.appendChild(iconWrap);
+                                item.appendChild(link);
+                                item.appendChild(rm);
+                                list.appendChild(item);
                             });
                             box.appendChild(list);
                         } catch(_){ }
@@ -2666,18 +2690,60 @@
 
                     // Show small image preview from an existing URL (not a File)
                     window.showInlineImagePreviewFromUrl = function(url){
-                        try {
-                            var editorEl = document.getElementById("inline_feedback_editor"); if (!editorEl || !editorEl.parentNode) return;
-                            var parent = editorEl.parentNode; var previewContainer = document.getElementById("inline_feedback_image_preview");
-                            if (!previewContainer){ previewContainer = document.createElement("div"); previewContainer.id = "inline_feedback_image_preview"; previewContainer.className = "mt-2"; parent.insertBefore(previewContainer, editorEl); }
-                            previewContainer.innerHTML = "";
-                            var wrap = document.createElement("div"); wrap.style.position = "relative"; wrap.style.display = "inline-block";
-                            var img = document.createElement("img"); img.src = url; img.style.maxWidth = "140px"; img.style.borderRadius = "8px";
-                            var rm = document.createElement("button"); rm.type = "button"; rm.className = "btn btn-sm btn-outline-danger"; rm.style.position = "absolute"; rm.style.top = "-8px"; rm.style.right = "-8px"; rm.innerHTML = "&times;";
-                            rm.addEventListener("click", function(){ try { previewContainer.remove(); } catch(_){} window.__inlineRemoveImage = true; });
-                            wrap.appendChild(img); wrap.appendChild(rm); previewContainer.appendChild(wrap); window.__inlineRemoveImage = false;
-                        } catch(_){ }
-                    };
+                                            try {
+                                                var editorEl = document.getElementById("inline_feedback_editor"); if (!editorEl || !editorEl.parentNode) return;
+                                                var parent = editorEl.parentNode; var previewContainer = document.getElementById("inline_feedback_image_preview");
+                                                if (!previewContainer){ previewContainer = document.createElement("div"); previewContainer.id = "inline_feedback_image_preview"; previewContainer.className = "";
+                                                    // Prefer inserting the preview immediately after the attach-file button so it appears to the right of it
+                                                    var fileBtn = document.getElementById("inlineFeedbackFileBtn");
+                                                    if (fileBtn && fileBtn.parentNode) {
+                                                        // ensure the parent lays out children inline so the preview sits to the right
+                                                        try {
+                                                            var targetParent = fileBtn.parentNode;
+                                                            var cs = window.getComputedStyle(targetParent);
+                                                            if (cs && cs.display !== 'flex' && cs.display !== 'inline-flex') {
+                                                                // only set inline-flex as a non-destructive inline style when necessary
+                                                                targetParent.style.display = 'inline-flex';
+                                                                targetParent.style.alignItems = 'center';
+                                                                // small gap so icon and preview are nicely spaced
+                                                                if (!targetParent.style.gap) targetParent.style.gap = '6px';
+                                                            }
+                                                        } catch (_) {}
+                                                        fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                                                    } else if (editorEl && editorEl.parentNode) {
+                                                        editorEl.parentNode.insertBefore(previewContainer, editorEl);
+                                                    } else {
+                                                        // last resort: append to parent
+                                                        parent.appendChild(previewContainer);
+                                                    }
+                                                }
+                                                previewContainer.innerHTML = "";
+
+                                                // Build markup like the user's example
+                                                var outer = document.createElement('div');
+                                                outer.style.display = 'inline-flex';
+                                                outer.style.alignItems = 'center';
+                                                outer.style.marginLeft = '8px';
+                                                outer.style.opacity = '1';
+                                                outer.style.background = 'transparent';
+
+                                                var imageLabel = document.createElement('div');
+                                                imageLabel.className = 'custom-image-upload position-relative';
+                                                imageLabel.style.cssText = "width: 32px; height: 32px; background-image: url('"+ url.replace(/'/g, "\\'") +"'); background-size: cover; background-position: center center; background-repeat: no-repeat; border-radius: 6px; cursor: pointer; border: 1px solid rgb(221, 221, 221); margin-right: 4px; opacity: 1; background-color: rgb(255, 255, 255); box-shadow: rgba(0, 0, 0, 0.12) 0px 1px 3px; overflow: visible;";
+
+                                                var clearBtn = document.createElement('span');
+                                                clearBtn.className = 'image-clear-btn';
+                                                clearBtn.title = 'Remove image';
+                                                clearBtn.innerHTML = '×';
+                                                clearBtn.style.cssText = 'position: absolute; top: -6px; right: -6px; background: rgb(255, 68, 68); color: rgb(255, 255, 255); border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; text-align: center; cursor: pointer; font-weight: 700; border: none; box-shadow: rgba(0, 0, 0, 0.25) 0px 2px 6px; z-index: 30; opacity: 1;';
+                                                clearBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); try { previewContainer.parentNode && previewContainer.parentNode.removeChild(previewContainer); } catch(_){} window.__inlineRemoveImage = true; });
+
+                                                imageLabel.appendChild(clearBtn);
+                                                outer.appendChild(imageLabel);
+                                                previewContainer.appendChild(outer);
+                                                window.__inlineRemoveImage = false;
+                                            } catch(_){ }
+                                        };
 
                     // Enter inline EDIT mode: prefill editor, show existing assets, switch Send->Update, add Cancel
                     window.startInlineEditFeedback = function(data){
