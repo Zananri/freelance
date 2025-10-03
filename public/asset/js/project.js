@@ -2500,9 +2500,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const nameSpan = document.createElement("span");
                                 nameSpan.textContent = emp.name;
                                 nameSpan.style.lineHeight = '1';
+                                nameSpan.style.fontWeight = "normal"
                                 const divSpan = document.createElement("small");
                                 divSpan.className = "text-muted";
                                 divSpan.style.lineHeight = '1';
+                                divSpan.style.fontWeight = "normal"
                                 divSpan.textContent = emp.division || '';
                                 nameWrapper.appendChild(nameSpan);
                                 nameWrapper.appendChild(divSpan);
@@ -2937,9 +2939,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 const nameSpan = document.createElement("span");
                                 nameSpan.textContent = emp.name;
                                 nameSpan.style.lineHeight = '1';
+                                nameSpan.style.fontWeight = "normal"
                                 const divSpan = document.createElement("small");
                                 divSpan.className = "text-muted";
                                 divSpan.style.lineHeight = '1';
+                                divSpan.style.fontWeight = "normal"
                                 divSpan.textContent = emp.division || emp.division_name || '';
                                 nameWrapper.appendChild(nameSpan);
                                 nameWrapper.appendChild(divSpan);
@@ -8148,9 +8152,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 const nameSpan = document.createElement("span");
                 nameSpan.textContent = emp.name;
                 nameSpan.style.lineHeight = '1';
+                nameSpan.style.fontWeight = "normal";
                 const divSpan = document.createElement("small");
                 divSpan.className = "text-muted";
                 divSpan.style.lineHeight = '1';
+                divSpan.style.fontWeight = "normal";
                 divSpan.textContent = emp.division || '';
                 nameWrapper.appendChild(nameSpan);
                 nameWrapper.appendChild(divSpan);
@@ -9100,9 +9106,11 @@ document.addEventListener("DOMContentLoaded", function () {
                 const nameSpan = document.createElement("span");
                 nameSpan.textContent = emp.name;
                 nameSpan.style.lineHeight = '1';
+                nameSpan.style.fontWeight = "normal"
                 const divSpan = document.createElement("small");
                 divSpan.className = "text-muted";
                 divSpan.style.lineHeight = '1';
+                divSpan.style.fontWeight = "normal"
                 divSpan.textContent = emp.division || '';
                 nameWrapper.appendChild(nameSpan);
                 nameWrapper.appendChild(divSpan);
