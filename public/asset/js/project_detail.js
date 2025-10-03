@@ -731,17 +731,18 @@
                             var commentDiv = document.createElement("div");
                             commentDiv.className = "feedback-comment";
                             commentDiv.style.fontSize = "10px";
-                            // allow a small whitelist of HTML (p, br, a, strong, em, ul/ol/li)
+
                             try {
-                                commentDiv.innerHTML = sanitizeHtml(
-                                    feedback.feedback_comment || ""
-                                );
+                                commentDiv.innerHTML = sanitizeHtml(feedback.feedback_comment || "");
                             } catch (_) {
-                                commentDiv.textContent =
-                                    feedback.feedback_comment || "";
+                                commentDiv.textContent = feedback.feedback_comment || "";
                             }
 
                             feedbackItem.appendChild(headerDiv);
+                            var commentContent = (feedback.feedback_comment || "").trim();
+                            if (!commentContent || commentContent === "<p></p>" || commentContent === "<p><br></p>") {
+                                commentDiv.classList.add("d-none");
+                            }
                             feedbackItem.appendChild(commentDiv);
 
                             // Normalize top-level image URL (accept absolute, /file/* or relative filename)
