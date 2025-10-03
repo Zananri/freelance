@@ -107,7 +107,7 @@
 
                         </div>
 
-                        <div id="task-legend" class="d-flex justify-content-start mt-3">
+                        <div id="task-legend" class="d-flex justify-content-start">
                             <div class="legend-item d-flex align-items-start gap-1">
                                 <span class="legend-text not-started">Not Started</span>
                             </div>
