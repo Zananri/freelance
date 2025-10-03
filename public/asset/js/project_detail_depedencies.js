@@ -165,38 +165,12 @@ function renderTaskList(data) {
     $tree.empty();
     if (!data || data.length === 0) return;
     
-    // Separate free-positioned tasks from tree tasks
-    const freePositionedTasks = data.filter(task => {
-        const isFreePositioned = task.free_positioned == 1 || task.free_positioned === true || task.free_positioned === "1";
-        const hasValidPosition = task.position_x != null && task.position_y != null;
-        return isFreePositioned && hasValidPosition;
-    });
-    const treeTaskData = data.filter(task => {
-        const isFreePositioned = task.free_positioned == 1 || task.free_positioned === true || task.free_positioned === "1";
-        return !isFreePositioned;
-    });
-    
-    // Render task list with free positioning support
-    
-    // Render tree structure
-    const treeData = buildTaskTree(treeTaskData);
+    // Render tree structure (all tasks)
+    const treeData = buildTaskTree(data);
     const $rootCol = $('<div class="root-column"></div>');
     $tree.append($rootCol);
     treeData.forEach((root) => {
         $rootCol.append(renderTaskNode(root, $("#task-template")));
-    });
-    
-    // Render free-positioned tasks
-    freePositionedTasks.forEach((task) => {
-        const $freeTask = renderTaskNode(task, $("#task-template"));
-        $freeTask.addClass("free-positioned-task");
-        $freeTask.css({
-            position: "absolute",
-            left: task.position_x + "px",
-            top: task.position_y + "px",
-            zIndex: 10
-        });
-        $tree.append($freeTask);
     });
     
     setTimeout(adjustConnectors, 40);
@@ -709,29 +683,12 @@ $("#fullscreen-tree-btn").on("click", function () {
                 return;
             }
 
-            // Get drop coordinates relative to task-tree container
-            var treeOffset = $("#task-tree").offset();
-            var scrollLeft = $("#task-tree").scrollLeft();
-            var scrollTop = $("#task-tree").scrollTop();
-            
-            var dropX = e.originalEvent.clientX - treeOffset.left + scrollLeft;
-            var dropY = e.originalEvent.clientY - treeOffset.top + scrollTop;
-            
-            // Ensure minimum distance from edges
-            dropX = Math.max(20, dropX);
-            dropY = Math.max(20, dropY);
-
-            // Move task to free position with coordinates
-            // Moving task to free position
-            
+            // Move task to empty space (set parent_id to null)
             $.ajax({
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                 type: "PUT",
                 data: { 
-                    parent_id: null,
-                    position_x: Math.round(dropX),
-                    position_y: Math.round(dropY),
-                    free_positioned: 1
+                    parent_id: null
                 },
                 dataType: "json"
             })
@@ -741,9 +698,6 @@ $("#fullscreen-tree-btn").on("click", function () {
                         var dragged = map[String(draggedId)];
                         if (dragged) {
                             dragged.parent_id = null;
-                            dragged.position_x = parseInt(Math.round(dropX));
-                            dragged.position_y = parseInt(Math.round(dropY));
-                            dragged.free_positioned = 1;
                         }
                         renderTaskList(allTasks);
                     } catch (_) {}
@@ -754,7 +708,7 @@ $("#fullscreen-tree-btn").on("click", function () {
                     // Show success message
                     try {
                         if (typeof window.showFloatingAlert === "function") {
-                            window.showFloatingAlert("Task berhasil dipindahkan ke posisi bebas", "success", 2000);
+                            window.showFloatingAlert("Task berhasil dikeluarkan dari parent", "success", 2000);
                         }
                     } catch (_) {}
                 })
@@ -814,10 +768,7 @@ $("#fullscreen-tree-btn").on("click", function () {
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                 type: "PUT",
                 data: { 
-                    parent_id: String(targetId),
-                    free_positioned: 0,
-                    position_x: null,
-                    position_y: null
+                    parent_id: String(targetId)
                 },
                 dataType: "json"
             })
@@ -825,9 +776,6 @@ $("#fullscreen-tree-btn").on("click", function () {
                     try {
                         if (dragged) {
                             dragged.parent_id = targetId;
-                            dragged.free_positioned = 0;
-                            dragged.position_x = null;
-                            dragged.position_y = null;
                         }
                         renderTaskList(allTasks);
                     } catch (_) {}
@@ -1003,28 +951,12 @@ $("#fullscreen-tree-btn").on("click", function () {
                 var scrollLeft = $("#task-tree").scrollLeft();
                 var scrollTop = $("#task-tree").scrollTop();
                 
-                // Calculate drop position from last touch position
-                var dropX = (state.lastTouchX || 0) - treeOffset.left + scrollLeft;
-                var dropY = (state.lastTouchY || 0) - treeOffset.top + scrollTop;
-                
-                // Ensure minimum distance from edges
-                dropX = Math.max(20, dropX);
-                dropY = Math.max(20, dropY);
-                
-                console.log("Touch: Moving task to empty space - setting parent_id to null", {
-                    draggedId: draggedId,
-                    previousParentId: dragged ? dragged.parent_id : 'unknown',
-                    newPosition: { x: Math.round(dropX), y: Math.round(dropY) }
-                });
-                
+                // Touch: Move task to empty space (set parent_id to null)
                 $.ajax({
                     url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                     type: 'PUT',
                     data: { 
-                        parent_id: null,
-                        position_x: Math.round(dropX),
-                        position_y: Math.round(dropY),
-                        free_positioned: 1
+                        parent_id: null
                     },
                     dataType: 'json'
                 })
@@ -1032,11 +964,7 @@ $("#fullscreen-tree-btn").on("click", function () {
                     try { 
                         if (dragged) {
                             dragged.parent_id = null;
-                            dragged.position_x = parseInt(Math.round(dropX));
-                            dragged.position_y = parseInt(Math.round(dropY));
-                            dragged.free_positioned = 1; // Use 1 instead of true for consistency
                         }
-                        console.log("Touch: Updated local task data:", dragged);
                         renderTaskList(allTasks); 
                     } catch(_){ }
                     
@@ -1044,7 +972,7 @@ $("#fullscreen-tree-btn").on("click", function () {
                     // Local data is already updated above
                     try {
                         if (typeof window.showFloatingAlert === "function") {
-                            window.showFloatingAlert("Task berhasil dipindahkan ke posisi bebas", "success", 2000);
+                            window.showFloatingAlert("Task berhasil dikeluarkan dari parent", "success", 2000);
                         }
                     } catch (_) {}
                 })
@@ -1076,10 +1004,7 @@ $("#fullscreen-tree-btn").on("click", function () {
                     url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                     type: 'PUT',
                     data: { 
-                        parent_id: String(targetId),
-                        free_positioned: 0,
-                        position_x: null,
-                        position_y: null
+                        parent_id: String(targetId)
                     },
                     dataType: 'json'
                 })
@@ -1087,9 +1012,6 @@ $("#fullscreen-tree-btn").on("click", function () {
                     try { 
                         if (dragged) {
                             dragged.parent_id = targetId;
-                            dragged.free_positioned = 0;
-                            dragged.position_x = null;
-                            dragged.position_y = null;
                         }
                         renderTaskList(allTasks); 
                     } catch(_){ }
