@@ -2755,7 +2755,12 @@
                                 window.__quillProjectFeedbackInline.root.innerHTML = data.feedback_comment || "";
                             try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
                             try { var files = []; if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls; else if (Array.isArray(data.reference_files)) files = data.reference_files; else if (data.reference_file_url) files = [data.reference_file_url]; else if (data.reference_file) files = [data.reference_file]; window.renderInlineExistingFiles(files); } catch(_){ }
-                            var sendBtn = document.getElementById("inlineFeedbackSendBtn"); if (sendBtn){ sendBtn._origText = sendBtn._origText || sendBtn.textContent; sendBtn.textContent = "Update"; }
+                            var sendBtn = document.getElementById("inlineFeedbackSendBtn");
+                            if (sendBtn){
+                                // preserve the full original HTML (may include icons) so we can restore exactly on cancel
+                                sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
+                                try { sendBtn.innerHTML = 'Update'; } catch(_) { sendBtn.textContent = 'Update'; }
+                            }
                             var actions = document.querySelector('.btn-actions-feedback .submit-feedback'); if (actions && !document.getElementById('inlineFeedbackCancelBtn')){ var cancel = document.createElement('button'); cancel.type='button'; cancel.id='inlineFeedbackCancelBtn'; cancel.className='btn btn-custom-close me-2'; cancel.textContent='Cancel'; cancel.addEventListener('click', function(){ try { window.cancelInlineEditFeedback(); } catch(_){ } }); actions.insertBefore(cancel, actions.firstChild); }
                         } catch(_){ }
                     };
@@ -2802,10 +2807,14 @@
                             try {
                                 var sendBtn = document.getElementById('inlineFeedbackSendBtn');
                                 if (sendBtn) {
-                                    if (sendBtn._origText) sendBtn.textContent = sendBtn._origText;
-                                    else sendBtn.textContent = 'Send';
+                                    // restore the preserved original innerHTML if available, else fallback to simple text
+                                    if (sendBtn._origHTML) {
+                                        try { sendBtn.innerHTML = sendBtn._origHTML; } catch(_) { sendBtn.textContent = sendBtn._origHTML; }
+                                    } else {
+                                        try { sendBtn.innerHTML = 'Send'; } catch(_) { sendBtn.textContent = 'Send'; }
+                                    }
                                 }
-                            } catch(_){}
+                            } catch(_){ }
 
                             // remove cancel button
                             try { var cancel = document.getElementById('inlineFeedbackCancelBtn'); if (cancel && cancel.parentNode) cancel.parentNode.removeChild(cancel); } catch(_){}
