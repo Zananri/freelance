@@ -98,17 +98,7 @@
         } catch (e) {
             /* no-op */
         }
-        // No blocking native alert fallback; prefer console log to avoid modal dialogs.
-        try {
-            console.log(
-                "[floatingAlert]",
-                typeof message === "string"
-                    ? message.replace(/<[^>]+>/g, "")
-                    : String(message)
-            );
-        } catch (e) {
-            /* no-op */
-        }
+                // DEBUG: mark when our handler runs (helps detect cached/other handlers)
         try {
             // Fallback: create a lightweight in-page toast so we never trigger browser native alert()
             var tmsg =
@@ -1302,6 +1292,235 @@
                                 }
 
                                 feedbackItem.appendChild(actionsDiv);
+
+                                // Replies list (hidden by default) with View all / Hide toggle
+                                try {
+                                    if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                        var repliesCount = feedback.replies.length;
+                                        var toggleBtn = document.createElement('button');
+                                        toggleBtn.type = 'button';
+                                        toggleBtn.className = 'btn btn-link p-0 view-replies-toggle feedback-toggle-replies d-flex align-items-center';
+                                        toggleBtn.style.cssText = 'cursor:pointer; color:rgb(85,85,85); font-size:10px; text-decoration: none; display:flex; align-items:center;';
+                                        toggleBtn.setAttribute('data-feedback-id', String(feedback.id));
+                                        toggleBtn.setAttribute('data-replies-count', String(repliesCount));
+                                        toggleBtn.textContent = 'View all (' + String(repliesCount) + ')';
+                                        var repliesContainer = document.createElement('div');
+                                        repliesContainer.className = 'feedback-replies d-none';
+
+                                        // append toggle into actions row
+                                        actionsDiv.appendChild(toggleBtn);
+
+                                        // render replies into container (simple structure matching project.js replies)
+                                        feedback.replies.forEach(function (rep) {
+                                            try {
+                                                var repEmp = rep.employee || {};
+                                                var repDiv = document.createElement('div');
+                                                // smaller spacing and padding to match top-level feedback
+                                                repDiv.className = 'feedback-reply ms-4 mt-1 p-1 rounded';
+                                                if (rep && rep.id != null) {
+                                                    repDiv.setAttribute('data-reply-id', String(rep.id));
+                                                    if (feedback && feedback.id != null) repDiv.setAttribute('data-parent-id', String(feedback.id));
+                                                }
+                                                // store payload pieces in data-* attributes so delegated handlers can use them
+                                                try {
+                                                    repDiv.setAttribute('data-comment', encodeURIComponent(rep.feedback_comment || ''));
+                                                    repDiv.setAttribute('data-ref-url', encodeURIComponent(rep.reference_url || ''));
+                                                    repDiv.setAttribute('data-ref-urls', encodeURIComponent(JSON.stringify(Array.isArray(rep.reference_urls) ? rep.reference_urls : (rep.reference_urls ? (function(){ try{ return JSON.parse(rep.reference_urls); }catch(_){ return []; } })() : []))));
+                                                    repDiv.setAttribute('data-ref-file', encodeURIComponent(rep.reference_file || ''));
+                                                    repDiv.setAttribute('data-ref-files', encodeURIComponent(JSON.stringify(Array.isArray(rep.reference_files) ? rep.reference_files : (rep.reference_files ? (function(){ try{ return JSON.parse(rep.reference_files); }catch(_){ return []; } })() : []))));
+                                                    repDiv.setAttribute('data-image', encodeURIComponent(rep.image || ''));
+                                                    repDiv.setAttribute('data-author-name', encodeURIComponent(((rep.employee && (rep.employee.name || '')) || '')));
+                                                } catch (_) {}
+                                                repDiv.style.background = '#fafafa';
+
+                                                // header
+                                                var repHeader = document.createElement('div');
+                                                repHeader.className = 'd-flex align-items-start mb-1';
+                                                var repImg = document.createElement('img');
+                                                (function(){
+                                                    var raw = repEmp.user_photo || repEmp.profile_picture || repEmp.photo || '';
+                                                    var rurl = getMeta('app-url').replace(/\/$/, '') + '/asset/img/avatar.png';
+                                                    try {
+                                                        if (raw) {
+                                                            if (String(raw).startsWith('http')) rurl = raw;
+                                                            else if (String(raw).startsWith('/')) rurl = getMeta('app-url').replace(/\/$/, '') + raw;
+                                                            else rurl = getMeta('app-url').replace(/\/$/, '') + '/file/profile_picture/' + raw;
+                                                        }
+                                                    } catch(_){}
+                                                    repImg.src = rurl;
+                                                })();
+                                                repImg.alt = repEmp.name || 'Employee';
+                                                repImg.className = 'rounded-circle me-2';
+                                                repImg.style.width = '20px'; repImg.style.height = '20px'; repImg.style.objectFit = 'cover';
+
+                                                var repInfo = document.createElement('div');
+                                                repInfo.className = 'flex-grow-1';
+                                                // name + time
+                                                var repNameWrap = document.createElement('div');
+                                                var repNameRow = document.createElement('div');
+                                                repNameRow.className = 'd-flex align-items-center';
+                                                var repNameStrong = document.createElement('strong');
+                                                repNameStrong.style.fontSize = '11px'; repNameStrong.style.fontWeight = '600';
+                                                repNameStrong.textContent = repEmp.name || 'Unknown';
+                                                repNameRow.appendChild(repNameStrong);
+                                                var repDateDiv = document.createElement('div');
+                                                repDateDiv.className = 'text-muted small'; repDateDiv.style.fontSize = '10px';
+                                                if (rep.created_at) repDateDiv.textContent = timeAgo(rep.created_at);
+                                                repNameWrap.appendChild(repNameRow);
+                                                repNameWrap.appendChild(repDateDiv);
+
+                                                // content
+                                                var repContent = document.createElement('div');
+                                                repContent.className = 'mt-2';
+                                                var repComment = document.createElement('p');
+                                                repComment.className = 'mb-1'; repComment.style.fontSize = '10px'; repComment.style.margin = '0';
+                                                try {
+                                                    repComment.innerHTML = sanitizeHtml(rep.feedback_comment || '');
+                                                } catch (_) {
+                                                    try { repComment.textContent = rep.feedback_comment || ''; } catch(_) { repComment.textContent = rep.feedback_comment || ''; }
+                                                }
+                                                repContent.appendChild(repComment);
+
+                                                // Reply / Edit / Delete actions (reply always; edit/delete only if owner)
+                                                var replyActionsDiv = document.createElement('div');
+                                                // Align actions to the right edge of the reply container and make them compact
+                                                replyActionsDiv.className = 'feedback-actions mt-1 d-flex gap-2 align-items-center justify-content-end';
+                                                replyActionsDiv.style.fontSize = '10px';
+                                                replyActionsDiv.style.width = '100%';
+                                                replyActionsDiv.style.paddingRight = '0';
+
+                                                // Reply action (always shown)
+                                                try {
+                                                    var replyRep2 = document.createElement('span');
+                                                    replyRep2.className = 'd-flex align-items-center feedback-reply-trigger';
+                                                    replyRep2.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                                    replyRep2.setAttribute('data-feedback-id', String(feedback.id));
+                                                    replyRep2.setAttribute('data-project-id', String(getMeta('project-id')));
+                                                    var replyIcon2 = document.createElement('span'); replyIcon2.className = 'material-symbols-outlined'; replyIcon2.style.cssText = 'font-size:12px; line-height:1; margin-right:4px;'; replyIcon2.textContent = 'reply';
+                                                    var replyText2 = document.createElement('span'); replyText2.style.fontSize = '10px'; replyText2.textContent = 'Reply';
+                                                    replyRep2.appendChild(replyIcon2); replyRep2.appendChild(replyText2);
+                                                    replyRep2.addEventListener('click', function () {
+                                                        try { showReplyFeedbackForm && showReplyFeedbackForm(getMeta('project-id'), feedback.id); } catch (_) {}
+                                                    });
+                                                    replyActionsDiv.appendChild(replyRep2);
+                                                } catch (_) {}
+
+                                                // determine if current employee is the reply author
+                                                var currentEmployeeId2 = null;
+                                                try { currentEmployeeId2 = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || getMeta('employee-id') || null; } catch(_){}
+                                                var repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                                                var rEdit2 = false;
+                                                try { if (repAuthorId && currentEmployeeId2 && String(repAuthorId) === String(currentEmployeeId2)) rEdit2 = true; } catch(_){}
+
+                                                if (rEdit2) {
+                                                    try {
+                                                        // Edit
+                                                        var editRep2 = document.createElement('span');
+                                                        editRep2.className = 'd-flex align-items-center reply-edit-trigger';
+                                                        editRep2.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                                        editRep2.setAttribute('data-reply-id', String(rep.id));
+                                                        editRep2.setAttribute('data-parent-id', String(feedback.id));
+                                                        var editIcon2 = document.createElement('span'); editIcon2.className = 'material-symbols-outlined'; editIcon2.style.cssText = 'font-size:12px; line-height:1; margin-right:4px;'; editIcon2.textContent = 'edit';
+                                                        var editText2 = document.createElement('span'); editText2.style.fontSize = '10px'; editText2.textContent = 'Edit';
+                                                        editRep2.appendChild(editIcon2); editRep2.appendChild(editText2);
+                                                        editRep2.addEventListener('click', function () {
+                                                            try {
+                                                                var payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ var v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ var p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ var p2 = JSON.parse(rf); if (Array.isArray(p2)) rf = p2; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ var img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + img; return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + img; })() };
+                                                                showEditFeedbackForm && showEditFeedbackForm(getMeta('project-id'), payload, true);
+                                                            } catch (_) {}
+                                                        });
+                                                        replyActionsDiv.appendChild(editRep2);
+                                                    } catch(_){}
+
+                                                    try {
+                                                        // Delete
+                                                        var delRep2 = document.createElement('span');
+                                                        delRep2.className = 'd-flex align-items-center reply-delete-trigger';
+                                                        delRep2.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                                        delRep2.setAttribute('data-reply-id', String(rep.id));
+                                                        delRep2.setAttribute('data-parent-id', String(feedback.id));
+                                                        var delIcon2 = document.createElement('span'); delIcon2.className = 'material-symbols-outlined'; delIcon2.style.cssText = 'font-size:12px; line-height:1; margin-right:4px;'; delIcon2.textContent = 'delete';
+                                                        var delText2 = document.createElement('span'); delText2.style.fontSize = '10px'; delText2.textContent = 'Delete';
+                                                        delRep2.appendChild(delIcon2); delRep2.appendChild(delText2);
+                                                        delRep2.addEventListener('click', function(){
+                                                            try {
+                                                                var rid = String(rep.id);
+                                                                var pid = String(feedback.id);
+                                                                var authorName = (rep.employee && (rep.employee.name || '')) || '';
+                                                                var content = (rep.feedback_comment || '');
+                                                                var avatarUrl = (rep.employee && (rep.employee.user_photo || rep.employee.profile_picture || rep.employee.photo)) || '';
+                                                                window.showDeleteConfirmModal && window.showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                                                    try {
+                                                                        fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + rid, {
+                                                                            method: 'DELETE',
+                                                                            headers: {
+                                                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                                                'Accept': 'application/json'
+                                                                            }
+                                                                        }).then(function(r){ return r.text().then(function(t){ try{ var j = JSON.parse(t); if (r.ok) return j; return Promise.reject(j); }catch(e){ if (r.ok) return { message: t }; return Promise.reject({ message: t }); } }); }).then(function(res){
+                                                                            try {
+                                                                                var el = document.querySelector('.feedback-reply[data-reply-id="'+rid+'"]');
+                                                                                if (el) el.remove();
+                                                                                // update UI if no more replies
+                                                                                var parentEl = document.querySelector('.feedback-item[data-feedback-id="'+pid+'"]');
+                                                                                if (parentEl) {
+                                                                                    var repliesContainer2 = parentEl.querySelector('.feedback-replies');
+                                                                                    if (repliesContainer2) {
+                                                                                        var children = repliesContainer2.querySelectorAll('.feedback-reply');
+                                                                                        if (!children || children.length === 0) {
+                                                                                            repliesContainer2.classList.add('d-none');
+                                                                                            var toggleEl = parentEl.querySelector('.feedback-toggle-replies');
+                                                                                            if (toggleEl) toggleEl.textContent = '';
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            } catch(_){}
+                                                                            window.showFloatingAlert && window.showFloatingAlert(res.message || 'Reply deleted', 'success', 1500);
+                                                                            done(true);
+                                                                        }).catch(function(err){
+                                                                            var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to delete reply';
+                                                                            window.showFloatingAlert && window.showFloatingAlert(msg, 'warning', 3500);
+                                                                            done(false);
+                                                                        });
+                                                                    } catch(e){ try{ done(false); }catch(_){} }
+                                                                }});
+                                                            } catch(_){}
+                                                        });
+                                                        replyActionsDiv.appendChild(delRep2);
+                                                    } catch(_){}
+                                                }
+
+                                                // assemble reply
+                                                repInfo.appendChild(repNameWrap);
+                                                repInfo.appendChild(repContent);
+                                                // place actions inside content so they align under name/time
+                                                try { repContent.appendChild(replyActionsDiv); } catch(_){}
+                                                repHeader.appendChild(repImg);
+                                                repHeader.appendChild(repInfo);
+                                                repDiv.appendChild(repHeader);
+                                                repliesContainer.appendChild(repDiv);
+                                            } catch(_){}
+                                        });
+
+                                        feedbackItem.appendChild(repliesContainer);
+
+                                        // toggle behavior: show/hide replies
+                                        try {
+                                            toggleBtn.addEventListener('click', function () {
+                                                try {
+                                                    var isHidden = repliesContainer.classList.contains('d-none');
+                                                    if (isHidden) {
+                                                        repliesContainer.classList.remove('d-none');
+                                                        toggleBtn.textContent = 'Hide';
+                                                    } else {
+                                                        repliesContainer.classList.add('d-none');
+                                                        toggleBtn.textContent = 'View all (' + String(repliesCount) + ')';
+                                                    }
+                                                } catch (_) {}
+                                            });
+                                        } catch(_){}
+                                    }
+                                } catch(_){}
                             } catch (_) {}
 
                             feedbackListEl.appendChild(feedbackItem);
@@ -2208,17 +2427,7 @@
                                         .innerHTML || "";
                         }
                     } catch (_) {}
-                    try {
-                        if (window.__quillProjectFeedbackReply) {
-                            var ta2 = document.querySelector(
-                                "#replyFeedbackForm #feedback_comment"
-                            );
-                            if (ta2)
-                                ta2.value =
-                                    window.__quillProjectFeedbackReply.root
-                                        .innerHTML || "";
-                        }
-                    } catch (_) {}
+                    // reply-specific Quill instance removed: nothing to sync here (page inline editor handles input)
                     try {
                         if (window.__quillProjectFeedbackEdit) {
                             var ta3 = document.querySelector(
@@ -2288,9 +2497,7 @@
                             }
                         } catch (_) {}
                         try {
-                            if (window.__quillProjectFeedbackReply) {
-                                window.__quillProjectFeedbackReply = null;
-                            }
+                            // no reply-specific quill to cleanup
                         } catch (_) {}
                         try {
                             if (window.__quillProjectFeedbackEdit) {
@@ -2668,6 +2875,8 @@
                                 link.target = "_blank";
                                 link.className = "flex-grow-1";
                                 link.style.fontSize = "10px";
+                                // user's request: filename color and no text decoration
+                                try { link.style.color = '#444444'; link.style.textDecoration = 'none'; } catch(_) {}
                                 link.textContent = name;
 
                                 // remove button styled small
@@ -2753,7 +2962,12 @@
                                 window.__quillProjectFeedbackInline.root.innerHTML = data.feedback_comment || "";
                             try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
                             try { var files = []; if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls; else if (Array.isArray(data.reference_files)) files = data.reference_files; else if (data.reference_file_url) files = [data.reference_file_url]; else if (data.reference_file) files = [data.reference_file]; window.renderInlineExistingFiles(files); } catch(_){ }
-                            var sendBtn = document.getElementById("inlineFeedbackSendBtn"); if (sendBtn){ sendBtn._origText = sendBtn._origText || sendBtn.textContent; sendBtn.textContent = "Update"; }
+                            var sendBtn = document.getElementById("inlineFeedbackSendBtn");
+                            if (sendBtn){
+                                // preserve the full original HTML (may include icons) so we can restore exactly on cancel
+                                sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
+                                try { sendBtn.innerHTML = 'Update'; } catch(_) { sendBtn.textContent = 'Update'; }
+                            }
                             var actions = document.querySelector('.btn-actions-feedback .submit-feedback'); if (actions && !document.getElementById('inlineFeedbackCancelBtn')){ var cancel = document.createElement('button'); cancel.type='button'; cancel.id='inlineFeedbackCancelBtn'; cancel.className='btn btn-custom-close me-2'; cancel.textContent='Cancel'; cancel.addEventListener('click', function(){ try { window.cancelInlineEditFeedback(); } catch(_){ } }); actions.insertBefore(cancel, actions.firstChild); }
                         } catch(_){ }
                     };
@@ -2800,10 +3014,14 @@
                             try {
                                 var sendBtn = document.getElementById('inlineFeedbackSendBtn');
                                 if (sendBtn) {
-                                    if (sendBtn._origText) sendBtn.textContent = sendBtn._origText;
-                                    else sendBtn.textContent = 'Send';
+                                    // restore the preserved original innerHTML if available, else fallback to simple text
+                                    if (sendBtn._origHTML) {
+                                        try { sendBtn.innerHTML = sendBtn._origHTML; } catch(_) { sendBtn.textContent = sendBtn._origHTML; }
+                                    } else {
+                                        try { sendBtn.innerHTML = 'Send'; } catch(_) { sendBtn.textContent = 'Send'; }
+                                    }
                                 }
-                            } catch(_){}
+                            } catch(_){ }
 
                             // remove cancel button
                             try { var cancel = document.getElementById('inlineFeedbackCancelBtn'); if (cancel && cancel.parentNode) cancel.parentNode.removeChild(cancel); } catch(_){}
@@ -2891,6 +3109,11 @@
 
                                 var fd = new FormData();
                                 fd.append("feedback_comment", html);
+                                // include parent_id if replying via inline form
+                                try {
+                                    var pid = document.getElementById('inline_parent_id_input');
+                                    if (pid && pid.value) fd.append('parent_id', pid.value);
+                                } catch(_){}
                                 fd.append("project_id", getMeta("project-id") || "");
                                 fd.append(
                                     "employee_id",
@@ -3838,342 +4061,370 @@
             //         });
             // }
 
-            // function showReplyFeedbackForm(projectId, parentId) {
-            //     // Reply form should be provided by blade as #template-reply-feedback
-            //     modalTitle.textContent = "Reply Feedback";
-            //     modalBody.innerHTML = "";
-            //     var tplReply = document.getElementById(
-            //         "template-reply-feedback"
-            //     );
-            //     if (tplReply) {
-            //         var nodeR =
-            //             tplReply.tagName &&
-            //             tplReply.tagName.toLowerCase() === "template"
-            //                 ? tplReply.content.cloneNode(true)
-            //                 : tplReply.cloneNode(true);
-            //         modalBody.appendChild(nodeR);
-            //         try {
-            //             var inProjectR = modalBody.querySelector(
-            //                 'input[name="project_id"]'
-            //             );
-            //             if (inProjectR) inProjectR.value = projectId;
-            //         } catch (_) {}
-            //         try {
-            //             var inParentR = modalBody.querySelector(
-            //                 'input[name="parent_id"]'
-            //             );
-            //             if (inParentR) inParentR.value = parentId;
-            //         } catch (_) {}
-            //         try {
-            //             var inEmployeeR = modalBody.querySelector(
-            //                 'input[name="employee_id"]'
-            //             );
-            //             if (inEmployeeR)
-            //                 inEmployeeR.value =
-            //                     projectFeedbackModalEl.getAttribute(
-            //                         "data-employee-id"
-            //                     ) || "";
-            //         } catch (_) {}
-            //     } else {
-            //         var existingReplyForm =
-            //             modalBody.querySelector("#replyFeedbackForm");
-            //         if (existingReplyForm) {
-            //             try {
-            //                 var p = existingReplyForm.querySelector(
-            //                     'input[name="project_id"]'
-            //                 );
-            //                 if (p) p.value = projectId;
-            //             } catch (_) {}
-            //             try {
-            //                 var pr = existingReplyForm.querySelector(
-            //                     'input[name="parent_id"]'
-            //                 );
-            //                 if (pr) pr.value = parentId;
-            //             } catch (_) {}
-            //             try {
-            //                 var e = existingReplyForm.querySelector(
-            //                     'input[name="employee_id"]'
-            //                 );
-            //                 if (e)
-            //                     e.value =
-            //                         projectFeedbackModalEl.getAttribute(
-            //                             "data-employee-id"
-            //                         ) || "";
-            //             } catch (_) {}
-            //         } else {
-            //             console.error(
-            //                 "Reply Feedback template/form not found. Provide #template-reply-feedback or an element #replyFeedbackForm in the Blade view."
-            //             );
-            //             return;
-            //         }
-            //     }
+            function showReplyFeedbackForm(projectId, parentId) {
+                try {
+                    // DEBUG: mark when our handler runs (helps detect cached/other handlers)
+                    try { if (modalBody && modalBody.setAttribute) modalBody.setAttribute('data-reply-handler','project_detail.js'); } catch(_){}
 
-            //     // image + file preview + submit handler
-            //     (function () {
-            //         try {
-            //             window.replyFeedbackSelectedFiles = [];
-            //             var input = modalBody.querySelector(
-            //                 "#reply_reference_files"
-            //             );
-            //             var preview = modalBody.querySelector(
-            //                 "#reply_reference_files_preview"
-            //             );
-            //             if (input && preview) {
-            //                 function render() {
-            //                     preview.innerHTML = "";
-            //                     if (!window.replyFeedbackSelectedFiles.length)
-            //                         return;
-            //                     var list = document.createElement("div");
-            //                     list.className = "selected-files-list mt-2";
-            //                     window.replyFeedbackSelectedFiles.forEach(
-            //                         function (file, idx) {
-            //                             var item =
-            //                                 document.createElement("div");
-            //                             item.className =
-            //                                 "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
-            //                             var info =
-            //                                 document.createElement("div");
-            //                             info.className =
-            //                                 "d-flex align-items-center flex-grow-1";
-            //                             var icon =
-            //                                 document.createElement("span");
-            //                             icon.className =
-            //                                 "material-symbols-outlined me-2";
-            //                             icon.textContent = "description";
-            //                             var name =
-            //                                 document.createElement("span");
-            //                             name.className = "file-name";
-            //                             name.textContent = file.name;
-            //                             var size =
-            //                                 document.createElement("small");
-            //                             size.className = "text-muted ms-1";
-            //                             size.textContent =
-            //                                 " (" +
-            //                                 (file.size / 1024 / 1024).toFixed(
-            //                                     2
-            //                                 ) +
-            //                                 " MB)";
-            //                             var rm =
-            //                                 document.createElement("button");
-            //                             rm.type = "button";
-            //                             rm.className =
-            //                                 "btn btn-sm btn-outline-danger";
-            //                             rm.innerHTML = "&times;";
-            //                             rm.onclick = function () {
-            //                                 window.replyFeedbackSelectedFiles.splice(
-            //                                     idx,
-            //                                     1
-            //                                 );
-            //                                 render();
-            //                             };
-            //                             info.appendChild(icon);
-            //                             info.appendChild(name);
-            //                             info.appendChild(size);
-            //                             item.appendChild(info);
-            //                             item.appendChild(rm);
-            //                             list.appendChild(item);
-            //                         }
-            //                     );
-            //                     preview.appendChild(list);
-            //                 }
-            //                 input.addEventListener("change", function () {
-            //                     var files = Array.from(this.files || []);
-            //                     window.replyFeedbackSelectedFiles =
-            //                         window.replyFeedbackSelectedFiles.concat(
-            //                             files
-            //                         );
-            //                     render();
-            //                     this.value = "";
-            //                 });
-            //             }
-            //         } catch (_) {}
-            //     })();
+                    // If an inline feedback form exists on the page, insert the preview there and set a hidden parent_id.
+                    try {
+                        var inlineForm = document.querySelector('.feedback-form');
+                        if (inlineForm) {
+                            // ensure inline editor initialized
+                            try { initInlineFeedback && initInlineFeedback(); } catch(_){}
 
-            //     try {
-            //         var imageInput = modalBody.querySelector("#feedback_image");
-            //         var imageLabel = modalBody.querySelector(
-            //             "#feedbackImageLabel"
-            //         );
-            //         var imageClearBtn = modalBody.querySelector(
-            //             "#feedbackImageClearBtn"
-            //         );
-            //         if (imageInput && imageLabel && imageClearBtn) {
-            //             imageInput.addEventListener("change", function () {
-            //                 if (this.files && this.files[0]) {
-            //                     var reader = new FileReader();
-            //                     reader.onload = function (e) {
-            //                         imageLabel.style.backgroundImage =
-            //                             "url('" + e.target.result + "')";
-            //                         imageLabel.classList.add("has-image");
-            //                         imageLabel.style.backgroundSize = "cover";
-            //                         imageLabel.style.opacity = "1";
-            //                         imageClearBtn.classList.remove("d-none");
-            //                     };
-            //                     reader.readAsDataURL(this.files[0]);
-            //                 }
-            //             });
-            //             imageClearBtn.addEventListener("click", function (e) {
-            //                 e.preventDefault();
-            //                 imageInput.value = "";
-            //                 imageLabel.style.backgroundImage =
-            //                     "url('" +
-            //                     getMeta("app-url").replace(/\/$/, "") +
-            //                     "/asset/img/background/add-image.png')";
-            //                 imageLabel.style.backgroundPosition =
-            //                     "center center";
-            //                 imageLabel.style.backgroundRepeat = "no-repeat";
-            //                 imageLabel.style.backgroundSize = "50%";
-            //                 imageLabel.classList.remove("has-image");
-            //                 imageLabel.style.opacity = "0.5";
-            //                 imageClearBtn.classList.add("d-none");
-            //             });
-            //         }
-            //     } catch (_) {}
+                            // create or update hidden parent id input
+                            try {
+                                var inlinePid = inlineForm.querySelector('#inline_parent_id_input');
+                                if (!inlinePid) {
+                                    inlinePid = document.createElement('input');
+                                    inlinePid.type = 'hidden';
+                                    inlinePid.id = 'inline_parent_id_input';
+                                    inlinePid.name = 'parent_id';
+                                    inlineForm.appendChild(inlinePid);
+                                }
+                                inlinePid.value = parentId || '';
+                            } catch(_){}
 
-            //     try {
-            //         var addBtn = document.getElementById("addFeedbackButton");
-            //         if (addBtn) {
-            //             addBtn.textContent = "Submit";
-            //             var fresh = addBtn.cloneNode(true);
-            //             addBtn.parentNode.replaceChild(fresh, addBtn);
-            //             fresh.addEventListener("click", function (e) {
-            //                 e.preventDefault();
-            //                 var form =
-            //                     document.getElementById("replyFeedbackForm");
-            //                 if (!form) return;
-            //                 var fd = new FormData(form);
-            //                 try {
-            //                     var urlInputs = form.querySelectorAll(
-            //                         'input[name="reference_urls[]"]'
-            //                     );
-            //                     var urls = Array.from(urlInputs)
-            //                         .map(function (i) {
-            //                             return (i.value || "").trim();
-            //                         })
-            //                         .filter(Boolean);
-            //                     if (urls.length)
-            //                         fd.set("reference_url", urls[0]);
-            //                 } catch (_) {}
-            //                 try {
-            //                     if (
-            //                         window.replyFeedbackSelectedFiles &&
-            //                         window.replyFeedbackSelectedFiles.length
-            //                     ) {
-            //                         window.replyFeedbackSelectedFiles.forEach(
-            //                             function (f) {
-            //                                 fd.append("reference_files[]", f);
-            //                             }
-            //                         );
-            //                     } else {
-            //                         var rfInput = form.querySelector(
-            //                             "#reply_reference_files"
-            //                         );
-            //                         if (
-            //                             rfInput &&
-            //                             rfInput.files &&
-            //                             rfInput.files.length
-            //                         )
-            //                             Array.from(rfInput.files).forEach(
-            //                                 function (f) {
-            //                                     fd.append(
-            //                                         "reference_files[]",
-            //                                         f
-            //                                     );
-            //                                 }
-            //                             );
-            //                     }
-            //                 } catch (_) {}
-            //                 fetch(
-            //                     getMeta("app-url").replace(/\/$/, "") +
-            //                         "/project-feedbacks",
-            //                     {
-            //                         method: "POST",
-            //                         headers: {
-            //                             "X-CSRF-TOKEN": document
-            //                                 .querySelector(
-            //                                     'meta[name="csrf-token"]'
-            //                                 )
-            //                                 .getAttribute("content"),
-            //                         },
-            //                         body: fd,
-            //                     }
-            //                 )
-            //                     .then(function (r) {
-            //                         return r.ok
-            //                             ? r.json()
-            //                             : r.json().then(Promise.reject);
-            //                     })
-            //                     .then(function (res) {
-            //                         window.showFloatingAlert(
-            //                             res.message || "Reply submitted",
-            //                             "success",
-            //                             1500
-            //                         );
-            //                         loadFeedbackData(projectId);
-            //                     })
-            //                     .catch(function (err) {
-            //                         var msg =
-            //                             (err &&
-            //                                 (err.message ||
-            //                                     (err.errors &&
-            //                                         Object.values(
-            //                                             err.errors
-            //                                         ).join("\n")))) ||
-            //                             "Failed to submit reply";
-            //                         window.showFloatingAlert(
-            //                             msg,
-            //                             "warning",
-            //                             3500
-            //                         );
-            //                     });
-            //             });
-            //         }
-            //     } catch (_) {}
+                            // prepare preview container inside inline form (place near files preview)
+                            try {
+                                var previewContainer = inlineForm.querySelector('#reply_parent_preview_inline');
+                                if (!previewContainer) {
+                                    previewContainer = document.createElement('div');
+                                    previewContainer.id = 'reply_parent_preview_inline';
+                                }
+                                // default preview while fetching (simple placeholder)
+                                previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Unknown</div><div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
 
-            //     (function () {
-            //         try {
-            //             var footer = getProjectFeedbackFooter();
-            //             if (!footer) return;
-            //             var submitBtnRef =
-            //                 document.getElementById("addFeedbackButton");
-            //             if (!submitBtnRef) return;
-            //             submitBtnRef.classList.remove("w-100");
-            //             submitBtnRef.classList.add("flex-grow-1");
-            //             var oldWrapper = footer.querySelector(
-            //                 "#feedbackFormButtonsWrapper"
-            //             );
-            //             if (oldWrapper) oldWrapper.remove();
-            //             var wrap = document.createElement("div");
-            //             wrap.id = "feedbackFormButtonsWrapper";
-            //             wrap.className = "d-flex gap-2 w-100";
-            //             var closeBtn = document.createElement("button");
-            //             closeBtn.id = "replyCloseButton";
-            //             closeBtn.type = "button";
-            //             closeBtn.className = "btn btn-close-reply flex-grow-1";
-            //             closeBtn.textContent = "Close";
-            //             closeBtn.addEventListener("click", function () {
-            //                 try {
-            //                     footer.innerHTML = "";
-            //                     var restore = document.createElement("button");
-            //                     restore.type = "button";
-            //                     restore.className =
-            //                         "btn btn-submit-black w-100";
-            //                     restore.id = "addFeedbackButton";
-            //                     restore.textContent = "Add Feedback";
-            //                     restore.addEventListener("click", function () {
-            //                         showAddFeedbackForm(projectId);
-            //                     });
-            //                     footer.appendChild(restore);
-            //                 } catch (_) {}
-            //                 loadFeedbackData(projectId);
-            //             });
-            //             wrap.appendChild(closeBtn);
-            //             wrap.appendChild(submitBtnRef);
-            //             footer.innerHTML = "";
-            //             footer.appendChild(wrap);
-            //         } catch (_) {}
-            //     })();
-            // }
+                                // fetch project feedback list, then find the specific feedback/reply by parentId
+                                try {
+                                    fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + projectId)
+                                        .then(function (res) {
+                                            if (!res.ok) return res.json().then(Promise.reject);
+                                            return res.json();
+                                        })
+                                        .then(function (json) {
+                                            var payload = json && json.data ? json.data : json;
+                                            var fb = null;
+                                            try {
+                                                function findById(node, id) {
+                                                    if (!node) return null;
+                                                    if (Array.isArray(node)) {
+                                                        for (var k = 0; k < node.length; k++) {
+                                                            var r = findById(node[k], id);
+                                                            if (r) return r;
+                                                        }
+                                                        return null;
+                                                    }
+                                                    try {
+                                                        if (node && String(node.id) === String(id)) return node;
+                                                        if (node && node.replies && Array.isArray(node.replies)) {
+                                                            var rr = findById(node.replies, id);
+                                                            if (rr) return rr;
+                                                        }
+                                                    } catch (_ ) { }
+                                                    return null;
+                                                }
+                                                fb = findById(payload, parentId);
+                                            } catch (_) { fb = null; }
+                                            var title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
+                                            var commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
+                                            if (!fb) {
+                                                // preview: feedback not found in payload (debug logging removed)
+                                            }
+                                            try {
+                                                var empRaw = (fb && fb.employee) || {};
+                                                var avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                                                var avatarUrl = resolveAvatar(avatarRaw);
+                                                var plain = '';
+                                                try { plain = (sanitizeHtml(commentRaw || '') || '').replace(/<[^>]+>/g, ''); } catch (_) { plain = (commentRaw || '') + ''; }
+                                                if (plain && plain.length > 120) plain = plain.substring(0, 120).trim() + '...';
+                                                var html = '';
+                                                html += '<div class="selected-files-list mt-2">';
+                                                html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                                                html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                                                html += '<img src="' + avatarUrl + '" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;">';
+                                                html += '</div>';
+                                                html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                                                html += '<div style="font-weight:500;font-size:11px">' + safeText(title) + '</div>';
+                                                html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">' + (plain || '') + '</div>';
+                                                html += '</div>';
+                                                html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                                                html += '</div></div>';
+                                                previewContainer.innerHTML = html;
+                                            } catch (_) { }
+                                            try {
+                                                var btn = previewContainer.querySelector('.remove-task');
+                                                if (btn) btn.addEventListener('click', function () { try { previewContainer.remove(); inlinePid.value = ''; } catch (_) { } });
+                                            } catch (_) { }
+                                        })
+                                        .catch(function () {
+                                            try {
+                                                var btn = previewContainer.querySelector('.remove-task');
+                                                if (btn) btn.addEventListener('click', function () { try { previewContainer.remove(); inlinePid.value = ''; } catch (_) { } });
+                                            } catch (_) { }
+                                        });
+                                } catch (_) { }
+
+                                // insert preview before inline files preview if present
+                                try {
+                                    var filesPreview = inlineForm.querySelector('#inline_feedback_files_preview');
+                                    if (filesPreview && filesPreview.parentNode) filesPreview.parentNode.insertBefore(previewContainer, filesPreview);
+                                    else inlineForm.insertBefore(previewContainer, inlineForm.querySelector('#inline_feedback_editor') || inlineForm.firstChild);
+                                } catch(_){}
+                            } catch(_){}
+
+                            // focus inline editor
+                            try { var q = window.__quillProjectFeedbackInline; if (!q) initInlineFeedback && initInlineFeedback(); q = window.__quillProjectFeedbackInline; if (q && typeof q.focus === 'function') q.focus(); } catch(_){}
+
+                            return; // handled via inline form
+                        }
+                    } catch(_){}
+                    // Resolve modal title/body with fallbacks in case DOM structure differs
+                    try {
+                        modalTitle = projectFeedbackModalEl.querySelector('.feedback-modal-title') || projectFeedbackModalEl.querySelector('.modal-title') || projectFeedbackModalEl.querySelector('[data-feedback-title]') || modalTitle;
+                    } catch (_) {}
+                    try {
+                        modalBody = projectFeedbackModalEl.querySelector('.feedback-content') || projectFeedbackModalEl.querySelector('.modal-body') || projectFeedbackModalEl.querySelector('.modal-body-custom') || modalBody;
+                    } catch (_) {}
+
+                    // Title (guarded). Do NOT clear entire modalBody — we must keep feedback list visible.
+                    if (modalTitle) modalTitle.textContent = "Reply Feedback";
+
+                    // Always insert a minimal inline reply form + preview (we do not want the heavy server template here)
+                    try { var existingReplyForm = modalBody && modalBody.querySelector && modalBody.querySelector('#replyFeedbackForm'); if (existingReplyForm) existingReplyForm.remove(); } catch (_) {}
+                    var inlineFormHtml = '';
+                    inlineFormHtml += '<form id="replyFeedbackForm" enctype="multipart/form-data">';
+                    inlineFormHtml += '<input type="hidden" name="project_id" value="' + (projectId || '') + '">';
+                    inlineFormHtml += '<input type="hidden" name="parent_id" value="' + (parentId || '') + '">';
+                    inlineFormHtml += '<input type="hidden" name="employee_id" value="' + (projectFeedbackModalEl.getAttribute('data-employee-id') || '') + '">';
+                    // only insert preview; the reply editor is not needed here — use the page's inline editor
+                    inlineFormHtml += '<div id="reply_parent_preview" class="mt-2"></div>';
+                    inlineFormHtml += '</form>';
+                    modalBody.appendChild((function(){ var d=document.createElement('div'); d.innerHTML = inlineFormHtml; return d.firstChild; })());
+                    // no editor is created here — we'll rely on the existing inline editor on the page
+                    // remove any leftover heavy elements to keep UI consistent
+                    try {
+                        ['#feedback_image','#feedbackImageLabel','.custom-image-upload','#reply_feedback_editor','#reply_feedback_toolbar','#reply_reference_files','#reply_reference_files_preview'].forEach(function(s){ try{ var el=modalBody.querySelector(s); if(el) el.remove(); }catch(_){}});
+                    } catch(_){}
+
+                    // Fetch parent feedback and render preview (employee name + comment)
+                    (function () {
+                        try {
+                            // fetch feedback list for the project and locate the target feedback/reply
+                            fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks/" + projectId)
+                                .then(function (res) {
+                                    if (!res.ok) return res.json().then(Promise.reject);
+                                    return res.json();
+                                })
+                                .then(function (json) {
+                                    var payload = json && json.data ? json.data : json;
+                                    var fb = null;
+                                    try {
+                                        function findById(node, id) {
+                                            if (!node) return null;
+                                            if (Array.isArray(node)) {
+                                                for (var k=0;k<node.length;k++){
+                                                    var r = findById(node[k], id);
+                                                    if (r) return r;
+                                                }
+                                                return null;
+                                            }
+                                            try {
+                                                if (node && (String(node.id) === String(id))) return node;
+                                                if (node && node.replies && Array.isArray(node.replies)) {
+                                                    var rr = findById(node.replies, id);
+                                                    if (rr) return rr;
+                                                }
+                                            } catch(_){}
+                                            return null;
+                                        }
+                                        fb = findById(payload, parentId);
+                                    } catch(_) { fb = null; }
+                                    var title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || (fb && (fb.employee_name || fb.employee_fullname)) || "Unknown";
+                                    if (!fb) {
+                                        // modal preview: feedback not found in payload (debug logging removed)
+                                    }
+                                    var comment = (fb && (fb.feedback_comment || fb.comment || fb.description)) || "";
+                                    // Insert preview immediately above the reply form so feedback list stays visible
+                                    var previewEl = modalBody.querySelector("#reply_parent_preview");
+                                    var replyFormEl = modalBody.querySelector('#replyFeedbackForm');
+                                    if (!previewEl) {
+                                        previewEl = document.createElement("div");
+                                        previewEl.id = "reply_parent_preview";
+                                        // place preview before form if possible, otherwise append to modalBody
+                                        if (replyFormEl && replyFormEl.parentNode) replyFormEl.parentNode.insertBefore(previewEl, replyFormEl);
+                                        else modalBody.appendChild(previewEl);
+                                    }
+                                    previewEl.innerHTML = "";
+                                    // build preview using same markup as selected-files-list (small rounded light box)
+                                    try {
+                                        var plain = "";
+                                        try {
+                                            plain = (sanitizeHtml(comment || "") || "").replace(/<[^>]+>/g, "");
+                                        } catch (_) {
+                                            plain = (comment || "") + "";
+                                        }
+                                        var empRaw = (fb && fb.employee) || {};
+                                        var avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                                        var avatarUrl = resolveAvatar(avatarRaw);
+                                        var plain2 = plain || '';
+                                        if (plain2 && plain2.length > 120) plain2 = plain2.substring(0,120).trim() + '...';
+                                        var html = '';
+                                        html += '<div class="selected-files-list mt-2">';
+                                        html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                                        html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                                        html += '<img src="'+avatarUrl+'" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;">';
+                                        html += '</div>';
+                                        html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                                        html += '<div style="font-weight:500;font-size:11px">'+safeText(title)+'</div>';
+                                        html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">'+(plain2||'')+'</div>';
+                                        html += '</div>';
+                                        html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                                        html += '</div></div>';
+                                        previewEl.innerHTML = html;
+                                        // attach close handler
+                                        try {
+                                            var btn = previewEl.querySelector('.remove-task');
+                                            if (btn) btn.addEventListener('click', function () {
+                                                try { previewEl.remove(); } catch (_) {}
+                                            });
+                                        } catch (_) {}
+                                    } catch (_) {}
+                                })
+                                .catch(function () {
+                                    // ignore fetch errors for preview
+                                });
+                        } catch (_) {}
+                    })();
+
+                    // File input preview handling
+                    (function () {
+                        try {
+                            window.replyFeedbackSelectedFiles = window.replyFeedbackSelectedFiles || [];
+                            var input = modalBody.querySelector("#reply_reference_files");
+                            var preview = modalBody.querySelector("#reply_reference_files_preview");
+                            if (!preview) {
+                                preview = document.createElement("div");
+                                preview.id = "reply_reference_files_preview";
+                                (modalBody.querySelector('#reply_parent_preview') || modalBody).appendChild(preview);
+                            }
+                            function render() {
+                                preview.innerHTML = "";
+                                if (!window.replyFeedbackSelectedFiles || !window.replyFeedbackSelectedFiles.length) return;
+                                var list = document.createElement("div");
+                                list.className = "selected-files-list mt-2";
+                                window.replyFeedbackSelectedFiles.forEach(function (file, idx) {
+                                    var item = document.createElement("div");
+                                    item.className = "selected-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded";
+                                    var info = document.createElement("div");
+                                    info.className = "d-flex align-items-center flex-grow-1";
+                                    var icon = document.createElement("span");
+                                    icon.className = "material-symbols-outlined me-2";
+                                    icon.textContent = "description";
+                                    var name = document.createElement("span");
+                                    name.className = "file-name";
+                                    name.textContent = file.name;
+                                    var size = document.createElement("small");
+                                    size.className = "text-muted ms-1";
+                                    size.textContent = " (" + (((file.size || 0) / 1024 / 1024).toFixed(2)) + " MB)";
+                                    var rm = document.createElement("button");
+                                    rm.type = "button";
+                                    rm.className = "btn btn-sm btn-outline-danger";
+                                    rm.innerHTML = "&times;";
+                                    rm.onclick = function () {
+                                        window.replyFeedbackSelectedFiles.splice(idx, 1);
+                                        render();
+                                    };
+                                    info.appendChild(icon);
+                                    info.appendChild(name);
+                                    info.appendChild(size);
+                                    item.appendChild(info);
+                                    item.appendChild(rm);
+                                    list.appendChild(item);
+                                });
+                                preview.appendChild(list);
+                            }
+                            if (input) {
+                                input.addEventListener("change", function () {
+                                    var files = Array.from(this.files || []);
+                                    window.replyFeedbackSelectedFiles = (window.replyFeedbackSelectedFiles || []).concat(files);
+                                    render();
+                                    this.value = "";
+                                });
+                            }
+                        } catch (_) {}
+                    })();
+
+                    // Submit button in footer (use existing footer helper)
+                    try {
+                        var footer = getProjectFeedbackFooter();
+                        if (footer) {
+                            footer.innerHTML = "";
+                            var submitBtn = document.createElement("button");
+                            submitBtn.type = "button";
+                            submitBtn.className = "btn btn-submit-black w-100";
+                            submitBtn.id = "addFeedbackButton";
+                            submitBtn.textContent = "Submit";
+                            submitBtn.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                var form = modalBody.querySelector("#replyFeedbackForm");
+                                if (!form) return;
+                                // prefer Quill content from the initialized inline editor
+                                var html = "";
+                                try {
+                                    var q = window.__quillProjectFeedbackInline;
+                                    if (q && q.root) html = q.root.innerHTML || "";
+                                } catch (_) { html = ""; }
+                                try {
+                                    if ((!html || String(html).replace(/<[^>]+>/g, "").trim() === "") && form.querySelector('#feedback_comment')) {
+                                        var ta = form.querySelector('#feedback_comment');
+                                        if (ta) html = ta.value || html;
+                                    }
+                                } catch (_) {}
+
+                                var fd = new FormData(form);
+                                // ensure feedback_comment in form data is set to Quill html (override if necessary)
+                                try { fd.set('feedback_comment', html); } catch(_){}
+
+                                try {
+                                    if (window.replyFeedbackSelectedFiles && window.replyFeedbackSelectedFiles.length) {
+                                        window.replyFeedbackSelectedFiles.forEach(function (f) {
+                                            fd.append("reference_files[]", f);
+                                        });
+                                    }
+                                } catch (_) {}
+
+                                fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks", {
+                                    method: "POST",
+                                    headers: {
+                                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                                    },
+                                    body: fd,
+                                })
+                                    .then(function (r) {
+                                        return r.ok ? r.json() : r.json().then(Promise.reject);
+                                    })
+                                    .then(function (res) {
+                                        try {
+                                            window.showFloatingAlert && window.showFloatingAlert(res.message || "Reply submitted", "success", 1500);
+                                        } catch (_) {}
+                                        try {
+                                            loadFeedbackData(projectId);
+                                        } catch (_) {}
+                                    })
+                                    .catch(function (err) {
+                                        var msg = (err && (err.message || (err.errors && Object.values(err.errors).join("\n")))) || "Failed to submit reply";
+                                        window.showFloatingAlert && window.showFloatingAlert(msg, "warning", 3500);
+                                    });
+                            });
+                            footer.appendChild(submitBtn);
+                        }
+                    } catch (_) {}
+                } catch (e) {
+                    console.warn("showReplyFeedbackForm error", e);
+                }
+            }
 
             // function showEditFeedbackForm(projectId, data, isReply) {
             //     modalTitle.textContent = isReply
@@ -4776,6 +5027,28 @@
                 window.showReplyFeedbackForm = showReplyFeedbackForm;
                 window.showEditFeedbackForm = showEditFeedbackForm;
                 window.markProjectFeedbacksRead = markProjectFeedbacksRead;
+            } catch (_) {}
+
+            // Delegate reply clicks to our handler to avoid conflicts with other scripts
+            try {
+                document.addEventListener('click', function (ev) {
+                    try {
+                        var trg = ev.target && ev.target.closest && ev.target.closest('.feedback-reply-trigger');
+                        if (!trg) return;
+                        ev.preventDefault();
+                        var p = trg.getAttribute('data-project-id') || getMeta('project-id');
+                        var f = trg.getAttribute('data-feedback-id');
+                        if (!f) return;
+                        // call our function if available
+                        if (typeof showReplyFeedbackForm === 'function') {
+                            showReplyFeedbackForm(p, f);
+                            return;
+                        }
+                        if (typeof window.showReplyFeedbackForm === 'function') {
+                            window.showReplyFeedbackForm(p, f);
+                        }
+                    } catch (_) {}
+                }, true);
             } catch (_) {}
         }
 
