@@ -1321,6 +1321,16 @@
                                                     repDiv.setAttribute('data-reply-id', String(rep.id));
                                                     if (feedback && feedback.id != null) repDiv.setAttribute('data-parent-id', String(feedback.id));
                                                 }
+                                                // store payload pieces in data-* attributes so delegated handlers can use them
+                                                try {
+                                                    repDiv.setAttribute('data-comment', encodeURIComponent(rep.feedback_comment || ''));
+                                                    repDiv.setAttribute('data-ref-url', encodeURIComponent(rep.reference_url || ''));
+                                                    repDiv.setAttribute('data-ref-urls', encodeURIComponent(JSON.stringify(Array.isArray(rep.reference_urls) ? rep.reference_urls : (rep.reference_urls ? (function(){ try{ return JSON.parse(rep.reference_urls); }catch(_){ return []; } })() : []))));
+                                                    repDiv.setAttribute('data-ref-file', encodeURIComponent(rep.reference_file || ''));
+                                                    repDiv.setAttribute('data-ref-files', encodeURIComponent(JSON.stringify(Array.isArray(rep.reference_files) ? rep.reference_files : (rep.reference_files ? (function(){ try{ return JSON.parse(rep.reference_files); }catch(_){ return []; } })() : []))));
+                                                    repDiv.setAttribute('data-image', encodeURIComponent(rep.image || ''));
+                                                    repDiv.setAttribute('data-author-name', encodeURIComponent(((rep.employee && (rep.employee.name || '')) || '')));
+                                                } catch (_) {}
                                                 repDiv.style.background = '#fafafa';
 
                                                 // header
@@ -1365,20 +1375,129 @@
                                                 var repComment = document.createElement('p');
                                                 repComment.className = 'mb-1'; repComment.style.fontSize = '10px'; repComment.style.margin = '0';
                                                 try {
-                                                    // show sanitized HTML (allow simple tags) so HTML like <p> is rendered correctly
                                                     repComment.innerHTML = sanitizeHtml(rep.feedback_comment || '');
                                                 } catch (_) {
                                                     try { repComment.textContent = rep.feedback_comment || ''; } catch(_) { repComment.textContent = rep.feedback_comment || ''; }
                                                 }
                                                 repContent.appendChild(repComment);
 
+                                                // Reply / Edit / Delete actions (reply always; edit/delete only if owner)
+                                                var replyActionsDiv = document.createElement('div');
+                                                // Align actions to the right edge of the reply container and make them compact
+                                                replyActionsDiv.className = 'feedback-actions mt-1 d-flex gap-2 align-items-center justify-content-end';
+                                                replyActionsDiv.style.fontSize = '10px';
+                                                replyActionsDiv.style.width = '100%';
+                                                replyActionsDiv.style.paddingRight = '0';
+
+                                                // Reply action (always shown)
+                                                try {
+                                                    var replyRep2 = document.createElement('span');
+                                                    replyRep2.className = 'd-flex align-items-center feedback-reply-trigger';
+                                                    replyRep2.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                                    replyRep2.setAttribute('data-feedback-id', String(feedback.id));
+                                                    replyRep2.setAttribute('data-project-id', String(getMeta('project-id')));
+                                                    var replyIcon2 = document.createElement('span'); replyIcon2.className = 'material-symbols-outlined'; replyIcon2.style.cssText = 'font-size:12px; line-height:1; margin-right:4px;'; replyIcon2.textContent = 'reply';
+                                                    var replyText2 = document.createElement('span'); replyText2.style.fontSize = '10px'; replyText2.textContent = 'Reply';
+                                                    replyRep2.appendChild(replyIcon2); replyRep2.appendChild(replyText2);
+                                                    replyRep2.addEventListener('click', function () {
+                                                        try { showReplyFeedbackForm && showReplyFeedbackForm(getMeta('project-id'), feedback.id); } catch (_) {}
+                                                    });
+                                                    replyActionsDiv.appendChild(replyRep2);
+                                                } catch (_) {}
+
+                                                // determine if current employee is the reply author
+                                                var currentEmployeeId2 = null;
+                                                try { currentEmployeeId2 = document.getElementById('projectFeedbackModal')?.getAttribute('data-employee-id') || getMeta('employee-id') || null; } catch(_){}
+                                                var repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                                                var rEdit2 = false;
+                                                try { if (repAuthorId && currentEmployeeId2 && String(repAuthorId) === String(currentEmployeeId2)) rEdit2 = true; } catch(_){}
+
+                                                if (rEdit2) {
+                                                    try {
+                                                        // Edit
+                                                        var editRep2 = document.createElement('span');
+                                                        editRep2.className = 'd-flex align-items-center reply-edit-trigger';
+                                                        editRep2.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                                        editRep2.setAttribute('data-reply-id', String(rep.id));
+                                                        editRep2.setAttribute('data-parent-id', String(feedback.id));
+                                                        var editIcon2 = document.createElement('span'); editIcon2.className = 'material-symbols-outlined'; editIcon2.style.cssText = 'font-size:12px; line-height:1; margin-right:4px;'; editIcon2.textContent = 'edit';
+                                                        var editText2 = document.createElement('span'); editText2.style.fontSize = '10px'; editText2.textContent = 'Edit';
+                                                        editRep2.appendChild(editIcon2); editRep2.appendChild(editText2);
+                                                        editRep2.addEventListener('click', function () {
+                                                            try {
+                                                                var payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ var v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ var p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ var p2 = JSON.parse(rf); if (Array.isArray(p2)) rf = p2; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ var img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + img; return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + img; })() };
+                                                                showEditFeedbackForm && showEditFeedbackForm(getMeta('project-id'), payload, true);
+                                                            } catch (_) {}
+                                                        });
+                                                        replyActionsDiv.appendChild(editRep2);
+                                                    } catch(_){}
+
+                                                    try {
+                                                        // Delete
+                                                        var delRep2 = document.createElement('span');
+                                                        delRep2.className = 'd-flex align-items-center reply-delete-trigger';
+                                                        delRep2.style.cssText = 'cursor:pointer; color:#555; font-size:10px;';
+                                                        delRep2.setAttribute('data-reply-id', String(rep.id));
+                                                        delRep2.setAttribute('data-parent-id', String(feedback.id));
+                                                        var delIcon2 = document.createElement('span'); delIcon2.className = 'material-symbols-outlined'; delIcon2.style.cssText = 'font-size:12px; line-height:1; margin-right:4px;'; delIcon2.textContent = 'delete';
+                                                        var delText2 = document.createElement('span'); delText2.style.fontSize = '10px'; delText2.textContent = 'Delete';
+                                                        delRep2.appendChild(delIcon2); delRep2.appendChild(delText2);
+                                                        delRep2.addEventListener('click', function(){
+                                                            try {
+                                                                var rid = String(rep.id);
+                                                                var pid = String(feedback.id);
+                                                                var authorName = (rep.employee && (rep.employee.name || '')) || '';
+                                                                var content = (rep.feedback_comment || '');
+                                                                var avatarUrl = (rep.employee && (rep.employee.user_photo || rep.employee.profile_picture || rep.employee.photo)) || '';
+                                                                window.showDeleteConfirmModal && window.showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                                                    try {
+                                                                        fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + rid, {
+                                                                            method: 'DELETE',
+                                                                            headers: {
+                                                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                                                'Accept': 'application/json'
+                                                                            }
+                                                                        }).then(function(r){ return r.text().then(function(t){ try{ var j = JSON.parse(t); if (r.ok) return j; return Promise.reject(j); }catch(e){ if (r.ok) return { message: t }; return Promise.reject({ message: t }); } }); }).then(function(res){
+                                                                            try {
+                                                                                var el = document.querySelector('.feedback-reply[data-reply-id="'+rid+'"]');
+                                                                                if (el) el.remove();
+                                                                                // update UI if no more replies
+                                                                                var parentEl = document.querySelector('.feedback-item[data-feedback-id="'+pid+'"]');
+                                                                                if (parentEl) {
+                                                                                    var repliesContainer2 = parentEl.querySelector('.feedback-replies');
+                                                                                    if (repliesContainer2) {
+                                                                                        var children = repliesContainer2.querySelectorAll('.feedback-reply');
+                                                                                        if (!children || children.length === 0) {
+                                                                                            repliesContainer2.classList.add('d-none');
+                                                                                            var toggleEl = parentEl.querySelector('.feedback-toggle-replies');
+                                                                                            if (toggleEl) toggleEl.textContent = '';
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            } catch(_){}
+                                                                            window.showFloatingAlert && window.showFloatingAlert(res.message || 'Reply deleted', 'success', 1500);
+                                                                            done(true);
+                                                                        }).catch(function(err){
+                                                                            var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to delete reply';
+                                                                            window.showFloatingAlert && window.showFloatingAlert(msg, 'warning', 3500);
+                                                                            done(false);
+                                                                        });
+                                                                    } catch(e){ try{ done(false); }catch(_){} }
+                                                                }});
+                                                            } catch(_){}
+                                                        });
+                                                        replyActionsDiv.appendChild(delRep2);
+                                                    } catch(_){}
+                                                }
+
                                                 // assemble reply
                                                 repInfo.appendChild(repNameWrap);
                                                 repInfo.appendChild(repContent);
+                                                // place actions inside content so they align under name/time
+                                                try { repContent.appendChild(replyActionsDiv); } catch(_){}
                                                 repHeader.appendChild(repImg);
                                                 repHeader.appendChild(repInfo);
                                                 repDiv.appendChild(repHeader);
-
                                                 repliesContainer.appendChild(repDiv);
                                             } catch(_){}
                                         });
