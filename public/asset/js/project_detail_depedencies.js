@@ -509,13 +509,13 @@ if (projectId) getTaskByProject(projectId);
 })();
 
 $("#fullscreen-tree-btn").on("click", function () {
-    const $timeline = $(".structure-detail");
+    const $treeContent = $(".structure-detail-content");
     const $icon = $(this).find("span.material-symbols-outlined");
-    if ($timeline.hasClass("fullscreen")) {
-        $timeline.removeClass("fullscreen");
+    if ($treeContent.hasClass("fullscreen")) {
+        $treeContent.removeClass("fullscreen");
         $icon.text("fullscreen");
     } else {
-        $timeline.addClass("fullscreen");
+        $treeContent.addClass("fullscreen");
         $icon.text("fullscreen_exit");
     }
 });
@@ -539,10 +539,10 @@ $("#fullscreen-tree-btn").on("click", function () {
             if (sourceId == null || targetId == null) return false;
             var s = String(sourceId);
             var t = String(targetId);
-            if (s === t) return true; 
+            if (s === t) return true;
             var map = taskMap();
             var seen = 0;
-            var MAX_HOPS = 2000; 
+            var MAX_HOPS = 2000;
             var cur = map[t];
             while (cur && cur.parent_id != null && seen < MAX_HOPS) {
                 var p = String(cur.parent_id);
@@ -832,7 +832,7 @@ $("#fullscreen-tree-btn").on("click", function () {
                     if (dx > 10 || dy > 10) {
                         state.moved = true;
                         if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
-                        return; 
+                        return;
                     }
                 }
                 if (state.dragging) {
