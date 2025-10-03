@@ -590,25 +590,25 @@
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <div id="completed_task_note" class="text-muted"></div>
+                    <div class="mb-4 task-description-container">
+                        <div id="completed_task_note" class="text-muted task-description"></div>
                     </div>
 
                     <div class="row mb-4 link-file-task">
                         <div class="col-6 d-flex align-items-center">
-                            <label class="fw-normal me-2 mb-0">Priority:</label>
+                            <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
                             <span id="completed_priority"></span>
                         </div>
                         <div class="col-6 d-flex align-items-center">
-                            <label class="fw-normal me-2 mb-0">Complete Date:</label>
+                            <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
                             <span id="completed_date"></span>
                         </div>
-                        <div class="col-6">
-                            <label class="fw-normal d-block mb-1">Links:</label>
+                        <div class="col-12">
+                            <label class="fw-normal text-muted d-block mb-1">Links:</label>
                             <div id="completed_task_urls"></div>
                         </div>
-                        <div class="col-6">
-                            <label class="fw-normal d-block mb-1">Files:</label>
+                        <div class="col-12">
+                            <label class="fw-normal text-muted d-block mb-1">Files:</label>
                             <div id="completed_task_files"></div>
                         </div>
                     </div>
