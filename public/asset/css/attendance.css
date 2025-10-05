@@ -118,6 +118,15 @@
     margin:0px;
 }
 
+.modal .btn-close-img-viewer{
+    background-color: #E3E4EE;
+    border: 0px;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 12px 5px;
+    color: #596069;
+}
+
 .modal .modal-content{
     background-color: #F0F1F8;
 }
@@ -132,7 +141,9 @@
 }
 
 .modal .btn-close-modal:hover,
-.modal .btn-close-modal:active{
+.modal .btn-close-modal:active,
+.modal .btn-close-img-viewer:active,
+.modal .btn-close-img-viewer:hover{
     background-color: #dedfe9;
     border: 0px;
     color: #3a3e42;
@@ -153,19 +164,6 @@
     background-color: #272727;
     border: 0px;
     color: #E3E4EE;
-}
-
-.modal .box-loader,
-.modal .box-camera{
-    display: none;
-}
-.modal .box-photo{
-    background-color: #f5f8fc;
-    transition: all 0.3s;   
-}
-.modal .box-photo:hover{
-    cursor: pointer;
-    background-color: #e0eeff;
 }
  
 
@@ -209,12 +207,12 @@
     display: none;
 }
 .modal .box-photo{
-    background-color: #f5f8fc;
+    background-color: #e3e4ee;
     transition: all 0.3s;
 }
 .modal .box-photo:hover{
     cursor: pointer;
-    background-color: #e0eeff;
+    background-color: #d3d4e6;
 }
 
 .modal .btn-close-capture .material-symbols-outlined {
@@ -251,12 +249,32 @@
     cursor: pointer;
 }
 
+.nodal .btn-camera{
+    position: relative;
+    display: inline-block;
+
+}
+
+.modal .photo-start,
+.modal .photo-end{
+    cursor: pointer;
+}
+
 .modal .btn-capture-photo:hover{
     border:solid 2px #fff;
     color: #fff;
     background-color: #0000007e;
 }
 
+.modal .box-img-view{
+    background-color: #F0F1F8;
+    display: none;
+}
+
+.modal .img-viewer{
+    object-fit: cover;
+    object-position: center;
+}
 
 .btn-close-custom {
     border: 0px !important;

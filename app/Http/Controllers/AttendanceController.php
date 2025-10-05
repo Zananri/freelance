@@ -264,14 +264,14 @@ class AttendanceController extends Controller
             ->first();
 
             $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2); 
-            $rangeEnd = Carbon::parse($today.' '.$employee->shift->time_end)->addHours(3);
+            $rangeEnd = Carbon::parse($today.' '.$employee->shift->time_end)->addHours(6);
 
             $timeStart = Carbon::parse($employee->shift->time_start);
             $timeEnd = Carbon::parse($employee->shift->time_end);
             
             if($timeEnd < $timeStart){
                 $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2); 
-                $rangeEnd = Carbon::parse($tomorow.' '.$employee->shift->time_end)->addHours(3);
+                $rangeEnd = Carbon::parse($tomorow.' '.$employee->shift->time_end)->addHours(6);
             }
 
 
@@ -279,7 +279,7 @@ class AttendanceController extends Controller
             if($employeeShiftToday){
 
                 $rangeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start)->subHours(2); 
-                $rangeEnd = Carbon::parse($today.' '.$employeeShiftToday->shift->time_end)->addHours(3);
+                $rangeEnd = Carbon::parse($today.' '.$employeeShiftToday->shift->time_end)->addHours(6);
 
                 $timeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start);
                 $timeEnd = Carbon::parse($today.' '.$employeeShiftToday->shift->time_end);
@@ -289,7 +289,7 @@ class AttendanceController extends Controller
                 if($timeEnd < $timeStart){
                     
                     $rangeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start)->subHours(2); 
-                    $rangeEnd = Carbon::parse($tomorow.' '.$employeeShiftToday->shift->time_end)->addHours(3);
+                    $rangeEnd = Carbon::parse($tomorow.' '.$employeeShiftToday->shift->time_end)->addHours(6);
                 }
                 
             }
@@ -306,7 +306,7 @@ class AttendanceController extends Controller
                 if($checkTimeEnd < $checkTimeStart){
 
                     $checkRangeStart = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start)->subHours(2); 
-                    $checkRangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(3);
+                    $checkRangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(6);
 
                     if($now <= $checkRangeEnd && $now >= $checkRangeStart){
 
@@ -316,7 +316,7 @@ class AttendanceController extends Controller
                         $timeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end);
                         
                         $rangeStart = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start)->subHours(2); 
-                        $rangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(3);
+                        $rangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(6);
                     }
                 }
                 
@@ -490,14 +490,14 @@ class AttendanceController extends Controller
             ->first();
 
             $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2); 
-            $rangeEnd = Carbon::parse($today.' '.$employee->shift->time_end)->addHours(3);
+            $rangeEnd = Carbon::parse($today.' '.$employee->shift->time_end)->addHours(6);
 
             $timeStart = Carbon::parse($employee->shift->time_start);
             $timeEnd = Carbon::parse($employee->shift->time_end);
             
             if($timeEnd < $timeStart){
                 $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2); 
-                $rangeEnd = Carbon::parse($tomorow.' '.$employee->shift->time_end)->addHours(3);
+                $rangeEnd = Carbon::parse($tomorow.' '.$employee->shift->time_end)->addHours(6);
             }
 
 
@@ -505,7 +505,7 @@ class AttendanceController extends Controller
             if($employeeShiftToday){
 
                 $rangeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start)->subHours(2); 
-                $rangeEnd = Carbon::parse($today.' '.$employeeShiftToday->shift->time_end)->addHours(3);
+                $rangeEnd = Carbon::parse($today.' '.$employeeShiftToday->shift->time_end)->addHours(6);
 
                 $timeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start);
                 $timeEnd = Carbon::parse($today.' '.$employeeShiftToday->shift->time_end);
@@ -513,7 +513,7 @@ class AttendanceController extends Controller
 
                 if($timeEnd < $timeStart){
                     $rangeStart = Carbon::parse($today.' '.$employeeShiftToday->shift->time_start)->subHours(2); 
-                    $rangeEnd = Carbon::parse($tomorow.' '.$employeeShiftToday->shift->time_end)->addHours(3);
+                    $rangeEnd = Carbon::parse($tomorow.' '.$employeeShiftToday->shift->time_end)->addHours(6);
                 }
                 
             }
@@ -530,11 +530,11 @@ class AttendanceController extends Controller
                 if($timeEnd < $timeStart){
 
                     $checkRangeStart = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start)->subHours(2); 
-                    $checkRangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(3);
+                    $checkRangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(6);
 
                     if($now <= $checkRangeEnd && $now >= $checkRangeStart){
                         $rangeStart = Carbon::parse($yesterday.' '.$employeeShiftYesterday->shift->time_start)->subHours(2); 
-                        $rangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(3);
+                        $rangeEnd = Carbon::parse($today.' '.$employeeShiftYesterday->shift->time_end)->addHours(6);
                     }
                 }
                 

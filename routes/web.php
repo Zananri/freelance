@@ -6,7 +6,9 @@ use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\EmployeeOvertimeController;
 use App\Http\Controllers\EmployeeTimeOffController;
+
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AttendanceController;
@@ -209,7 +211,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/employee-time-off/submit-new-request', [EmployeeTimeOffController::class, 'submitNewRequest'])->name('employee-time-off.submitNewRequest');
     Route::post('/employee-time-off/edit-time-off', [EmployeeTimeOffController::class, 'editTimeOff'])->name('employee-time-off.editTimeOff');
     Route::post('/employee-time-off/delete-time-off', [EmployeeTimeOffController::class, 'deleteTimeOff'])->name('employee-time-off.deleteTimeOff');
-
+    
+    Route::get('/employee-overtime/all-request', [EmployeeOvertimeController::class, 'allRequest'])->name('employee-overtime.allRequest');
+    Route::post('/employee-overtime/submit-new-request', [EmployeeOvertimeController::class, 'submitNewRequest'])->name('employee-overtime.submitNewRequest');
+    Route::post('/employee-overtime/submit-stop-overtime', [EmployeeOvertimeController::class, 'submitStopOvertime'])->name('employee-overtime.submitStopOvertime');
 
     Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
     Route::get('/shift/employees-with-shifts', [ShiftController::class, 'getEmployeesWithShifts'])->name('shift.employees-with-shifts');

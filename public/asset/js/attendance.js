@@ -392,6 +392,17 @@ function formatTimeDisplay(timeString) {
     return `${hours}:${minutes}`;
 }
 
+function formatTimeDisplayHm(timeString) {
+
+    if (!timeString) return '0h 0m';
+
+    if (typeof timeString === 'string') {
+        timeString.split(':')[0];
+        const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) return `${parseInt(m[1])}h ${parseInt(m[2])}m`;
+    }
+}
+
 function formatTimeShort(timeString) {
 
     if (!timeString) return '--:--';
@@ -434,6 +445,7 @@ function formateDateFull(dateString){
 
 } 
 
+
 function formateDateNumMonYear(dateString){
 
     if (!dateString) return '';
@@ -454,3 +466,126 @@ function formateDateNumMonYear(dateString){
 
 }
 //
+
+function formatDatePHP(format, dateString) {
+    
+    if (!dateString) return '';
+
+    const dateObj = new Date(dateString);
+
+    // Variabel untuk menyimpan komponen tanggal
+    const year = dateObj.getFullYear();
+    const month = dateObj.getMonth() + 1; // getMonth() mengembalikan 0-11
+    const day = dateObj.getDate();
+    const hours = dateObj.getHours();
+    const minutes = dateObj.getMinutes();
+    const seconds = dateObj.getSeconds();
+    const dayOfWeek = dateObj.getDay(); // 0 (Minggu) - 6 (Sabtu)
+    const dayOfYear = Math.ceil((dateObj - new Date(year, 0, 1)) / (1000 * 60 * 60 * 24)) + 1;
+    const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+
+    // Helper untuk menambahkan nol di depan (misalnya 01, 09)
+    const pad = (n, len = 2) => String(n).padStart(len, '0');
+
+    // Array nama hari dan bulan untuk format teks
+    const daysFull = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const daysShort = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const monthsFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Objek pemetaan token format PHP ke nilai JavaScript
+    const tokens = {
+        // Hari
+        'd': pad(day),                      // Hari dalam bulan, 2 digit dengan nol awal (01 sampai 31)
+        'D': daysShort[dayOfWeek],          // Representasi tekstual hari, 3 huruf
+        'j': day,                           // Hari dalam bulan tanpa nol awal (1 sampai 31)
+        'l': daysFull[dayOfWeek],           // Representasi tekstual hari, lengkap
+        'N': dayOfWeek === 0 ? 7 : dayOfWeek, // Representasi numerik hari dalam seminggu (1=Senin sampai 7=Minggu)
+        'S': (day % 10 === 1 && day !== 11) ? 'st' : // Akhiran ordinal hari bulan (st, nd, rd, th)
+             (day % 10 === 2 && day !== 12) ? 'nd' :
+             (day % 10 === 3 && day !== 13) ? 'rd' : 'th',
+        'w': dayOfWeek,                     // Representasi numerik hari dalam seminggu (0=Minggu sampai 6=Sabtu)
+        'z': dayOfYear - 1,                 // Hari dalam tahun (0 sampai 365)
+
+        // Minggu
+        'W': 'XX', // Penanganan Week number (W) cukup kompleks dan sering memerlukan locale/ISO-standard, di sini diabaikan/disederhanakan.
+
+        // Bulan
+        'F': monthsFull[month - 1],         // Representasi tekstual bulan, lengkap
+        'm': pad(month),                    // Representasi numerik bulan, dengan nol awal (01 sampai 12)
+        'M': monthsShort[month - 1],        // Representasi tekstual bulan, 3 huruf
+        'n': month,                         // Representasi numerik bulan, tanpa nol awal (1 sampai 12)
+        't': new Date(year, month, 0).getDate(), // Jumlah hari dalam bulan yang diberikan (28 sampai 31)
+
+        // Tahun
+        'L': isLeap ? 1 : 0,                // Apakah tahun kabisat (1 jika kabisat, 0 jika tidak)
+        'o': year,                          // Tahun ISO 8601 (disini disederhanakan sama dengan Y)
+        'Y': year,                          // Tahun, 4 digit
+        'y': String(year).slice(-2),        // Tahun, 2 digit
+
+        // Waktu
+        'a': hours < 12 ? 'am' : 'pm',      // 'am' atau 'pm' huruf kecil
+        'A': hours < 12 ? 'AM' : 'PM',      // 'AM' atau 'PM' huruf besar
+        'g': hours % 12 || 12,              // Format jam 12 tanpa nol awal (1 sampai 12)
+        'G': hours,                         // Format jam 24 tanpa nol awal (0 sampai 23)
+        'h': pad(hours % 12 || 12),         // Format jam 12 dengan nol awal (01 sampai 12)
+        'H': pad(hours),                    // Format jam 24 dengan nol awal (00 sampai 23)
+        'i': pad(minutes),                  // Menit, dengan nol awal (00 sampai 59)
+        's': pad(seconds),                  // Detik, dengan nol awal (00 sampai 59)
+        'u': pad(dateObj.getMilliseconds(), 3), // Milidetik (meniru mikrodetik PHP, disederhanakan)
+
+        // Zona waktu
+        'e': 'UTC',                         // Zona waktu (disini disederhanakan)
+        'I': 0,                             // Apakah Daylight Saving Time (DST) atau tidak (disini disederhanakan)
+        'O': dateObj.toString().match(/([+-]\d{4})/)?.[1] || '+0000', // Perbedaan waktu dengan GMT, dalam jam dan menit
+        'P': dateObj.toString().match(/([+-]\d{2})(\d{2})/)?.[1] + ':' + dateObj.toString().match(/([+-]\d{2})(\d{2})/)?.[2] || '+00:00', // Perbedaan waktu dengan GMT, dengan titik dua
+        'T': dateObj.toLocaleTimeString('en', { timeZoneName: 'short' }).split(' ')[2] || 'GMT', // Singkatan zona waktu (disini disederhanakan)
+        'Z': dateObj.getTimezoneOffset() * -60, // Offset zona waktu dalam detik (-43200 sampai 50400)
+
+        // Full Date/Time
+        'c': dateObj.toISOString().slice(0, 19) + dateObj.toString().match(/([+-]\d{2})(\d{2})/)?.[0].replace(/(\d{2})(\d{2})/g, '$1:$2') || dateObj.toISOString(), // ISO 8601
+        'r': dateObj.toUTCString(),         // RFC 2822 (Email)
+        'U': Math.floor(dateObj.getTime() / 1000) // Detik sejak Epoch (1 Januari 1970 00:00:00 GMT)
+    };
+ 
+
+    // Split the string into an array of individual characters
+    let charFormat = format.split('');
+
+    // Iterate over each character using forEach
+    let newStringFormat = '';
+    
+    charFormat.forEach(char => {
+        if(tokens[char]){
+            newStringFormat += tokens[char];
+        }else{
+            newStringFormat += char;
+        }
+         
+    });
+
+    return newStringFormat;
+}
+
+function timeDiffFromNow(dateString){
+    const startTime = new Date();
+    const endTime = new Date(dateString);
+
+    const diffMilliseconds = Math.abs(endTime.getTime() - startTime.getTime());
+
+    const diffSeconds = diffMilliseconds / 1000;
+    const diffMinutes = diffMilliseconds / (1000 * 60);
+    const diffHours = diffMilliseconds / (1000 * 60 * 60);
+
+    const format = {
+        'seconds': parseInt(diffSeconds % 60),
+        'minutes': parseInt(diffMinutes % 60),
+        'hours': parseInt(diffHours)
+    }
+
+    return format;
+    // console.log(`Difference in milliseconds: ${diffMilliseconds}`);
+    // console.log(`Difference in seconds: ${diffSeconds}`);
+    // console.log(`Difference in minutes: ${diffMinutes}`);
+    // console.log(`Difference in hours: ${diffHours}`)
+}

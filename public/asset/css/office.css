@@ -1062,3 +1062,18 @@ td > .btn-delete {
 .scrollbar-transparent::-webkit-scrollbar-corner {
   background-color: transparent; /* Make the corner transparent */
 }
+
+.ratio-3x4 {
+    --bs-aspect-ratio: calc(4 / 3 * 100%);
+}
+
+.ratio-9x16 {
+    --bs-aspect-ratio: calc(16 / 9 * 100%);
+}
+
+/* $aspect-ratios: (
+  "1x1": 100%,
+  "4x3": calc(3 / 4 * 100%),
+  "16x9": calc(9 / 16 * 100%),
+  "21x9": calc(9 / 21 * 100%)
+); */

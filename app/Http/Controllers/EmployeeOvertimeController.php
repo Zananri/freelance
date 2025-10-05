@@ -15,21 +15,36 @@ use App\Models\EmployeeOvertime;
 
 class EmployeeOvertimeController extends Controller
 {
-    public function submitNewOvertime(Request $request){
+    public function allRequest(Request $request){
+
+        $user = auth()->user();
+        $employee = Employee::where('user_id', $user->id)->first();
+
+        $employeeOvertime = EmployeeOvertime::where('employee_id',$employee->id)
+            ->whereIn('status',['REQUEST','APPROVED','REJECTED','REQUEST_SUBMIT'])
+            ->orderBy('created_at','desc')
+        ->get();
+
+
+        return response()->json([
+            'code' => 200,
+            'status' => 'success',
+            'data' => [
+                'employeeOvertime' => $employeeOvertime
+            ],
+            'message' => 'All request overtime'
+        ]);
+    }
+
+    public function submitNewRequest(Request $request){
 
         try{
 
             DB::beginTransaction();
             
             $request->validate([
-                'leave_type' => 'required',
-                'description' => 'required',
-
-                'start_date' => 'required|date',
-                'end_date' => 'required|date|after_or_equal:start_date',
-
-                'file_1' => 'required|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
-                'file_2' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png,gif|max:10048',
+                'overtime_photo_start' => 'required|file|mimes:jpg,jpeg,png,gif|max:10048',
+                'description' => 'required'
             ]);
 
 
@@ -41,7 +56,9 @@ class EmployeeOvertimeController extends Controller
             
             $employee = Employee::with('division', 'department', 'job','grade','shift',)->where('user_id', $user->id)->first();
             
-            $checkTodayOvertime = EmployeeOvertime::where('employee_id',$employee->id)->first();
+            $checkTodayOvertime = EmployeeOvertime::where('employee_id',$employee->id)
+                ->where('date_overtime',$today)
+            ->first();
 
             if($checkTodayOvertime){
                 throw new \Exception('Overtime '.$now->format('D j M Y').' already started');
@@ -55,55 +72,39 @@ class EmployeeOvertimeController extends Controller
 
             if (!file_exists($destinationPath)) { mkdir($destinationPath, 0777, true); }
 
-            if ($request->hasFile('file_1')) {
+            if ($request->hasFile('overtime_photo_start')) {
 
-                $reqFile1 = $request->file('file_1');
-                $file1Extension = $reqFile1->getClientOriginalExtension();
-                $file1Name = 'LEAVE_REQUEST_'.$employee->id.'_'.time().'.'.$file1Extension;
+                $reqPhotoStart = $request->file('overtime_photo_start');
+                $fileExtension = $reqPhotoStart->getClientOriginalExtension();
+                $fileName = 'OVERTIME_'.$employee->id.'_'.time().'.'.$fileExtension;
 
-                $reqFile1->move($destinationPath, $file1Name);
+                $reqPhotoStart->move($destinationPath, $fileName);
 
-                $file1 = 'file/leave_request/'.$file1Name;
+                $photoStart = 'file/overtime/'.$fileName;
             }
-
-            if ($request->hasFile('file_2')) {
-
-                $reqFile2 = $request->file('file_2');
-                $file2Extension = $reqFile2->getClientOriginalExtension();
-                $file2Name = 'LEAVE_REQUEST_'.$employee->id.'_'.time().'_2.'.$file2Extension;
-
-                $reqFile2->move($destinationPath, $file2Name);
-
-                $file2 = 'file/leave_request/'.$file2Name;
-            }
+ 
+            // 'employee_id','status',
+            // 'description','date_overtime','time_start','time_end','total_overtime',
             
-
-            //throw new \Exception('File 1 '.$file1.' '.'File 2'.$file2);
-
-            //employee_id leave_type reason start_date end_date day_amount file_1 file_2 status created_by updated_by 
-
-
-
+            // 'photo_start','photo_end','location_start','location_end',
+            // 'reject_note','created_by','updated_by','reject_by',
+            // 'approve_by','approve_at','reject_at'
             
-            $leaveRequest = new EmployeeLeaveRequest();
+            $employeeOvertime = new EmployeeOvertime();
 
-                $leaveRequest->employee_id = $employee->id;
-                $leaveRequest->leave_type = $request->leave_type;
-                $leaveRequest->reason = $request->description;
-                $leaveRequest->start_date = $startDate->toDateString();
-                $leaveRequest->end_date = $endDate->toDateString();
-                $leaveRequest->day_amount = $dayAmount;
-                $leaveRequest->file_1 = $file1;
-                $leaveRequest->file_2 = $file2;
-                $leaveRequest->status = 'REQUEST';
-                $leaveRequest->created_by = $user->id;
-                $leaveRequest->updated_by = $user->id;
+                $employeeOvertime->employee_id = $employee->id;
+                $employeeOvertime->status = 'REQUEST';
+                $employeeOvertime->description = $request->description;
+                $employeeOvertime->date_overtime = $today;
+                $employeeOvertime->time_start = $now->format('H:i');
+                $employeeOvertime->photo_start = $photoStart;
 
-            $leaveRequest->save();
+                $employeeOvertime->created_by = $user->id;
+                $employeeOvertime->updated_by = $user->id;
+
+            $employeeOvertime->save();
 
 
-
-            //leave_type start_date end_date description file_pdf file_photo
 
             DB::commit();
 
@@ -111,7 +112,90 @@ class EmployeeOvertimeController extends Controller
                 'code' => 200,
                 'status' => 'success',
                 'data' => [],
-                'message' => 'Request time off successfully'
+                'message' => 'Overtime request started'
+            ]);
+
+        }catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function submitStopOvertime(Request $request){
+
+        try{
+
+            DB::beginTransaction();
+            
+            $request->validate([
+                'overtime_id' => 'required|integer',
+                'overtime_photo_stop' => 'required|file|mimes:jpg,jpeg,png,gif|max:10048'
+            ]);
+
+
+            $user = auth()->user();
+
+            $now = Carbon::now();
+            $today = Carbon::today()->toDateString();
+
+            
+            $employee = Employee::with('division', 'department', 'job','grade','shift',)->where('user_id', $user->id)->first();
+            
+            $existOvertime = EmployeeOvertime::where('employee_id',$employee->id)
+                ->where('id',$request->overtime_id)
+                ->where('status','REQUEST')
+            ->first();
+
+            if(!$existOvertime){
+                throw new \Exception('Overtime not started');
+            }
+
+            $photoEnd = '';
+            
+
+            $destinationPath = public_path('file/overtime');
+
+            if (!file_exists($destinationPath)) { mkdir($destinationPath, 0777, true); }
+
+            if ($request->hasFile('overtime_photo_stop')) {
+
+                $reqPhotoStop = $request->file('overtime_photo_stop');
+                $fileExtension = $reqPhotoStop->getClientOriginalExtension();
+                $fileName = 'OVERTIME_'.$employee->id.'_'.time().'.'.$fileExtension;
+
+                $reqPhotoStop->move($destinationPath, $fileName);
+
+                $photoEnd = 'file/overtime/'.$fileName;
+            }
+   
+            $timeStart = Carbon::parse($existOvertime->time_start);
+            $totalOvertime = $timeStart->diff(Carbon::now())->format('%H:%I');
+            
+            $existOvertime->total_overtime = $totalOvertime;
+            $existOvertime->status = 'REQUEST_SUBMIT';
+            $existOvertime->time_end = $now->format('H:i');
+            $existOvertime->photo_end = $photoEnd;
+
+            $existOvertime->updated_by = $user->id;
+
+            $existOvertime->save();
+
+
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Overtime stop successfully'
             ]);
 
         }catch (\Exception $e) {

@@ -62,10 +62,6 @@ class EmployeeTimeOffController extends Controller
 
             $employee = Employee::with('division', 'department', 'job','grade','shift',)->where('user_id', $user->id)->first();
             $employeeLeave = EmployeeLeave::where('employee_id',$employee->id)->where('year',date('Y'))->first();
-
-            if($employeeLeave->remaining_annual_leave < 1){
-                throw new \Exception('Annual leave '.date('Y').' quota is not enough, remaining annual leave is 0');
-            }
             
             $startDate = Carbon::parse($request->input('start_date'));
             $endDate = Carbon::parse($request->input('end_date'));

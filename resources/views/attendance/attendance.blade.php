@@ -122,7 +122,7 @@
                                     </div>
                                     <div>
                                         <div class="text-off-time">
-                                            Off Time
+                                            Time Off
                                         </div>
                                     </div>
                                 </div>
@@ -836,7 +836,7 @@
         <!-- Modal Overtime -->
         <div class="modal fade" id="overtimeModal" tabindex="-1" role="dialog" aria-labelledby="overtimeModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content rounded-4 border-0">
+                <div class="modal-content rounded-4 border-0 position-relative">
                     <div class="modal-header border-0 py-4">
                         <h5 class="modal-title modal-title-custom text-center w-100" id="overtimeModalLabel">Overtime</h5>
                         <button type="button" class="btn-close me-2" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -888,7 +888,7 @@
                                     </div>
                                 </div>
                                 <div>
-                                    <input type="text" class="input-search-query sm-input w-100">
+                                    <input type="text" class="input-search-query sm-input w-100" id="input-search-overtime">
                                 </div>
                             </div>
                         </div>
@@ -974,6 +974,22 @@
                             
                         </div>
 
+                        
+                    </div>
+ 
+                    <div class="box-img-view z-3 rounded-4 position-absolute top-0 start-0 w-100 h-100 overflow-hidden">
+                        <img src="" alt="" class="img-viewer z-3  position-absolute top-0 start-0 w-100 h-100 ">
+                        
+
+                        <div class="z-3  position-absolute bottom-0 start-0 w-100 ">
+                            <div class="text-center pb-3">
+                                <div class="btn btn-close-img-viewer w-50">
+                                    Close
+                                </div>
+                            </div>
+                        </div>
+                        
+                        
                     </div>
                 </div>
             </div>
@@ -1006,15 +1022,7 @@
                                         </div>
                                     </div>
                                 </div>
-
-                                <style>
-                                    .btn-camera{
-                                        position: relative;
-                                        display: inline-block;
-
-                                    }
-                                </style>
-
+ 
                                 <div class="mb-3">
 
                                     <div class="row">
@@ -1022,13 +1030,13 @@
                                             <div class="position-realtive">
 
                                                 <div class="d-none">
-                                                    <label for="imageInputCheckIn" class="label-photo-checkin">Label file</label>
-                                                    <input type="file" name="overtime_photo_start" id="imageInputCheckIn" accept="image/*" capture="environment">
+                                                    <label for="imageInputOvertimeStart" class="label-photo-overtime-start">Label file</label>
+                                                    <input type="file" name="overtime_photo_start" id="imageInputOvertimeStart" accept="image/*" capture="environment">
                                                 </div>
 
                                                 <div class="ratio ratio-1x1">
 
-                                                    <div class="box-photo border rounded-2" id="openCameraCheckIn">
+                                                    <div class="box-photo rounded-2" id="openCameraOvertimeStart">
                                                         <div class="d-flex w-100 h-100 justify-content-center align-items-center">
                                                             <div class="text-center">
                                                                 <span class="material-symbols-outlined fs-4 opacity-50">photo_camera</span>
@@ -1093,6 +1101,143 @@
 
                         <div class="z-3 position-absolute h-auto top-0 end-0 text-end">
                             <div id="overtimeCloseButton" class="btn-close-capture">
+                                <span class="material-symbols-outlined">close</span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fs-14">Loading...</div>
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal New Overtime -->
+        <div class="modal fade" id="overtimeStopModal" tabindex="-1" role="dialog" aria-labelledby="overtimeStopModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
+                    
+                    <div class="modal-body p-0 border-0 ">
+
+                        <div class="form-header p-4">
+                            <h5 class="modal-title fs-18">Stop Overtime</h5>
+                        </div>
+
+                        <div class="wrapper-form px-4 scrollbar-transparent">
+
+                            <form action="" id="form-stop-overtime" class="needs-validation" novalidate enctype="multipart/form-data"  >
+
+                                @csrf
+
+                                <input type="hidden" name="overtime_id" value="">
+
+                                <div class="mb-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <div>
+                                            {{ date('D j M Y') }}
+                                        </div>
+                                        <div>
+                                            <span class="text-clock-overtime"></span>
+                                        </div>
+                                    </div>
+                                </div>
+ 
+
+                                <div class="mb-3">
+
+                                    <div class="row">
+                                        <div class="col-6 col-photo">
+                                            <div class="position-realtive">
+
+                                                <div class="ratio ratio-1x1">
+
+                                                    <div class="box-photo rounded-2">
+                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
+                                                            <img id="overtimePhotoStart" class="object-fit-cover w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-photo">
+                                            <div class="position-realtive">
+
+                                                <div class="d-none">
+                                                    <label for="imageInputOvertimeStop" class="label-photo-overtime-stop">Label file</label>
+                                                    <input type="file" name="overtime_photo_stop" id="imageInputOvertimeStop" accept="image/*" capture="environment">
+                                                </div>
+
+                                                <div class="ratio ratio-1x1">
+
+                                                    <div class="box-photo rounded-2" id="openCameraOvertimeStop">
+                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
+                                                            <div class="text-center">
+                                                                <span class="material-symbols-outlined fs-4 opacity-50">photo_camera</span>
+                                                                <div>
+                                                                    <span class="fs-14 text-secondary">Take Photo</span>
+                                                                </div>
+                                                            </div>
+                                                            <img id="overtimePhotoResultStop" class="object-fit-cover d-none w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                                
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+
+
+                            </form>
+
+                        </div>
+
+                        <div class="p-4">
+
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Submit</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="box-camera z-3 rounded-4 bg-black bg-opacity-75 position-absolute top-0 start-0 w-100 h-100">
+                        <video id="stopOvertimeVideoElement" muted playsinline class="z-3 w-100 h-100 position-absolute top-0 start-0 rounded-4 object-fit-cover" ></video>
+                        <canvas id="stopOvertimeCanvasElement" style="display:none;"></canvas>
+
+
+                        <div class="z-3 position-absolute bottom-0 start-0 w-100 text-center">
+                            <div id="stopOvertimeCaptureButton" class="btn-capture-photo">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                            </div>
+                        </div>
+
+                        <div class="z-3 position-absolute h-auto top-0 end-0 text-end">
+                            <div id="stopOvertimeCloseButton" class="btn-close-capture">
                                 <span class="material-symbols-outlined">close</span>
                             </div>
                         </div>

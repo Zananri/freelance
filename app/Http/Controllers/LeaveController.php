@@ -177,6 +177,7 @@ class LeaveController extends Controller
             ], 500);
         }
     }
+    
     public function approveEmployeeLeaveRequest(Request $request){
 
         try{
@@ -204,11 +205,12 @@ class LeaveController extends Controller
 
             $employeeLeave = EmployeeLeave::where('employee_id',$employeeId)->where('year',$yearLeave)->first();
 
-            if(!$employeeLeave){
-                throw new \Exception('Employee leave not found');
-            }
-
             if($employeeLeaveRequest->leave_type == 'ANNUAL_LEAVE'){
+
+                if(!$employeeLeave){
+                    throw new \Exception('Employee did not have quota leave');
+                }
+                
                 if($employeeLeave->remaining_annual_leave < $employeeLeaveRequest->day_amount){
                     throw new \Exception('Annual leave quota is not enough');
                 }
@@ -223,7 +225,7 @@ class LeaveController extends Controller
             }
 
             
-            if($employeeLeaveRequest->status != 'REQUEST' ){
+            if(!in_array($employeeLeaveRequest->status,['REQUEST','REJECTED']) ){
                 throw new \Exception('Time off only can be approve when status is REQUEST');
             }
             
