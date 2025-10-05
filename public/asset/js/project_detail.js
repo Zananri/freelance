@@ -665,6 +665,8 @@
                         feedbackListEl.innerHTML = "";
 
                         data.data.forEach(function (feedback) {
+                            window.feedbackData = window.feedbackData || {};
+                            window.feedbackData[feedback.id] = feedback;
                             var feedbackItem = document.createElement("div");
                             feedbackItem.className = "feedback-item p-3";
 
@@ -729,17 +731,18 @@
                             var commentDiv = document.createElement("div");
                             commentDiv.className = "feedback-comment";
                             commentDiv.style.fontSize = "10px";
-                            // allow a small whitelist of HTML (p, br, a, strong, em, ul/ol/li)
+
                             try {
-                                commentDiv.innerHTML = sanitizeHtml(
-                                    feedback.feedback_comment || ""
-                                );
+                                commentDiv.innerHTML = sanitizeHtml(feedback.feedback_comment || "");
                             } catch (_) {
-                                commentDiv.textContent =
-                                    feedback.feedback_comment || "";
+                                commentDiv.textContent = feedback.feedback_comment || "";
                             }
 
                             feedbackItem.appendChild(headerDiv);
+                            var commentContent = (feedback.feedback_comment || "").trim();
+                            if (!commentContent || commentContent === "<p></p>" || commentContent === "<p><br></p>") {
+                                commentDiv.classList.add("d-none");
+                            }
                             feedbackItem.appendChild(commentDiv);
 
                             // Normalize top-level image URL (accept absolute, /file/* or relative filename)
@@ -5308,11 +5311,11 @@
                 if (!pid) {
                     if (typeof window.showFloatingAlert === "function")
                         window.showFloatingAlert(
-                            "Project ID tidak ditemukan",
+                            "Project ID no found",
                             "warning",
                             3500
                         );
-                    else alert("Project ID tidak ditemukan");
+                    else alert("Project ID not found");
                     return;
                 }
                 var appUrlLocal = getMeta("app-url") || "";
@@ -5436,22 +5439,22 @@
                     console.error("Invalid project payload", res);
                     if (typeof window.showFloatingAlert === "function")
                         window.showFloatingAlert(
-                            "Gagal mengambil data project",
+                            "Failed to load project data",
                             "warning",
                             3500
                         );
-                    else alert("Gagal mengambil data project");
+                    else alert("Failed to load project data");
                 }
             },
             error: function (xhr) {
                 console.error("Error fetching project", xhr);
                 if (typeof window.showFloatingAlert === "function")
                     window.showFloatingAlert(
-                        "Gagal mengambil data project",
+                        "Failed to load project data",
                         "warning",
                         3500
                     );
-                else alert("Gagal mengambil data project");
+                else alert("Failed to load project data");
             },
         });
     }
@@ -7780,11 +7783,11 @@
                 if (!projectId) {
                     if (typeof window.showFloatingAlert === "function")
                         window.showFloatingAlert(
-                            "Project ID tidak ditemukan",
+                            "Project ID not found",
                             "warning",
                             3500
                         );
-                    else alert("Project ID tidak ditemukan");
+                    else alert("Project ID not found");
                     isSubmitting = false;
                     return;
                 }
@@ -7915,27 +7918,17 @@
 })(jQuery);
 
 $("#fullscreen-feedback-btn").on("click", function () {
-    const $feedbackContent = $(
-        ".feedback-detail-project .feedback-content-detail"
-    );
+    const $feedbackContent = $(".feedback-detail-project .feedback-content-detail");
     const $icon = $(this).find("span.material-symbols-outlined");
-    const $clone = $(".feedback-content-clone");
     const $detailCard = $(".detail-project-card");
 
-    if ($clone.length) {
-        $clone.remove();
-        $feedbackContent.removeClass("invisible");
+    if ($feedbackContent.hasClass("fullscreen")) {
+        $feedbackContent.removeClass("fullscreen");
         $detailCard.removeClass("invisible");
         $icon.text("fullscreen");
         $("body").css("overflow", "auto");
     } else {
-        const $newClone = $feedbackContent.clone(true, true);
-        $newClone
-            .removeClass("feedback-content-detail")
-            .addClass("feedback-content-clone");
-        $("body").append($newClone);
-
-        $feedbackContent.addClass("invisible");
+        $feedbackContent.addClass("fullscreen");
         $detailCard.addClass("invisible");
         $icon.text("fullscreen_exit");
         $("body").css("overflow", "hidden");
