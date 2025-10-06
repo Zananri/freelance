@@ -5398,6 +5398,9 @@
         $("#project-description").html(
             data.description ? data.description.replace(/\n/g, "<br>") : "-"
         );
+        $("#project-delete-description").html(
+            data.description ? data.description.replace(/\n/g, "<br>") : "-"
+        );
         if (data.task_counts && typeof data.task_counts.total !== "undefined") {
             $("#project-total-tasks").text(
                 data.task_counts.total +
