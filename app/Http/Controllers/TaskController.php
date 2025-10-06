@@ -16,6 +16,7 @@ use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Helpers\TaskAssignmentLogService;
+use App\Models\TaskAssignmentLog;
 // use Illuminate\Support\Carbon; // not used directly
 
 class TaskController extends Controller
@@ -3300,13 +3301,27 @@ class TaskController extends Controller
                     }
                 }
 
-                TaskAssignmentLogService::record([
-                    'task_id' => $taskId,
-                    'employee_id' => $user->employee->id,
-                    'creator_task' => $creatorEmployeeId,
-                    'action' => TaskAssignmentLog::ACTION_ACCEPTED,
-                    'created_by' => $user->employee->id,
-                ]);
+                // Prefer updating an existing PENDING log to ACCEPTED
+                $existing = TaskAssignmentLog::where('task_id', $taskId)
+                    ->where('employee_id', $user->employee->id)
+                    ->where('action', TaskAssignmentLog::ACTION_PENDING)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if ($existing) {
+                    $existing->action = TaskAssignmentLog::ACTION_ACCEPTED;
+                    $existing->status = TaskAssignmentLog::STATUS_ACTIVE;
+                    $existing->updated_by = $user->employee->id;
+                    $existing->save();
+                } else {
+                    TaskAssignmentLogService::record([
+                        'task_id' => $taskId,
+                        'employee_id' => $user->employee->id,
+                        'creator_task' => $creatorEmployeeId,
+                        'action' => TaskAssignmentLog::ACTION_ACCEPTED,
+                        'created_by' => $user->employee->id,
+                    ]);
+                }
             } catch (\Throwable $_) {
                 // don't block acceptance if logging fails
             }
