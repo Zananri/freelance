@@ -333,7 +333,8 @@ class ProjectController extends Controller
             if ($taskScope === 'all') {
                 // For 'all' scope (used by global listings and task dropdowns), only expose public projects
                 $projects = Project::where('status', '!=', 'DELETED')
-                    ->where(function($q){ $q->whereNull('project_type')->orWhere('project_type','public'); })
+                    ->where(function ($q) {
+                        $q->whereNull('project_type')->orWhere('project_type', 'public'); })
                     ->with([
                         'department',
                         'division',
@@ -502,8 +503,10 @@ class ProjectController extends Controller
         $maxDue = $project->tasks_max_due_date;
         $start = $project->start_date;
         $due = $project->due_date;
-        if ($minStart && (!$start || $minStart < $start)) $start = $minStart;
-        if ($maxDue && (!$due || $maxDue > $due)) $due = $maxDue;
+        if ($minStart && (!$start || $minStart < $start))
+            $start = $minStart;
+        if ($maxDue && (!$due || $maxDue > $due))
+            $due = $maxDue;
 
         return [
             'id' => $project->id,
@@ -561,7 +564,8 @@ class ProjectController extends Controller
 
             // Only public projects should be visible in general listing used by dropdowns unless task_scope=all
             $query = Project::where('status', '!=', 'DELETED')
-                ->where(function($q){ $q->whereNull('project_type')->orWhere('project_type','public'); });
+                ->where(function ($q) {
+                    $q->whereNull('project_type')->orWhere('project_type', 'public'); });
 
             // Handle sorting options
             switch ($sortBy) {
@@ -809,7 +813,7 @@ class ProjectController extends Controller
                     'file',
                     'max:102400',
                     function ($attribute, $value, $fail) {
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMime = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -819,10 +823,13 @@ class ProjectController extends Controller
                         ];
                         try {
                             $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
-                            if (in_array($ext, $allowedExt, true)) return;
+                            if (in_array($ext, $allowedExt, true))
+                                return;
                             $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
-                            if (in_array($mime, $allowedMime, true)) return;
-                        } catch (\Throwable $_) {}
+                            if (in_array($mime, $allowedMime, true))
+                                return;
+                        } catch (\Throwable $_) {
+                        }
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
@@ -831,7 +838,7 @@ class ProjectController extends Controller
                     'file',
                     'max:102400',
                     function ($attribute, $value, $fail) {
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMime = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -841,10 +848,13 @@ class ProjectController extends Controller
                         ];
                         try {
                             $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
-                            if (in_array($ext, $allowedExt, true)) return;
+                            if (in_array($ext, $allowedExt, true))
+                                return;
                             $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
-                            if (in_array($mime, $allowedMime, true)) return;
-                        } catch (\Throwable $_) {}
+                            if (in_array($mime, $allowedMime, true))
+                                return;
+                        } catch (\Throwable $_) {
+                        }
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
@@ -853,7 +863,8 @@ class ProjectController extends Controller
 
             // Force department/division to be the one of the authenticated employee
             $authEmp = auth()->user()->employee ?? null;
-            if (!$authEmp) throw new \Exception('Authenticated user has no employee relation');
+            if (!$authEmp)
+                throw new \Exception('Authenticated user has no employee relation');
 
             $departmentIdToUse = $authEmp->department_id;
 
@@ -872,7 +883,7 @@ class ProjectController extends Controller
             $project = new Project();
             $project->title = $request->title;
             // project_type is optional: default to public
-            $project->project_type = in_array($request->input('project_type'), ['public','private']) ? $request->input('project_type') : 'public';
+            $project->project_type = in_array($request->input('project_type'), ['public', 'private']) ? $request->input('project_type') : 'public';
             $project->description = $request->description;
             $project->department_id = $departmentIdToUse;
             $project->division_id = $divisionIdToUse;
@@ -1048,12 +1059,28 @@ class ProjectController extends Controller
             // For normal browser navigation, render the Blade view so the user sees the page.
             $expectsJson = $request->wantsJson() || $request->ajax() || str_contains($request->header('Accept', ''), '/json') || str_contains($request->header('Accept', ''), 'application/json');
 
+            // Get current user and employee for authorization
+            $user = auth()->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+
             if (!$expectsJson) {
                 // Render server-side view with full project model so Blade can display data
                 $project = Project::with(['department', 'division', 'projectAssignments.employee.user', 'tasks'])->find($id);
 
                 if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
                     abort(404);
+                }
+
+                if (!$employeeId) {
+                    return redirect('/project')->with('error', 'You do not have permission to access the project.');
+                }
+
+                $isAssigned = ProjectAssignment::where('project_id', $project->id)
+                    ->where('employee_id', $employeeId)
+                    ->whereIn('role', ['author', 'co_author', 'contributor'])
+                    ->exists();
+                if (!$isAssigned) {
+                    return redirect('/project')->with('error', 'You do not have permission to access the project.');
                 }
 
                 return view('project.show', ['project' => $project]);
@@ -1077,6 +1104,27 @@ class ProjectController extends Controller
                     'status' => 'error',
                     'message' => 'Project not found'
                 ], 404);
+            }
+
+            // Authorization check for JSON requests: only assigned users can access project details
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $isAssigned = ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->whereIn('role', ['author', 'co_author', 'contributor'])
+                ->exists();
+            if (!$isAssigned) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Access denied'
+                ], 403);
             }
 
             // Extract author and co_authors
@@ -1338,7 +1386,7 @@ class ProjectController extends Controller
                     'file',
                     'max:102400',
                     function ($attribute, $value, $fail) {
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMime = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1348,10 +1396,13 @@ class ProjectController extends Controller
                         ];
                         try {
                             $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
-                            if (in_array($ext, $allowedExt, true)) return;
+                            if (in_array($ext, $allowedExt, true))
+                                return;
                             $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
-                            if (in_array($mime, $allowedMime, true)) return;
-                        } catch (\Throwable $_) {}
+                            if (in_array($mime, $allowedMime, true))
+                                return;
+                        } catch (\Throwable $_) {
+                        }
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
@@ -1360,7 +1411,7 @@ class ProjectController extends Controller
                     'file',
                     'max:102400',
                     function ($attribute, $value, $fail) {
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMime = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1370,10 +1421,13 @@ class ProjectController extends Controller
                         ];
                         try {
                             $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
-                            if (in_array($ext, $allowedExt, true)) return;
+                            if (in_array($ext, $allowedExt, true))
+                                return;
                             $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
-                            if (in_array($mime, $allowedMime, true)) return;
-                        } catch (\Throwable $_) {}
+                            if (in_array($mime, $allowedMime, true))
+                                return;
+                        } catch (\Throwable $_) {
+                        }
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
@@ -1398,12 +1452,13 @@ class ProjectController extends Controller
             $project->title = $request->title;
             // allow updating project_type; default to public if invalid
             if ($request->has('project_type')) {
-                $project->project_type = in_array($request->input('project_type'), ['public','private']) ? $request->input('project_type') : 'public';
+                $project->project_type = in_array($request->input('project_type'), ['public', 'private']) ? $request->input('project_type') : 'public';
             }
             $project->description = $request->description;
             // Force department/division to employee's department
             $authEmp = auth()->user()->employee ?? null;
-            if (!$authEmp) throw new \Exception('Authenticated user has no employee relation');
+            if (!$authEmp)
+                throw new \Exception('Authenticated user has no employee relation');
             $departmentIdToUse = $authEmp->department_id;
             $providedDivision = $request->input('division');
             if ($providedDivision) {
@@ -1763,12 +1818,14 @@ class ProjectController extends Controller
 
             $stored = [];
             foreach ($files as $file) {
-                if (!$file->isValid()) continue;
+                if (!$file->isValid())
+                    continue;
                 $orig = $file->getClientOriginalName();
                 $ext = $file->getClientOriginalExtension();
                 $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
                 $destDir = public_path('file/project');
-                if (!is_dir($destDir)) @mkdir($destDir, 0755, true);
+                if (!is_dir($destDir))
+                    @mkdir($destDir, 0755, true);
                 $file->move($destDir, $name);
                 $stored[] = $name;
             }
@@ -2125,7 +2182,7 @@ class ProjectController extends Controller
 
             $user = $request->user();
             $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
-            if (!$currentEmployeeId || (int)$feedback->employee_id !== (int)$currentEmployeeId) {
+            if (!$currentEmployeeId || (int) $feedback->employee_id !== (int) $currentEmployeeId) {
                 return response()->json([
                     'code' => 403,
                     'status' => 'error',
@@ -2144,7 +2201,8 @@ class ProjectController extends Controller
             // Delete attached reference files if any
             $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
             foreach ($refFiles as $rf) {
-                if (!$rf) continue;
+                if (!$rf)
+                    continue;
                 $p = public_path('file/project/' . $rf);
                 if (file_exists($p)) {
                     @unlink($p);
