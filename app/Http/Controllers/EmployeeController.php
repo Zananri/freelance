@@ -582,7 +582,14 @@ class EmployeeController extends Controller
 
             $employees = Employee::with(['department', 'division', 'user'])
                 ->where('status', 'ACTIVE')
-                ->whereHas('user', function ($q) {
+                ->whereHas('user', function ($q) use ($request) {
+                    // If executor_only flag is set, strictly return only regular employees with role EMPLOYEE.
+                    if ($request->boolean('executor_only')) {
+                        $q->where('user_role', 'EMPLOYEE')
+                          ->where('user_type', 'REGULAR');
+                        return;
+                    }
+                    // Back-compat behaviour: exclude top-level managers and administrators when not explicitly requesting executor-only list
                     $q->whereNotIn('user_role', ["GENERAL_MANAGER","CEO"]);
                     if (auth()->user() && in_array(auth()->user()->user_role, ['GENERAL_MANAGER', 'CEO'])) {
                         $q->whereNotIn('user_type', ["ADMINISTRATOR"]);

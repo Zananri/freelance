@@ -1118,7 +1118,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     divSel2.selectedOptions[0].dataset.name
                         ? divSel2.selectedOptions[0].dataset.name
                         : "";
-                fetch(appUrl + "/employees-for-projects")
+                fetch(appUrl + "/employees-for-projects?executor_only=1")
                     .then((r) => (r.ok ? r.json() : Promise.reject("fail")))
                     .then((res) => {
                         const arr = (res && res.data) || [];
@@ -1414,12 +1414,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         fetch(appUrl + "/project/index?task_scope=all")
             .then((res) => res.json())
-            .then((payload) => {
-                projects = (payload.data || []).map((p) => ({
-                    id: p.id,
-                    title: p.title,
-                    image: p.image || "",
-                }));
+                .then((payload) => {
+                    projects = (payload.data || [])
+                        .filter(p => !p.project_type || String(p.project_type) === 'public')
+                        .map((p) => ({
+                            id: p.id,
+                            title: p.title,
+                            image: p.image || "",
+                        }));
 
                 if (selectedProjectId) {
                     const selected = projects.find(

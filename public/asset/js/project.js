@@ -609,11 +609,13 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(payload => {
                 projects = (Array.isArray(payload) ? payload : payload.data) || [];
-                projects = projects.map(p => ({
-                    id: p.id,
-                    title: p.title || p.name || "Project " + p.id,
-                    image: p.image || ""
-                }));
+                projects = (projects || []).filter(p => !p.project_type || String(p.project_type) === 'public')
+                    .map(p => ({
+                        id: p.id,
+                        title: p.title || p.name || "Project " + p.id,
+                        image: p.image || "",
+                        project_type: p.project_type || 'public'
+                    }));
 
                 // Kalau EDIT dan ada part_of_project → preselect itu
                 if (prefix === "edit" && currentPartOfProjectId) {
@@ -7362,7 +7364,7 @@ document.addEventListener("DOMContentLoaded", function () {
             $.ajax({
                 url: appUrl + "/employees-for-projects",
                 type: "GET",
-                data: { query: query, exclude_employee_id: currentEmployeeId },
+                data: { query: query, exclude_employee_id: currentEmployeeId, executor_only: 1 },
                 dataType: "json",
                 timeout: 10000, // 10 second timeout
                 success: function (data) {
@@ -7995,7 +7997,7 @@ document.addEventListener("DOMContentLoaded", function () {
             $.ajax({
                 url: appUrl + "/employees-for-projects",
                 type: "GET",
-                data: { query: query, exclude_employee_id: currentEmployeeId },
+                data: { query: query, exclude_employee_id: currentEmployeeId, executor_only: 1 },
                 dataType: "json",
                 timeout: 10000, // 10 second timeout
                 success: function (data) {

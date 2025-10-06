@@ -368,7 +368,6 @@
         try {
             var id = opts.id;
             var type = opts.type || "feedback";
-            var content = opts.content || "";
             var modalId =
                 "deleteConfirmModal_detail_" +
                 (type || "f") +
@@ -384,19 +383,148 @@
             html += '<div class="modal-dialog modal-dialog-centered">';
             html += '<div class="modal-content modal-content-custom">';
             html += '<div class="modal-body modal-body-custom">';
-            html += '<div class="text-center mb-2">';
+            html += '<div class="text-start mb-2">';
             html += '<div class="task-description-container">';
-            // render sanitized HTML (avoid showing raw tags like "<p>...</p>")
+
             try {
-                html +=
-                    '<div class="task-description mb-0">' +
-                    sanitizeHtml(content || "") +
-                    "</div>";
-            } catch (_) {
-                html +=
-                    '<p class="task-description mb-0">' +
-                    String(content || "") +
-                    "</p>";
+                var employee = opts.feedbackData?.employee || {};
+                var comment = sanitizeHtml(opts.feedbackData?.feedback_comment || "");
+                var createdAt = opts.feedbackData?.created_at || "";
+                var imgSrc = sanitizeHtml(employee.profile_picture || "default-avatar.png");
+                var name = sanitizeHtml(employee.name || "Unknown User");
+                var dateText = createdAt ? timeAgo(createdAt) : "";
+
+                var topImageUrl = opts.feedbackData?.image || "";
+                try {
+                    if (topImageUrl) {
+                        var isAbs = typeof topImageUrl === "string" && (topImageUrl.indexOf("http://") === 0 || topImageUrl.indexOf("https://") === 0);
+                        var isFilePath = typeof topImageUrl === "string" && (topImageUrl.indexOf("/file/") === 0 || topImageUrl.indexOf("file/") === 0);
+                        var isStorage = typeof topImageUrl === "string" && (topImageUrl.indexOf("/storage/") === 0 || topImageUrl.indexOf("storage/") === 0);
+                        if (!isAbs && !isFilePath && !isStorage) {
+                            topImageUrl = getMeta("app-url").replace(/\/$/, "") + "/file/project_feedback/" + topImageUrl;
+                        } else if (!isAbs && (isFilePath || isStorage)) {
+                            topImageUrl = topImageUrl.indexOf("/") === 0 ? getMeta("app-url").replace(/\/$/, "") + topImageUrl : getMeta("app-url").replace(/\/$/, "") + "/" + topImageUrl;
+                        }
+                    }
+                } catch (e) {
+                    topImageUrl = opts.feedbackData?.image || "";
+                }
+
+                var topRefFiles = [];
+                try {
+                    var topRfVal = opts.feedbackData?.reference_files;
+                    if (!Array.isArray(topRfVal) && typeof topRfVal === "string") {
+                        try {
+                            var parsed = JSON.parse(topRfVal);
+                            if (Array.isArray(parsed)) topRfVal = parsed;
+                        } catch (_) {}
+                    }
+                    if (Array.isArray(topRfVal) && topRfVal.length > 0) {
+                        topRefFiles = topRfVal.map(function (f) {
+                            if (!f) return null;
+                            var isAbs = typeof f === "string" && (f.indexOf("http://") === 0 || f.indexOf("https://") === 0);
+                            var isRefPath = typeof f === "string" && (f.indexOf("/file/project_reference_files/") === 0 || f.indexOf("file/project_reference_files/") === 0 || f.indexOf("/file/") === 0);
+                            if (!isAbs && !isRefPath) return getMeta("app-url").replace(/\/$/, "") + "/file/project_reference_files/" + f;
+                            if (!isAbs && isRefPath) return f.indexOf("/") === 0 ? getMeta("app-url").replace(/\/$/, "") + f : getMeta("app-url").replace(/\/$/, "") + "/" + f;
+                            return f;
+                        }).filter(Boolean);
+                    } else {
+                        var singleTop = opts.feedbackData?.reference_file || "";
+                        if (singleTop) {
+                            var isAbs2 = typeof singleTop === "string" && (singleTop.indexOf("http://") === 0 || singleTop.indexOf("https://") === 0);
+                            var isRefPath2 = typeof singleTop === "string" && (singleTop.indexOf("/file/project_reference_files/") === 0 || singleTop.indexOf("file/project_reference_files/") === 0 || singleTop.indexOf("/file/") === 0);
+                            if (!isAbs2 && !isRefPath2) singleTop = getMeta("app-url").replace(/\/$/, "") + "/file/project_reference_files/" + singleTop;
+                            else if (!isAbs2 && isRefPath2) singleTop = singleTop.indexOf("/") === 0 ? getMeta("app-url").replace(/\/$/, "") + singleTop : getMeta("app-url").replace(/\/$/, "") + "/" + singleTop;
+                            topRefFiles = [singleTop];
+                        }
+                    }
+                } catch (_) {
+                    topRefFiles = [];
+                }
+
+                var topRefUrls = [];
+                try {
+                    var topRuVal = opts.feedbackData?.reference_urls;
+                    if (!Array.isArray(topRuVal) && typeof topRuVal === "string") {
+                        try {
+                            var parsed2 = JSON.parse(topRuVal);
+                            if (Array.isArray(parsed2)) topRuVal = parsed2;
+                        } catch (_) {}
+                    }
+                    if (Array.isArray(topRuVal) && topRuVal.length > 0) {
+                        topRefUrls = topRuVal.filter(function (u) {
+                            return typeof u === "string" && u.trim() !== "";
+                        });
+                    } else if (opts.feedbackData?.reference_url) {
+                        topRefUrls = [opts.feedbackData.reference_url];
+                    }
+                } catch (_) {
+                    topRefUrls = [];
+                }
+
+                html += `
+                    <div class="d-flex align-items-start mb-2 feedback-preview">
+                        <img src="${imgSrc}"
+                            alt="${name}"
+                            class="rounded-circle me-3"
+                            style="width:40px; height:40px; object-fit:cover;">
+
+                        <div class="flex-grow-1">
+                            <p class="mb-0 fw-normal">${name}</p>
+                            <p class="mb-2 text-muted" style="font-size: 10px;">${dateText}</p>
+                            <div class="text-muted comment-content" style="font-size: 13px; line-height: 1.4;">
+                                ${sanitizeHtml(comment)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                var refWrap = document.createElement("div");
+                refWrap.className = "feedback-reference-container mb-2";
+                if (topRefUrls.length > 0) {
+                    topRefUrls.forEach(function (u, idx) {
+                        var a = document.createElement("a");
+                        a.href = u;
+                        a.target = "_blank";
+                        a.className = "feedback-reference-url me-2";
+                        a.innerHTML = '<span class="material-symbols-outlined">link</span> Link ' + (idx + 1);
+                        refWrap.appendChild(a);
+                    });
+                }
+                if (topRefFiles.length > 0) {
+                    topRefFiles.forEach(function (f, idx) {
+                        var af = document.createElement("a");
+                        af.href = f;
+                        af.download = "";
+                        af.className = "feedback-reference-file ms-2";
+                        af.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx + 1);
+                        refWrap.appendChild(af);
+                    });
+                }
+                if (refWrap.children.length > 0) {
+                    html += refWrap.outerHTML;
+                }
+
+                if (topImageUrl) {
+                    var imgEl = document.createElement("img");
+                    imgEl.src = topImageUrl;
+                    imgEl.className = "img-fluid rounded mb-2 feedback-image";
+                    imgEl.style.width = "60%";
+                    imgEl.style.height = "60%";
+                    imgEl.style.borderRadius = "8px";
+                    imgEl.style.cursor = "pointer";
+                    imgEl.addEventListener("click", function () {
+                        try {
+                            showImageModal(topImageUrl);
+                        } catch (_) {
+                            window.open(topImageUrl, "_blank");
+                        }
+                    });
+                    html += imgEl.outerHTML;
+                }
+
+            } catch (err) {
+                console.warn("Render feedback preview error:", err);
             }
             html += '</div></div><hr class="my-2">';
             html +=
@@ -1177,9 +1305,7 @@
                                                     showDeleteConfirmModal({
                                                         id: feedback.id,
                                                         type: "feedback",
-                                                        content:
-                                                            feedback.feedback_comment ||
-                                                            "",
+                                                        feedbackData: feedback,
                                                         onConfirm: function (
                                                             done
                                                         ) {
@@ -1591,10 +1717,10 @@
                                                             try {
                                                                 var rid = String(rep.id);
                                                                 var pid = String(feedback.id);
-                                                                var authorName = (rep.employee && (rep.employee.name || '')) || '';
+                                                                var authorName = (rep.employee.name || "")
                                                                 var content = (rep.feedback_comment || '');
                                                                 var avatarUrl = (rep.employee && (rep.employee.user_photo || rep.employee.profile_picture || rep.employee.photo)) || '';
-                                                                window.showDeleteConfirmModal && window.showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                                                window.showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
                                                                     try {
                                                                         fetch(getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + rid, {
                                                                             method: 'DELETE',
@@ -5398,6 +5524,9 @@
         $("#project-description").html(
             data.description ? data.description.replace(/\n/g, "<br>") : "-"
         );
+        $("#project-delete-description").html(
+            data.description ? data.description.replace(/\n/g, "<br>") : "-"
+        );
         if (data.task_counts && typeof data.task_counts.total !== "undefined") {
             $("#project-total-tasks").text(
                 data.task_counts.total +
@@ -5952,14 +6081,15 @@
             // Fetch projects
             fetch(appUrl + "/project/index?task_scope=all")
                 .then((res) => res.json())
-                .then((payload) => {
-                    projects =
-                        (Array.isArray(payload) ? payload : payload.data) || [];
-                    projects = projects.map((p) => ({
-                        id: p.id,
-                        title: p.title || p.name || "Project " + p.id,
-                        image: p.image || "",
-                    }));
+                    .then((payload) => {
+                        projects = (Array.isArray(payload) ? payload : payload.data) || [];
+                        projects = (projects || []).filter(p => !p.project_type || String(p.project_type) === 'public')
+                            .map((p) => ({
+                                id: p.id,
+                                title: p.title || p.name || "Project " + p.id,
+                                image: p.image || "",
+                                project_type: p.project_type || 'public'
+                            }));
 
                     // Preselect part_of_project kalau ada
                     if (currentPartOfProjectId) {
