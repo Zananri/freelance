@@ -1488,10 +1488,10 @@ class TaskController extends Controller
             $payloadKeys = array_keys($request->all());
             $allowedParentOnlyKeys = ['parent_id', 'project_id'];
             $isParentOnly = $request->has('parent_id') && count(array_diff($payloadKeys, $allowedParentOnlyKeys)) === 0;
-            
+
             // Check if this is a positioning-only update
             $allowedPositioningKeys = ['parent_id', 'project_id', 'position_x', 'position_y', 'free_positioned'];
-            $isPositioningOnly = ($request->has('position_x') || $request->has('position_y') || $request->has('free_positioned')) 
+            $isPositioningOnly = ($request->has('position_x') || $request->has('position_y') || $request->has('free_positioned'))
                                 && count(array_diff($payloadKeys, $allowedPositioningKeys)) === 0;
 
             if ($isParentOnly) {
@@ -1561,7 +1561,7 @@ class TaskController extends Controller
                     ]
                 ]);
             }
-            
+
             // Handle positioning-only updates (drag and drop positioning)
             if ($isPositioningOnly) {
                 $positionValidator = Validator::make($request->all(), [
@@ -1654,7 +1654,7 @@ class TaskController extends Controller
                     ]
                 ]);
             }
-            
+
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
                 'parent_id' => 'nullable|exists:tasks,id',
@@ -3133,7 +3133,7 @@ class TaskController extends Controller
                 ->whereIn('id', $allIds)
                 ->where('project_id', $projectId)
                 ->whereRaw('LOWER(status) <> ?', ['canceled'])
-                ->orderBy('created_at', 'desc')
+                ->orderBy('start_date', 'asc')
                 ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
