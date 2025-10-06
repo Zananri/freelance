@@ -155,6 +155,8 @@ $(document).ready(function() {
     
     // Track user interaction with notification dropdown
     let __dropdownWasOpenedByUser = false;
+    // Track in-flight mark-as-read operations triggered on dropdown close
+    let __pendingMarkReadPromise = null;
 
     function fetchNotifications() {
         console.log('Fetching notifications...');
@@ -207,9 +209,9 @@ $(document).ready(function() {
             }
 
             let html = '';
-            filteredNotifications.forEach(notification => {
+                filteredNotifications.forEach(notification => {
                 const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
-                const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
+                const taskIdMatch = (notification.message || '').match(/Task ID: (\d+)/);
                 const taskId = taskIdMatch ? taskIdMatch[1] : null;
 
                 // Check if this is a task assignment notification
@@ -253,13 +255,12 @@ $(document).ready(function() {
                         </div>
                     `;
                 } else {
-                    // Show "Read" label for accepted/read notifications
-                    // For project notifications, use hidden attribute if notification still has unread indicator
+                    // For other notifications (e.g., task_reject), only show "Read" when it's actually read.
+                    // Project notifications keep a hidden label that will be revealed after the red dot is cleared on close.
                     if (isProjectAssignment) {
                         actionElement = '<div class="notification-read-label" hidden="">Read</div>';
                     } else {
-                        // For non-project notifications, use normal display
-                        actionElement = '<div class="notification-read-label">Read</div>';
+                        actionElement = notification.is_read ? '<div class="notification-read-label">Read</div>' : '';
                     }
                 }
 
@@ -270,11 +271,18 @@ $(document).ready(function() {
                 const showMessage = notification.type === 'task_assignment' && notification.created_by_name === notification.employee_name;
                 const messageElement = showMessage ? `<div class="notification-message" style="font-size: 14px;">${notification.message}</div>` : '';
 
+                // For task_reject notifications, use the message (without "[Task ID: N]") as the title
+                let displayTitle = notification.title;
+                if ((notification.type || '').toLowerCase() === 'task_reject') {
+                    // Remove trailing "[Task ID: N]" if present
+                    displayTitle = (notification.message || '').replace(/\s*\[Task ID:\s*\d+\]\s*$/, '').trim();
+                }
+
                 html += `
-                    <div class="notification-item position-relative d-flex align-items-start" data-notification-id="${notification.id}">
+                    <div class="notification-item position-relative d-flex align-items-start" data-notification-id="${notification.id}" data-notification-type="${notification.type}" data-notification-message="${(notification.message||'').replace(/\"/g,'&quot;')}">
                         ${unreadIndicator}
                         <div class="notification-content" style="position: relative; width: 100%;">
-                            <div class="notification-title">${notification.title}</div>
+                            <div class="notification-title">${displayTitle}</div>
                             ${messageElement}
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="notification-time">${timeAgo}</div>
@@ -657,7 +665,14 @@ $(document).ready(function() {
         dropdown.toggle();
 
         if (dropdown.is(':visible')) {
-            fetchNotifications();
+            // If we just closed previously and are still marking items as read, wait for that first
+            if (__pendingMarkReadPromise && typeof __pendingMarkReadPromise.always === 'function') {
+                __pendingMarkReadPromise.always(function(){
+                    fetchNotifications();
+                });
+            } else {
+                fetchNotifications();
+            }
             dropdownClosed = false;
             __dropdownWasOpenedByUser = true; // Mark that user explicitly opened the dropdown
         } else {
@@ -679,16 +694,41 @@ $(document).ready(function() {
         // This ensures notifications are only marked as read when user intentionally closes the dropdown
         if (__dropdownWasOpenedByUser) {
             const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
-            $.ajax({
+            const csrf = $('meta[name="csrf-token"]').attr('content');
+
+            // Queue project notifications mark-as-read
+            const projectReq = $.ajax({
                 url: `${appUrl}/notifications/mark-project-read`,
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            }).always(function() {
-                // Refresh badge and list (safe even if dropdown is hidden)
+                headers: { 'X-CSRF-TOKEN': csrf }
+            });
+
+            // Collect all unread task_reject notification IDs present in the list at close time
+            const ids = [];
+            try {
+                $('#notificationList .notification-item[data-notification-type="task_reject"]').each(function(){
+                    const $item = $(this);
+                    if ($item.find('.notification-unread-dot').length > 0) {
+                        const nid = $item.data('notification-id');
+                        if (nid) ids.push(nid);
+                    }
+                });
+            } catch(_) {}
+
+            // Create ajax calls for each id (without DOM side-effects)
+            const readCalls = ids.map(function(nid){
+                return $.ajax({
+                    url: `${appUrl}/notifications/${nid}/read`,
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrf }
+                });
+            });
+
+            // Track the combined completion; ensure we refresh only after all are done
+            __pendingMarkReadPromise = $.when.apply($, [projectReq].concat(readCalls));
+            __pendingMarkReadPromise.always(function(){
+                __pendingMarkReadPromise = null;
                 fetchNotificationCount();
-                // Refresh cache for next open
                 fetchNotifications();
             });
         }
@@ -719,33 +759,52 @@ $(document).ready(function() {
         }
     });
 
-    // Redirect to appropriate page when notification is clicked (only mark task_accepted notifications as read)
+    // Redirect to appropriate page when notification is clicked
     $(document).on('click', '.notification-item', function() {
-        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
+        const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
         const notificationId = $(this).data('notification-id');
-        const notificationTitle = $(this).find('.notification-title').text().toLowerCase();
         const notificationElement = $(this);
-        const notificationType = notificationElement.find('.notification-title').text().includes('accepted task') ? 'task_accepted' : 'other';
+        const notificationTitle = notificationElement.find('.notification-title').text().toLowerCase();
+        const message = notificationElement.attr('data-notification-message') || '';
 
-        // Only mark 'task_accepted' notifications as read when clicked
-        if (notificationType === 'task_accepted') {
+        // Only automatically mark-as-read + navigate to specific task when notification type is 'task_reject'
+        const notifType = (notificationElement.attr('data-notification-type') || '').toLowerCase();
+        const taskIdMatch = message.match(/Task ID: (\d+)/);
+        if (notifType === 'task_reject' && taskIdMatch) {
+            const targetTaskId = taskIdMatch[1];
             markNotificationAsRead(notificationId, function() {
-                // Redirect to task page
+                window.location.href = `${appUrl}/task/${targetTaskId}`;
+            });
+            return;
+        }
+
+        // Fallback: project notifications should be marked as read then go to projects
+        if (notificationTitle.includes('project')) {
+            markNotificationAsRead(notificationId, function() {
+                window.location.href = `${appUrl}/project`;
+            });
+            return;
+        }
+
+        // For 'task_accepted' legacy flows, mark read then go to /task
+        if (notificationTitle.includes('accepted task')) {
+            markNotificationAsRead(notificationId, function() {
                 window.location.href = `${appUrl}/task`;
             });
-        } else {
-            // Check if this is a project notification
-            if (notificationTitle.includes('project')) {
-                // For project notifications, mark as read when clicked and redirect
-                markNotificationAsRead(notificationId, function() {
-                    // Redirect to project page
-                    window.location.href = `${appUrl}/project`;
-                });
-            } else {
-                // Redirect to task page for other notifications without marking as read
-                window.location.href = `${appUrl}/task`;
-            }
+            return;
         }
+
+        // For task_assignment notifications, do NOT auto-mark-read on click (Accept button handles that).
+        if (notifType === 'task_assignment') {
+            // Navigate to task list (or detail if you prefer). Keep unread state so accept button remains available.
+            window.location.href = `${appUrl}/task`;
+            return;
+        }
+
+        // Default for other notification types: mark as read then go to task list
+        markNotificationAsRead(notificationId, function() {
+            window.location.href = `${appUrl}/task`;
+        });
     });
 
     // Function to check project acceptance status
@@ -950,23 +1009,28 @@ $(document).ready(function() {
             success: function() {
                 // Update notification count first
                 fetchNotificationCount();
-                
-                // Then update the notification UI with conditional "Read" label for project notifications only
-                setTimeout(function() {
+
+                // Immediately update the notification UI so unread indicator is removed before any redirect
+                try {
                     const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                    const notificationTitle = notificationElement.find('.notification-title').text().toLowerCase();
-                    
-                    // Only apply conditional logic for project notifications
+                    const notificationTitle = (notificationElement.find('.notification-title').text() || '').toLowerCase();
+
+                    // Remove unread dot immediately
+                    notificationElement.find('.notification-unread-dot').remove();
+
+                    // Only apply conditional logic for project notifications for the Read label behavior
                     if (notificationTitle.includes('project')) {
+                        // Use existing helper to show 'Read' label with conditional timing
                         updateNotificationReadStatus(notificationId);
                     } else {
-                        // For non-project notifications (like tasks), use original logic
-                        notificationElement.find('.notification-unread-dot').remove();
+                        // For non-project notifications (like tasks), set Read label immediately
                         notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
                     }
-                }, 200); // Delay to ensure badge count is updated first
+                } catch (e) {
+                    console.error('Failed to update notification DOM after marking read', e);
+                }
 
-                // Execute callback if provided
+                // Execute callback if provided (redirect should happen after DOM update)
                 if (typeof callback === 'function') {
                     callback();
                 }
