@@ -111,16 +111,16 @@
                         </div>
 
                         <div id="task-legend" class="d-flex justify-content-start">
-                            <div class="legend-item d-flex align-items-start gap-1">
+                            <div class="legend-item d-flex align-items-start">
                                 <span class="legend-text not-started">Not Started</span>
                             </div>
-                            <div class="legend-item d-flex align-items-start gap-1">
+                            <div class="legend-item d-flex align-items-start">
                                 <span class="legend-text in-progress">In Progress</span>
                             </div>
-                            <div class="legend-item d-flex align-items-start gap-1">
+                            <div class="legend-item d-flex align-items-start">
                                 <span class="legend-text late">Late</span>
                             </div>
-                            <div class="legend-item d-flex align-items-start gap-1">
+                            <div class="legend-item d-flex align-items-start">
                                 <span class="legend-text complete">Complete</span>
                             </div>
                         </div>
