@@ -155,6 +155,8 @@ $(document).ready(function() {
     
     // Track user interaction with notification dropdown
     let __dropdownWasOpenedByUser = false;
+    // Track in-flight mark-as-read operations triggered on dropdown close
+    let __pendingMarkReadPromise = null;
 
     function fetchNotifications() {
         console.log('Fetching notifications...');
@@ -663,7 +665,14 @@ $(document).ready(function() {
         dropdown.toggle();
 
         if (dropdown.is(':visible')) {
-            fetchNotifications();
+            // If we just closed previously and are still marking items as read, wait for that first
+            if (__pendingMarkReadPromise && typeof __pendingMarkReadPromise.always === 'function') {
+                __pendingMarkReadPromise.always(function(){
+                    fetchNotifications();
+                });
+            } else {
+                fetchNotifications();
+            }
             dropdownClosed = false;
             __dropdownWasOpenedByUser = true; // Mark that user explicitly opened the dropdown
         } else {
@@ -685,29 +694,41 @@ $(document).ready(function() {
         // This ensures notifications are only marked as read when user intentionally closes the dropdown
         if (__dropdownWasOpenedByUser) {
             const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
-            $.ajax({
+            const csrf = $('meta[name="csrf-token"]').attr('content');
+
+            // Queue project notifications mark-as-read
+            const projectReq = $.ajax({
                 url: `${appUrl}/notifications/mark-project-read`,
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                }
-            }).always(function() {
-                // Also mark unread task_reject notifications as read now that the user closed the dropdown
-                try {
-                    $('#notificationList .notification-item[data-notification-type="task_reject"]').each(function(){
-                        const $item = $(this);
-                        const hasRedDot = $item.find('.notification-unread-dot').length > 0;
-                        if (hasRedDot) {
-                            const nid = $item.data('notification-id');
-                            // Use existing helper to update server and UI; no redirect callback
-                            markNotificationAsRead(nid);
-                        }
-                    });
-                } catch(_) {}
+                headers: { 'X-CSRF-TOKEN': csrf }
+            });
 
-                // Refresh badge and list (safe even if dropdown is hidden)
+            // Collect all unread task_reject notification IDs present in the list at close time
+            const ids = [];
+            try {
+                $('#notificationList .notification-item[data-notification-type="task_reject"]').each(function(){
+                    const $item = $(this);
+                    if ($item.find('.notification-unread-dot').length > 0) {
+                        const nid = $item.data('notification-id');
+                        if (nid) ids.push(nid);
+                    }
+                });
+            } catch(_) {}
+
+            // Create ajax calls for each id (without DOM side-effects)
+            const readCalls = ids.map(function(nid){
+                return $.ajax({
+                    url: `${appUrl}/notifications/${nid}/read`,
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': csrf }
+                });
+            });
+
+            // Track the combined completion; ensure we refresh only after all are done
+            __pendingMarkReadPromise = $.when.apply($, [projectReq].concat(readCalls));
+            __pendingMarkReadPromise.always(function(){
+                __pendingMarkReadPromise = null;
                 fetchNotificationCount();
-                // Refresh cache for next open
                 fetchNotifications();
             });
         }
