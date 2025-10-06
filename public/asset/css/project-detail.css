@@ -1055,13 +1055,12 @@
 }
 
 .structure-detail-content:not(.fullscreen) #task-tree {
-    min-height: calc(100vh - 500px);
-    max-height: calc(100vh - 500px);
 }
 
 .task-tree-wrapper {
+    min-height: calc(100vh - 525px);
+    max-height: calc(100vh - 525px);
     overflow: auto;
-    max-height: calc(100vh - 210px);
 }
 
 #task-tree {
@@ -1230,7 +1229,6 @@
 
 #task-legend {
     border-radius: 20px;
-    margin-top: 15px;
     padding: 10px 0;
     margin-left: 10px;
 }
@@ -1241,7 +1239,6 @@
     left: 0;
     right: 0;
     gap: 12px;
-    background: #f0f1f8;
     z-index: 2;
 }
 
