@@ -1254,7 +1254,7 @@
     color: #6b7280;
 }
 
-.legend-text.not-started {
+.not-started {
     background: #dde4e8;
     padding: 5px 7px;
     border-radius: 5px;
@@ -1262,7 +1262,7 @@
     text-align: center;
     color: #3b3d42;
 }
-.legend-text.in-progress {
+.in-progress {
     background: #f5efce;
     padding: 5px 7px;
     border-radius: 5px;
@@ -1270,7 +1270,7 @@
     text-align: center;
     color: #3b3d42;
 }
-.legend-text.late {
+.late {
     background: #eba5a5;
     padding: 5px 7px;
     border-radius: 5px;
@@ -1278,7 +1278,7 @@
     text-align: center;
     color: #3b3d42;
 }
-.legend-text.complete {
+.complete {
     background: #b2eecd;
     padding: 5px 7px;
     border-radius: 5px;
@@ -1287,7 +1287,7 @@
     color: #3b3d42;
 }
 
-.legend-text {
+.text-legend {
     font-weight: 500;
 }
 
@@ -1564,41 +1564,48 @@ input[type="file"]::file-selector-button {
         z-index: 2;
     }
 
-    .legend-text.not-started {
+    .not-started {
         background: #dde4e8;
         padding: 5px;
-        border-radius: 5px;
-        width: fit-content;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
         text-align: center;
+        margin-right: 10px;
         color: #3b3d42;
     }
-    .legend-text.in-progress {
+    .in-progress {
         background: #f5efce;
         padding: 5px;
-        border-radius: 5px;
-        width: fit-content;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
         text-align: center;
+        margin-right: 10px;
         color: #3b3d42;
     }
-    .legend-text.late {
+    .late {
         background: #eba5a5;
         padding: 5px;
-        border-radius: 5px;
-        width: fit-content;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
         text-align: center;
+        margin-right: 10px;
         color: #3b3d42;
     }
-    .legend-text.complete {
+    .complete {
         background: #b2eecd;
         padding: 5px;
-        border-radius: 5px;
-        width: fit-content;
+        border-radius: 50%;
+        width: 20px;
+        height: 20px;
         text-align: center;
         color: #3b3d42;
     }
 
-    .legend-text {
-        font-weight: 500;
+    .text-legend {
+        display: none;
     }
 
     #monthTitleTimeline,
