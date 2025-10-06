@@ -1054,14 +1054,15 @@
     z-index: 21;
 }
 
-.structure-detail-content:not(.fullscreen) #task-tree {
-    min-height: calc(100vh - 500px);
-    max-height: calc(100vh - 500px);
+.structure-detail-content.fullscreen .task-tree-wrapper {
+    max-height: 100vh;
+    min-height: 100vh;
 }
 
 .task-tree-wrapper {
+    min-height: calc(100vh - 485px);
+    max-height: calc(100vh - 485px);
     overflow: auto;
-    max-height: calc(100vh - 210px);
 }
 
 #task-tree {
@@ -1230,7 +1231,6 @@
 
 #task-legend {
     border-radius: 20px;
-    margin-top: 15px;
     padding: 10px 0;
     margin-left: 10px;
 }
@@ -1241,7 +1241,6 @@
     left: 0;
     right: 0;
     gap: 12px;
-    background: #f0f1f8;
     z-index: 2;
 }
 
