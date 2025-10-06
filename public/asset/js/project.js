@@ -7364,7 +7364,7 @@ document.addEventListener("DOMContentLoaded", function () {
             $.ajax({
                 url: appUrl + "/employees-for-projects",
                 type: "GET",
-                data: { query: query, exclude_employee_id: currentEmployeeId },
+                data: { query: query, exclude_employee_id: currentEmployeeId, executor_only: 1 },
                 dataType: "json",
                 timeout: 10000, // 10 second timeout
                 success: function (data) {
@@ -7997,7 +7997,7 @@ document.addEventListener("DOMContentLoaded", function () {
             $.ajax({
                 url: appUrl + "/employees-for-projects",
                 type: "GET",
-                data: { query: query, exclude_employee_id: currentEmployeeId },
+                data: { query: query, exclude_employee_id: currentEmployeeId, executor_only: 1 },
                 dataType: "json",
                 timeout: 10000, // 10 second timeout
                 success: function (data) {

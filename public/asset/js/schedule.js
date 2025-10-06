@@ -1118,7 +1118,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     divSel2.selectedOptions[0].dataset.name
                         ? divSel2.selectedOptions[0].dataset.name
                         : "";
-                fetch(appUrl + "/employees-for-projects")
+                fetch(appUrl + "/employees-for-projects?executor_only=1")
                     .then((r) => (r.ok ? r.json() : Promise.reject("fail")))
                     .then((res) => {
                         const arr = (res && res.data) || [];
