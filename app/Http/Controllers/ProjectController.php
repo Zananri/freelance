@@ -331,7 +331,9 @@ class ProjectController extends Controller
             $taskScope = in_array($taskScopeRaw, ['project', 'me', 'all']) ? $taskScopeRaw : 'project';
 
             if ($taskScope === 'all') {
+                // For 'all' scope (used by global listings and task dropdowns), only expose public projects
                 $projects = Project::where('status', '!=', 'DELETED')
+                    ->where(function($q){ $q->whereNull('project_type')->orWhere('project_type','public'); })
                     ->with([
                         'department',
                         'division',
@@ -557,7 +559,9 @@ class ProjectController extends Controller
                 ]);
             }
 
-            $query = Project::where('status', '!=', 'DELETED');
+            // Only public projects should be visible in general listing used by dropdowns unless task_scope=all
+            $query = Project::where('status', '!=', 'DELETED')
+                ->where(function($q){ $q->whereNull('project_type')->orWhere('project_type','public'); });
 
             // Handle sorting options
             switch ($sortBy) {
@@ -867,6 +871,8 @@ class ProjectController extends Controller
 
             $project = new Project();
             $project->title = $request->title;
+            // project_type is optional: default to public
+            $project->project_type = in_array($request->input('project_type'), ['public','private']) ? $request->input('project_type') : 'public';
             $project->description = $request->description;
             $project->department_id = $departmentIdToUse;
             $project->division_id = $divisionIdToUse;
@@ -1390,6 +1396,10 @@ class ProjectController extends Controller
 
             // Update project fields
             $project->title = $request->title;
+            // allow updating project_type; default to public if invalid
+            if ($request->has('project_type')) {
+                $project->project_type = in_array($request->input('project_type'), ['public','private']) ? $request->input('project_type') : 'public';
+            }
             $project->description = $request->description;
             // Force department/division to employee's department
             $authEmp = auth()->user()->employee ?? null;

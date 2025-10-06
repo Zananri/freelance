@@ -12,6 +12,7 @@ class Project extends Model
     protected $fillable = [
         'image',
         'title',
+        'project_type',
         'description',
         'department_id',
         'division_id',
@@ -36,6 +37,7 @@ class Project extends Model
         'reference_urls' => 'array',
         'reference_files' => 'array',
     'read_markers' => 'array',
+    'project_type' => 'string',
     ];
 
     public function department()
