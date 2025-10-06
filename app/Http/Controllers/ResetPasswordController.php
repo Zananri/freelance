@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Support\Str;
+use App\Models\Employee;
 
 class ResetPasswordController extends Controller
 {
@@ -30,6 +31,12 @@ class ResetPasswordController extends Controller
             return view('reset-password.expired');
         }
 
+        // Block reset page for users whose linked employee is DELETED
+        $user->loadMissing('employee');
+        if ($user->employee && strtoupper((string) $user->employee->status) === 'DELETED') {
+            return view('reset-password.expired');
+        }
+
         $tokenValid = Password::tokenExists($user, $token);
 
         if (!$tokenValid) {
@@ -46,6 +53,12 @@ class ResetPasswordController extends Controller
             'email' => 'required|email',
             'password' => 'required|confirmed|min:8',
         ]);
+
+        // Prevent password resets for accounts whose linked employee is DELETED
+        $user = User::where('email', $request->input('email'))->with('employee')->first();
+        if ($user && $user->employee && strtoupper((string) $user->employee->status) === 'DELETED') {
+            return back()->withErrors(['email' => 'Unable to reset password for this account.']);
+        }
 
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),

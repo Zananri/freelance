@@ -60,6 +60,14 @@ class UserController extends Controller
         }
         */
 
+        $user = User::where('email', $email)->with('employee')->first();
+        if ($user && $user->employee) {
+            $status = strtoupper((string) $user->employee->status);
+            if ($status === 'DELETED') {
+                return back()->withErrors(['email' => 'Your account has been deleted and cannot login.'])->withInput();
+            }
+        }
+
         if (auth()->attempt(['email' => $email, 'password' => $password])) {
             $request->session()->regenerate();
             return redirect('/dashboard')->with('success', 'Login successful!');
