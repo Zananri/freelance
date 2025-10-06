@@ -219,7 +219,7 @@
                             </div>
                         </div>
                         <div class="timeline-wrapper">
-                            <table class="timeline-table w-100">
+                            <table class="timeline-table">
                                 <thead>
                                     <tr id="timelineHeader"></tr>
                                 </thead>
