@@ -102,10 +102,10 @@ class TaskController extends Controller
                                 });
                         });
                     })
-                    ->orWhere(function ($q) use ($currentUserId) {
-                        if ($currentUserId)
-                            $q->where('created_by', $currentUserId);
-                    });
+                        ->orWhere(function ($q) use ($currentUserId) {
+                            if ($currentUserId)
+                                $q->where('created_by', $currentUserId);
+                        });
                 });
 
             $includeCanceled = false;
@@ -1133,7 +1133,8 @@ class TaskController extends Controller
                         'action' => TaskAssignmentLog::ACTION_ACCEPTED,
                         'created_by' => $user->employee->id,
                     ]);
-                } catch (\Throwable $_) {}
+                } catch (\Throwable $_) {
+                }
             } else {
                 throw new \Exception('User not authenticated or has no employee record');
             }
@@ -1175,7 +1176,8 @@ class TaskController extends Controller
                             'action' => TaskAssignmentLog::ACTION_PENDING,
                             'created_by' => $user->employee->id ?? null,
                         ]);
-                    } catch (\Throwable $_) {}
+                    } catch (\Throwable $_) {
+                    }
 
                     // Send notification to executor
                     $executor = Employee::find($executorId);
@@ -1492,7 +1494,7 @@ class TaskController extends Controller
             // Check if this is a positioning-only update
             $allowedPositioningKeys = ['parent_id', 'project_id', 'position_x', 'position_y', 'free_positioned'];
             $isPositioningOnly = ($request->has('position_x') || $request->has('position_y') || $request->has('free_positioned'))
-                                && count(array_diff($payloadKeys, $allowedPositioningKeys)) === 0;
+                && count(array_diff($payloadKeys, $allowedPositioningKeys)) === 0;
 
             if ($isParentOnly) {
                 $parentOnlyValidator = Validator::make($request->all(), [
@@ -1531,7 +1533,9 @@ class TaskController extends Controller
                         ], 422);
                     }
 
-                    $seen = 0; $MAX_HOPS = 2048; $cursor = $parent;
+                    $seen = 0;
+                    $MAX_HOPS = 2048;
+                    $cursor = $parent;
                     while ($cursor && $cursor->parent_id !== null && $seen < $MAX_HOPS) {
                         if ((string) $cursor->parent_id === (string) $task->id) {
                             return response()->json([
@@ -1608,7 +1612,9 @@ class TaskController extends Controller
                         }
 
                         // Check for circular dependency
-                        $seen = 0; $MAX_HOPS = 2048; $cursor = $parent;
+                        $seen = 0;
+                        $MAX_HOPS = 2048;
+                        $cursor = $parent;
                         while ($cursor && $cursor->parent_id !== null && $seen < $MAX_HOPS) {
                             if ((string) $cursor->parent_id === (string) $task->id) {
                                 return response()->json([
@@ -1806,7 +1812,8 @@ class TaskController extends Controller
                         $taskCreatorUserId = $task->created_by ?? null;
                         if ($taskCreatorUserId) {
                             $creator = Employee::where('user_id', $taskCreatorUserId)->first();
-                            if ($creator) $creatorEmployeeId = $creator->id;
+                            if ($creator)
+                                $creatorEmployeeId = $creator->id;
                         }
 
                         foreach ($removedExecutors as $removedId) {
@@ -1848,7 +1855,8 @@ class TaskController extends Controller
                                 'action' => TaskAssignmentLog::ACTION_PENDING,
                                 'created_by' => $employee->id ?? null,
                             ]);
-                        } catch (\Throwable $_) {}
+                        } catch (\Throwable $_) {
+                        }
                     }
 
                     // Send notification only for newly added executors
@@ -2032,7 +2040,7 @@ class TaskController extends Controller
                 ->whereIn('role', ['PIC', 'EXECUTOR'])
                 ->exists();
 
-            $isCreator = ((int)$task->created_by === (int)$user->id);
+            $isCreator = ((int) $task->created_by === (int) $user->id);
             if (!($isAssigned || $isCreator)) {
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only PIC, executor or task creator can add reference files.'], 403);
             }
@@ -2044,12 +2052,14 @@ class TaskController extends Controller
 
             $stored = [];
             foreach ($files as $file) {
-                if (!$file->isValid()) continue;
+                if (!$file->isValid())
+                    continue;
                 $orig = $file->getClientOriginalName();
                 $ext = $file->getClientOriginalExtension();
                 $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
                 $destDir = public_path('file/task_reference_files');
-                if (!is_dir($destDir)) @mkdir($destDir, 0755, true);
+                if (!is_dir($destDir))
+                    @mkdir($destDir, 0755, true);
                 $file->move($destDir, $name);
                 $stored[] = $name;
             }
@@ -3115,9 +3125,12 @@ class TaskController extends Controller
     {
         try {
             $qpDepth = null;
-            if (isset($_GET['depth'])) $qpDepth = (int) $_GET['depth'];
-            elseif (isset($_GET['level'])) $qpDepth = (int) $_GET['level'];
-            elseif (isset($_GET['pageTab'])) $qpDepth = (int) $_GET['pageTab'];
+            if (isset($_GET['depth']))
+                $qpDepth = (int) $_GET['depth'];
+            elseif (isset($_GET['level']))
+                $qpDepth = (int) $_GET['level'];
+            elseif (isset($_GET['pageTab']))
+                $qpDepth = (int) $_GET['pageTab'];
 
             if ($qpDepth !== null) {
                 $pageTab = $qpDepth;
@@ -3130,7 +3143,7 @@ class TaskController extends Controller
                 'project',
                 'parent'
             ])
-                ->whereIn('id', $allIds)
+                //->whereIn('id', $allIds)
                 ->where('project_id', $projectId)
                 ->whereRaw('LOWER(status) <> ?', ['canceled'])
                 ->orderBy('start_date', 'asc')
@@ -3297,7 +3310,8 @@ class TaskController extends Controller
                     $creatorUserId = $task->created_by ?? null;
                     if ($creatorUserId) {
                         $creator = Employee::where('user_id', $creatorUserId)->first();
-                        if ($creator) $creatorEmployeeId = $creator->id;
+                        if ($creator)
+                            $creatorEmployeeId = $creator->id;
                     }
                 }
 
@@ -3444,7 +3458,8 @@ class TaskController extends Controller
                     $creatorUserId = $task->created_by ?? null;
                     if ($creatorUserId) {
                         $creator = Employee::where('user_id', $creatorUserId)->first();
-                        if ($creator) $creatorEmployeeId = $creator->id;
+                        if ($creator)
+                            $creatorEmployeeId = $creator->id;
                     }
                 }
 
@@ -3468,11 +3483,13 @@ class TaskController extends Controller
 
                 // Collect all employees related to this task (assignments + PIC)
                 $assignedEmployeeIds = TaskAssignment::where('task_id', $taskId)->pluck('employee_id')->toArray();
-                if ($task->pic_id) $assignedEmployeeIds[] = $task->pic_id;
+                if ($task->pic_id)
+                    $assignedEmployeeIds[] = $task->pic_id;
                 $assignedEmployeeIds = array_values(array_unique($assignedEmployeeIds));
 
                 // Exclude the employee who performed the rejection
-                $recipients = array_filter($assignedEmployeeIds, function($id) use ($employeeId){ return (int)$id !== (int)$employeeId; });
+                $recipients = array_filter($assignedEmployeeIds, function ($id) use ($employeeId) {
+                    return (int) $id !== (int) $employeeId; });
 
                 if (!empty($recipients)) {
                     // New message format requested: "Task (nama task) rejected by (nama yang mereject tasknya)"
