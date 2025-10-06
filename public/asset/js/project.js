@@ -10061,6 +10061,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search_filter");
     if (!searchInput) return;
 
+    let debounceTimer;
+
     function doSearch() {
         const raw = searchInput.value || "";
         const q = raw.trim();
@@ -10108,11 +10110,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    searchInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {
-            e.preventDefault();
+    searchInput.addEventListener("input", function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
             doSearch();
-        }
+        }, 500);
     });
 });
 

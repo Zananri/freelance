@@ -690,7 +690,7 @@
         });
     }
 
-   
+
     function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
         try {
             // If prefix is a DOM element (e.g., a select), derive prefix from its id
@@ -3352,60 +3352,57 @@ function applyCurrentSearchFilter() {
     } catch(_) { /* noop */ }
 }
 
-// Search handler: trigger only on Enter or when input loses focus (change) to limit requests to one action
-(function initTaskSearchFilter(){
-    let lastSearchAt = 0;
-    let lastEnterAt = 0;
-    let lastSearchedQuery = '';
-    function runSearch(query){
-        // Reset pagination state for desktop columns
-        try {
-            Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
-        } catch(_) {}
-        const q = (query || '').trim();
-        window.__taskCurrentSearchQuery = q;
-        // Cancel any previous full-fetch and start a new one
-        // Debounce micro-bursts (e.g., Enter followed by blur/change in same moment)
-        const now = Date.now();
-        // If user triggers the same query immediately again, ignore
-        if (q === lastSearchedQuery && (now - lastSearchAt) < 350) return;
-        lastSearchedQuery = q;
-        lastSearchAt = now;
-        fetchAndRenderTasks(null, 1, false, q);
-    }
+    (function initTaskSearchFilter() {
+        let lastSearchAt = 0;
+        let lastSearchedQuery = '';
+        let debounceTimer = null;
 
-    // Prevent form submission on Enter at keydown phase
-    document.addEventListener('keydown', function(e){
-        const el = e.target;
-        if (!el || el.id !== 'search_filter') return;
-        if (e.key === 'Enter') {
-            lastEnterAt = Date.now();
-            e.preventDefault();
-            e.stopPropagation();
+        function runSearch(query) {
+            try {
+                Object.keys(desktopState || {}).forEach(k => {
+                    if (desktopState[k]) {
+                        desktopState[k].page = 1;
+                        desktopState[k].last = 1;
+                        desktopState[k].loading = false;
+                    }
+                });
+            } catch (_) {}
+
+            const q = (query || '').trim();
+            window.__taskCurrentSearchQuery = q;
+
+            const now = Date.now();
+            if (q === lastSearchedQuery && (now - lastSearchAt) < 350) return;
+
+            lastSearchedQuery = q;
+            lastSearchAt = now;
+
+            fetchAndRenderTasks(null, 1, false, q);
         }
-    });
-    document.addEventListener('keyup', function(e){
-        const el = e.target;
-        if (!el || el.id !== 'search_filter') return;
-        if (e.key === 'Enter') {
-            lastEnterAt = Date.now();
-            // Prevent default form submission if inside a form
-            try { if (el.form) e.preventDefault(); } catch(_) {}
-            runSearch(el.value || '');
-        }
-    });
-    document.addEventListener('change', function(e){
-        const el = e.target;
-        if (!el || el.id !== 'search_filter') return;
-        // If change fires right after Enter, ignore to avoid duplicate network call
-        const now = Date.now();
-        if (now - lastEnterAt < 120) return;
-        // If value hasn't changed since the last search, skip
-        const val = (el.value || '').trim();
-        if (val === lastSearchedQuery) return;
-        runSearch(el.value || '');
-    });
-})();
+
+        document.addEventListener('input', function (e) {
+            const el = e.target;
+            if (!el || el.id !== 'search_filter') return;
+
+            const val = (el.value || '').trim();
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (val !== lastSearchedQuery) {
+                    runSearch(val);
+                }
+            }, 500);
+        });
+
+        document.addEventListener('keydown', function (e) {
+            const el = e.target;
+            if (!el || el.id !== 'search_filter') return;
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(debounceTimer);
+                runSearch(el.value || '');
+            }
+        });
+    })();
 
     // init
     $(document).ready(function () {
