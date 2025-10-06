@@ -88,7 +88,7 @@
 
                 {{-- Right Above Content --}}
                 <div class="col-md-8 structure-detail">
-                    <div class="body-content rounded-4 pb-0 structure-detail-content">
+                    <div class="body-content rounded-4 structure-detail-content">
                         <div id="task-loading" class="text-center py-3 d-none">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading tasks...</span>
@@ -112,16 +112,16 @@
 
                         <div id="task-legend" class="d-flex justify-content-start">
                             <div class="legend-item d-flex align-items-start">
-                                <span class="legend-text not-started">Not Started</span>
+                                <span class="not-started" data-bs-toggle="tooltip" data-bs-title="Not Started"><span class="text-legend">Not Started</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="legend-text in-progress">In Progress</span>
+                                <span class="in-progress" data-bs-toggle="tooltip" data-bs-title="In Progress"><span class="text-legend">In Progress</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="legend-text late">Late</span>
+                                <span class="late" data-bs-toggle="tooltip" data-bs-title="Late"><span class="text-legend">Late</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="legend-text complete">Complete</span>
+                                <span class="complete" data-bs-toggle="tooltip" data-bs-title="Complete"><span class="text-legend">Complete</span></span>
                             </div>
                         </div>
 

@@ -164,7 +164,7 @@ function renderTaskList(data) {
     const $tree = $("#task-tree");
     $tree.empty();
     if (!data || data.length === 0) return;
-    
+
     // Render tree structure (all tasks)
     const treeData = buildTaskTree(data);
     const $rootCol = $('<div class="root-column"></div>');
@@ -172,7 +172,7 @@ function renderTaskList(data) {
     treeData.forEach((root) => {
         $rootCol.append(renderTaskNode(root, $("#task-template")));
     });
-    
+
     setTimeout(adjustConnectors, 40);
     setTimeout(drawSvgConnectors, 60);
 }
@@ -637,7 +637,7 @@ $("#fullscreen-tree-btn").on("click", function () {
 
             e.preventDefault();
             var draggedId = window.__dragTaskId;
-            
+
             if (!draggedId || !canMoveToEmptySpace(draggedId)) {
                 return;
             }
@@ -668,16 +668,16 @@ $("#fullscreen-tree-btn").on("click", function () {
             }
 
             e.preventDefault();
-            
+
             var dragData = null;
             try {
                 if (e.originalEvent && e.originalEvent.dataTransfer) {
                     dragData = e.originalEvent.dataTransfer.getData("text/plain");
                 }
             } catch (_) {}
-            
+
             var draggedId = dragData || window.__dragTaskId;
-            
+
             if (!draggedId || !canMoveToEmptySpace(draggedId)) {
                 clearEmptySpaceDropVisuals();
                 return;
@@ -687,7 +687,7 @@ $("#fullscreen-tree-btn").on("click", function () {
             $.ajax({
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                 type: "PUT",
-                data: { 
+                data: {
                     parent_id: null
                 },
                 dataType: "json"
@@ -701,10 +701,10 @@ $("#fullscreen-tree-btn").on("click", function () {
                         }
                         renderTaskList(allTasks);
                     } catch (_) {}
-                    
+
                     // Don't reload from server to preserve positioning
                     // Local data is already updated above
-                    
+
                     // Show success message
                     try {
                         if (typeof window.showFloatingAlert === "function") {
@@ -763,11 +763,11 @@ $("#fullscreen-tree-btn").on("click", function () {
             $target.css({ outline: "2px solid #2a7" });
 
             // Moving task under another task (making it a child)
-            
+
             $.ajax({
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                 type: "PUT",
-                data: { 
+                data: {
                     parent_id: String(targetId)
                 },
                 dataType: "json"
@@ -863,26 +863,26 @@ $("#fullscreen-tree-btn").on("click", function () {
             var el = document.elementFromPoint(x, y);
             if (hidden) state.ghost.style.display = '';
             if (!el) return null;
-            
+
             // Check if we're over a task box
             var taskBoxCandidate = $(el).closest('#task-tree .task-box')[0] || null;
             if (taskBoxCandidate) return taskBoxCandidate;
-            
+
             // Check if we're over empty space in task-tree
             var treeCandidate = $(el).closest('#task-tree')[0] || null;
             if (treeCandidate) return { isEmptySpace: true, element: treeCandidate };
-            
+
             return null;
         }
 
         function isValidDrop(draggedId, targetEl) {
             if (!targetEl) return false;
-            
+
             // Handle empty space drops
             if (targetEl.isEmptySpace) {
                 return draggedId && canMoveToEmptySpace(draggedId);
             }
-            
+
             // Handle task-to-task drops
             var targetId = targetEl.getAttribute('data-task-id');
             if (!draggedId || !targetId) return false;
@@ -896,11 +896,11 @@ $("#fullscreen-tree-btn").on("click", function () {
             if (!t) return;
             try { e.preventDefault(); } catch(_){}
             var x = t.clientX, y = t.clientY;
-            
+
             // Store last touch position for coordinate calculation
             state.lastTouchX = x;
             state.lastTouchY = y;
-            
+
             if (state.ghost) {
                 state.ghost.style.left = (Math.round(x - state.dx)) + 'px';
                 state.ghost.style.top = (Math.round(y - state.dy)) + 'px';
@@ -939,7 +939,7 @@ $("#fullscreen-tree-btn").on("click", function () {
             var originEl = state.originEl;
             var draggedId = state.draggedId;
             if (!targetEl || !originEl || !draggedId) return;
-            
+
             if (!isValidDrop(draggedId, targetEl)) return;
 
             var map = (function(){ var m={}; try{ (allTasks||[]).forEach(function(t){ m[String(t.id)] = t; }); }catch(_){ } return m; })();
@@ -950,24 +950,24 @@ $("#fullscreen-tree-btn").on("click", function () {
                 var treeOffset = $("#task-tree").offset();
                 var scrollLeft = $("#task-tree").scrollLeft();
                 var scrollTop = $("#task-tree").scrollTop();
-                
+
                 // Touch: Move task to empty space (set parent_id to null)
                 $.ajax({
                     url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                     type: 'PUT',
-                    data: { 
+                    data: {
                         parent_id: null
                     },
                     dataType: 'json'
                 })
                 .done(function(){
-                    try { 
+                    try {
                         if (dragged) {
                             dragged.parent_id = null;
                         }
-                        renderTaskList(allTasks); 
+                        renderTaskList(allTasks);
                     } catch(_){ }
-                    
+
                     // Don't reload from server to preserve positioning
                     // Local data is already updated above
                     try {
@@ -977,8 +977,8 @@ $("#fullscreen-tree-btn").on("click", function () {
                     } catch (_) {}
                 })
                 .fail(function(xhr){
-                    try { 
-                        console.error('Failed to move task to free position (touch)', xhr && xhr.responseText); 
+                    try {
+                        console.error('Failed to move task to free position (touch)', xhr && xhr.responseText);
                         if (typeof window.showFloatingAlert === "function") {
                             window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
                         } else {
@@ -999,27 +999,27 @@ $("#fullscreen-tree-btn").on("click", function () {
                 $target.css({ outline: '2px solid #2a7' });
 
                 // Touch: Moving task under another task
-                
+
                 $.ajax({
                     url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                     type: 'PUT',
-                    data: { 
+                    data: {
                         parent_id: String(targetId)
                     },
                     dataType: 'json'
                 })
                 .done(function(){
-                    try { 
+                    try {
                         if (dragged) {
                             dragged.parent_id = targetId;
                         }
-                        renderTaskList(allTasks); 
+                        renderTaskList(allTasks);
                     } catch(_){ }
                     // Don't reload from server to maintain consistent behavior
                 })
                 .fail(function(xhr){
-                    try { 
-                        console.error('Failed to move task (touch)', xhr && xhr.responseText); 
+                    try {
+                        console.error('Failed to move task (touch)', xhr && xhr.responseText);
                         if (typeof window.showFloatingAlert === "function") {
                             window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
                         } else {
@@ -1085,3 +1085,7 @@ $("#fullscreen-tree-btn").on("click", function () {
         });
     })();
 })();
+
+$(function () {
+    $('[data-bs-toggle="tooltip"]').tooltip();
+});
