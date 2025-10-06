@@ -1058,8 +1058,8 @@
 }
 
 .task-tree-wrapper {
-    min-height: calc(100vh - 525px);
-    max-height: calc(100vh - 525px);
+    min-height: fit-content;
+    max-height: calc(100vh - 485px);
     overflow: auto;
 }
 

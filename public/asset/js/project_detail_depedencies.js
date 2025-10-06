@@ -16,40 +16,40 @@ function renderChildGroups(task, $container, $template) {
     }
 }
 
-function updateViewMoreButton() {
-    if ($("#view-more-wrapper").length === 0) {
-        const wrapper = $(`
-            <div id="view-more-wrapper" class="text-center">
-                <button id="view-more-btn" class="btn btn-submit-black">View More</button>
-            </div>
-        `);
-        $("#task-legend").append(wrapper);
-        $("#view-more-btn").on("click", function () {
-            currentMaxLevel += 7;
-            $.ajax({
-                url: `${appUrl}/projects/${projectId}/tasks/tree`,
-                type: "GET",
-                data: { pageTab: currentMaxLevel },
-                dataType: "json",
-            })
-            .done(function (response) {
-                if (response.status === "success" && response.data) {
-                    allTasks = response.data;
-                    renderTaskList(allTasks);
-                    if (response.has_more) {
-                        $("#view-more-wrapper").show();
-                    } else {
-                        $("#view-more-wrapper").hide();
-                    }
-                }
-            })
-            .fail(function () {
-                // Optionally handle error
-            });
-        });
-    }
-    $("#view-more-btn").show();
-}
+// function updateViewMoreButton() {
+//     if ($("#view-more-wrapper").length === 0) {
+//         const wrapper = $(`
+//             <div id="view-more-wrapper" class="text-center">
+//                 <button id="view-more-btn" class="btn btn-submit-black">View More</button>
+//             </div>
+//         `);
+//         $("#task-legend").append(wrapper);
+//         $("#view-more-btn").on("click", function () {
+//             currentMaxLevel += 7;
+//             $.ajax({
+//                 url: `${appUrl}/projects/${projectId}/tasks/tree`,
+//                 type: "GET",
+//                 data: { pageTab: currentMaxLevel },
+//                 dataType: "json",
+//             })
+//             .done(function (response) {
+//                 if (response.status === "success" && response.data) {
+//                     allTasks = response.data;
+//                     renderTaskList(allTasks);
+//                     if (response.has_more) {
+//                         $("#view-more-wrapper").show();
+//                     } else {
+//                         $("#view-more-wrapper").hide();
+//                     }
+//                 }
+//             })
+//             .fail(function () {
+//                 // Optionally handle error
+//             });
+//         });
+//     }
+//     $("#view-more-btn").show();
+// }
 
 function buildTaskTree(tasks) {
     const map = {},
@@ -436,11 +436,11 @@ function getTaskByProject(projectId) {
             }
             allTasks = response.data;
             renderTaskList(allTasks);
-            if (response.has_more) {
-                updateViewMoreButton();
-            } else {
-                $("#view-more-wrapper").hide();
-            }
+            // if (response.has_more) {
+            //     updateViewMoreButton();
+            // } else {
+            //     $("#view-more-wrapper").hide();
+            // }
         })
         .fail(function () {
             $("#task-loading").addClass("d-none");
