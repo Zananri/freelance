@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Str;
+use App\Models\User;
 
 class ForgotController extends Controller
 {
@@ -25,6 +26,16 @@ class ForgotController extends Controller
         $request->validate([
             'email' => 'required|email',
         ]);
+
+        // Prevent sending reset links for users whose linked employee record is DELETED
+        $user = User::where('email', $request->input('email'))->with('employee')->first();
+        if ($user && $user->employee) {
+            $statusEmp = strtoupper((string) $user->employee->status);
+            if ($statusEmp === 'DELETED') {
+                // Keep behavior quiet to avoid revealing account existence
+                return back()->withInput()->withErrors(['email' => 'We could not send a password reset link for this account.']);
+            }
+        }
 
         $status = Password::sendResetLink(
             $request->only('email')
