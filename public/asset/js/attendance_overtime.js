@@ -18,6 +18,8 @@ const overtimeModal = new bootstrap.Modal('#overtimeModal', { keyboard: false })
 
 const overtimeNewModal = new bootstrap.Modal('#overtimeNewModal', { keyboard: false });
 const overtimeStopModal = new bootstrap.Modal('#overtimeStopModal', { keyboard: false });
+const overtimeEditModal = new bootstrap.Modal('#overtimeEditModal', { keyboard: false });
+const overtimeDeleteModal = new bootstrap.Modal('#overtimeDeleteModal', { keyboard: false });
 
 $('#overtimeModal .btn-new-overtime').on('click',function(){
     
@@ -137,7 +139,7 @@ function htmlDataRequestOvertime(dataRow){
     }
     
     itemHourMinute = `<div class="item-hour-minute">${formatTimeDisplayHm(dataRow.total_overtime)}</div>`;
-
+    
     //console.log(`${dataRow.date_overtime} ${formatDatePHP('Y-m-d',new Date().toString())}`);
 
     
@@ -523,8 +525,6 @@ $('#overtimeStopModal .btn-submit-modal').click(function(){
     submitStopOvertime();    
 });
 
-
-
 function submitStopOvertime(){
     $.ajax({
         url: appUrl + "/employee-overtime/submit-stop-overtime",
@@ -550,6 +550,150 @@ function submitStopOvertime(){
             overtimeModal.show();
 
             $('#form-stop-overtime')[0].reset();
+        }
+    });
+}
+
+
+
+$('#overtimeEditModal .btn-close-modal').on('click',function(){    
+    overtimeModal.show();
+    overtimeEditModal.hide();
+});
+
+$(document).on('click','.item-overtime .btn-edit-overtime, .item-overtime .item-title',function(){
+    let overtimeId = $(this).closest('.item-overtime').attr('data-overtime-id');
+    let dateOvertime = $(this).closest('.item-overtime').attr('data-date-overtime');
+    let overtimeStartTime = $(this).closest('.item-overtime').attr('data-overtime-start-time');
+    
+    let dataRow = ARR_DATA_OVERTIME.find(item => item.id == overtimeId);
+
+    $('#overtimeEditModal [name="overtime_id"]').val(overtimeId);
+    $('#overtimeEditModal [name="description"]').val(dataRow.description);
+    $('#overtimeEditModal .overtime_date').val(formatDatePHP("D, j M Y",dataRow.date_overtime));
+    
+    if(dataRow.photo_start){
+        $('#overtimeEditModal .photo-start').attr('src',appUrl + '/' + dataRow.photo_start);
+    }
+     
+    $('#overtimeEditModal .col-photo-end').addClass('d-none');
+
+    if(dataRow.photo_end){
+        $('#overtimeEditModal .col-photo-end').removeClass('d-none');
+        $('#overtimeEditModal .photo-end').attr('src',appUrl + '/' + dataRow.photo_end);
+    }
+    
+    if(dataRow.total_overtime){
+        $('#overtimeEditModal .overtime-total-hour').text(formatTimeDisplayHm(dataRow.total_overtime));
+    }
+
+    $('#overtimeEditModal .overtime-time-start').text(formatTimeDisplay(dataRow.time_start));
+    $('#overtimeEditModal .overtime-time-end').text(formatTimeDisplay(dataRow.time_end));
+    
+    overtimeModal.hide();
+    overtimeEditModal.show();
+});
+
+$('#overtimeEditModal .btn-submit-modal').click(function(){
+    submitEditOvertime();    
+});
+
+function submitEditOvertime(){
+    $.ajax({
+        url: appUrl + "/employee-overtime/submit-edit-overtime",
+        type: "POST",
+        data: new FormData($('#form-edit-overtime').get(0)) ,
+        cache: false,
+        processData: false,
+        contentType: false,
+        beforeSend:function(){
+            $('#overtimeEditModal .box-loader').fadeIn();
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('#overtimeEditModal .box-loader').fadeOut();
+            //$('.loader').fadeOut('fast');
+        },
+        success: function(res) {
+            getAllRequestOvertime();
+
+            showAlertMsg(res.message,'success',10000);
+            overtimeEditModal.hide();
+            overtimeModal.show();
+            $('#overtimeEditModal .box-loader').fadeOut();
+            $('#form-edit-overtime')[0].reset();
+        }
+    });
+}
+
+$('#overtimeDeleteModal .btn-close-modal').on('click',function(){    
+    overtimeModal.show();
+    overtimeDeleteModal.hide();
+});
+
+$(document).on('click','.item-overtime .btn-delete-overtime',function(){
+    let overtimeId = $(this).closest('.item-overtime').attr('data-overtime-id');
+    
+    let dataRow = ARR_DATA_OVERTIME.find(item => item.id == overtimeId);
+
+    $('#overtimeDeleteModal [name="overtime_id"]').val(overtimeId);
+    $('#overtimeDeleteModal .overtime-description').text(dataRow.description);
+    $('#overtimeDeleteModal .overtime_date').val(formatDatePHP("D, j M Y",dataRow.date_overtime));
+    
+    if(dataRow.photo_start){
+        $('#overtimeDeleteModal .photo-start').attr('src',appUrl + '/' + dataRow.photo_start);
+    }
+     
+    $('#overtimeDeleteModal .col-photo-end').addClass('d-none');
+
+    if(dataRow.photo_end){
+        $('#overtimeDeleteModal .col-photo-end').removeClass('d-none');
+        $('#overtimeDeleteModal .photo-end').attr('src',appUrl + '/' + dataRow.photo_end);
+    }
+    
+    if(dataRow.total_overtime){
+        $('#overtimeDeleteModal .overtime-total-hour').text(formatTimeDisplayHm(dataRow.total_overtime));
+    }
+
+    $('#overtimeDeleteModal .overtime-time-start').text(formatTimeDisplay(dataRow.time_start));
+    $('#overtimeDeleteModal .overtime-time-end').text(formatTimeDisplay(dataRow.time_end));
+    
+    overtimeModal.hide();
+    overtimeDeleteModal.show();
+});
+
+$('#overtimeDeleteModal .btn-submit-modal').click(function(){
+    submitDeleteOvertime();    
+});
+
+function submitDeleteOvertime(){
+    $.ajax({
+        url: appUrl + "/employee-overtime/submit-delete-overtime",
+        type: "POST",
+        data: new FormData($('#form-delete-overtime').get(0)) ,
+        cache: false,
+        processData: false,
+        contentType: false,
+        beforeSend:function(){
+
+            $('#overtimeDeleteModal .box-loader').fadeIn();
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('#overtimeDeleteModal .box-loader').fadeOut();
+            //$('.loader').fadeOut('fast');
+        },
+        success: function(res) {
+
+            getAllRequestOvertime();
+
+            showAlertMsg(res.message,'success',10000);
+            overtimeDeleteModal.hide();
+            overtimeModal.show();
+            $('#overtimeDeleteModal .box-loader').fadeOut();
+            $('#form-edit-overtime')[0].reset();
         }
     });
 }

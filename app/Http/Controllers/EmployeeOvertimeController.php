@@ -57,6 +57,7 @@ class EmployeeOvertimeController extends Controller
             $employee = Employee::with('division', 'department', 'job','grade','shift',)->where('user_id', $user->id)->first();
             
             $checkTodayOvertime = EmployeeOvertime::where('employee_id',$employee->id)
+                ->where('status','REQUEST')
                 ->where('date_overtime',$today)
             ->first();
 
@@ -127,7 +128,7 @@ class EmployeeOvertimeController extends Controller
             ], 500);
         }
     }
-
+    
     public function submitStopOvertime(Request $request){
 
         try{
@@ -196,6 +197,117 @@ class EmployeeOvertimeController extends Controller
                 'status' => 'success',
                 'data' => [],
                 'message' => 'Overtime stop successfully'
+            ]);
+
+        }catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+    public function submitEditOvertime(Request $request){
+
+        try{
+
+            DB::beginTransaction();
+            
+            $request->validate([
+                'overtime_id' => 'required|integer',
+                'description' => 'required'
+            ]);
+
+            $user = auth()->user();
+
+            $now = Carbon::now();
+            $today = Carbon::today()->toDateString();
+            
+            $employee = Employee::with('division', 'department', 'job','grade','shift',)->where('user_id', $user->id)->first();
+            
+            $existOvertime = EmployeeOvertime::where('employee_id',$employee->id)
+                ->where('id',$request->overtime_id)
+                ->where('status','<>','APPROVED')
+            ->first();
+
+            if(!$existOvertime){
+                throw new \Exception('Overtime not found');
+            }
+
+            
+            $existOvertime->description = $request->description;
+            $existOvertime->updated_by = $user->id;
+
+            $existOvertime->save();
+
+
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Overtime edit successfully'
+            ]);
+
+        }catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function submitDeleteOvertime(Request $request){
+
+        try{
+
+            DB::beginTransaction();
+            
+            $request->validate([
+                'overtime_id' => 'required|integer'
+            ]);
+
+            $user = auth()->user();
+
+            $now = Carbon::now();
+            $today = Carbon::today()->toDateString();
+            
+            $employee = Employee::with('division', 'department', 'job','grade','shift',)->where('user_id', $user->id)->first();
+            
+            $existOvertime = EmployeeOvertime::where('employee_id',$employee->id)
+                ->where('id',$request->overtime_id)
+                ->where('status','<>','APPROVED')
+            ->first();
+
+            if(!$existOvertime){
+                throw new \Exception('Overtime not found');
+            }
+
+            
+            $existOvertime->status = 'DELETED';
+            $existOvertime->updated_by = $user->id;
+
+            $existOvertime->save();
+
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [],
+                'message' => 'Overtime deleted successfully'
             ]);
 
         }catch (\Exception $e) {

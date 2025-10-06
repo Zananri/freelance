@@ -215,7 +215,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/employee-overtime/all-request', [EmployeeOvertimeController::class, 'allRequest'])->name('employee-overtime.allRequest');
     Route::post('/employee-overtime/submit-new-request', [EmployeeOvertimeController::class, 'submitNewRequest'])->name('employee-overtime.submitNewRequest');
     Route::post('/employee-overtime/submit-stop-overtime', [EmployeeOvertimeController::class, 'submitStopOvertime'])->name('employee-overtime.submitStopOvertime');
-
+    Route::post('/employee-overtime/submit-edit-overtime', [EmployeeOvertimeController::class, 'submitEditOvertime'])->name('employee-overtime.submitEditOvertime');
+    Route::post('/employee-overtime/submit-delete-overtime', [EmployeeOvertimeController::class, 'submitDeleteOvertime'])->name('employee-overtime.submitDeleteOvertime');
+    
     Route::get('/shift', [ShiftController::class, 'showShiftPage'])->name('shift');
     Route::get('/shift/employees-with-shifts', [ShiftController::class, 'getEmployeesWithShifts'])->name('shift.employees-with-shifts');
     Route::get('/shift/employees-basic', [ShiftController::class, 'getEmployeesBasic'])->name('shift.employees-basic');

@@ -848,7 +848,7 @@
                                 <div class="col-total-day">
                                     <div class="box-total-day">
                                         <div class="title">Total Day</div>
-                                        <div class="day-over">0</div>
+                                        <div class="day-over">{{$overtimeTotalDays}}</div>
                                         <div class="text-day-over">Day</div>
                                     </div>
                                 </div>
@@ -856,8 +856,13 @@
                                 <div class="col-total-hour">
                                     <div class="box-total-hour">
                                         <div class="title">Total Hour</div>
-                                        <div class="hour-over">0</div>
-                                        <div class="text-hour-over">Hour</div>
+                                        <div class="hour-over">
+                                            {{ intval($overtimeTotalHours/3600) }}h 
+                                            
+                                        </div>
+                                        <div class="text-hour-over">
+                                            {{ intval($overtimeTotalHours % 3600 / 60) }}m 
+                                        </div>
                                     </div>
                                 </div>
                                 
@@ -1076,7 +1081,7 @@
 
                         <div class="p-4">
 
-                            <div class="row">
+                            <div class="row mb-3">
                                 <div class="col-6">
                                     <button type="button" class="btn btn-close-modal w-100">Cancel</button>
                                 </div>
@@ -1124,7 +1129,7 @@
             </div>
         </div>
 
-        <!-- Modal New Overtime -->
+        <!-- Modal Stop Overtime -->
         <div class="modal fade" id="overtimeStopModal" tabindex="-1" role="dialog" aria-labelledby="overtimeStopModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content rounded-4 border-0">
@@ -1219,6 +1224,280 @@
                                 </div>
                                 <div class="col-6">
                                     <button type="button" class="btn btn-submit-modal w-100" >Submit</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="box-camera z-3 rounded-4 bg-black bg-opacity-75 position-absolute top-0 start-0 w-100 h-100">
+                        <video id="stopOvertimeVideoElement" muted playsinline class="z-3 w-100 h-100 position-absolute top-0 start-0 rounded-4 object-fit-cover" ></video>
+                        <canvas id="stopOvertimeCanvasElement" style="display:none;"></canvas>
+
+
+                        <div class="z-3 position-absolute bottom-0 start-0 w-100 text-center">
+                            <div id="stopOvertimeCaptureButton" class="btn-capture-photo">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                            </div>
+                        </div>
+
+                        <div class="z-3 position-absolute h-auto top-0 end-0 text-end">
+                            <div id="stopOvertimeCloseButton" class="btn-close-capture">
+                                <span class="material-symbols-outlined">close</span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fs-14">Loading...</div>
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Edit Overtime -->
+        <div class="modal fade" id="overtimeEditModal" tabindex="-1" role="dialog" aria-labelledby="overtimeEditModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
+                    
+                    <div class="modal-header border-0 py-4">
+                        <h5 class="modal-title modal-title-custom text-center w-100" id="overtimeEditModalLabel">Edit Overtime</h5>
+                    </div>
+
+                    <div class="modal-body p-0 border-0 ">
+
+                        <div class="wrapper-form px-4 scrollbar-transparent">
+
+                            <form action="" id="form-edit-overtime" class="needs-validation" novalidate enctype="multipart/form-data"  >
+
+                                @csrf
+
+                                <input type="hidden" name="overtime_id" value="">
+
+                                <div class="mb-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <div class="overtime-date">
+                                            {{ date('D j M Y') }}
+                                        </div>
+                                        <div>
+                                            <span class="overtime-total-hour"></span>
+                                        </div>
+                                    </div>
+                                </div>
+ 
+
+                                <div class="mb-3">
+
+                                    <div class="row">
+                                        <div class="col-6 col-photo-start">
+                                            <div class="position-realtive">
+                                                <div class="ratio ratio-1x1">
+
+                                                    <div class="box-photo rounded-2">
+                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
+                                                            <img class="photo-start object-fit-cover w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                            <div class="fs-12 overtime-time-start">
+
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-photo-end d-none">
+                                            <div class="position-realtive">
+
+                                                <div class="ratio ratio-1x1">
+
+                                                    <div class="box-photo rounded-2" >
+                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
+                                                            <img  class="photo-end object-fit-cover w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                                
+                                            </div>
+                                            <div class="fs-12 overtime-time-end">
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="overtime-description-start" class="form-label">Description</label>
+                                    <textarea class="form-control" name="description" id="overtime-description-start" rows="3" attr-validation="required"></textarea>
+                                    <div class="invalid-feedback fs-12">Please input a description</div>
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                        <div class="p-4">
+
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Save</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+
+                    <div class="box-camera z-3 rounded-4 bg-black bg-opacity-75 position-absolute top-0 start-0 w-100 h-100">
+                        <video id="stopOvertimeVideoElement" muted playsinline class="z-3 w-100 h-100 position-absolute top-0 start-0 rounded-4 object-fit-cover" ></video>
+                        <canvas id="stopOvertimeCanvasElement" style="display:none;"></canvas>
+
+
+                        <div class="z-3 position-absolute bottom-0 start-0 w-100 text-center">
+                            <div id="stopOvertimeCaptureButton" class="btn-capture-photo">
+                                <span class="material-symbols-outlined">photo_camera</span>
+                            </div>
+                        </div>
+
+                        <div class="z-3 position-absolute h-auto top-0 end-0 text-end">
+                            <div id="stopOvertimeCloseButton" class="btn-close-capture">
+                                <span class="material-symbols-outlined">close</span>
+                            </div>
+                        </div>
+                        
+                    </div>
+                    
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fs-14">Loading...</div>
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Delete Overtime -->
+        <div class="modal fade" id="overtimeDeleteModal" tabindex="-1" role="dialog" aria-labelledby="overtimeDeleteModalLabel" aria-hidden="true"  data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content rounded-4 border-0">
+                    
+                    <div class="modal-header border-0 py-4">
+                        <h5 class="modal-title modal-title-custom text-center w-100" id="overtimeDeleteModalLabel">Delete Overtime</h5>
+                    </div>
+
+                    <div class="modal-body p-0 border-0 ">
+
+                        <div class="wrapper-form px-4 scrollbar-transparent">
+
+                            <form action="" id="form-delete-overtime" class="needs-validation" novalidate enctype="multipart/form-data"  >
+
+                                @csrf
+
+                                <input type="hidden" name="overtime_id" value="">
+
+                                <div class="mb-3">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <div class="overtime-date">
+                                            {{ date('D j M Y') }}
+                                        </div>
+                                        <div>
+                                            <span class="overtime-total-hour"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-0">
+                                    <span class="overtime-description fs-14"></span>
+                                </div>
+ 
+
+                                <div class="mb-5">
+
+                                    <div class="row">
+                                        <div class="col-6 col-photo-start">
+                                            <div class="position-realtive">
+                                                <div class="ratio ratio-1x1">
+
+                                                    <div class="box-photo rounded-2">
+                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
+                                                            <img class="photo-start object-fit-cover w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                            <div class="fs-12 overtime-time-start">
+
+                                            </div>
+                                        </div>
+
+                                        <div class="col-6 col-photo-end d-none">
+                                            <div class="position-realtive">
+
+                                                <div class="ratio ratio-1x1">
+
+                                                    <div class="box-photo rounded-2" >
+                                                        <div class="d-flex w-100 h-100 justify-content-center align-items-center">
+                                                            <img  class="photo-end object-fit-cover w-100 h-100 position-absolute top-0 start-0 rounded-2" src="" alt="">
+                                                        </div>
+
+                                                    </div>
+
+                                                </div>
+                                                
+                                            </div>
+                                            <div class="fs-12 overtime-time-end">
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="mb-0">
+                                    <span class="fs-14">
+                                        Are you sure you want to delete this overtime ?
+                                    </span>
+                                </div>
+
+                            </form>
+
+                        </div>
+
+                        <div class="p-4">
+
+                            <div class="row">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-close-modal w-100">Cancel</button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-submit-modal w-100" >Delete</button>
                                 </div>
                             </div>
                             

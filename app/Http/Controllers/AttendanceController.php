@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\EmployeeShift;
 
 use App\Models\EmployeeLeave;
+use App\Models\EmployeeOvertime;
 use App\Models\EmployeeLeaveRequest;
 
 use App\Models\Attendance;
@@ -26,10 +27,16 @@ class AttendanceController extends Controller
         
         $user = auth()->user();
 
+        $month = Carbon::today()->format('n');
+        $year = Carbon::today()->format('Y');
+
         $now = Carbon::now();
         $today = Carbon::today()->toDateString();
         $yesterday = Carbon::today()->subDays(1)->toDateString();
         $tomorow = Carbon::today()->addDay()->toDateString();
+        
+        $firstDayOfMonth = Carbon::create($year, $month, 1)->startOfMonth()->toDateString();
+        $lastDayOfMonth = Carbon::create($year, $month, 1)->endOfMonth()->toDateString();
 
         // $now = Carbon::parse('2025-09-07 01:15:00');
         // $today = Carbon::parse('2025-09-07')->toDateString();
@@ -165,7 +172,33 @@ class AttendanceController extends Controller
         $timeStart = $timeStart->format('H:i');
         $timeEnd = $timeEnd->format('H:i');
         
-        return view('attendance.attendance', compact('employee','employeeLeave','office', 'timeStart','timeEnd', 'attendance','employeeShift','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
+        
+        
+        
+
+        $overtimeTotalDays = EmployeeOvertime::where('employee_id',$employee->id)
+            ->where('status','APPROVED')
+            ->where('date_overtime','>=',$firstDayOfMonth)
+            ->where('date_overtime','<=',$lastDayOfMonth)
+        ->count();
+
+        $overtimeTotalHours = EmployeeOvertime::select(DB::raw('SUM(TIME_TO_SEC(`total_overtime`)) AS total_hours'))
+            ->where('employee_id',$employee->id)
+            ->where('status','APPROVED')
+            ->where('date_overtime','>=',$firstDayOfMonth)
+            ->where('date_overtime','<=',$lastDayOfMonth)
+            ->groupBy('employee_id')
+        ->get();
+
+        if(count($overtimeTotalHours) > 0){
+            $overtimeTotalHours = $overtimeTotalHours[0]['total_hours'];
+        }else{
+            $overtimeTotalHours = 0;
+        }
+
+
+        
+        return view('attendance.attendance', compact('employee','employeeLeave','overtimeTotalDays','overtimeTotalHours','office', 'timeStart','timeEnd', 'attendance','employeeShift','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
     
     }
 
