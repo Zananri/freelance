@@ -207,9 +207,9 @@ $(document).ready(function() {
             }
 
             let html = '';
-            filteredNotifications.forEach(notification => {
+                filteredNotifications.forEach(notification => {
                 const timeAgo = getTimeAgo(notification.sent_at || notification.created_at);
-                const taskIdMatch = notification.message.match(/Task ID: (\d+)/);
+                const taskIdMatch = (notification.message || '').match(/Task ID: (\d+)/);
                 const taskId = taskIdMatch ? taskIdMatch[1] : null;
 
                 // Check if this is a task assignment notification
@@ -270,11 +270,18 @@ $(document).ready(function() {
                 const showMessage = notification.type === 'task_assignment' && notification.created_by_name === notification.employee_name;
                 const messageElement = showMessage ? `<div class="notification-message" style="font-size: 14px;">${notification.message}</div>` : '';
 
+                // For task_reject notifications, use the message (without "[Task ID: N]") as the title
+                let displayTitle = notification.title;
+                if ((notification.type || '').toLowerCase() === 'task_reject') {
+                    // Remove trailing "[Task ID: N]" if present
+                    displayTitle = (notification.message || '').replace(/\s*\[Task ID:\s*\d+\]\s*$/, '').trim();
+                }
+
                 html += `
-                    <div class="notification-item position-relative d-flex align-items-start" data-notification-id="${notification.id}">
+                    <div class="notification-item position-relative d-flex align-items-start" data-notification-id="${notification.id}" data-notification-type="${notification.type}" data-notification-message="${(notification.message||'').replace(/\"/g,'&quot;')}">
                         ${unreadIndicator}
                         <div class="notification-content" style="position: relative; width: 100%;">
-                            <div class="notification-title">${notification.title}</div>
+                            <div class="notification-title">${displayTitle}</div>
                             ${messageElement}
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="notification-time">${timeAgo}</div>
@@ -719,33 +726,52 @@ $(document).ready(function() {
         }
     });
 
-    // Redirect to appropriate page when notification is clicked (only mark task_accepted notifications as read)
+    // Redirect to appropriate page when notification is clicked
     $(document).on('click', '.notification-item', function() {
-        const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
+        const appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
         const notificationId = $(this).data('notification-id');
-        const notificationTitle = $(this).find('.notification-title').text().toLowerCase();
         const notificationElement = $(this);
-        const notificationType = notificationElement.find('.notification-title').text().includes('accepted task') ? 'task_accepted' : 'other';
+        const notificationTitle = notificationElement.find('.notification-title').text().toLowerCase();
+        const message = notificationElement.attr('data-notification-message') || '';
 
-        // Only mark 'task_accepted' notifications as read when clicked
-        if (notificationType === 'task_accepted') {
+        // Only automatically mark-as-read + navigate to specific task when notification type is 'task_reject'
+        const notifType = (notificationElement.attr('data-notification-type') || '').toLowerCase();
+        const taskIdMatch = message.match(/Task ID: (\d+)/);
+        if (notifType === 'task_reject' && taskIdMatch) {
+            const targetTaskId = taskIdMatch[1];
             markNotificationAsRead(notificationId, function() {
-                // Redirect to task page
+                window.location.href = `${appUrl}/task/${targetTaskId}`;
+            });
+            return;
+        }
+
+        // Fallback: project notifications should be marked as read then go to projects
+        if (notificationTitle.includes('project')) {
+            markNotificationAsRead(notificationId, function() {
+                window.location.href = `${appUrl}/project`;
+            });
+            return;
+        }
+
+        // For 'task_accepted' legacy flows, mark read then go to /task
+        if (notificationTitle.includes('accepted task')) {
+            markNotificationAsRead(notificationId, function() {
                 window.location.href = `${appUrl}/task`;
             });
-        } else {
-            // Check if this is a project notification
-            if (notificationTitle.includes('project')) {
-                // For project notifications, mark as read when clicked and redirect
-                markNotificationAsRead(notificationId, function() {
-                    // Redirect to project page
-                    window.location.href = `${appUrl}/project`;
-                });
-            } else {
-                // Redirect to task page for other notifications without marking as read
-                window.location.href = `${appUrl}/task`;
-            }
+            return;
         }
+
+        // For task_assignment notifications, do NOT auto-mark-read on click (Accept button handles that).
+        if (notifType === 'task_assignment') {
+            // Navigate to task list (or detail if you prefer). Keep unread state so accept button remains available.
+            window.location.href = `${appUrl}/task`;
+            return;
+        }
+
+        // Default for other notification types: mark as read then go to task list
+        markNotificationAsRead(notificationId, function() {
+            window.location.href = `${appUrl}/task`;
+        });
     });
 
     // Function to check project acceptance status

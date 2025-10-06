@@ -3323,6 +3323,7 @@ class TaskController extends Controller
                 // TaskAssignment::where('task_id', $taskId)->delete();
             } elseif ($assignment && $assignment->role === 'EXECUTOR') {
                 // Executor rejecting - remove the assignment so the task no longer appears for this user
+                // Before deleting assignment, prepare recipients for notification
                 $assignment->delete();
             } elseif ($assignment) {
                 // Other roles can reject by deleting their assignment
@@ -3330,6 +3331,32 @@ class TaskController extends Controller
             } else {
                 // If no assignment found, allow multiple rejects without error
                 // Just commit and return success
+            }
+
+            // --- Create notifications for other employees on this task to inform about the rejection ---
+            try {
+                $creatorName = $user->employee->name ?? ($user->name ?? 'Someone');
+                $taskTitle = $task->title ?? 'Task';
+
+                // Collect all employees related to this task (assignments + PIC)
+                $assignedEmployeeIds = TaskAssignment::where('task_id', $taskId)->pluck('employee_id')->toArray();
+                if ($task->pic_id) $assignedEmployeeIds[] = $task->pic_id;
+                $assignedEmployeeIds = array_values(array_unique($assignedEmployeeIds));
+
+                // Exclude the employee who performed the rejection
+                $recipients = array_filter($assignedEmployeeIds, function($id) use ($employeeId){ return (int)$id !== (int)$employeeId; });
+
+                if (!empty($recipients)) {
+                    // New message format requested: "Task (nama task) rejected by (nama yang mereject tasknya)"
+                    $message = sprintf('Task "%s" rejected by %s', $taskTitle, $creatorName);
+                    foreach ($recipients as $r) {
+                        // Use NotificationController helper to create notification and attach Task ID for client-side linking
+                        NotificationController::createUserNotification($r, 'task_reject', 'Task Rejected', $message, $user->id, $taskId);
+                    }
+                }
+            } catch (\Exception $e) {
+                // Don't fail the reject flow if notification creation fails; only log
+                \Log::error('Failed to create reject notifications: ' . $e->getMessage());
             }
 
             DB::commit();
