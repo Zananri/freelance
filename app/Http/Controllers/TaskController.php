@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use App\Helpers\TaskAssignmentLogService;
 // use Illuminate\Support\Carbon; // not used directly
 
 class TaskController extends Controller
@@ -1121,6 +1122,17 @@ class TaskController extends Controller
                     'updated_by' => $user->id,
                     'deleted_by' => null
                 ]);
+
+                // Log PIC auto-accepted
+                try {
+                    TaskAssignmentLogService::record([
+                        'task_id' => $task->id,
+                        'employee_id' => $user->employee->id,
+                        'creator_task' => $user->employee->id,
+                        'action' => TaskAssignmentLog::ACTION_ACCEPTED,
+                        'created_by' => $user->employee->id,
+                    ]);
+                } catch (\Throwable $_) {}
             } else {
                 throw new \Exception('User not authenticated or has no employee record');
             }
@@ -1152,6 +1164,17 @@ class TaskController extends Controller
                         'updated_by' => auth()->id(),
                         'deleted_by' => null
                     ]);
+
+                    // Log executor pending
+                    try {
+                        TaskAssignmentLogService::record([
+                            'task_id' => $task->id,
+                            'employee_id' => $executorId,
+                            'creator_task' => $user->employee->id ?? null,
+                            'action' => TaskAssignmentLog::ACTION_PENDING,
+                            'created_by' => $user->employee->id ?? null,
+                        ]);
+                    } catch (\Throwable $_) {}
 
                     // Send notification to executor
                     $executor = Employee::find($executorId);
@@ -1761,11 +1784,43 @@ class TaskController extends Controller
                 // Determine which executors are newly added
                 $addedExecutors = array_diff($newExecutorIds, $existingExecutors);
 
-                // Remove executors not in new list
-                TaskAssignment::where('task_id', $task->id)
+                // Determine which executors will be removed and remove them
+                $removedExecutors = TaskAssignment::where('task_id', $task->id)
                     ->where('role', 'EXECUTOR')
                     ->whereNotIn('employee_id', $newExecutorIds)
-                    ->delete();
+                    ->pluck('employee_id')
+                    ->toArray();
+
+                if (!empty($removedExecutors)) {
+                    // Delete them
+                    TaskAssignment::where('task_id', $task->id)
+                        ->where('role', 'EXECUTOR')
+                        ->whereIn('employee_id', $removedExecutors)
+                        ->delete();
+
+                    // Record 'ISSUED' logs for each removed executor
+                    try {
+                        // Try to map task.created_by -> employee id if possible
+                        $creatorEmployeeId = null;
+                        $taskCreatorUserId = $task->created_by ?? null;
+                        if ($taskCreatorUserId) {
+                            $creator = Employee::where('user_id', $taskCreatorUserId)->first();
+                            if ($creator) $creatorEmployeeId = $creator->id;
+                        }
+
+                        foreach ($removedExecutors as $removedId) {
+                            TaskAssignmentLogService::record([
+                                'task_id' => $task->id,
+                                'employee_id' => $removedId,
+                                'creator_task' => $creatorEmployeeId,
+                                'action' => TaskAssignmentLog::ACTION_ISSUED,
+                                'created_by' => auth()->user()->employee->id ?? null,
+                            ]);
+                        }
+                    } catch (\Throwable $_) {
+                        // ignore logging errors
+                    }
+                }
 
                 // Add new executors
                 foreach ($newExecutorIds as $executorId) {
@@ -1782,6 +1837,17 @@ class TaskController extends Controller
                             'is_receive' => false,
                             'date_receive' => null,
                         ]);
+
+                        // Log new executor pending (added via edit)
+                        try {
+                            TaskAssignmentLogService::record([
+                                'task_id' => $task->id,
+                                'employee_id' => $executorId,
+                                'creator_task' => ($employee->id ?? null),
+                                'action' => TaskAssignmentLog::ACTION_PENDING,
+                                'created_by' => $employee->id ?? null,
+                            ]);
+                        } catch (\Throwable $_) {}
                     }
 
                     // Send notification only for newly added executors
@@ -2158,7 +2224,7 @@ class TaskController extends Controller
                 $user = $request->user();
                 $employeeId = $user && $user->employee ? $user->employee->id : null;
                 if ($dbStatus === 'completed' && $employeeId) {
-                    $assignment = \App\Models\TaskAssignment::where('task_id', $task->id)
+                    $assignment = TaskAssignment::where('task_id', $task->id)
                         ->where('employee_id', $employeeId)
                         ->whereIn('role', ['PIC', 'EXECUTOR'])
                         ->first();
@@ -2171,7 +2237,7 @@ class TaskController extends Controller
                     } else {
                         // Create assignment for completer so they can see the completed task after refresh
                         try {
-                            \App\Models\TaskAssignment::create([
+                            TaskAssignment::create([
                                 'task_id' => $task->id,
                                 'employee_id' => $employeeId,
                                 'role' => 'EXECUTOR',
@@ -3222,6 +3288,29 @@ class TaskController extends Controller
                 'date_receive' => now(),
             ]);
 
+            // Record acceptance in TaskAssignmentLog
+            try {
+                $creatorEmployeeId = null;
+                if ($task = Task::find($taskId)) {
+                    // Try to map task.created_by (user id) to an employee id if available
+                    $creatorUserId = $task->created_by ?? null;
+                    if ($creatorUserId) {
+                        $creator = Employee::where('user_id', $creatorUserId)->first();
+                        if ($creator) $creatorEmployeeId = $creator->id;
+                    }
+                }
+
+                TaskAssignmentLogService::record([
+                    'task_id' => $taskId,
+                    'employee_id' => $user->employee->id,
+                    'creator_task' => $creatorEmployeeId,
+                    'action' => TaskAssignmentLog::ACTION_ACCEPTED,
+                    'created_by' => $user->employee->id,
+                ]);
+            } catch (\Throwable $_) {
+                // don't block acceptance if logging fails
+            }
+
             try {
                 $task = Task::find($taskId);
                 if ($task && $task->project_id) {
@@ -3331,6 +3420,30 @@ class TaskController extends Controller
             } else {
                 // If no assignment found, allow multiple rejects without error
                 // Just commit and return success
+            }
+
+            // Record rejection in TaskAssignmentLog (mark as REJECTED or ISSUED accordingly)
+            try {
+                $creatorEmployeeId = null;
+                if (isset($task) && $task) {
+                    $creatorUserId = $task->created_by ?? null;
+                    if ($creatorUserId) {
+                        $creator = Employee::where('user_id', $creatorUserId)->first();
+                        if ($creator) $creatorEmployeeId = $creator->id;
+                    }
+                }
+
+                // Decide action: if PIC rejected -> REJECTED, if executor deleted -> REJECTED, if removed by edit elsewhere should be ISSUED
+                $action = TaskAssignmentLog::ACTION_REJECTED;
+                TaskAssignmentLogService::record([
+                    'task_id' => $taskId,
+                    'employee_id' => $user->employee->id,
+                    'creator_task' => $creatorEmployeeId,
+                    'action' => $action,
+                    'created_by' => $user->employee->id,
+                ]);
+            } catch (\Throwable $_) {
+                // ignore logging errors
             }
 
             // --- Create notifications for other employees on this task to inform about the rejection ---

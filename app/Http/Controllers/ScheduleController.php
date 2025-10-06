@@ -11,6 +11,7 @@ use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\Employee;
 use App\Models\Notification;
+use App\Helpers\TaskAssignmentLogService;
 use App\Models\Department;
 use App\Models\Division;
 use Carbon\Carbon;
@@ -301,6 +302,17 @@ trait ScheduleImmediateGeneration
                 'updated_by' => $picUserId,
                 'deleted_by' => null,
             ]);
+
+            // Log PIC accepted
+            try {
+                TaskAssignmentLogService::record([
+                    'task_id' => $task->id,
+                    'employee_id' => $picEmployee->id,
+                    'creator_task' => $picEmployee->id,
+                    'action' => TaskAssignmentLog::ACTION_ACCEPTED,
+                    'created_by' => $picEmployee->id,
+                ]);
+            } catch (\Throwable $_) {}
         }
 
         // Executors + notifications
@@ -318,6 +330,16 @@ trait ScheduleImmediateGeneration
                 'updated_by' => $picUserId,
                 'deleted_by' => null,
             ]);
+            // Log executor pending
+            try {
+                TaskAssignmentLogService::record([
+                    'task_id' => $task->id,
+                    'employee_id' => $eid,
+                    'creator_task' => $picEmployee?->id,
+                    'action' => TaskAssignmentLog::ACTION_PENDING,
+                    'created_by' => $picEmployee?->id,
+                ]);
+            } catch (\Throwable $_) {}
             try {
                 Notification::create([
                     'employee_id' => $eid,
