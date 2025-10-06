@@ -3372,8 +3372,9 @@ class TaskController extends Controller
                 ->join('job_list', 'employees.job_id', '=', 'job_list.id')
                 ->join('users', 'employees.user_id', '=', 'users.id')
                 ->where('employees.status', "ACTIVE")
-                ->whereNotIn('users.user_role', ["GENERAL_MANAGER", "CEO"])
-                ->whereNotIn('users.user_type', ["ADMINISTRATOR"])
+                // Only include regular employees (explicit allow-list)
+                ->where('users.user_role', 'EMPLOYEE')
+                ->where('users.user_type', 'REGULAR')
                 ->get();
 
             $mapped = $employee->map(function ($emp) {

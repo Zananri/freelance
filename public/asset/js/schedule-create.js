@@ -623,7 +623,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     try { if (isEdit) window.setSelectedExecutorsEdit?.([]); else window.setSelectedExecutorsAdd?.([]); } catch(_){}
                     return;
                 }
-                fetch(appUrl + '/employees-for-projects')
+                fetch(appUrl + '/employees-for-projects?executor_only=1')
                     .then(r=> r.ok? r.json(): Promise.reject('fail'))
                     .then(res=>{
                         const arr = (res && res.data) || [];
