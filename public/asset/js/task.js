@@ -690,10 +690,7 @@
         });
     }
 
-    // Load related tasks for a given project into an element (select).
-    // Backwards-compat: some callers historically passed DOM elements instead of prefix strings
-    // or passed the select element as the third argument. Normalize inputs so the function
-    // consistently accepts: (projectId, prefixString, selectedParentId, selectedParentTitle)
+   
     function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
         try {
             // If prefix is a DOM element (e.g., a select), derive prefix from its id
