@@ -9,7 +9,7 @@ $(".btn-tab-task").on("click", function () {
 function setDashboardFeedbackCount(taskId, count) {
     const selector = `.feedback-comments-count[data-task-id="${taskId}"]`;
     let countEl = document.querySelector(selector);
-    
+
     if (count > 0) {
         if (countEl) {
             countEl.textContent = count;
@@ -39,7 +39,7 @@ function getStatusBackground(statusNorm) {
     if (statusNorm === 'new_request') {
         bg = '#a1a3a60d';
     } else if (statusNorm === 'in_progress') {
-        bg = '#edebdf5c';
+        bg = '#edebdf';
     } else if (statusNorm === 'complete') {
         bg = '#baeed340';
     } else if (statusNorm === 'rejected') {
