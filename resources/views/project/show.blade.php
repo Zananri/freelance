@@ -302,7 +302,7 @@
                                     </div>
                                 </div>
                                 <div class="description-container mb-2">
-                                    <p class="description-detail" style="font-size:14px;">{{ $projDesc }}</p>
+                                    <p class="description-detail" id="project-delete-description"></p>
                                 </div>
                                 <hr class="task-separator border-3 rounded-4">
 
