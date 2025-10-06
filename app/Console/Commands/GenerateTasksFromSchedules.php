@@ -9,6 +9,7 @@ use App\Models\Task;
 use App\Models\TaskAssignment;
 use App\Models\Employee;
 use App\Models\Notification;
+use App\Helpers\TaskAssignmentLogService;
 use Carbon\Carbon;
 
 class GenerateTasksFromSchedules extends Command
@@ -434,6 +435,17 @@ class GenerateTasksFromSchedules extends Command
                 'updated_by' => $picUserId,
                 'deleted_by' => null,
             ]);
+
+            // Log PIC accepted
+            try {
+                TaskAssignmentLogService::record([
+                    'task_id' => $task->id,
+                    'employee_id' => $picEmployee->id,
+                    'creator_task' => $picEmployee->id,
+                    'action' => \App\Models\TaskAssignmentLog::ACTION_ACCEPTED,
+                    'created_by' => $picEmployee->id,
+                ]);
+            } catch (\Throwable $_) {}
         }
 
         // Create EXECUTOR assignments from schedule.executor_ids
@@ -453,6 +465,17 @@ class GenerateTasksFromSchedules extends Command
                 'updated_by' => $picUserId,
                 'deleted_by' => null,
             ]);
+
+            // Log executor pending
+            try {
+                TaskAssignmentLogService::record([
+                    'task_id' => $task->id,
+                    'employee_id' => $eid,
+                    'creator_task' => $picEmployee ? $picEmployee->id : null,
+                    'action' => \App\Models\TaskAssignmentLog::ACTION_PENDING,
+                    'created_by' => $picEmployee ? $picEmployee->id : null,
+                ]);
+            } catch (\Throwable $_) {}
 
             // Notify executor about the new assignment (same semantics as manual task creation)
             try {
