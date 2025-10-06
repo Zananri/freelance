@@ -253,13 +253,12 @@ $(document).ready(function() {
                         </div>
                     `;
                 } else {
-                    // Show "Read" label for accepted/read notifications
-                    // For project notifications, use hidden attribute if notification still has unread indicator
+                    // For other notifications (e.g., task_reject), only show "Read" when it's actually read.
+                    // Project notifications keep a hidden label that will be revealed after the red dot is cleared on close.
                     if (isProjectAssignment) {
                         actionElement = '<div class="notification-read-label" hidden="">Read</div>';
                     } else {
-                        // For non-project notifications, use normal display
-                        actionElement = '<div class="notification-read-label">Read</div>';
+                        actionElement = notification.is_read ? '<div class="notification-read-label">Read</div>' : '';
                     }
                 }
 
@@ -693,6 +692,19 @@ $(document).ready(function() {
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 }
             }).always(function() {
+                // Also mark unread task_reject notifications as read now that the user closed the dropdown
+                try {
+                    $('#notificationList .notification-item[data-notification-type="task_reject"]').each(function(){
+                        const $item = $(this);
+                        const hasRedDot = $item.find('.notification-unread-dot').length > 0;
+                        if (hasRedDot) {
+                            const nid = $item.data('notification-id');
+                            // Use existing helper to update server and UI; no redirect callback
+                            markNotificationAsRead(nid);
+                        }
+                    });
+                } catch(_) {}
+
                 // Refresh badge and list (safe even if dropdown is hidden)
                 fetchNotificationCount();
                 // Refresh cache for next open
@@ -976,23 +988,28 @@ $(document).ready(function() {
             success: function() {
                 // Update notification count first
                 fetchNotificationCount();
-                
-                // Then update the notification UI with conditional "Read" label for project notifications only
-                setTimeout(function() {
+
+                // Immediately update the notification UI so unread indicator is removed before any redirect
+                try {
                     const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-                    const notificationTitle = notificationElement.find('.notification-title').text().toLowerCase();
-                    
-                    // Only apply conditional logic for project notifications
+                    const notificationTitle = (notificationElement.find('.notification-title').text() || '').toLowerCase();
+
+                    // Remove unread dot immediately
+                    notificationElement.find('.notification-unread-dot').remove();
+
+                    // Only apply conditional logic for project notifications for the Read label behavior
                     if (notificationTitle.includes('project')) {
+                        // Use existing helper to show 'Read' label with conditional timing
                         updateNotificationReadStatus(notificationId);
                     } else {
-                        // For non-project notifications (like tasks), use original logic
-                        notificationElement.find('.notification-unread-dot').remove();
+                        // For non-project notifications (like tasks), set Read label immediately
                         notificationElement.find('.notification-actions').html('<div class="notification-read-label">Read</div>');
                     }
-                }, 200); // Delay to ensure badge count is updated first
+                } catch (e) {
+                    console.error('Failed to update notification DOM after marking read', e);
+                }
 
-                // Execute callback if provided
+                // Execute callback if provided (redirect should happen after DOM update)
                 if (typeof callback === 'function') {
                     callback();
                 }
