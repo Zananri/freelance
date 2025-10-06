@@ -671,7 +671,6 @@
             .then((res) => res.json())
             .then((payload) => {
                 projects = (payload.data || [])
-                    .filter(p => !p.project_type || String(p.project_type) === 'public')
                     .map((p) => ({
                         id: p.id,
                         title: p.title,
@@ -891,6 +890,41 @@
             // Clear executor selections
             if (window.clearSelectedExecutors) {
                 window.clearSelectedExecutors();
+            }
+        });
+        // When Add Task modal is shown, set sensible defaults if fields are empty.
+        addTaskModalEl.addEventListener('show.bs.modal', function () {
+            try {
+                // Priority default: MEDIUM if not selected
+                const prio = document.getElementById('task_priority');
+                if (prio && (!prio.value || String(prio.value).trim() === '')) {
+                    prio.value = 'MEDIUM';
+                }
+
+                // Date defaults: start_date = today, due_date = today + 2 days
+                const startEl = document.getElementById('task_start_date');
+                const dueEl = document.getElementById('task_due_date');
+                const now = new Date();
+                function formatDate(d) {
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    return `${yyyy}-${mm}-${dd}`;
+                }
+                const todayStr = formatDate(now);
+                const dueDate = new Date(now.getTime());
+                dueDate.setDate(dueDate.getDate() + 2);
+                const dueStr = formatDate(dueDate);
+
+                if (startEl && (!startEl.value || String(startEl.value).trim() === '')) {
+                    startEl.value = todayStr;
+                }
+                if (dueEl && (!dueEl.value || String(dueEl.value).trim() === '')) {
+                    dueEl.value = dueStr;
+                }
+            } catch (e) {
+                // swallow errors to avoid breaking modal show
+                console.warn('AddTaskModal show handler error', e);
             }
         });
     }

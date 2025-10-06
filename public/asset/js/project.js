@@ -609,8 +609,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(payload => {
                 projects = (Array.isArray(payload) ? payload : payload.data) || [];
-                projects = (projects || []).filter(p => !p.project_type || String(p.project_type) === 'public')
-                    .map(p => ({
+                projects = (projects || []).map(p => ({
                         id: p.id,
                         title: p.title || p.name || "Project " + p.id,
                         image: p.image || "",

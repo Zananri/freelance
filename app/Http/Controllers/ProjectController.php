@@ -331,10 +331,24 @@ class ProjectController extends Controller
             $taskScope = in_array($taskScopeRaw, ['project', 'me', 'all']) ? $taskScopeRaw : 'project';
 
             if ($taskScope === 'all') {
-                // For 'all' scope (used by global listings and task dropdowns), only expose public projects
+                // For 'all' scope (used by global listings and task dropdowns), expose public projects
+                // and also allow the authenticated creator to see their own private projects.
                 $projects = Project::where('status', '!=', 'DELETED')
-                    ->where(function ($q) {
-                        $q->whereNull('project_type')->orWhere('project_type', 'public'); })
+                    ->where(function ($q) use ($user) {
+                        $q->whereNull('project_type')
+                          ->orWhere('project_type', 'public');
+                        // Include private projects authored/created by current authenticated user
+                        try {
+                            if ($user && $user->id) {
+                                $q->orWhere(function ($qq) use ($user) {
+                                    $qq->where('project_type', 'private')
+                                       ->where('created_by', $user->id);
+                                });
+                            }
+                        } catch (\Throwable $_) {
+                            // ignore and continue with public-only fallback
+                        }
+                    })
                     ->with([
                         'department',
                         'division',
