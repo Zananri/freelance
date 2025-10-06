@@ -1651,7 +1651,7 @@ input[type="file"]::file-selector-button {
     }
 
     .feedback-content-detail.fullscreen .feedback-content {
-        max-height: calc(100vh - 200px);
-        min-height: calc(100vh - 200px);
+        max-height: 65vh;
+        min-height: 65vh;
     }
 }
