@@ -1054,7 +1054,9 @@
     z-index: 21;
 }
 
-.structure-detail-content:not(.fullscreen) #task-tree {
+.structure-detail-content.fullscreen .task-tree-wrapper {
+    max-height: 100vh;
+    min-height: 100vh;
 }
 
 .task-tree-wrapper {
