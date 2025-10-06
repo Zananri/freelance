@@ -1880,16 +1880,20 @@ $(document).ready(function () {
     });
 });
 
-document.getElementById("search_filter").addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
-        e.preventDefault();
-        const query = this.value.trim();
+$(document).ready(function () {
+    let debounceTimer;
 
-        if (query.length >= 2 || query.length === 0) {
-            currentFilters.search = query;
-            loadEmployeeData(currentFilters);
-        }
-    }
+    $('#search_filter').on('input', function () {
+        const query = $(this).val().trim();
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+            if (query.length >= 2 || query.length === 0) {
+                currentFilters.search = query;
+                loadEmployeeData(currentFilters);
+            }
+        }, 500);
+    });
 });
 
 $(document).on('click','.data-fullscreen, .data-fullscreen-exit',function(){
