@@ -5955,14 +5955,15 @@
             // Fetch projects
             fetch(appUrl + "/project/index?task_scope=all")
                 .then((res) => res.json())
-                .then((payload) => {
-                    projects =
-                        (Array.isArray(payload) ? payload : payload.data) || [];
-                    projects = projects.map((p) => ({
-                        id: p.id,
-                        title: p.title || p.name || "Project " + p.id,
-                        image: p.image || "",
-                    }));
+                    .then((payload) => {
+                        projects = (Array.isArray(payload) ? payload : payload.data) || [];
+                        projects = (projects || []).filter(p => !p.project_type || String(p.project_type) === 'public')
+                            .map((p) => ({
+                                id: p.id,
+                                title: p.title || p.name || "Project " + p.id,
+                                image: p.image || "",
+                                project_type: p.project_type || 'public'
+                            }));
 
                     // Preselect part_of_project kalau ada
                     if (currentPartOfProjectId) {

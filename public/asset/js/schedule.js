@@ -1414,12 +1414,14 @@ document.addEventListener("DOMContentLoaded", function () {
 
         fetch(appUrl + "/project/index?task_scope=all")
             .then((res) => res.json())
-            .then((payload) => {
-                projects = (payload.data || []).map((p) => ({
-                    id: p.id,
-                    title: p.title,
-                    image: p.image || "",
-                }));
+                .then((payload) => {
+                    projects = (payload.data || [])
+                        .filter(p => !p.project_type || String(p.project_type) === 'public')
+                        .map((p) => ({
+                            id: p.id,
+                            title: p.title,
+                            image: p.image || "",
+                        }));
 
                 if (selectedProjectId) {
                     const selected = projects.find(
