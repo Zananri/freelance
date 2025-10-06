@@ -600,32 +600,6 @@
     color: #198754; /* Bootstrap success green */
 }
 
-@media (max-width: 768px) {
-    .detail-project-card {
-        margin-bottom: 16px;
-    }
-
-    .structure-detail {
-        position: relative;
-    }
-
-    .structure-detail-content {
-        position: relative;
-    }
-
-    #fullscreen-tree-btn {
-        position: absolute;
-        top: 30%;
-        right: 10%;
-    }
-
-    #view-more-wrapper {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-    }
-}
-
 .input-custom {
     position: relative;
 }
@@ -830,25 +804,24 @@
     bottom: 0;
     width: 100%;
     height: calc(100vh - 85px);
-    max-height: 100vh;
     z-index: 21;
 }
 
 .timeline-content.fullscreen .body-content,
 .timeline-content.fullscreen .timeline-wrapper {
     height: 100%;
-    max-height: calc(100vh - 210px);
+    height: calc(100vh - 210px);
     width: 100%;
 }
 
 .timeline-content.fullscreen .timeline-table {
     min-width: 100%;
-    max-height: calc(100vh - 500px);
+    height: calc(100vh - 500px);
 }
 
 .timeline-wrapper {
     min-height: 38vh;
-    max-height: calc(100vh - 500px);
+    height: calc(100vh - 500px);
     width: 100%;
     overflow-x: auto;
     overflow-y: auto;
@@ -856,7 +829,7 @@
 }
 
 .timeline-table {
-    min-width: 200%;
+    width: 200%;
     min-height: 35vh;
     border-collapse: collapse;
     border: 1px solid #dae3ed;
@@ -975,33 +948,6 @@
 
 .legend-green {
     background-color: #4db072;
-}
-
-@media (max-width: 1439px) {
-    .timeline-wrapper {
-        min-height: 30vh;
-        max-height: calc(100vh - 175px);
-        overflow-y: auto;
-        position: relative;
-    }
-
-    #totalTaskTimeline {
-        font-size: 12px;
-    }
-
-    #monthTitleTimeline,
-    #prevTimelineModal span,
-    #nextTimelineModal span,
-    #fullscreen-btn span {
-        font-size: 14px;
-    }
-
-    .timeline-table {
-        min-width: 400%;
-        border-collapse: collapse;
-        border: 1px solid #dae3ed;
-        table-layout: fixed;
-    }
 }
 
 #task-list,
@@ -1549,6 +1495,88 @@ input[type="file"]::file-selector-button {
 }
 
 .comment-content p {
-  margin-bottom: 4px;
-  font-size: inherit !important;
+    margin-bottom: 4px;
+    font-size: inherit !important;
+}
+
+@media (max-width: 768px) {
+    .structure-detail-content:not(.fullscreen) #task-tree {
+        min-height: calc(100vh - 525px);
+        max-height: calc(100vh - 525px);
+        margin-bottom: 20px;
+    }
+
+    .detail-project-card {
+        margin-bottom: 16px;
+    }
+
+    .timeline-wrapper {
+        max-height: 100%;
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: auto;
+        position: relative;
+    }
+
+    .timeline-table {
+        width: 400%;
+    }
+
+    .timeline-content.fullscreen {
+        position: fixed;
+        top: 85px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        max-height: 100vh;
+        z-index: 21;
+    }
+
+    .timeline-content.fullscreen .timeline-wrapper {
+        max-height: calc(100vh - 100px);
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+
+    .timeline-content.fullscreen .timeline-table {
+        width: 400%;
+        height: auto;
+        min-height: unset;
+        max-height: unset;
+    }
+
+    #monthTitleTimeline,
+    #prevTimelineModal span,
+    #nextTimelineModal span,
+    #fullscreen-btn span {
+        font-size: 14px;
+    }
+
+    #view-more-wrapper {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .feedback-content-detail.fullscreen {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        max-height: 100vh;
+        z-index: 15;
+        padding: 20px;
+        border-radius: 16px;
+        margin: 0;
+    }
+
+    .feedback-content-detail.fullscreen .feedback-content {
+        max-height: calc(100vh - 200px);
+        min-height: calc(100vh - 200px);
+    }
 }
