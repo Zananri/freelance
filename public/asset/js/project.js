@@ -1144,6 +1144,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             /"/g,
                             "&quot;"
                         );
+                        const pid = project.id || projectId;
+                        const projectSlug = project.slug || slugify(project.title || "unknown-project");
+                        const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
                         rowHtml += `
                             <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
@@ -1165,13 +1168,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                                               getInitialsColor(
                                                                   project.title
                                                               );
-                                                          return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\"
-                                                            style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`;
+                                                          return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                            style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${init}</div>`;
                                                       })()
                                             }
-                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">${
-                                                project.title
-                                            }</h6>
+
+                                        <a class="project-link text-decoration-none" data-project-id="${project.id}" href="${fullProjectUrl}">
+                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">
+                                                ${project.title}
+                                            </h6>
+                                        </a>
+
                                         </div>
                                         <div class="dropdown-icon-container">
                                             <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon dropdown-icon-custom"
@@ -6373,21 +6380,27 @@ document.addEventListener("DOMContentLoaded", function () {
                             success: function (response) {
                                 const project = response.data || {};
                                 const pid = project.id || projectId;
-                                // Prioritas gunakan project.slug jika tersedia dari API; fallback generate dari title
-                                let projectSlug = project.slug || slugify(project.title || "unknown-project");
-                                // Generate URL full ke halaman detail project
+                                const projectSlug = project.slug || slugify(project.title || "unknown-project");
                                 const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
-                                // Langsung redirect ke halaman detail (render view di backend)
+
                                 window.location.href = fullProjectUrl;
                             },
                             error: function (xhr, status, err) {
                                 console.error("Error fetching project details:", err);
                                 alert("Failed to load project details. Please try again.");
-                                // Opsional: Fallback redirect ke URL dasar tanpa slug jika diperlukan
-                                // window.location.href = `${appUrl}/project/${projectId}`;
                             }
                         });
                     }
+
+                    $(document).on('click', '.project-link', function (e) {
+                        const projectId = $(this).data('project-id');
+
+                        if (e.metaKey || e.ctrlKey || e.which === 2) return;
+
+                        e.preventDefault();
+                        fetchAndShowProjectDetail(projectId);
+                    });
+
 
                     // Event listener for "Detail", "Task", and "Feedback" dropdown item click
                     document.addEventListener("click", function (e) {
