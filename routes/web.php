@@ -144,6 +144,8 @@ Route::middleware('auth')->group(function () {
     Route::delete('/task/{id}/reference-file', [TaskController::class, 'destroyReferenceFile'])->name('task.reference-file.destroy');
     // Upload reference files to a task
     Route::post('/task/{id}/reference-file', [TaskController::class, 'storeReferenceFile'])->name('task.reference-file.store');
+    // Soft delete task (mark as DELETED without removing from DB)
+    Route::put('/task/{id}/soft-delete', [TaskController::class, 'softDelete'])->name('task.soft-delete');
     Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
     // Dashboard: Today tasks for current user
     Route::get('/task/dashboard/today', [TaskController::class, 'getDashboardTasksToday'])->name('task.dashboard.today');

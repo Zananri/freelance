@@ -9,9 +9,10 @@
             @php
                 $img = $project->image ?? null;
                 $imgUrl = $img ? asset('file/project/' . ltrim($img, '/')) : asset('asset/img/image.png');
+                // Count tasks excluding canceled and deleted statuses
                 $totalTasks = $project
                     ->tasks()
-                    ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                    ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
                     ->count();
             @endphp
             <meta name="project-image" content="{{ $imgUrl }}">

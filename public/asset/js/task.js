@@ -2850,6 +2850,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     <div class="dropdown-item">Feedback</div>
                     ${statusMenuItem}
                     ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
+                    ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
                 </div>
             </div>
         `;
@@ -6940,6 +6941,24 @@ function applyCurrentSearchFilter() {
             handleTaskCancel(taskId);
         }
 
+        const softDeleteBtn = e.target.closest(".dropdown-item.delete-task");
+        if (softDeleteBtn) {
+            const card = softDeleteBtn.closest("[data-task-id]");
+            const taskId = card?.getAttribute("data-task-id");
+            if (!taskId) return;
+
+            const detailModalEl = document.getElementById("taskDetailModal");
+            if (detailModalEl) {
+                const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                if (detailModal) {
+                    detailModal.hide();
+                    // do not return; proceed to delete
+                }
+            }
+
+            handleTaskDelete(taskId);
+        }
+
         const editBtn = e.target.closest(".dropdown-item.edit-task");
         if (editBtn) {
             const card = editBtn.closest("[data-task-id]");
@@ -7151,6 +7170,7 @@ function applyCurrentSearchFilter() {
                             <div class="dropdown-menu d-none">
                                 <div class="dropdown-item edit-task">Edit</div>
                                 ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
+                                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
                             </div>
                         </div>
                     </div>
@@ -7376,6 +7396,14 @@ function applyCurrentSearchFilter() {
 
         deleteModalEl.dataset.taskId = taskId;
 
+        // For Cancel flow: left button "Close", right action "Cancel"
+        try {
+            const dismissBtn = deleteModalEl.querySelector('.btn.btn-custom-close[data-bs-dismiss="modal"]');
+            if (dismissBtn) dismissBtn.textContent = 'Close';
+            const confirmBtn = document.getElementById('confirmDeleteTaskBtn');
+            if (confirmBtn) confirmBtn.textContent = 'Cancel';
+        } catch(_) {}
+
         // Pre-show the modal with a loader to avoid backdrop flicker while fetching
         const preContentEl = deleteModalEl.querySelector(".modal-body");
         if (preContentEl) {
@@ -7505,6 +7533,85 @@ function applyCurrentSearchFilter() {
                         try { alert("Failed to cancel task."); } catch(e) {}
                     }
                 },
+            });
+        };
+    }
+
+    // Function to handle task soft-delete to DELETED
+    function handleTaskDelete(taskId) {
+        // Reuse the existing delete modal UI but with different labels
+        const deleteModalEl = document.getElementById("deleteTaskModal");
+        const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
+
+        deleteModalEl.dataset.taskId = taskId;
+        // For Delete flow: left button "Cancel", right action "Delete"
+        try {
+            const dismissBtn = deleteModalEl.querySelector('.btn.btn-custom-close[data-bs-dismiss="modal"]');
+            if (dismissBtn) dismissBtn.textContent = 'Cancel';
+            const confirmBtn = document.getElementById('confirmDeleteTaskBtn');
+            if (confirmBtn) confirmBtn.textContent = 'Delete';
+        } catch(_) {}
+        const preContentEl = deleteModalEl.querySelector(".modal-body");
+        if (preContentEl) {
+            preContentEl.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+        }
+        deleteModal.show();
+
+        // Load task info for preview
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                const task = data.data || {};
+                const title = (task && task.title) ? task.title : 'Untitled Task';
+                const desc = (task && task.description) ? task.description : '';
+                const projTitle = (task && task.project && task.project.title) ? task.project.title : '';
+                const contentEl = deleteModalEl.querySelector(".modal-body");
+                if (contentEl) {
+                    contentEl.innerHTML = `
+                        <div class="custom-card rounded-4 position-relative p-3 border-0">
+                            <div class="d-flex flex-column">
+                                ${projTitle ? `<small class="text-muted" style="font-size:11px;">${projTitle}</small>` : ''}
+                                <h5 class="mb-1">${title}</h5>
+                                ${desc ? `<div class="text-muted" style="font-size:12px;">${desc}</div>` : ''}
+                                <div class="mt-2" style="font-size:12px;color:#b94a48;">This will move the task to Archive (status: DELETED).</div>
+                            </div>
+                        </div>`;
+                }
+            }
+        });
+
+        // Bind confirm button for soft delete
+        const confirmDeleteBtn = document.getElementById("confirmDeleteTaskBtn");
+        confirmDeleteBtn.onclick = function () {
+            $.ajax({
+                url: appUrl + "/task/" + taskId + "/soft-delete",
+                type: "PUT",
+                headers: {
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                },
+                success: function (response) {
+                    try {
+                        const cardEl = document.querySelector(`[data-task-id="${taskId}"]`);
+                        if (cardEl) cardEl.remove();
+                    } catch (_) {}
+                    deleteModal.hide();
+                    try { showFloatingAlert(response.message || 'Task deleted', 'success', 1500); } catch(_) {}
+                    try {
+                        if (typeof fetchAndRenderTasks === 'function') {
+                            fetchAndRenderTasks('new_request', 1, false, '');
+                            fetchAndRenderTasks('in_progress', 1, false, '');
+                            fetchAndRenderTasks('completed', 1, false, '');
+                        }
+                        if (typeof loadArchivedTasksIntoModal === 'function') loadArchivedTasksIntoModal();
+                    } catch(_) {}
+                },
+                error: function (xhr) {
+                    let msg = 'Failed to delete task';
+                    if (xhr && xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                    try { showFloatingAlert(msg, 'danger', 3000); } catch(_) { alert(msg); }
+                }
             });
         };
     }
@@ -8899,27 +9006,55 @@ function applyCurrentSearchFilter() {
             if (archiveLoading || !archiveHasMore) return;
             archiveLoading = true;
 
-            const res = await fetch(`${baseAppUrl}/task/index?status=canceled&per_page=10&page=${page}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            }).catch(() => null);
+            // Fetch both canceled and deleted pages in parallel and merge
+            const [resCanceled, resDeleted] = await Promise.all([
+                fetch(`${baseAppUrl}/task/index?status=canceled&include_canceled=1&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null),
+                fetch(`${baseAppUrl}/task/index?status=deleted&include_canceled=1&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null)
+            ]);
 
-            if (!res || !res.ok) {
+            if ((!resCanceled || !resCanceled.ok) && (!resDeleted || !resDeleted.ok)) {
                 if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
                 archiveLoading = false;
                 return;
             }
-
-            const j = await res.json().catch(() => ({}));
-            const data = (j && j.data) ? j.data : {};
-            let tasks = [];
-
-            if (data) {
-                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
-                if (canceledSection) {
-                    if (Array.isArray(canceledSection)) tasks = canceledSection;
-                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
+            const parseTasksFromResponse = async (res) => {
+                if (!res || !res.ok) return [];
+                const j = await res.json().catch(() => ({}));
+                const data = (j && j.data) ? j.data : {};
+                let arr = [];
+                if (data) {
+                    const keys = ['canceled','CANCELED','deleted','DELETED'];
+                    for (const key of keys) {
+                        const section = data[key];
+                        if (!section) continue;
+                        if (Array.isArray(section)) arr = arr.concat(section);
+                        else if (Array.isArray(section.tasks)) arr = arr.concat(section.tasks);
+                    }
                 }
-            }
+                if ((!arr || !arr.length) && data) {
+                    // fallback: flatten buckets and filter by status canceled/deleted
+                    const collected = [];
+                    const buckets = ['new_request','in_progress','completed','rejected','canceled','deleted','CANCELED','DELETED'];
+                    buckets.forEach(key => {
+                        const section = data[key];
+                        if (!section) return;
+                        if (Array.isArray(section)) collected.push(...section);
+                        else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
+                    });
+                    arr = collected.filter(t => {
+                        const s = String(t.status || '').toLowerCase();
+                        return s === 'canceled' || s === 'deleted' || s.includes('cancel') || s.includes('deleted');
+                    });
+                }
+                return arr;
+            };
+
+            let tasks = [];
+            const [tasksCanceled, tasksDeleted] = await Promise.all([
+                parseTasksFromResponse(resCanceled),
+                parseTasksFromResponse(resDeleted)
+            ]);
+            tasks = tasks.concat(tasksCanceled || [], tasksDeleted || []);
             if (!tasks || tasks.length === 0) {
                 let collected = [];
                 const buckets = ['new_request', 'in_progress', 'completed', 'rejected', 'canceled', 'CANCELED'];
@@ -8974,7 +9109,7 @@ function applyCurrentSearchFilter() {
                 const desc = (t.description || '').toString();
                 const priority = t.priority || '';
                 const rawStatus = String((t.status || '')).toUpperCase();
-                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL'))
+                const typeBadge = (rawStatus === 'CANCELED' || rawStatus === 'DELETED' || rawStatus.includes('CANCEL'))
                     ? `<span style="color:red; font-weight:600;">${rawStatus}</span>`
                     : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`;
                 return `
@@ -9059,7 +9194,7 @@ function applyCurrentSearchFilter() {
                         if (ds && ds.length) {
                             ds.forEach(function (dd) {
                                 const st = (card.getAttribute('data-task-status') || '').toUpperCase();
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                const badge = (st === 'CANCELED' || st === 'DELETED' || st.includes('CANCEL'))
                                     ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
                                     : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
                                 dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>');
@@ -9067,7 +9202,7 @@ function applyCurrentSearchFilter() {
                         } else {
                             card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function (_, g1) {
                                 const st = (card.getAttribute('data-task-status') || '').toUpperCase();
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                const badge = (st === 'CANCELED' || st === 'DELETED' || st.includes('CANCEL'))
                                     ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
                                     : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
                                 return 'Status: <span class="type-badge-wrapper">' + badge + '</span>';

@@ -108,8 +108,8 @@ class TaskController extends Controller
                         });
                 });
 
-            $includeCanceled = false;
-            if ($statusFilter && strtolower($statusFilter) === 'canceled') {
+            $includeCanceled = false; // include both canceled and deleted when true
+            if ($statusFilter && in_array(strtolower($statusFilter), ['canceled','deleted'])) {
                 $includeCanceled = true;
             }
             if ($request->filled('include_canceled')) {
@@ -120,7 +120,7 @@ class TaskController extends Controller
             }
 
             if (!$includeCanceled) {
-                $baseQuery->whereRaw('LOWER(status) <> ?', ['canceled']);
+                $baseQuery->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted']);
             }
 
             if ($projectId)
@@ -185,7 +185,14 @@ class TaskController extends Controller
                         })
                         ->orderBy('complete_date', 'desc');
                 } else {
-                    $query->where('status', $normalizedFilter)
+                    $query->where(function($qq) use ($normalizedFilter){
+                            // allow filtering explicitly by 'canceled' or 'deleted'
+                            if (in_array($normalizedFilter, ['canceled','deleted'])) {
+                                $qq->where('status', $normalizedFilter);
+                            } else {
+                                $qq->where('status', $normalizedFilter);
+                            }
+                        })
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
@@ -398,8 +405,8 @@ class TaskController extends Controller
                             }
                         });
                 })
-                // Hide soft-deleted tasks from all aggregations
-                ->whereRaw('LOWER(status) <> ?', ['canceled']);
+                // Hide soft-deleted tasks from all aggregations (exclude canceled and deleted)
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted']);
 
             if ($projectId) {
                 $baseQuery->where('project_id', $projectId);
@@ -754,8 +761,8 @@ class TaskController extends Controller
                                 });
                         });
                 })
-                // Exclude DELETED tasks
-                ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                // Exclude soft-deleted tasks (canceled, deleted)
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted'])
                 // Do not show tasks that start in the future (e.g., tomorrow) on Today's tab
                 ->where(function ($d) use ($today) {
                     $d->whereNull('start_date')
@@ -922,8 +929,8 @@ class TaskController extends Controller
                                 });
                         });
                 })
-                // Exclude DELETED tasks
-                ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                // Exclude soft-deleted tasks (canceled, deleted)
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted'])
                 ->whereDate('start_date', $tomorrow);
 
             $tasks = $base->orderByDesc('created_at')->get();
@@ -1930,7 +1937,7 @@ class TaskController extends Controller
                     'message' => 'Only PIC can delete this task.'
                 ], 403);
             }
-            // Soft-delete: flag status as CANCELED and set deleted_by. Do not remove files or related data.
+            // Soft-delete (cancel legacy): flag status as CANCELED and set deleted_by. Do not remove files or related data.
             $task->status = 'CANCELED';
             $task->deleted_by = auth()->id();
             $task->save();
@@ -1943,6 +1950,96 @@ class TaskController extends Controller
                 // Back-end now performs same soft-delete (status set to 'CANCELED'),
                 // return message uses 'canceled' to match UI label change.
                 'message' => 'Task canceled successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
+     * Soft-delete a task by marking its status as DELETED (do not remove from DB or files).
+     * Only PIC is authorized to perform this action.
+     */
+    public function softDelete(string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+
+            // Authorization: only PIC of this task may soft delete
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 401,
+                    'status' => 'error',
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $isPic = TaskAssignment::where('task_id', $task->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->exists();
+
+            if (!$isPic) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Only PIC can delete this task.'
+                ], 403);
+            }
+
+            // Determine allowed enum values for `tasks.status` so we don't attempt to write
+            // a value the DB doesn't accept (which causes a "Data truncated for column 'status'" warning/error).
+            $columnInfo = DB::select("SHOW COLUMNS FROM `tasks` WHERE Field = 'status'");
+            $allowedStatuses = [];
+            if ($columnInfo && is_array($columnInfo) && count($columnInfo) > 0) {
+                $type = $columnInfo[0]->Type ?? '';
+                if (preg_match("/^enum\((.*)\)$/", $type, $m)) {
+                    // $m[1] is like: '\'new_request\',\'in_progress\',...'
+                    // Use str_getcsv to split while respecting quotes
+                    $raw = $m[1];
+                    $parts = str_getcsv($raw, ',', "'");
+                    foreach ($parts as $p) {
+                        $p = trim($p, "'\"");
+                        if ($p !== '') $allowedStatuses[] = $p;
+                    }
+                }
+            }
+
+            // Prefer DELETED; fall back to CANCELED if DELETED isn't supported by the enum
+            $desired = 'DELETED';
+            if (!in_array($desired, $allowedStatuses, true)) {
+                if (in_array('CANCELED', $allowedStatuses, true)) {
+                    $desired = 'CANCELED';
+                } else {
+                    // If neither value exists, fail with an actionable error to run migrations
+                    return response()->json([
+                        'code' => 500,
+                        'status' => 'error',
+                        'message' => "Database does not allow status 'DELETED' or 'CANCELED'. Please run the migrations to add archived statuses to tasks.status enum."
+                    ], 500);
+                }
+            }
+
+            // Mark status and set deleted_by
+            $task->status = $desired;
+            $task->deleted_by = auth()->id();
+            $task->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Task deleted successfully'
             ]);
 
         } catch (\Exception $e) {
@@ -3145,7 +3242,8 @@ class TaskController extends Controller
             ])
                 //->whereIn('id', $allIds)
                 ->where('project_id', $projectId)
-                ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                // Exclude both canceled and deleted tasks from the project tree
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
                 ->orderBy('start_date', 'asc')
                 ->get();
 
@@ -3194,6 +3292,8 @@ class TaskController extends Controller
             // Check if there are more levels beyond the current pageTab
             $hasMore = Task::where('project_id', $projectId)
                 ->whereIn('parent_id', $allIds)
+                // Ensure we don't count canceled or deleted tasks as "more"
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
                 ->whereNotIn('id', $allIds)
                 ->exists();
 
