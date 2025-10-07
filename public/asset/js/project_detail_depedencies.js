@@ -1244,7 +1244,8 @@ function showAlert(msg, type) {
 
 function renderTaskDetail(res) {
     const task = res?.data || res;
-    if (!task || typeof task !== "object") return showAlert("Invalid task data.", "danger");
+    if (!task || typeof task !== "object")
+        return showAlert("Invalid task data.", "danger");
 
     $("#taskProjectAvatar").html(getAvatarHTML(task));
     $("#taskProjectTitle").text(task.project?.title || "-");
@@ -1256,7 +1257,9 @@ function renderTaskDetail(res) {
     $("#taskDivision").text(task.project?.division || "-");
     $("#taskCollaborators").html(buildCollaboratorsList(task));
 
-    const scHTML = buildStatusChangesHTML(task.status_changes || task.status_change);
+    const scHTML = buildStatusChangesHTML(
+        task.status_changes || task.status_change
+    );
     $("#taskStatusChanges").html(scHTML);
 
     initTaskDetailModal();
@@ -1266,13 +1269,15 @@ function buildStatusChangesHTML(statusChanges) {
     if (!statusChanges) return "";
     const list = Array.isArray(statusChanges) ? statusChanges : [statusChanges];
     return list
-        .map(sc => {
+        .map((sc) => {
             const lbl = sc.label || "";
             const name = sc.employee_name || "";
             if (!lbl && !name) return "";
             return `<div style="font-size:12px;margin-top:6px;color:#454545">
                         <span style="color:#797E91;">${escapeHTML(lbl)}</span>
-                        <span style="margin-left:6px;color:#454545">${escapeHTML(name)}</span>
+                        <span style="margin-left:6px;color:#454545">${escapeHTML(
+                            name
+                        )}</span>
                     </div>`;
         })
         .join("");
@@ -1387,74 +1392,6 @@ function escapeHTML(str) {
         .replace(/'/g, "&#039;");
 }
 
-function buildTaskDetailHTML(task) {
-    const avatarHtml = getAvatarHTML(task);
-    const collaboratorsHTML = buildCollaboratorsList(task);
-
-    return `
-        <div class="custom-card rounded-4 p-3 border-0" data-task-id="${
-            task.id
-        }">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div class="d-flex align-items-center">
-                    ${avatarHtml}
-                    <div>
-                        ${
-                            task.project?.title
-                                ? `<small class="text-muted">${task.project.title}</small>`
-                                : ""
-                        }
-                        <h5 class="mb-0" style="font-size: 16px; font-weight: 600;">${task.title || "Untitled Task"}</h5>
-                    </div>
-                </div>
-            </div>
-            <div class="description-container">
-                <div class="description-detail">${task.description || ""}</div>
-            </div>
-            <hr>
-            <div class="d-flex justify-content-between mb-2">
-                <div style="font-size: 12px;">
-                    <span class="text-muted">Priority:</span> ${formatPriority(
-                    task.priority
-                )}</div>
-                <div style="font-size: 12px;">
-                    <span class="text-muted">Deadline:</span> ${
-                    formatDateENMedium(task.due_date) || "-"
-                }</div>
-            </div>
-            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
-                <span class="text-muted">Department:</span>
-                <span>${task.project?.department || "-"}</span>
-            </div>
-            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                <span class="text-muted">Division:</span>
-                <span>${task.project?.division || "-"}</span>
-            </div>
-            <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
-                <div class="flex-grow-1">
-                    ${collaboratorsHTML}
-                    ${(function(){
-                        try {
-                            let scs = task.status_changes || null;
-                            if ((!scs || !Array.isArray(scs) || scs.length === 0) && task.status_change) {
-                                scs = [task.status_change];
-                            }
-                            if (!scs || !Array.isArray(scs) || scs.length === 0) return '';
-                                function esc(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
-                                const rows = scs.map(function(sc){
-                                    const lbl = (sc.label || '').toString();
-                                    const name = (sc.employee_name || '').toString();
-                                    if (!lbl && !name) return '';
-                                        return `<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">${esc(lbl)}</span><span style="margin-left:6px;color:#454545">${esc(name)}</span></div>`;
-                                    });
-                                return rows.join('');
-                            } catch(e){ return ''; }
-                        })()}
-                </div>
-            </div>
-        </div>`;
-}
-
 function getAvatarHTML(task) {
     const img = task.project_image ? normalizeImage(task.project_image) : null;
     if (img) {
@@ -1480,6 +1417,36 @@ function formatPriority(priority) {
     if (!priority) return "-";
     const color = priority === "HIGH" ? "red" : "#4B4F5E";
     return `<span style="color:${color}">${priority}</span>`;
+}
+
+function initBootstrapTooltips(root = document) {
+    try {
+        const isMobile =
+            window.matchMedia("(max-width: 1024px)").matches ||
+            window.innerWidth <= 1024 ||
+            /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                navigator.userAgent
+            );
+        const defaultPlacement = isMobile ? "top" : "bottom";
+
+        const nodes = [].slice.call(
+            root.querySelectorAll('[data-bs-toggle="tooltip"]')
+        );
+        nodes.forEach((el) => {
+            const existing = bootstrap.Tooltip.getInstance(el);
+            if (existing) existing.dispose();
+
+            el.removeAttribute("data-bs-placement");
+
+            new bootstrap.Tooltip(el, {
+                container: "body",
+                placement: defaultPlacement,
+                trigger: "hover focus",
+            });
+        });
+    } catch (_) {
+        /* noop */
+    }
 }
 
 function initTaskDetailModal() {
