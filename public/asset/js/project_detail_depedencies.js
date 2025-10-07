@@ -1246,13 +1246,38 @@ function showAlert(msg, type) {
 
 function renderTaskDetail(res) {
     const task = res?.data || res;
-    if (!task || typeof task !== "object") {
-        return showAlert("Invalid task data.", "danger");
-    }
+    if (!task || typeof task !== "object") return showAlert("Invalid task data.", "danger");
 
-    const html = buildTaskDetailHTML(task);
-    $("#taskDetailContent").html(html);
+    $("#taskProjectAvatar").html(getAvatarHTML(task));
+    $("#taskProjectTitle").text(task.project?.title || "-");
+    $("#taskTitle").text(task.title || "Untitled Task");
+    $("#taskDescription").html(task.description || "No description");
+    $("#taskPriority").html(formatPriority(task.priority));
+    $("#taskDeadline").text(formatDateENMedium(task.due_date) || "-");
+    $("#taskDepartment").text(task.project?.department || "-");
+    $("#taskDivision").text(task.project?.division || "-");
+    $("#taskCollaborators").html(buildCollaboratorsList(task));
+
+    const scHTML = buildStatusChangesHTML(task.status_changes || task.status_change);
+    $("#taskStatusChanges").html(scHTML);
+
     initTaskDetailModal();
+}
+
+function buildStatusChangesHTML(statusChanges) {
+    if (!statusChanges) return "";
+    const list = Array.isArray(statusChanges) ? statusChanges : [statusChanges];
+    return list
+        .map(sc => {
+            const lbl = sc.label || "";
+            const name = sc.employee_name || "";
+            if (!lbl && !name) return "";
+            return `<div style="font-size:12px;margin-top:6px;color:#454545">
+                        <span style="color:#797E91;">${escapeHTML(lbl)}</span>
+                        <span style="margin-left:6px;color:#454545">${escapeHTML(name)}</span>
+                    </div>`;
+        })
+        .join("");
 }
 
 function buildCollaboratorsList(taskObj) {

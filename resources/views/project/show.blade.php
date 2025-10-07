@@ -581,8 +581,55 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal-content-custom">
                     <div class="modal-body modal-body-custom">
-                        <div id="taskDetailContent"></div>
+                        <div class="task-detail-wrapper">
+
+                            <!-- Header -->
+                            <div class="task-header d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div id="taskProjectAvatar" class="me-3"></div>
+                                    <div>
+                                        <small class="text-muted" id="taskProjectTitle"></small>
+                                        <h5 class="mb-0" id="taskTitle" style="font-size:16px;font-weight:600;">-
+                                        </h5>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="description-container">
+                                <div id="taskDescription" class="description-detail text-muted">No description</div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Meta Info -->
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <div><span class="text-muted">Priority:</span> <span id="taskPriority">-</span></div>
+                                <div><span class="text-muted">Deadline:</span> <span id="taskDeadline">-</span></div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                <span class="text-muted">Department:</span>
+                                <span id="taskDepartment">-</span>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <span class="text-muted">Division:</span>
+                                <span id="taskDivision">-</span>
+                            </div>
+
+                            <!-- Collaborators -->
+                            <div class="collab-section mt-3">
+                                <h6 class="fw-semibold mb-2">Collaborators</h6>
+                                <div id="taskCollaborators"></div>
+                            </div>
+
+                            <!-- Status Changes -->
+                            <div id="taskStatusChanges" class="mt-3"></div>
+
+                        </div>
                     </div>
+
                     <div class="modal-footer modal-footer-custom mt-3">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
