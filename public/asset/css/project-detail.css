@@ -1653,3 +1653,21 @@ input[type="file"]::file-selector-button {
         min-height: 65vh;
     }
 }
+
+#taskDetailModal .collab-name {
+    font-size: 14px;
+    color: #222;
+    line-height: 1.2;
+}
+
+#taskDetailModal .task-icon {
+    color: #555;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#taskDetailModal .collab-division {
+    font-size: 12px;
+    color: #777;
+}

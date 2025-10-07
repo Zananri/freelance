@@ -9,7 +9,8 @@
             @php
                 $img = $project->image ?? null;
                 $imgUrl = $img ? asset('file/project/' . ltrim($img, '/')) : asset('asset/img/image.png');
-                $totalTasks = $project->tasks()
+                $totalTasks = $project
+                    ->tasks()
                     ->whereRaw('LOWER(status) <> ?', ['canceled'])
                     ->count();
             @endphp
@@ -114,16 +115,20 @@
 
                         <div id="task-legend" class="d-flex justify-content-start">
                             <div class="legend-item d-flex align-items-start">
-                                <span class="not-started" data-bs-toggle="tooltip" data-bs-title="Not Started"><span class="text-legend">Not Started</span></span>
+                                <span class="not-started" data-bs-toggle="tooltip" data-bs-title="Not Started"><span
+                                        class="text-legend">Not Started</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="in-progress" data-bs-toggle="tooltip" data-bs-title="In Progress"><span class="text-legend">In Progress</span></span>
+                                <span class="in-progress" data-bs-toggle="tooltip" data-bs-title="In Progress"><span
+                                        class="text-legend">In Progress</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="late" data-bs-toggle="tooltip" data-bs-title="Late"><span class="text-legend">Late</span></span>
+                                <span class="late" data-bs-toggle="tooltip" data-bs-title="Late"><span
+                                        class="text-legend">Late</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="complete" data-bs-toggle="tooltip" data-bs-title="Complete"><span class="text-legend">Complete</span></span>
+                                <span class="complete" data-bs-toggle="tooltip" data-bs-title="Complete"><span
+                                        class="text-legend">Complete</span></span>
                             </div>
                         </div>
 
@@ -476,7 +481,8 @@
                             </div>
                         </div>
                         <div class="modal-footer modal-footer-custom">
-                            <button type="submit" class="btn-custom-close" aria-label="Close" data-bs-dismiss="modal">
+                            <button type="submit" class="btn-custom-close" aria-label="Close"
+                                data-bs-dismiss="modal">
                                 Close
                             </button>
                             <button type="submit" class="btn-submit-black">
@@ -564,6 +570,21 @@
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Modal Detail Task --}}
+        <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-body modal-body-custom">
+                        <div id="taskDetailContent"></div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom mt-3">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>

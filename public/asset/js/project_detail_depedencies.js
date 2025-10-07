@@ -118,7 +118,10 @@ function renderTaskNode(task, $template) {
             $card.addClass("draggable-task");
             // small affordance for users
             if (!$card.attr("title")) {
-                $card.attr("title", "Drag this task and drop onto another task to re-parent");
+                $card.attr(
+                    "title",
+                    "Drag this task and drop onto another task to re-parent"
+                );
             }
         }
     } catch (_) {}
@@ -587,7 +590,10 @@ $("#fullscreen-tree-btn").on("click", function () {
             var id = $(this).attr("data-task-id");
             window.__dragTaskId = id != null ? String(id) : null;
             if (e.originalEvent && e.originalEvent.dataTransfer) {
-                e.originalEvent.dataTransfer.setData("text/plain", window.__dragTaskId || "");
+                e.originalEvent.dataTransfer.setData(
+                    "text/plain",
+                    window.__dragTaskId || ""
+                );
                 e.originalEvent.dataTransfer.effectAllowed = "move";
             }
             $(this).addClass("dragging");
@@ -606,9 +612,14 @@ $("#fullscreen-tree-btn").on("click", function () {
             var $target = $(this);
             var targetId = $target.attr("data-task-id");
             var draggedId = window.__dragTaskId;
-            var denied = !draggedId || String(draggedId) === String(targetId) || isDescendant(draggedId, targetId);
+            var denied =
+                !draggedId ||
+                String(draggedId) === String(targetId) ||
+                isDescendant(draggedId, targetId);
             if (e.originalEvent && e.originalEvent.dataTransfer) {
-                e.originalEvent.dataTransfer.dropEffect = denied ? "none" : "move";
+                e.originalEvent.dataTransfer.dropEffect = denied
+                    ? "none"
+                    : "move";
             }
             if (denied) {
                 $target.addClass("drop-denied");
@@ -651,8 +662,13 @@ $("#fullscreen-tree-btn").on("click", function () {
     $(document).on("dragleave", "#task-tree", function (e) {
         try {
             // Only clear if we're leaving the task-tree completely
-            var relatedTarget = e.originalEvent ? e.originalEvent.relatedTarget : null;
-            if (relatedTarget && $(relatedTarget).closest("#task-tree").length > 0) {
+            var relatedTarget = e.originalEvent
+                ? e.originalEvent.relatedTarget
+                : null;
+            if (
+                relatedTarget &&
+                $(relatedTarget).closest("#task-tree").length > 0
+            ) {
                 return;
             }
             clearEmptySpaceDropVisuals();
@@ -672,7 +688,8 @@ $("#fullscreen-tree-btn").on("click", function () {
             var dragData = null;
             try {
                 if (e.originalEvent && e.originalEvent.dataTransfer) {
-                    dragData = e.originalEvent.dataTransfer.getData("text/plain");
+                    dragData =
+                        e.originalEvent.dataTransfer.getData("text/plain");
                 }
             } catch (_) {}
 
@@ -688,9 +705,9 @@ $("#fullscreen-tree-btn").on("click", function () {
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                 type: "PUT",
                 data: {
-                    parent_id: null
+                    parent_id: null,
                 },
-                dataType: "json"
+                dataType: "json",
             })
                 .done(function (response) {
                     try {
@@ -708,15 +725,26 @@ $("#fullscreen-tree-btn").on("click", function () {
                     // Show success message
                     try {
                         if (typeof window.showFloatingAlert === "function") {
-                            window.showFloatingAlert("Task berhasil dikeluarkan dari parent", "success", 2000);
+                            window.showFloatingAlert(
+                                "Task berhasil dikeluarkan dari parent",
+                                "success",
+                                2000
+                            );
                         }
                     } catch (_) {}
                 })
                 .fail(function (xhr) {
                     try {
-                        console.error("Failed to move task to free position", xhr && xhr.responseText);
+                        console.error(
+                            "Failed to move task to free position",
+                            xhr && xhr.responseText
+                        );
                         if (typeof window.showFloatingAlert === "function") {
-                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
+                            window.showFloatingAlert(
+                                "Gagal memindahkan task. Coba lagi.",
+                                "warning",
+                                3000
+                            );
                         } else {
                             alert("Gagal memindahkan task. Coba lagi.");
                         }
@@ -740,7 +768,8 @@ $("#fullscreen-tree-btn").on("click", function () {
             var dragData = null;
             try {
                 if (e.originalEvent && e.originalEvent.dataTransfer) {
-                    dragData = e.originalEvent.dataTransfer.getData("text/plain");
+                    dragData =
+                        e.originalEvent.dataTransfer.getData("text/plain");
                 }
             } catch (_) {}
             var draggedId = dragData || window.__dragTaskId;
@@ -748,14 +777,20 @@ $("#fullscreen-tree-btn").on("click", function () {
                 clearDropVisual($target);
                 return;
             }
-            if (String(draggedId) === String(targetId) || isDescendant(draggedId, targetId)) {
+            if (
+                String(draggedId) === String(targetId) ||
+                isDescendant(draggedId, targetId)
+            ) {
                 clearDropVisual($target);
                 return; // invalid move
             }
 
             var map = taskMap();
             var dragged = map[String(draggedId)];
-            if (dragged && String(dragged.parent_id || "") === String(targetId)) {
+            if (
+                dragged &&
+                String(dragged.parent_id || "") === String(targetId)
+            ) {
                 clearDropVisual($target);
                 return;
             }
@@ -768,9 +803,9 @@ $("#fullscreen-tree-btn").on("click", function () {
                 url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
                 type: "PUT",
                 data: {
-                    parent_id: String(targetId)
+                    parent_id: String(targetId),
                 },
-                dataType: "json"
+                dataType: "json",
             })
                 .done(function () {
                     try {
@@ -783,7 +818,10 @@ $("#fullscreen-tree-btn").on("click", function () {
                 })
                 .fail(function (xhr) {
                     try {
-                        console.error("Failed to move task", xhr && xhr.responseText);
+                        console.error(
+                            "Failed to move task",
+                            xhr && xhr.responseText
+                        );
                         alert("Gagal memindahkan task. Coba lagi.");
                     } catch (_) {}
                 })
@@ -795,8 +833,11 @@ $("#fullscreen-tree-btn").on("click", function () {
         }
     });
 
-    (function setupTouchDnd(){
-        var hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+    (function setupTouchDnd() {
+        var hasTouch =
+            "ontouchstart" in window ||
+            navigator.maxTouchPoints > 0 ||
+            navigator.msMaxTouchPoints > 0;
         if (!hasTouch) return;
 
         var state = {
@@ -812,7 +853,7 @@ $("#fullscreen-tree-btn").on("click", function () {
             lastTouchX: 0,
             lastTouchY: 0,
             longPressTimer: null,
-            moved: false
+            moved: false,
         };
 
         function cleanupTouchDrag() {
@@ -821,7 +862,7 @@ $("#fullscreen-tree-btn").on("click", function () {
                     clearTimeout(state.longPressTimer);
                     state.longPressTimer = null;
                 }
-                if (state.originEl) $(state.originEl).removeClass('dragging');
+                if (state.originEl) $(state.originEl).removeClass("dragging");
                 if (state.dropTarget) {
                     if (state.dropTarget.isEmptySpace) {
                         clearEmptySpaceDropVisuals();
@@ -829,8 +870,9 @@ $("#fullscreen-tree-btn").on("click", function () {
                         clearDropVisual($(state.dropTarget));
                     }
                 }
-                if (state.ghost && state.ghost.parentNode) state.ghost.parentNode.removeChild(state.ghost);
-            } catch(_){}
+                if (state.ghost && state.ghost.parentNode)
+                    state.ghost.parentNode.removeChild(state.ghost);
+            } catch (_) {}
             state.dragging = false;
             state.draggedId = null;
             state.originEl = null;
@@ -842,15 +884,15 @@ $("#fullscreen-tree-btn").on("click", function () {
         function createGhostFrom(el, x, y) {
             var rect = el.getBoundingClientRect();
             var g = el.cloneNode(true);
-            g.style.position = 'fixed';
-            g.style.left = (rect.left) + 'px';
-            g.style.top = (rect.top) + 'px';
-            g.style.width = rect.width + 'px';
-            g.style.height = rect.height + 'px';
-            g.style.pointerEvents = 'none';
-            g.style.opacity = '0.85';
+            g.style.position = "fixed";
+            g.style.left = rect.left + "px";
+            g.style.top = rect.top + "px";
+            g.style.width = rect.width + "px";
+            g.style.height = rect.height + "px";
+            g.style.pointerEvents = "none";
+            g.style.opacity = "0.85";
             g.style.zIndex = 9999;
-            g.style.boxShadow = '0 6px 16px rgba(0,0,0,0.15)';
+            g.style.boxShadow = "0 6px 16px rgba(0,0,0,0.15)";
             document.body.appendChild(g);
             state.dx = x - rect.left;
             state.dy = y - rect.top;
@@ -859,18 +901,23 @@ $("#fullscreen-tree-btn").on("click", function () {
 
         function findDropTargetAt(x, y) {
             var hidden = false;
-            if (state.ghost) { state.ghost.style.display = 'none'; hidden = true; }
+            if (state.ghost) {
+                state.ghost.style.display = "none";
+                hidden = true;
+            }
             var el = document.elementFromPoint(x, y);
-            if (hidden) state.ghost.style.display = '';
+            if (hidden) state.ghost.style.display = "";
             if (!el) return null;
 
             // Check if we're over a task box
-            var taskBoxCandidate = $(el).closest('#task-tree .task-box')[0] || null;
+            var taskBoxCandidate =
+                $(el).closest("#task-tree .task-box")[0] || null;
             if (taskBoxCandidate) return taskBoxCandidate;
 
             // Check if we're over empty space in task-tree
-            var treeCandidate = $(el).closest('#task-tree')[0] || null;
-            if (treeCandidate) return { isEmptySpace: true, element: treeCandidate };
+            var treeCandidate = $(el).closest("#task-tree")[0] || null;
+            if (treeCandidate)
+                return { isEmptySpace: true, element: treeCandidate };
 
             return null;
         }
@@ -884,7 +931,7 @@ $("#fullscreen-tree-btn").on("click", function () {
             }
 
             // Handle task-to-task drops
-            var targetId = targetEl.getAttribute('data-task-id');
+            var targetId = targetEl.getAttribute("data-task-id");
             if (!draggedId || !targetId) return false;
             if (String(draggedId) === String(targetId)) return false;
             return !isDescendant(draggedId, targetId);
@@ -892,18 +939,23 @@ $("#fullscreen-tree-btn").on("click", function () {
 
         function onTouchMove(e) {
             if (!state.dragging) return;
-            var t = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+            var t =
+                (e.changedTouches && e.changedTouches[0]) ||
+                (e.touches && e.touches[0]);
             if (!t) return;
-            try { e.preventDefault(); } catch(_){}
-            var x = t.clientX, y = t.clientY;
+            try {
+                e.preventDefault();
+            } catch (_) {}
+            var x = t.clientX,
+                y = t.clientY;
 
             // Store last touch position for coordinate calculation
             state.lastTouchX = x;
             state.lastTouchY = y;
 
             if (state.ghost) {
-                state.ghost.style.left = (Math.round(x - state.dx)) + 'px';
-                state.ghost.style.top = (Math.round(y - state.dy)) + 'px';
+                state.ghost.style.left = Math.round(x - state.dx) + "px";
+                state.ghost.style.top = Math.round(y - state.dy) + "px";
             }
             var targetEl = findDropTargetAt(x, y);
             if (state.dropTarget && state.dropTarget !== targetEl) {
@@ -924,11 +976,11 @@ $("#fullscreen-tree-btn").on("click", function () {
                     // Handle task box visual feedback
                     var $t = $(targetEl);
                     if (isValidDrop(state.draggedId, targetEl)) {
-                        $t.addClass('drop-ok').removeClass('drop-denied');
-                        $t.css({ outline: '2px dashed #007bff' });
+                        $t.addClass("drop-ok").removeClass("drop-denied");
+                        $t.css({ outline: "2px dashed #007bff" });
                     } else {
-                        $t.addClass('drop-denied').removeClass('drop-ok');
-                        $t.css({ outline: '2px dashed #dc3545' });
+                        $t.addClass("drop-denied").removeClass("drop-ok");
+                        $t.css({ outline: "2px dashed #dc3545" });
                     }
                 }
             }
@@ -942,7 +994,15 @@ $("#fullscreen-tree-btn").on("click", function () {
 
             if (!isValidDrop(draggedId, targetEl)) return;
 
-            var map = (function(){ var m={}; try{ (allTasks||[]).forEach(function(t){ m[String(t.id)] = t; }); }catch(_){ } return m; })();
+            var map = (function () {
+                var m = {};
+                try {
+                    (allTasks || []).forEach(function (t) {
+                        m[String(t.id)] = t;
+                    });
+                } catch (_) {}
+                return m;
+            })();
             var dragged = map[String(draggedId)];
 
             if (targetEl.isEmptySpace) {
@@ -953,139 +1013,465 @@ $("#fullscreen-tree-btn").on("click", function () {
 
                 // Touch: Move task to empty space (set parent_id to null)
                 $.ajax({
-                    url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
-                    type: 'PUT',
+                    url:
+                        appUrl +
+                        "/task/" +
+                        encodeURIComponent(String(draggedId)),
+                    type: "PUT",
                     data: {
-                        parent_id: null
+                        parent_id: null,
                     },
-                    dataType: 'json'
+                    dataType: "json",
                 })
-                .done(function(){
-                    try {
-                        if (dragged) {
-                            dragged.parent_id = null;
-                        }
-                        renderTaskList(allTasks);
-                    } catch(_){ }
+                    .done(function () {
+                        try {
+                            if (dragged) {
+                                dragged.parent_id = null;
+                            }
+                            renderTaskList(allTasks);
+                        } catch (_) {}
 
-                    // Don't reload from server to preserve positioning
-                    // Local data is already updated above
-                    try {
-                        if (typeof window.showFloatingAlert === "function") {
-                            window.showFloatingAlert("Task berhasil dikeluarkan dari parent", "success", 2000);
-                        }
-                    } catch (_) {}
-                })
-                .fail(function(xhr){
-                    try {
-                        console.error('Failed to move task to free position (touch)', xhr && xhr.responseText);
-                        if (typeof window.showFloatingAlert === "function") {
-                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
-                        } else {
-                            alert('Gagal memindahkan task. Coba lagi.');
-                        }
-                    } catch(_){ }
-                })
-                .always(function(){ clearEmptySpaceDropVisuals(); });
+                        // Don't reload from server to preserve positioning
+                        // Local data is already updated above
+                        try {
+                            if (
+                                typeof window.showFloatingAlert === "function"
+                            ) {
+                                window.showFloatingAlert(
+                                    "Task berhasil dikeluarkan dari parent",
+                                    "success",
+                                    2000
+                                );
+                            }
+                        } catch (_) {}
+                    })
+                    .fail(function (xhr) {
+                        try {
+                            console.error(
+                                "Failed to move task to free position (touch)",
+                                xhr && xhr.responseText
+                            );
+                            if (
+                                typeof window.showFloatingAlert === "function"
+                            ) {
+                                window.showFloatingAlert(
+                                    "Gagal memindahkan task. Coba lagi.",
+                                    "warning",
+                                    3000
+                                );
+                            } else {
+                                alert("Gagal memindahkan task. Coba lagi.");
+                            }
+                        } catch (_) {}
+                    })
+                    .always(function () {
+                        clearEmptySpaceDropVisuals();
+                    });
             } else {
                 // Handle drop to another task
-                var targetId = targetEl.getAttribute('data-task-id');
-                if (dragged && String(dragged.parent_id || '') === String(targetId)) {
+                var targetId = targetEl.getAttribute("data-task-id");
+                if (
+                    dragged &&
+                    String(dragged.parent_id || "") === String(targetId)
+                ) {
                     clearDropVisual($(targetEl));
                     return;
                 }
 
                 var $target = $(targetEl);
-                $target.css({ outline: '2px solid #2a7' });
+                $target.css({ outline: "2px solid #2a7" });
 
                 // Touch: Moving task under another task
 
                 $.ajax({
-                    url: appUrl + "/task/" + encodeURIComponent(String(draggedId)),
-                    type: 'PUT',
+                    url:
+                        appUrl +
+                        "/task/" +
+                        encodeURIComponent(String(draggedId)),
+                    type: "PUT",
                     data: {
-                        parent_id: String(targetId)
+                        parent_id: String(targetId),
                     },
-                    dataType: 'json'
+                    dataType: "json",
                 })
-                .done(function(){
-                    try {
-                        if (dragged) {
-                            dragged.parent_id = targetId;
-                        }
-                        renderTaskList(allTasks);
-                    } catch(_){ }
-                    // Don't reload from server to maintain consistent behavior
-                })
-                .fail(function(xhr){
-                    try {
-                        console.error('Failed to move task (touch)', xhr && xhr.responseText);
-                        if (typeof window.showFloatingAlert === "function") {
-                            window.showFloatingAlert("Gagal memindahkan task. Coba lagi.", "warning", 3000);
-                        } else {
-                            alert('Gagal memindahkan task. Coba lagi.');
-                        }
-                    } catch(_){ }
-                })
-                .always(function(){ clearDropVisual($target); });
+                    .done(function () {
+                        try {
+                            if (dragged) {
+                                dragged.parent_id = targetId;
+                            }
+                            renderTaskList(allTasks);
+                        } catch (_) {}
+                        // Don't reload from server to maintain consistent behavior
+                    })
+                    .fail(function (xhr) {
+                        try {
+                            console.error(
+                                "Failed to move task (touch)",
+                                xhr && xhr.responseText
+                            );
+                            if (
+                                typeof window.showFloatingAlert === "function"
+                            ) {
+                                window.showFloatingAlert(
+                                    "Gagal memindahkan task. Coba lagi.",
+                                    "warning",
+                                    3000
+                                );
+                            } else {
+                                alert("Gagal memindahkan task. Coba lagi.");
+                            }
+                        } catch (_) {}
+                    })
+                    .always(function () {
+                        clearDropVisual($target);
+                    });
             }
         }
 
-        document.addEventListener('touchmove', onTouchMove, { passive: false });
-        document.addEventListener('touchend', function(e){
-            if (!state.dragging) return;
-            performDropIfValid();
-            cleanupTouchDrag();
-        }, { passive: false });
-        document.addEventListener('touchcancel', function(){ if (state.dragging) cleanupTouchDrag(); }, { passive: true });
+        document.addEventListener("touchmove", onTouchMove, { passive: false });
+        document.addEventListener(
+            "touchend",
+            function (e) {
+                if (!state.dragging) return;
+                performDropIfValid();
+                cleanupTouchDrag();
+            },
+            { passive: false }
+        );
+        document.addEventListener(
+            "touchcancel",
+            function () {
+                if (state.dragging) cleanupTouchDrag();
+            },
+            { passive: true }
+        );
 
-        $(document).on('touchstart', '#task-tree .task-box', function(e){
+        $(document).on("touchstart", "#task-tree .task-box", function (e) {
             try {
-                var t = e.originalEvent && (e.originalEvent.touches && e.originalEvent.touches[0]);
+                var t =
+                    e.originalEvent &&
+                    e.originalEvent.touches &&
+                    e.originalEvent.touches[0];
                 if (!t) return;
-                state.startX = t.clientX; state.startY = t.clientY; state.moved = false;
+                state.startX = t.clientX;
+                state.startY = t.clientY;
+                state.moved = false;
                 var el = this;
-                var id = el.getAttribute('data-task-id');
+                var id = el.getAttribute("data-task-id");
                 state.draggedId = id ? String(id) : null;
                 state.originEl = el;
 
-                state.longPressTimer = setTimeout(function(){
+                state.longPressTimer = setTimeout(function () {
                     state.dragging = true;
-                    $(el).addClass('dragging');
-                    state.ghost = createGhostFrom(el, state.startX, state.startY);
+                    $(el).addClass("dragging");
+                    state.ghost = createGhostFrom(
+                        el,
+                        state.startX,
+                        state.startY
+                    );
                 }, 350);
-            } catch(_){ }
+            } catch (_) {}
         });
 
-        $(document).on('touchmove', '#task-tree .task-box', function(e){
+        $(document).on("touchmove", "#task-tree .task-box", function (e) {
             try {
-                var t = e.originalEvent && (e.originalEvent.touches && e.originalEvent.touches[0]);
+                var t =
+                    e.originalEvent &&
+                    e.originalEvent.touches &&
+                    e.originalEvent.touches[0];
                 if (!t) return;
                 var dx = Math.abs(t.clientX - state.startX);
                 var dy = Math.abs(t.clientY - state.startY);
                 if (!state.dragging) {
                     if (dx > 10 || dy > 10) {
                         state.moved = true;
-                        if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
+                        if (state.longPressTimer) {
+                            clearTimeout(state.longPressTimer);
+                            state.longPressTimer = null;
+                        }
                         return;
                     }
                 }
                 if (state.dragging) {
-                    try { e.preventDefault(); } catch(_){}
+                    try {
+                        e.preventDefault();
+                    } catch (_) {}
                 }
-            } catch(_){ }
+            } catch (_) {}
         });
 
-        $(document).on('touchend touchcancel', '#task-tree .task-box', function(){
-            if (!state.dragging) {
-                if (state.longPressTimer) { clearTimeout(state.longPressTimer); state.longPressTimer = null; }
-                state.originEl = null; state.draggedId = null; state.moved = false;
-                return;
+        $(document).on(
+            "touchend touchcancel",
+            "#task-tree .task-box",
+            function () {
+                if (!state.dragging) {
+                    if (state.longPressTimer) {
+                        clearTimeout(state.longPressTimer);
+                        state.longPressTimer = null;
+                    }
+                    state.originEl = null;
+                    state.draggedId = null;
+                    state.moved = false;
+                    return;
+                }
             }
-        });
+        );
     })();
 })();
+
+$(document).on("click", ".task-box", function (e) {
+    const taskId = $(this).attr("data-task-id");
+    if (taskId) {
+        handleTaskDetail(taskId);
+    }
+});
 
 $(function () {
     $('[data-bs-toggle="tooltip"]').tooltip();
 });
+
+function handleTaskDetail(taskId) {
+    $.getJSON(`${appUrl}/task/${taskId}`)
+        .done(renderTaskDetail)
+        .fail(() => showAlert("Failed to load task details.", "danger"));
+}
+
+function showAlert(msg, type) {
+    try {
+        showFloatingAlert(msg, type, 3000);
+    } catch {
+        alert(msg);
+    }
+}
+
+function renderTaskDetail(res) {
+    const task = res?.data || res;
+    if (!task || typeof task !== "object") {
+        return showAlert("Invalid task data.", "danger");
+    }
+
+    const html = buildTaskDetailHTML(task);
+    $("#taskDetailContent").html(html);
+    initTaskDetailModal();
+}
+
+function buildCollaboratorsList(taskObj) {
+    const items = collectCollaborators(taskObj);
+    if (!items.length)
+        return '<div class="text-muted small">No collaborators</div>';
+
+    const rows = items.map(({ role, emp }) => {
+        const name = getEmployeeName(emp);
+        const roleLabel = getRoleLabel(role, emp);
+        const photo = getEmployeePhoto(emp, 36);
+
+        return `
+            <div class="collab-item d-flex align-items-center mb-2">
+                <div class="flex-shrink-0">${photo}</div>
+                <div class="ms-2">
+                    <div class="collab-name">${escapeHTML(name)}</div>
+                    <div class="collab-division text-muted">${escapeHTML(
+                        roleLabel
+                    )}</div>
+                </div>
+            </div>`;
+    });
+
+    return `<div class="collab-list">${rows.join("")}</div>`;
+}
+
+function collectCollaborators(task) {
+    const list = [];
+    if (task?.pic) list.push({ role: "pic", emp: task.pic });
+    if (Array.isArray(task?.executors)) {
+        task.executors.forEach((emp) => list.push({ role: "executor", emp }));
+    }
+    return list;
+}
+
+function getEmployeeName(emp) {
+    return (
+        emp?.name ||
+        emp?.employee_name ||
+        emp?.username ||
+        emp?.full_name ||
+        emp?.employee?.name ||
+        emp?.employee?.full_name ||
+        "Unknown"
+    );
+}
+
+function getRoleLabel(role, emp) {
+    if (emp?.role) return capitalize(emp.role.replace(/_/g, " "));
+    const roles = {
+        pic: "PIC",
+        executor: "Executor",
+        author: "Author",
+        co_author: "Co-author",
+        contributor: "Contributor",
+    };
+    return roles[role] || capitalize(role || "-");
+}
+
+function getEmployeePhoto(emp, size = 36) {
+    const fallback = `${appUrl}/asset/img/avatar.png`;
+    const src = normalizePhotoUrl(emp) || fallback;
+    const name = escapeHTML(getEmployeeName(emp));
+
+    return `
+        <img src="${src}" alt="${name}"
+            data-bs-toggle="tooltip" title="${name}"
+            class="rounded-circle"
+            style="width:${size}px;height:${size}px;object-fit:cover;"
+            onerror="this.onerror=null;this.src='${fallback}'">`;
+}
+
+function normalizePhotoUrl(emp) {
+    const raw = String(
+        emp?.profile_picture_url ||
+            emp?.profile_picture ||
+            emp?.user_photo ||
+            emp?.user_photo_url ||
+            emp?.photo ||
+            emp?.image ||
+            ""
+    ).trim();
+
+    if (!raw) return null;
+    const trimmed = raw.replace(/^\/+/, "");
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (/^(file\/|asset\/|storage\/)/.test(trimmed))
+        return `${appUrl}/${trimmed}`;
+    if (raw.startsWith("/")) return `${appUrl}${raw}`;
+    if (raw.includes("/")) return `${appUrl}/${trimmed}`;
+    return `${appUrl}/file/profile_picture/${raw}`;
+}
+
+function capitalize(str) {
+    return (
+        String(str || "")
+            .charAt(0)
+            .toUpperCase() + String(str || "").slice(1)
+    );
+}
+
+function escapeHTML(str) {
+    return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function buildTaskDetailHTML(task) {
+    const avatarHtml = getAvatarHTML(task);
+    const collaboratorsHTML = buildCollaboratorsList(task);
+
+    return `
+        <div class="custom-card rounded-4 p-3 border-0" data-task-id="${
+            task.id
+        }">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div class="d-flex align-items-center">
+                    ${avatarHtml}
+                    <div>
+                        ${
+                            task.project?.title
+                                ? `<small class="text-muted">${task.project.title}</small>`
+                                : ""
+                        }
+                        <h5 class="mb-0" style="font-size: 16px; font-weight: 600;">${task.title || "Untitled Task"}</h5>
+                    </div>
+                </div>
+            </div>
+            <div class="description-container">
+                <div class="description-detail">${task.description || ""}</div>
+            </div>
+            <hr>
+            <div class="d-flex justify-content-between mb-2">
+                <div style="font-size: 12px;">
+                    <span class="text-muted">Priority:</span> ${formatPriority(
+                    task.priority
+                )}</div>
+                <div style="font-size: 12px;">
+                    <span class="text-muted">Deadline:</span> ${
+                    formatDateENMedium(task.due_date) || "-"
+                }</div>
+            </div>
+            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                <span class="text-muted">Department:</span>
+                <span>${task.project?.department || "-"}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                <span class="text-muted">Division:</span>
+                <span>${task.project?.division || "-"}</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                <div class="flex-grow-1">
+                    ${collaboratorsHTML}
+                    ${(function(){
+                        try {
+                            let scs = task.status_changes || null;
+                            if ((!scs || !Array.isArray(scs) || scs.length === 0) && task.status_change) {
+                                scs = [task.status_change];
+                            }
+                            if (!scs || !Array.isArray(scs) || scs.length === 0) return '';
+                                function esc(s){ return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+                                const rows = scs.map(function(sc){
+                                    const lbl = (sc.label || '').toString();
+                                    const name = (sc.employee_name || '').toString();
+                                    if (!lbl && !name) return '';
+                                        return `<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">${esc(lbl)}</span><span style="margin-left:6px;color:#454545">${esc(name)}</span></div>`;
+                                    });
+                                return rows.join('');
+                            } catch(e){ return ''; }
+                        })()}
+                </div>
+            </div>
+        </div>`;
+}
+
+function getAvatarHTML(task) {
+    const img = task.project_image ? normalizeImage(task.project_image) : null;
+    if (img) {
+        return `<img src="${img}" alt="Project" class="project-image me-3" 
+                    style="width:48px;height:48px;object-fit:cover;border-radius:50%;" 
+                    onerror="this.src='${appUrl}/asset/img/avatar.png'">`;
+    }
+    const initials = getTaskInitials(task.title);
+    const color = getRandomColorFromText(task.title);
+    return `<div class="project-initial-avatar me-3" 
+                style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+                font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
+}
+
+function normalizeImage(path) {
+    if (!path) return "";
+    const val = String(path).trim();
+    if (val.startsWith("http")) return val;
+    return appUrl + (val.startsWith("/") ? val : `/file/project/${val}`);
+}
+
+function formatPriority(priority) {
+    if (!priority) return "-";
+    const color = priority === "HIGH" ? "red" : "#4B4F5E";
+    return `<span style="color:${color}">${priority}</span>`;
+}
+
+function initTaskDetailModal() {
+    const modal = new bootstrap.Modal("#taskDetailModal");
+    const $modal = $("#taskDetailModal");
+
+    $modal.on("shown.bs.modal", () =>
+        setTimeout(() => initBootstrapTooltips($modal[0]), 100)
+    );
+    $modal.on("hidden.bs.modal", () => {
+        $modal.find("[data-bs-toggle='tooltip']").each(function () {
+            const tip = bootstrap.Tooltip.getInstance(this);
+            if (tip) tip.dispose();
+        });
+    });
+
+    modal.show();
+}
