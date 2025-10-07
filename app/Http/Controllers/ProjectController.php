@@ -577,9 +577,23 @@ class ProjectController extends Controller
             }
 
             // Only public projects should be visible in general listing used by dropdowns unless task_scope=all
+            // However, allow private projects that are assigned to (or authored by) the current authenticated employee
             $query = Project::where('status', '!=', 'DELETED')
-                ->where(function ($q) {
-                    $q->whereNull('project_type')->orWhere('project_type', 'public'); });
+                ->where(function ($q) use ($employeeId) {
+                    $q->whereNull('project_type')
+                      ->orWhere('project_type', 'public');
+
+                    if ($employeeId) {
+                        // include private projects where the current employee is assigned (author/co_author/contributor)
+                        $q->orWhere(function ($qq) use ($employeeId) {
+                            $qq->where('project_type', 'private')
+                               ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                   $q2->where('employee_id', $employeeId)
+                                      ->whereIn('role', ['author', 'co_author', 'contributor']);
+                               });
+                        });
+                    }
+                });
 
             // Handle sorting options
             switch ($sortBy) {
