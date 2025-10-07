@@ -519,6 +519,7 @@
                                         if (typeof fetchAndRenderTasks === 'function') {
                                             // Refresh only the New column to ensure rejected item disappears from pending list
                                             fetchAndRenderTasks('new_request', 1, false, '');
+                                            window.location.reload();
                                         }
                                     } catch(_){ }
                                     try { if (typeof fetchNotifications === 'function') fetchNotifications(); } catch(_){ }

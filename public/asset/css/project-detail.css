@@ -913,17 +913,17 @@
 }
 
 /* Warna bar */
-.timeline-bar.color1 {
-    background: #e3f3ff;
+.timeline-bar.new {
+    background: #dde4e8;
 }
-.timeline-bar.color2 {
-    background: #e9e3f7;
+.timeline-bar.progress {
+    background: #f5efce;
 }
-.timeline-bar.color3 {
-    background: #f7f3e3;
+.timeline-bar.completed {
+    background: #b2eecd;
 }
-.timeline-bar.color4 {
-    background: #ffe3e3;
+.timeline-bar.late {
+    background: #eba5a5;
 }
 
 .legend-dot {
@@ -939,15 +939,19 @@
 }
 
 .legend-yellow {
-    background-color: #d1dc2d;
+    background-color: #f5efce;
+}
+
+.legend-gray {
+    background-color: #dde4e8;
 }
 
 .legend-red {
-    background-color: #ea7878;
+    background-color: #eba5a5;
 }
 
 .legend-green {
-    background-color: #4db072;
+    background-color: #b2eecd;
 }
 
 #task-list,
