@@ -172,7 +172,7 @@
                         <div class="mb-3 custom-input">
                             <label for="edit_task_description" class="form-label label-custom">Description</label>
                             <!-- Quill editor container for Edit Task -->
-                            <div id="edit_task_description_toolbar">
+                            {{-- <div id="edit_task_description_toolbar">
                                 <span class="ql-formats">
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
@@ -185,7 +185,7 @@
                                 <span class="ql-formats">
                                     <button class="ql-link"></button>
                                 </span>
-                            </div>
+                            </div> --}}
                             <div id="edit_task_description_editor"
                                 style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
                             </div>
@@ -379,7 +379,7 @@
                         <div class="mb-3 custom-input">
                             <label for="task_description" class="form-label label-custom">Description</label>
                             <!-- Quill editor container for Add Task -->
-                            <div id="task_description_toolbar">
+                            {{-- <div id="task_description_toolbar">
                                 <span class="ql-formats">
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
@@ -392,7 +392,7 @@
                                 <span class="ql-formats">
                                     <button class="ql-link"></button>
                                 </span>
-                            </div>
+                            </div> --}}
                             <div id="task_description_editor"
                                 style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
                             </div>
