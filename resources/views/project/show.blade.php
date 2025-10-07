@@ -155,20 +155,6 @@
 
                         </div>
                         <div class="feedback-form">
-                            <div id="inline_feedback_toolbar" class="mb-1" style="display:none;">
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-link"></button>
-                                </span>
-                            </div>
                             <div id="inline_feedback_editor" class="border-0"
                                 style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
                             </div>
@@ -388,24 +374,8 @@
                             <div class="mb-3 input-custom">
                                 <label for="edit_description" class="form-label label-custom">Description</label>
 
-                                <!-- Quill toolbar + editor (visual) -->
-                                <div id="edit_description_toolbar">
-                                    <span class="ql-formats">
-                                        <button class="ql-bold"></button>
-                                        <button class="ql-italic"></button>
-                                        <button class="ql-underline"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-list" value="ordered"></button>
-                                        <button class="ql-list" value="bullet"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-link"></button>
-                                    </span>
-                                </div>
-
                                 <div id="edit_description_editor"
-                                    style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                    style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                                 </div>
 
                                 <!-- canonical hidden textarea so backend controllers keep receiving same payload -->

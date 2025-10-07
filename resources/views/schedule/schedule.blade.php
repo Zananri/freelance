@@ -214,37 +214,10 @@
                             <!-- Description (Quill) -->
                             <div class="mb-3 custom-form-employee">
                                 <label for="schedule_description" class="form-label label-custom">Description</label>
-                                <div id="schedule_description_toolbar">
-                                    <span class="ql-formats">
-                                        <button class="ql-bold"></button>
-                                        <button class="ql-italic"></button>
-                                        <button class="ql-underline"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-list" value="ordered"></button>
-                                        <button class="ql-list" value="bullet"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-link"></button>
-                                    </span>
-                                </div>
-                                <div id="schedule_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
-                                <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
+                                <div id="schedule_description_editor" style="min-height:120px; background:#fff; border: none; border-radius:6px;"></div>
                                 <textarea class="form-control input-text d-none" id="schedule_description" name="description" rows="6" style="display:none;"></textarea>
                             </div>
 
-                            <!-- Project -->
-                            {{-- <div class="mb-3 custom-form-employee">
-                                <label for="schedule_project_id" class="form-label label-custom">Project <span class="text-danger">*</span></label>
-                                <!-- Hidden field to indicate modal opened from a project context -->
-                                <input type="hidden" id="schedule_project_context_id" name="project_context_id"
-                                    value="">
-                                <select id="schedule_project_id" name="project_id" class="form-select input-select"
-                                    required>
-                                    <option value="">No Project</option>
-                                </select>
-                                <div class="invalid-feedback">Please select a project.</div>
-                            </div> --}}
                             <div class="mb-3 custom-form-employee">
                                 <label class="form-label label-custom">Project <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control input-text"
@@ -534,22 +507,7 @@
                             <!-- Description (Quill) -->
                             <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_description" class="form-label label-custom">Description</label>
-                                <div id="edit_schedule_description_toolbar">
-                                    <span class="ql-formats">
-                                        <button class="ql-bold"></button>
-                                        <button class="ql-italic"></button>
-                                        <button class="ql-underline"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-list" value="ordered"></button>
-                                        <button class="ql-list" value="bullet"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-link"></button>
-                                    </span>
-                                </div>
-                                <div id="edit_schedule_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
-                                <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
+                                <div id="edit_schedule_description_editor" style="min-height:120px; background:#fff; border: none; border-radius:6px;"></div>
                                 <textarea class="form-control input-text d-none" id="edit_schedule_description" name="description" rows="6" style="display:none;"></textarea>
                             </div>
 
