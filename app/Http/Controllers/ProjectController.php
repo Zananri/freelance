@@ -389,6 +389,7 @@ class ProjectController extends Controller
             }
 
             $query = Project::where('status', '!=', 'DELETED')
+                // The employee must be assigned to the project (author/co_author/contributor)
                 ->whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
                     $query->where('employee_id', $employeeId)
                         ->whereIn('role', ['author', 'co_author', 'contributor']);
@@ -398,6 +399,20 @@ class ProjectController extends Controller
                                 ->orWhere('is_receive', true);
                         });
                     }
+                })
+                // Additionally, prevent showing PRIVATE projects to non-authors in dropdowns:
+                // only projects that are public (or null project_type) OR private projects where
+                // the current employee is the author should be visible here.
+                ->where(function ($q) use ($employeeId) {
+                    $q->whereNull('project_type')
+                      ->orWhere('project_type', 'public')
+                      ->orWhere(function ($qq) use ($employeeId) {
+                          $qq->where('project_type', 'private')
+                             ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                 $q2->where('employee_id', $employeeId)
+                                    ->where('role', 'author');
+                             });
+                      });
                 });
 
             if ($filter === 'not_started') {
@@ -583,16 +598,24 @@ class ProjectController extends Controller
                     $q->whereNull('project_type')
                       ->orWhere('project_type', 'public');
 
-                    if ($employeeId) {
-                        // include private projects where the current employee is the author only
-                        $q->orWhere(function ($qq) use ($employeeId) {
-                            $qq->where('project_type', 'private')
-                               ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
-                                   $q2->where('employee_id', $employeeId)
-                                      ->where('role', 'author');
-                               });
-                        });
-                    }
+                            if ($employeeId) {
+                                // include private projects where the current employee is assigned
+                                // as author, co_author or contributor. Respect include_unaccepted
+                                // so non-author roles must have is_receive = true unless explicitly allowed.
+                                $q->orWhere(function ($qq) use ($employeeId, $includeUnaccepted) {
+                                    $qq->where('project_type', 'private')
+                                       ->whereHas('projectAssignments', function ($q2) use ($employeeId, $includeUnaccepted) {
+                                           $q2->where('employee_id', $employeeId)
+                                              ->whereIn('role', ['author', 'co_author', 'contributor']);
+                                           if (!$includeUnaccepted) {
+                                               $q2->where(function ($inner) {
+                                                   $inner->where('role', 'author')
+                                                         ->orWhere('is_receive', true);
+                                               });
+                                           }
+                                       });
+                                });
+                            }
                 });
 
             // Handle sorting options

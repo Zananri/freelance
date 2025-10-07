@@ -667,7 +667,7 @@
             loadRelatedTasks(p.id, "task", null);
         }
 
-        fetch(appUrl + "/project/index?task_scope=all")
+    fetch(appUrl + "/project/index")
             .then((res) => res.json())
             .then((payload) => {
                 projects = (payload.data || [])
@@ -1432,7 +1432,7 @@
     (function loadProjectsForSchedule(){
         const select = document.getElementById('schedule_project_id');
         if (!select) return;
-        fetch(appUrl + "/project/index?task_scope=all")
+    fetch(appUrl + "/project/index")
             .then(r => r.ok ? r.json() : Promise.reject('Failed to load projects'))
                 .then(d => {
                     if (!d || !d.data) return;
