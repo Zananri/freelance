@@ -187,7 +187,7 @@
                                 </span>
                             </div> --}}
                             <div id="edit_task_description_editor"
-                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                             <textarea class="form-control input-text d-none" id="edit_task_description" name="description" rows="6"
@@ -394,7 +394,7 @@
                                 </span>
                             </div> --}}
                             <div id="task_description_editor"
-                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                             <textarea class="form-control input-text d-none" id="task_description" name="description" rows="6"

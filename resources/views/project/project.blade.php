@@ -30,9 +30,6 @@
         </button>
     </div>
 
-    {{-- expose current employee id for client-side filtering (private projects) --}}
-    <div id="currentEmployee" data-employee-id="{{ auth()->user()->employee->id ?? '' }}" style="display:none"></div>
-
     <div class="project-card-container">
         <div class="row">
             <div class="col-md-4 above-content">
@@ -272,23 +269,8 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="description" class="form-label label-custom">Description</label>
-                            <!-- Quill editor container for Add Project -->
-                            {{-- <div id="add_description_toolbar">
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-link"></button>
-                                </span>
-                            </div> --}}
                             <div id="add_description_editor"
-                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                             <textarea class="form-control input-text d-none" id="description" name="description" rows="3"
@@ -434,23 +416,8 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_description" class="form-label label-custom">Description</label>
-                            <!-- Quill editor container for Edit Project -->
-                            {{-- <div id="edit_description_toolbar">
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-link"></button>
-                                </span>
-                            </div> --}}
                             <div id="edit_description_editor"
-                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                             <textarea class="form-control input-text d-none" id="edit_description" name="description" rows="3"
