@@ -1025,6 +1025,7 @@
         <x-slot name="script_slot">
             <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_timeline.js') }}?v={{ time() }}"></script>
+            <script src="{{ asset('asset/js/task.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_depedencies.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
         </x-slot>

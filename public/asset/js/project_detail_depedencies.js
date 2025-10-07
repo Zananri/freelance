@@ -1413,6 +1413,34 @@ function normalizeImage(path) {
     return appUrl + (val.startsWith("/") ? val : `/file/project/${val}`);
 }
 
+if (typeof window.getTaskInitials !== 'function') {
+    window.getTaskInitials = function (title) {
+        try {
+            if (!title) return 'NA';
+            const words = String(title || '').trim().split(/\s+/).filter(Boolean);
+            if (!words.length) return 'NA';
+            if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+            return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+        } catch (e) {
+            return 'NA';
+        }
+    };
+}
+
+if (typeof window.getRandomColorFromText !== 'function') {
+    window.getRandomColorFromText = function (text) {
+        try {
+            const colors = ['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
+            const key = String(text || '');
+            let hash = 0;
+            for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+            return colors[hash % colors.length];
+        } catch (e) {
+            return '#6A5AE0';
+        }
+    };
+}
+
 function formatPriority(priority) {
     if (!priority) return "-";
     const color = priority === "HIGH" ? "red" : "#4B4F5E";
