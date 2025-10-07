@@ -1174,13 +1174,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                 authorId = String(project.author_id || project.employee_id || project.authorId || '');
                             }
 
-                            // Final check: if authorId or currentEmployeeId missing, allow rendering (fail-open) while logging
+                            // Final check: if authorId or currentEmployeeId missing, hide private project (fail-closed) and log
                             if (!authorId || !currentEmployeeId) {
-                                // Allow render to avoid hiding content unexpectedly
-                                if ((project.project_type || project.projectType || '').toLowerCase() === 'private') {
-                                    console.debug('Project visibility fallback - missing ids', { projectId: project.id, projectType: project.project_type || project.projectType, authorId, currentEmployeeId });
-                                }
-                                return true;
+                                console.debug('Hiding private project due to missing id(s)', { projectId: project.id, projectType: project.project_type || project.projectType, authorId, currentEmployeeId });
+                                return false;
                             }
 
                             const ok = String(authorId) === String(currentEmployeeId);
