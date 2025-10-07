@@ -476,6 +476,9 @@
                             </div>
                         </div>
                         <div class="modal-footer modal-footer-custom">
+                            <button type="submit" class="btn-custom-close" aria-label="Close" data-bs-dismiss="modal">
+                                Close
+                            </button>
                             <button type="submit" class="btn-submit-black">
                                 Update
                             </button>
