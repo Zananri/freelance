@@ -584,12 +584,12 @@ class ProjectController extends Controller
                       ->orWhere('project_type', 'public');
 
                     if ($employeeId) {
-                        // include private projects where the current employee is assigned (author/co_author/contributor)
+                        // include private projects where the current employee is the author only
                         $q->orWhere(function ($qq) use ($employeeId) {
                             $qq->where('project_type', 'private')
                                ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
                                    $q2->where('employee_id', $employeeId)
-                                      ->whereIn('role', ['author', 'co_author', 'contributor']);
+                                      ->where('role', 'author');
                                });
                         });
                     }
