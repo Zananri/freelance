@@ -549,7 +549,7 @@
 
                         <div class="custom-card p-0 m-0 border-0">
                             <small class="text-muted" style="font-size: 10px" id="statusModalPartofProject"></small>
-                            <h5 class="fw-bold" id="statusModalTitle">Task Title</h5>
+                            <h5 class="fw-bold" id="statusModalTitle" style="font-size: 16px">Task Title</h5>
                             <div class="task-description-container flex-grow-1">
                                 <p class="task-description" id="statusModalDescription">
                                     Task short description
