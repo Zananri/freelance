@@ -1,5 +1,10 @@
 const appUrl = $("meta[name=app-url]").attr("content");
-const BAR_COLORS = ["color1", "color2", "color3", "color4"];
+const BAR_COLOR_MAP = {
+    new_request: "new",
+    in_progress: "progress",
+    completed: "completed",
+    late: "late",
+};
 
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
@@ -12,6 +17,8 @@ function fetchProjectDueDate(projectId) {
         type: "GET",
         dataType: "json",
     }).done(function (response) {
+        console.log(response);
+        
         if (response.status === "success") {
             projectDueDate = new Date(response.data.due_date);
         }
@@ -19,10 +26,22 @@ function fetchProjectDueDate(projectId) {
 }
 
 function getTaskStatus(task) {
+    const due = new Date(task.due_date);
+    const today = new Date();
+
+    due.setHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
+
     if (task.status === "completed") return "completed";
     if (task.status === "in_progress") return "in_progress";
-    if (projectDueDate && new Date(task.due_date) > projectDueDate)
-        return "late";
+
+    if (task.status === "new_request") {
+        if (due < today) return "late";
+        return "new_request";
+    }
+
+    if (due < today) return "late";
+
     return "in_progress";
 }
 
@@ -47,19 +66,19 @@ function renderTimeline(tasks) {
     }
 
     const body = $("#timelineRows").empty();
-    const statusCounts = { completed: 0, in_progress: 0, late: 0 };
+    const statusCounts = { new_request: 0, completed: 0, in_progress: 0, late: 0 };
 
     const tasksInMonth = tasks.filter(task => {
         const startDate = new Date(task.start_date);
         const dueDate = new Date(task.due_date);
         const monthStart = new Date(currentYear, currentMonth, 1);
         const monthEnd = new Date(currentYear, currentMonth, daysInMonth);
-        return !(dueDate < monthStart || startDate > monthEnd);
+        return !(dueDate < monthStart || startDate > monthEnd) && task.status !== 'canceled' && task.status !== 'deleted';
     });
 
     $("#totalTaskTimeline").text(`Total ${tasksInMonth.length} Tasks`);
 
-    tasksInMonth.forEach((task, idx) => {
+    tasksInMonth.forEach((task) => {
         const startDate = new Date(task.start_date);
         const dueDate = new Date(task.due_date);
 
@@ -79,7 +98,7 @@ function renderTimeline(tasks) {
         const status = getTaskStatus(task);
         statusCounts[status]++;
 
-        const barColorClass = BAR_COLORS[idx % BAR_COLORS.length];
+        const barColorClass = BAR_COLOR_MAP[status] || "new";
 
         const row = $("<tr></tr>");
         for (let i = 0; i < startIdx; i++) row.append("<td></td>");
@@ -94,17 +113,19 @@ function renderTimeline(tasks) {
                         "pointer-events": "auto",
                         "cursor": "pointer",
                         "z-index": "2",
-                        "position": "relative"
+                        "position": "relative",
                     })
                     .html(`<span class="bar-name">${task.title}</span>`)
             );
+
         row.append(barTd);
 
-        for (let i = endIdx + 1; i < allDates.length; i++)
-            row.append("<td></td>");
+        for (let i = endIdx + 1; i < allDates.length; i++) row.append("<td></td>");
+
         body.append(row);
     });
 
+    $("#newRequestCount").text(`${statusCounts.new_request} Task`);
     $("#inProgressCount").text(`${statusCounts.in_progress} Task`);
     $("#lateCount").text(`${statusCounts.late} Task`);
     $("#completedCount").text(`${statusCounts.completed} Task`);

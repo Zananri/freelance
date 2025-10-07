@@ -220,7 +220,11 @@
                                 <tbody id="timelineRows"></tbody>
                             </table>
                         </div>
-                        <div class="timeline-legend d-flex justify-content-start gap-5">
+                        <div class="timeline-legend d-flex justify-content-start gap-4">
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-gray"></span>
+                                <span class="legend-text" id="newRequestCount">0 Task</span>
+                            </div>
                             <div class="legend-item d-flex align-items-center gap-2">
                                 <span class="legend-dot legend-yellow"></span>
                                 <span class="legend-text" id="inProgressCount">0 Task</span>
