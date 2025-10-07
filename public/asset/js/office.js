@@ -773,7 +773,7 @@ $(document).ready(function() {
         if (notifType === 'task_reject' && taskIdMatch) {
             const targetTaskId = taskIdMatch[1];
             markNotificationAsRead(notificationId, function() {
-                window.location.href = `${appUrl}/task/${targetTaskId}`;
+                window.location.href = `${appUrl}/task`;
             });
             return;
         }
