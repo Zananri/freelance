@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\Schedule;
+use App\Models\TaskSchedule;
 use Carbon\Carbon;
 
 class DiagnoseSchedules extends Command
@@ -15,7 +15,7 @@ class DiagnoseSchedules extends Command
     {
         $now = Carbon::now();
         $ids = $this->option('id');
-        $query = Schedule::query();
+    $query = TaskSchedule::query();
         if (!empty($ids)) { $query->whereIn('id', $ids); }
         $schedules = $query->orderBy('id')->get();
         $rows = [];
@@ -59,7 +59,7 @@ class DiagnoseSchedules extends Command
         return Command::SUCCESS;
     }
 
-    private function analyze(Schedule $s, Carbon $now): array
+    private function analyze(TaskSchedule $s, Carbon $now): array
     {
         $reason = [];
         $dueNow = false;
