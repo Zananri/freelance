@@ -365,7 +365,7 @@
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" aria-label="Close">
-                            Cancel
+                            Close
                         </button>
                         <button type="submit" class="btn-submit-black">
                             Submit
