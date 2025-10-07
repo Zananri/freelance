@@ -4117,19 +4117,13 @@ function applyCurrentSearchFilter() {
                 const taskProject = task.project.title || "No Project";
 
                 // Avatar
-                let projectImg = null;
-                if (task.project_image) {
-                    const val = String(task.project_image).trim();
-                    if (val && val !== "null" && val !== "undefined") {
-                        projectImg = val.startsWith("http") ? val : `${appUrl}/file/project/${val}`;
-                    }
-                }
+                const taskImage = task.image ? `${appUrl}/file/task/${task.image}` : null;
 
-                const initials = !projectImg ? getTaskInitials(task.title) : "";
-                const initialsColor = !projectImg ? getRandomColorFromText(task.title) : "#6A5AE0";
+                const initials = !taskImage ? getTaskInitials(task.title) : "";
+                const initialsColor = !taskImage ? getRandomColorFromText(task.title) : "#6A5AE0";
 
-                const avatarHtml = projectImg
-                    ? `<img src="${projectImg}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
+                const avatarHtml = taskImage
+                    ? `<img src="${taskImage}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
                     : `<div class="d-flex align-items-center justify-content-center rounded-circle"
                             style="width:34px;height:34px;font-size:12px;font-weight:600;color:#fff;background:${initialsColor};">
                             ${initials}
