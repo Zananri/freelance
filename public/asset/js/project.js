@@ -1132,9 +1132,72 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Build timeline from actual projects and render. If list items lack start/due, fetch details.
 
                 if (projects && projects.length > 0) {
+                    // Determine current employee id (injected by blade) for client-side filtering of private projects
+                    const currentEmployeeEl = document.getElementById('currentEmployee');
+                    const currentEmployeeId = currentEmployeeEl ? String(currentEmployeeEl.dataset.employeeId || '') : '';
+
+                    // Filter out private projects unless the current employee is the author
+                    const visibleProjects = (projects || []).filter(function(project) {
+                        try {
+                            const pt = String(project.project_type || project.projectType || '').toLowerCase();
+                            if (pt !== 'private') return true;
+
+                            // Robust author id resolution from multiple payload shapes
+                            let authorId = '';
+
+                            // 1) If API provided normalized 'author' object (assignment) with employee_id
+                            if (project.author && (project.author.employee_id || project.author.id)) {
+                                authorId = String(project.author.employee_id || project.author.id || '');
+                            }
+
+                            // 2) If API provided project_assignments array, find role author
+                            if (!authorId && Array.isArray(project.project_assignments)) {
+                                try {
+                                    const authAssign = project.project_assignments.find(function(a) {
+                                        return String(a.role || '').toLowerCase() === 'author';
+                                    });
+                                    if (authAssign && (authAssign.employee_id || authAssign.id)) {
+                                        authorId = String(authAssign.employee_id || authAssign.id || '');
+                                    }
+                                } catch (_) {}
+                            }
+
+                            // 3) Legacy shapes: author_employee, employee, author_id, employee_id
+                            if (!authorId) {
+                                const cand = project.author_employee || project.employee || null;
+                                if (cand && (cand.id || cand.employee_id)) {
+                                    authorId = String(cand.employee_id || cand.id || '');
+                                }
+                            }
+
+                            if (!authorId) {
+                                authorId = String(project.author_id || project.employee_id || project.authorId || '');
+                            }
+
+                            // Final check: if authorId or currentEmployeeId missing, allow rendering (fail-open) while logging
+                            if (!authorId || !currentEmployeeId) {
+                                // Allow render to avoid hiding content unexpectedly
+                                if ((project.project_type || project.projectType || '').toLowerCase() === 'private') {
+                                    console.debug('Project visibility fallback - missing ids', { projectId: project.id, projectType: project.project_type || project.projectType, authorId, currentEmployeeId });
+                                }
+                                return true;
+                            }
+
+                            const ok = String(authorId) === String(currentEmployeeId);
+                            if (!ok) {
+                                // Debug small hint when a private project is filtered out
+                                console.debug('Hiding private project for non-author', { projectId: project.id, authorId, currentEmployeeId });
+                            }
+                            return ok;
+                        } catch (e) {
+                            console.warn('visibleProjects filter error', e);
+                            return true;
+                        }
+                    });
+
                     let rowHtml = '<div class="row">';
 
-                    projects.forEach((project) => {
+                    visibleProjects.forEach((project) => {
                         let imageUrl = project.image
                             ? appUrl + "/file/project/" + project.image
                             : null;

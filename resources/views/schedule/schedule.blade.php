@@ -214,7 +214,7 @@
                             <!-- Description (Quill) -->
                             <div class="mb-3 custom-form-employee">
                                 <label for="schedule_description" class="form-label label-custom">Description</label>
-                                <div id="schedule_description_toolbar">
+                                {{-- <div id="schedule_description_toolbar">
                                     <span class="ql-formats">
                                         <button class="ql-bold"></button>
                                         <button class="ql-italic"></button>
@@ -227,7 +227,7 @@
                                     <span class="ql-formats">
                                         <button class="ql-link"></button>
                                     </span>
-                                </div>
+                                </div> --}}
                                 <div id="schedule_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
                                 <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                                 <textarea class="form-control input-text d-none" id="schedule_description" name="description" rows="6" style="display:none;"></textarea>
@@ -534,7 +534,7 @@
                             <!-- Description (Quill) -->
                             <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_description" class="form-label label-custom">Description</label>
-                                <div id="edit_schedule_description_toolbar">
+                                {{-- <div id="edit_schedule_description_toolbar">
                                     <span class="ql-formats">
                                         <button class="ql-bold"></button>
                                         <button class="ql-italic"></button>
@@ -547,7 +547,7 @@
                                     <span class="ql-formats">
                                         <button class="ql-link"></button>
                                     </span>
-                                </div>
+                                </div> --}}
                                 <div id="edit_schedule_description_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
                                 <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                                 <textarea class="form-control input-text d-none" id="edit_schedule_description" name="description" rows="6" style="display:none;"></textarea>

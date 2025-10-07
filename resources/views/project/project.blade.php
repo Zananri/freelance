@@ -30,6 +30,9 @@
         </button>
     </div>
 
+    {{-- expose current employee id for client-side filtering (private projects) --}}
+    <div id="currentEmployee" data-employee-id="{{ auth()->user()->employee->id ?? '' }}" style="display:none"></div>
+
     <div class="project-card-container">
         <div class="row">
             <div class="col-md-4 above-content">
@@ -270,7 +273,7 @@
                         <div class="mb-3 input-custom">
                             <label for="description" class="form-label label-custom">Description</label>
                             <!-- Quill editor container for Add Project -->
-                            <div id="add_description_toolbar">
+                            {{-- <div id="add_description_toolbar">
                                 <span class="ql-formats">
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
@@ -283,7 +286,7 @@
                                 <span class="ql-formats">
                                     <button class="ql-link"></button>
                                 </span>
-                            </div>
+                            </div> --}}
                             <div id="add_description_editor"
                                 style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
                             </div>
@@ -432,7 +435,7 @@
                         <div class="mb-3 input-custom">
                             <label for="edit_description" class="form-label label-custom">Description</label>
                             <!-- Quill editor container for Edit Project -->
-                            <div id="edit_description_toolbar">
+                            {{-- <div id="edit_description_toolbar">
                                 <span class="ql-formats">
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
@@ -445,7 +448,7 @@
                                 <span class="ql-formats">
                                     <button class="ql-link"></button>
                                 </span>
-                            </div>
+                            </div> --}}
                             <div id="edit_description_editor"
                                 style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
                             </div>
