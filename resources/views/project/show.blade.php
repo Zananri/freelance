@@ -9,7 +9,8 @@
             @php
                 $img = $project->image ?? null;
                 $imgUrl = $img ? asset('file/project/' . ltrim($img, '/')) : asset('asset/img/image.png');
-                $totalTasks = $project->tasks()
+                $totalTasks = $project
+                    ->tasks()
                     ->whereRaw('LOWER(status) <> ?', ['canceled'])
                     ->count();
             @endphp
@@ -114,16 +115,20 @@
 
                         <div id="task-legend" class="d-flex justify-content-start">
                             <div class="legend-item d-flex align-items-start">
-                                <span class="not-started" data-bs-toggle="tooltip" data-bs-title="Not Started"><span class="text-legend">Not Started</span></span>
+                                <span class="not-started" data-bs-toggle="tooltip" data-bs-title="Not Started"><span
+                                        class="text-legend">Not Started</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="in-progress" data-bs-toggle="tooltip" data-bs-title="In Progress"><span class="text-legend">In Progress</span></span>
+                                <span class="in-progress" data-bs-toggle="tooltip" data-bs-title="In Progress"><span
+                                        class="text-legend">In Progress</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="late" data-bs-toggle="tooltip" data-bs-title="Late"><span class="text-legend">Late</span></span>
+                                <span class="late" data-bs-toggle="tooltip" data-bs-title="Late"><span
+                                        class="text-legend">Late</span></span>
                             </div>
                             <div class="legend-item d-flex align-items-start">
-                                <span class="complete" data-bs-toggle="tooltip" data-bs-title="Complete"><span class="text-legend">Complete</span></span>
+                                <span class="complete" data-bs-toggle="tooltip" data-bs-title="Complete"><span
+                                        class="text-legend">Complete</span></span>
                             </div>
                         </div>
 
@@ -476,6 +481,10 @@
                             </div>
                         </div>
                         <div class="modal-footer modal-footer-custom">
+                            <button type="submit" class="btn-custom-close" aria-label="Close"
+                                data-bs-dismiss="modal">
+                                Close
+                            </button>
                             <button type="submit" class="btn-submit-black">
                                 Update
                             </button>
@@ -561,6 +570,68 @@
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Modal Detail Task --}}
+        <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-body modal-body-custom">
+                        <div class="task-detail-wrapper">
+
+                            <!-- Header -->
+                            <div class="task-header d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div id="taskProjectAvatar" class="me-3"></div>
+                                    <div>
+                                        <small class="text-muted" id="taskProjectTitle"></small>
+                                        <h5 class="mb-0" id="taskTitle" style="font-size:16px;font-weight:600;">-
+                                        </h5>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="description-container">
+                                <div id="taskDescription" class="description-detail text-muted">No description</div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Meta Info -->
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <div><span class="text-muted">Priority:</span> <span id="taskPriority">-</span></div>
+                                <div><span class="text-muted">Deadline:</span> <span id="taskDeadline">-</span></div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                <span class="text-muted">Department:</span>
+                                <span id="taskDepartment">-</span>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <span class="text-muted">Division:</span>
+                                <span id="taskDivision">-</span>
+                            </div>
+
+                            <!-- Collaborators -->
+                            <div class="collab-section mt-3">
+                                <h6 class="fw-semibold mb-2">Collaborators</h6>
+                                <div id="taskCollaborators"></div>
+                            </div>
+
+                            <!-- Status Changes -->
+                            <div id="taskStatusChanges" class="mt-3"></div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom mt-3">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
