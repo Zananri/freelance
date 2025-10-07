@@ -667,7 +667,7 @@
             loadRelatedTasks(p.id, "task", null);
         }
 
-        fetch(appUrl + "/project/index?task_scope=all")
+    fetch(appUrl + "/project/index")
             .then((res) => res.json())
             .then((payload) => {
                 projects = (payload.data || [])
@@ -1432,7 +1432,7 @@
     (function loadProjectsForSchedule(){
         const select = document.getElementById('schedule_project_id');
         if (!select) return;
-        fetch(appUrl + "/project/index?task_scope=all")
+    fetch(appUrl + "/project/index")
             .then(r => r.ok ? r.json() : Promise.reject('Failed to load projects'))
                 .then(d => {
                     if (!d || !d.data) return;
@@ -7334,17 +7334,15 @@ function applyCurrentSearchFilter() {
             });
         }
 
-        fetch(appUrl + "/project/index?task_scope=all")
+        fetch(appUrl + "/project/index")
             .then((res) => res.json())
                 .then((payload) => {
-                    projects = (payload.data || [])
-                        .filter(p => !p.project_type || String(p.project_type) === 'public')
-                        .map((p) => ({
-                            id: p.id,
-                            title: p.title,
-                            image: p.image || "",
-                            project_type: p.project_type || 'public'
-                        }));
+                    projects = (payload.data || []).map((p) => ({
+                                id: p.id,
+                                title: p.title,
+                                image: p.image || "",
+                                project_type: p.project_type || 'public'
+                            }));
 
                 // Kalau ada project yang sudah dipilih sebelumnya
                 if (selectedProjectId) {

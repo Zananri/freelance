@@ -538,7 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
             try { loadRelatedTasks(p.id, 'schedule', null); } catch(_) {}
         }
 
-        fetch(appUrl + "/project/index?task_scope=all")
+    fetch(appUrl + "/project/index")
             .then((res) => res.json())
             .then((payload) => {
                 projects = (payload.data || [])
