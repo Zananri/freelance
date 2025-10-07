@@ -602,18 +602,21 @@ class ProjectController extends Controller
                                 // include private projects where the current employee is assigned
                                 // as author, co_author or contributor. Respect include_unaccepted
                                 // so non-author roles must have is_receive = true unless explicitly allowed.
+                                $includeUnaccepted = $includeUnaccepted ?? false;
+
                                 $q->orWhere(function ($qq) use ($employeeId, $includeUnaccepted) {
                                     $qq->where('project_type', 'private')
-                                       ->whereHas('projectAssignments', function ($q2) use ($employeeId, $includeUnaccepted) {
-                                           $q2->where('employee_id', $employeeId)
-                                              ->whereIn('role', ['author', 'co_author', 'contributor']);
-                                           if (!$includeUnaccepted) {
-                                               $q2->where(function ($inner) {
-                                                   $inner->where('role', 'author')
-                                                         ->orWhere('is_receive', true);
-                                               });
-                                           }
-                                       });
+                                    ->whereHas('projectAssignments', function ($q2) use ($employeeId, $includeUnaccepted) {
+                                        $q2->where('employee_id', $employeeId)
+                                            ->whereIn('role', ['author', 'co_author', 'contributor']);
+
+                                        if (!$includeUnaccepted) {
+                                            $q2->where(function ($inner) {
+                                                $inner->where('role', 'author')
+                                                        ->orWhere('is_receive', true);
+                                            });
+                                        }
+                                    });
                                 });
                             }
                 });
