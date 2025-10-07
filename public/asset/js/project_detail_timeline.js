@@ -89,6 +89,7 @@ function renderTimeline(tasks) {
             .append(
                 $("<div></div>")
                     .addClass(`timeline-bar ${barColorClass}`)
+                    .attr("data-task-id", task.id)
                     .css({
                         "pointer-events": "auto",
                         "cursor": "pointer",

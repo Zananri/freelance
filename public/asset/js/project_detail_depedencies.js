@@ -1219,11 +1219,9 @@ $("#fullscreen-tree-btn").on("click", function () {
     })();
 })();
 
-$(document).on("click", ".task-box", function (e) {
-    const taskId = $(this).attr("data-task-id");
-    if (taskId) {
-        handleTaskDetail(taskId);
-    }
+$(document).on("click", ".task-box, .timeline-bar", function (e) {
+    const taskId = $(this).data("task-id");
+    if (taskId) handleTaskDetail(taskId);
 });
 
 $(function () {
