@@ -7565,20 +7565,74 @@ function applyCurrentSearchFilter() {
             dataType: "json",
             success: function (data) {
                 const task = data.data || {};
-                const title = (task && task.title) ? task.title : 'Untitled Task';
-                const desc = (task && task.description) ? task.description : '';
-                const projTitle = (task && task.project && task.project.title) ? task.project.title : '';
+                let avatarHtml = "";
+                if (task.image) {
+                    let imgUrl = task.image;
+                    const isAbsolute = imgUrl.startsWith("http://") || imgUrl.startsWith("https://");
+                    const isFileTask = imgUrl.startsWith("/file/task/") || imgUrl.startsWith("file/task/");
+                    const isPublicPath = imgUrl.startsWith("/storage/") || imgUrl.startsWith("storage/");
+
+                    if (!isAbsolute && !isFileTask && !isPublicPath) {
+                        imgUrl = appUrl + "/file/task/" + imgUrl;
+                    } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                        imgUrl = imgUrl.startsWith("/") ? appUrl + imgUrl : appUrl + "/" + imgUrl;
+                    }
+
+                    avatarHtml = `<img src="${imgUrl}" alt="Task Image"
+                                    class="rounded-circle me-3"
+                                    style="width:34px;height:34px;object-fit:cover;"
+                                    onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getRandomColorFromText(task.title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getTaskInitials(task.title)}</div>')">`;
+                } else {
+                    const initials = getTaskInitials(task.title);
+                    const bgColor = getRandomColorFromText(task.title);
+                    avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                    style="width:34px;height:34px;background:${bgColor};color:#fff;
+                                            font-weight:600;font-size:11px;">
+                                    ${initials}
+                                </div>`;
+                }
+
                 const contentEl = deleteModalEl.querySelector(".modal-body");
                 if (contentEl) {
-                    contentEl.innerHTML = `
-                        <div class="custom-card rounded-4 position-relative p-3 border-0">
+
+                contentEl.innerHTML = `
+                    <div class="custom-card rounded-4 position-relative p-3 border-0">
+                        <div class="d-flex align-items-center mb-2">
+                            ${avatarHtml}
                             <div class="d-flex flex-column">
-                                ${projTitle ? `<small class="text-muted" style="font-size:11px;">${projTitle}</small>` : ''}
-                                <h5 class="mb-1">${title}</h5>
-                                ${desc ? `<div class="text-muted" style="font-size:12px;">${desc}</div>` : ''}
-                                <div class="mt-2" style="font-size:12px;color:#b94a48;">This will move the task to Archive (status: DELETED).</div>
+                                ${task.project.id ?
+                                    `<p class="text-muted" style="line-height:1; font-size: 10px;">
+                                        ${task.project.title || '-'}
+                                    </p>`
+                                    : ''
+                                }
+                                <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title || 'Untitled Task'}</h5>
                             </div>
-                        </div>`;
+                        </div>
+                        <div class="task-description-container mb-2">
+                            <p class="task-description mb-0" style="font-size:14px;">${task.description || ''}</p>
+                        </div>
+                        <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Priority: </span>
+                                <span style="color:${task.priority === "HIGH" ? "red" : "#4B4F5E"}">${task.priority || "-"}</span>
+                            </div>
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Deadline: </span>
+                                <span style="color:#4B4F5E;">${task.due_date || "-"}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                            <span class="text-muted">Department:</span>
+                            <span>${task.project?.department || "-"}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                            <span class="text-muted">Division:</span>
+                            <span>${task.project?.division || "-"}</span>
+                        </div>
+                    </div>
+                `;
                 }
             }
         });
@@ -7606,6 +7660,7 @@ function applyCurrentSearchFilter() {
                             fetchAndRenderTasks('completed', 1, false, '');
                         }
                         if (typeof loadArchivedTasksIntoModal === 'function') loadArchivedTasksIntoModal();
+                        
                     } catch(_) {}
                 },
                 error: function (xhr) {

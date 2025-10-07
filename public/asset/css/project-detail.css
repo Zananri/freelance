@@ -416,7 +416,10 @@
     align-items: center;
     gap: 1rem;
     margin-top: 0.5rem;
-    font-size: 12px;
+}
+
+.feedback-reference-container a {
+    font-size: 10px;
 }
 
 .feedback-reference-url,
@@ -1370,8 +1373,8 @@ input[type="file"]::file-selector-button {
 }
 
 .feedback-content-detail.fullscreen .feedback-content {
-    max-height: calc(100vh - 400px);
-    min-height: calc(100vh - 400px);
+    max-height: calc(100vh - 450px);
+    min-height: calc(100vh - 450px);
 }
 
 .feedback-content {
@@ -1566,7 +1569,7 @@ input[type="file"]::file-selector-button {
         z-index: 2;
     }
 
-    .not-started {
+    .legend-item .not-started {
         background: #dde4e8;
         padding: 5px;
         border-radius: 50%;
@@ -1576,7 +1579,7 @@ input[type="file"]::file-selector-button {
         margin-right: 10px;
         color: #3b3d42;
     }
-    .in-progress {
+    .legend-item .in-progress {
         background: #f5efce;
         padding: 5px;
         border-radius: 50%;
@@ -1586,7 +1589,7 @@ input[type="file"]::file-selector-button {
         margin-right: 10px;
         color: #3b3d42;
     }
-    .late {
+    .legend-item .late {
         background: #eba5a5;
         padding: 5px;
         border-radius: 50%;
@@ -1596,7 +1599,7 @@ input[type="file"]::file-selector-button {
         margin-right: 10px;
         color: #3b3d42;
     }
-    .complete {
+    .legend-item .complete {
         background: #b2eecd;
         padding: 5px;
         border-radius: 50%;
