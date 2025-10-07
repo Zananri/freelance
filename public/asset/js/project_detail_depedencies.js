@@ -1393,24 +1393,19 @@ function escapeHTML(str) {
 }
 
 function getAvatarHTML(task) {
-    const img = task.project_image ? normalizeImage(task.project_image) : null;
+    const img = task.image ? `${appUrl}/file/task/${task.image}` : null;
+
     if (img) {
-        return `<img src="${img}" alt="Project" class="project-image me-3" 
+        return `<img src="${img}" alt="Task" class="project-image" 
                     style="width:48px;height:48px;object-fit:cover;border-radius:50%;" 
                     onerror="this.src='${appUrl}/asset/img/avatar.png'">`;
     }
+
     const initials = getTaskInitials(task.title);
     const color = getRandomColorFromText(task.title);
-    return `<div class="project-initial-avatar me-3" 
+    return `<div class="project-initial-avatar" 
                 style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
                 font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
-}
-
-function normalizeImage(path) {
-    if (!path) return "";
-    const val = String(path).trim();
-    if (val.startsWith("http")) return val;
-    return appUrl + (val.startsWith("/") ? val : `/file/project/${val}`);
 }
 
 if (typeof window.getTaskInitials !== 'function') {

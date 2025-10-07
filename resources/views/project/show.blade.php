@@ -620,7 +620,6 @@
 
                             <!-- Collaborators -->
                             <div class="collab-section mt-3">
-                                <h6 class="fw-semibold mb-2">Collaborators</h6>
                                 <div id="taskCollaborators"></div>
                             </div>
 
