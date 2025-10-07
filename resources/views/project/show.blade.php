@@ -593,7 +593,7 @@
                                 <div class="d-flex align-items-center">
                                     <div id="taskProjectAvatar" class="me-3"></div>
                                     <div>
-                                        <small class="text-muted" id="taskProjectTitle"></small>
+                                        <small class="text-muted" style="font-size: 11px;" id="taskProjectTitle"></small>
                                         <h5 class="mb-0" id="taskTitle" style="font-size:16px;font-weight:600;">-
                                         </h5>
                                     </div>
