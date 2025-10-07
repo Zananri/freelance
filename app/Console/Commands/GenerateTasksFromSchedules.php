@@ -138,9 +138,21 @@ class GenerateTasksFromSchedules extends Command
                         $this->line("[DRY] Would create task from schedule #{$schedule->id} for runAt {$runAt}");
                         \Log::info('[schedules:generate] DRY create', ['id' => $schedule->id, 'runAt' => $runAt]);
                     } else {
-                        // Basic idempotency: skip if a task already exists for this schedule and start_date
-                        $exists = Task::where('start_date', $runAt->toDateString())
+                        // Improved idempotency: only skip if a task for the SAME creator/project/parent
+                        // with the same title and start_date already exists. This avoids collisions
+                        // across different users who happen to use identical titles on the same day.
+                        $exists = Task::query()
+                            ->whereDate('start_date', $runAt->toDateString())
                             ->where('title', $schedule->title)
+                            ->when($schedule->created_by, function ($q) use ($schedule) {
+                                $q->where('created_by', $schedule->created_by);
+                            })
+                            ->when($schedule->project_id, function ($q) use ($schedule) {
+                                $q->where('project_id', $schedule->project_id);
+                            })
+                            ->when($schedule->parent_id, function ($q) use ($schedule) {
+                                $q->where('parent_id', $schedule->parent_id);
+                            })
                             ->exists();
                         if ($exists) {
                             \Log::info('[schedules:generate] Skip create - task exists', ['schedule_id' => $schedule->id, 'runAt' => $runAt]);
@@ -373,7 +385,7 @@ class GenerateTasksFromSchedules extends Command
             if (is_file($src)) {
                 $ext = pathinfo($fname, PATHINFO_EXTENSION);
                 $new = 'TASK_FROM_SCHEDULE_' . time() . '_' . $idx . '.' . $ext;
-                $dest = public_path('file/task_refe rence_files/' . $new);
+                $dest = public_path('file/task_reference_files/' . $new);
                 @copy($src, $dest);
                 $taskRefFiles[] = $new;
             }
