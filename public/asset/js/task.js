@@ -7006,23 +7006,16 @@ function applyCurrentSearchFilter() {
                     return;
                 }
 
-                let projectImg = null;
-                if (task.project_image) {
-                    const val = String(task.project_image).trim();
-                    if (val && val !== "null" && val !== "undefined") {
-                        if (val.startsWith("http")) projectImg = val;
-                        else projectImg = appUrl + (val.startsWith("/") ? val : "/file/project/" + val);
-                    }
-                }
+                const taskImage = task.image ? `${appUrl}/file/task/${task.image}` : null;
 
                 const avatarTitle = task.title || task.project_title || "NA";
-                const useInitials = !projectImg;
+                const useInitials = !taskImage;
                 const initials = useInitials ? getTaskInitials(task.title) : "";
                 const initialsColor = useInitials ? getRandomColorFromText(task.title) : "#6A5AE0";
 
                 const avatarHtml = useInitials
                     ? `<div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialsColor};">${initials}</div>`
-                    : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
+                    : `<img src="${taskImage}" alt="Project Image" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
 
                 const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
                 const allExecutors = [];
