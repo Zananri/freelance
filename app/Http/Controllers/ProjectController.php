@@ -374,7 +374,10 @@ class ProjectController extends Controller
                         'projectAssignments.employee.user',
                     ])
                     ->withCount([
-                        'tasks as total_tasks',
+                        // Count only active tasks (exclude canceled and deleted)
+                        'tasks as total_tasks' => function ($q) {
+                            $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                        },
                         'tasks as in_progress_tasks' => fn($q) =>
                             $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected']),
                         'tasks as rejected_tasks' => fn($q) =>
@@ -479,7 +482,9 @@ class ProjectController extends Controller
                 'projectAssignments.employee.user',
             ])
                 ->withCount([
-                    'tasks as total_tasks',
+                    'tasks as total_tasks' => function ($q) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                    },
                     'tasks as in_progress_tasks' => function ($q) use ($taskScope, $employeeId) {
                         if ($taskScope === 'me') {
                             $q->whereHas('assignments', function ($q2) use ($employeeId) {
@@ -748,7 +753,9 @@ class ProjectController extends Controller
                     'projectAssignments.employee.user',
                 ])
                 ->withCount([
-                    'tasks as total_tasks',
+                    'tasks as total_tasks' => function ($q) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                    },
                     'tasks as in_progress_tasks' => function ($q) {
                         $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'rejected']);
                     },
