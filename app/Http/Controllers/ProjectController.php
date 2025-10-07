@@ -287,10 +287,29 @@ class ProjectController extends Controller
     /**
      * Return JSON data for project cards with counts zero.
      */
-    public function getCardData()
+    public function getCardData(Request $request)
     {
         try {
-            $projects = Project::where('status', '!=', 'DELETED')->get(['id', 'title', 'image']);
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+
+            $projectsQuery = Project::where('status', '!=', 'DELETED')
+                ->where(function ($q) use ($employeeId) {
+                    $q->whereNull('project_type')
+                      ->orWhere('project_type', 'public');
+
+                    if ($employeeId) {
+                        $q->orWhere(function ($qq) use ($employeeId) {
+                            $qq->where('project_type', 'private')
+                               ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                    $q2->where('employee_id', $employeeId)
+                                       ->where('role', 'author');
+                               });
+                        });
+                    }
+                });
+
+            $projects = $projectsQuery->get(['id', 'title', 'image']);
             $projectIds = $projects->pluck('id')->toArray();
             $projectTitles = $projects->pluck('title')->toArray();
             $projectImages = $projects->pluck('image')->toArray();
@@ -592,33 +611,22 @@ class ProjectController extends Controller
             }
 
             // Only public projects should be visible in general listing used by dropdowns unless task_scope=all
-            // However, allow private projects that are assigned to (or authored by) the current authenticated employee
+            // For private projects, only the author (creator) may see them in the general listing.
             $query = Project::where('status', '!=', 'DELETED')
                 ->where(function ($q) use ($employeeId) {
                     $q->whereNull('project_type')
                       ->orWhere('project_type', 'public');
 
-                            if ($employeeId) {
-                                // include private projects where the current employee is assigned
-                                // as author, co_author or contributor. Respect include_unaccepted
-                                // so non-author roles must have is_receive = true unless explicitly allowed.
-                                $includeUnaccepted = $includeUnaccepted ?? false;
-
-                                $q->orWhere(function ($qq) use ($employeeId, $includeUnaccepted) {
-                                    $qq->where('project_type', 'private')
-                                    ->whereHas('projectAssignments', function ($q2) use ($employeeId, $includeUnaccepted) {
-                                        $q2->where('employee_id', $employeeId)
-                                            ->whereIn('role', ['author', 'co_author', 'contributor']);
-
-                                        if (!$includeUnaccepted) {
-                                            $q2->where(function ($inner) {
-                                                $inner->where('role', 'author')
-                                                        ->orWhere('is_receive', true);
-                                            });
-                                        }
-                                    });
-                                });
-                            }
+                    if ($employeeId) {
+                        // include private projects only when the current employee is the author
+                        $q->orWhere(function ($qq) use ($employeeId) {
+                            $qq->where('project_type', 'private')
+                               ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                    $q2->where('employee_id', $employeeId)
+                                       ->where('role', 'author');
+                               });
+                        });
+                    }
                 });
 
             // Handle sorting options
@@ -1281,12 +1289,30 @@ class ProjectController extends Controller
 
         $result = [];
 
+        $user = $request->user();
+        $employeeId = $user && $user->employee ? $user->employee->id : null;
+
         foreach ($ids as $id) {
             $project = $projects->firstWhere('id', $id);
 
             if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
                 $result[] = null; // kalo ga ketemu atau deleted, tetap null
                 continue;
+            }
+
+            // Enforce visibility: if project is private, only the author may see it
+            $pt = $project->project_type ?? null;
+            if (strtolower((string) $pt) === 'private') {
+                $isAuthor = false;
+                if ($employeeId) {
+                    $isAuthor = $project->projectAssignments->contains(function ($a) use ($employeeId) {
+                        return isset($a->employee_id) && (int)$a->employee_id === (int)$employeeId && ($a->role === 'author');
+                    });
+                }
+                if (!$isAuthor) {
+                    $result[] = null; // hide private project
+                    continue;
+                }
             }
 
             $author = null;
