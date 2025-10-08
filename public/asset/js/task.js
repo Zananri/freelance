@@ -4427,12 +4427,12 @@ function applyCurrentSearchFilter() {
             'completed-tasks':   'completed'
         };
 
-        // Mark columns as droppable
         $(function(){
             $('#new-request-tasks, #in-progress-tasks, #completed-tasks').addClass('kanban-droppable');
         });
 
-        let kanbanDrag = null; // { id, fromStatus }
+        let kanbanDrag = null;
+        let lastX = 0;
 
         function normStatus(s){
             s = String(s || '').toLowerCase();
@@ -4442,18 +4442,13 @@ function applyCurrentSearchFilter() {
         }
 
         function mapTransition(fromStatus, toStatus){
-            // returns { allowed: boolean, newStatus?: string }
             fromStatus = normStatus(fromStatus);
             toStatus = normStatus(toStatus);
-            // same-column drop => no-op
             if (fromStatus === toStatus) return { allowed: false };
-
-            // Treat 'rejected' as currently in-progress special state; allow sending to completed
             if (fromStatus === 'rejected') {
                 if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
                 return { allowed: false };
             }
-
             if (fromStatus === 'new_request') {
                 if (toStatus === 'in_progress') return { allowed: true, newStatus: 'in_progress' };
                 return { allowed: false };
@@ -4491,14 +4486,12 @@ function applyCurrentSearchFilter() {
             });
         }
 
-        // Make cards draggable on demand (delegated)
         $(document).on('mouseenter', '.custom-card', function(){
             this.setAttribute('draggable', 'true');
         });
 
-        // Begin drag
         $(document).on('dragstart', '.custom-card', function(ev){
-            try { hideAllFloatingTooltips && hideAllFloatingTooltips(); } catch(_) {}
+            try { hideAllFloatingTooltips(); } catch(_) {}
             const e = ev.originalEvent || ev;
             const id = this.getAttribute('data-task-id');
             const fromStatus = normStatus(this.getAttribute('data-task-status'));
@@ -4508,13 +4501,23 @@ function applyCurrentSearchFilter() {
             refreshDropHighlights();
         });
 
-        // End drag (cleanup)
+        $(document).on('drag', '.custom-card', function(ev){
+            const e = ev.originalEvent || ev;
+            if (!kanbanDrag) return;
+            const currentX = e.pageX || e.clientX;
+            const dx = currentX - lastX;
+            lastX = currentX;
+            const $card = $(this);
+            const rotation = Math.max(-6, Math.min(6, dx / 4));
+            $card.css('transform', `scale(1) rotate(${rotation}deg)`);
+        });
+
         $(document).on('dragend', '.custom-card', function(){
+            $(this).css('transform', 'scale(1) rotate(0deg)');
             kanbanDrag = null;
             clearDropHighlights();
         });
 
-        // Column drag handlers
         $(document).on('dragenter', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
             if (!kanbanDrag) return;
             $(this).addClass('kanban-over');
@@ -4550,11 +4553,9 @@ function applyCurrentSearchFilter() {
                 kanbanDrag = null; clearDropHighlights();
                 return;
             }
-            // If moving to completed, open modal to collect completion details
             if (m.newStatus === 'completed') {
                 try { showConfirmationToCompleteModal(taskId, taskCard); } catch(err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch(_) {} }
             } else {
-                // Normal transitions use existing updater
                 try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch(_) {}
             }
             kanbanDrag = null; clearDropHighlights();

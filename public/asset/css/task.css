@@ -717,7 +717,7 @@ p {
 }
 
 .task-description-container::-webkit-scrollbar-track
-.task-detail-description-container::-webkit-scrollbar-track{
+    .task-detail-description-container::-webkit-scrollbar-track {
     background: transparent;
 }
 
@@ -2082,4 +2082,34 @@ input[type="file"]::file-selector-button {
 #completed_task_files a {
     text-decoration: none;
     color: #444444;
+}
+
+.custom-card.dragging::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: linear-gradient(
+        145deg,
+        rgba(255, 255, 255, 0.1),
+        rgba(0, 0, 0, 0.05)
+    );
+    pointer-events: none;
+}
+
+.custom-card.dragging {
+    /* opacity: 0.9; */
+    transform: scale(0.75) rotate(0deg);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: grabbing;
+    z-index: 100;
+    position: relative;
+}
+
+.kanban-droppable.kanban-over {
+    background-color: rgba(0, 170, 255, 0.05);
+    border: 2px dashed rgba(0, 170, 255, 0.3);
+    border-radius: 10px;
+    transition: background 0.2s ease;
 }
