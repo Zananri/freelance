@@ -3031,7 +3031,6 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
     headers: { "X-Requested-With": "XMLHttpRequest" },
     data: params,
     success: function (response) {
-        console.log(response);
 
       if (callSeq !== taskFetchSeq) return
       if (!response || response.code !== 200 || !response.data) return
@@ -7654,7 +7653,7 @@ function applyCurrentSearchFilter() {
                             fetchAndRenderTasks('completed', 1, false, '');
                         }
                         if (typeof loadArchivedTasksIntoModal === 'function') loadArchivedTasksIntoModal();
-                        
+
                     } catch(_) {}
                 },
                 error: function (xhr) {
@@ -9645,7 +9644,8 @@ function applyCurrentSearchFilter() {
             }
         })();
 
-        const img = task.project_image || '/asset/img/avatar.png';
+        const img = task.image || '/asset/img/avatar.png';
+
         $("#completed_task_image").attr("src", img);
         $("#completed_task_title").text(task.title || "-");
         $("#completed_project_title").text(task.project_title || "-");
