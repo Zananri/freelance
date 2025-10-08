@@ -1067,7 +1067,7 @@
                             ) {
                                 var refWrap = document.createElement("div");
                                 refWrap.className =
-                                    "feedback-reference-container mb-2";
+                                    "feedback-reference-container mb-2 row";
                                 if (
                                     Array.isArray(topRefUrls) &&
                                     topRefUrls.length > 0
@@ -1078,9 +1078,12 @@
                                             a.href = u;
                                             a.target = "_blank";
                                             a.className =
-                                                "feedback-reference-url me-2";
+                                                "feedback-reference-url bg-light rounded-2 ms-2";
+                                            a.style.width = "60%";
+                                            a.style.height = "28px";
+                                            a.style.color = "#444444";
                                             a.innerHTML =
-                                                '<span class="material-symbols-outlined">link</span> Link ' +
+                                                '<span class="material-symbols-outlined" style="color: #444444;">link</span> Link ' +
                                                 (idx + 1);
                                             refWrap.appendChild(a);
                                         } catch (_) {}
@@ -1097,9 +1100,12 @@
                                             af.href = f;
                                             af.download = "";
                                             af.className =
-                                                "feedback-reference-file ms-2";
+                                                "feedback-reference-file bg-light rounded-2 ms-2";
+                                            af.style.width = "60%";
+                                            af.style.height = "28px";
+                                            af.style.color = "#444444";
                                             af.innerHTML =
-                                                '<span class="material-symbols-outlined">draft</span> FILE ' +
+                                                '<span class="material-symbols-outlined" style="color: #444444;">draft</span> FILE ' +
                                                 (idx + 1);
                                             refWrap.appendChild(af);
                                         } catch (_) {}
