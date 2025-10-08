@@ -7416,7 +7416,7 @@
                                         '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
                                         (withAdd
                                             ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>'
-                                            : ' <button type="button" class="border-0 bg-transparent p-1 remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined" style="color:#444444;">close</span></button>');
+                                            : ' <button type="button" class="btn btn-remove-url border-0 p-1 remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined" style="color:#444444;">close</span></button>');
                                     container.appendChild(row);
                                     var inp =
                                         row.querySelector('input[type="url"]');
