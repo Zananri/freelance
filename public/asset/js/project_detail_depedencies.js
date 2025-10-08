@@ -1,5 +1,7 @@
 let currentMaxLevel = 6;
 let allTasks = [];
+// When true, we use jsPlumb lines only and disable the old DOM/SVG connector logic
+window.USE_PLUMB_ONLY = true;
 
 function renderChildGroups(task, $container, $template) {
     if (!task.children || task.children.length === 0) return;
@@ -7,11 +9,9 @@ function renderChildGroups(task, $container, $template) {
     for (let i = 0; i < task.children.length; i++) {
         const child = task.children[i];
         const $child = renderTaskNode(child, $template);
-        const $childStub = $(
-            '<div class="connector-horizontal child-connector"></div>'
-        );
         const $wrap = $('<div class="task-item"></div>');
-        $wrap.append($childStub).append($child);
+        // Old connector stub removed in jsPlumb-only mode
+        $wrap.append($child);
         $container.append($wrap);
     }
 }
@@ -114,6 +114,8 @@ function renderTaskNode(task, $template) {
     try {
         if (task && task.id != null) {
             $card.attr("data-task-id", String(task.id));
+            // assign a stable id for plumb
+            $card.attr("id", "task-node-" + String(task.id));
             $card.attr("draggable", true);
             $card.addClass("draggable-task");
             // small affordance for users
@@ -125,6 +127,26 @@ function renderTaskNode(task, $template) {
             }
         }
     } catch (_) {}
+    // Add a small jsPlumb connection handle to avoid conflict with HTML5 DnD
+    try {
+        $card.css("position", function(i, v){ return v || "relative"; });
+        if ($card.find('.plumb-handle').length === 0) {
+            const $handle = $('<div class="plumb-handle" title="Tarik garis untuk menambah parent"\
+                style="position:absolute;top:4px;right:4px;width:14px;height:14px;border-radius:50%;background:#6A5AE0;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10000;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
+            $handle.attr('draggable', false);
+            // On pointer/touch down, disable card DnD but let jsPlumb see the event
+            $handle.on('pointerdown mousedown touchstart', function(){
+                try { $card.attr('draggable', false); } catch(_){ }
+            });
+            // On release, re-enable card DnD
+            $handle.on('pointerup mouseup touchend touchcancel', function(){
+                try { $card.attr('draggable', true); } catch(_){ }
+            });
+            // Prevent click on handle from opening modal
+            $handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
+            $card.append($handle);
+        }
+    } catch(_) {}
     if (visual === "complete") $card.css("background-color", "#B2EECD");
     else if (visual === "in-progress") $card.css("background-color", "#F5EFCE");
     else if (visual === "late") $card.css("background-color", "#EBA5A5");
@@ -144,18 +166,13 @@ function renderTaskNode(task, $template) {
     if (task.children && task.children.length > 0) {
         const $branch = $('<div class="task-branch"></div>');
         $branch.append($item);
-        const $connector = $('<div class="connector-horizontal"></div>');
-        $branch.append($connector);
+        // Old horizontal/vertical connector DOM removed in jsPlumb-only mode
         const $childGroup = $('<div class="child-group"></div>').css({
             display: "flex",
             flexDirection: "column",
             gap: "20px",
             position: "relative",
         });
-        if (task.children.length > 1) {
-            const $vertical = $('<div class="connector-vertical"></div>');
-            $childGroup.append($vertical);
-        }
         renderChildGroups(task, $childGroup, $template);
         $branch.append($childGroup);
         return $branch;
@@ -176,11 +193,16 @@ function renderTaskList(data) {
         $rootCol.append(renderTaskNode(root, $("#task-template")));
     });
 
-    setTimeout(adjustConnectors, 40);
-    setTimeout(drawSvgConnectors, 60);
+    if (!window.USE_PLUMB_ONLY) {
+        setTimeout(adjustConnectors, 40);
+        setTimeout(drawSvgConnectors, 60);
+    }
+    // notify plumb renderer after DOM laid out
+    try { if (typeof window.initTaskPlumb === 'function') { window.initTaskPlumb(allTasks || data || []); } } catch(_) {}
 }
 
 function adjustConnectors() {
+    if (window.USE_PLUMB_ONLY) return; // disabled when using jsPlumb-only mode
     try {
         $("#task-tree .task-branch").each(function () {
             const $branch = $(this);
@@ -274,10 +296,14 @@ function adjustConnectors() {
 }
 
 $(window).on("resize", function () {
-    setTimeout(adjustConnectors, 60);
+    if (!window.USE_PLUMB_ONLY) setTimeout(adjustConnectors, 60);
 });
 
 function ensureSvgOverlay() {
+    if (window.USE_PLUMB_ONLY) {
+        // No-op in jsPlumb mode
+        return $("#task-tree-svg");
+    }
     let $svg = $("#task-tree-svg");
     if ($svg.length === 0) {
         $svg = $(
@@ -313,6 +339,7 @@ function createSvgEl(tagName, attrs) {
 }
 
 function drawSvgConnectors() {
+    if (window.USE_PLUMB_ONLY) return; // disabled when using jsPlumb-only mode
     try {
         const $svg = ensureSvgOverlay();
         $svg.empty();
@@ -411,10 +438,12 @@ function drawSvgConnectors() {
     } catch (e) {}
 }
 
-setTimeout(drawSvgConnectors, 50);
-$(window).on("resize scroll", function () {
-    setTimeout(drawSvgConnectors, 80);
-});
+if (!window.USE_PLUMB_ONLY) {
+    setTimeout(drawSvgConnectors, 50);
+    $(window).on("resize scroll", function () {
+        setTimeout(drawSvgConnectors, 80);
+    });
+}
 
 function getTaskByProject(projectId) {
     fetchProjectDueDate(projectId);
@@ -461,8 +490,10 @@ if (projectId) getTaskByProject(projectId);
             var t = null;
             var inner = function () {
                 try {
-                    adjustConnectors();
-                    drawSvgConnectors();
+                    if (!window.USE_PLUMB_ONLY) {
+                        adjustConnectors();
+                        drawSvgConnectors();
+                    }
                 } catch (_) {}
             };
             var debounced = function (delay) {
@@ -474,7 +505,7 @@ if (projectId) getTaskByProject(projectId);
         })();
         if (typeof window.ResizeObserver !== "undefined") {
             var ro = new ResizeObserver(function () {
-                scheduleRecalc();
+                    if (!window.USE_PLUMB_ONLY) scheduleRecalc();
             });
             ro.observe($tree[0]);
             var $parent = $tree.closest(".structure-detail-content");
@@ -497,13 +528,13 @@ if (projectId) getTaskByProject(projectId);
                         lastW = w;
                         lastH = h;
                         lastPW = pW;
-                        scheduleRecalc(20);
+                            if (!window.USE_PLUMB_ONLY) scheduleRecalc(20);
                     }
                 } catch (_) {}
             }, 220);
         }
         var mo = new MutationObserver(function () {
-            scheduleRecalc(60);
+            if (!window.USE_PLUMB_ONLY) scheduleRecalc(60);
         });
         mo.observe(document.body, {
             attributes: true,
@@ -587,6 +618,8 @@ $("#fullscreen-tree-btn").on("click", function () {
 
     $(document).on("dragstart", "#task-tree .task-box", function (e) {
         try {
+            // If starting drag from plumb handle, ignore DnD
+            if ($(e.target).closest('.plumb-handle').length) { e.preventDefault(); return; }
             var id = $(this).attr("data-task-id");
             window.__dragTaskId = id != null ? String(id) : null;
             if (e.originalEvent && e.originalEvent.dataTransfer) {
@@ -812,7 +845,8 @@ $("#fullscreen-tree-btn").on("click", function () {
                         if (dragged) {
                             dragged.parent_id = targetId;
                         }
-                        renderTaskList(allTasks);
+                        // Avoid full re-render to keep card positions stable; let jsPlumb repaint
+                        try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                     } catch (_) {}
                     // Don't reload from server to maintain consistent behavior
                 })
@@ -1099,7 +1133,7 @@ $("#fullscreen-tree-btn").on("click", function () {
                             if (dragged) {
                                 dragged.parent_id = targetId;
                             }
-                            renderTaskList(allTasks);
+                            try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                         } catch (_) {}
                         // Don't reload from server to maintain consistent behavior
                     })
@@ -1148,6 +1182,9 @@ $("#fullscreen-tree-btn").on("click", function () {
 
         $(document).on("touchstart", "#task-tree .task-box", function (e) {
             try {
+                // Ignore long-press start if touching the plumb handle
+                var target = e.target || (e.originalEvent && e.originalEvent.target);
+                if (target && $(target).closest('.plumb-handle').length) return;
                 var t =
                     e.originalEvent &&
                     e.originalEvent.touches &&
@@ -1220,6 +1257,7 @@ $("#fullscreen-tree-btn").on("click", function () {
 })();
 
 $(document).on("click", ".task-box, .timeline-bar", function (e) {
+    if ($(e.target).closest('.plumb-handle').length) { e.preventDefault(); e.stopPropagation(); return; }
     const taskId = $(this).data("task-id");
     if (taskId) handleTaskDetail(taskId);
 });

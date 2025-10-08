@@ -140,6 +140,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
     Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
     Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
+    // Multi-parent management
+    Route::post('/task/{id}/parents', [TaskController::class, 'addParent'])->name('task.parents.add');
+    Route::delete('/task/{id}/parents', [TaskController::class, 'removeParent'])->name('task.parents.remove');
     // Delete a single reference file attached to a task (authorized PIC only)
     Route::delete('/task/{id}/reference-file', [TaskController::class, 'destroyReferenceFile'])->name('task.reference-file.destroy');
     // Upload reference files to a task

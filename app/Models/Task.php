@@ -12,6 +12,7 @@ class Task extends Model
     protected $fillable = [
         'project_id',
         'parent_id',
+        'parent_ids',
         'position_x',
         'position_y',
         'free_positioned',
@@ -41,6 +42,7 @@ class Task extends Model
         'read_markers' => 'array',
         'complete_files' => 'array',
         'complete_urls' => 'array',
+        'parent_ids' => 'array',
         'free_positioned' => 'boolean',
         'position_x' => 'integer',
         'position_y' => 'integer',
@@ -62,6 +64,23 @@ class Task extends Model
     public function children()
     {
         return $this->hasMany(Task::class, 'parent_id');
+    }
+
+    /**
+     * Helper: return all parent IDs as array (includes legacy parent_id if set)
+     */
+    public function getAllParentIdsAttribute(): array
+    {
+        $ids = [];
+        try {
+            if (is_array($this->parent_ids)) {
+                $ids = array_values(array_filter($this->parent_ids, fn($v) => $v !== null && $v !== ''));
+            }
+            if (!empty($this->parent_id) && !in_array($this->parent_id, $ids)) {
+                $ids[] = (int) $this->parent_id;
+            }
+        } catch (\Throwable $_) {}
+        return $ids;
     }
 
     // Define relationship to TaskAssignment
