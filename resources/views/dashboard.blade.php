@@ -1058,47 +1058,6 @@
                                             </div>
                                         </div>
                                     </div>
-
-
-
-
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Contributions Heatmap Modal -->
-                <div class="modal fade" id="contributionsModal" tabindex="-1" aria-labelledby="contributionsModalLabel" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-lg">
-                        <div class="modal-content rounded-4 border-0">
-                            <div class="modal-header border-0">
-                                <h5 class="modal-title modal-title-custom" id="contributionsModalLabel">My Contributions</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-                                    <div class="fs-14 text-secondary">Completed tasks per day (past year)</div>
-                                    <div class="contrib-legend">
-                                        <span>Less</span>
-                                        <div class="d-inline-flex align-items-center gap-1">
-                                            <span class="legend-swatch level-0"></span>
-                                            <span class="legend-swatch level-1"></span>
-                                            <span class="legend-swatch level-2"></span>
-                                            <span class="legend-swatch level-3"></span>
-                                            <span class="legend-swatch level-4"></span>
-                                        </div>
-                                        <span>More</span>
-                                    </div>
-                                </div>
-                                <div class="contrib-grid-container">
-                                    <div class="contrib-layout">
-                                        <div class="contrib-weekdays" id="contribWeekdays"></div>
-                                        <div class="contrib-chart">
-                                            <div class="contrib-months" id="contribMonths"></div>
-                                            <div id="contributionsGrid" class="contrib-grid"></div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
