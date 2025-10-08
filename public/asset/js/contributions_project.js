@@ -13,7 +13,20 @@
 
     function getEmployeeId(){
       const $input = $("input[name='employee_id']");
-      return $input.val() || null;
+      const v = ($input.length ? $input.val() : '') || '';
+      if (v) return v;
+      // Fallback: try data-employee-id on common modals
+      const $pfm = $('#projectFeedbackModal');
+      if ($pfm.length) {
+        const d = $pfm.data('employee-id');
+        if (d) return String(d);
+      }
+      const $epm = $('#editProjectModal');
+      if ($epm.length) {
+        const d = $epm.data('employee-id');
+        if (d) return String(d);
+      }
+      return null;
     }
 
     function route(path){
@@ -179,7 +192,8 @@
       const modal = ensureModal();
       if (!modal) return;
       const employeeId = getEmployeeId();
-      if (!employeeId) {
+      const hasEndpoint = $('#contrib-endpoint').length && $('#contrib-endpoint').val();
+      if (!employeeId && !hasEndpoint) {
         console.warn('No employee_id on page');
         modal.show();
         return;
@@ -191,7 +205,7 @@
       modal.show();
 
       try {
-        const data = await fetchData(employeeId);
+  const data = await fetchData(employeeId || 'self');
         if ($gridContainer.length) renderGrid($gridContainer, data);
         const onResize = () => {
           const layoutEl = $('#contributionsGrid').closest('.contrib-layout')[0];
