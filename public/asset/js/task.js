@@ -8413,11 +8413,14 @@ function applyCurrentSearchFilter() {
     // Enhanced Task Filtering with All Project Support
     let currentTaskFilters = {
         project: "",
-        status: ""
+        status: "",
+        priority: ""
     };
 
     const filterTaskProjectSelect = document.getElementById("filterTaskProject");
     const filterTaskStatusSelect = document.getElementById("filterTaskStatus");
+    const filterTaskPrioritySelect = document.getElementById("filterTaskPriority");
+    const filterByDate = document.getElementById("filterByDate");
     const applyTaskFilterBtn = document.getElementById("applyTaskFilterBtn");
     const openTaskFilterBtn = document.getElementById("openTaskFilterBtn");
     const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
@@ -8461,6 +8464,17 @@ function applyCurrentSearchFilter() {
         applyTaskFilterBtn.addEventListener("click", function () {
             if (filterTaskProjectSelect) currentTaskFilters.project = filterTaskProjectSelect.value;
             if (filterTaskStatusSelect) currentTaskFilters.status = filterTaskStatusSelect.value;
+            fetchAndRenderFilteredTasks(currentTaskFilters);
+            const dd = document.getElementById("taskFilterDropdown");
+            if (dd) dd.style.display = "none";
+        });
+    }
+
+    if (applyTaskFilterBtn && !applyTaskFilterBtn._bound) {
+        applyTaskFilterBtn._bound = true;
+        applyTaskFilterBtn.addEventListener("click", function () {
+            if (filterTaskProjectSelect) currentTaskFilters.project = filterTaskProjectSelect.value;
+            if (filterTaskPrioritySelect) currentTaskFilters.priority = filterTaskPrioritySelect.value;
             fetchAndRenderFilteredTasks(currentTaskFilters);
             const dd = document.getElementById("taskFilterDropdown");
             if (dd) dd.style.display = "none";

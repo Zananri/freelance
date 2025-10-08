@@ -51,13 +51,13 @@
                 <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
                     <div class="dropdown-filter-body">
                         <div class="mb-3">
-                            <label for="filterTaskProject" class="form-label">Project</label>
+                            <label for="filterTaskProject" class="form-label label-custom">Project</label>
                             <select id="filterTaskProject" class="form-select">
                                 <option value="">All Projects</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label for="filterTaskStatus" class="form-label">Status</label>
+                            <label for="filterTaskStatus" class="form-label label-custom">Status</label>
                             <select id="filterTaskStatus" class="form-select">
                                 <option value="">All Status</option>
                                 <option value="new_request">New Request</option>
@@ -65,6 +65,19 @@
                                 <option value="completed">Completed</option>
                                 <option value="rejected">Rejected</option>
                             </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="filterTaskPriority" class="form-label label-custom">Priority</label>
+                            <select id="filterTaskPriority" class="form-select">
+                                <option value="">All Priority</option>
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="HARD">Hard</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="filterByDate" class="form-label label-custom">By Date</label>
+                            <input class="form-select border-0" type="date" name="filter_by_date" id="filterByDate">
                         </div>
                     </div>
                     <div class="dropdown-filter-footer">
