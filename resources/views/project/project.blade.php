@@ -25,9 +25,14 @@
         <div class="title-content">
             <h2>Project</h2>
         </div>
-        <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
-            Add Project
-        </button>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn">
+                <span class="material-symbols-outlined">grid_view</span>
+            </button>
+            <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                Add Project
+            </button>
+        </div>
     </div>
 
     <div class="project-card-container">
@@ -364,7 +369,8 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" aria-label="Close">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal"
+                            aria-label="Close">
                             Close
                         </button>
                         <button type="submit" class="btn-submit-black">
@@ -668,9 +674,10 @@
     <x-slot name="script_slot">
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script> {{-- PENTING: project.js dulu --}}
-        <!-- Quill JS (only for Project page) -->
+        <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
         <script>
             (function() {
                 // Defer initialization until DOM and project.js are ready
@@ -801,7 +808,7 @@
                                         for (var j = 0; j < cb.items.length; j++) {
                                             var it = cb.items[j];
                                             if (it && it.type && it.type.indexOf && it.type.indexOf(
-                                                'image') !== -1) {
+                                                    'image') !== -1) {
                                                 ev.preventDefault();
                                                 ev.stopImmediatePropagation();
                                                 return;
@@ -863,7 +870,8 @@
                                     return false;
                                 }
                             } catch (e) {
-                                /* ignore validation errors */ }
+                                /* ignore validation errors */
+                            }
                         }, true); // capture so it runs before other listeners
                     }
 
@@ -897,7 +905,8 @@
                                     return false;
                                 }
                             } catch (e) {
-                                /* ignore validation errors */ }
+                                /* ignore validation errors */
+                            }
                         }, true);
                     }
 
@@ -907,7 +916,7 @@
                     if (editTextarea && window.__quillEdit) {
                         // Use MutationObserver on value attribute by intercepting property set via polling fallback
                         const origSet = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')
-                        ?.set;
+                            ?.set;
                         if (origSet) {
                             // When external code sets textarea.value, also update Quill
                             const ta = editTextarea;
