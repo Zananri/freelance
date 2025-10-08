@@ -111,13 +111,16 @@
         layoutEl.style.setProperty('--weeks', weeks);
         const chartEl = $container.closest('.contrib-chart')[0];
         if (chartEl) {
-          const chartWidth = chartEl.getBoundingClientRect().width;
-          const cs = getComputedStyle(layoutEl);
-          const gapStr = (cs.getPropertyValue('--gap') || '2px').trim();
-          const gapPx = parseFloat(gapStr) || 2;
-          const raw = (chartWidth - (weeks - 1) * gapPx) / weeks;
-          const cellPx = Math.max(6, Math.floor(raw));
-          layoutEl.style.setProperty('--cell', `${cellPx}px`);
+          const isMobile = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+          if (!isMobile) {
+            const chartWidth = chartEl.getBoundingClientRect().width;
+            const cs = getComputedStyle(layoutEl);
+            const gapStr = (cs.getPropertyValue('--gap') || '2px').trim();
+            const gapPx = parseFloat(gapStr) || 2;
+            const raw = (chartWidth - (weeks - 1) * gapPx) / weeks;
+            const cellPx = Math.max(6, Math.floor(raw));
+            layoutEl.style.setProperty('--cell', `${cellPx}px`);
+          }
         }
       }
 
@@ -194,14 +197,19 @@
           const layoutEl = $('#contributionsGrid').closest('.contrib-layout')[0];
           const chartEl = $('#contributionsGrid').closest('.contrib-chart')[0];
           if (!layoutEl || !chartEl) return;
-          const weeksVar = parseInt(getComputedStyle(layoutEl).getPropertyValue('--weeks')) || 53;
-          const chartWidth = chartEl.getBoundingClientRect().width;
-          const cs = getComputedStyle(layoutEl);
-          const gapStr = (cs.getPropertyValue('--gap') || '2px').trim();
-          const gapPx = parseFloat(gapStr) || 2;
-          const raw = (chartWidth - (weeksVar - 1) * gapPx) / weeksVar;
-          const cellPx = Math.max(6, Math.floor(raw));
-          layoutEl.style.setProperty('--cell', `${cellPx}px`);
+          const isMobile = window.matchMedia && window.matchMedia('(max-width: 576px)').matches;
+          if (!isMobile) {
+            const weeksVar = parseInt(getComputedStyle(layoutEl).getPropertyValue('--weeks')) || 53;
+            const chartWidth = chartEl.getBoundingClientRect().width;
+            const cs = getComputedStyle(layoutEl);
+            const gapStr = (cs.getPropertyValue('--gap') || '2px').trim();
+            const gapPx = parseFloat(gapStr) || 2;
+            const raw = (chartWidth - (weeksVar - 1) * gapPx) / weeksVar;
+            const cellPx = Math.max(6, Math.floor(raw));
+            layoutEl.style.setProperty('--cell', `${cellPx}px`);
+          } else {
+            // On mobile, let cells use CSS default; no resize calc
+          }
         };
         $(window).on('resize.contrib', onResize);
         $contribModal.one('hidden.bs.modal', () => {
