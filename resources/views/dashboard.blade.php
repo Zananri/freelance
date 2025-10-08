@@ -21,19 +21,19 @@
                 <div class="row flex-grow-1" style="flex: 1;">
                     {{-- Profile --}}
                     <div class="col-md-6 profile-calendar-card mb-5">
-                        <div class="rounded-4 p-4 body-card h-100">
-                            <div class="d-flex justify-content-end align-items-center">
+                        <div class="rounded-4 p-4 body-card h-100 position-relative">
+                            <div class="position-absolute top-0 end-0 p-3 d-flex align-items-center">
                                 <button class="btn btn-sm toggle-calendar calendar-toggle-btn">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size: 18px; color: #858CA0;">calendar_month</span>
+                                    <span class="material-symbols-outlined" style="font-size: 18px; color: #858CA0;">calendar_month</span>
                                 </button>
                             </div>
 
                             <div class="profile-image-container">
-                                
+
                                 <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                                <input type="hidden" id="contrib-endpoint" value="{{ route('employees.contributions', ['id' => $employee->id]) }}">
                                 <input type="hidden" name="employee_office" value="{{ $office->location }}">
-                               
+
                                 @php
                                     $dashAvatar = $employee->profile_picture ?: ($employee->photo ?? null);
                                     if ($dashAvatar) {
@@ -59,33 +59,30 @@
                                     {{ $todayDate }}
                                 </div>
                                 <div class="text-shift-time">
-                                   
+
                                     @php
                                         $shiftTime = substr($employee->shift->time_start, 0, 5).' - '.substr($employee->shift->time_end, 0, 5);
                                         if($employeeShift){
                                             $shiftTime = substr($employeeShift->shift->time_start, 0, 5).' - '.substr($employeeShift->shift->time_end, 0, 5);
                                         }
                                     @endphp
-                                    
+
                                     {{ $shiftTime }}
                                 </div>
                             </div>
 
                             @php
-                                
-
                                 $checkInExist = '';
-                                
+
                                 if($timeIn){
                                     $checkInExist = 'active';
                                 }
 
                                 $checkOUtExist = '';
-                                
+
                                 if($timeOut){
                                     $checkOUtExist = 'active';
                                 }
-
                             @endphp
                             <div class="attendance-actions">
                                 <div class="d-flex w-100 gap-3">
@@ -104,7 +101,7 @@
                                 </div>
                             </div>
                             {{-- <div class="attendance-actions w-100 d-flex justify-content-evenly">
-                                
+
                                  @if ($attendanceStatus['check_in'])
                                             <button class="btn btn-custom-check {{ $attendanceStatus['check_in'] }}" data-check-active="checkIn" id="checkInBtn" data-status="{{ $attendanceStatus['check_in'] ?? 'pending' }}">
                                                 <span class="material-symbols-outlined check-icon">check</span>
@@ -122,7 +119,7 @@
                                 <div class="justify-content-start mt-3">
                                     <h6 class="logs-title">Attendance Logs</h6>
                                 </div>
-                                
+
                                 <div class="box-time-in">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div>
@@ -151,17 +148,17 @@
                                                     <span class="material-symbols-outlined rounded-1" >chevron_right</span>
                                                 @endif
                                             </div>
-                                            
+
                                         </div>
                                     </div>
                                 </div>
-                                
+
                             </div>
                         </div>
                     </div>
 
                     {{-- Calendar --}}
-                    
+
                     <div class="col-md-6 calendar-card-mobile mb-5">
                         <div class="rounded-4 body-card h-100 calendar-attendance position-relative" style="padding-bottom: 0px !important;">
                             <div class="d-flex card-container">
@@ -172,7 +169,7 @@
 
                                                 <div class="dropdown dropdown-month">
                                                     <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                        
+
                                                         <div class="d-inline-flex align-items-center">
                                                             <span class="calendar-month">{{ date('F') }}</span>
                                                             <span class="calendar-year">{{ date('Y') }}</span>
@@ -181,14 +178,14 @@
                                                     </div>
 
                                                     <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                                        @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
-                                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                                        @for ($monthNum = 1; $monthNum <= 12; $monthNum++)
+                                                            <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>
                                                         @endfor
-                                                        
+
                                                     </ul>
                                                 </div>
 
-                                                
+
                                             </div>
                                             <div class="box-view-control white-space-nowrap" >
                                                 <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
@@ -227,10 +224,6 @@
                                     </div>
                                 </div>
                             </div>
-                            
-                            
-                            
-
                         </div>
                     </div>
                 </div>
@@ -409,7 +402,7 @@
             </div>
         </div>
     </div>
-            
+
 
             <x-slot name="body_end_slot">
 
@@ -438,16 +431,16 @@
                                             <div class="mb-0">
                                                 <div class="date-time-display">
                                                     <span class="text-clock-digital" id="time_in">
-                                                        00 : 00 : 00    
+                                                        00 : 00 : 00
                                                     </span>
-                                                    
+
                                                 </div>
                                             </div>
                                             <div class="mb-0">
                                                 <div class="date-time-display">
-                                                    
+
                                                     {{ $todayDate }}
-                                        
+
                                                 </div>
                                             </div>
                                             <div>
@@ -459,7 +452,7 @@
 
                                         <!-- Work Outside -->
                                         <div class="mb-3">
-                                            
+
                                             <div class="row">
                                                 <div class="col-12">
                                                     <div class="fs-14 text-secondary">Work Outside</div>
@@ -479,13 +472,13 @@
                                                         for="work_outside_no">No</label>
                                                 </div>
                                             </div>
-                                            
+
                                         </div>
 
                                         <!-- Map Location Section for Check In -->
                                         <div class="mb-3">
                                             <div class="row">
-                                                
+
                                                 <div class="col-6 col-photo d-none">
                                                     <div class="position-realtive">
 
@@ -510,7 +503,7 @@
                                                             </div>
 
                                                         </div>
-                                                        
+
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-map">
@@ -518,20 +511,20 @@
                                                         <div class="ratio ratio-21x9">
                                                             <div id="mapCheckIn" class="rounded-2 border"></div>
                                                         </div>
-                                                        
+
                                                         <input type="hidden" id="latitudeCheckIn" name="latitudeCheckIn">
                                                         <input type="hidden" id="longitudeCheckIn" name="longitudeCheckIn">
                                                     </div>
                                                 </div>
-                                                
+
                                             </div>
-                                            
+
                                         </div>
 
 
                                     </form>
                                 </div>
-                                
+
 
                                 <div class="mb-4 box-btn-submit pt-4 ">
                                     <button type="submit" class="btn btn-submit-black w-100" id="submitCheckInBtn">
@@ -557,7 +550,7 @@
                                         <span class="material-symbols-outlined">close</span>
                                     </div>
                                 </div>
-                                
+
                             </div>
 
                             <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
@@ -569,9 +562,9 @@
                                         </div>
                                         <div class="fs-14">Loading...</div>
                                     </div>
-                                    
+
                                 </div>
-                                
+
                             </div>
 
                         </div>
@@ -603,16 +596,16 @@
                                             <div class="mb-0">
                                                 <div class="date-time-display">
                                                     <span class="text-clock-digital" id="time_out">
-                                                        00 : 00 : 00    
+                                                        00 : 00 : 00
                                                     </span>
-                                                    
+
                                                 </div>
                                             </div>
                                             <div class="mb-0">
                                                 <div class="date-time-display">
-                                                    
+
                                                     {{ $todayDate }}
-                                        
+
                                                 </div>
                                             </div>
                                             <div>
@@ -624,7 +617,7 @@
 
                                         <!-- Work Outside -->
                                         <div class="mb-3">
-                                            
+
                                             <div class="row">
                                                 <div class="col-12">
                                                     <div class="fs-14 text-secondary">Work Outside</div>
@@ -644,12 +637,12 @@
                                                         for="work_outside_no_checkout">No</label>
                                                 </div>
                                             </div>
-                                            
+
                                         </div>
 
                                         <div class="mb-3">
                                             <div class="row">
-                                                
+
                                                 <div class="col-6 col-photo d-none">
                                                     <div class="position-realtive">
 
@@ -674,7 +667,7 @@
                                                             </div>
 
                                                         </div>
-                                                        
+
                                                     </div>
                                                 </div>
                                                 <div class="col-12 col-map">
@@ -682,19 +675,19 @@
                                                         <div class="ratio ratio-21x9">
                                                             <div id="mapCheckOut" class="rounded-2 border"></div>
                                                         </div>
-                                                        
+
                                                         <input type="hidden" name="latitudeCheckOut">
                                                         <input type="hidden" name="longitudeCheckOut">
                                                     </div>
                                                 </div>
-                                                
+
                                             </div>
-                                            
+
                                         </div>
-                                        
+
                                     </form>
                                 </div>
-                                
+
 
                                 <div class="mb-4 box-btn-submit pt-4 ">
                                     <button type="submit" class="btn btn-submit-black w-100" id="submitCheckOutBtn">
@@ -720,7 +713,7 @@
                                         <span class="material-symbols-outlined">close</span>
                                     </div>
                                 </div>
-                                
+
                             </div>
 
                             <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
@@ -732,9 +725,9 @@
                                         </div>
                                         <div class="fs-14">Loading...</div>
                                     </div>
-                                    
+
                                 </div>
-                                
+
                             </div>
 
                         </div>
@@ -752,7 +745,7 @@
                             <div class="modal-body px-5 border-0 ">
 
                                 @if ($atendanceTrackingCheckin)
-                                    
+
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <div class="fs-14 text-secondary">Date :</div>
@@ -818,11 +811,11 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                         </div>
-                                        
+
                                     </div>
-                                    
+
                                 @else
                                     <div class="p-5 text-center fs-14 text-secondary">
                                         No Data Check In
@@ -850,7 +843,7 @@
                             <div class="modal-body px-5 border-0 ">
 
                                 @if ($atendanceTrackingCheckout)
-                                    
+
                                     <div class="mb-3">
                                         <div class="d-flex justify-content-between align-items-center mb-3">
                                             <div class="fs-14 text-secondary">Date :</div>
@@ -916,11 +909,11 @@
                                                     </div>
                                                 </div>
                                             </div>
-                                            
+
                                         </div>
-                                        
+
                                     </div>
-                                    
+
                                 @else
                                     <div class="p-5 text-center fs-14 text-secondary">
                                         No Data Check Out
@@ -936,7 +929,7 @@
                         </div>
                     </div>
                 </div>
-                            
+
                 <!-- Project Detail Modal (shared with Project page) -->
                 <div class="modal fade" id="projectDetailModal" tabindex="-1" aria-labelledby="projectDetailModalLabel"
                     aria-hidden="true">
@@ -996,7 +989,7 @@
                     </div>
                 </div>
 
-                <!-- Task Feedback Modal (shared with Task page behavior) -->  
+                <!-- Task Feedback Modal (shared with Task page behavior) -->
                 <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content border-0 bg-transparent shadow-0">
@@ -1010,7 +1003,7 @@
 
                                                         <div class="dropdown dropdown-month">
                                                             <div class="dropdown-toggle btn btn-dropdown-month ps-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                                                
+
                                                                 <div class="d-inline-flex align-items-center">
                                                                     <span class="calendar-month">{{ date('F') }}</span>
                                                                     <span class="calendar-year">{{ date('Y') }}</span>
@@ -1019,14 +1012,14 @@
                                                             </div>
 
                                                             <ul class="dropdown-menu border-0 shadow-sm bg-default-1 rounded-3">
-                                                                @for ($monthNum = 1; $monthNum <= 12; $monthNum++) 
-                                                                    <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>    
+                                                                @for ($monthNum = 1; $monthNum <= 12; $monthNum++)
+                                                                    <li data-month="{{ $monthNum }}" class="dropdown-item month-item fs-14"><div class="dropdown-item fs-14">{{date("F", mktime(0, 0, 0, $monthNum, 1))}}</div></li>
                                                                 @endfor
-                                                                
+
                                                             </ul>
                                                         </div>
 
-                                                        
+
                                                     </div>
                                                     <div class="box-view-control white-space-nowrap" >
                                                         <span class="material-symbols-outlined calendar-prev-month ms-4">chevron_left</span>
@@ -1065,10 +1058,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    
-                                    
-
                                 </div>
                             </div>
                         </div>
@@ -1076,6 +1065,7 @@
                 </div>
             </x-slot>
             <x-slot name="script_slot">
+                <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
                 <script src="{{ asset('asset/plugin/leaflet/leaflet.js') }}" crossorigin=""></script>
@@ -1084,6 +1074,9 @@
                 <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/tasks_dashboard.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/project_dashboard.js') }}?v={{ time() }}"></script>
+                <script>
+                    window.APP_URL = "{{ url('/') }}";
+                </script>
             </x-slot>
 
 </x-office-layout>

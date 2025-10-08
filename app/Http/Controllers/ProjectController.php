@@ -14,6 +14,14 @@ use App\Models\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use Carbon\Carbon;
 
 class ProjectController extends Controller
 {
@@ -287,10 +295,29 @@ class ProjectController extends Controller
     /**
      * Return JSON data for project cards with counts zero.
      */
-    public function getCardData()
+    public function getCardData(Request $request)
     {
         try {
-            $projects = Project::where('status', '!=', 'DELETED')->get(['id', 'title', 'image']);
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+
+            $projectsQuery = Project::where('status', '!=', 'DELETED')
+                ->where(function ($q) use ($employeeId) {
+                    $q->whereNull('project_type')
+                      ->orWhere('project_type', 'public');
+
+                    if ($employeeId) {
+                        $q->orWhere(function ($qq) use ($employeeId) {
+                            $qq->where('project_type', 'private')
+                               ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                    $q2->where('employee_id', $employeeId)
+                                       ->where('role', 'author');
+                               });
+                        });
+                    }
+                });
+
+            $projects = $projectsQuery->get(['id', 'title', 'image']);
             $projectIds = $projects->pluck('id')->toArray();
             $projectTitles = $projects->pluck('title')->toArray();
             $projectImages = $projects->pluck('image')->toArray();
@@ -331,16 +358,34 @@ class ProjectController extends Controller
             $taskScope = in_array($taskScopeRaw, ['project', 'me', 'all']) ? $taskScopeRaw : 'project';
 
             if ($taskScope === 'all') {
-                // For 'all' scope (used by global listings and task dropdowns), only expose public projects
+                // For 'all' scope (used by global listings and task dropdowns), expose public projects
+                // and also allow the authenticated creator to see their own private projects.
                 $projects = Project::where('status', '!=', 'DELETED')
-                    ->where(function($q){ $q->whereNull('project_type')->orWhere('project_type','public'); })
+                    ->where(function ($q) use ($user) {
+                        $q->whereNull('project_type')
+                          ->orWhere('project_type', 'public');
+                        // Include private projects authored/created by current authenticated user
+                        try {
+                            if ($user && $user->id) {
+                                $q->orWhere(function ($qq) use ($user) {
+                                    $qq->where('project_type', 'private')
+                                       ->where('created_by', $user->id);
+                                });
+                            }
+                        } catch (\Throwable $_) {
+                            // ignore and continue with public-only fallback
+                        }
+                    })
                     ->with([
                         'department',
                         'division',
                         'projectAssignments.employee.user',
                     ])
                     ->withCount([
-                        'tasks as total_tasks',
+                        // Count only active tasks (exclude canceled and deleted)
+                        'tasks as total_tasks' => function ($q) {
+                            $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                        },
                         'tasks as in_progress_tasks' => fn($q) =>
                             $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected']),
                         'tasks as rejected_tasks' => fn($q) =>
@@ -374,6 +419,7 @@ class ProjectController extends Controller
             }
 
             $query = Project::where('status', '!=', 'DELETED')
+                // The employee must be assigned to the project (author/co_author/contributor)
                 ->whereHas('projectAssignments', function ($query) use ($employeeId, $includeUnaccepted) {
                     $query->where('employee_id', $employeeId)
                         ->whereIn('role', ['author', 'co_author', 'contributor']);
@@ -383,6 +429,20 @@ class ProjectController extends Controller
                                 ->orWhere('is_receive', true);
                         });
                     }
+                })
+                // Additionally, prevent showing PRIVATE projects to non-authors in dropdowns:
+                // only projects that are public (or null project_type) OR private projects where
+                // the current employee is the author should be visible here.
+                ->where(function ($q) use ($employeeId) {
+                    $q->whereNull('project_type')
+                      ->orWhere('project_type', 'public')
+                      ->orWhere(function ($qq) use ($employeeId) {
+                          $qq->where('project_type', 'private')
+                             ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                 $q2->where('employee_id', $employeeId)
+                                    ->where('role', 'author');
+                             });
+                      });
                 });
 
             if ($filter === 'not_started') {
@@ -430,7 +490,9 @@ class ProjectController extends Controller
                 'projectAssignments.employee.user',
             ])
                 ->withCount([
-                    'tasks as total_tasks',
+                    'tasks as total_tasks' => function ($q) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                    },
                     'tasks as in_progress_tasks' => function ($q) use ($taskScope, $employeeId) {
                         if ($taskScope === 'me') {
                             $q->whereHas('assignments', function ($q2) use ($employeeId) {
@@ -502,8 +564,10 @@ class ProjectController extends Controller
         $maxDue = $project->tasks_max_due_date;
         $start = $project->start_date;
         $due = $project->due_date;
-        if ($minStart && (!$start || $minStart < $start)) $start = $minStart;
-        if ($maxDue && (!$due || $maxDue > $due)) $due = $maxDue;
+        if ($minStart && (!$start || $minStart < $start))
+            $start = $minStart;
+        if ($maxDue && (!$due || $maxDue > $due))
+            $due = $maxDue;
 
         return [
             'id' => $project->id,
@@ -560,8 +624,23 @@ class ProjectController extends Controller
             }
 
             // Only public projects should be visible in general listing used by dropdowns unless task_scope=all
+            // For private projects, only the author (creator) may see them in the general listing.
             $query = Project::where('status', '!=', 'DELETED')
-                ->where(function($q){ $q->whereNull('project_type')->orWhere('project_type','public'); });
+                ->where(function ($q) use ($employeeId) {
+                    $q->whereNull('project_type')
+                      ->orWhere('project_type', 'public');
+
+                    if ($employeeId) {
+                        // include private projects only when the current employee is the author
+                        $q->orWhere(function ($qq) use ($employeeId) {
+                            $qq->where('project_type', 'private')
+                               ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                    $q2->where('employee_id', $employeeId)
+                                       ->where('role', 'author');
+                               });
+                        });
+                    }
+                });
 
             // Handle sorting options
             switch ($sortBy) {
@@ -682,7 +761,9 @@ class ProjectController extends Controller
                     'projectAssignments.employee.user',
                 ])
                 ->withCount([
-                    'tasks as total_tasks',
+                    'tasks as total_tasks' => function ($q) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                    },
                     'tasks as in_progress_tasks' => function ($q) {
                         $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'rejected']);
                     },
@@ -809,7 +890,7 @@ class ProjectController extends Controller
                     'file',
                     'max:102400',
                     function ($attribute, $value, $fail) {
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMime = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -819,10 +900,13 @@ class ProjectController extends Controller
                         ];
                         try {
                             $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
-                            if (in_array($ext, $allowedExt, true)) return;
+                            if (in_array($ext, $allowedExt, true))
+                                return;
                             $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
-                            if (in_array($mime, $allowedMime, true)) return;
-                        } catch (\Throwable $_) {}
+                            if (in_array($mime, $allowedMime, true))
+                                return;
+                        } catch (\Throwable $_) {
+                        }
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
@@ -831,7 +915,7 @@ class ProjectController extends Controller
                     'file',
                     'max:102400',
                     function ($attribute, $value, $fail) {
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMime = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -841,10 +925,13 @@ class ProjectController extends Controller
                         ];
                         try {
                             $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
-                            if (in_array($ext, $allowedExt, true)) return;
+                            if (in_array($ext, $allowedExt, true))
+                                return;
                             $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
-                            if (in_array($mime, $allowedMime, true)) return;
-                        } catch (\Throwable $_) {}
+                            if (in_array($mime, $allowedMime, true))
+                                return;
+                        } catch (\Throwable $_) {
+                        }
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
@@ -853,7 +940,8 @@ class ProjectController extends Controller
 
             // Force department/division to be the one of the authenticated employee
             $authEmp = auth()->user()->employee ?? null;
-            if (!$authEmp) throw new \Exception('Authenticated user has no employee relation');
+            if (!$authEmp)
+                throw new \Exception('Authenticated user has no employee relation');
 
             $departmentIdToUse = $authEmp->department_id;
 
@@ -872,7 +960,7 @@ class ProjectController extends Controller
             $project = new Project();
             $project->title = $request->title;
             // project_type is optional: default to public
-            $project->project_type = in_array($request->input('project_type'), ['public','private']) ? $request->input('project_type') : 'public';
+            $project->project_type = in_array($request->input('project_type'), ['public', 'private']) ? $request->input('project_type') : 'public';
             $project->description = $request->description;
             $project->department_id = $departmentIdToUse;
             $project->division_id = $divisionIdToUse;
@@ -1048,12 +1136,28 @@ class ProjectController extends Controller
             // For normal browser navigation, render the Blade view so the user sees the page.
             $expectsJson = $request->wantsJson() || $request->ajax() || str_contains($request->header('Accept', ''), '/json') || str_contains($request->header('Accept', ''), 'application/json');
 
+            // Get current user and employee for authorization
+            $user = auth()->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+
             if (!$expectsJson) {
                 // Render server-side view with full project model so Blade can display data
                 $project = Project::with(['department', 'division', 'projectAssignments.employee.user', 'tasks'])->find($id);
 
                 if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
                     abort(404);
+                }
+
+                if (!$employeeId) {
+                    return redirect('/project')->with('error', 'You do not have permission to access the project.');
+                }
+
+                $isAssigned = ProjectAssignment::where('project_id', $project->id)
+                    ->where('employee_id', $employeeId)
+                    ->whereIn('role', ['author', 'co_author', 'contributor'])
+                    ->exists();
+                if (!$isAssigned) {
+                    return redirect('/project')->with('error', 'You do not have permission to access the project.');
                 }
 
                 return view('project.show', ['project' => $project]);
@@ -1077,6 +1181,27 @@ class ProjectController extends Controller
                     'status' => 'error',
                     'message' => 'Project not found'
                 ], 404);
+            }
+
+            // Authorization check for JSON requests: only assigned users can access project details
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            $isAssigned = ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->whereIn('role', ['author', 'co_author', 'contributor'])
+                ->exists();
+            if (!$isAssigned) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Access denied'
+                ], 403);
             }
 
             // Extract author and co_authors
@@ -1179,12 +1304,30 @@ class ProjectController extends Controller
 
         $result = [];
 
+        $user = $request->user();
+        $employeeId = $user && $user->employee ? $user->employee->id : null;
+
         foreach ($ids as $id) {
             $project = $projects->firstWhere('id', $id);
 
             if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
                 $result[] = null; // kalo ga ketemu atau deleted, tetap null
                 continue;
+            }
+
+            // Enforce visibility: if project is private, only the author may see it
+            $pt = $project->project_type ?? null;
+            if (strtolower((string) $pt) === 'private') {
+                $isAuthor = false;
+                if ($employeeId) {
+                    $isAuthor = $project->projectAssignments->contains(function ($a) use ($employeeId) {
+                        return isset($a->employee_id) && (int)$a->employee_id === (int)$employeeId && ($a->role === 'author');
+                    });
+                }
+                if (!$isAuthor) {
+                    $result[] = null; // hide private project
+                    continue;
+                }
             }
 
             $author = null;
@@ -1338,7 +1481,7 @@ class ProjectController extends Controller
                     'file',
                     'max:102400',
                     function ($attribute, $value, $fail) {
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMime = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1348,10 +1491,13 @@ class ProjectController extends Controller
                         ];
                         try {
                             $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
-                            if (in_array($ext, $allowedExt, true)) return;
+                            if (in_array($ext, $allowedExt, true))
+                                return;
                             $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
-                            if (in_array($mime, $allowedMime, true)) return;
-                        } catch (\Throwable $_) {}
+                            if (in_array($mime, $allowedMime, true))
+                                return;
+                        } catch (\Throwable $_) {
+                        }
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
@@ -1360,7 +1506,7 @@ class ProjectController extends Controller
                     'file',
                     'max:102400',
                     function ($attribute, $value, $fail) {
-                        $allowedExt = ['jpeg','png','jpg','gif','svg','webp','pdf','doc','docx','xls','xlsx','zip','csv'];
+                        $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
                         $allowedMime = [
                             'application/vnd.ms-excel',
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -1370,10 +1516,13 @@ class ProjectController extends Controller
                         ];
                         try {
                             $ext = strtolower((string) ($value->getClientOriginalExtension() ?? ''));
-                            if (in_array($ext, $allowedExt, true)) return;
+                            if (in_array($ext, $allowedExt, true))
+                                return;
                             $mime = strtolower((string) ($value->getClientMimeType() ?? ''));
-                            if (in_array($mime, $allowedMime, true)) return;
-                        } catch (\Throwable $_) {}
+                            if (in_array($mime, $allowedMime, true))
+                                return;
+                        } catch (\Throwable $_) {
+                        }
                         $fail('The ' . $attribute . ' must be a supported file type (images, pdf, doc/docx, xls/xlsx, csv or zip).');
                     }
                 ],
@@ -1398,12 +1547,13 @@ class ProjectController extends Controller
             $project->title = $request->title;
             // allow updating project_type; default to public if invalid
             if ($request->has('project_type')) {
-                $project->project_type = in_array($request->input('project_type'), ['public','private']) ? $request->input('project_type') : 'public';
+                $project->project_type = in_array($request->input('project_type'), ['public', 'private']) ? $request->input('project_type') : 'public';
             }
             $project->description = $request->description;
             // Force department/division to employee's department
             $authEmp = auth()->user()->employee ?? null;
-            if (!$authEmp) throw new \Exception('Authenticated user has no employee relation');
+            if (!$authEmp)
+                throw new \Exception('Authenticated user has no employee relation');
             $departmentIdToUse = $authEmp->department_id;
             $providedDivision = $request->input('division');
             if ($providedDivision) {
@@ -1763,12 +1913,14 @@ class ProjectController extends Controller
 
             $stored = [];
             foreach ($files as $file) {
-                if (!$file->isValid()) continue;
+                if (!$file->isValid())
+                    continue;
                 $orig = $file->getClientOriginalName();
                 $ext = $file->getClientOriginalExtension();
                 $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
                 $destDir = public_path('file/project');
-                if (!is_dir($destDir)) @mkdir($destDir, 0755, true);
+                if (!is_dir($destDir))
+                    @mkdir($destDir, 0755, true);
                 $file->move($destDir, $name);
                 $stored[] = $name;
             }
@@ -2125,7 +2277,7 @@ class ProjectController extends Controller
 
             $user = $request->user();
             $currentEmployeeId = $user && $user->employee ? $user->employee->id : null;
-            if (!$currentEmployeeId || (int)$feedback->employee_id !== (int)$currentEmployeeId) {
+            if (!$currentEmployeeId || (int) $feedback->employee_id !== (int) $currentEmployeeId) {
                 return response()->json([
                     'code' => 403,
                     'status' => 'error',
@@ -2144,7 +2296,8 @@ class ProjectController extends Controller
             // Delete attached reference files if any
             $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
             foreach ($refFiles as $rf) {
-                if (!$rf) continue;
+                if (!$rf)
+                    continue;
                 $p = public_path('file/project/' . $rf);
                 if (file_exists($p)) {
                     @unlink($p);
@@ -2420,6 +2573,208 @@ class ProjectController extends Controller
         return response()->json([
             'data' => $grouped
         ]);
+    }
+
+    /**
+     * Export projects to Excel
+     */
+    public function exportProjectsExcel(Request $request)
+    {
+        try {
+            // Get all active projects with relationships
+            $projects = Project::where('status', '!=', 'DELETED')
+                ->with([
+                    'department',
+                    'division',
+                    'tasks' => function($query) {
+                        $query->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                    },
+                    'projectAssignments.employee'
+                ])
+                ->withCount([
+                    'tasks as total_tasks' => function ($q) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                    },
+                    'tasks as completed_tasks' => fn($q) =>
+                        $q->whereIn(DB::raw('LOWER(status)'), ['completed']),
+                    'tasks as in_progress_tasks' => fn($q) =>
+                        $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected']),
+                ])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            // Create spreadsheet
+            $spreadsheet = new Spreadsheet();
+            $activeWorksheet = $spreadsheet->getActiveSheet();
+
+            // Set title
+            $activeWorksheet->mergeCells('A1:K1');
+            $activeWorksheet->setCellValue('A1', 'Project Report - NSA Office Management System');
+            $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Set headers
+            $headers = [
+                'A2' => 'No',
+                'B2' => 'Nama Project',
+                'C2' => 'Part of Project',
+                'D2' => 'Department',
+                'E2' => 'Division',
+                'F2' => 'Status',
+                'G2' => 'Task',
+                'H2' => 'Status Task',
+                'I2' => 'Project Type',
+                'J2' => 'Waktu Mulai',
+                'K2' => 'Deadline',
+                'L2' => 'Jumlah Task'
+            ];
+
+            foreach ($headers as $cell => $value) {
+                $activeWorksheet->setCellValue($cell, $value);
+            }
+
+            // Style headers
+            $headerStyle = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                    ],
+                ],
+                'fill' => [
+                    'fillType' => Fill::FILL_SOLID,
+                    'startColor' => [
+                        'argb' => 'FFE0E0E0',
+                    ],
+                ],
+            ];
+
+            $activeWorksheet->getStyle('A2:L2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:L2')
+                ->getAlignment()
+                ->setWrapText(true)
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                ->setVertical(Alignment::VERTICAL_CENTER);
+
+            // Set column widths
+            $columnWidths = [
+                'A' => 5,   // No
+                'B' => 30,  // Nama Project
+                'C' => 20,  // Part of Project
+                'D' => 15,  // Department
+                'E' => 15,  // Division
+                'F' => 12,  // Status
+                'G' => 25,  // Task
+                'H' => 15,  // Status Task
+                'I' => 12,  // Project Type
+                'J' => 12,  // Waktu Mulai
+                'K' => 12,  // Deadline
+                'L' => 12   // Jumlah Task
+            ];
+
+            foreach ($columnWidths as $column => $width) {
+                $activeWorksheet->getColumnDimension($column)->setWidth($width);
+            }
+
+            // Fill data
+            $row = 3;
+            $no = 1;
+
+            foreach ($projects as $project) {
+                // Create one row per project
+                $activeWorksheet->setCellValue('A'.$row, $no);
+                $activeWorksheet->setCellValue('B'.$row, $project->title);
+                $activeWorksheet->setCellValue('C'.$row, $project->part_of_project ?? '-');
+                $activeWorksheet->setCellValue('D'.$row, $project->department ? $project->department->name_department : '-');
+                $activeWorksheet->setCellValue('E'.$row, $project->division ? $project->division->name_division : '-');
+                $activeWorksheet->setCellValue('F'.$row, ucfirst($project->status));
+                
+                // Combine all task titles into one cell, separated by line breaks
+                if ($project->tasks->count() > 0) {
+                    $taskTitles = $project->tasks->pluck('title')->toArray();
+                    $activeWorksheet->setCellValue('G'.$row, implode("; ", $taskTitles));
+                    
+                    // Show status of tasks (completed/in progress/etc.)
+                    $taskStatuses = $project->tasks->pluck('status')->map(function($status) {
+                        return ucfirst($status);
+                    })->toArray();
+                    $activeWorksheet->setCellValue('H'.$row, implode("; ", $taskStatuses));
+                    
+                    // Use project due date or latest task due date
+                    $latestDueDate = $project->due_date;
+                    if (!$latestDueDate) {
+                        $taskDueDates = $project->tasks->pluck('due_date')->filter()->toArray();
+                        if (!empty($taskDueDates)) {
+                            $latestDueDate = max($taskDueDates);
+                        }
+                    }
+                } else {
+                    $activeWorksheet->setCellValue('G'.$row, 'No Tasks');
+                    $activeWorksheet->setCellValue('H'.$row, '-');
+                    $latestDueDate = $project->due_date;
+                }
+                
+                $activeWorksheet->setCellValue('I'.$row, ucfirst($project->project_type ?? 'public'));
+                $activeWorksheet->setCellValue('J'.$row, $project->start_date ? Carbon::parse($project->start_date)->format('d-M-Y') : '-');
+                $activeWorksheet->setCellValue('K'.$row, $latestDueDate ? Carbon::parse($latestDueDate)->format('d-M-Y') : '-');
+                $activeWorksheet->setCellValue('L'.$row, $project->total_tasks ?? 0);
+
+                $row++;
+                $no++;
+            }
+
+            // Apply borders to data rows
+            $dataStyle = [
+                'borders' => [
+                    'allBorders' => [
+                        'borderStyle' => Border::BORDER_THIN,
+                    ],
+                ],
+            ];
+
+            if ($row > 3) {
+                $activeWorksheet->getStyle('A3:L'.($row-1))->applyFromArray($dataStyle);
+                
+                // Center align specific columns
+                $activeWorksheet->getStyle('A3:A'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('F3:F'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('I3:I'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('J3:J'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('K3:K'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('L3:L'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                
+                // Enable text wrapping for Task and Status Task columns
+                $activeWorksheet->getStyle('G3:H'.($row-1))->getAlignment()->setWrapText(true);
+                $activeWorksheet->getStyle('G3:H'.($row-1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                
+                // Set row height for better readability when text wraps
+                for ($i = 3; $i < $row; $i++) {
+                    $activeWorksheet->getRowDimension($i)->setRowHeight(30);
+                }
+            }
+
+            // Set sheet name
+            $activeWorksheet->setTitle('Project Report');
+
+            // Generate filename
+            $filename = 'project_report_' . date('Y_m_d_H_i_s') . '.xlsx';
+
+            // Create writer and download
+            $writer = new Xlsx($spreadsheet);
+            
+            $tempFile = tempnam(sys_get_temp_dir(), 'project_export');
+            $writer->save($tempFile);
+
+            return response()->download($tempFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])->deleteFileAfterSend(true);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => 'Failed to export projects: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
 

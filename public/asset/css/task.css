@@ -717,7 +717,7 @@ p {
 }
 
 .task-description-container::-webkit-scrollbar-track
-.task-detail-description-container::-webkit-scrollbar-track{
+    .task-detail-description-container::-webkit-scrollbar-track {
     background: transparent;
 }
 
@@ -2082,4 +2082,53 @@ input[type="file"]::file-selector-button {
 #completed_task_files a {
     text-decoration: none;
     color: #444444;
+}
+
+#kanban-drag-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.no-select {
+    user-select: none;
+}
+
+.custom-card.dragging {
+    opacity: 1;
+    transition: opacity 0.15s ease;
+}
+
+.dragging-clone {
+    transform-origin: top left;
+    border-radius: 10px;
+    cursor: grabbing;
+    transition: transform 0.1s ease, box-shadow 0.15s ease;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+    position: fixed;
+    pointer-events: none;
+}
+
+.kanban-droppable {
+    transition: background 0.2s ease, border 0.2s ease;
+}
+
+.kanban-droppable.kanban-over {
+    background-color: rgba(0, 170, 255, 0.05);
+    border: 2px dashed rgba(0, 170, 255, 0.3);
+    border-radius: 10px;
+}
+
+.kanban-droppable.kanban-allowed {
+    background-color: rgba(0, 255, 0, 0.05);
+    border: 2px dashed rgba(0, 255, 0, 0.3);
+    border-radius: 20px;
+}
+
+.kanban-droppable.kanban-denied {
+    background-color: rgba(255, 0, 0, 0.05);
+    border: 2px dashed rgba(255, 0, 0, 0.3);
+    border-radius: 20px;
 }

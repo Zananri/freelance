@@ -519,6 +519,7 @@
                                         if (typeof fetchAndRenderTasks === 'function') {
                                             // Refresh only the New column to ensure rejected item disappears from pending list
                                             fetchAndRenderTasks('new_request', 1, false, '');
+                                            window.location.reload();
                                         }
                                     } catch(_){ }
                                     try { if (typeof fetchNotifications === 'function') fetchNotifications(); } catch(_){ }
@@ -667,11 +668,10 @@
             loadRelatedTasks(p.id, "task", null);
         }
 
-        fetch(appUrl + "/project/index?task_scope=all")
+    fetch(appUrl + "/project/index")
             .then((res) => res.json())
             .then((payload) => {
                 projects = (payload.data || [])
-                    .filter(p => !p.project_type || String(p.project_type) === 'public')
                     .map((p) => ({
                         id: p.id,
                         title: p.title,
@@ -691,10 +691,7 @@
         });
     }
 
-    // Load related tasks for a given project into an element (select).
-    // Backwards-compat: some callers historically passed DOM elements instead of prefix strings
-    // or passed the select element as the third argument. Normalize inputs so the function
-    // consistently accepts: (projectId, prefixString, selectedParentId, selectedParentTitle)
+
     function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
         try {
             // If prefix is a DOM element (e.g., a select), derive prefix from its id
@@ -891,6 +888,41 @@
             // Clear executor selections
             if (window.clearSelectedExecutors) {
                 window.clearSelectedExecutors();
+            }
+        });
+        // When Add Task modal is shown, set sensible defaults if fields are empty.
+        addTaskModalEl.addEventListener('show.bs.modal', function () {
+            try {
+                // Priority default: MEDIUM if not selected
+                const prio = document.getElementById('task_priority');
+                if (prio && (!prio.value || String(prio.value).trim() === '')) {
+                    prio.value = 'MEDIUM';
+                }
+
+                // Date defaults: start_date = today, due_date = today + 2 days
+                const startEl = document.getElementById('task_start_date');
+                const dueEl = document.getElementById('task_due_date');
+                const now = new Date();
+                function formatDate(d) {
+                    const yyyy = d.getFullYear();
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    return `${yyyy}-${mm}-${dd}`;
+                }
+                const todayStr = formatDate(now);
+                const dueDate = new Date(now.getTime());
+                dueDate.setDate(dueDate.getDate() + 2);
+                const dueStr = formatDate(dueDate);
+
+                if (startEl && (!startEl.value || String(startEl.value).trim() === '')) {
+                    startEl.value = todayStr;
+                }
+                if (dueEl && (!dueEl.value || String(dueEl.value).trim() === '')) {
+                    dueEl.value = dueStr;
+                }
+            } catch (e) {
+                // swallow errors to avoid breaking modal show
+                console.warn('AddTaskModal show handler error', e);
             }
         });
     }
@@ -1401,7 +1433,7 @@
     (function loadProjectsForSchedule(){
         const select = document.getElementById('schedule_project_id');
         if (!select) return;
-        fetch(appUrl + "/project/index?task_scope=all")
+    fetch(appUrl + "/project/index")
             .then(r => r.ok ? r.json() : Promise.reject('Failed to load projects'))
                 .then(d => {
                     if (!d || !d.data) return;
@@ -2411,11 +2443,11 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
         // Remove modal from DOM when hidden
         mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); try { mEl.remove(); } catch(_){} });
 
-        // Initialize Quill
+        // Initialize Quill (disable toolbar for this modal)
         try {
             window.__quillComplete = new Quill('#complete_note_editor', {
                 theme: 'snow',
-                modules: { toolbar: [['bold','italic','underline'], ['link','image'], [{ list: 'ordered' }, { list: 'bullet' }]] }
+                modules: { toolbar: false }
             });
             try {
                 var Delta = Quill.import && Quill.import('delta');
@@ -2819,6 +2851,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     <div class="dropdown-item">Feedback</div>
                     ${statusMenuItem}
                     ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
+                    ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
                 </div>
             </div>
         `;
@@ -2998,7 +3031,6 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
     headers: { "X-Requested-With": "XMLHttpRequest" },
     data: params,
     success: function (response) {
-        console.log(response);
 
       if (callSeq !== taskFetchSeq) return
       if (!response || response.code !== 200 || !response.data) return
@@ -3321,60 +3353,57 @@ function applyCurrentSearchFilter() {
     } catch(_) { /* noop */ }
 }
 
-// Search handler: trigger only on Enter or when input loses focus (change) to limit requests to one action
-(function initTaskSearchFilter(){
-    let lastSearchAt = 0;
-    let lastEnterAt = 0;
-    let lastSearchedQuery = '';
-    function runSearch(query){
-        // Reset pagination state for desktop columns
-        try {
-            Object.keys(desktopState || {}).forEach(k => { if (desktopState[k]) { desktopState[k].page = 1; desktopState[k].last = 1; desktopState[k].loading = false; } });
-        } catch(_) {}
-        const q = (query || '').trim();
-        window.__taskCurrentSearchQuery = q;
-        // Cancel any previous full-fetch and start a new one
-        // Debounce micro-bursts (e.g., Enter followed by blur/change in same moment)
-        const now = Date.now();
-        // If user triggers the same query immediately again, ignore
-        if (q === lastSearchedQuery && (now - lastSearchAt) < 350) return;
-        lastSearchedQuery = q;
-        lastSearchAt = now;
-        fetchAndRenderTasks(null, 1, false, q);
-    }
+    (function initTaskSearchFilter() {
+        let lastSearchAt = 0;
+        let lastSearchedQuery = '';
+        let debounceTimer = null;
 
-    // Prevent form submission on Enter at keydown phase
-    document.addEventListener('keydown', function(e){
-        const el = e.target;
-        if (!el || el.id !== 'search_filter') return;
-        if (e.key === 'Enter') {
-            lastEnterAt = Date.now();
-            e.preventDefault();
-            e.stopPropagation();
+        function runSearch(query) {
+            try {
+                Object.keys(desktopState || {}).forEach(k => {
+                    if (desktopState[k]) {
+                        desktopState[k].page = 1;
+                        desktopState[k].last = 1;
+                        desktopState[k].loading = false;
+                    }
+                });
+            } catch (_) {}
+
+            const q = (query || '').trim();
+            window.__taskCurrentSearchQuery = q;
+
+            const now = Date.now();
+            if (q === lastSearchedQuery && (now - lastSearchAt) < 350) return;
+
+            lastSearchedQuery = q;
+            lastSearchAt = now;
+
+            fetchAndRenderTasks(null, 1, false, q);
         }
-    });
-    document.addEventListener('keyup', function(e){
-        const el = e.target;
-        if (!el || el.id !== 'search_filter') return;
-        if (e.key === 'Enter') {
-            lastEnterAt = Date.now();
-            // Prevent default form submission if inside a form
-            try { if (el.form) e.preventDefault(); } catch(_) {}
-            runSearch(el.value || '');
-        }
-    });
-    document.addEventListener('change', function(e){
-        const el = e.target;
-        if (!el || el.id !== 'search_filter') return;
-        // If change fires right after Enter, ignore to avoid duplicate network call
-        const now = Date.now();
-        if (now - lastEnterAt < 120) return;
-        // If value hasn't changed since the last search, skip
-        const val = (el.value || '').trim();
-        if (val === lastSearchedQuery) return;
-        runSearch(el.value || '');
-    });
-})();
+
+        document.addEventListener('input', function (e) {
+            const el = e.target;
+            if (!el || el.id !== 'search_filter') return;
+
+            const val = (el.value || '').trim();
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                if (val !== lastSearchedQuery) {
+                    runSearch(val);
+                }
+            }, 500);
+        });
+
+        document.addEventListener('keydown', function (e) {
+            const el = e.target;
+            if (!el || el.id !== 'search_filter') return;
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                clearTimeout(debounceTimer);
+                runSearch(el.value || '');
+            }
+        });
+    })();
 
     // init
     $(document).ready(function () {
@@ -4087,19 +4116,13 @@ function applyCurrentSearchFilter() {
                 const taskProject = task.project.title || "No Project";
 
                 // Avatar
-                let projectImg = null;
-                if (task.project_image) {
-                    const val = String(task.project_image).trim();
-                    if (val && val !== "null" && val !== "undefined") {
-                        projectImg = val.startsWith("http") ? val : `${appUrl}/file/project/${val}`;
-                    }
-                }
+                const taskImage = task.image ? `${appUrl}/file/task/${task.image}` : null;
 
-                const initials = !projectImg ? getTaskInitials(task.title) : "";
-                const initialsColor = !projectImg ? getRandomColorFromText(task.title) : "#6A5AE0";
+                const initials = !taskImage ? getTaskInitials(task.title) : "";
+                const initialsColor = !taskImage ? getRandomColorFromText(task.title) : "#6A5AE0";
 
-                const avatarHtml = projectImg
-                    ? `<img src="${projectImg}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
+                const avatarHtml = taskImage
+                    ? `<img src="${taskImage}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
                     : `<div class="d-flex align-items-center justify-content-center rounded-circle"
                             style="width:34px;height:34px;font-size:12px;font-weight:600;color:#fff;background:${initialsColor};">
                             ${initials}
@@ -4397,47 +4420,52 @@ function applyCurrentSearchFilter() {
         });
     }
 
-    (function enableKanbanDnD(){
+    (function enableKanbanDnD() {
         const colToStatus = {
             'new-request-tasks': 'new_request',
             'in-progress-tasks': 'in_progress',
-            'completed-tasks':   'completed'
+            'completed-tasks': 'completed'
         };
 
-        // Mark columns as droppable
-        $(function(){
+        const SCALE = 1;
+
+        if (!$('#kanban-drag-layer').length) {
+            $('body').append('<div id="kanban-drag-layer"></div>');
+        }
+
+        $(function() {
             $('#new-request-tasks, #in-progress-tasks, #completed-tasks').addClass('kanban-droppable');
         });
 
-        let kanbanDrag = null; // { id, fromStatus }
+        let kanbanDrag = null;
+        let $clone = null;
+        let offsetX = 0;
+        let offsetY = 0;
+        let lastX = 0;
+        let isDragging = false;
 
-        function normStatus(s){
+        function normStatus(s) {
             s = String(s || '').toLowerCase();
             if (s === 'in progress') return 'in_progress';
             if (s === 'new request') return 'new_request';
             return s;
         }
 
-        function mapTransition(fromStatus, toStatus){
-            // returns { allowed: boolean, newStatus?: string }
+        function mapTransition(fromStatus, toStatus) {
             fromStatus = normStatus(fromStatus);
             toStatus = normStatus(toStatus);
-            // same-column drop => no-op
             if (fromStatus === toStatus) return { allowed: false };
-
-            // Treat 'rejected' as currently in-progress special state; allow sending to completed
             if (fromStatus === 'rejected') {
                 if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
                 return { allowed: false };
             }
-
             if (fromStatus === 'new_request') {
                 if (toStatus === 'in_progress') return { allowed: true, newStatus: 'in_progress' };
                 return { allowed: false };
             }
             if (fromStatus === 'in_progress') {
                 if (toStatus === 'new_request') return { allowed: true, newStatus: 'new_request' };
-                if (toStatus === 'completed')   return { allowed: true, newStatus: 'completed' };
+                if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
                 return { allowed: false };
             }
             if (fromStatus === 'completed') {
@@ -4447,94 +4475,116 @@ function applyCurrentSearchFilter() {
             return { allowed: false };
         }
 
-        function clearDropHighlights(){
-            try {
-                $('.kanban-droppable')
-                    .removeClass('kanban-allowed')
-                    .removeClass('kanban-denied')
-                    .removeClass('kanban-over');
-                $('.custom-card.dragging').removeClass('dragging');
-            } catch(_) {}
+        function clearDropHighlights() {
+            $('.kanban-droppable').removeClass('kanban-allowed kanban-denied kanban-over');
+            $('.custom-card').removeClass('dragging');
         }
 
-        function refreshDropHighlights(){
+        function refreshDropHighlights() {
             if (!kanbanDrag) return;
-            Object.keys(colToStatus).forEach(function(colId){
+            Object.keys(colToStatus).forEach(function(colId) {
                 const $col = $('#' + colId);
                 const toStatus = colToStatus[colId];
                 const m = mapTransition(kanbanDrag.fromStatus, toStatus);
                 $col.toggleClass('kanban-allowed', !!m.allowed);
-                $col.toggleClass('kanban-denied', !m.allowed);
+                $col.toggleClass('kanban-denied', !m.allowed && $col.hasClass('kanban-over'));
             });
         }
 
-        // Make cards draggable on demand (delegated)
-        $(document).on('mouseenter', '.custom-card', function(){
-            this.setAttribute('draggable', 'true');
+        $(document).on('mousedown', '.custom-card', function(e) {
+            if (e.which !== 1) return;
+            e.preventDefault();
+            const $card = $(this);
+            const id = $card.data('task-id');
+            const fromStatus = normStatus($card.data('task-status'));
+            const rect = $card[0].getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            kanbanDrag = { id: id, fromStatus: fromStatus, $card: $card, startX: e.clientX, startY: e.clientY };
+            isDragging = false;
+            lastX = e.clientX;
+            $card.addClass('dragging');
+            $('body').addClass('no-select');
         });
 
-        // Begin drag
-        $(document).on('dragstart', '.custom-card', function(ev){
-            try { hideAllFloatingTooltips && hideAllFloatingTooltips(); } catch(_) {}
-            const e = ev.originalEvent || ev;
-            const id = this.getAttribute('data-task-id');
-            const fromStatus = normStatus(this.getAttribute('data-task-status'));
-            kanbanDrag = { id: id, fromStatus: fromStatus };
-            this.classList.add('dragging');
-            try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id||'')); } catch(_){ }
-            refreshDropHighlights();
-        });
-
-        // End drag (cleanup)
-        $(document).on('dragend', '.custom-card', function(){
-            kanbanDrag = null;
-            clearDropHighlights();
-        });
-
-        // Column drag handlers
-        $(document).on('dragenter', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
+        $(document).on('mousemove', function(e) {
             if (!kanbanDrag) return;
-            $(this).addClass('kanban-over');
-        });
 
-        $(document).on('dragover', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(ev){
-            if (!kanbanDrag) return;
-            const e = ev.originalEvent || ev;
-            const toStatus = colToStatus[this.id];
-            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
-            if (m.allowed) {
-                try { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } catch(_){ try { e.preventDefault(); } catch(_){} }
-                $(this).addClass('kanban-allowed').removeClass('kanban-denied');
-            } else {
-                $(this).addClass('kanban-denied').removeClass('kanban-allowed');
-            }
-        });
-
-        $(document).on('dragleave', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
-            $(this).removeClass('kanban-over');
-        });
-
-        $(document).on('drop', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(ev){
-            if (!kanbanDrag) return;
-            const e = ev.originalEvent || ev;
-            try { e.preventDefault(); } catch(_) {}
-            const toStatus = colToStatus[this.id];
-            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
-            const taskId = kanbanDrag.id;
-            const taskCard = document.querySelector('.custom-card.dragging') || document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
-            if (!m.allowed) {
-                try { showFloatingAlert('Move not allowed for this transition.', 'warning'); } catch(_) {}
-                kanbanDrag = null; clearDropHighlights();
+            if (!isDragging && Math.abs(e.clientX - kanbanDrag.startX) + Math.abs(e.clientY - kanbanDrag.startY) < 5) {
                 return;
             }
-            // If moving to completed, open modal to collect completion details
-            if (m.newStatus === 'completed') {
-                try { showConfirmationToCompleteModal(taskId, taskCard); } catch(err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch(_) {} }
+
+            if (!isDragging) {
+                isDragging = true;
+                $clone = kanbanDrag.$card.clone().addClass('dragging-clone');
+                $('#kanban-drag-layer').append($clone);
+                const rect = kanbanDrag.$card[0].getBoundingClientRect();
+                const scaledOffsetX = offsetX * SCALE;
+                const scaledOffsetY = offsetY * SCALE;
+                const initialTop = e.clientY - scaledOffsetY;
+                const initialLeft = e.clientX - scaledOffsetX;
+                $clone.css({
+                    position: 'fixed',
+                    top: initialTop + 'px',
+                    left: initialLeft + 'px',
+                    width: rect.width + 'px',
+                    height: rect.height + 'px',
+                    margin: 0,
+                    transform: `scale(${SCALE}) rotate(0deg)`,
+                    zIndex: 99999,
+                    pointerEvents: 'none'
+                });
+                kanbanDrag.$card.css('opacity', 0.5);
             } else {
-                // Normal transitions use existing updater
-                try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch(_) {}
+                const scaledOffsetX = offsetX * SCALE;
+                const scaledOffsetY = offsetY * SCALE;
+                $clone.css({
+                    top: (e.clientY - scaledOffsetY) + 'px',
+                    left: (e.clientX - scaledOffsetX) + 'px'
+                });
+                const currentX = e.clientX;
+                const dx = currentX - lastX;
+                lastX = currentX;
+                const rotation = Math.max(-6, Math.min(6, dx / 4));
+                $clone.css('transform', `scale(${SCALE}) rotate(${rotation}deg)`);
             }
-            kanbanDrag = null; clearDropHighlights();
+
+            const $targetCol = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.kanban-droppable');
+            clearDropHighlights();
+            if ($targetCol.length) {
+                $targetCol.addClass('kanban-over');
+                refreshDropHighlights();
+            } else {
+                refreshDropHighlights();
+            }
+        });
+
+        $(document).on('mouseup', function(e) {
+            if (!kanbanDrag) return;
+            $('body').removeClass('no-select');
+            if (!isDragging) {
+                kanbanDrag = null;
+                return;
+            }
+            const $targetCol = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.kanban-droppable');
+            const toStatus = $targetCol.length ? colToStatus[$targetCol.attr('id')] : null;
+            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
+            const taskId = kanbanDrag.id;
+            const taskCard = kanbanDrag.$card[0];
+            if ($targetCol.length && m.allowed) {
+                if (m.newStatus === 'completed') {
+                    try { showConfirmationToCompleteModal(taskId, taskCard); }
+                    catch (err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch (_) {} }
+                } else {
+                    try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch (_) {}
+                }
+            }
+            kanbanDrag.$card.removeClass('dragging').css({ opacity: 1, transform: 'scale(1) rotate(0deg)' });
+            if ($clone) { $clone.remove(); $clone = null; }
+            kanbanDrag = null;
+            isDragging = false;
+            lastX = 0;
+            clearDropHighlights();
         });
     })();
 
@@ -6912,6 +6962,24 @@ function applyCurrentSearchFilter() {
             handleTaskCancel(taskId);
         }
 
+        const softDeleteBtn = e.target.closest(".dropdown-item.delete-task");
+        if (softDeleteBtn) {
+            const card = softDeleteBtn.closest("[data-task-id]");
+            const taskId = card?.getAttribute("data-task-id");
+            if (!taskId) return;
+
+            const detailModalEl = document.getElementById("taskDetailModal");
+            if (detailModalEl) {
+                const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                if (detailModal) {
+                    detailModal.hide();
+                    // do not return; proceed to delete
+                }
+            }
+
+            handleTaskDelete(taskId);
+        }
+
         const editBtn = e.target.closest(".dropdown-item.edit-task");
         if (editBtn) {
             const card = editBtn.closest("[data-task-id]");
@@ -6978,23 +7046,16 @@ function applyCurrentSearchFilter() {
                     return;
                 }
 
-                let projectImg = null;
-                if (task.project_image) {
-                    const val = String(task.project_image).trim();
-                    if (val && val !== "null" && val !== "undefined") {
-                        if (val.startsWith("http")) projectImg = val;
-                        else projectImg = appUrl + (val.startsWith("/") ? val : "/file/project/" + val);
-                    }
-                }
+                const taskImage = task.image ? `${appUrl}/file/task/${task.image}` : null;
 
                 const avatarTitle = task.title || task.project_title || "NA";
-                const useInitials = !projectImg;
+                const useInitials = !taskImage;
                 const initials = useInitials ? getTaskInitials(task.title) : "";
                 const initialsColor = useInitials ? getRandomColorFromText(task.title) : "#6A5AE0";
 
                 const avatarHtml = useInitials
                     ? `<div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialsColor};">${initials}</div>`
-                    : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
+                    : `<img src="${taskImage}" alt="Project Image" class="project-image me-3" style="width:48px;height:48px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
 
                 const fallbackAvatar = `${appUrl}/asset/img/avatar.png`;
                 const allExecutors = [];
@@ -7130,6 +7191,7 @@ function applyCurrentSearchFilter() {
                             <div class="dropdown-menu d-none">
                                 <div class="dropdown-item edit-task">Edit</div>
                                 ${showDelete ? '<div class="dropdown-item cancel-task">Cancel</div>' : ''}
+                                ${showDelete ? '<div class="dropdown-item delete-task">Delete</div>' : ''}
                             </div>
                         </div>
                     </div>
@@ -7306,17 +7368,15 @@ function applyCurrentSearchFilter() {
             });
         }
 
-        fetch(appUrl + "/project/index?task_scope=all")
+        fetch(appUrl + "/project/index")
             .then((res) => res.json())
                 .then((payload) => {
-                    projects = (payload.data || [])
-                        .filter(p => !p.project_type || String(p.project_type) === 'public')
-                        .map((p) => ({
-                            id: p.id,
-                            title: p.title,
-                            image: p.image || "",
-                            project_type: p.project_type || 'public'
-                        }));
+                    projects = (payload.data || []).map((p) => ({
+                                id: p.id,
+                                title: p.title,
+                                image: p.image || "",
+                                project_type: p.project_type || 'public'
+                            }));
 
                 // Kalau ada project yang sudah dipilih sebelumnya
                 if (selectedProjectId) {
@@ -7356,6 +7416,14 @@ function applyCurrentSearchFilter() {
         const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
 
         deleteModalEl.dataset.taskId = taskId;
+
+        // For Cancel flow: left button "Close", right action "Cancel"
+        try {
+            const dismissBtn = deleteModalEl.querySelector('.btn.btn-custom-close[data-bs-dismiss="modal"]');
+            if (dismissBtn) dismissBtn.textContent = 'Close';
+            const confirmBtn = document.getElementById('confirmDeleteTaskBtn');
+            if (confirmBtn) confirmBtn.textContent = 'Cancel';
+        } catch(_) {}
 
         // Pre-show the modal with a loader to avoid backdrop flicker while fetching
         const preContentEl = deleteModalEl.querySelector(".modal-body");
@@ -7486,6 +7554,140 @@ function applyCurrentSearchFilter() {
                         try { alert("Failed to cancel task."); } catch(e) {}
                     }
                 },
+            });
+        };
+    }
+
+    // Function to handle task soft-delete to DELETED
+    function handleTaskDelete(taskId) {
+        // Reuse the existing delete modal UI but with different labels
+        const deleteModalEl = document.getElementById("deleteTaskModal");
+        const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
+
+        deleteModalEl.dataset.taskId = taskId;
+        // For Delete flow: left button "Cancel", right action "Delete"
+        try {
+            const dismissBtn = deleteModalEl.querySelector('.btn.btn-custom-close[data-bs-dismiss="modal"]');
+            if (dismissBtn) dismissBtn.textContent = 'Cancel';
+            const confirmBtn = document.getElementById('confirmDeleteTaskBtn');
+            if (confirmBtn) confirmBtn.textContent = 'Delete';
+        } catch(_) {}
+        const preContentEl = deleteModalEl.querySelector(".modal-body");
+        if (preContentEl) {
+            preContentEl.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+        }
+        deleteModal.show();
+
+        // Load task info for preview
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                const task = data.data || {};
+                let avatarHtml = "";
+                if (task.image) {
+                    let imgUrl = task.image;
+                    const isAbsolute = imgUrl.startsWith("http://") || imgUrl.startsWith("https://");
+                    const isFileTask = imgUrl.startsWith("/file/task/") || imgUrl.startsWith("file/task/");
+                    const isPublicPath = imgUrl.startsWith("/storage/") || imgUrl.startsWith("storage/");
+
+                    if (!isAbsolute && !isFileTask && !isPublicPath) {
+                        imgUrl = appUrl + "/file/task/" + imgUrl;
+                    } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                        imgUrl = imgUrl.startsWith("/") ? appUrl + imgUrl : appUrl + "/" + imgUrl;
+                    }
+
+                    avatarHtml = `<img src="${imgUrl}" alt="Task Image"
+                                    class="rounded-circle me-3"
+                                    style="width:34px;height:34px;object-fit:cover;"
+                                    onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getRandomColorFromText(task.title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getTaskInitials(task.title)}</div>')">`;
+                } else {
+                    const initials = getTaskInitials(task.title);
+                    const bgColor = getRandomColorFromText(task.title);
+                    avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                                    style="width:34px;height:34px;background:${bgColor};color:#fff;
+                                            font-weight:600;font-size:11px;">
+                                    ${initials}
+                                </div>`;
+                }
+
+                const contentEl = deleteModalEl.querySelector(".modal-body");
+                if (contentEl) {
+
+                contentEl.innerHTML = `
+                    <div class="custom-card rounded-4 position-relative p-3 border-0">
+                        <div class="d-flex align-items-center mb-2">
+                            ${avatarHtml}
+                            <div class="d-flex flex-column">
+                                ${task.project.id ?
+                                    `<p class="text-muted" style="line-height:1; font-size: 10px;">
+                                        ${task.project.title || '-'}
+                                    </p>`
+                                    : ''
+                                }
+                                <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title || 'Untitled Task'}</h5>
+                            </div>
+                        </div>
+                        <div class="task-description-container mb-2">
+                            <p class="task-description mb-0" style="font-size:14px;">${task.description || ''}</p>
+                        </div>
+                        <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Priority: </span>
+                                <span style="color:${task.priority === "HIGH" ? "red" : "#4B4F5E"}">${task.priority || "-"}</span>
+                            </div>
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Deadline: </span>
+                                <span style="color:#4B4F5E;">${task.due_date || "-"}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                            <span class="text-muted">Department:</span>
+                            <span>${task.project?.department || "-"}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                            <span class="text-muted">Division:</span>
+                            <span>${task.project?.division || "-"}</span>
+                        </div>
+                    </div>
+                `;
+                }
+            }
+        });
+
+        // Bind confirm button for soft delete
+        const confirmDeleteBtn = document.getElementById("confirmDeleteTaskBtn");
+        confirmDeleteBtn.onclick = function () {
+            $.ajax({
+                url: appUrl + "/task/" + taskId + "/soft-delete",
+                type: "PUT",
+                headers: {
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                },
+                success: function (response) {
+                    try {
+                        const cardEl = document.querySelector(`[data-task-id="${taskId}"]`);
+                        if (cardEl) cardEl.remove();
+                    } catch (_) {}
+                    deleteModal.hide();
+                    try { showFloatingAlert(response.message || 'Task deleted', 'success', 1500); } catch(_) {}
+                    try {
+                        if (typeof fetchAndRenderTasks === 'function') {
+                            fetchAndRenderTasks('new_request', 1, false, '');
+                            fetchAndRenderTasks('in_progress', 1, false, '');
+                            fetchAndRenderTasks('completed', 1, false, '');
+                        }
+                        if (typeof loadArchivedTasksIntoModal === 'function') loadArchivedTasksIntoModal();
+
+                    } catch(_) {}
+                },
+                error: function (xhr) {
+                    let msg = 'Failed to delete task';
+                    if (xhr && xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                    try { showFloatingAlert(msg, 'danger', 3000); } catch(_) { alert(msg); }
+                }
             });
         };
     }
@@ -8880,27 +9082,55 @@ function applyCurrentSearchFilter() {
             if (archiveLoading || !archiveHasMore) return;
             archiveLoading = true;
 
-            const res = await fetch(`${baseAppUrl}/task/index?status=canceled&per_page=10&page=${page}`, {
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            }).catch(() => null);
+            // Fetch both canceled and deleted pages in parallel and merge
+            const [resCanceled, resDeleted] = await Promise.all([
+                fetch(`${baseAppUrl}/task/index?status=canceled&include_canceled=1&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null),
+                fetch(`${baseAppUrl}/task/index?status=deleted&include_canceled=1&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null)
+            ]);
 
-            if (!res || !res.ok) {
+            if ((!resCanceled || !resCanceled.ok) && (!resDeleted || !resDeleted.ok)) {
                 if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
                 archiveLoading = false;
                 return;
             }
-
-            const j = await res.json().catch(() => ({}));
-            const data = (j && j.data) ? j.data : {};
-            let tasks = [];
-
-            if (data) {
-                const canceledSection = data.canceled || data.CANCELED || data['canceled'] || null;
-                if (canceledSection) {
-                    if (Array.isArray(canceledSection)) tasks = canceledSection;
-                    else if (Array.isArray(canceledSection.tasks)) tasks = canceledSection.tasks;
+            const parseTasksFromResponse = async (res) => {
+                if (!res || !res.ok) return [];
+                const j = await res.json().catch(() => ({}));
+                const data = (j && j.data) ? j.data : {};
+                let arr = [];
+                if (data) {
+                    const keys = ['canceled','CANCELED','deleted','DELETED'];
+                    for (const key of keys) {
+                        const section = data[key];
+                        if (!section) continue;
+                        if (Array.isArray(section)) arr = arr.concat(section);
+                        else if (Array.isArray(section.tasks)) arr = arr.concat(section.tasks);
+                    }
                 }
-            }
+                if ((!arr || !arr.length) && data) {
+                    // fallback: flatten buckets and filter by status canceled/deleted
+                    const collected = [];
+                    const buckets = ['new_request','in_progress','completed','rejected','canceled','deleted','CANCELED','DELETED'];
+                    buckets.forEach(key => {
+                        const section = data[key];
+                        if (!section) return;
+                        if (Array.isArray(section)) collected.push(...section);
+                        else if (Array.isArray(section.tasks)) collected.push(...section.tasks);
+                    });
+                    arr = collected.filter(t => {
+                        const s = String(t.status || '').toLowerCase();
+                        return s === 'canceled' || s === 'deleted' || s.includes('cancel') || s.includes('deleted');
+                    });
+                }
+                return arr;
+            };
+
+            let tasks = [];
+            const [tasksCanceled, tasksDeleted] = await Promise.all([
+                parseTasksFromResponse(resCanceled),
+                parseTasksFromResponse(resDeleted)
+            ]);
+            tasks = tasks.concat(tasksCanceled || [], tasksDeleted || []);
             if (!tasks || tasks.length === 0) {
                 let collected = [];
                 const buckets = ['new_request', 'in_progress', 'completed', 'rejected', 'canceled', 'CANCELED'];
@@ -8955,7 +9185,7 @@ function applyCurrentSearchFilter() {
                 const desc = (t.description || '').toString();
                 const priority = t.priority || '';
                 const rawStatus = String((t.status || '')).toUpperCase();
-                const typeBadge = (rawStatus === 'CANCELED' || rawStatus.includes('CANCEL'))
+                const typeBadge = (rawStatus === 'CANCELED' || rawStatus === 'DELETED' || rawStatus.includes('CANCEL'))
                     ? `<span style="color:red; font-weight:600;">${rawStatus}</span>`
                     : `<span style="color:#baeed340; font-weight:600;">${rawStatus}</span>`;
                 return `
@@ -9040,7 +9270,7 @@ function applyCurrentSearchFilter() {
                         if (ds && ds.length) {
                             ds.forEach(function (dd) {
                                 const st = (card.getAttribute('data-task-status') || '').toUpperCase();
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                const badge = (st === 'CANCELED' || st === 'DELETED' || st.includes('CANCEL'))
                                     ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
                                     : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
                                 dd.innerHTML = dd.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>[^<]*<\/span>/i, 'Type: <span class="type-badge-wrapper">' + badge + '</span>');
@@ -9048,7 +9278,7 @@ function applyCurrentSearchFilter() {
                         } else {
                             card.innerHTML = card.innerHTML.replace(/Deadline:\s*<\/span>\s*<span[^>]*>([^<]*)<\/span>/i, function (_, g1) {
                                 const st = (card.getAttribute('data-task-status') || '').toUpperCase();
-                                const badge = (st === 'CANCELED' || st.includes('CANCEL'))
+                                const badge = (st === 'CANCELED' || st === 'DELETED' || st.includes('CANCEL'))
                                     ? `<span style="color:#D0322D; font-weight:600;">${st}</span>`
                                     : `<span style="color:#1E8E3E; font-weight:600;">${st}</span>`;
                                 return 'Status: <span class="type-badge-wrapper">' + badge + '</span>';
@@ -9441,7 +9671,8 @@ function applyCurrentSearchFilter() {
             }
         })();
 
-        const img = task.project_image || '/asset/img/avatar.png';
+        const img = task.image || '/asset/img/avatar.png';
+
         $("#completed_task_image").attr("src", img);
         $("#completed_task_title").text(task.title || "-");
         $("#completed_project_title").text(task.project_title || "-");

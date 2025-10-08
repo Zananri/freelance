@@ -9,10 +9,15 @@
             @php
                 $img = $project->image ?? null;
                 $imgUrl = $img ? asset('file/project/' . ltrim($img, '/')) : asset('asset/img/image.png');
-                $totalTasks = $project->tasks ? $project->tasks->count() : 0;
+                // Count tasks excluding canceled and deleted statuses
+                $totalTasks = $project
+                    ->tasks()
+                    ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
+                    ->count();
             @endphp
             <meta name="project-image" content="{{ $imgUrl }}">
             <meta name="project-total-tasks" content="{{ $totalTasks }}">
+            <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
             <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css?v=') . time() }}">
         </x-slot>
 
@@ -29,12 +34,21 @@
                 </div>
                 <h2 class="m-0">Project Detail</h2>
             </div>
-            <button class="btn-submit-black">
-                <span class="material-symbols-outlined me-2">download</span>Report
-            </button>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
+                    <span class="material-symbols-outlined">grid_view</span>
+                </button>
+                <button class="btn-submit-black">
+                    <span class="material-symbols-outlined me-2">download</span>Report
+                </button>
+            </div>
         </div>
 
         <div class="detail-project-container">
+            {{-- Hidden fields for Contributions modal JS (scope to this project) --}}
+            <input type="hidden" name="employee_id" value="{{ auth()->user()->employee->id ?? '' }}">
+            <input type="hidden" id="contrib-endpoint" value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
+            <input type="hidden" id="contrib-project-id" value="{{ $project->id ?? '' }}">
             {{-- Above Content --}}
             {{-- Left Above Content --}}
             <div class="row mb-3">
@@ -88,7 +102,7 @@
 
                 {{-- Right Above Content --}}
                 <div class="col-md-8 structure-detail">
-                    <div class="body-content rounded-4 pb-0 structure-detail-content">
+                    <div class="body-content rounded-4 structure-detail-content">
                         <div id="task-loading" class="text-center py-3 d-none">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading tasks...</span>
@@ -111,17 +125,21 @@
                         </div>
 
                         <div id="task-legend" class="d-flex justify-content-start">
-                            <div class="legend-item d-flex align-items-start gap-1">
-                                <span class="legend-text not-started">Not Started</span>
+                            <div class="legend-item d-flex align-items-start">
+                                <span class="not-started" data-bs-toggle="tooltip" data-bs-title="Not Started"><span
+                                        class="text-legend">Not Started</span></span>
                             </div>
-                            <div class="legend-item d-flex align-items-start gap-1">
-                                <span class="legend-text in-progress">In Progress</span>
+                            <div class="legend-item d-flex align-items-start">
+                                <span class="in-progress" data-bs-toggle="tooltip" data-bs-title="In Progress"><span
+                                        class="text-legend">In Progress</span></span>
                             </div>
-                            <div class="legend-item d-flex align-items-start gap-1">
-                                <span class="legend-text late">Late</span>
+                            <div class="legend-item d-flex align-items-start">
+                                <span class="late" data-bs-toggle="tooltip" data-bs-title="Late"><span
+                                        class="text-legend">Late</span></span>
                             </div>
-                            <div class="legend-item d-flex align-items-start gap-1">
-                                <span class="legend-text complete">Complete</span>
+                            <div class="legend-item d-flex align-items-start">
+                                <span class="complete" data-bs-toggle="tooltip" data-bs-title="Complete"><span
+                                        class="text-legend">Complete</span></span>
                             </div>
                         </div>
 
@@ -153,20 +171,6 @@
 
                         </div>
                         <div class="feedback-form">
-                            <div id="inline_feedback_toolbar" class="mb-1" style="display:none;">
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-link"></button>
-                                </span>
-                            </div>
                             <div id="inline_feedback_editor" class="border-0"
                                 style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
                             </div>
@@ -219,14 +223,18 @@
                             </div>
                         </div>
                         <div class="timeline-wrapper">
-                            <table class="timeline-table w-100">
+                            <table class="timeline-table">
                                 <thead>
                                     <tr id="timelineHeader"></tr>
                                 </thead>
                                 <tbody id="timelineRows"></tbody>
                             </table>
                         </div>
-                        <div class="timeline-legend d-flex justify-content-start gap-5">
+                        <div class="timeline-legend d-flex justify-content-start gap-4">
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-gray"></span>
+                                <span class="legend-text" id="newRequestCount">0 Task</span>
+                            </div>
                             <div class="legend-item d-flex align-items-center gap-2">
                                 <span class="legend-dot legend-yellow"></span>
                                 <span class="legend-text" id="inProgressCount">0 Task</span>
@@ -238,6 +246,43 @@
                             <div class="legend-item d-flex align-items-center gap-2">
                                 <span class="legend-dot legend-green"></span>
                                 <span class="legend-text" id="completedCount">0 Task</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Contributions Modal (same UI as Project page) --}}
+        <div class="modal fade" id="contributionsModal" tabindex="-1" aria-labelledby="contributionsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title modal-title-custom" id="contributionsModalLabel">My Contributions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body modal-body-custom p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <div class="sub-title-contrib text-muted mt-2">Completed tasks per day (past year)</div>
+                            <div class="contrib-legend">
+                                <span>Less</span>
+                                <div class="d-inline-flex align-items-center gap-1">
+                                    <span class="legend-swatch level-0"></span>
+                                    <span class="legend-swatch level-1"></span>
+                                    <span class="legend-swatch level-2"></span>
+                                    <span class="legend-swatch level-3"></span>
+                                    <span class="legend-swatch level-4"></span>
+                                </div>
+                                <span>More</span>
+                            </div>
+                        </div>
+                        <div class="contrib-grid-container">
+                            <div class="contrib-layout">
+                                <div class="contrib-weekdays" id="contribWeekdays"></div>
+                                <div class="contrib-chart">
+                                    <div class="contrib-months" id="contribMonths"></div>
+                                    <div id="contributionsGrid" class="contrib-grid"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -386,24 +431,8 @@
                             <div class="mb-3 input-custom">
                                 <label for="edit_description" class="form-label label-custom">Description</label>
 
-                                <!-- Quill toolbar + editor (visual) -->
-                                <div id="edit_description_toolbar">
-                                    <span class="ql-formats">
-                                        <button class="ql-bold"></button>
-                                        <button class="ql-italic"></button>
-                                        <button class="ql-underline"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-list" value="ordered"></button>
-                                        <button class="ql-list" value="bullet"></button>
-                                    </span>
-                                    <span class="ql-formats">
-                                        <button class="ql-link"></button>
-                                    </span>
-                                </div>
-
                                 <div id="edit_description_editor"
-                                    style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                    style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                                 </div>
 
                                 <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
@@ -504,6 +533,10 @@
                             </div>
                         </div>
                         <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn-custom-close" aria-label="Close"
+                                data-bs-dismiss="modal">
+                                Close
+                            </button>
                             <button type="submit" class="btn-submit-black">
                                 Update
                             </button>
@@ -589,6 +622,67 @@
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                         <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Modal Detail Task --}}
+        <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-body modal-body-custom">
+                        <div class="task-detail-wrapper">
+
+                            <!-- Header -->
+                            <div class="task-header d-flex justify-content-between align-items-start mb-2">
+                                <div class="d-flex align-items-center">
+                                    <div id="taskProjectAvatar" class="me-3"></div>
+                                    <div>
+                                        <small class="text-muted" style="font-size: 11px;" id="taskProjectTitle"></small>
+                                        <h5 class="mb-0" id="taskTitle" style="font-size:16px;font-weight:600;">-
+                                        </h5>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <div class="description-container">
+                                <div id="taskDescription" class="description-detail text-muted">No description</div>
+                            </div>
+
+                            <hr>
+
+                            <!-- Meta Info -->
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <div><span class="text-muted">Priority:</span> <span id="taskPriority">-</span></div>
+                                <div><span class="text-muted">Deadline:</span> <span id="taskDeadline">-</span></div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                <span class="text-muted">Department:</span>
+                                <span id="taskDepartment">-</span>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <span class="text-muted">Division:</span>
+                                <span id="taskDivision">-</span>
+                            </div>
+
+                            <!-- Collaborators -->
+                            <div class="collab-section mt-3">
+                                <div id="taskCollaborators"></div>
+                            </div>
+
+                            <!-- Status Changes -->
+                            <div id="taskStatusChanges" class="mt-3"></div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom mt-3">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
@@ -980,9 +1074,16 @@
         </div>
 
         <x-slot name="script_slot">
+            <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
             <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_timeline.js') }}?v={{ time() }}"></script>
+            <script src="{{ asset('asset/js/task.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_depedencies.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
+            <script src="{{ asset('asset/js/project_detail_plumb.js') }}?v={{ time() }}"></script>
+            <script>
+                window.APP_URL = document.querySelector('meta[name="app-url"]').getAttribute('content');
+            </script>
+            <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
         </x-slot>
     </x-office-layout>

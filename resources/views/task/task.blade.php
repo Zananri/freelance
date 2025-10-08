@@ -127,6 +127,7 @@
             </div>
         </div>
     </div>
+    <div id="kanban-drag-layer"></div>
 
     <!-- Edit Task Modal -->
     <div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
@@ -172,7 +173,7 @@
                         <div class="mb-3 custom-input">
                             <label for="edit_task_description" class="form-label label-custom">Description</label>
                             <!-- Quill editor container for Edit Task -->
-                            <div id="edit_task_description_toolbar">
+                            {{-- <div id="edit_task_description_toolbar">
                                 <span class="ql-formats">
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
@@ -185,9 +186,9 @@
                                 <span class="ql-formats">
                                     <button class="ql-link"></button>
                                 </span>
-                            </div>
+                            </div> --}}
                             <div id="edit_task_description_editor"
-                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                             <textarea class="form-control input-text d-none" id="edit_task_description" name="description" rows="6"
@@ -379,7 +380,7 @@
                         <div class="mb-3 custom-input">
                             <label for="task_description" class="form-label label-custom">Description</label>
                             <!-- Quill editor container for Add Task -->
-                            <div id="task_description_toolbar">
+                            {{-- <div id="task_description_toolbar">
                                 <span class="ql-formats">
                                     <button class="ql-bold"></button>
                                     <button class="ql-italic"></button>
@@ -392,9 +393,9 @@
                                 <span class="ql-formats">
                                     <button class="ql-link"></button>
                                 </span>
-                            </div>
+                            </div> --}}
                             <div id="task_description_editor"
-                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                             <textarea class="form-control input-text d-none" id="task_description" name="description" rows="6"
@@ -529,8 +530,8 @@
                     <div id="deleteTaskContent"></div>
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-submit-black" id="confirmDeleteTaskBtn">Cancel</button>
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteTaskBtn">Delete</button>
                 </div>
             </div>
         </div>
@@ -549,7 +550,7 @@
 
                         <div class="custom-card p-0 m-0 border-0">
                             <small class="text-muted" style="font-size: 10px" id="statusModalPartofProject"></small>
-                            <h5 class="fw-bold" id="statusModalTitle">Task Title</h5>
+                            <h5 class="fw-bold" id="statusModalTitle" style="font-size: 16px">Task Title</h5>
                             <div class="task-description-container flex-grow-1">
                                 <p class="task-description" id="statusModalDescription">
                                     Task short description
@@ -738,9 +739,12 @@
                 try {
                     // Initialize Quill instances for Add and Edit task modals
                     if (document.getElementById('task_description_editor')) {
+
+                        var addToolbarEl = document.getElementById('task_description_toolbar');
+                        var addToolbarConfig = addToolbarEl ? '#task_description_toolbar' : false;
                         window.__quillTaskAdd = new Quill('#task_description_editor', {
                             modules: {
-                                toolbar: '#task_description_toolbar'
+                                toolbar: addToolbarConfig
                             },
                             theme: 'snow'
                         });
@@ -781,9 +785,12 @@
                         } catch (_) {}
                     }
                     if (document.getElementById('edit_task_description_editor')) {
+                        // Only attach a toolbar if the toolbar element exists in the DOM.
+                        var editToolbarEl = document.getElementById('edit_task_description_toolbar');
+                        var editToolbarConfig = editToolbarEl ? '#edit_task_description_toolbar' : false;
                         window.__quillTaskEdit = new Quill('#edit_task_description_editor', {
                             modules: {
-                                toolbar: '#edit_task_description_toolbar'
+                                toolbar: editToolbarConfig
                             },
                             theme: 'snow'
                         });

@@ -25,10 +25,19 @@
         <div class="title-content">
             <h2>Project</h2>
         </div>
-        <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
-            Add Project
-        </button>
+        <div class="d-flex justify-content-end">
+            <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn">
+                <span class="material-symbols-outlined">grid_view</span>
+            </button>
+            <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                Add Project
+            </button>
+        </div>
     </div>
+
+    {{-- Hidden fields for Contributions modal JS --}}
+    <input type="hidden" name="employee_id" value="{{ auth()->user()->employee->id ?? '' }}">
+    <input type="hidden" id="contrib-endpoint" value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
 
     <div class="project-card-container">
         <div class="row">
@@ -269,23 +278,8 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="description" class="form-label label-custom">Description</label>
-                            <!-- Quill editor container for Add Project -->
-                            <div id="add_description_toolbar">
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-link"></button>
-                                </span>
-                            </div>
                             <div id="add_description_editor"
-                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                             <textarea class="form-control input-text d-none" id="description" name="description" rows="3"
@@ -379,6 +373,10 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal"
+                            aria-label="Close">
+                            Close
+                        </button>
                         <button type="submit" class="btn-submit-black">
                             Submit
                         </button>
@@ -431,23 +429,8 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="edit_description" class="form-label label-custom">Description</label>
-                            <!-- Quill editor container for Edit Project -->
-                            <div id="edit_description_toolbar">
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-link"></button>
-                                </span>
-                            </div>
                             <div id="edit_description_editor"
-                                style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;">
+                                style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
                             <!-- Keep original textarea as canonical form field but hidden; will be synced with Quill HTML before submit -->
                             <textarea class="form-control input-text d-none" id="edit_description" name="description" rows="3"
@@ -544,6 +527,9 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn-custom-close" data-bs-dismiss="modal" aria-label="Close">
+                            Close
+                        </button>
                         <button type="submit" class="btn-submit-black">
                             Update
                         </button>
@@ -669,6 +655,44 @@
         </div>
     </div>
 
+    {{-- Contributions Modal --}}
+    <div class="modal fade" id="contributionsModal" tabindex="-1" aria-labelledby="contributionsModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content rounded-4 border-0">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title modal-title-custom" id="contributionsModalLabel">My Contributions</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                        <div class="sub-title-contrib text-muted mt-2">Completed tasks per day (past year)</div>
+                        <div class="contrib-legend">
+                            <span>Less</span>
+                            <div class="d-inline-flex align-items-center gap-1">
+                                <span class="legend-swatch level-0"></span>
+                                <span class="legend-swatch level-1"></span>
+                                <span class="legend-swatch level-2"></span>
+                                <span class="legend-swatch level-3"></span>
+                                <span class="legend-swatch level-4"></span>
+                            </div>
+                            <span>More</span>
+                        </div>
+                    </div>
+                    <div class="contrib-grid-container">
+                        <div class="contrib-layout">
+                            <div class="contrib-weekdays" id="contribWeekdays"></div>
+                            <div class="contrib-chart">
+                                <div class="contrib-months" id="contribMonths"></div>
+                                <div id="contributionsGrid" class="contrib-grid"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Task Modal -->
     <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="taskModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -692,9 +716,10 @@
     <x-slot name="script_slot">
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-        <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script> {{-- PENTING: project.js dulu --}}
-        <!-- Quill JS (only for Project page) -->
+        <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+
         <script>
             (function() {
                 // Defer initialization until DOM and project.js are ready
@@ -825,7 +850,7 @@
                                         for (var j = 0; j < cb.items.length; j++) {
                                             var it = cb.items[j];
                                             if (it && it.type && it.type.indexOf && it.type.indexOf(
-                                                'image') !== -1) {
+                                                    'image') !== -1) {
                                                 ev.preventDefault();
                                                 ev.stopImmediatePropagation();
                                                 return;
@@ -887,7 +912,8 @@
                                     return false;
                                 }
                             } catch (e) {
-                                /* ignore validation errors */ }
+                                /* ignore validation errors */
+                            }
                         }, true); // capture so it runs before other listeners
                     }
 
@@ -921,7 +947,8 @@
                                     return false;
                                 }
                             } catch (e) {
-                                /* ignore validation errors */ }
+                                /* ignore validation errors */
+                            }
                         }, true);
                     }
 
@@ -931,7 +958,7 @@
                     if (editTextarea && window.__quillEdit) {
                         // Use MutationObserver on value attribute by intercepting property set via polling fallback
                         const origSet = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')
-                        ?.set;
+                            ?.set;
                         if (origSet) {
                             // When external code sets textarea.value, also update Quill
                             const ta = editTextarea;

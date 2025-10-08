@@ -609,8 +609,7 @@ document.addEventListener("DOMContentLoaded", function () {
             .then(res => res.json())
             .then(payload => {
                 projects = (Array.isArray(payload) ? payload : payload.data) || [];
-                projects = (projects || []).filter(p => !p.project_type || String(p.project_type) === 'public')
-                    .map(p => ({
+                projects = (projects || []).map(p => ({
                         id: p.id,
                         title: p.title || p.name || "Project " + p.id,
                         image: p.image || "",
@@ -1133,9 +1132,69 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Build timeline from actual projects and render. If list items lack start/due, fetch details.
 
                 if (projects && projects.length > 0) {
+                    // Determine current employee id (injected by blade) for client-side filtering of private projects
+                    const currentEmployeeEl = document.getElementById('currentEmployee');
+                    const currentEmployeeId = currentEmployeeEl ? String(currentEmployeeEl.dataset.employeeId || '') : '';
+
+                    // Filter out private projects unless the current employee is the author
+                    const visibleProjects = (projects || []).filter(function(project) {
+                        try {
+                            const pt = String(project.project_type || project.projectType || '').toLowerCase();
+                            if (pt !== 'private') return true;
+
+                            // Robust author id resolution from multiple payload shapes
+                            let authorId = '';
+
+                            // 1) If API provided normalized 'author' object (assignment) with employee_id
+                            if (project.author && (project.author.employee_id || project.author.id)) {
+                                authorId = String(project.author.employee_id || project.author.id || '');
+                            }
+
+                            // 2) If API provided project_assignments array, find role author
+                            if (!authorId && Array.isArray(project.project_assignments)) {
+                                try {
+                                    const authAssign = project.project_assignments.find(function(a) {
+                                        return String(a.role || '').toLowerCase() === 'author';
+                                    });
+                                    if (authAssign && (authAssign.employee_id || authAssign.id)) {
+                                        authorId = String(authAssign.employee_id || authAssign.id || '');
+                                    }
+                                } catch (_) {}
+                            }
+
+                            // 3) Legacy shapes: author_employee, employee, author_id, employee_id
+                            if (!authorId) {
+                                const cand = project.author_employee || project.employee || null;
+                                if (cand && (cand.id || cand.employee_id)) {
+                                    authorId = String(cand.employee_id || cand.id || '');
+                                }
+                            }
+
+                            if (!authorId) {
+                                authorId = String(project.author_id || project.employee_id || project.authorId || '');
+                            }
+
+                            // Final check: if authorId or currentEmployeeId missing, hide private project (fail-closed) and log
+                            if (!authorId || !currentEmployeeId) {
+                                console.debug('Hiding private project due to missing id(s)', { projectId: project.id, projectType: project.project_type || project.projectType, authorId, currentEmployeeId });
+                                return false;
+                            }
+
+                            const ok = String(authorId) === String(currentEmployeeId);
+                            if (!ok) {
+                                // Debug small hint when a private project is filtered out
+                                console.debug('Hiding private project for non-author', { projectId: project.id, authorId, currentEmployeeId });
+                            }
+                            return ok;
+                        } catch (e) {
+                            console.warn('visibleProjects filter error', e);
+                            return true;
+                        }
+                    });
+
                     let rowHtml = '<div class="row">';
 
-                    projects.forEach((project) => {
+                    visibleProjects.forEach((project) => {
                         let imageUrl = project.image
                             ? appUrl + "/file/project/" + project.image
                             : null;
@@ -1144,6 +1203,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             /"/g,
                             "&quot;"
                         );
+                        const pid = project.id || projectId;
+                        const projectSlug = project.slug || slugify(project.title || "unknown-project");
+                        const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
                         rowHtml += `
                             <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
@@ -1165,13 +1227,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                                               getInitialsColor(
                                                                   project.title
                                                               );
-                                                          return `<div class=\"rounded-circle me-2 d-flex align-items-center justify-content-center\"
-                                                            style=\"width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;\">${init}</div>`;
+                                                          return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                            style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${init}</div>`;
                                                       })()
                                             }
-                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">${
-                                                project.title
-                                            }</h6>
+
+                                        <a class="project-link text-decoration-none" data-project-id="${project.id}" href="${fullProjectUrl}">
+                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">
+                                                ${project.title}
+                                            </h6>
+                                        </a>
+
                                         </div>
                                         <div class="dropdown-icon-container">
                                             <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon dropdown-icon-custom"
@@ -6373,21 +6439,27 @@ document.addEventListener("DOMContentLoaded", function () {
                             success: function (response) {
                                 const project = response.data || {};
                                 const pid = project.id || projectId;
-                                // Prioritas gunakan project.slug jika tersedia dari API; fallback generate dari title
-                                let projectSlug = project.slug || slugify(project.title || "unknown-project");
-                                // Generate URL full ke halaman detail project
+                                const projectSlug = project.slug || slugify(project.title || "unknown-project");
                                 const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
-                                // Langsung redirect ke halaman detail (render view di backend)
+
                                 window.location.href = fullProjectUrl;
                             },
                             error: function (xhr, status, err) {
                                 console.error("Error fetching project details:", err);
                                 alert("Failed to load project details. Please try again.");
-                                // Opsional: Fallback redirect ke URL dasar tanpa slug jika diperlukan
-                                // window.location.href = `${appUrl}/project/${projectId}`;
                             }
                         });
                     }
+
+                    $(document).on('click', '.project-link', function (e) {
+                        const projectId = $(this).data('project-id');
+
+                        if (e.metaKey || e.ctrlKey || e.which === 2) return;
+
+                        e.preventDefault();
+                        fetchAndShowProjectDetail(projectId);
+                    });
+
 
                     // Event listener for "Detail", "Task", and "Feedback" dropdown item click
                     document.addEventListener("click", function (e) {
@@ -10049,6 +10121,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("search_filter");
     if (!searchInput) return;
 
+    let debounceTimer;
+
     function doSearch() {
         const raw = searchInput.value || "";
         const q = raw.trim();
@@ -10096,11 +10170,11 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    searchInput.addEventListener("keydown", function (e) {
-        if (e.key === "Enter") {
-            e.preventDefault();
+    searchInput.addEventListener("input", function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
             doSearch();
-        }
+        }, 500);
     });
 });
 
@@ -10384,4 +10458,55 @@ function initAddProjectReferenceFilesModal() {
             initAddProjectReferenceFilesModal();
         }
     } catch (e) {}
+})();
+
+// Initialize export button handler
+(function(){
+    try {
+        function initProjectExport() {
+            const exportBtn = document.querySelector('.btn-export-custom');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Show loading state
+                    const originalText = exportBtn.innerHTML;
+                    exportBtn.disabled = true;
+                    exportBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
+                    
+                    // Create a temporary anchor element to trigger download
+                    const link = document.createElement('a');
+                    link.href = appUrl + '/project/export-excel';
+                    link.download = '';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    
+                    // Trigger download
+                    link.click();
+                    
+                    // Clean up
+                    document.body.removeChild(link);
+                    
+                    // Restore button state after a short delay
+                    setTimeout(() => {
+                        exportBtn.disabled = false;
+                        exportBtn.innerHTML = originalText;
+                        
+                        // Show success message
+                        if (typeof showFloatingAlert === 'function') {
+                            showFloatingAlert('Project export started successfully!', 'success', 3000);
+                        }
+                    }, 2000);
+                });
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initProjectExport);
+        } else {
+            initProjectExport();
+        }
+    } catch (e) {
+        console.error('Error initializing project export:', e);
+    }
 })();

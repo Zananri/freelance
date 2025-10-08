@@ -47,7 +47,7 @@
     border: none;
 }
 
-.calendar-toggle-btn:hover{
+.calendar-toggle-btn:hover {
     background-color: #e3e4ee;
     color: #212124;
 }
@@ -103,12 +103,11 @@
 }
 
 .text-shift-time,
-.text-date-today{
+.text-date-today {
     font-size: 12px;
     color: #828282;
     font-weight: 400;
 }
-
 
 .attendance-logs .attendance-title {
     font-weight: bold;
@@ -122,33 +121,31 @@
 
 .attendance-logs .label-check-in-out,
 .attendance-logs .text-time-in,
-.attendance-logs .text-time-out{
+.attendance-logs .text-time-out {
     font-weight: 500;
     font-size: 12px;
     color: #757575;
 }
 
-.attendance-logs .time-log:hover{
+.attendance-logs .time-log:hover {
     cursor: pointer;
 }
 
-.attendance-logs .islate .text-time-in{
-    color: #C44141 !important;
+.attendance-logs .islate .text-time-in {
+    color: #c44141 !important;
 }
-
-
 
 .attendance-logs .time-log:hover .text-time-in,
 .attendance-logs .time-log:hover .text-time-out,
-.attendance-logs .time-log:hover .material-symbols-outlined{
+.attendance-logs .time-log:hover .material-symbols-outlined {
     color: #262627;
 }
 
-.attendance-logs .material-symbols-outlined{
-     font-variation-settings: 'wght' 600;
+.attendance-logs .material-symbols-outlined {
+    font-variation-settings: "wght" 600;
     margin-left: 10px;
     font-size: 16px;
-    color: #9B9CAC;
+    color: #9b9cac;
 }
 
 .attendance-actions {
@@ -185,16 +182,16 @@
     color: #444444;
 }
 
-.btn-attendance .check-icon{
+.btn-attendance .check-icon {
     display: none;
 }
 
-.btn-attendance.active .check-icon{
+.btn-attendance.active .check-icon {
     display: inline;
 }
 
 .btn-attendance:hover,
-.btn-attendance:active{
+.btn-attendance:active {
     background-color: #dcdde7 !important;
     color: #212124 !important;
 }
@@ -210,7 +207,7 @@
     color: #ffffff !important;
 }
 
-.btn-custom-check.active .check-icon{
+.btn-custom-check.active .check-icon {
     display: inline;
 }
 
@@ -219,16 +216,16 @@
     color: #444444;
 }
 
-.btn-custom-check .check-icon{
+.btn-custom-check .check-icon {
     display: none;
 }
 
-.btn-custom-check.active .check-icon{
+.btn-custom-check.active .check-icon {
     display: inline;
 }
 
 .btn-custom-check:hover,
-.btn-custom-check:active{
+.btn-custom-check:active {
     background-color: #dcdde7 !important;
     color: #212124 !important;
 }
@@ -278,14 +275,14 @@
 }
 
 .modal .box-loader,
-.modal .box-camera{
+.modal .box-camera {
     display: none;
 }
-.modal .box-photo{
+.modal .box-photo {
     background-color: #f5f8fc;
     transition: all 0.3s;
 }
-.modal .box-photo:hover{
+.modal .box-photo:hover {
     cursor: pointer;
     background-color: #e0eeff;
 }
@@ -305,7 +302,7 @@
     transition: all 0.2s;
 }
 
-.modal .btn-close-capture .material-symbols-outlined:hover{
+.modal .btn-close-capture .material-symbols-outlined:hover {
     background-color: #00000096;
     color: #ffffff;
 }
@@ -324,27 +321,27 @@
     cursor: pointer;
 }
 
-.modal .btn-capture-photo:hover{
-    border:solid 2px #fff;
+.modal .btn-capture-photo:hover {
+    border: solid 2px #fff;
     color: #fff;
     background-color: #0000007e;
 }
 
 .modal .box-btn-submit,
-.modal .box-form{
+.modal .box-form {
     padding-left: 35px;
     padding-right: 35px;
 }
 
 @media (max-width: 576px) {
     .modal .box-btn-submit,
-    .modal .box-form{
+    .modal .box-form {
         padding-left: 15px !important;
-        padding-right: 15px  !important;
+        padding-right: 15px !important;
     }
 }
 
-.modal .box-form{
+.modal .box-form {
     max-height: calc(100vh - 250px);
     overflow: auto;
 }
@@ -352,8 +349,8 @@
     display: inline-block;
 
     background-color: #e3e4ee;
-    font-size: 14px ;
-    font-weight: 300 ;
+    font-size: 14px;
+    font-weight: 300;
     border: 0px;
 
     border-radius: 8px;
@@ -799,9 +796,16 @@
 .task-desc-scroll::-webkit-scrollbar {
     width: 6px;
 }
-.task-desc-scroll::-webkit-scrollbar-track { background: transparent; }
-.task-desc-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 6px; }
-.task-desc-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.12); }
+.task-desc-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.task-desc-scroll::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+}
+.task-desc-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.12);
+}
 
 /* Fixed dimensions for task card - reasonable height */
 
@@ -1214,16 +1218,16 @@
     }
 }
 
-.btn-submit-black{
+.btn-submit-black {
     background-color: #313131 !important;
-    color: #F3F3F3 !important;
+    color: #f3f3f3 !important;
     font-size: 14px !important;
     font-weight: 300 !important;
     border: 0px !important;
 }
 
 .btn-submit-black:hover,
-.btn-submit-black:active{
+.btn-submit-black:active {
     background-color: #1b1c1d !important;
     color: #fdfeff !important;
 }
@@ -1297,7 +1301,6 @@
     background-color: transparent;
     border: none;
 }
-
 
 /* Dashboard-local Task Feedback Modal styles (mirrors task.css) */
 .feedback-modal-dialog {
@@ -1607,8 +1610,8 @@
 
 .btn-close-custom {
     border: 0px !important;
-    background: #797E91;
-    color: #F3F3F3;
+    background: #797e91;
+    color: #f3f3f3;
     font-weight: 300;
 }
 

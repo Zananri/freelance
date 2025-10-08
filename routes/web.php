@@ -85,6 +85,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/project/update', [ProjectController::class, 'updateproject'])->name('project.update.post');
     Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
     Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
+    Route::get('/project/export-excel', [ProjectController::class, 'exportProjectsExcel'])->name('project.export-excel');
     Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
     // Accept optional slug segment for SEO-friendly URLs like /project/12/nama-project-permalink
@@ -142,10 +143,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/task/{id}', [TaskController::class, 'show'])->name('task.show');
     Route::post('/task/store', [TaskController::class, 'store'])->name('task.store');
     Route::put('/task/{id}', [TaskController::class, 'update'])->name('task.update');
+    // Multi-parent management
+    Route::post('/task/{id}/parents', [TaskController::class, 'addParent'])->name('task.parents.add');
+    Route::delete('/task/{id}/parents', [TaskController::class, 'removeParent'])->name('task.parents.remove');
     // Delete a single reference file attached to a task (authorized PIC only)
     Route::delete('/task/{id}/reference-file', [TaskController::class, 'destroyReferenceFile'])->name('task.reference-file.destroy');
     // Upload reference files to a task
     Route::post('/task/{id}/reference-file', [TaskController::class, 'storeReferenceFile'])->name('task.reference-file.store');
+    // Soft delete task (mark as DELETED without removing from DB)
+    Route::put('/task/{id}/soft-delete', [TaskController::class, 'softDelete'])->name('task.soft-delete');
     Route::delete('/task/{id}', [TaskController::class, 'destroy'])->name('task.destroy');
     // Dashboard: Today tasks for current user
     Route::get('/task/dashboard/today', [TaskController::class, 'getDashboardTasksToday'])->name('task.dashboard.today');
@@ -234,6 +240,10 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/calendar', [CalendarController::class, 'showCalendarPage'])->name('calendar');
     Route::get('/calendar/get-calendar-data', [CalendarController::class, 'getCalendarData'])->name('calendar.getCalendarData');
+
+    // Contributions heatmap for employee (completed tasks per day)
+    Route::get('/employees/{id}/contributions', [TaskController::class, 'getEmployeeContributions'])
+        ->name('employees.contributions');
 
 });
 

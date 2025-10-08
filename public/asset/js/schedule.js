@@ -1412,12 +1412,11 @@ document.addEventListener("DOMContentLoaded", function () {
             try { loadRelatedTasks(p.id, 'edit_schedule', selectedParentId, selectedParentTitle); } catch(_) {}
         }
 
-        fetch(appUrl + "/project/index?task_scope=all")
+    fetch(appUrl + "/project/index")
             .then((res) => res.json())
                 .then((payload) => {
                     projects = (payload.data || [])
-                        .filter(p => !p.project_type || String(p.project_type) === 'public')
-                        .map((p) => ({
+                        .map(p => ({
                             id: p.id,
                             title: p.title,
                             image: p.image || "",

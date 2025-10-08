@@ -16,6 +16,7 @@ use App\Models\Employee;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Helpers\TaskAssignmentLogService;
+use App\Models\TaskAssignmentLog;
 // use Illuminate\Support\Carbon; // not used directly
 
 class TaskController extends Controller
@@ -101,14 +102,14 @@ class TaskController extends Controller
                                 });
                         });
                     })
-                    ->orWhere(function ($q) use ($currentUserId) {
-                        if ($currentUserId)
-                            $q->where('created_by', $currentUserId);
-                    });
+                        ->orWhere(function ($q) use ($currentUserId) {
+                            if ($currentUserId)
+                                $q->where('created_by', $currentUserId);
+                        });
                 });
 
-            $includeCanceled = false;
-            if ($statusFilter && strtolower($statusFilter) === 'canceled') {
+            $includeCanceled = false; // include both canceled and deleted when true
+            if ($statusFilter && in_array(strtolower($statusFilter), ['canceled','deleted'])) {
                 $includeCanceled = true;
             }
             if ($request->filled('include_canceled')) {
@@ -119,7 +120,7 @@ class TaskController extends Controller
             }
 
             if (!$includeCanceled) {
-                $baseQuery->whereRaw('LOWER(status) <> ?', ['canceled']);
+                $baseQuery->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted']);
             }
 
             if ($projectId)
@@ -184,7 +185,14 @@ class TaskController extends Controller
                         })
                         ->orderBy('complete_date', 'desc');
                 } else {
-                    $query->where('status', $normalizedFilter)
+                    $query->where(function($qq) use ($normalizedFilter){
+                            // allow filtering explicitly by 'canceled' or 'deleted'
+                            if (in_array($normalizedFilter, ['canceled','deleted'])) {
+                                $qq->where('status', $normalizedFilter);
+                            } else {
+                                $qq->where('status', $normalizedFilter);
+                            }
+                        })
                         ->where(function ($q) use ($currentEmployeeId) {
                             $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
                                 $a->where('employee_id', $currentEmployeeId)
@@ -397,8 +405,8 @@ class TaskController extends Controller
                             }
                         });
                 })
-                // Hide soft-deleted tasks from all aggregations
-                ->whereRaw('LOWER(status) <> ?', ['canceled']);
+                // Hide soft-deleted tasks from all aggregations (exclude canceled and deleted)
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted']);
 
             if ($projectId) {
                 $baseQuery->where('project_id', $projectId);
@@ -577,6 +585,30 @@ class TaskController extends Controller
                 }
             }
 
+            $taskHasImage = false;
+            $taskImageUrl = null;
+            if ($task->image) {
+                $img = $task->image;
+                $normalized = ltrim($img, '/');
+                if (Str::startsWith($img, ['http://', 'https://'])) {
+                    $taskImageUrl = $img;
+                    $taskHasImage = true;
+                } elseif (Str::startsWith($normalized, 'asset/')) {
+                    $full = asset($normalized);
+                    $taskImageUrl = $full;
+                    $taskHasImage = true;
+                } else {
+                    if (!Str::startsWith($normalized, 'file/task/')) {
+                        $normalized = 'file/task/' . $normalized;
+                    }
+                    $disk = public_path($normalized);
+                    if (file_exists($disk)) {
+                        $taskImageUrl = asset($normalized);
+                        $taskHasImage = true;
+                    }
+                }
+            }
+
             // Determine last status change log for this task (most recent)
             $lastLog = null;
             try {
@@ -629,8 +661,9 @@ class TaskController extends Controller
                 'id' => $task->id,
                 'title' => $task->title,
                 'description' => $task->description,
+                'image' => $taskImageUrl,
                 'project_title' => $task->project?->title,
-                'project_image' => $projectImageUrl, // null jika tidak ada gambar
+                'project_image' => $projectImageUrl,
                 'project_has_image' => $projectHasImage,
                 'project_id' => $task->project_id,
                 'start_date' => $task->start_date,
@@ -753,8 +786,8 @@ class TaskController extends Controller
                                 });
                         });
                 })
-                // Exclude DELETED tasks
-                ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                // Exclude soft-deleted tasks (canceled, deleted)
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted'])
                 // Do not show tasks that start in the future (e.g., tomorrow) on Today's tab
                 ->where(function ($d) use ($today) {
                     $d->whereNull('start_date')
@@ -921,8 +954,8 @@ class TaskController extends Controller
                                 });
                         });
                 })
-                // Exclude DELETED tasks
-                ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                // Exclude soft-deleted tasks (canceled, deleted)
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted'])
                 ->whereDate('start_date', $tomorrow);
 
             $tasks = $base->orderByDesc('created_at')->get();
@@ -986,6 +1019,123 @@ class TaskController extends Controller
                 'status' => 'error',
                 'message' => $e->getMessage()
             ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
+     * Contributions heatmap data: per-day count of tasks completed by a given employee.
+     * Inputs (query): start (Y-m-d), end (Y-m-d). Defaults to last 365 days ending today.
+     * Contract:
+     * - Input: employee id via route param {id}
+     * - Output: { start: Y-m-d, end: Y-m-d, days: [{date: Y-m-d, count: int}], max: int }
+     * Notes:
+     * - We count when a task status becomes 'completed'. Prefer TaskStatusLog new_status='completed' for employee.
+     * - Fallback: tasks assigned to employee with complete_date within range and status='completed'.
+     * - Exclude canceled/deleted tasks.
+     */
+    public function getEmployeeContributions(Request $request, $employeeId)
+    {
+        try {
+            // Authz: allow viewing own contributions or management can view others
+            $user = auth()->user();
+            $currentEmployeeId = $user?->employee?->id;
+            $isSelf = $currentEmployeeId && ((string)$currentEmployeeId === (string)$employeeId);
+            // For now, permit self; if not self, still allow (dashboard usage). Add policy here if needed.
+
+            $end = $request->query('end');
+            $start = $request->query('start');
+            $today = now()->toDateString();
+            if (!$end) $end = $today;
+            if (!$start) $start = now()->subDays(364)->toDateString();
+
+            // Normalize to dates
+            $startDate = \Carbon\Carbon::parse($start)->startOfDay();
+            $endDate = \Carbon\Carbon::parse($end)->endOfDay();
+
+            // Optional project scoping
+            $projectId = $request->query('project_id');
+
+            // 1) Use TaskStatusLog where new_status = 'completed' by this employee
+            //    Count DISTINCT task_id to avoid multiple logs inflating the count.
+            //    If project_id provided, join tasks and filter by tasks.project_id
+            $logsQ = \App\Models\TaskStatusLog::query()
+                ->selectRaw('DATE(task_status_logs.created_at) as d, COUNT(DISTINCT task_status_logs.task_id) as c')
+                ->where('task_status_logs.employee_id', $employeeId)
+                ->whereIn(\DB::raw('LOWER(task_status_logs.new_status)'), ['completed'])
+                ->whereBetween('task_status_logs.created_at', [$startDate, $endDate]);
+
+            if (!empty($projectId)) {
+                $logsQ->join('tasks', 'tasks.id', '=', 'task_status_logs.task_id')
+                    ->where('tasks.project_id', $projectId)
+                    ->whereRaw('LOWER(tasks.status) NOT IN (?, ?)', ['canceled','deleted']);
+            }
+
+            $logs = $logsQ->groupBy('d')->pluck('c', 'd'); // map date => count
+
+            // 2) Fallback: tasks assigned to employee and completed within range but might lack status log
+            // Only include those not already counted by logs for that date
+            //    Exclude tasks that already have a 'completed' log by this employee on the same date
+            //    to prevent double counting with the logs aggregation above.
+            $fallbackTasksQ = \App\Models\Task::query()
+                ->whereIn(\DB::raw('LOWER(status)'), ['completed'])
+                ->whereNotNull('complete_date')
+                ->whereBetween('complete_date', [$startDate->toDateString(), $endDate->toDateString()])
+                ->whereHas('assignments', function($q) use ($employeeId){
+                    $q->where('employee_id', $employeeId);
+                })
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted'])
+                ->whereNotExists(function($sub) use ($employeeId) {
+                    $sub->select(\DB::raw(1))
+                        ->from('task_status_logs as tsl')
+                        ->whereColumn('tsl.task_id', 'tasks.id')
+                        ->where(\DB::raw('LOWER(tsl.new_status)'), 'completed')
+                        ->where('tsl.employee_id', $employeeId)
+                        ->whereRaw('DATE(tsl.created_at) = DATE(tasks.complete_date)');
+                });
+
+            if (!empty($projectId)) {
+                $fallbackTasksQ->where('project_id', $projectId);
+            }
+
+            $fallbackTasks = $fallbackTasksQ
+                ->selectRaw('DATE(complete_date) as d, COUNT(*) as c')
+                ->groupBy('d')
+                ->pluck('c', 'd');
+
+            // Merge logs and fallback (sum counts per day)
+            $counts = [];
+            foreach ($logs as $d => $c) { $counts[$d] = ($counts[$d] ?? 0) + (int)$c; }
+            foreach ($fallbackTasks as $d => $c) { $counts[$d] = ($counts[$d] ?? 0) + (int)$c; }
+
+            // Ensure full range with zeros
+            $days = [];
+            $max = 0;
+            $cursor = $startDate->copy();
+            while ($cursor->lte($endDate)) {
+                $d = $cursor->toDateString();
+                $val = (int)($counts[$d] ?? 0);
+                $days[] = ['date' => $d, 'count' => $val];
+                if ($val > $max) $max = $val;
+                $cursor->addDay();
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'start' => $startDate->toDateString(),
+                    'end' => $endDate->toDateString(),
+                    'days' => $days,
+                    'max' => $max,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json([
+                'code' => $status,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $status);
         }
     }
 
@@ -1132,7 +1282,8 @@ class TaskController extends Controller
                         'action' => TaskAssignmentLog::ACTION_ACCEPTED,
                         'created_by' => $user->employee->id,
                     ]);
-                } catch (\Throwable $_) {}
+                } catch (\Throwable $_) {
+                }
             } else {
                 throw new \Exception('User not authenticated or has no employee record');
             }
@@ -1174,7 +1325,8 @@ class TaskController extends Controller
                             'action' => TaskAssignmentLog::ACTION_PENDING,
                             'created_by' => $user->employee->id ?? null,
                         ]);
-                    } catch (\Throwable $_) {}
+                    } catch (\Throwable $_) {
+                    }
 
                     // Send notification to executor
                     $executor = Employee::find($executorId);
@@ -1246,6 +1398,29 @@ class TaskController extends Controller
                 }
             }
 
+            $taskHasImage = false;
+            $taskImageUrl = null;
+            if ($task && $task->image) {
+                $img = $task->image;
+                $normalized = ltrim($img, '/');
+                if (Str::startsWith($img, ['http://', 'https://'])) {
+                    $taskImageUrl = $img;
+                    $taskHasImage = true;
+                } elseif (Str::startsWith($normalized, 'asset/')) {
+                    $taskImageUrl = asset($normalized);
+                    $taskHasImage = true;
+                } else {
+                    if (!Str::startsWith($normalized, 'file/project/')) {
+                        $normalized = 'file/project/' . $normalized;
+                    }
+                    $disk = public_path($normalized);
+                    if (file_exists($disk)) {
+                        $taskImageUrl = asset($normalized);
+                        $taskHasImage = true;
+                    }
+                }
+            }
+
             // Get PIC dan Executors
             $pic = $task->assignments->firstWhere('role', 'PIC');
             $executors = $task->assignments->where('role', 'EXECUTOR');
@@ -1265,6 +1440,7 @@ class TaskController extends Controller
                 'point' => $task->point ?? '',
                 'priority' => $task->priority ?? '',
                 'status' => $task->status ?? '',
+                'image' => $task->image ?? '',
                 'reference_url' => $task->reference_url ?? '',
                 'reference_urls' => (function () use ($task) {
                     $arr = [];
@@ -1487,11 +1663,11 @@ class TaskController extends Controller
             $payloadKeys = array_keys($request->all());
             $allowedParentOnlyKeys = ['parent_id', 'project_id'];
             $isParentOnly = $request->has('parent_id') && count(array_diff($payloadKeys, $allowedParentOnlyKeys)) === 0;
-            
+
             // Check if this is a positioning-only update
             $allowedPositioningKeys = ['parent_id', 'project_id', 'position_x', 'position_y', 'free_positioned'];
-            $isPositioningOnly = ($request->has('position_x') || $request->has('position_y') || $request->has('free_positioned')) 
-                                && count(array_diff($payloadKeys, $allowedPositioningKeys)) === 0;
+            $isPositioningOnly = ($request->has('position_x') || $request->has('position_y') || $request->has('free_positioned'))
+                && count(array_diff($payloadKeys, $allowedPositioningKeys)) === 0;
 
             if ($isParentOnly) {
                 $parentOnlyValidator = Validator::make($request->all(), [
@@ -1530,7 +1706,9 @@ class TaskController extends Controller
                         ], 422);
                     }
 
-                    $seen = 0; $MAX_HOPS = 2048; $cursor = $parent;
+                    $seen = 0;
+                    $MAX_HOPS = 2048;
+                    $cursor = $parent;
                     while ($cursor && $cursor->parent_id !== null && $seen < $MAX_HOPS) {
                         if ((string) $cursor->parent_id === (string) $task->id) {
                             return response()->json([
@@ -1560,7 +1738,7 @@ class TaskController extends Controller
                     ]
                 ]);
             }
-            
+
             // Handle positioning-only updates (drag and drop positioning)
             if ($isPositioningOnly) {
                 $positionValidator = Validator::make($request->all(), [
@@ -1607,7 +1785,9 @@ class TaskController extends Controller
                         }
 
                         // Check for circular dependency
-                        $seen = 0; $MAX_HOPS = 2048; $cursor = $parent;
+                        $seen = 0;
+                        $MAX_HOPS = 2048;
+                        $cursor = $parent;
                         while ($cursor && $cursor->parent_id !== null && $seen < $MAX_HOPS) {
                             if ((string) $cursor->parent_id === (string) $task->id) {
                                 return response()->json([
@@ -1653,7 +1833,7 @@ class TaskController extends Controller
                     ]
                 ]);
             }
-            
+
             $validator = Validator::make($request->all(), [
                 'project_id' => 'nullable|exists:projects,id',
                 'parent_id' => 'nullable|exists:tasks,id',
@@ -1805,7 +1985,8 @@ class TaskController extends Controller
                         $taskCreatorUserId = $task->created_by ?? null;
                         if ($taskCreatorUserId) {
                             $creator = Employee::where('user_id', $taskCreatorUserId)->first();
-                            if ($creator) $creatorEmployeeId = $creator->id;
+                            if ($creator)
+                                $creatorEmployeeId = $creator->id;
                         }
 
                         foreach ($removedExecutors as $removedId) {
@@ -1847,7 +2028,8 @@ class TaskController extends Controller
                                 'action' => TaskAssignmentLog::ACTION_PENDING,
                                 'created_by' => $employee->id ?? null,
                             ]);
-                        } catch (\Throwable $_) {}
+                        } catch (\Throwable $_) {
+                        }
                     }
 
                     // Send notification only for newly added executors
@@ -1921,7 +2103,7 @@ class TaskController extends Controller
                     'message' => 'Only PIC can delete this task.'
                 ], 403);
             }
-            // Soft-delete: flag status as CANCELED and set deleted_by. Do not remove files or related data.
+            // Soft-delete (cancel legacy): flag status as CANCELED and set deleted_by. Do not remove files or related data.
             $task->status = 'CANCELED';
             $task->deleted_by = auth()->id();
             $task->save();
@@ -1934,6 +2116,96 @@ class TaskController extends Controller
                 // Back-end now performs same soft-delete (status set to 'CANCELED'),
                 // return message uses 'canceled' to match UI label change.
                 'message' => 'Task canceled successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
+     * Soft-delete a task by marking its status as DELETED (do not remove from DB or files).
+     * Only PIC is authorized to perform this action.
+     */
+    public function softDelete(string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+
+            // Authorization: only PIC of this task may soft delete
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 401,
+                    'status' => 'error',
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            $isPic = TaskAssignment::where('task_id', $task->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'PIC')
+                ->exists();
+
+            if (!$isPic) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Only PIC can delete this task.'
+                ], 403);
+            }
+
+            // Determine allowed enum values for `tasks.status` so we don't attempt to write
+            // a value the DB doesn't accept (which causes a "Data truncated for column 'status'" warning/error).
+            $columnInfo = DB::select("SHOW COLUMNS FROM `tasks` WHERE Field = 'status'");
+            $allowedStatuses = [];
+            if ($columnInfo && is_array($columnInfo) && count($columnInfo) > 0) {
+                $type = $columnInfo[0]->Type ?? '';
+                if (preg_match("/^enum\((.*)\)$/", $type, $m)) {
+                    // $m[1] is like: '\'new_request\',\'in_progress\',...'
+                    // Use str_getcsv to split while respecting quotes
+                    $raw = $m[1];
+                    $parts = str_getcsv($raw, ',', "'");
+                    foreach ($parts as $p) {
+                        $p = trim($p, "'\"");
+                        if ($p !== '') $allowedStatuses[] = $p;
+                    }
+                }
+            }
+
+            // Prefer DELETED; fall back to CANCELED if DELETED isn't supported by the enum
+            $desired = 'DELETED';
+            if (!in_array($desired, $allowedStatuses, true)) {
+                if (in_array('CANCELED', $allowedStatuses, true)) {
+                    $desired = 'CANCELED';
+                } else {
+                    // If neither value exists, fail with an actionable error to run migrations
+                    return response()->json([
+                        'code' => 500,
+                        'status' => 'error',
+                        'message' => "Database does not allow status 'DELETED' or 'CANCELED'. Please run the migrations to add archived statuses to tasks.status enum."
+                    ], 500);
+                }
+            }
+
+            // Mark status and set deleted_by
+            $task->status = $desired;
+            $task->deleted_by = auth()->id();
+            $task->save();
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Task deleted successfully'
             ]);
 
         } catch (\Exception $e) {
@@ -2031,7 +2303,7 @@ class TaskController extends Controller
                 ->whereIn('role', ['PIC', 'EXECUTOR'])
                 ->exists();
 
-            $isCreator = ((int)$task->created_by === (int)$user->id);
+            $isCreator = ((int) $task->created_by === (int) $user->id);
             if (!($isAssigned || $isCreator)) {
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only PIC, executor or task creator can add reference files.'], 403);
             }
@@ -2043,12 +2315,14 @@ class TaskController extends Controller
 
             $stored = [];
             foreach ($files as $file) {
-                if (!$file->isValid()) continue;
+                if (!$file->isValid())
+                    continue;
                 $orig = $file->getClientOriginalName();
                 $ext = $file->getClientOriginalExtension();
                 $name = time() . '_' . Str::random(6) . '_' . preg_replace('/[^A-Za-z0-9_.-]/', '_', $orig);
                 $destDir = public_path('file/task_reference_files');
-                if (!is_dir($destDir)) @mkdir($destDir, 0755, true);
+                if (!is_dir($destDir))
+                    @mkdir($destDir, 0755, true);
                 $file->move($destDir, $name);
                 $stored[] = $name;
             }
@@ -3044,10 +3318,18 @@ class TaskController extends Controller
                     ];
                 })->values();
 
-                return [
+                $payload = [
                     'id' => $task->id,
                     'title' => $task->title,
                     'parent_id' => $task->parent_id ?? null,
+                    'parent_ids' => (function() use ($task) {
+                        $arr = [];
+                        try {
+                            if (is_array($task->parent_ids)) $arr = $task->parent_ids;
+                        } catch (\Throwable $_) {}
+                        if (!empty($task->parent_id) && !in_array((int)$task->parent_id, $arr)) $arr[] = (int)$task->parent_id;
+                        return array_values(array_unique(array_filter($arr)));
+                    })(),
                     'parent_task' => $task->parent ? $task->parent->title : null,
                     'description' => $task->description,
                     'image' => $task->image,
@@ -3061,6 +3343,7 @@ class TaskController extends Controller
                     'deadline' => $task->due_date,
                     'children' => [],
                 ];
+                return $payload;
             })->values();
 
             return response()->json([
@@ -3114,9 +3397,12 @@ class TaskController extends Controller
     {
         try {
             $qpDepth = null;
-            if (isset($_GET['depth'])) $qpDepth = (int) $_GET['depth'];
-            elseif (isset($_GET['level'])) $qpDepth = (int) $_GET['level'];
-            elseif (isset($_GET['pageTab'])) $qpDepth = (int) $_GET['pageTab'];
+            if (isset($_GET['depth']))
+                $qpDepth = (int) $_GET['depth'];
+            elseif (isset($_GET['level']))
+                $qpDepth = (int) $_GET['level'];
+            elseif (isset($_GET['pageTab']))
+                $qpDepth = (int) $_GET['pageTab'];
 
             if ($qpDepth !== null) {
                 $pageTab = $qpDepth;
@@ -3129,10 +3415,11 @@ class TaskController extends Controller
                 'project',
                 'parent'
             ])
-                ->whereIn('id', $allIds)
+                //->whereIn('id', $allIds)
                 ->where('project_id', $projectId)
-                ->whereRaw('LOWER(status) <> ?', ['canceled'])
-                ->orderBy('created_at', 'desc')
+                // Exclude both canceled and deleted tasks from the project tree
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
+                ->orderBy('start_date', 'asc')
                 ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
@@ -3158,10 +3445,18 @@ class TaskController extends Controller
                     ];
                 })->values();
 
-                return [
+                $payload = [
                     'id' => $task->id,
                     'title' => $task->title,
                     'parent_id' => $task->parent_id ?? null,
+                    'parent_ids' => (function() use ($task) {
+                        $arr = [];
+                        try {
+                            if (is_array($task->parent_ids)) $arr = $task->parent_ids;
+                        } catch (\Throwable $_) {}
+                        if (!empty($task->parent_id) && !in_array((int)$task->parent_id, $arr)) $arr[] = (int)$task->parent_id;
+                        return array_values(array_unique(array_filter($arr)));
+                    })(),
                     'parent_task' => $task->parent ? $task->parent->title : null,
                     'description' => $task->description,
                     'image' => $task->image,
@@ -3175,11 +3470,14 @@ class TaskController extends Controller
                     'deadline' => $task->due_date,
                     'children' => [],
                 ];
+                return $payload;
             });
 
             // Check if there are more levels beyond the current pageTab
             $hasMore = Task::where('project_id', $projectId)
                 ->whereIn('parent_id', $allIds)
+                // Ensure we don't count canceled or deleted tasks as "more"
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
                 ->whereNotIn('id', $allIds)
                 ->exists();
 
@@ -3194,6 +3492,134 @@ class TaskController extends Controller
                 'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
+     * Add an additional parent to a task (multi-parent support). Prevent cycles and cross-project links.
+     */
+    public function addParent(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+            $validator = Validator::make($request->all(), [
+                'parent_id' => 'required|exists:tasks,id'
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            $parentId = (int) $request->input('parent_id');
+            if ((int)$task->id === $parentId) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'A task cannot be its own parent.'
+                ], 422);
+            }
+            $parent = Task::findOrFail($parentId);
+            if ((string)$parent->project_id !== (string)$task->project_id) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Parent must be in the same project.'
+                ], 422);
+            }
+            // cycle detection on legacy chain (best-effort)
+            $seen = 0; $MAX=2048; $cursor = $parent;
+            while ($cursor && $cursor->parent_id !== null && $seen < $MAX) {
+                if ((int)$cursor->parent_id === (int)$task->id) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Invalid parent: cannot create cycle.'
+                    ], 422);
+                }
+                $cursor = Task::find($cursor->parent_id);
+                $seen++;
+            }
+
+            $arr = is_array($task->parent_ids) ? $task->parent_ids : [];
+            if (!in_array($parentId, $arr, true)) $arr[] = $parentId;
+            // Do NOT change legacy parent_id on multi-parent add to avoid card repositioning in UI
+            $task->parent_ids = array_values(array_unique(array_filter($arr)));
+            $task->updated_by = auth()->id();
+            $task->save();
+
+            DB::commit();
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Parent added',
+                'data' => [
+                    'id' => $task->id,
+                    'parent_ids' => $task->parent_ids,
+                    'parent_id' => $task->parent_id,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
+     * Remove one parent from a task (multi-parent support). If removed id equals legacy parent_id, switch to another if available.
+     */
+    public function removeParent(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+            $validator = Validator::make($request->all(), [
+                'parent_id' => 'required|integer'
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            $removeId = (int)$request->input('parent_id');
+            $arr = is_array($task->parent_ids) ? $task->parent_ids : [];
+            $arr = array_values(array_filter($arr, fn($v) => (int)$v !== $removeId));
+            // Adjust legacy parent_id for back-compat
+            if ((int)$task->parent_id === $removeId) {
+                $task->parent_id = !empty($arr) ? (int)$arr[0] : null;
+            }
+            $task->parent_ids = $arr;
+            $task->updated_by = auth()->id();
+            $task->save();
+
+            DB::commit();
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Parent removed',
+                'data' => [
+                    'id' => $task->id,
+                    'parent_ids' => $task->parent_ids,
+                    'parent_id' => $task->parent_id,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => $e->getMessage(),
             ], $this->deriveHttpStatusFromException($e));
         }
     }
@@ -3296,17 +3722,32 @@ class TaskController extends Controller
                     $creatorUserId = $task->created_by ?? null;
                     if ($creatorUserId) {
                         $creator = Employee::where('user_id', $creatorUserId)->first();
-                        if ($creator) $creatorEmployeeId = $creator->id;
+                        if ($creator)
+                            $creatorEmployeeId = $creator->id;
                     }
                 }
 
-                TaskAssignmentLogService::record([
-                    'task_id' => $taskId,
-                    'employee_id' => $user->employee->id,
-                    'creator_task' => $creatorEmployeeId,
-                    'action' => TaskAssignmentLog::ACTION_ACCEPTED,
-                    'created_by' => $user->employee->id,
-                ]);
+                // Prefer updating an existing PENDING log to ACCEPTED
+                $existing = TaskAssignmentLog::where('task_id', $taskId)
+                    ->where('employee_id', $user->employee->id)
+                    ->where('action', TaskAssignmentLog::ACTION_PENDING)
+                    ->orderBy('created_at', 'desc')
+                    ->first();
+
+                if ($existing) {
+                    $existing->action = TaskAssignmentLog::ACTION_ACCEPTED;
+                    $existing->status = TaskAssignmentLog::STATUS_ACTIVE;
+                    $existing->updated_by = $user->employee->id;
+                    $existing->save();
+                } else {
+                    TaskAssignmentLogService::record([
+                        'task_id' => $taskId,
+                        'employee_id' => $user->employee->id,
+                        'creator_task' => $creatorEmployeeId,
+                        'action' => TaskAssignmentLog::ACTION_ACCEPTED,
+                        'created_by' => $user->employee->id,
+                    ]);
+                }
             } catch (\Throwable $_) {
                 // don't block acceptance if logging fails
             }
@@ -3429,7 +3870,8 @@ class TaskController extends Controller
                     $creatorUserId = $task->created_by ?? null;
                     if ($creatorUserId) {
                         $creator = Employee::where('user_id', $creatorUserId)->first();
-                        if ($creator) $creatorEmployeeId = $creator->id;
+                        if ($creator)
+                            $creatorEmployeeId = $creator->id;
                     }
                 }
 
@@ -3453,11 +3895,13 @@ class TaskController extends Controller
 
                 // Collect all employees related to this task (assignments + PIC)
                 $assignedEmployeeIds = TaskAssignment::where('task_id', $taskId)->pluck('employee_id')->toArray();
-                if ($task->pic_id) $assignedEmployeeIds[] = $task->pic_id;
+                if ($task->pic_id)
+                    $assignedEmployeeIds[] = $task->pic_id;
                 $assignedEmployeeIds = array_values(array_unique($assignedEmployeeIds));
 
                 // Exclude the employee who performed the rejection
-                $recipients = array_filter($assignedEmployeeIds, function($id) use ($employeeId){ return (int)$id !== (int)$employeeId; });
+                $recipients = array_filter($assignedEmployeeIds, function ($id) use ($employeeId) {
+                    return (int) $id !== (int) $employeeId; });
 
                 if (!empty($recipients)) {
                     // New message format requested: "Task (nama task) rejected by (nama yang mereject tasknya)"
