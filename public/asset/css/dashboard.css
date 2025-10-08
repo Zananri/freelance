@@ -1637,7 +1637,7 @@
 }
 
 .contrib-grid-container {
-    overflow-x: hidden; /* ensure no horizontal scroll; grid will scale to fit */
+    overflow-x: hidden; /* desktop: grid scales to fit */
 }
 
 .contrib-layout {
@@ -1723,4 +1723,20 @@
     border-radius: 4px;
     z-index: 9999;
     display: none;
+}
+
+/* Mobile: allow horizontal scroll to view all months */
+@media (max-width: 576px) {
+    .contrib-grid-container {
+        overflow-x: auto; /* enable horizontal scroll */
+        -webkit-overflow-scrolling: touch;
+    }
+    .contrib-chart {
+        width: max-content; /* let the grid take its natural full width */
+        min-width: max-content;
+    }
+    /* Provide a sensible default cell size on mobile; JS may override for desktop */
+    .contrib-layout {
+        --cell: 12px;
+    }
 }
