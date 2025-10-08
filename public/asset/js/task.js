@@ -4420,47 +4420,52 @@ function applyCurrentSearchFilter() {
         });
     }
 
-    (function enableKanbanDnD(){
+    (function enableKanbanDnD() {
         const colToStatus = {
             'new-request-tasks': 'new_request',
             'in-progress-tasks': 'in_progress',
-            'completed-tasks':   'completed'
+            'completed-tasks': 'completed'
         };
 
-        // Mark columns as droppable
-        $(function(){
+        const SCALE = 1;
+
+        if (!$('#kanban-drag-layer').length) {
+            $('body').append('<div id="kanban-drag-layer"></div>');
+        }
+
+        $(function() {
             $('#new-request-tasks, #in-progress-tasks, #completed-tasks').addClass('kanban-droppable');
         });
 
-        let kanbanDrag = null; // { id, fromStatus }
+        let kanbanDrag = null;
+        let $clone = null;
+        let offsetX = 0;
+        let offsetY = 0;
+        let lastX = 0;
+        let isDragging = false;
 
-        function normStatus(s){
+        function normStatus(s) {
             s = String(s || '').toLowerCase();
             if (s === 'in progress') return 'in_progress';
             if (s === 'new request') return 'new_request';
             return s;
         }
 
-        function mapTransition(fromStatus, toStatus){
-            // returns { allowed: boolean, newStatus?: string }
+        function mapTransition(fromStatus, toStatus) {
             fromStatus = normStatus(fromStatus);
             toStatus = normStatus(toStatus);
-            // same-column drop => no-op
             if (fromStatus === toStatus) return { allowed: false };
-
-            // Treat 'rejected' as currently in-progress special state; allow sending to completed
             if (fromStatus === 'rejected') {
                 if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
                 return { allowed: false };
             }
-
             if (fromStatus === 'new_request') {
                 if (toStatus === 'in_progress') return { allowed: true, newStatus: 'in_progress' };
                 return { allowed: false };
             }
             if (fromStatus === 'in_progress') {
                 if (toStatus === 'new_request') return { allowed: true, newStatus: 'new_request' };
-                if (toStatus === 'completed')   return { allowed: true, newStatus: 'completed' };
+                if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
                 return { allowed: false };
             }
             if (fromStatus === 'completed') {
@@ -4470,94 +4475,118 @@ function applyCurrentSearchFilter() {
             return { allowed: false };
         }
 
-        function clearDropHighlights(){
-            try {
-                $('.kanban-droppable')
-                    .removeClass('kanban-allowed')
-                    .removeClass('kanban-denied')
-                    .removeClass('kanban-over');
-                $('.custom-card.dragging').removeClass('dragging');
-            } catch(_) {}
+        function clearDropHighlights() {
+            $('.kanban-droppable').removeClass('kanban-allowed kanban-denied kanban-over');
+            $('.custom-card').removeClass('dragging');
         }
 
-        function refreshDropHighlights(){
+        function refreshDropHighlights() {
             if (!kanbanDrag) return;
-            Object.keys(colToStatus).forEach(function(colId){
+            Object.keys(colToStatus).forEach(function(colId) {
                 const $col = $('#' + colId);
                 const toStatus = colToStatus[colId];
                 const m = mapTransition(kanbanDrag.fromStatus, toStatus);
                 $col.toggleClass('kanban-allowed', !!m.allowed);
-                $col.toggleClass('kanban-denied', !m.allowed);
+                $col.toggleClass('kanban-denied', !m.allowed && $col.hasClass('kanban-over'));
             });
         }
 
-        // Make cards draggable on demand (delegated)
-        $(document).on('mouseenter', '.custom-card', function(){
-            this.setAttribute('draggable', 'true');
+        $(document).on('mousedown', '.custom-card', function(e) {
+            if (e.which !== 1) return;
+            e.preventDefault();
+            const $card = $(this);
+            const id = $card.data('task-id');
+            const fromStatus = normStatus($card.data('task-status'));
+            const rect = $card[0].getBoundingClientRect();
+            offsetX = e.clientX - rect.left;
+            offsetY = e.clientY - rect.top;
+            kanbanDrag = { id: id, fromStatus: fromStatus, $card: $card, startX: e.clientX, startY: e.clientY };
+            isDragging = false;
+            lastX = e.clientX;
+            $card.addClass('dragging');
+            $('body').addClass('no-select');
         });
 
-        // Begin drag
-        $(document).on('dragstart', '.custom-card', function(ev){
-            try { hideAllFloatingTooltips && hideAllFloatingTooltips(); } catch(_) {}
-            const e = ev.originalEvent || ev;
-            const id = this.getAttribute('data-task-id');
-            const fromStatus = normStatus(this.getAttribute('data-task-status'));
-            kanbanDrag = { id: id, fromStatus: fromStatus };
-            this.classList.add('dragging');
-            try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(id||'')); } catch(_){ }
-            refreshDropHighlights();
-        });
-
-        // End drag (cleanup)
-        $(document).on('dragend', '.custom-card', function(){
-            kanbanDrag = null;
-            clearDropHighlights();
-        });
-
-        // Column drag handlers
-        $(document).on('dragenter', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
+        $(document).on('mousemove', function(e) {
             if (!kanbanDrag) return;
-            $(this).addClass('kanban-over');
-        });
 
-        $(document).on('dragover', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(ev){
-            if (!kanbanDrag) return;
-            const e = ev.originalEvent || ev;
-            const toStatus = colToStatus[this.id];
-            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
-            if (m.allowed) {
-                try { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; } catch(_){ try { e.preventDefault(); } catch(_){} }
-                $(this).addClass('kanban-allowed').removeClass('kanban-denied');
-            } else {
-                $(this).addClass('kanban-denied').removeClass('kanban-allowed');
-            }
-        });
-
-        $(document).on('dragleave', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(){
-            $(this).removeClass('kanban-over');
-        });
-
-        $(document).on('drop', '#new-request-tasks, #in-progress-tasks, #completed-tasks', function(ev){
-            if (!kanbanDrag) return;
-            const e = ev.originalEvent || ev;
-            try { e.preventDefault(); } catch(_) {}
-            const toStatus = colToStatus[this.id];
-            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
-            const taskId = kanbanDrag.id;
-            const taskCard = document.querySelector('.custom-card.dragging') || document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
-            if (!m.allowed) {
-                try { showFloatingAlert('Move not allowed for this transition.', 'warning'); } catch(_) {}
-                kanbanDrag = null; clearDropHighlights();
+            if (!isDragging && Math.abs(e.clientX - kanbanDrag.startX) + Math.abs(e.clientY - kanbanDrag.startY) < 5) {
                 return;
             }
-            // If moving to completed, open modal to collect completion details
-            if (m.newStatus === 'completed') {
-                try { showConfirmationToCompleteModal(taskId, taskCard); } catch(err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch(_) {} }
+
+            if (!isDragging) {
+                isDragging = true;
+                $clone = kanbanDrag.$card.clone().addClass('dragging-clone');
+                $('#kanban-drag-layer').append($clone);
+                const rect = kanbanDrag.$card[0].getBoundingClientRect();
+                const scaledOffsetX = offsetX * SCALE;
+                const scaledOffsetY = offsetY * SCALE;
+                const initialTop = e.clientY - scaledOffsetY;
+                const initialLeft = e.clientX - scaledOffsetX;
+                $clone.css({
+                    position: 'fixed',
+                    top: initialTop + 'px',
+                    left: initialLeft + 'px',
+                    width: rect.width + 'px',
+                    height: rect.height + 'px',
+                    margin: 0,
+                    transform: `scale(${SCALE}) rotate(0deg)`,
+                    zIndex: 99999,
+                    pointerEvents: 'none'
+                });
+                kanbanDrag.$card.css('opacity', 0.5);
             } else {
-                // Normal transitions use existing updater
-                try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch(_) {}
+                const scaledOffsetX = offsetX * SCALE;
+                const scaledOffsetY = offsetY * SCALE;
+                $clone.css({
+                    top: (e.clientY - scaledOffsetY) + 'px',
+                    left: (e.clientX - scaledOffsetX) + 'px'
+                });
+                const currentX = e.clientX;
+                const dx = currentX - lastX;
+                lastX = currentX;
+                const rotation = Math.max(-6, Math.min(6, dx / 4));
+                $clone.css('transform', `scale(${SCALE}) rotate(${rotation}deg)`);
             }
-            kanbanDrag = null; clearDropHighlights();
+
+            const $targetCol = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.kanban-droppable');
+            clearDropHighlights();
+            if ($targetCol.length) {
+                $targetCol.addClass('kanban-over');
+                refreshDropHighlights();
+            } else {
+                refreshDropHighlights();
+            }
+        });
+
+        $(document).on('mouseup', function(e) {
+            if (!kanbanDrag) return;
+            $('body').removeClass('no-select');
+            if (!isDragging) {
+                kanbanDrag = null;
+                return;
+            }
+            const $targetCol = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.kanban-droppable');
+            const toStatus = $targetCol.length ? colToStatus[$targetCol.attr('id')] : null;
+            const m = mapTransition(kanbanDrag.fromStatus, toStatus);
+            const taskId = kanbanDrag.id;
+            const taskCard = kanbanDrag.$card[0];
+            if ($targetCol.length && m.allowed) {
+                if (m.newStatus === 'completed') {
+                    try { showConfirmationToCompleteModal(taskId, taskCard); }
+                    catch (err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch (_) {} }
+                } else {
+                    try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch (_) {}
+                }
+            } else {
+                try { showFloatingAlert('Move not allowed for this transition.', 'warning'); } catch (_) {}
+            }
+            kanbanDrag.$card.removeClass('dragging').css({ opacity: 1, transform: 'scale(1) rotate(0deg)' });
+            if ($clone) { $clone.remove(); $clone = null; }
+            kanbanDrag = null;
+            isDragging = false;
+            lastX = 0;
+            clearDropHighlights();
         });
     })();
 

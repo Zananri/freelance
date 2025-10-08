@@ -127,6 +127,7 @@
             </div>
         </div>
     </div>
+    <div id="kanban-drag-layer"></div>
 
     <!-- Edit Task Modal -->
     <div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
@@ -738,7 +739,7 @@
                 try {
                     // Initialize Quill instances for Add and Edit task modals
                     if (document.getElementById('task_description_editor')) {
-                       
+
                         var addToolbarEl = document.getElementById('task_description_toolbar');
                         var addToolbarConfig = addToolbarEl ? '#task_description_toolbar' : false;
                         window.__quillTaskAdd = new Quill('#task_description_editor', {
