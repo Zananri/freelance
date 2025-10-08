@@ -1,10 +1,15 @@
-/* Contributions heatmap (project) */
 .contrib-legend {
     display: flex;
     align-items: center;
     gap: 8px;
     font-size: 12px;
     color: #6b7280;
+}
+
+.sub-title-contrib {
+    font-size: 12px;
+    font-weight: 500;
+    margin-left: 10px;
 }
 
 .legend-swatch {
@@ -14,7 +19,9 @@
     display: inline-block;
 }
 
-.contrib-grid-container { overflow-x: hidden; }
+.contrib-grid-container {
+    overflow-x: hidden;
+}
 
 .contrib-layout {
     display: grid;
@@ -43,7 +50,10 @@
     height: var(--cell, 12px);
 }
 
-.contrib-chart { grid-column: 2 / 3; grid-row: 2 / 3; }
+.contrib-chart {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+}
 
 .contrib-months {
     grid-column: 2 / 3;
@@ -71,13 +81,28 @@
     gap: var(--gap, 3px);
 }
 
-.contrib-square { width: var(--cell, 12px); height: var(--cell, 12px); border-radius: 2px; }
+.contrib-square {
+    width: var(--cell, 12px);
+    height: var(--cell, 12px);
+    border-radius: 2px;
+}
 
-.level-0 { background: #ebedf0; border: 1px solid #ddd; }
-.level-1 { background: #9be9a8; }
-.level-2 { background: #40c463; }
-.level-3 { background: #30a14e; }
-.level-4 { background: #216e39; }
+.level-0 {
+    background: #ebedf0;
+    border: 1px solid #ddd;
+}
+.level-1 {
+    background: #9be9a8;
+}
+.level-2 {
+    background: #40c463;
+}
+.level-3 {
+    background: #30a14e;
+}
+.level-4 {
+    background: #216e39;
+}
 
 .contrib-tooltip {
     position: fixed;
@@ -92,13 +117,27 @@
 }
 
 @media (max-width: 576px) {
-    .contrib-grid-container { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    .contrib-grid-container::-webkit-scrollbar { height: 4px; }
-    .contrib-grid-container::-webkit-scrollbar-track { background: transparent; }
-    .contrib-grid-container::-webkit-scrollbar-thumb { background-color: #a0a0a0; border-radius: 4px; }
-    .contrib-chart { width: max-content; min-width: max-content; }
-    /* Provide a sensible default cell size on mobile */
-    .contrib-layout { --cell: 12px; }
+    .contrib-grid-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .contrib-grid-container::-webkit-scrollbar {
+        height: 4px;
+    }
+    .contrib-grid-container::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .contrib-grid-container::-webkit-scrollbar-thumb {
+        background-color: #a0a0a0;
+        border-radius: 4px;
+    }
+    .contrib-chart {
+        width: max-content;
+        min-width: max-content;
+    }
+    .contrib-layout {
+        --cell: 12px;
+    }
 }
 .project-header {
     position: sticky;
@@ -637,7 +676,6 @@
     color: #5f6368;
     font-size: 18px;
 }
-
 
 .reference-files-list,
 .reference-files-list a,
@@ -2232,7 +2270,6 @@
     border: none;
 }
 
-
 .btn-danger.remove-ref-url {
     background-color: #dc3545;
     color: white;
@@ -2267,9 +2304,9 @@
 }
 
 input[type="file"]::-webkit-file-upload-button {
-  display: none;
+    display: none;
 }
 
 input[type="file"]::file-selector-button {
-  display: none;
+    display: none;
 }
