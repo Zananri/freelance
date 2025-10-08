@@ -89,8 +89,8 @@
         const count = map.get(dstr) || 0;
         const $square = $('<div/>', {
           class: `contrib-square ${levelClassForCount(count)}`,
-          title: `${count} completed on ${dstr}`,
-          'aria-label': `${count} completed on ${dstr}`
+          'aria-label': `${count} completed on ${dstr}`,
+          'data-tip': `${count} completed on ${dstr}`
         }).on('mousemove', (e)=>showTip(e, `${count} completed on ${dstr}`))
           .on('mouseleave', hideTip)
           .css('grid-row-start', String(cursor.getDay() + 1));
