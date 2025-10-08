@@ -1028,8 +1028,9 @@ class TaskController extends Controller
             $endDate = \Carbon\Carbon::parse($end)->endOfDay();
 
             // 1) Use TaskStatusLog where new_status = 'completed' by this employee
+            //    Count DISTINCT task_id to avoid multiple logs inflating the count.
             $logs = \App\Models\TaskStatusLog::query()
-                ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
+                ->selectRaw('DATE(created_at) as d, COUNT(DISTINCT task_id) as c')
                 ->where('employee_id', $employeeId)
                 ->whereIn(\DB::raw('LOWER(new_status)'), ['completed'])
                 ->whereBetween('created_at', [$startDate, $endDate])
@@ -1038,6 +1039,8 @@ class TaskController extends Controller
 
             // 2) Fallback: tasks assigned to employee and completed within range but might lack status log
             // Only include those not already counted by logs for that date
+            //    Exclude tasks that already have a 'completed' log by this employee on the same date
+            //    to prevent double counting with the logs aggregation above.
             $fallbackTasks = \App\Models\Task::query()
                 ->whereIn(\DB::raw('LOWER(status)'), ['completed'])
                 ->whereNotNull('complete_date')
@@ -1046,6 +1049,14 @@ class TaskController extends Controller
                     $q->where('employee_id', $employeeId);
                 })
                 ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted'])
+                ->whereNotExists(function($sub) use ($employeeId) {
+                    $sub->select(\DB::raw(1))
+                        ->from('task_status_logs as tsl')
+                        ->whereColumn('tsl.task_id', 'tasks.id')
+                        ->where(\DB::raw('LOWER(tsl.new_status)'), 'completed')
+                        ->where('tsl.employee_id', $employeeId)
+                        ->whereRaw('DATE(tsl.created_at) = DATE(tasks.complete_date)');
+                })
                 ->selectRaw('DATE(complete_date) as d, COUNT(*) as c')
                 ->groupBy('d')
                 ->pluck('c', 'd');
