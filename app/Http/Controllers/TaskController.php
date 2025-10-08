@@ -3302,10 +3302,18 @@ class TaskController extends Controller
                     ];
                 })->values();
 
-                return [
+                $payload = [
                     'id' => $task->id,
                     'title' => $task->title,
                     'parent_id' => $task->parent_id ?? null,
+                    'parent_ids' => (function() use ($task) {
+                        $arr = [];
+                        try {
+                            if (is_array($task->parent_ids)) $arr = $task->parent_ids;
+                        } catch (\Throwable $_) {}
+                        if (!empty($task->parent_id) && !in_array((int)$task->parent_id, $arr)) $arr[] = (int)$task->parent_id;
+                        return array_values(array_unique(array_filter($arr)));
+                    })(),
                     'parent_task' => $task->parent ? $task->parent->title : null,
                     'description' => $task->description,
                     'image' => $task->image,
@@ -3319,6 +3327,7 @@ class TaskController extends Controller
                     'deadline' => $task->due_date,
                     'children' => [],
                 ];
+                return $payload;
             })->values();
 
             return response()->json([
@@ -3420,10 +3429,18 @@ class TaskController extends Controller
                     ];
                 })->values();
 
-                return [
+                $payload = [
                     'id' => $task->id,
                     'title' => $task->title,
                     'parent_id' => $task->parent_id ?? null,
+                    'parent_ids' => (function() use ($task) {
+                        $arr = [];
+                        try {
+                            if (is_array($task->parent_ids)) $arr = $task->parent_ids;
+                        } catch (\Throwable $_) {}
+                        if (!empty($task->parent_id) && !in_array((int)$task->parent_id, $arr)) $arr[] = (int)$task->parent_id;
+                        return array_values(array_unique(array_filter($arr)));
+                    })(),
                     'parent_task' => $task->parent ? $task->parent->title : null,
                     'description' => $task->description,
                     'image' => $task->image,
@@ -3437,6 +3454,7 @@ class TaskController extends Controller
                     'deadline' => $task->due_date,
                     'children' => [],
                 ];
+                return $payload;
             });
 
             // Check if there are more levels beyond the current pageTab
@@ -3458,6 +3476,134 @@ class TaskController extends Controller
                 'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
+     * Add an additional parent to a task (multi-parent support). Prevent cycles and cross-project links.
+     */
+    public function addParent(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+            $validator = Validator::make($request->all(), [
+                'parent_id' => 'required|exists:tasks,id'
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            $parentId = (int) $request->input('parent_id');
+            if ((int)$task->id === $parentId) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'A task cannot be its own parent.'
+                ], 422);
+            }
+            $parent = Task::findOrFail($parentId);
+            if ((string)$parent->project_id !== (string)$task->project_id) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Parent must be in the same project.'
+                ], 422);
+            }
+            // cycle detection on legacy chain (best-effort)
+            $seen = 0; $MAX=2048; $cursor = $parent;
+            while ($cursor && $cursor->parent_id !== null && $seen < $MAX) {
+                if ((int)$cursor->parent_id === (int)$task->id) {
+                    return response()->json([
+                        'code' => 422,
+                        'status' => 'error',
+                        'message' => 'Invalid parent: cannot create cycle.'
+                    ], 422);
+                }
+                $cursor = Task::find($cursor->parent_id);
+                $seen++;
+            }
+
+            $arr = is_array($task->parent_ids) ? $task->parent_ids : [];
+            if (!in_array($parentId, $arr, true)) $arr[] = $parentId;
+            // Do NOT change legacy parent_id on multi-parent add to avoid card repositioning in UI
+            $task->parent_ids = array_values(array_unique(array_filter($arr)));
+            $task->updated_by = auth()->id();
+            $task->save();
+
+            DB::commit();
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Parent added',
+                'data' => [
+                    'id' => $task->id,
+                    'parent_ids' => $task->parent_ids,
+                    'parent_id' => $task->parent_id,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $this->deriveHttpStatusFromException($e));
+        }
+    }
+
+    /**
+     * Remove one parent from a task (multi-parent support). If removed id equals legacy parent_id, switch to another if available.
+     */
+    public function removeParent(Request $request, string $id)
+    {
+        DB::beginTransaction();
+        try {
+            $task = Task::findOrFail($id);
+            $validator = Validator::make($request->all(), [
+                'parent_id' => 'required|integer'
+            ]);
+            if ($validator->fails()) {
+                return response()->json([
+                    'code' => 422,
+                    'status' => 'error',
+                    'message' => 'Validation errors',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+            $removeId = (int)$request->input('parent_id');
+            $arr = is_array($task->parent_ids) ? $task->parent_ids : [];
+            $arr = array_values(array_filter($arr, fn($v) => (int)$v !== $removeId));
+            // Adjust legacy parent_id for back-compat
+            if ((int)$task->parent_id === $removeId) {
+                $task->parent_id = !empty($arr) ? (int)$arr[0] : null;
+            }
+            $task->parent_ids = $arr;
+            $task->updated_by = auth()->id();
+            $task->save();
+
+            DB::commit();
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Parent removed',
+                'data' => [
+                    'id' => $task->id,
+                    'parent_ids' => $task->parent_ids,
+                    'parent_id' => $task->parent_id,
+                ]
+            ]);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'code' => $this->deriveHttpStatusFromException($e),
+                'status' => 'error',
+                'message' => $e->getMessage(),
             ], $this->deriveHttpStatusFromException($e));
         }
     }
