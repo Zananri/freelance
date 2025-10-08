@@ -1027,7 +1027,6 @@
         </div>
 
         <x-slot name="script_slot">
-            <!-- jsPlumb community (UMD) -->
             <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
             <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_timeline.js') }}?v={{ time() }}"></script>
