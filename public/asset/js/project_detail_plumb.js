@@ -1,11 +1,11 @@
 /*
  Multi-parent task edges using jsPlumb. Draws additional connections between parent and child cards.
- Requires: jsPlumb community lib loaded globally as jsPlumb or window.jsPlumb.
+ Requires: jsPlumb community lib loaded globally as jsPlumb or window.jsPlumb and jQuery ($).
 */
-(function(){
-  function meta(name){ try{ var m=document.querySelector('meta[name="'+name+'"]'); return m? m.getAttribute('content') : null; }catch(_){ return null; } }
-  var appUrl = (window.appUrl || meta('app-url') || (location && location.origin) || '').replace(/\/$/, '');
-  var projectId = (window.projectId || meta('project-id') || '')+'';
+(function($){
+  function meta(name){ try{ return $('meta[name="'+name+'"]').attr('content') || null; }catch(_){ return null; } }
+  var appUrl = (window.appUrl || meta('app-url') || (window.location && window.location.origin) || '').replace(/\/$/, '');
+  var projectId = String(window.projectId || meta('project-id') || '');
   var csrf = (window.csrfToken || meta('csrf-token') || '');
 
   var instance = null;
@@ -24,14 +24,11 @@
     if (!instance) return null;
     try {
       // ensure all connectors are drawn within the task tree container
-      try {
-        var c = document.getElementById('task-tree');
-        if (c) {
-          instance.setContainer && instance.setContainer(c);
-          // container should be positioned to host the overlay canvas
-          try { var cs = window.getComputedStyle(c); if (cs && cs.position === 'static') c.style.position = 'relative'; } catch(_){}
-        }
-      } catch(_){ }
+      var $c = $('#task-tree');
+      if ($c.length) {
+        if (typeof instance.setContainer === 'function') instance.setContainer($c[0]);
+        if ($c.css('position') === 'static') { $c.css('position', 'relative'); }
+      }
       instance.importDefaults({
         Connector: ["Bezier", { curviness: 40 }],
         Endpoint: ["Dot", { radius: 3 }],
@@ -40,7 +37,7 @@
         Overlays: [["Arrow", { location: 1, width: 8, length: 8 }]],
         ConnectionsDetachable: true,
       });
-    } catch(_){}
+    } catch(_){ }
     return instance;
   }
 
@@ -89,7 +86,7 @@
   function connectEdge(pId, cId){
     var inst = ensureInstance(); if (!inst) return;
     var sourceId = getElId(pId), targetId = getElId(cId);
-    try { inst.connect({ source: sourceId, target: targetId }); } catch(_){}
+    try { inst.connect({ source: sourceId, target: targetId }); } catch(_){ }
   }
 
   function clearAll(){ var inst = ensureInstance(); if (!inst) return; try{ inst.deleteEveryConnection(); inst.reset(); }catch(_){} instance=null; }
@@ -107,9 +104,9 @@
           var isUser = !!originalEvent || (info && info.originalEvent) || (info && info.connection && info.connection._jsPlumb && info.connection._jsPlumb.params && info.connection._jsPlumb.params.originalEvent);
           if (!isUser) return; // ignore programmatic wiring
           var source = info.sourceId, target = info.targetId;
-          var sEl = document.getElementById(source), tEl = document.getElementById(target);
-          var sRect = sEl ? sEl.getBoundingClientRect() : null;
-          var tRect = tEl ? tEl.getBoundingClientRect() : null;
+          var $sEl = $('#'+source), $tEl = $('#'+target);
+          var sRect = $sEl.length ? $sEl[0].getBoundingClientRect() : null;
+          var tRect = $tEl.length ? $tEl[0].getBoundingClientRect() : null;
           // Default: start from parent -> drop to child; if user drags right-to-left, flip mapping
           var parentId = source.replace('task-node-','');
           var childId = target.replace('task-node-','');
@@ -121,20 +118,22 @@
             }
           } catch(_){ }
           if (!parentId || !childId || parentId === childId) return;
-          fetch(appUrl + '/task/' + encodeURIComponent(childId) + '/parents', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ parent_id: Number(parentId) })
-          }).then(function(r){ return r.json(); }).then(function(res){
-            if (!(res && String(res.status||res.code)==='success' || res.code===200)) {
-              // revert on failure
-              try { info.connection && inst.deleteConnection(info.connection); } catch(_){}
-              try { window.showFloatingAlert && window.showFloatingAlert(res.message||'Gagal menambah parent', 'warning', 3000); } catch(_){}
+          $.ajax({
+            url: appUrl + '/task/' + encodeURIComponent(childId) + '/parents',
+            type: 'POST',
+            data: JSON.stringify({ parent_id: Number(parentId) }),
+            contentType: 'application/json',
+            headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+          }).done(function(res){
+            var ok = !!(res && (res.status === 'success' || res.code === 200));
+            if (!ok) {
+              try { info.connection && inst.deleteConnection(info.connection); } catch(_){ }
+              try { window.showFloatingAlert && window.showFloatingAlert((res && res.message) || 'Gagal menambah parent', 'warning', 3000); } catch(_){ }
             } else {
-              try { window.showFloatingAlert && window.showFloatingAlert('Parent ditambahkan', 'success', 1400); } catch(_){}
+              try { window.showFloatingAlert && window.showFloatingAlert('Parent ditambahkan', 'success', 1400); } catch(_){ }
               try { inst.repaintEverything && inst.repaintEverything(); } catch(_){ }
             }
-          }).catch(function(){ try { info.connection && inst.deleteConnection(info.connection); }catch(_){} });
+          }).fail(function(){ try { info.connection && inst.deleteConnection(info.connection); } catch(_){ } });
         } catch(_){}
       });
     } catch(_){}
@@ -148,9 +147,9 @@
           var parentId = sId.replace('task-node-','');
           var childId = tId.replace('task-node-','');
           try {
-            var sEl = document.getElementById(sId), tEl = document.getElementById(tId);
-            var sRect = sEl ? sEl.getBoundingClientRect() : null;
-            var tRect = tEl ? tEl.getBoundingClientRect() : null;
+            var $sEl = $('#'+sId), $tEl = $('#'+tId);
+            var sRect = $sEl.length ? $sEl[0].getBoundingClientRect() : null;
+            var tRect = $tEl.length ? $tEl[0].getBoundingClientRect() : null;
             if (sRect && tRect && tRect.left < sRect.left - 5) {
               // target is left of source -> target is likely parent
               parentId = tId.replace('task-node-','');
@@ -158,19 +157,21 @@
             }
           } catch(_){ }
           if (!parentId || !childId) return;
-          fetch(appUrl + '/task/' + encodeURIComponent(childId) + '/parents', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-            body: JSON.stringify({ parent_id: Number(parentId) })
-          }).then(function(r){ return r.json(); }).then(function(res){
+          $.ajax({
+            url: appUrl + '/task/' + encodeURIComponent(childId) + '/parents',
+            type: 'DELETE',
+            data: JSON.stringify({ parent_id: Number(parentId) }),
+            contentType: 'application/json',
+            headers: { 'X-CSRF-TOKEN': csrf, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+          }).done(function(res){
             if (res && (res.status==='success' || res.code===200)) {
-              try { inst.deleteConnection(conn); } catch(_){}
-              try { window.showFloatingAlert && window.showFloatingAlert('Parent dihapus', 'success', 1200); } catch(_){}
+              try { inst.deleteConnection(conn); } catch(_){ }
+              try { window.showFloatingAlert && window.showFloatingAlert('Parent dihapus', 'success', 1200); } catch(_){ }
               try { inst.repaintEverything && inst.repaintEverything(); } catch(_){ }
             } else {
-              try { window.showFloatingAlert && window.showFloatingAlert(res.message||'Gagal menghapus parent', 'warning', 2800); } catch(_){}
+              try { window.showFloatingAlert && window.showFloatingAlert((res && res.message) || 'Gagal menghapus parent', 'warning', 2800); } catch(_){ }
             }
-          }).catch(function(){ try { window.showFloatingAlert && window.showFloatingAlert('Gagal menghapus parent', 'warning', 2800); }catch(_){} });
+          }).fail(function(){ try { window.showFloatingAlert && window.showFloatingAlert('Gagal menghapus parent', 'warning', 2800); } catch(_){ } });
         } catch(_){}
       });
     } catch(_){}
@@ -189,8 +190,8 @@
     try {
       // register endpoints for all visible task boxes
       (tasks||[]).forEach(function(t){
-        var el = document.getElementById(getElId(t.id));
-        if (el) makeSourceAndTarget(el);
+        var $el = $('#'+getElId(t.id));
+        if ($el.length) makeSourceAndTarget($el[0]);
       });
     } catch(_){}
     layConnections(tasks);
@@ -204,14 +205,9 @@
     window.__initTaskPlumbTimer = setTimeout(function(){ init(tasks); }, 60);
   };
 
-  // Repaint on viewport changes to keep connectors aligned
+  // Repaint on viewport changes to keep connectors aligned (jQuery bindings)
   try {
-    window.addEventListener('resize', function(){
-      try { var inst = ensureInstance(); inst && inst.repaintEverything && inst.repaintEverything(); } catch(_){}
-    });
-    // capture scroll on any ancestor as well
-    window.addEventListener('scroll', function(){
-      try { var inst = ensureInstance(); inst && inst.repaintEverything && inst.repaintEverything(); } catch(_){}
-    }, true);
+    $(window).on('resize', function(){ try { var inst = ensureInstance(); inst && inst.repaintEverything && inst.repaintEverything(); } catch(_){ } });
+    $(window).on('scroll', function(){ try { var inst = ensureInstance(); inst && inst.repaintEverything && inst.repaintEverything(); } catch(_){ } });
   } catch(_){ }
-})();
+})(jQuery);
