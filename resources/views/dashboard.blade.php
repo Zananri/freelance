@@ -34,6 +34,7 @@
                             <div class="profile-image-container">
                                 
                                 <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                                <input type="hidden" id="contrib-endpoint" value="{{ route('employees.contributions', ['id' => $employee->id]) }}">
                                 <input type="hidden" name="employee_office" value="{{ $office->location }}">
                                
                                 @php
@@ -1101,7 +1102,13 @@
                                     </div>
                                 </div>
                                 <div class="contrib-grid-container">
-                                    <div id="contributionsGrid" class="contrib-grid"></div>
+                                    <div class="contrib-layout">
+                                        <div class="contrib-weekdays" id="contribWeekdays"></div>
+                                        <div class="contrib-chart">
+                                            <div class="contrib-months" id="contribMonths"></div>
+                                            <div id="contributionsGrid" class="contrib-grid"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1117,6 +1124,9 @@
                 <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/tasks_dashboard.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/project_dashboard.js') }}?v={{ time() }}"></script>
+                <script>
+                    window.APP_URL = "{{ url('/') }}";
+                </script>
                 <script src="{{ asset('asset/js/contributions_dashboard.js') }}?v={{ time() }}"></script>
             </x-slot>
 

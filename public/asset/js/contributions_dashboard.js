@@ -17,8 +17,14 @@
   }
 
   function route(path){
-    // Basic helper to build absolute path; assumes app is at root
-    return path;
+    // Build URL using APP_URL when available; keep path relative (no leading slash)
+    const base = (window.APP_URL || window.location.origin).replace(/\/$/, '');
+    const rel = path.replace(/^\//, '');
+    try {
+      return new URL(rel, base + '/').toString();
+    } catch (_) {
+      return rel; // fallback to relative
+    }
   }
 
   function levelClassForCount(count){
@@ -48,29 +54,44 @@
     // data: {start, end, days:[{date, count}], max}
     container.innerHTML = '';
 
-    const start = new Date(data.start + 'T00:00:00');
-    const end = new Date(data.end + 'T00:00:00');
+  const todayLocal = new Date();
+  const yearLocal = todayLocal.getFullYear();
+  const start = new Date(yearLocal, 0, 1); // Jan 1 current year
+  const end = new Date(yearLocal, 11, 31); // Dec 31 current year
 
     // Build a map date->count
     const map = new Map();
     data.days.forEach(d => { map.set(d.date, d.count); });
 
-    // Find grid dimensions
-    // We'll start on the Sunday on/before start
+    // Align grid to the Sunday on/before start
     const first = new Date(start);
     while (first.getDay() !== 0) { first.setDate(first.getDate() - 1); }
 
-    // Build columns week by week until end
-    const grid = document.createElement('div');
-    grid.style.display = 'grid';
-    grid.style.gridAutoFlow = 'column';
-    grid.style.gridTemplateRows = 'repeat(7, 12px)';
-    grid.style.gridAutoColumns = '12px';
-    grid.style.gap = '3px';
+    // Prepare elements for labels
+    const weekdaysEl = document.getElementById('contribWeekdays');
+    const monthsEl = document.getElementById('contribMonths');
+    if (weekdaysEl) {
+      weekdaysEl.innerHTML = '';
+      const labels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      for (let i = 0; i < 7; i++) {
+        const span = document.createElement('div');
+        span.className = 'contrib-weekday-label';
+        // Show only Mon, Wed, Fri to mimic GitHub sparsity
+        span.textContent = (labels[i] === 'Mon' || labels[i] === 'Wed' || labels[i] === 'Fri') ? labels[i] : '';
+        weekdaysEl.appendChild(span);
+      }
+    }
 
-  const tooltip = document.createElement('div');
-  tooltip.className = 'contrib-tooltip';
-    document.body.appendChild(tooltip);
+  // Build heatmap grid
+    const grid = document.createElement('div');
+    grid.className = 'contrib-grid';
+
+    let tooltip = document.querySelector('.contrib-tooltip');
+    if (!tooltip) {
+      tooltip = document.createElement('div');
+      tooltip.className = 'contrib-tooltip';
+      document.body.appendChild(tooltip);
+    }
 
     function showTip(e, text){
       tooltip.textContent = text;
@@ -80,37 +101,93 @@
     }
     function hideTip(){ tooltip.style.display = 'none'; }
 
-    let cursor = new Date(first);
+  let cursor = new Date(first);
     const msInDay = 86400000;
+    let weekIndex = 0;
+
+  // We'll render labels for Jan..Dec (current year) and align them to the week column that contains the 1st
+
     while (cursor <= end) {
-      // For each day, create a square
       const dstr = cursor.toISOString().slice(0,10);
       const count = map.get(dstr) || 0;
-  const square = document.createElement('div');
-  square.className = `contrib-square ${levelClassForCount(count)}`;
+      const square = document.createElement('div');
+      square.className = `contrib-square ${levelClassForCount(count)}`;
       square.title = `${count} completed on ${dstr}`;
       square.setAttribute('aria-label', square.title);
       square.addEventListener('mousemove', (e)=>showTip(e, square.title));
       square.addEventListener('mouseleave', hideTip);
 
-      // position in grid by day of week
-      const row = cursor.getDay(); // 0..6
-      square.style.gridRowStart = String(row+1);
+      const row = cursor.getDay();
+      square.style.gridRowStart = String(row + 1);
       grid.appendChild(square);
 
+      // Count weeks (columns) on Sundays
+      if (row === 0) { // Sunday = new column
+        weekIndex++;
+      }
+
       cursor = new Date(cursor.getTime() + msInDay);
-      // new column starts automatically due to grid-auto-flow: column
+    }
+
+    // Set responsive sizing based on number of weeks
+    const weeks = Math.max(1, weekIndex);
+    const layoutEl = container.closest('.contrib-layout');
+    if (layoutEl) {
+      layoutEl.style.setProperty('--weeks', weeks);
+      // Compute cell size so weeks fit within the chart width
+      const chartEl = container.closest('.contrib-chart');
+      if (chartEl) {
+        const chartWidth = chartEl.getBoundingClientRect().width;
+        const cs = getComputedStyle(layoutEl);
+        const gapStr = (cs.getPropertyValue('--gap') || '2px').trim();
+        const gapPx = parseFloat(gapStr) || 2;
+        const raw = (chartWidth - (weeks - 1) * gapPx) / weeks;
+        const cellPx = Math.max(6, Math.floor(raw)); // enforce a sane minimum
+        layoutEl.style.setProperty('--cell', `${cellPx}px`);
+      }
+    }
+
+    // Render month labels (Jan..Dec) aligned to the week column containing the 1st of each month
+    if (monthsEl) {
+      monthsEl.innerHTML = '';
+      // Make month-label grid match week columns exactly
+      monthsEl.style.gridTemplateColumns = `repeat(${weeks}, var(--cell))`;
+      // Ensure same gap as grid
+      const layoutStyles = getComputedStyle(layoutEl || monthsEl);
+      const gapVal = layoutStyles.getPropertyValue('--gap') || '2px';
+      monthsEl.style.gap = gapVal;
+      const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const startYear = start.getFullYear();
+      const msInDayLocal = msInDay;
+      for (let m = 0; m < 12; m++) {
+        const firstOfMonth = new Date(startYear, m, 1);
+        const anchor = new Date(firstOfMonth);
+        while (anchor.getDay() !== 0) { anchor.setDate(anchor.getDate() - 1); }
+        const diffDays = Math.floor((anchor - first) / msInDayLocal);
+        const colIndex = Math.floor(diffDays / 7) + 1; // 1-based grid column
+        if (colIndex >= 1 && colIndex <= weeks) {
+          const label = document.createElement('div');
+          label.className = 'contrib-month-label';
+          label.style.gridColumnStart = String(colIndex);
+          label.textContent = monthNames[m];
+          monthsEl.appendChild(label);
+        }
+      }
     }
 
     container.appendChild(grid);
   }
 
   async function fetchData(employeeId){
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 364);
+    const today = new Date();
+    const year = today.getFullYear();
+    const start = new Date(year, 0, 1); // Jan 1
+    const end = new Date(year, 11, 31); // Dec 31
     const fmt = (d)=> d.toISOString().slice(0,10);
-    const url = route(`/employees/${employeeId}/contributions?start=${fmt(start)}&end=${fmt(end)}`);
+    const endpointEl = document.getElementById('contrib-endpoint');
+    const baseUrl = endpointEl ? endpointEl.value : route(`employees/${employeeId}/contributions`);
+    const sep = baseUrl.includes('?') ? '&' : '?';
+    const url = `${baseUrl}${sep}start=${fmt(start)}&end=${fmt(end)}`;
     const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
     if (!res.ok) throw new Error('Failed to fetch contributions');
     const json = await res.json();
@@ -135,6 +212,26 @@
     try {
       const data = await fetchData(employeeId);
       if (grid) renderGrid(grid, data);
+      // Recompute on resize while modal is open
+      const onResize = () => {
+        const layoutEl = document.querySelector('#contributionsGrid')?.closest('.contrib-layout');
+        const chartEl = document.querySelector('#contributionsGrid')?.closest('.contrib-chart');
+        if (!layoutEl || !chartEl) return;
+        const weeksVar = parseInt(getComputedStyle(layoutEl).getPropertyValue('--weeks')) || 53;
+        const chartWidth = chartEl.getBoundingClientRect().width;
+        const cs = getComputedStyle(layoutEl);
+        const gapStr = (cs.getPropertyValue('--gap') || '2px').trim();
+        const gapPx = parseFloat(gapStr) || 2;
+        const raw = (chartWidth - (weeksVar - 1) * gapPx) / weeksVar;
+        const cellPx = Math.max(6, Math.floor(raw));
+        layoutEl.style.setProperty('--cell', `${cellPx}px`);
+      };
+      window.addEventListener('resize', onResize);
+      contributionsModalEl.addEventListener('hidden.bs.modal', () => {
+        window.removeEventListener('resize', onResize);
+      }, { once: true });
+      // Trigger once after render for correct initial sizing
+      setTimeout(() => onResize(), 0);
     } catch (e) {
       if (grid) grid.innerHTML = '<div class="text-danger">Failed to load contributions.</div>';
     }
