@@ -21,11 +21,13 @@
                 <div class="row flex-grow-1" style="flex: 1;">
                     {{-- Profile --}}
                     <div class="col-md-6 profile-calendar-card mb-5">
-                        <div class="rounded-4 p-4 body-card h-100">
-                            <div class="d-flex justify-content-end align-items-center">
+                        <div class="rounded-4 p-4 body-card h-100 position-relative">
+                            <div class="position-absolute top-0 end-0 p-3 d-flex align-items-center">
+                                <button class="btn btn-sm btn-icon me-2" title="Start Run">
+                                    <span class="material-symbols-outlined" style="font-size: 18px; color: #858CA0;">directions_run</span>
+                                </button>
                                 <button class="btn btn-sm toggle-calendar calendar-toggle-btn">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size: 18px; color: #858CA0;">calendar_month</span>
+                                    <span class="material-symbols-outlined" style="font-size: 18px; color: #858CA0;">calendar_month</span>
                                 </button>
                             </div>
 
