@@ -21,17 +21,20 @@
                 <div class="row flex-grow-1" style="flex: 1;">
                     {{-- Profile --}}
                     <div class="col-md-6 profile-calendar-card mb-5">
-                        <div class="rounded-4 p-4 body-card h-100">
-                            <div class="d-flex justify-content-end align-items-center">
+                        <div class="rounded-4 p-4 body-card h-100 position-relative">
+                            <div class="position-absolute top-0 end-0 p-3 d-flex align-items-center">
+                                <button class="btn btn-sm btn-icon me-2" id="openContributionsModalBtn" title="Contributions Heatmap">
+                                    <span class="material-symbols-outlined" style="font-size: 18px; color: #858CA0;">directions_run</span>
+                                </button>
                                 <button class="btn btn-sm toggle-calendar calendar-toggle-btn">
-                                    <span class="material-symbols-outlined"
-                                        style="font-size: 18px; color: #858CA0;">calendar_month</span>
+                                    <span class="material-symbols-outlined" style="font-size: 18px; color: #858CA0;">calendar_month</span>
                                 </button>
                             </div>
 
                             <div class="profile-image-container">
                                 
                                 <input type="hidden" name="employee_id" value="{{ $employee->id }}">
+                                <input type="hidden" id="contrib-endpoint" value="{{ route('employees.contributions', ['id' => $employee->id]) }}">
                                 <input type="hidden" name="employee_office" value="{{ $office->location }}">
                                
                                 @php
@@ -1074,8 +1077,46 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Contributions Heatmap Modal -->
+                <div class="modal fade" id="contributionsModal" tabindex="-1" aria-labelledby="contributionsModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                        <div class="modal-content rounded-4 border-0">
+                            <div class="modal-header border-0">
+                                <h5 class="modal-title modal-title-custom" id="contributionsModalLabel">My Contributions</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                    <div class="fs-14 text-secondary">Completed tasks per day (past year)</div>
+                                    <div class="contrib-legend">
+                                        <span>Less</span>
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <span class="legend-swatch level-0"></span>
+                                            <span class="legend-swatch level-1"></span>
+                                            <span class="legend-swatch level-2"></span>
+                                            <span class="legend-swatch level-3"></span>
+                                            <span class="legend-swatch level-4"></span>
+                                        </div>
+                                        <span>More</span>
+                                    </div>
+                                </div>
+                                <div class="contrib-grid-container">
+                                    <div class="contrib-layout">
+                                        <div class="contrib-weekdays" id="contribWeekdays"></div>
+                                        <div class="contrib-chart">
+                                            <div class="contrib-months" id="contribMonths"></div>
+                                            <div id="contributionsGrid" class="contrib-grid"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </x-slot>
             <x-slot name="script_slot">
+                <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
                 <script src="{{ asset('asset/plugin/leaflet/leaflet.js') }}" crossorigin=""></script>
@@ -1084,6 +1125,10 @@
                 <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/tasks_dashboard.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/project_dashboard.js') }}?v={{ time() }}"></script>
+                <script>
+                    window.APP_URL = "{{ url('/') }}";
+                </script>
+                <script src="{{ asset('asset/js/contributions_dashboard.js') }}?v={{ time() }}"></script>
             </x-slot>
 
 </x-office-layout>

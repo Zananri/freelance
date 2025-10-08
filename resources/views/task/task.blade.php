@@ -738,9 +738,12 @@
                 try {
                     // Initialize Quill instances for Add and Edit task modals
                     if (document.getElementById('task_description_editor')) {
+                       
+                        var addToolbarEl = document.getElementById('task_description_toolbar');
+                        var addToolbarConfig = addToolbarEl ? '#task_description_toolbar' : false;
                         window.__quillTaskAdd = new Quill('#task_description_editor', {
                             modules: {
-                                toolbar: '#task_description_toolbar'
+                                toolbar: addToolbarConfig
                             },
                             theme: 'snow'
                         });
@@ -781,9 +784,12 @@
                         } catch (_) {}
                     }
                     if (document.getElementById('edit_task_description_editor')) {
+                        // Only attach a toolbar if the toolbar element exists in the DOM.
+                        var editToolbarEl = document.getElementById('edit_task_description_toolbar');
+                        var editToolbarConfig = editToolbarEl ? '#edit_task_description_toolbar' : false;
                         window.__quillTaskEdit = new Quill('#edit_task_description_editor', {
                             modules: {
-                                toolbar: '#edit_task_description_toolbar'
+                                toolbar: editToolbarConfig
                             },
                             theme: 'snow'
                         });
