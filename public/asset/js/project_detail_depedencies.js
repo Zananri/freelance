@@ -113,11 +113,9 @@ function renderTaskNode(task, $template) {
     try {
         if (task && task.id != null) {
             $card.attr("data-task-id", String(task.id));
-            // assign a stable id for plumb
             $card.attr("id", "task-node-" + String(task.id));
             $card.attr("draggable", true);
             $card.addClass("draggable-task");
-            // small affordance for users
             if (!$card.attr("title")) {
                 $card.attr(
                     "title",
@@ -130,7 +128,7 @@ function renderTaskNode(task, $template) {
     try {
         $card.css("position", function(i, v){ return v || "relative"; });
         if ($card.find('.plumb-handle').length === 0) {
-            const $handle = $('<div class="plumb-handle" title="Drag a line to add a parent"\
+            const $handle = $('<div class="plumb-handle d-none" title="Drag a line to add a parent"\
                 style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
             $handle.attr('draggable', false);
             $handle.on('pointerdown mousedown touchstart', function(){
@@ -141,6 +139,12 @@ function renderTaskNode(task, $template) {
             });
             $handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
             $card.append($handle);
+
+            // 👇 Tambahin ini bre
+            $card.hover(
+                function () { $(this).find('.plumb-handle').removeClass('d-none'); },
+                function () { $(this).find('.plumb-handle').addClass('d-none'); }
+            );
         }
     } catch(_) {}
 
