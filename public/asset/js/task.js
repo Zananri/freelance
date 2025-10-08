@@ -2443,11 +2443,11 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
         // Remove modal from DOM when hidden
         mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); try { mEl.remove(); } catch(_){} });
 
-        // Initialize Quill
+        // Initialize Quill (disable toolbar for this modal)
         try {
             window.__quillComplete = new Quill('#complete_note_editor', {
                 theme: 'snow',
-                modules: { toolbar: [['bold','italic','underline'], ['link','image'], [{ list: 'ordered' }, { list: 'bullet' }]] }
+                modules: { toolbar: false }
             });
             try {
                 var Delta = Quill.import && Quill.import('delta');
