@@ -585,6 +585,30 @@ class TaskController extends Controller
                 }
             }
 
+            $taskHasImage = false;
+            $taskImageUrl = null;
+            if ($task->image) {
+                $img = $task->image;
+                $normalized = ltrim($img, '/');
+                if (Str::startsWith($img, ['http://', 'https://'])) {
+                    $taskImageUrl = $img;
+                    $taskHasImage = true;
+                } elseif (Str::startsWith($normalized, 'asset/')) {
+                    $full = asset($normalized);
+                    $taskImageUrl = $full;
+                    $taskHasImage = true;
+                } else {
+                    if (!Str::startsWith($normalized, 'file/task/')) {
+                        $normalized = 'file/task/' . $normalized;
+                    }
+                    $disk = public_path($normalized);
+                    if (file_exists($disk)) {
+                        $taskImageUrl = asset($normalized);
+                        $taskHasImage = true;
+                    }
+                }
+            }
+
             // Determine last status change log for this task (most recent)
             $lastLog = null;
             try {
@@ -637,8 +661,9 @@ class TaskController extends Controller
                 'id' => $task->id,
                 'title' => $task->title,
                 'description' => $task->description,
+                'image' => $taskImageUrl,
                 'project_title' => $task->project?->title,
-                'project_image' => $projectImageUrl, // null jika tidak ada gambar
+                'project_image' => $projectImageUrl,
                 'project_has_image' => $projectHasImage,
                 'project_id' => $task->project_id,
                 'start_date' => $task->start_date,
@@ -1256,6 +1281,29 @@ class TaskController extends Controller
                 }
             }
 
+            $taskHasImage = false;
+            $taskImageUrl = null;
+            if ($task && $task->image) {
+                $img = $task->image;
+                $normalized = ltrim($img, '/');
+                if (Str::startsWith($img, ['http://', 'https://'])) {
+                    $taskImageUrl = $img;
+                    $taskHasImage = true;
+                } elseif (Str::startsWith($normalized, 'asset/')) {
+                    $taskImageUrl = asset($normalized);
+                    $taskHasImage = true;
+                } else {
+                    if (!Str::startsWith($normalized, 'file/project/')) {
+                        $normalized = 'file/project/' . $normalized;
+                    }
+                    $disk = public_path($normalized);
+                    if (file_exists($disk)) {
+                        $taskImageUrl = asset($normalized);
+                        $taskHasImage = true;
+                    }
+                }
+            }
+
             // Get PIC dan Executors
             $pic = $task->assignments->firstWhere('role', 'PIC');
             $executors = $task->assignments->where('role', 'EXECUTOR');
@@ -1275,6 +1323,7 @@ class TaskController extends Controller
                 'point' => $task->point ?? '',
                 'priority' => $task->priority ?? '',
                 'status' => $task->status ?? '',
+                'image' => $task->image ?? '',
                 'reference_url' => $task->reference_url ?? '',
                 'reference_urls' => (function () use ($task) {
                     $arr = [];
