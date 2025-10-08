@@ -235,6 +235,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/calendar', [CalendarController::class, 'showCalendarPage'])->name('calendar');
     Route::get('/calendar/get-calendar-data', [CalendarController::class, 'getCalendarData'])->name('calendar.getCalendarData');
 
+    // Contributions heatmap for employee (completed tasks per day)
+    Route::get('/employees/{id}/contributions', [TaskController::class, 'getEmployeeContributions'])
+        ->name('employees.contributions');
+
 });
 
 

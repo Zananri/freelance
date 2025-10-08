@@ -1619,3 +1619,56 @@
     background: #6f7486 !important;
     color: #ffffff !important;
 }
+
+/* Contributions heatmap (dashboard) */
+.contrib-legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #6b7280; /* text-secondary tone */
+}
+
+.legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    display: inline-block;
+}
+
+.contrib-grid-container {
+    overflow-x: auto;
+}
+
+.contrib-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-rows: repeat(7, 12px);
+    grid-auto-columns: 12px;
+    gap: 3px;
+}
+
+.contrib-square {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* GitHub-like palette */
+.level-0 { background: #EBEDF0; border: 1px solid #ddd; }
+.level-1 { background: #9BE9A8; }
+.level-2 { background: #40C463; }
+.level-3 { background: #30A14E; }
+.level-4 { background: #216E39; }
+
+.contrib-tooltip {
+    position: fixed;
+    pointer-events: none;
+    padding: 6px 8px;
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    font-size: 12px;
+    border-radius: 4px;
+    z-index: 9999;
+    display: none;
+}

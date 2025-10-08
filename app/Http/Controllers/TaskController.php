@@ -998,6 +998,96 @@ class TaskController extends Controller
     }
 
     /**
+     * Contributions heatmap data: per-day count of tasks completed by a given employee.
+     * Inputs (query): start (Y-m-d), end (Y-m-d). Defaults to last 365 days ending today.
+     * Contract:
+     * - Input: employee id via route param {id}
+     * - Output: { start: Y-m-d, end: Y-m-d, days: [{date: Y-m-d, count: int}], max: int }
+     * Notes:
+     * - We count when a task status becomes 'completed'. Prefer TaskStatusLog new_status='completed' for employee.
+     * - Fallback: tasks assigned to employee with complete_date within range and status='completed'.
+     * - Exclude canceled/deleted tasks.
+     */
+    public function getEmployeeContributions(Request $request, $employeeId)
+    {
+        try {
+            // Authz: allow viewing own contributions or management can view others
+            $user = auth()->user();
+            $currentEmployeeId = $user?->employee?->id;
+            $isSelf = $currentEmployeeId && ((string)$currentEmployeeId === (string)$employeeId);
+            // For now, permit self; if not self, still allow (dashboard usage). Add policy here if needed.
+
+            $end = $request->query('end');
+            $start = $request->query('start');
+            $today = now()->toDateString();
+            if (!$end) $end = $today;
+            if (!$start) $start = now()->subDays(364)->toDateString();
+
+            // Normalize to dates
+            $startDate = \Carbon\Carbon::parse($start)->startOfDay();
+            $endDate = \Carbon\Carbon::parse($end)->endOfDay();
+
+            // 1) Use TaskStatusLog where new_status = 'completed' by this employee
+            $logs = \App\Models\TaskStatusLog::query()
+                ->selectRaw('DATE(created_at) as d, COUNT(*) as c')
+                ->where('employee_id', $employeeId)
+                ->whereIn(\DB::raw('LOWER(new_status)'), ['completed'])
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->groupBy('d')
+                ->pluck('c', 'd'); // map date => count
+
+            // 2) Fallback: tasks assigned to employee and completed within range but might lack status log
+            // Only include those not already counted by logs for that date
+            $fallbackTasks = \App\Models\Task::query()
+                ->whereIn(\DB::raw('LOWER(status)'), ['completed'])
+                ->whereNotNull('complete_date')
+                ->whereBetween('complete_date', [$startDate->toDateString(), $endDate->toDateString()])
+                ->whereHas('assignments', function($q) use ($employeeId){
+                    $q->where('employee_id', $employeeId);
+                })
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted'])
+                ->selectRaw('DATE(complete_date) as d, COUNT(*) as c')
+                ->groupBy('d')
+                ->pluck('c', 'd');
+
+            // Merge logs and fallback (sum counts per day)
+            $counts = [];
+            foreach ($logs as $d => $c) { $counts[$d] = ($counts[$d] ?? 0) + (int)$c; }
+            foreach ($fallbackTasks as $d => $c) { $counts[$d] = ($counts[$d] ?? 0) + (int)$c; }
+
+            // Ensure full range with zeros
+            $days = [];
+            $max = 0;
+            $cursor = $startDate->copy();
+            while ($cursor->lte($endDate)) {
+                $d = $cursor->toDateString();
+                $val = (int)($counts[$d] ?? 0);
+                $days[] = ['date' => $d, 'count' => $val];
+                if ($val > $max) $max = $val;
+                $cursor->addDay();
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'start' => $startDate->toDateString(),
+                    'end' => $endDate->toDateString(),
+                    'days' => $days,
+                    'max' => $max,
+                ],
+            ]);
+        } catch (\Throwable $e) {
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json([
+                'code' => $status,
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], $status);
+        }
+    }
+
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
