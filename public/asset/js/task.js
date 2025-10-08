@@ -4429,6 +4429,10 @@ function applyCurrentSearchFilter() {
 
         const SCALE = 1;
 
+        if (!$('#kanban-drag-layer').length) {
+            $('body').append('<div id="kanban-drag-layer"></div>');
+        }
+
         $(function() {
             $('#new-request-tasks, #in-progress-tasks, #completed-tasks').addClass('kanban-droppable');
         });
@@ -4472,11 +4476,8 @@ function applyCurrentSearchFilter() {
         }
 
         function clearDropHighlights() {
-            try {
-                $('.kanban-droppable')
-                    .removeClass('kanban-allowed kanban-denied kanban-over');
-                $('.custom-card').removeClass('dragging');
-            } catch (_) {}
+            $('.kanban-droppable').removeClass('kanban-allowed kanban-denied kanban-over');
+            $('.custom-card').removeClass('dragging');
         }
 
         function refreshDropHighlights() {
@@ -4493,21 +4494,15 @@ function applyCurrentSearchFilter() {
         $(document).on('mousedown', '.custom-card', function(e) {
             if (e.which !== 1) return;
             e.preventDefault();
-
-            try { hideAllFloatingTooltips(); } catch (_) {}
-
             const $card = $(this);
             const id = $card.data('task-id');
             const fromStatus = normStatus($card.data('task-status'));
-
             const rect = $card[0].getBoundingClientRect();
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
-
             kanbanDrag = { id: id, fromStatus: fromStatus, $card: $card, startX: e.clientX, startY: e.clientY };
             isDragging = false;
             lastX = e.clientX;
-
             $card.addClass('dragging');
             $('body').addClass('no-select');
         });
@@ -4521,26 +4516,24 @@ function applyCurrentSearchFilter() {
 
             if (!isDragging) {
                 isDragging = true;
-
                 $clone = kanbanDrag.$card.clone().addClass('dragging-clone');
-                $('body').append($clone);
-
+                $('#kanban-drag-layer').append($clone);
                 const rect = kanbanDrag.$card[0].getBoundingClientRect();
-
                 const scaledOffsetX = offsetX * SCALE;
                 const scaledOffsetY = offsetY * SCALE;
                 const initialTop = e.clientY - scaledOffsetY;
                 const initialLeft = e.clientX - scaledOffsetX;
-
                 $clone.css({
+                    position: 'fixed',
                     top: initialTop + 'px',
                     left: initialLeft + 'px',
                     width: rect.width + 'px',
                     height: rect.height + 'px',
                     margin: 0,
-                    transform: `scale(${SCALE}) rotate(0deg)`
+                    transform: `scale(${SCALE}) rotate(0deg)`,
+                    zIndex: 99999,
+                    pointerEvents: 'none'
                 });
-
                 kanbanDrag.$card.css('opacity', 0.5);
             } else {
                 const scaledOffsetX = offsetX * SCALE;
@@ -4549,7 +4542,6 @@ function applyCurrentSearchFilter() {
                     top: (e.clientY - scaledOffsetY) + 'px',
                     left: (e.clientX - scaledOffsetX) + 'px'
                 });
-
                 const currentX = e.clientX;
                 const dx = currentX - lastX;
                 lastX = currentX;
@@ -4559,7 +4551,6 @@ function applyCurrentSearchFilter() {
 
             const $targetCol = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.kanban-droppable');
             clearDropHighlights();
-
             if ($targetCol.length) {
                 $targetCol.addClass('kanban-over');
                 refreshDropHighlights();
@@ -4570,49 +4561,34 @@ function applyCurrentSearchFilter() {
 
         $(document).on('mouseup', function(e) {
             if (!kanbanDrag) return;
-
             $('body').removeClass('no-select');
-
             if (!isDragging) {
                 kanbanDrag = null;
                 return;
             }
-
             const $targetCol = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.kanban-droppable');
             const toStatus = $targetCol.length ? colToStatus[$targetCol.attr('id')] : null;
             const m = mapTransition(kanbanDrag.fromStatus, toStatus);
             const taskId = kanbanDrag.id;
             const taskCard = kanbanDrag.$card[0];
-
             if ($targetCol.length && m.allowed) {
                 if (m.newStatus === 'completed') {
-                    try {
-                        showConfirmationToCompleteModal(taskId, taskCard);
-                    } catch (err) {
-                        try { updateTaskStatus(taskId, 'completed', taskCard); } catch (_) {}
-                    }
+                    try { showConfirmationToCompleteModal(taskId, taskCard); }
+                    catch (err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch (_) {} }
                 } else {
                     try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch (_) {}
                 }
             } else {
                 try { showFloatingAlert('Move not allowed for this transition.', 'warning'); } catch (_) {}
             }
-
             kanbanDrag.$card.removeClass('dragging').css({ opacity: 1, transform: 'scale(1) rotate(0deg)' });
-
-            if ($clone) {
-                $clone.remove();
-                $clone = null;
-            }
-
+            if ($clone) { $clone.remove(); $clone = null; }
             kanbanDrag = null;
             isDragging = false;
             lastX = 0;
             clearDropHighlights();
         });
-
     })();
-
 
     // NEW: Bulk Progress All (across cached pages) when master checkbox is checked and user presses a dedicated trigger
     document.addEventListener('click', function(e){
