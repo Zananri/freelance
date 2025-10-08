@@ -1313,8 +1313,9 @@
 
                                                 </div>
                                             </div>
-                                            <div class="fs-12 overtime-time-start">
-
+                                            <div class="fs-12">
+                                                <span>Start : </span>
+                                                <span class="overtime-time-start"></span>
                                             </div>
                                         </div>
 
@@ -1333,8 +1334,9 @@
                                                 </div>
                                                 
                                             </div>
-                                            <div class="fs-12 overtime-time-end">
-
+                                            <div class="fs-12">
+                                                <span>End : </span>
+                                                <span class="overtime-time-end"></span>
                                             </div>
                                         </div>
                                     </div>
@@ -1452,8 +1454,9 @@
 
                                                 </div>
                                             </div>
-                                            <div class="fs-12 overtime-time-start">
-
+                                            <div class="fs-12">
+                                                <span>Start : </span>
+                                                <span class="overtime-time-start"></span>
                                             </div>
                                         </div>
 
@@ -1472,8 +1475,9 @@
                                                 </div>
                                                 
                                             </div>
-                                            <div class="fs-12 overtime-time-end">
-
+                                            <div class="fs-12">
+                                                <span>End : </span>
+                                                <span class="overtime-time-end"></span>
                                             </div>
                                         </div>
                                     </div>

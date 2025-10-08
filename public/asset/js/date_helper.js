@@ -300,4 +300,41 @@ function formatDatePHP(format, dateString) {
 }
 
 
+// Format Date Time
 
+function formatTimeDisplay(timeString) {
+
+    if (!timeString) return '--:--';
+
+    if (typeof timeString === 'string') {
+        const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) return `${m[1]}:${m[2]}`;
+    }
+    
+    let date = new Date(timeString);
+
+    if (isNaN(date.getTime()) && typeof timeString === 'string' && timeString.includes(' ')) {
+        
+        date = new Date(timeString.replace(' ', 'T'));
+    }
+    
+    if (isNaN(date.getTime())) {
+        return '--:--';
+    }
+
+    const hours = date.getHours().toString().padStart(2, '0');
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+
+    return `${hours}:${minutes}`;
+}
+
+function formatTimeDisplayHm(timeString) {
+
+    if (!timeString) return '0h 0m';
+
+    if (typeof timeString === 'string') {
+        timeString.split(':')[0];
+        const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) return `${parseInt(m[1])}h ${parseInt(m[2])}m`;
+    }
+}

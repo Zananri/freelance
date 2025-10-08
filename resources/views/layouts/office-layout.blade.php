@@ -310,13 +310,23 @@
                             <span class="text-menu">Attendance Tracking</span>
                         </a>
                     </li>
+                    <style>
+                        
+                    </style>
                     <li>
-                        <a href="{{ route('leave') }}" class="{{ $menu_active == 'leave' ? 'active' : '' }}">
+                        <a href="{{ route('leave') }}" class="{{ $menu_active == 'leave' ? 'active' : '' }} menu-leave">
                             <span class="material-symbols-outlined">free_cancellation</span>
                             <span class="text-menu">Leave</span>
+                            <div class="pill-new-request d-none"></div>
                         </a>
                     </li>
-                    
+                    <li>
+                        <a href="{{ route('overtime') }}" class="{{ $menu_active == 'overtime' ? 'active' : '' }} menu-overtime">
+                            <span class="material-symbols-outlined">more_time</span>
+                            <span class="text-menu">Overtime</span>
+                            <div class="pill-new-request d-none"></div>
+                        </a>
+                    </li>
                     {{-- <li>
                         <a href="#">
                             <span class="material-symbols-outlined">notifications</span> Notification
@@ -425,6 +435,10 @@
 
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
+
+    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
+    <script src="{{ asset('asset/js/hr_info.js')}}?v={{time() }}"></script>
+    @endif
 
     @isset($script_slot)
     {{ $script_slot }}
