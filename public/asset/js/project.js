@@ -10459,3 +10459,54 @@ function initAddProjectReferenceFilesModal() {
         }
     } catch (e) {}
 })();
+
+// Initialize export button handler
+(function(){
+    try {
+        function initProjectExport() {
+            const exportBtn = document.querySelector('.btn-export-custom');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Show loading state
+                    const originalText = exportBtn.innerHTML;
+                    exportBtn.disabled = true;
+                    exportBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
+                    
+                    // Create a temporary anchor element to trigger download
+                    const link = document.createElement('a');
+                    link.href = appUrl + '/project/export-excel';
+                    link.download = '';
+                    link.style.display = 'none';
+                    document.body.appendChild(link);
+                    
+                    // Trigger download
+                    link.click();
+                    
+                    // Clean up
+                    document.body.removeChild(link);
+                    
+                    // Restore button state after a short delay
+                    setTimeout(() => {
+                        exportBtn.disabled = false;
+                        exportBtn.innerHTML = originalText;
+                        
+                        // Show success message
+                        if (typeof showFloatingAlert === 'function') {
+                            showFloatingAlert('Project export started successfully!', 'success', 3000);
+                        }
+                    }, 2000);
+                });
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initProjectExport);
+        } else {
+            initProjectExport();
+        }
+    } catch (e) {
+        console.error('Error initializing project export:', e);
+    }
+})();
