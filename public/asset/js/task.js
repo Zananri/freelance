@@ -4578,8 +4578,6 @@ function applyCurrentSearchFilter() {
                 } else {
                     try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch (_) {}
                 }
-            } else {
-                try { showFloatingAlert('Move not allowed for this transition.', 'warning'); } catch (_) {}
             }
             kanbanDrag.$card.removeClass('dragging').css({ opacity: 1, transform: 'scale(1) rotate(0deg)' });
             if ($clone) { $clone.remove(); $clone = null; }

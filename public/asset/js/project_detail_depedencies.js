@@ -87,7 +87,6 @@ function normalizeStatus(status) {
 function renderTaskNode(task, $template) {
     const normalizedStatus = normalizeStatus(task.status);
     let $item = $template.clone().removeClass("d-none").removeAttr("id");
-    // tag the node with its task id and make it draggable via the card element
     try {
         if (task && task.id != null) {
             $item.attr("data-task-id", String(task.id));
@@ -127,26 +126,24 @@ function renderTaskNode(task, $template) {
             }
         }
     } catch (_) {}
-    // Add a small jsPlumb connection handle to avoid conflict with HTML5 DnD
+
     try {
         $card.css("position", function(i, v){ return v || "relative"; });
         if ($card.find('.plumb-handle').length === 0) {
-            const $handle = $('<div class="plumb-handle" title="Tarik garis untuk menambah parent"\
-                style="position:absolute;top:4px;right:4px;width:14px;height:14px;border-radius:50%;background:#6A5AE0;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10000;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
+            const $handle = $('<div class="plumb-handle" title="Drag a line to add a parent"\
+                style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
             $handle.attr('draggable', false);
-            // On pointer/touch down, disable card DnD but let jsPlumb see the event
             $handle.on('pointerdown mousedown touchstart', function(){
                 try { $card.attr('draggable', false); } catch(_){ }
             });
-            // On release, re-enable card DnD
             $handle.on('pointerup mouseup touchend touchcancel', function(){
                 try { $card.attr('draggable', true); } catch(_){ }
             });
-            // Prevent click on handle from opening modal
             $handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
             $card.append($handle);
         }
     } catch(_) {}
+
     if (visual === "complete") $card.css("background-color", "#B2EECD");
     else if (visual === "in-progress") $card.css("background-color", "#F5EFCE");
     else if (visual === "late") $card.css("background-color", "#EBA5A5");
@@ -166,7 +163,6 @@ function renderTaskNode(task, $template) {
     if (task.children && task.children.length > 0) {
         const $branch = $('<div class="task-branch"></div>');
         $branch.append($item);
-        // Old horizontal/vertical connector DOM removed in jsPlumb-only mode
         const $childGroup = $('<div class="child-group"></div>').css({
             display: "flex",
             flexDirection: "column",
@@ -185,7 +181,6 @@ function renderTaskList(data) {
     $tree.empty();
     if (!data || data.length === 0) return;
 
-    // Render tree structure (all tasks)
     const treeData = buildTaskTree(data);
     const $rootCol = $('<div class="root-column"></div>');
     $tree.append($rootCol);
@@ -197,12 +192,11 @@ function renderTaskList(data) {
         setTimeout(adjustConnectors, 40);
         setTimeout(drawSvgConnectors, 60);
     }
-    // notify plumb renderer after DOM laid out
     try { if (typeof window.initTaskPlumb === 'function') { window.initTaskPlumb(allTasks || data || []); } } catch(_) {}
 }
 
 function adjustConnectors() {
-    if (window.USE_PLUMB_ONLY) return; // disabled when using jsPlumb-only mode
+    if (window.USE_PLUMB_ONLY) return;
     try {
         $("#task-tree .task-branch").each(function () {
             const $branch = $(this);
@@ -301,7 +295,6 @@ $(window).on("resize", function () {
 
 function ensureSvgOverlay() {
     if (window.USE_PLUMB_ONLY) {
-        // No-op in jsPlumb mode
         return $("#task-tree-svg");
     }
     let $svg = $("#task-tree-svg");
@@ -339,7 +332,7 @@ function createSvgEl(tagName, attrs) {
 }
 
 function drawSvgConnectors() {
-    if (window.USE_PLUMB_ONLY) return; // disabled when using jsPlumb-only mode
+    if (window.USE_PLUMB_ONLY) return;
     try {
         const $svg = ensureSvgOverlay();
         $svg.empty();
@@ -1434,14 +1427,14 @@ function getAvatarHTML(task) {
     const img = task.image ? `${appUrl}/file/task/${task.image}` : null;
 
     if (img) {
-        return `<img src="${img}" alt="Task" class="project-image" 
-                    style="width:48px;height:48px;object-fit:cover;border-radius:50%;" 
+        return `<img src="${img}" alt="Task" class="project-image"
+                    style="width:48px;height:48px;object-fit:cover;border-radius:50%;"
                     onerror="this.src='${appUrl}/asset/img/avatar.png'">`;
     }
 
     const initials = getTaskInitials(task.title);
     const color = getRandomColorFromText(task.title);
-    return `<div class="project-initial-avatar" 
+    return `<div class="project-initial-avatar"
                 style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
                 font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
 }
