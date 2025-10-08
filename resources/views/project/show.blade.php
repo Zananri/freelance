@@ -17,6 +17,7 @@
             @endphp
             <meta name="project-image" content="{{ $imgUrl }}">
             <meta name="project-total-tasks" content="{{ $totalTasks }}">
+            <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
             <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css?v=') . time() }}">
         </x-slot>
 
@@ -33,12 +34,21 @@
                 </div>
                 <h2 class="m-0">Project Detail</h2>
             </div>
-            <button class="btn-submit-black">
-                <span class="material-symbols-outlined me-2">download</span>Report
-            </button>
+            <div class="d-flex align-items-center">
+                <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
+                    <span class="material-symbols-outlined">grid_view</span>
+                </button>
+                <button class="btn-submit-black">
+                    <span class="material-symbols-outlined me-2">download</span>Report
+                </button>
+            </div>
         </div>
 
         <div class="detail-project-container">
+            {{-- Hidden fields for Contributions modal JS (scope to this project) --}}
+            <input type="hidden" name="employee_id" value="{{ auth()->user()->employee->id ?? '' }}">
+            <input type="hidden" id="contrib-endpoint" value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
+            <input type="hidden" id="contrib-project-id" value="{{ $project->id ?? '' }}">
             {{-- Above Content --}}
             {{-- Left Above Content --}}
             <div class="row mb-3">
@@ -236,6 +246,43 @@
                             <div class="legend-item d-flex align-items-center gap-2">
                                 <span class="legend-dot legend-green"></span>
                                 <span class="legend-text" id="completedCount">0 Task</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Contributions Modal (same UI as Project page) --}}
+        <div class="modal fade" id="contributionsModal" tabindex="-1" aria-labelledby="contributionsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content rounded-4 border-0">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title modal-title-custom" id="contributionsModalLabel">My Contributions</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body modal-body-custom p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <div class="sub-title-contrib text-muted mt-2">Completed tasks per day (past year)</div>
+                            <div class="contrib-legend">
+                                <span>Less</span>
+                                <div class="d-inline-flex align-items-center gap-1">
+                                    <span class="legend-swatch level-0"></span>
+                                    <span class="legend-swatch level-1"></span>
+                                    <span class="legend-swatch level-2"></span>
+                                    <span class="legend-swatch level-3"></span>
+                                    <span class="legend-swatch level-4"></span>
+                                </div>
+                                <span>More</span>
+                            </div>
+                        </div>
+                        <div class="contrib-grid-container">
+                            <div class="contrib-layout">
+                                <div class="contrib-weekdays" id="contribWeekdays"></div>
+                                <div class="contrib-chart">
+                                    <div class="contrib-months" id="contribMonths"></div>
+                                    <div id="contributionsGrid" class="contrib-grid"></div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1034,5 +1081,9 @@
             <script src="{{ asset('asset/js/project_detail_depedencies.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_plumb.js') }}?v={{ time() }}"></script>
+            <script>
+                window.APP_URL = document.querySelector('meta[name="app-url"]').getAttribute('content');
+            </script>
+            <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
         </x-slot>
     </x-office-layout>

@@ -173,7 +173,10 @@
       const $endpointEl = $('#contrib-endpoint');
       const baseUrl = $endpointEl.length ? $endpointEl.val() : route(`employees/${employeeId}/contributions`);
       const sep = (baseUrl || '').includes('?') ? '&' : '?';
-      const url = `${baseUrl}${sep}start=${fmt(start)}&end=${fmt(end)}`;
+      // Optional project scoping (project detail page)
+      const projectId = ($('#contrib-project-id').length ? $('#contrib-project-id').val() : '') || '';
+      const scope = projectId ? `&project_id=${encodeURIComponent(projectId)}` : '';
+      const url = `${baseUrl}${sep}start=${fmt(start)}&end=${fmt(end)}${scope}`;
 
       try {
         const json = await $.ajax({
