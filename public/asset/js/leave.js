@@ -58,7 +58,8 @@ $(document).on('click','.data-fullscreen-request',function(){
 
 function getEmployeeLeaveByYear(year)
 {
-
+    getCountAllEmployeeRequest();
+    
     $.ajax({
         url: appUrl + "/leave/employee-leave-by-year",
         type: "GET",

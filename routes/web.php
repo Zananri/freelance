@@ -5,6 +5,8 @@ use App\Http\Controllers\DivisionController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeaveController;
+use App\Http\Controllers\OvertimeController;
+
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeOvertimeController;
 use App\Http\Controllers\EmployeeTimeOffController;
@@ -27,7 +29,7 @@ use App\Http\Controllers\AttendanceTrackingController;
 use App\Http\Controllers\WeekdayOffController;
 
 use App\Http\Controllers\DashboardController;
-
+use App\Http\Controllers\HRInfoController;
 
 use Carbon\Carbon;
 
@@ -318,9 +320,17 @@ Route::middleware('auth', 'management')->group(function () {
     Route::post('/leave/approve-employee-leave-request', [LeaveController::class, 'approveEmployeeLeaveRequest'])->name('leave.approveEmployeeLeaveRequest');
     Route::post('/leave/reject-employee-leave-request', [LeaveController::class, 'rejectEmployeeLeaveRequest'])->name('leave.rejectEmployeeLeaveRequest');
 
+    Route::get('/overtime', [OvertimeController::class, 'showOvertimePage'])->name('overtime');
+    Route::get('/overtime/employee-overtime-request', [OvertimeController::class, 'employeeOvertimeRequest'])->name('overtime.employeeOvertimeRequest');
+
+    Route::post('/overtime/approve-employee-overtime-request', [OvertimeController::class, 'approveEmployeeOvertimeRequest'])->name('overtime.approveEmployeeOvertimeRequest');
+    Route::post('/overtime/reject-employee-overtime-request', [OvertimeController::class, 'rejectEmployeeOvertimeRequest'])->name('overtime.rejectEmployeeOvertimeRequest');
+
     Route::get('/weekdays_off', [WeekdayOffController::class, 'showWeekdayOffPage'])->name('weekday_off');
     Route::post('/weekday_off/save-employee-weekday-off', [WeekdayOffController::class, 'saveEmployeeWeekdayoff'])->name('weekday_off.saveEmployeeWeekdayoff');
 
+
+    Route::get('/hr-info/count-employee-request', [HRInfoController::class, 'countEmployeeRequest'])->name('hr_info.countEmployeeRequest');
 });
 
 

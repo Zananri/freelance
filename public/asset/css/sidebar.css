@@ -64,7 +64,20 @@
     border-radius: 25px;
     /* Sudut sedikit membulat untuk item menu */
     margin: 0 8px;
+    position: relative;
     /* Agar warna latar belakang tidak memenuhi lebar penuh */
+}
+
+.sidebar-menu li a .pill-new-request {
+    top: 14px;
+    right: 12px;
+    position: absolute;
+    padding: 2px 7px 0px 6px;
+    background-color: #ed2d4b;
+    color: #fff;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
 }
 
 .sidebar-menu li a.active {
