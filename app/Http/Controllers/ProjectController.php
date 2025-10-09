@@ -2654,12 +2654,12 @@ class ProjectController extends Controller
                 'A2' => 'No',
                 'B2' => 'Nama Project',
                 'C2' => 'Part of Project',
-                'D2' => 'Department',
-                'E2' => 'Division',
-                'F2' => 'Status',
-                'G2' => 'Task',
-                'H2' => 'Status Task',
-                'I2' => 'Project Type',
+                'D2' => 'Project Type',
+                'E2' => 'Department',
+                'F2' => 'Division',
+                'G2' => 'Status',
+                'H2' => 'Task',
+                'I2' => 'Status Task',
                 'J2' => 'Waktu Mulai',
                 'K2' => 'Deadline',
                 'L2' => 'Jumlah Task'
@@ -2696,12 +2696,12 @@ class ProjectController extends Controller
                 'A' => 5,   // No
                 'B' => 30,  // Nama Project
                 'C' => 20,  // Part of Project
-                'D' => 15,  // Department
-                'E' => 15,  // Division
-                'F' => 12,  // Status
-                'G' => 25,  // Task
-                'H' => 15,  // Status Task
-                'I' => 12,  // Project Type
+                'D' => 12,  // Project Type
+                'E' => 15,  // Department
+                'F' => 15,  // Division
+                'G' => 12,  // Status
+                'H' => 25,  // Task
+                'I' => 15,  // Status Task
                 'J' => 12,  // Waktu Mulai
                 'K' => 12,  // Deadline
                 'L' => 12   // Jumlah Task
@@ -2717,41 +2717,57 @@ class ProjectController extends Controller
 
             foreach ($projects as $project) {
                 // For each project, write one Excel row per task. If no tasks, write a single row with 'No Tasks'.
+                // Resolve part_of_project: if it stores another project's id, show that project's title
+                $partOfProjectDisplay = $project->part_of_project ?? '-';
+                if (!empty($project->part_of_project)) {
+                    // If numeric and matches a project, try to resolve title
+                    if (is_numeric($project->part_of_project)) {
+                        try {
+                            $parent = Project::find((int)$project->part_of_project);
+                            if ($parent && isset($parent->title)) {
+                                $partOfProjectDisplay = $parent->title;
+                            }
+                        } catch (\Throwable $_) {
+                            // fallback keep original value
+                        }
+                    }
+                }
+
                 $baseProjectValues = [
                     'B' => $project->title,
-                    'C' => $project->part_of_project ?? '-',
-                    'D' => $project->department ? $project->department->name_department : '-',
-                    'E' => $project->division ? $project->division->name_division : '-',
-                    'F' => ucfirst($project->status),
-                    'I' => ucfirst($project->project_type ?? 'public'),
+                    'C' => $partOfProjectDisplay,
+                    'D' => ucfirst($project->project_type ?? 'public'),
+                    'E' => $project->department ? $project->department->name_department : '-',
+                    'F' => $project->division ? $project->division->name_division : '-',
+                    'G' => ucfirst($project->status),
                     'J' => $project->start_date ? Carbon::parse($project->start_date)->format('d-M-Y') : '-',
                     'L' => $project->total_tasks ?? 0,
                 ];
 
                 if ($project->tasks->count() > 0) {
-                    foreach ($project->tasks as $task) {
-                        // Row number / sequence
-                        $activeWorksheet->setCellValue('A'.$row, $no);
+                    // Remember start row for this project so we can merge project columns if multiple tasks
+                    $projectStartRow = $row;
+                    $projectNo = $no;
 
-                        // Project columns
+                    foreach ($project->tasks as $task) {
+                        // Project columns (project type moved to D) - written for each task row but will be merged later
                         $activeWorksheet->setCellValue('B'.$row, $baseProjectValues['B']);
                         $activeWorksheet->setCellValue('C'.$row, $baseProjectValues['C']);
                         $activeWorksheet->setCellValue('D'.$row, $baseProjectValues['D']);
                         $activeWorksheet->setCellValue('E'.$row, $baseProjectValues['E']);
                         $activeWorksheet->setCellValue('F'.$row, $baseProjectValues['F']);
 
-                        // Task columns (one task per row)
-                        $activeWorksheet->setCellValue('G'.$row, $task->title ?? '-');
+                        // Task columns (one task per row) - shifted right
+                        $activeWorksheet->setCellValue('H'.$row, $task->title ?? '-');
                         $s = (string) ($task->status ?? '');
                         $s = str_replace('_', ' ', $s);
                         $s = trim($s);
                         $s = $s === '' ? '-' : ucfirst($s);
-                        $activeWorksheet->setCellValue('H'.$row, $s);
+                        $activeWorksheet->setCellValue('I'.$row, $s);
 
                         // Deadline: prefer task due date when available
                         $rowDue = $task->due_date ?: $project->due_date;
 
-                        $activeWorksheet->setCellValue('I'.$row, $baseProjectValues['I']);
                         $activeWorksheet->setCellValue('J'.$row, $baseProjectValues['J']);
                         $activeWorksheet->setCellValue('K'.$row, $rowDue ? Carbon::parse($rowDue)->format('d-M-Y') : '-');
                         $activeWorksheet->setCellValue('L'.$row, $baseProjectValues['L']);
@@ -2760,8 +2776,24 @@ class ProjectController extends Controller
                         $activeWorksheet->getRowDimension($row)->setRowHeight(18);
 
                         $row++;
-                        $no++;
                     }
+
+                    // After writing all task rows for this project, merge project columns vertically if more than one task
+                    $projectEndRow = $row - 1;
+
+                    // Write project number in column A at projectStartRow and merge A if multiple rows
+                    $activeWorksheet->setCellValue('A'.$projectStartRow, $projectNo);
+                    if ($projectEndRow > $projectStartRow) {
+                        // Only merge the project name column (B) vertically across the task rows
+                        $col = 'B';
+                        $activeWorksheet->mergeCells($col.$projectStartRow.':'.$col.$projectEndRow);
+                        // Align vertically top for merged cell
+                        $activeWorksheet->getStyle($col.$projectStartRow.':'.$col.$projectEndRow)
+                            ->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                    }
+
+                    // Increment project counter once
+                    $no++;
                 } else {
                     // Project with no tasks: single row
                     $activeWorksheet->setCellValue('A'.$row, $no);
@@ -2770,9 +2802,9 @@ class ProjectController extends Controller
                     $activeWorksheet->setCellValue('D'.$row, $baseProjectValues['D']);
                     $activeWorksheet->setCellValue('E'.$row, $baseProjectValues['E']);
                     $activeWorksheet->setCellValue('F'.$row, $baseProjectValues['F']);
-                    $activeWorksheet->setCellValue('G'.$row, 'No Tasks');
-                    $activeWorksheet->setCellValue('H'.$row, '-');
-                    $activeWorksheet->setCellValue('I'.$row, $baseProjectValues['I']);
+                    $activeWorksheet->setCellValue('G'.$row, $baseProjectValues['G']);
+                    $activeWorksheet->setCellValue('H'.$row, 'No Tasks');
+                    $activeWorksheet->setCellValue('I'.$row, '-');
                     $activeWorksheet->setCellValue('J'.$row, $baseProjectValues['J']);
                     $activeWorksheet->setCellValue('K'.$row, $project->due_date ? Carbon::parse($project->due_date)->format('d-M-Y') : '-');
                     $activeWorksheet->setCellValue('L'.$row, $baseProjectValues['L']);
@@ -2797,20 +2829,17 @@ class ProjectController extends Controller
                 
                 // Center align specific columns
                 $activeWorksheet->getStyle('A3:A'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('F3:F'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('I3:I'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Project status now at column G
+                $activeWorksheet->getStyle('G3:G'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Project type now at column D
+                $activeWorksheet->getStyle('D3:D'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $activeWorksheet->getStyle('J3:J'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $activeWorksheet->getStyle('K3:K'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 $activeWorksheet->getStyle('L3:L'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                
-                // Enable text wrapping for Task and Status Task columns
-                $activeWorksheet->getStyle('G3:H'.($row-1))->getAlignment()->setWrapText(true);
-                $activeWorksheet->getStyle('G3:H'.($row-1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
-                
-                // Set row height for better readability when text wraps
-                for ($i = 3; $i < $row; $i++) {
-                    $activeWorksheet->getRowDimension($i)->setRowHeight(30);
-                }
+
+                // Enable text wrapping for Task and Status Task columns (now H and I)
+                $activeWorksheet->getStyle('H3:I'.($row-1))->getAlignment()->setWrapText(true);
+                $activeWorksheet->getStyle('H3:I'.($row-1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
             }
 
             // Set sheet name
