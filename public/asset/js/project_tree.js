@@ -48,6 +48,28 @@
 		$box.attr('data-project-id', String(proj.id));
 		if (!$box.attr('id')) $box.attr('id', 'proj-node-'+String(proj.id));
 		$box.attr('draggable', true).addClass('draggable-task');
+		// Add plumb handle for jsPlumb connections
+		try {
+			$box.css("position", function(i, v){ return v || "relative"; });
+			if ($box.find('.plumb-handle').length === 0) {
+				const $handle = $('<div class="plumb-handle d-none" title="Drag a line to add a parent"\
+					style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
+				$handle.attr('draggable', false);
+				$handle.on('pointerdown mousedown touchstart', function(){
+					try { $box.attr('draggable', false); } catch(_){ }
+				});
+				$handle.on('pointerup mouseup touchend touchcancel', function(){
+					try { $box.attr('draggable', true); } catch(_){ }
+				});
+				$handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
+				$box.append($handle);
+
+				$box.hover(
+					function () { $(this).find('.plumb-handle').removeClass('d-none'); },
+					function () { $(this).find('.plumb-handle').addClass('d-none'); }
+				);
+			}
+		} catch(_) {}
 		var visual = normalizeStatus(proj.status);
 		if (visual === 'complete') $box.css('background-color', '#B2EECD');
 		else if (visual === 'in-progress') $box.css('background-color', '#F5EFCE');
@@ -75,7 +97,6 @@
 		var $rootCol = $('<div class="root-column"></div>');
 		forest.forEach(function(root){ $rootCol.append(renderNode(root)); });
 		$tree.append($rootCol);
-		// After render, initialize connectors if jsPlumb setup is available
 		try { if (typeof window.initProjectPlumb === 'function') window.initProjectPlumb(data); } catch(_){}
 	}
 
