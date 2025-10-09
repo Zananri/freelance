@@ -618,7 +618,6 @@ class ProjectController extends Controller
                     $q->where('employee_id', $employeeId)
                       ->whereIn('role', ['author', 'co_author', 'contributor']);
                 })
-                ->with(['parents:id,title,image'])
                 ->withCount([
                     // Total active tasks (exclude canceled/deleted)
                     'tasks as total_tasks' => function ($q) {
@@ -639,20 +638,34 @@ class ProjectController extends Controller
                 ->get(['id', 'title', 'status', 'start_date', 'due_date', 'image', 'part_of_project']);
 
             $data = $projects->map(function ($p) {
-                // Derive visual status (for coloring)
+                // Derive visual status (for coloring) - always provide a consistent value
                 $total = (int) ($p->total_tasks ?? 0);
                 $completed = (int) ($p->completed_tasks ?? 0);
                 $newReq = (int) ($p->new_request_tasks ?? 0);
                 $lateCnt = (int) ($p->late_tasks ?? 0);
+                
+                // Default to not-started
                 $visual = 'not-started';
-                if ($total > 0 && $completed === $total) {
-                    $visual = 'complete';
-                } elseif ($total === 0 || $newReq === $total) {
+                
+                // Logic untuk menentukan visual status
+                if ($total === 0) {
+                    // Tidak ada task -> not-started
                     $visual = 'not-started';
+                } elseif ($completed === $total) {
+                    // Semua task selesai -> complete
+                    $visual = 'complete';
                 } else {
-                    $visual = 'in-progress';
+                    // Ada task, tapi tidak semua selesai
+                    if ($newReq === $total) {
+                        // Semua task masih new request -> not-started
+                        $visual = 'not-started';
+                    } else {
+                        // Ada progress -> in-progress
+                        $visual = 'in-progress';
+                    }
                 }
-                // Late override if not complete and has any late tasks or project due_date passed
+                
+                // Override dengan late jika ada task yang terlambat atau project sudah lewat due date
                 try {
                     if ($visual !== 'complete') {
                         $isPastDue = $p->due_date && (now()->toDateString() > (string) $p->due_date);
@@ -660,7 +673,19 @@ class ProjectController extends Controller
                             $visual = 'late';
                         }
                     }
-                } catch (\Throwable $_) {}
+                } catch (\Throwable $_) {
+                    // Fallback jika ada error
+                }
+
+                // Get parent IDs from project_parents table
+                $parentRecord = DB::table('project_parents')
+                    ->where('project_id', $p->id)
+                    ->first();
+                    
+                $parentIds = [];
+                if ($parentRecord && $parentRecord->project_parent_ids) {
+                    $parentIds = json_decode($parentRecord->project_parent_ids, true) ?: [];
+                }
 
                 return [
                     'id' => $p->id,
@@ -670,8 +695,8 @@ class ProjectController extends Controller
                     'due_date' => $p->due_date,
                     'image' => $p->image,
                     'visual_status' => $visual,
-                    // Use pivot table primarily; include legacy single parent for safety
-                    'parent_ids' => $p->parents->pluck('id')->all(),
+                    // Use parent_ids from project_parents table
+                    'parent_ids' => $parentIds,
                     'legacy_parent_id' => $p->part_of_project ?? null,
                 ];
             })->values();
@@ -684,14 +709,13 @@ class ProjectController extends Controller
     }
 
     /**
-     * Add a parent relation to a project (multi-parent). body: { parent_id, primary? }
+     * Add a parent relation to a project (multi-parent). body: { parent_id }
      */
     public function addParent(Request $request, string $id)
     {
         try {
             $project = Project::findOrFail($id);
             $parentId = (int) $request->input('parent_id');
-            $isPrimary = (bool) $request->input('is_primary', false);
             if ($parentId <= 0) throw new \Exception('parent_id is required');
             if ($parentId === (int) $project->id) throw new \Exception('Project cannot be its own parent');
 
@@ -705,35 +729,13 @@ class ProjectController extends Controller
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
             }
 
-            // Prevent cycles: check if parentId is a descendant of $project
-            $descendantIds = DB::table('project_parents as pp')
-                ->select('pp.project_id')
-                ->where('pp.parent_project_id', $project->id)
-                ->pluck('project_id')
-                ->all();
-            if (in_array($parentId, $descendantIds)) {
+            // Prevent cycles: check if parentId is a descendant of $project recursively
+            if ($this->isDescendantOf($project->id, $parentId)) {
                 return response()->json(['code' => 422, 'status' => 'error', 'message' => 'Cycle detected'], 422);
             }
 
-            // Attach relation
-            $exists = DB::table('project_parents')
-                ->where('project_id', $project->id)
-                ->where('parent_project_id', $parentId)
-                ->exists();
-            if (!$exists) {
-                DB::table('project_parents')->insert([
-                    'project_id' => $project->id,
-                    'parent_project_id' => $parentId,
-                    'is_primary' => $isPrimary,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            } else if ($isPrimary) {
-                DB::table('project_parents')
-                    ->where('project_id', $project->id)
-                    ->where('parent_project_id', $parentId)
-                    ->update(['is_primary' => true, 'updated_at' => now()]);
-            }
+            // Add parent using the model method
+            $project->addParent($parentId);
 
             return response()->json(['code' => 200, 'status' => 'success']);
         } catch (\Exception $e) {
@@ -761,13 +763,12 @@ class ProjectController extends Controller
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
             }
 
-            if ($parentId === null || $parentId === '' ) {
-                DB::table('project_parents')->where('project_id', $project->id)->delete();
+            if ($parentId === null || $parentId === '') {
+                // Clear all parents
+                $project->clearParents();
             } else {
-                DB::table('project_parents')
-                    ->where('project_id', $project->id)
-                    ->where('parent_project_id', (int)$parentId)
-                    ->delete();
+                // Remove specific parent
+                $project->removeParent((int)$parentId);
             }
 
             return response()->json(['code' => 200, 'status' => 'success']);
@@ -777,6 +778,33 @@ class ProjectController extends Controller
         }
     }
 
+    /**
+     * Check if projectId is a descendant of potentialAncestorId (to prevent cycles)
+     */
+    private function isDescendantOf($projectId, $potentialAncestorId, $visited = [])
+    {
+        if (in_array($projectId, $visited)) {
+            return true; // Cycle detected
+        }
+        
+        $visited[] = $projectId;
+        
+        // Get all projects that have $projectId as parent from project_parents table
+        $children = collect(DB::table('project_parents')
+            ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [$projectId])
+            ->pluck('project_id'));
+        
+        foreach ($children as $childId) {
+            if ($childId == $potentialAncestorId) {
+                return true; // Found descendant
+            }
+            if ($this->isDescendantOf($childId, $potentialAncestorId, $visited)) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
 
     public function getAllProjects(Request $request)
     {
