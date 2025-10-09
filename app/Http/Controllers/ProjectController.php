@@ -2756,6 +2756,8 @@ class ProjectController extends Controller
                         $activeWorksheet->setCellValue('D'.$row, $baseProjectValues['D']);
                         $activeWorksheet->setCellValue('E'.$row, $baseProjectValues['E']);
                         $activeWorksheet->setCellValue('F'.$row, $baseProjectValues['F']);
+                        // Project status (written per task row so it shows before merge)
+                        $activeWorksheet->setCellValue('G'.$row, $baseProjectValues['G']);
 
                         // Task columns (one task per row) - shifted right
                         $activeWorksheet->setCellValue('H'.$row, $task->title ?? '-');
@@ -2784,12 +2786,16 @@ class ProjectController extends Controller
                     // Write project number in column A at projectStartRow and merge A if multiple rows
                     $activeWorksheet->setCellValue('A'.$projectStartRow, $projectNo);
                     if ($projectEndRow > $projectStartRow) {
-                        // Only merge the project name column (B) vertically across the task rows
-                        $col = 'B';
-                        $activeWorksheet->mergeCells($col.$projectStartRow.':'.$col.$projectEndRow);
-                        // Align vertically top for merged cell
-                        $activeWorksheet->getStyle($col.$projectStartRow.':'.$col.$projectEndRow)
-                            ->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                        // Merge project-related columns vertically across the task rows: A (No),
+                        // B (Nama Project), C (Part of Project), D (Project Type), E (Department), F (Division), G (Status), L (Jumlah Task)
+                        $colsToMerge = ['A','B','C','D','E','F','G','L'];
+                        foreach ($colsToMerge as $col) {
+                            $activeWorksheet->mergeCells($col.$projectStartRow.':'.$col.$projectEndRow);
+                            // Align center both horizontally and vertically for merged cells
+                            $activeWorksheet->getStyle($col.$projectStartRow.':'.$col.$projectEndRow)
+                                ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)
+                                ->setVertical(Alignment::VERTICAL_CENTER);
+                        }
                     }
 
                     // Increment project counter once
@@ -2797,12 +2803,21 @@ class ProjectController extends Controller
                 } else {
                     // Project with no tasks: single row
                     $activeWorksheet->setCellValue('A'.$row, $no);
+                    // center A and G for single-row projects
+                    $activeWorksheet->getStyle('A'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->setCellValue('B'.$row, $baseProjectValues['B']);
+                    // Center project-related columns for single-row projects
+                    $activeWorksheet->getStyle('B'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    $activeWorksheet->getStyle('C'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    $activeWorksheet->getStyle('D'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    $activeWorksheet->getStyle('E'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                    $activeWorksheet->getStyle('F'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->setCellValue('C'.$row, $baseProjectValues['C']);
                     $activeWorksheet->setCellValue('D'.$row, $baseProjectValues['D']);
                     $activeWorksheet->setCellValue('E'.$row, $baseProjectValues['E']);
                     $activeWorksheet->setCellValue('F'.$row, $baseProjectValues['F']);
                     $activeWorksheet->setCellValue('G'.$row, $baseProjectValues['G']);
+                    $activeWorksheet->getStyle('G'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->setCellValue('H'.$row, 'No Tasks');
                     $activeWorksheet->setCellValue('I'.$row, '-');
                     $activeWorksheet->setCellValue('J'.$row, $baseProjectValues['J']);
