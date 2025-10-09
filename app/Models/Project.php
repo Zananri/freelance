@@ -64,4 +64,32 @@ class Project extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    /**
+     * Many-to-many self relation: this project may have multiple parents.
+     */
+    public function parents()
+    {
+        return $this->belongsToMany(Project::class, 'project_parents', 'project_id', 'parent_project_id')
+            ->withTimestamps()
+            ->withPivot('is_primary');
+    }
+
+    /**
+     * Many-to-many self relation: this project may have multiple children.
+     */
+    public function children()
+    {
+        return $this->belongsToMany(Project::class, 'project_parents', 'parent_project_id', 'project_id')
+            ->withTimestamps()
+            ->withPivot('is_primary');
+    }
+
+    /**
+     * Backward-compatible primary parent accessor using either pivot or legacy part_of_project column.
+     */
+    public function primaryParent()
+    {
+        return $this->parents()->wherePivot('is_primary', true)->limit(1);
+    }
 }
