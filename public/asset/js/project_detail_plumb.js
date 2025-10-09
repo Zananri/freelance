@@ -43,12 +43,12 @@
                 }
             }
             instance.importDefaults({
-                Connector: ["Bezier", { curviness: 40 }],
-                Endpoint: ["Dot", { radius: 3 }],
-                PaintStyle: { stroke: "#D2D3E1", strokeWidth: 2 },
-                EndpointStyle: { fill: "#D2D3E1" },
-                Overlays: [["Arrow", { location: 1, width: 8, length: 8 }]],
-                ConnectionsDetachable: true,
+                Connector: ["Bezier", { cornerRadius: 6 }],
+                PaintStyle: { stroke: "#b9c1cc", strokeWidth: 2 },
+                HoverPaintStyle: { stroke: "#8892a4", strokeWidth: 2 },
+                Endpoint: ["Dot", { radius: 2 }],
+                EndpointStyle: { fill: "#b9c1cc" },
+                Overlays: [["Arrow", { width: 8, length: 8, location: 1 }]]
             });
         } catch (_) {}
         return instance;

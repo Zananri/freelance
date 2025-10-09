@@ -1,111 +1,354 @@
-/* Project Tree jsPlumb connectors
-   Draws connectors between a project card and its first-level children (like task tree).
-   Requires: window.jsPlumb (2.x) and jQuery
+/*
+ Project Tree multi-parent project edges using jsPlumb.
+ Draws connections between parent and child project cards.
+ Requires: jsPlumb community lib loaded globally as jsPlumb or window.jsPlumb and jQuery ($).
 */
-(function(){
-  var instance = null;
-  function getInstance(){
-    try {
-      if (instance && instance.setSuspendDrawing) return instance;
-      if (window.jsPlumb && window.jsPlumb.jsPlumb) {
-        instance = window.jsPlumb.jsPlumb.getInstance();
-      } else if (window.jsPlumb && window.jsPlumb.getInstance) {
-        instance = window.jsPlumb.getInstance();
-      }
-      if (!instance) return null;
-      instance.setContainer(document.getElementById('task-tree'));
-      instance.importDefaults({
-        Connector: ["Flowchart", { cornerRadius: 6 }],
-        PaintStyle: { stroke: "#b9c1cc", strokeWidth: 2 },
-        HoverPaintStyle: { stroke: "#8892a4", strokeWidth: 2 },
-        Endpoint: ["Dot", { radius: 2 }],
-        EndpointStyle: { fill: "#b9c1cc" },
-        Overlays: [["Arrow", { width: 8, length: 8, location: 1 }]]
-      });
-      return instance;
-    } catch(_) { return null; }
-  }
-
-  function collectEdges(){
-    var edges = [];
-    try {
-      // For each .task-branch, connect its first child-group children to the parent card
-      $('#task-tree .task-branch').each(function(){
-        var $branch = $(this);
-        var $parent = $branch.children('.task-item').first().find('.task-box').first();
-        var $group = $branch.children('.child-group').first();
-        if (!$parent.length || !$group.length) return;
-        var pid = $parent.attr('data-project-id');
-        if (!pid) return;
-        $group.find('> .task-item .task-box').each(function(){
-          var $child = $(this);
-          var cid = $child.attr('data-project-id');
-          if (!cid) return;
-          edges.push({ source: 'proj-node-'+pid, target: 'proj-node-'+cid });
-        });
-      });
-    } catch(_) {}
-    return edges;
-  }
-
-  function collectEdgesFromData(projects){
-    var edges = [];
-    try {
-      var seen = new Set();
-      (projects||[]).forEach(function(p){
-        if (!p || p.id==null) return;
-        var parents = Array.isArray(p.parent_ids) ? p.parent_ids.slice() : [];
-        if ((!parents || parents.length===0) && p.legacy_parent_id) parents = [p.legacy_parent_id];
-        parents.forEach(function(pid){
-          if (pid==null || String(pid) === String(p.id)) return;
-          var key = String(pid)+">"+String(p.id);
-          if (seen.has(key)) return;
-          edges.push({ source: 'proj-node-'+String(pid), target: 'proj-node-'+String(p.id) });
-          seen.add(key);
-        });
-      });
-    } catch(_){}
-    return edges;
-  }
-
-  function ensureNodeIds(){
-    $('#task-tree .task-box').each(function(){
-      var $b = $(this);
-      var id = $b.attr('data-project-id');
-      if (id && !$b.attr('id')) $b.attr('id', 'proj-node-'+String(id));
-    });
-  }
-
-  function repaint(){ try { if (instance) instance.repaintEverything(); } catch(_){} }
-
-  window.initProjectPlumb = function(projects){
-    try {
-      var inst = getInstance();
-      if (!inst) return;
-      inst.reset();
-      ensureNodeIds();
-      // Prefer data-driven edges; fall back to DOM inference if data missing
-      var edges = Array.isArray(projects) && projects.length ? collectEdgesFromData(projects) : collectEdges();
-      // make endpoints on all nodes
-      $('#task-tree .task-box').each(function(){
-        try { inst.manage($(this).attr('id')); } catch(_){}
-      });
-      edges.forEach(function(e){
+(function ($) {
+    function meta(name) {
         try {
-          inst.connect({
-            source: e.source,
-            target: e.target,
-            anchors: [ ["Right"], ["Left"] ],
-            detachable: false
-          });
-        } catch(_){}
-      });
-      setTimeout(repaint, 30);
-    } catch(_) {}
-  };
+            return $('meta[name="' + name + '"]').attr("content") || null;
+        } catch (_) {
+            return null;
+        }
+    }
+    var appUrl = (
+        window.appUrl ||
+        meta("app-url") ||
+        (window.location && window.location.origin) ||
+        ""
+    ).replace(/\/$/, "");
+    var csrf = window.csrfToken || meta("csrf-token") || "";
 
-  // Repaint on modal shown and on window resize/scroll inside tree
-  $(document).on('shown.bs.modal', '#projectTreeModal', function(){ setTimeout(function(){ try{ window.initProjectPlumb(); }catch(_){} }, 100); });
-  $(window).on('resize', function(){ setTimeout(repaint, 50); });
-  $('.task-tree-wrapper').on('scroll', function(){ setTimeout(repaint, 10); });
-})();
+    var instance = null;
+
+    function getElId(projectId) {
+        return "proj-node-" + String(projectId);
+    }
+
+    function ensureInstance() {
+        if (instance) return instance;
+        if (!(window.jsPlumb && window.jsPlumb.jsPlumb)) {
+            instance = window.jsPlumb ? window.jsPlumb.getInstance() : null;
+        } else {
+            instance = window.jsPlumb.jsPlumb.getInstance();
+        }
+        if (!instance) return null;
+        try {
+            var $c = $("#task-tree");
+            if ($c.length) {
+                if (typeof instance.setContainer === "function")
+                    instance.setContainer($c[0]);
+                if ($c.css("position") === "static") {
+                    $c.css("position", "relative");
+                }
+            }
+            instance.importDefaults({
+                Connector: ["Bezier", { cornerRadius: 6 }],
+                PaintStyle: { stroke: "#b9c1cc", strokeWidth: 2 },
+                HoverPaintStyle: { stroke: "#8892a4", strokeWidth: 2 },
+                Endpoint: ["Dot", { radius: 2 }],
+                EndpointStyle: { fill: "#b9c1cc" },
+                Overlays: [["Arrow", { width: 8, length: 8, location: 1 }]]
+            });
+        } catch (_) {}
+        return instance;
+    }
+
+    function makeSourceAndTarget(el) {
+        var inst = ensureInstance();
+        if (!inst || !el) return;
+        try {
+            inst.makeSource(el, {
+                filter: ".plumb-handle",
+                filterExclude: false,
+                extract: {
+                    action: "the-action",
+                },
+                anchor: "Continuous",
+                allowLoopback: false,
+                maxConnections: -1,
+            });
+        } catch (_) {}
+        try {
+            inst.makeTarget(el, {
+                dropOptions: { hoverClass: "plumb-drop-ok" },
+                anchor: "Continuous",
+                allowLoopback: false,
+                maxConnections: -1,
+            });
+        } catch (_) {}
+    }
+
+    function buildExistingEdges(projects) {
+        var edges = [];
+        try {
+            (projects || []).forEach(function (p) {
+                var parents = [];
+                if (Array.isArray(p.parent_ids)) parents = p.parent_ids.slice();
+                if (p.legacy_parent_id && parents.indexOf(p.legacy_parent_id) === -1)
+                    parents.push(p.legacy_parent_id);
+                parents.forEach(function (pid) {
+                    if (pid)
+                        edges.push({
+                            parent: String(pid),
+                            child: String(p.id),
+                        });
+                });
+            });
+        } catch (_) {}
+        return edges;
+    }
+
+    function connectEdge(pId, cId) {
+        var inst = ensureInstance();
+        if (!inst) return;
+        var sourceId = getElId(pId),
+            targetId = getElId(cId);
+        try {
+            inst.connect({ source: sourceId, target: targetId });
+        } catch (_) {}
+    }
+
+    function clearAll() {
+        var inst = ensureInstance();
+        if (!inst) return;
+        try {
+            inst.deleteEveryConnection();
+            inst.reset();
+        } catch (_) {}
+        instance = null;
+    }
+
+    function attachEvents() {
+        var inst = ensureInstance();
+        if (!inst) return;
+        try {
+            inst.bind("connection", function (info, originalEvent) {
+                try {
+                    try {
+                        if (info && info.source)
+                            info.source.setAttribute("draggable", "true");
+                    } catch (_) {}
+                    try {
+                        if (info && info.target)
+                            info.target.setAttribute("draggable", "true");
+                    } catch (_) {}
+                    var isUser =
+                        !!originalEvent ||
+                        (info && info.originalEvent) ||
+                        (info &&
+                            info.connection &&
+                            info.connection._jsPlumb &&
+                            info.connection._jsPlumb.params &&
+                            info.connection._jsPlumb.params.originalEvent);
+                    if (!isUser) return;
+                    var source = info.sourceId,
+                        target = info.targetId;
+                    var $sEl = $("#" + source),
+                        $tEl = $("#" + target);
+                    var sRect = $sEl.length
+                        ? $sEl[0].getBoundingClientRect()
+                        : null;
+                    var tRect = $tEl.length
+                        ? $tEl[0].getBoundingClientRect()
+                        : null;
+                    var parentId = source.replace("proj-node-", "");
+                    var childId = target.replace("proj-node-", "");
+                    try {
+                        if (sRect && tRect && tRect.left < sRect.left - 5) {
+                            parentId = target.replace("proj-node-", "");
+                            childId = source.replace("proj-node-", "");
+                        }
+                    } catch (_) {}
+                    if (!parentId || !childId || parentId === childId) return;
+                    $.ajax({
+                        url:
+                            appUrl +
+                            "/project/" +
+                            encodeURIComponent(childId) +
+                            "/parents",
+                        type: "POST",
+                        data: JSON.stringify({ parent_id: Number(parentId) }),
+                        contentType: "application/json",
+                        headers: {
+                            "X-CSRF-TOKEN": csrf,
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                        },
+                    })
+                        .done(function (res) {
+                            var ok = !!(
+                                res &&
+                                (res.status === "success" || res.code === 200)
+                            );
+                            if (!ok) {
+                                try {
+                                    info.connection &&
+                                        inst.deleteConnection(info.connection);
+                                } catch (_) {}
+                                try {
+                                    window.showFloatingAlert &&
+                                        window.showFloatingAlert(
+                                            (res && res.message) ||
+                                                "Gagal menambah parent",
+                                            "warning",
+                                            3000
+                                        );
+                                } catch (_) {}
+                            } else {
+                                try {
+                                    window.showFloatingAlert &&
+                                        window.showFloatingAlert(
+                                            "Parent ditambahkan",
+                                            "success",
+                                            1400
+                                        );
+                                } catch (_) {}
+                                try {
+                                    inst.repaintEverything &&
+                                        inst.repaintEverything();
+                                } catch (_) {}
+                            }
+                        })
+                        .fail(function () {
+                            try {
+                                info.connection &&
+                                    inst.deleteConnection(info.connection);
+                            } catch (_) {}
+                        });
+                } catch (_) {}
+            });
+        } catch (_) {}
+
+        try {
+            inst.bind("click", function (conn) {
+                try {
+                    var sId = String(conn.sourceId || "");
+                    var tId = String(conn.targetId || "");
+                    var parentId = sId.replace("proj-node-", "");
+                    var childId = tId.replace("proj-node-", "");
+                    try {
+                        var $sEl = $("#" + sId),
+                            $tEl = $("#" + tId);
+                        var sRect = $sEl.length
+                            ? $sEl[0].getBoundingClientRect()
+                            : null;
+                        var tRect = $tEl.length
+                            ? $tEl[0].getBoundingClientRect()
+                            : null;
+                        if (sRect && tRect && tRect.left < sRect.left - 5) {
+                            parentId = tId.replace("proj-node-", "");
+                            childId = sId.replace("proj-node-", "");
+                        }
+                    } catch (_) {}
+                    if (!parentId || !childId) return;
+                    $.ajax({
+                        url:
+                            appUrl +
+                            "/project/" +
+                            encodeURIComponent(childId) +
+                            "/parents",
+                        type: "DELETE",
+                        data: JSON.stringify({ parent_id: Number(parentId) }),
+                        contentType: "application/json",
+                        headers: {
+                            "X-CSRF-TOKEN": csrf,
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                        },
+                    })
+                        .done(function (res) {
+                            if (
+                                res &&
+                                (res.status === "success" || res.code === 200)
+                            ) {
+                                try {
+                                    inst.deleteConnection(conn);
+                                } catch (_) {}
+                                try {
+                                    window.showFloatingAlert &&
+                                        window.showFloatingAlert(
+                                            "Parent dihapus",
+                                            "success",
+                                            1200
+                                        );
+                                } catch (_) {}
+                                try {
+                                    inst.repaintEverything &&
+                                        inst.repaintEverything();
+                                } catch (_) {}
+                            } else {
+                                try {
+                                    window.showFloatingAlert &&
+                                        window.showFloatingAlert(
+                                            (res && res.message) ||
+                                                "Gagal menghapus parent",
+                                            "warning",
+                                            2800
+                                        );
+                                } catch (_) {}
+                            }
+                        })
+                        .fail(function () {
+                            try {
+                                window.showFloatingAlert &&
+                                    window.showFloatingAlert(
+                                        "Gagal menghapus parent",
+                                        "warning",
+                                        2800
+                                    );
+                            } catch (_) {}
+                        });
+                } catch (_) {}
+            });
+        } catch (_) {}
+    }
+
+    function layConnections(projects) {
+        var edges = buildExistingEdges(projects);
+        edges.forEach(function (e) {
+            connectEdge(e.parent, e.child);
+        });
+    }
+
+    function init(projects) {
+        try {
+            clearAll();
+        } catch (_) {}
+        var inst = ensureInstance();
+        if (!inst) return;
+        try {
+            (projects || []).forEach(function (p) {
+                var $el = $("#" + getElId(p.id));
+                if ($el.length) makeSourceAndTarget($el[0]);
+            });
+        } catch (_) {}
+        layConnections(projects);
+        attachEvents();
+        try {
+            inst.repaintEverything && inst.repaintEverything();
+        } catch (_) {}
+    }
+
+    window.initProjectPlumb = function (projects) {
+        clearTimeout(window.__initProjectPlumbTimer);
+        window.__initProjectPlumbTimer = setTimeout(function () {
+            init(projects);
+        }, 60);
+    };
+
+    try {
+        $(window).on("resize", function () {
+            try {
+                var inst = ensureInstance();
+                inst && inst.repaintEverything && inst.repaintEverything();
+            } catch (_) {}
+        });
+        $(window).on("scroll", function () {
+            try {
+                var inst = ensureInstance();
+                inst && inst.repaintEverything && inst.repaintEverything();
+            } catch (_) {}
+        });
+    } catch (_) {}
+})(jQuery);
