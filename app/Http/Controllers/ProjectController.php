@@ -915,6 +915,7 @@ class ProjectController extends Controller
 
             if ($filter === 'not_started') {
                 // New Request: Project tanpa task ATAU semua task berstatus new_request
+                // BUT exclude projects that are past due date (those should be "late")
                 $query->where(function ($q) {
                     $q->whereDoesntHave('tasks')
                         ->orWhereIn('projects.id', function ($subquery) {
@@ -923,6 +924,38 @@ class ProjectController extends Controller
                                 ->groupBy('project_id')
                                 ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "new_request" THEN 1 ELSE 0 END)');
                         });
+                })
+                // Exclude projects that are past their due date
+                ->where(function ($q) {
+                    $q->whereNull('due_date')
+                        ->orWhere('due_date', '>=', now()->toDateString());
+                });
+            } elseif ($filter === 'late') {
+                // Late: Projects that match the visual 'late' status logic from getProjectTree
+                // This means projects that are NOT completed AND (have late tasks OR are past due date)
+                $query->where(function ($q) {
+                    // First, exclude projects that are fully completed (all tasks completed)
+                    $q->whereNotIn('projects.id', function ($subquery) {
+                        $subquery->from('tasks')
+                            ->selectRaw('project_id')
+                            ->groupBy('project_id')
+                            ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)')
+                            ->havingRaw('COUNT(*) > 0'); // Must have tasks to be considered completed
+                    });
+                })
+                ->where(function ($q) {
+                    // Then, include projects that have late tasks OR are past their due date
+                    $q->whereHas('tasks', function ($taskQuery) {
+                        // Projects with late tasks (task past due and not completed)
+                        $taskQuery->whereRaw('LOWER(status) <> ?', ['completed'])
+                                  ->whereNotNull('due_date')
+                                  ->where('due_date', '<', now());
+                    })
+                    // OR projects past their due date (regardless of tasks)
+                    ->orWhere(function ($projectQuery) {
+                        $projectQuery->whereNotNull('due_date')
+                                    ->where('due_date', '<', now()->toDateString());
+                    });
                 });
             } elseif ($filter === 'in_progress') {
                 // On Progress: Project yang memiliki campuran status task
