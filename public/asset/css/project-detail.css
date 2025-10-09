@@ -806,19 +806,18 @@
     right: 0;
     bottom: 0;
     width: 100%;
-    height: calc(100vh - 85px);
+    height: 100vh;
     z-index: 21;
 }
 
 .timeline-content.fullscreen .body-content,
 .timeline-content.fullscreen .timeline-wrapper {
-    height: 100%;
-    height: calc(100vh - 210px);
+    min-height: calc(100vh - 210px);
     width: 100%;
 }
 
 .timeline-content.fullscreen .timeline-table {
-    min-width: 100%;
+    width: 100%;
     height: calc(100vh - 500px);
 }
 
@@ -1063,8 +1062,9 @@
 }
 
 .structure-detail-content.fullscreen .task-tree-wrapper {
-    max-height: 100vh;
     min-height: 100vh;
+    overflow: auto;
+    padding: 20px 20px 200px 20px;
 }
 
 .task-tree-wrapper {

@@ -10424,3 +10424,8 @@ function initAddProjectReferenceFilesModal() {
         console.error('Error initializing project export:', e);
     }
 })();
+
+document.addEventListener('DOMContentLoaded', function () {
+    const btn = document.querySelector('.btn-contributor-custom');
+    new bootstrap.Tooltip(btn);
+});

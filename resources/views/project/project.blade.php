@@ -30,7 +30,7 @@
             <button class="btn btn-contributor-custom me-2" data-bs-target="#projectTreeModal" data-bs-toggle="modal" title="Flowchart">
                 <span class="material-symbols-outlined">flowchart</span>
             </button>
-            <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn">
+            <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" data-bs-toggle="tooltip" data-bs-title="Job Tracking" data-bs-placement="top">
                 <span class="material-symbols-outlined">grid_view</span>
             </button>
             <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
@@ -195,7 +195,6 @@
                                         <option value="ongoing">Not Started</option>
                                         <option value="pending">In Progress</option>
                                         <option value="completed">Completed</option>
-                                        <option value="late">Late</option>
                                     </select>
                                 </div>
 
