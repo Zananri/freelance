@@ -18,9 +18,6 @@ if (typeof window.showFloatingAlert !== 'function') {
             if (typeof window.showAlertMsg === 'function') {
                 // Use the app-level floating alert if available
                 window.showAlertMsg(String(message || ''), mapped, delayMs);
-            } else {
-                // Fallback: log to console only. Avoid native alert to keep UX consistent.
-                console.log('[floatingAlert:' + (mapped || '') + ']', message);
             }
         } catch (_) {}
     };
@@ -1105,18 +1102,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 $(".loader").fadeIn("fast");
             },
             success: function (data) {
-                // DEBUG: Log filter results
-                if (filter || currentSearch) {
-                    console.log(
-                        "Filter results count:",
-                        Array.isArray(data)
-                            ? data.length
-                            : data.data
-                            ? data.data.length
-                            : 0
-                    );
-                    console.log("Filter/search results:", data);
-                }
                 let container = document.getElementById("all-cards-container");
                 container.innerHTML = ""; // Clear existing cards
 
@@ -7081,26 +7066,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     );
 
                     // Update badge counts for all project cards after rendering - optimized for speed
-                    setTimeout(() => {
-                        // Batch update all badges in parallel for faster performance
-                        const updatePromises = projects.map((project) => {
-                            return new Promise((resolve) => {
-                                if (
-                                    typeof window.updateProjectBadges ===
-                                    "function"
-                                ) {
-                                    window.updateProjectBadges(project.id);
-                                }
-                                resolve();
-                            });
-                        });
-
-                        Promise.all(updatePromises).then(() => {
-                            console.log(
-                                "All project badges updated successfully"
-                            );
-                        });
-                    }, 50); // Further reduced delay for instant update
+                    setTimeout(() => {}, 50);
                 } else {
                     // No projects. If backend provides aggregated task chart_counts,
                     // we already updated the chart above. Only set zero state when chart_counts is missing.
@@ -7811,10 +7777,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
                 /* no-op */
             }
-            // No blocking native alert fallback; prefer console log to avoid modal dialogs.
-            try {
-                console.log('[floatingAlert]', typeof message === 'string' ? message.replace(/<[^>]+>/g, '') : String(message));
-            } catch (e) {}
+            try {} catch (e) {}
     }
 
     addProjectForm.addEventListener("submit", function (e) {
@@ -9648,15 +9611,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     const countNotStarted = extractTotal(notRes[0]);
                     const countLate = extractTotal(lateRes[0]);
 
-                    // Debug logging
-                    console.log('Chart Filter Results:', {
-                        total: totalCount,
-                        completed: countCompleted,
-                        in_progress: countOnProgress,
-                        not_started: countNotStarted,
-                        late: countLate
-                    });
-
                     const derivedCounts = {
                         total: totalCount,
                         completed: countCompleted,
@@ -9736,8 +9690,6 @@ function loadTimelineProjects(filter = null) {
             $(".loader").fadeIn("fast");
         },
         success: function (res) {
-            console.log(res);
-
             const projects = Array.isArray(res)
                 ? res
                 : Array.isArray(res.data)
@@ -9773,8 +9725,6 @@ function loadTimelineProjects(filter = null) {
                         type: "GET",
                         dataType: "json",
                         success: function (resp) {
-                            console.log(resp);
-
                             const data = resp.data || resp;
                             p.start_date =
                                 p.start_date || data.start_date || data.start;
@@ -10204,7 +10154,6 @@ function setProjectLatestFeedbackSnippet(projectId, data) {
     });
 }
 
-// === Global Unread Badge Refresher ===
 function refreshAllProjectUnreadBadges() {
     try {
         const unreadMap = window.__projectUnread || {};
@@ -10215,11 +10164,8 @@ function refreshAllProjectUnreadBadges() {
                 const count = unreadMap[pid] || 0;
                 setProjectUnreadBadge(pid, count);
             });
-        // optional console trace
-        // console.log('All project badges updated successfully');
     } catch (e) {
         console.warn("refreshAllProjectUnreadBadges error", e);
-        // fallback: hide all
         document
             .querySelectorAll(".unread-badge[data-project-id]")
             .forEach(function (badge) {
@@ -10436,30 +10382,30 @@ function initAddProjectReferenceFilesModal() {
             if (exportBtn) {
                 exportBtn.addEventListener('click', function(e) {
                     e.preventDefault();
-                    
+
                     // Show loading state
                     const originalText = exportBtn.innerHTML;
                     exportBtn.disabled = true;
                     exportBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
-                    
+
                     // Create a temporary anchor element to trigger download
                     const link = document.createElement('a');
                     link.href = appUrl + '/project/export-excel';
                     link.download = '';
                     link.style.display = 'none';
                     document.body.appendChild(link);
-                    
+
                     // Trigger download
                     link.click();
-                    
+
                     // Clean up
                     document.body.removeChild(link);
-                    
+
                     // Restore button state after a short delay
                     setTimeout(() => {
                         exportBtn.disabled = false;
                         exportBtn.innerHTML = originalText;
-                        
+
                         // Show success message
                         if (typeof showFloatingAlert === 'function') {
                             showFloatingAlert('Project export started successfully!', 'success', 3000);
@@ -10468,7 +10414,7 @@ function initAddProjectReferenceFilesModal() {
                 });
             }
         }
-        
+
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initProjectExport);
         } else {
