@@ -57,7 +57,8 @@
 		if (proj.children && proj.children.length){
 			var $branch = $('<div class="task-branch"></div>');
 			$branch.append($('<div class="task-item"></div>').append($tpl));
-			var $group = $('<div class="child-group" style="display:flex;flex-direction:column;gap:20px;position:relative;"></div>');
+			// let CSS (project-detail.css) control layout and gaps so spacing matches task tree
+			var $group = $('<div class="child-group"></div>');
 			proj.children.forEach(function(ch){ $group.append($('<div class="task-item"></div>').append(renderNode(ch))); });
 			$branch.append($group);
 			return $branch;
@@ -257,7 +258,8 @@
 		if (p.children && p.children.length){
 			var $branch = $('<div class="task-branch"></div>');
 			$branch.append($tpl);
-			var $childGroup = $('<div class="child-group"></div>').css({display:'flex',flexDirection:'column',gap:'20px',position:'relative'});
+			// rely on CSS for spacing so rendering matches the task tree appearance
+			var $childGroup = $('<div class="child-group"></div>');
 			p.children.forEach(function(c){ $childGroup.append($('<div class="task-item"></div>').append(renderNode(c))); });
 			$branch.append($childGroup);
 			return $branch;

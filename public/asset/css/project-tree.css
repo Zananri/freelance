@@ -29,6 +29,40 @@
     width: 100%;
 }
 
+/* Mirror spacing from project-detail task tree so modal visuals match */
+.root-column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.task-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    position: relative;
+    margin: 0 10px;
+    z-index: 1;
+}
+
+.task-branch {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 36px;
+    position: relative;
+}
+
+.child-group {
+    /* keep same left padding and vertical gap as task tree */
+    padding-left: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+}
+
 #task-legend {
     border-radius: 20px;
     padding: 10px 0;
