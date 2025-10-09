@@ -4,6 +4,7 @@
     </x-slot>
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/project-tree.css') }}?v={{ time() }}">
         <!-- Quill editor styles (only for Project page) -->
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
@@ -26,7 +27,7 @@
             <h2>Project</h2>
         </div>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-contributor-custom me-2" id="openFlowchartBtn" title="Flowchart">
+            <button class="btn btn-contributor-custom me-2" data-bs-target="#projectTreeModal" data-bs-toggle="modal" title="Flowchart">
                 <span class="material-symbols-outlined">flowchart</span>
             </button>
             <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn">
@@ -40,7 +41,8 @@
 
     {{-- Hidden fields for Contributions modal JS --}}
     <input type="hidden" name="employee_id" value="{{ auth()->user()->employee->id ?? '' }}">
-    <input type="hidden" id="contrib-endpoint" value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
+    <input type="hidden" id="contrib-endpoint"
+        value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
 
     <div class="project-card-container">
         <div class="row">
@@ -716,11 +718,60 @@
             </div>
         </div>
     </div>
+
+    {{-- Project Tree Modal --}}
+    <div class="modal fade" id="projectTreeModal" tabindex="-1" aria-labelledby="projectTreeModal" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom mb-2 border-bottom">
+                    <h5 class="modal-title modal-title-custom" id="projectTreeModal">Project Tasks</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body modal-body-custom mt-2">
+                    <div class="task-tree-wrapper">
+                        <div id="task-tree">
+
+                        </div>
+                    </div>
+
+                    <div id="task-legend" class="d-flex justify-content-start gap-3">
+                        <div class="legend-item d-flex align-items-start">
+                            <span class="not-started" data-bs-toggle="tooltip" data-bs-title="Not Started"><span
+                                    class="text-legend">Not Started</span></span>
+                        </div>
+                        <div class="legend-item d-flex align-items-start">
+                            <span class="in-progress" data-bs-toggle="tooltip" data-bs-title="In Progress"><span
+                                    class="text-legend">In Progress</span></span>
+                        </div>
+                        <div class="legend-item d-flex align-items-start">
+                            <span class="late" data-bs-toggle="tooltip" data-bs-title="Late"><span
+                                    class="text-legend">Late</span></span>
+                        </div>
+                        <div class="legend-item d-flex align-items-start">
+                            <span class="complete" data-bs-toggle="tooltip" data-bs-title="Complete"><span
+                                    class="text-legend">Complete</span></span>
+                        </div>
+                    </div>
+
+                    <div id="task-template" class="d-none task-item">
+                        <div class="task-box">
+                            <div class="task-header">
+                                <span class="task-name"></span>
+                            </div>
+                            <div class="task-date"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <x-slot name="script_slot">
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/project_tree.js') }}?v={{ time() }}"></script>
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
         <script>
