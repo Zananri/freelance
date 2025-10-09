@@ -122,6 +122,10 @@ Route::middleware('auth')->group(function () {
     // === Other project routes ===
     Route::get('/project/index/card-data', [ProjectController::class, 'getCardData'])->name('project.cardData');
     Route::get('/project-assignments', [ProjectController::class, 'getProjectAssignments'])->name('project.assignments');
+    // Project tree (multi-parent) endpoints
+    Route::get('/projects/tree', [ProjectController::class, 'getProjectTree'])->name('project.tree');
+    Route::post('/project/{id}/parents', [ProjectController::class, 'addParent'])->name('project.parents.add');
+    Route::delete('/project/{id}/parents', [ProjectController::class, 'removeParent'])->name('project.parents.remove');
 
 
 

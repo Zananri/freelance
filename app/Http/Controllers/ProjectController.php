@@ -569,6 +569,12 @@ class ProjectController extends Controller
         if ($maxDue && (!$due || $maxDue > $due))
             $due = $maxDue;
 
+        // Load parents for tree badge and detail
+        $parents = [];
+        try {
+            $parents = $project->relationLoaded('parents') ? $project->parents : $project->parents()->get();
+        } catch (\Throwable $_) { $parents = collect(); }
+
         return [
             'id' => $project->id,
             'title' => $project->title,
@@ -581,6 +587,7 @@ class ProjectController extends Controller
             'author' => $author,
             'co_authors' => $coAuthors,
             'contributors' => $contributors,
+            'parents' => $parents->map(fn($p) => ['id' => $p->id, 'title' => $p->title, 'image' => $p->image]),
             'task_counts' => [
                 'total' => $project->total_tasks,
                 'in_progress' => $project->in_progress_tasks,
@@ -591,6 +598,142 @@ class ProjectController extends Controller
             'start_date' => $start,
             'due_date' => $due,
         ];
+    }
+
+    /**
+     * Return a tree of projects (id, title, start/due, status, parents) for the Project Tree modal.
+     */
+    public function getProjectTree(Request $request)
+    {
+        try {
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            if (!$employeeId) {
+                return response()->json(['code' => 200, 'status' => 'success', 'data' => []]);
+            }
+
+            // Fetch only projects visible to this employee (assigned author/co_author/contributor), exclude DELETED
+            $projects = Project::where('status', '!=', 'DELETED')
+                ->whereHas('projectAssignments', function ($q) use ($employeeId) {
+                    $q->where('employee_id', $employeeId)
+                      ->whereIn('role', ['author', 'co_author', 'contributor']);
+                })
+                ->with(['parents:id,title,image'])
+                ->get(['id', 'title', 'status', 'start_date', 'due_date', 'image']);
+
+            $data = $projects->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'title' => $p->title,
+                    'status' => $p->status,
+                    'start_date' => $p->start_date,
+                    'due_date' => $p->due_date,
+                    'image' => $p->image,
+                    // Use pivot table primarily; include legacy single parent for safety
+                    'parent_ids' => $p->parents->pluck('id')->all(),
+                    'legacy_parent_id' => method_exists($p, 'getAttribute') ? $p->getAttribute('part_of_project') : null,
+                ];
+            })->values();
+
+            return response()->json(['code' => 200, 'status' => 'success', 'data' => $data]);
+        } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json(['code' => $status, 'status' => 'error', 'message' => $e->getMessage()], $status);
+        }
+    }
+
+    /**
+     * Add a parent relation to a project (multi-parent). body: { parent_id, primary? }
+     */
+    public function addParent(Request $request, string $id)
+    {
+        try {
+            $project = Project::findOrFail($id);
+            $parentId = (int) $request->input('parent_id');
+            $isPrimary = (bool) $request->input('is_primary', false);
+            if ($parentId <= 0) throw new \Exception('parent_id is required');
+            if ($parentId === (int) $project->id) throw new \Exception('Project cannot be its own parent');
+
+            // Authorization: only author can restructure project tree
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            $isAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'author')->exists();
+            if (!$isAuthor) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
+            }
+
+            // Prevent cycles: check if parentId is a descendant of $project
+            $descendantIds = DB::table('project_parents as pp')
+                ->select('pp.project_id')
+                ->where('pp.parent_project_id', $project->id)
+                ->pluck('project_id')
+                ->all();
+            if (in_array($parentId, $descendantIds)) {
+                return response()->json(['code' => 422, 'status' => 'error', 'message' => 'Cycle detected'], 422);
+            }
+
+            // Attach relation
+            $exists = DB::table('project_parents')
+                ->where('project_id', $project->id)
+                ->where('parent_project_id', $parentId)
+                ->exists();
+            if (!$exists) {
+                DB::table('project_parents')->insert([
+                    'project_id' => $project->id,
+                    'parent_project_id' => $parentId,
+                    'is_primary' => $isPrimary,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            } else if ($isPrimary) {
+                DB::table('project_parents')
+                    ->where('project_id', $project->id)
+                    ->where('parent_project_id', $parentId)
+                    ->update(['is_primary' => true, 'updated_at' => now()]);
+            }
+
+            return response()->json(['code' => 200, 'status' => 'success']);
+        } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json(['code' => $status, 'status' => 'error', 'message' => $e->getMessage()], $status);
+        }
+    }
+
+    /**
+     * Remove a parent relation or clear all parents when parent_id is null.
+     */
+    public function removeParent(Request $request, string $id)
+    {
+        try {
+            $project = Project::findOrFail($id);
+            $parentId = $request->input('parent_id');
+
+            // Authorization: only author
+            $user = $request->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            $isAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'author')->exists();
+            if (!$isAuthor) {
+                return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
+            }
+
+            if ($parentId === null || $parentId === '' ) {
+                DB::table('project_parents')->where('project_id', $project->id)->delete();
+            } else {
+                DB::table('project_parents')
+                    ->where('project_id', $project->id)
+                    ->where('parent_project_id', (int)$parentId)
+                    ->delete();
+            }
+
+            return response()->json(['code' => 200, 'status' => 'success']);
+        } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json(['code' => $status, 'status' => 'error', 'message' => $e->getMessage()], $status);
+        }
     }
 
 
