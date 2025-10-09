@@ -46,6 +46,7 @@
 		var $tpl = $('#task-template').clone().removeClass('d-none').removeAttr('id');
 		var $box = $tpl.find('.task-box');
 		$box.attr('data-project-id', String(proj.id));
+		if (!$box.attr('id')) $box.attr('id', 'proj-node-'+String(proj.id));
 		$box.attr('draggable', true).addClass('draggable-task');
 		var visual = normalizeStatus(proj.status);
 		if (visual === 'complete') $box.css('background-color', '#B2EECD');
@@ -74,6 +75,8 @@
 		var $rootCol = $('<div class="root-column"></div>');
 		forest.forEach(function(root){ $rootCol.append(renderNode(root)); });
 		$tree.append($rootCol);
+		// After render, initialize connectors if jsPlumb setup is available
+		try { if (typeof window.initProjectPlumb === 'function') window.initProjectPlumb(data); } catch(_){}
 	}
 
 	function fetchProjects(){
@@ -243,6 +246,7 @@
 		var $tpl = $('#task-template').clone().removeClass('d-none').removeAttr('id');
 		var $card = $tpl.find('.task-box');
 		$card.attr('data-project-id', String(p.id));
+		if (!$card.attr('id')) $card.attr('id', 'proj-node-'+String(p.id));
 		$card.attr('draggable', true);
 		$tpl.find('.task-name').text(p.title||'Untitled');
 		var start = formatDateENMediumDayMonth(p.start_date);
@@ -275,6 +279,7 @@
 		var $rootCol = $('<div class="root-column"></div>');
 		forest.forEach(function(r){ $rootCol.append(renderNode(r)); });
 		$tree.append($rootCol);
+		try { if (typeof window.initProjectPlumb === 'function') window.initProjectPlumb(list); } catch(_){}
 	}
 
 	function fetchTree(){
