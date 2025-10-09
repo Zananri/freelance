@@ -26,6 +26,9 @@
             <h2>Project</h2>
         </div>
         <div class="d-flex justify-content-end">
+            <button class="btn btn-contributor-custom me-2" id="openFlowchartBtn" title="Flowchart">
+                <span class="material-symbols-outlined">flowchart</span>
+            </button>
             <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn">
                 <span class="material-symbols-outlined">grid_view</span>
             </button>
