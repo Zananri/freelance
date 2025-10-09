@@ -118,6 +118,7 @@
     padding: 20px;
     white-space: normal;
     word-break: break-word;
+    cursor: grab;
 }
 
 .card-image img {
