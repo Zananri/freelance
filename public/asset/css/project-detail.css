@@ -1071,6 +1071,7 @@
     min-height: calc(100vh - 485px);
     max-height: calc(100vh - 485px);
     overflow: auto;
+    padding: 20px;
 }
 
 #task-tree {
@@ -1079,7 +1080,6 @@
     flex-direction: row;
     align-items: flex-start;
     justify-content: flex-start;
-    padding: 20px;
     gap: 40px;
     width: 100%;
 }
@@ -1242,6 +1242,7 @@
 }
 
 .structure-detail-content #task-legend {
+    background: #f0f1f8;
     position: absolute;
     bottom: 0;
     left: 0;

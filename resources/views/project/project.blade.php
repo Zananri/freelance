@@ -667,7 +667,7 @@
                     <h5 class="modal-title modal-title-custom" id="contributionsModalLabel">My Contributions</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                <div class="modal-body modal-body-custom p-3">
+                <div class="modal-body modal-body-custom">
                     <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                         <div class="sub-title-contrib text-muted mt-2">Completed tasks per day (past year)</div>
                         <div class="contrib-legend">
@@ -682,7 +682,7 @@
                             <span>More</span>
                         </div>
                     </div>
-                    <div class="contrib-grid-container">
+                    <div class="contrib-grid-container p-2">
                         <div class="contrib-layout">
                             <div class="contrib-weekdays" id="contribWeekdays"></div>
                             <div class="contrib-chart">

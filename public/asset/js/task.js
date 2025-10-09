@@ -8413,11 +8413,14 @@ function applyCurrentSearchFilter() {
     // Enhanced Task Filtering with All Project Support
     let currentTaskFilters = {
         project: "",
-        status: ""
+        status: "",
+        priority: ""
     };
 
     const filterTaskProjectSelect = document.getElementById("filterTaskProject");
     const filterTaskStatusSelect = document.getElementById("filterTaskStatus");
+    const filterTaskPrioritySelect = document.getElementById("filterTaskPriority");
+    const filterByDate = document.getElementById("filterByDate");
     const applyTaskFilterBtn = document.getElementById("applyTaskFilterBtn");
     const openTaskFilterBtn = document.getElementById("openTaskFilterBtn");
     const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
@@ -8461,6 +8464,7 @@ function applyCurrentSearchFilter() {
         applyTaskFilterBtn.addEventListener("click", function () {
             if (filterTaskProjectSelect) currentTaskFilters.project = filterTaskProjectSelect.value;
             if (filterTaskStatusSelect) currentTaskFilters.status = filterTaskStatusSelect.value;
+            if (filterTaskPrioritySelect) currentTaskFilters.priority = filterTaskPrioritySelect.value;
             fetchAndRenderFilteredTasks(currentTaskFilters);
             const dd = document.getElementById("taskFilterDropdown");
             if (dd) dd.style.display = "none";
@@ -8519,6 +8523,9 @@ function applyCurrentSearchFilter() {
                 if (currentTaskFilters.status) {
                     filterTaskStatusSelect.value = currentTaskFilters.status;
                 }
+                if (currentTaskFilters.status) {
+                    filterTaskPrioritySelect.value = currentTaskFilters.priority;
+                }
             })
             .catch((error) => {
                 console.error("Error loading projects for filter:", error);
@@ -8530,11 +8537,13 @@ function applyCurrentSearchFilter() {
         resetTaskFilterBtn.addEventListener("click", function() {
             currentTaskFilters = {
                 project: "",
-                status: ""
+                status: "",
+                priority: "",
             };
 
             if (filterTaskProjectSelect) filterTaskProjectSelect.value = "";
             if (filterTaskStatusSelect) filterTaskStatusSelect.value = "";
+            if (filterTaskPrioritySelect) filterTaskPrioritySelect.value = "";
 
             fetchAndRenderTasks();
 
@@ -8598,6 +8607,7 @@ function applyCurrentSearchFilter() {
                 const p = {};
                 if (filters && filters.project) p.project = filters.project; // backend expects 'project'
                 if (filters && filters.status) p.status = filters.status; // backend expects 'status'
+                if (filters && filters.priority) p.priority = filters.priority; // backend expects 'status'
                 return p;
             })(),
             success: function (data) {
@@ -8651,10 +8661,12 @@ function applyCurrentSearchFilter() {
     function resetTaskFilters() {
         currentTaskFilters = {
             project: "",
-            status: ""
+            status: "",
+            priority: "",
         };
 
         if (filterTaskProjectSelect) filterTaskProjectSelect.value = "";
+        if (filterTaskPrioritySelect) filterTaskPrioritySelect.value = "";
         if (filterTaskStatusSelect) {
             filterTaskStatusSelect.value = "";
             filterTaskStatusSelect.disabled = false;
