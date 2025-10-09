@@ -619,9 +619,49 @@ class ProjectController extends Controller
                       ->whereIn('role', ['author', 'co_author', 'contributor']);
                 })
                 ->with(['parents:id,title,image'])
-                ->get(['id', 'title', 'status', 'start_date', 'due_date', 'image']);
+                ->withCount([
+                    // Total active tasks (exclude canceled/deleted)
+                    'tasks as total_tasks' => function ($q) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                    },
+                    'tasks as completed_tasks' => function ($q) {
+                        $q->whereIn(DB::raw('LOWER(status)'), ['completed']);
+                    },
+                    'tasks as new_request_tasks' => function ($q) {
+                        $q->whereIn(DB::raw('LOWER(status)'), ['new_request']);
+                    },
+                    'tasks as late_tasks' => function ($q) {
+                        $q->whereRaw('LOWER(status) <> ?', ['completed'])
+                          ->whereNotNull('due_date')
+                          ->where('due_date', '<', now());
+                    },
+                ])
+                ->get(['id', 'title', 'status', 'start_date', 'due_date', 'image', 'part_of_project']);
 
             $data = $projects->map(function ($p) {
+                // Derive visual status (for coloring)
+                $total = (int) ($p->total_tasks ?? 0);
+                $completed = (int) ($p->completed_tasks ?? 0);
+                $newReq = (int) ($p->new_request_tasks ?? 0);
+                $lateCnt = (int) ($p->late_tasks ?? 0);
+                $visual = 'not-started';
+                if ($total > 0 && $completed === $total) {
+                    $visual = 'complete';
+                } elseif ($total === 0 || $newReq === $total) {
+                    $visual = 'not-started';
+                } else {
+                    $visual = 'in-progress';
+                }
+                // Late override if not complete and has any late tasks or project due_date passed
+                try {
+                    if ($visual !== 'complete') {
+                        $isPastDue = $p->due_date && (now()->toDateString() > (string) $p->due_date);
+                        if ($lateCnt > 0 || $isPastDue) {
+                            $visual = 'late';
+                        }
+                    }
+                } catch (\Throwable $_) {}
+
                 return [
                     'id' => $p->id,
                     'title' => $p->title,
@@ -629,9 +669,10 @@ class ProjectController extends Controller
                     'start_date' => $p->start_date,
                     'due_date' => $p->due_date,
                     'image' => $p->image,
+                    'visual_status' => $visual,
                     // Use pivot table primarily; include legacy single parent for safety
                     'parent_ids' => $p->parents->pluck('id')->all(),
-                    'legacy_parent_id' => method_exists($p, 'getAttribute') ? $p->getAttribute('part_of_project') : null,
+                    'legacy_parent_id' => $p->part_of_project ?? null,
                 ];
             })->values();
 

@@ -46,6 +46,7 @@
 		var $tpl = $('#task-template').clone().removeClass('d-none').removeAttr('id');
 		var $box = $tpl.find('.task-box');
 		$box.attr('data-project-id', String(proj.id));
+		if (!$box.attr('id')) $box.attr('id', 'proj-node-'+String(proj.id));
 		$box.attr('draggable', true).addClass('draggable-task');
 		var visual = normalizeStatus(proj.status);
 		if (visual === 'complete') $box.css('background-color', '#B2EECD');
@@ -57,7 +58,8 @@
 		if (proj.children && proj.children.length){
 			var $branch = $('<div class="task-branch"></div>');
 			$branch.append($('<div class="task-item"></div>').append($tpl));
-			var $group = $('<div class="child-group" style="display:flex;flex-direction:column;gap:20px;position:relative;"></div>');
+			// let CSS (project-detail.css) control layout and gaps so spacing matches task tree
+			var $group = $('<div class="child-group"></div>');
 			proj.children.forEach(function(ch){ $group.append($('<div class="task-item"></div>').append(renderNode(ch))); });
 			$branch.append($group);
 			return $branch;
@@ -73,6 +75,8 @@
 		var $rootCol = $('<div class="root-column"></div>');
 		forest.forEach(function(root){ $rootCol.append(renderNode(root)); });
 		$tree.append($rootCol);
+		// After render, initialize connectors if jsPlumb setup is available
+		try { if (typeof window.initProjectPlumb === 'function') window.initProjectPlumb(data); } catch(_){}
 	}
 
 	function fetchProjects(){
@@ -192,4 +196,235 @@
 			try { $('[data-bs-toggle="tooltip"]').tooltip(); } catch(_){}
 		}, 200);
 	});
+})();
+/* Project Tree Renderer & DnD (mirrors Task Tree UX)
+ * - Fetches projects from /projects/tree
+ * - Builds a forest from parent_ids (fallback legacy_parent_id)
+ * - Colors cards by visual_status: not-started, in-progress, late, complete
+ * - Drag onto another card => set as parent (author only)
+ * - Drag onto empty space => clear all parents
+ */
+
+(function(){
+	var appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content')||'').replace(/\/$/, '');
+	var projectsRaw = [];
+
+	function normalizeStatus(v){
+		var s = String(v||'').toLowerCase();
+		if (s === 'complete' || s === 'completed') return 'complete';
+		if (s === 'late') return 'late';
+		if (s === 'in progress' || s === 'in-progress' || s === 'in_progress') return 'in-progress';
+		return 'not-started';
+	}
+
+	function formatDateENMediumDayMonth(dateStr){
+		if(!dateStr) return '';
+		try{
+			var d = new Date(dateStr);
+			if (isNaN(d.getTime())) return '';
+			var opt = { month:'short', day:'2-digit' };
+			return d.toLocaleDateString('en-US', opt);
+		}catch(_){return ''}
+	}
+
+	function buildForest(list){
+		var map = {}, roots = [];
+		list.forEach(function(p){ map[p.id] = Object.assign({children:[]}, p); });
+		list.forEach(function(p){
+			var parents = Array.isArray(p.parent_ids) ? p.parent_ids.slice() : [];
+			if ((!parents || parents.length === 0) && p.legacy_parent_id) parents = [p.legacy_parent_id];
+			if (parents && parents.length && parents[0] !== p.id && map[parents[0]]){
+				map[parents[0]].children.push(map[p.id]);
+			} else {
+				roots.push(map[p.id]);
+			}
+		});
+		return roots;
+	}
+
+	function renderNode(p){
+		var $tpl = $('#task-template').clone().removeClass('d-none').removeAttr('id');
+		var $card = $tpl.find('.task-box');
+		$card.attr('data-project-id', String(p.id));
+		if (!$card.attr('id')) $card.attr('id', 'proj-node-'+String(p.id));
+		$card.attr('draggable', true);
+		$tpl.find('.task-name').text(p.title||'Untitled');
+		var start = formatDateENMediumDayMonth(p.start_date);
+		var due = formatDateENMediumDayMonth(p.due_date);
+		var dateTxt = start && due ? (start+' - '+due) : (start||due||'');
+		$tpl.find('.task-date').text(dateTxt);
+		var visual = normalizeStatus(p.visual_status||p.status);
+		if (visual==='complete') $card.css('background-color', '#B2EECD');
+		else if (visual==='in-progress') $card.css('background-color', '#F5EFCE');
+		else if (visual==='late') $card.css('background-color', '#EBA5A5');
+		else $card.css('background-color', '#DDE4E8');
+
+		if (p.children && p.children.length){
+			var $branch = $('<div class="task-branch"></div>');
+			$branch.append($tpl);
+			// rely on CSS for spacing so rendering matches the task tree appearance
+			var $childGroup = $('<div class="child-group"></div>');
+			p.children.forEach(function(c){ $childGroup.append($('<div class="task-item"></div>').append(renderNode(c))); });
+			$branch.append($childGroup);
+			return $branch;
+		}
+		return $tpl;
+	}
+
+	function renderTree(list){
+		var $tree = $('#task-tree');
+		$tree.empty();
+		if (!list || !list.length) return;
+		var forest = buildForest(list);
+		var $rootCol = $('<div class="root-column"></div>');
+		forest.forEach(function(r){ $rootCol.append(renderNode(r)); });
+		$tree.append($rootCol);
+		try { if (typeof window.initProjectPlumb === 'function') window.initProjectPlumb(list); } catch(_){}
+	}
+
+	function fetchTree(){
+			return $.getJSON(appUrl + '/projects/tree?t=' + Date.now())
+			.done(function(resp){
+				var data = (resp && resp.data) ? resp.data : [];
+				projectsRaw = data;
+					// If server didn't supply visual_status or everything becomes not-started, do a fallback enrichment
+							var needsEnrich = (function(){
+								if (!projectsRaw || !projectsRaw.length) return false;
+								var hasColored = projectsRaw.some(function(p){ return (p.visual_status && p.visual_status !== 'not-started'); });
+								if (hasColored) return false;
+								var missing = projectsRaw.filter(function(p){ return !p.visual_status; }).length;
+								if (missing > 0) return true;
+								// If all are not-started, still enrich once to verify with task_counts
+								var allNS = projectsRaw.every(function(p){ return (p.visual_status||'not-started') === 'not-started'; });
+								return allNS;
+							})();
+
+					if (!needsEnrich) {
+						renderTree(projectsRaw);
+					} else {
+						// Fallback: hit /project/index to get task_counts for deriving visual
+						$.getJSON(appUrl + '/project/index?task_scope=me&t=' + Date.now())
+							.done(function(r){
+								var list = Array.isArray(r) ? r : (Array.isArray(r?.data) ? r.data : []);
+								var map = {};
+								list.forEach(function(item){ if (item && item.id!=null) map[String(item.id)] = item; });
+								projectsRaw.forEach(function(p){
+									var info = map[String(p.id)];
+									if (!info || !info.task_counts) return;
+									var tc = info.task_counts || {}; var total = +tc.total||0; var completed = +tc.completed||0; var late = +tc.late||0; var visual = 'not-started';
+									if (total === 0) visual = 'not-started';
+									else if (completed === total) visual = 'complete';
+									else if (late > 0) visual = 'late';
+									else visual = 'in-progress';
+									p.visual_status = visual;
+									// also keep start/due in case missing
+									if (!p.start_date && info.start_date) p.start_date = info.start_date;
+									if (!p.due_date && info.due_date) p.due_date = info.due_date;
+								});
+							})
+							.always(function(){ renderTree(projectsRaw); });
+					}
+			})
+			.fail(function(){
+				try { if (typeof showFloatingAlert==='function') showFloatingAlert('Gagal memuat project tree','warning',3000); } catch(_){ }
+			});
+	}
+
+	function projectMap(){ var m={}; (projectsRaw||[]).forEach(function(p){ m[String(p.id)] = p; }); return m; }
+
+	function isDescendant(sourceId, targetId){
+		try{
+			var map = projectMap();
+			if (!map[sourceId] || !map[targetId]) return false;
+			// climb up from target to root using first parent (visual tree based on first parent)
+			var cur = map[targetId]; var guard=0;
+			while (cur && guard++<2000){
+				var parents = Array.isArray(cur.parent_ids) ? cur.parent_ids : [];
+				var parentId = parents.length ? String(parents[0]) : (cur.legacy_parent_id? String(cur.legacy_parent_id): null);
+				if (!parentId) return false;
+				if (parentId === String(sourceId)) return true;
+				cur = map[parentId];
+			}
+		}catch(_){ }
+		return false;
+	}
+
+	function bindDnD(){
+		// Start
+		$(document).on('dragstart', '#task-tree .task-box', function(e){
+			var id = $(this).attr('data-project-id');
+			window.__dragProjectId = id ? String(id) : null;
+			if (e.originalEvent && e.originalEvent.dataTransfer){
+				e.originalEvent.dataTransfer.setData('text/plain', window.__dragProjectId||'');
+				e.originalEvent.dataTransfer.effectAllowed = 'move';
+			}
+			$(this).addClass('dragging');
+		});
+		// End
+		$(document).on('dragend', '#task-tree .task-box', function(){
+			$(this).removeClass('dragging drop-ok drop-denied').css({outline:''});
+			window.__dragProjectId = null;
+			$('#task-tree').removeClass('empty-space-drop-ok').css({outline:'', backgroundColor:''});
+		});
+		// Over card
+		$(document).on('dragover dragenter', '#task-tree .task-box', function(e){
+			e.preventDefault();
+			var targetId = $(this).attr('data-project-id');
+			var draggedId = window.__dragProjectId;
+			var denied = !draggedId || String(draggedId)===String(targetId) || isDescendant(draggedId, targetId);
+			if (e.originalEvent && e.originalEvent.dataTransfer) e.originalEvent.dataTransfer.dropEffect = denied? 'none':'move';
+			$(this).toggleClass('drop-ok', !denied).toggleClass('drop-denied', denied).css({outline: denied? '2px dashed #d66':'2px dashed #2a7'});
+		});
+		$(document).on('dragleave', '#task-tree .task-box', function(){ $(this).removeClass('drop-ok drop-denied').css({outline:''}); });
+
+		// Over empty space
+		$(document).on('dragover dragenter', '#task-tree', function(e){
+			var $t = $(e.target);
+			if ($t.closest('.task-box').length) return; // ignore when above a card
+			if (window.__dragProjectId) { e.preventDefault(); }
+		});
+
+		// Drop on empty space => clear all parents
+		$(document).on('drop', '#task-tree', function(e){
+			var $t = $(e.target);
+			if ($t.closest('.task-box').length) return; // handled by card drop
+			e.preventDefault();
+			var dragData = null;
+			try { if (e.originalEvent && e.originalEvent.dataTransfer) dragData = e.originalEvent.dataTransfer.getData('text/plain'); } catch(_){}
+			var draggedId = dragData || window.__dragProjectId;
+			if (!draggedId) return;
+			$.ajax({ url: appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents', type:'DELETE', dataType:'json' })
+				.done(function(){
+					var map = projectMap(); var p = map[String(draggedId)]; if (p){ p.parent_ids = []; p.legacy_parent_id = null; }
+					renderTree(projectsRaw);
+					try{ if (typeof showFloatingAlert==='function') showFloatingAlert('Project dikeluarkan dari parent','success',2000);}catch(_){ }
+				})
+				.fail(function(xhr){ console.error('Failed to clear parents', xhr?.responseText); alert('Gagal memindahkan project. Coba lagi.'); });
+		});
+
+		// Drop on card => set parent (first parent)
+		$(document).on('drop', '#task-tree .task-box', function(e){
+			e.preventDefault();
+			var targetId = $(this).attr('data-project-id');
+			var dragData=null; try{ if (e.originalEvent && e.originalEvent.dataTransfer) dragData = e.originalEvent.dataTransfer.getData('text/plain'); }catch(_){}
+			var draggedId = dragData || window.__dragProjectId;
+			if (!draggedId || !targetId) return;
+			if (String(draggedId)===String(targetId) || isDescendant(draggedId, targetId)) return;
+			var url = appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents';
+			$.ajax({ url: url, type:'POST', dataType:'json', data: { parent_id: String(targetId) } })
+				.done(function(){
+					var map = projectMap(); var p = map[String(draggedId)]; if (p){ p.parent_ids = [Number(targetId)]; p.legacy_parent_id = null; }
+					renderTree(projectsRaw);
+				})
+				.fail(function(xhr){ console.error('Failed to set parent', xhr?.responseText); alert('Gagal mengatur parent project.'); });
+		});
+	}
+
+	function ensureOnce(fn){ var done=false; return function(){ if(done) return; done=true; try{ fn(); }catch(_){} } }
+
+	var bindOnModalShown = ensureOnce(function(){
+		$('#projectTreeModal').on('shown.bs.modal', function(){ fetchTree(); });
+	});
+
+	$(document).ready(function(){ bindOnModalShown(); bindDnD(); });
 })();
