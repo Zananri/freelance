@@ -43,7 +43,10 @@
                 }
             }
             instance.importDefaults({
-                Connector: ["Flowchart", { stub: [30, 40], cornerRadius: 4 }],
+                Connector: ["Flowchart", {
+                stub: [60, 60],
+                cornerRadius: 30,
+                }],
                 Endpoint: ["Dot", { radius: 2 }],
                 PaintStyle: { stroke: "#D2D3E1", strokeWidth: 2 },
                 EndpointStyle: { fill: "#D2D3E1" },
@@ -64,7 +67,7 @@
                 extract: {
                     action: "the-action",
                 },
-                anchor: "Continuous",
+                anchor: "Right",
                 allowLoopback: false,
                 maxConnections: -1,
             });
@@ -72,7 +75,7 @@
         try {
             inst.makeTarget(el, {
                 dropOptions: { hoverClass: "plumb-drop-ok" },
-                anchor: "Continuous",
+                anchor: "Left",
                 allowLoopback: false,
                 maxConnections: -1,
             });
