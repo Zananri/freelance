@@ -130,11 +130,14 @@ class TaskController extends Controller
                 $baseQuery->where('project_id', $projectId);
 
             if ($priorityFilter) {
-                $baseQuery->whereRaw('LOWER(priority) = ?', [strtolower($priorityFilter)]);
+                $baseQuery->where('priority', $priorityFilter);
             }
 
             if ($dateFilter) {
-                $baseQuery->whereDate('due_date', '<=', $dateFilter);
+                $baseQuery->where(function ($q) use ($dateFilter) {
+                    $q->whereDate('start_date', $dateFilter)
+                      ->orWhereDate('due_date', $dateFilter);
+                });
             }
 
             if ($search) {
