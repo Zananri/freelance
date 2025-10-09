@@ -9368,6 +9368,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     filterParam = "completed";
                 } else if (selectedStatus === "pending") {
                     filterParam = "in_progress";
+                } else if (selectedStatus === "late") {
+                    filterParam = "late";
                 }
 
                 if (sortBySelect) {
@@ -9526,7 +9528,10 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function updateProjectChartFromData(projects, chartCounts) {
-        const numberOfProjects = Array.isArray(projects) ? projects.length : 0;
+        // Use the same total as the filter API (pagination.total) when provided
+        const numberOfProjects = (chartCounts && typeof chartCounts.total !== 'undefined')
+            ? Number(chartCounts.total)
+            : (Array.isArray(projects) ? projects.length : 0);
 
         const completed = Number(chartCounts?.completed || 0);
         const inProgress = Number(chartCounts?.in_progress || 0);
@@ -9579,115 +9584,88 @@ document.addEventListener("DOMContentLoaded", function () {
             if (res.data && Array.isArray(res.data)) return res.data;
             return [];
         }
+        // Helper to extract total count from the same API used by filter (pagination.total)
+        function extractTotal(res) {
+            try {
+                if (!res) return 0;
+                if (res.pagination && typeof res.pagination.total !== 'undefined') {
+                    return Number(res.pagination.total || 0);
+                }
+                // Fallback to data length if pagination isn't present
+                const arr = normalizeArray(res);
+                return Array.isArray(arr) ? arr.length : 0;
+            } catch (_) {
+                return 0;
+            }
+        }
 
         $(".loader").fadeIn("fast");
 
-        const totalReq = $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-        });
-        const completedReq = $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            data: { filter: "completed" },
-        });
-        const inProgressReq = $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            data: { filter: "in_progress" },
-        });
-        const notStartedReq = $.ajax({
-            url: appUrl + "/project/index",
-            type: "GET",
-            dataType: "json",
-            data: { filter: "not_started" },
-        });
-        const tasksReq = $.ajax({
-            url: appUrl + "/task/index/no-pagination",
-            type: "GET",
-            dataType: "json",
-        });
+        const cacheBuster = Date.now();
+        // Build base params to mirror filter panel (scope/search/sort/date/project)
+        const filterStatusSelect = document.getElementById("filterProjectStatus");
+        const sortBySelect = document.getElementById("filterSortBy");
+        let sortBy = "asc";
+        if (sortBySelect && sortBySelect.value) sortBy = sortBySelect.value;
 
-        $.when(totalReq, completedReq, inProgressReq, notStartedReq, tasksReq)
-            .done(function (totalRes, compRes, progRes, notRes, tRes) {
+        // Reuse the same state used by the cards
+        const baseParams = {
+            task_scope: "me",
+            sort_by: sortBy,
+            _cb: cacheBuster,
+        };
+        try {
+            if (typeof window.currentSearch === 'string' && window.currentSearch.trim() !== '') {
+                baseParams.search = window.currentSearch.trim();
+            }
+        } catch(_) {}
+        try {
+            if (typeof window.currentProjectId !== 'undefined' && window.currentProjectId) {
+                baseParams.project_id = window.currentProjectId;
+            }
+        } catch(_) {}
+        try {
+            if (typeof window.currentFilterDate === 'string' && window.currentFilterDate.trim() !== '') {
+                baseParams.date = window.currentFilterDate.trim();
+            }
+        } catch(_) {}
+
+        // Always use the same endpoint as the filter panel
+        const endpoint = appUrl + "/project/get-all-projects";
+        const totalReq = $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams } });
+        const completedReq = $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams, filter: "completed" } });
+        const inProgressReq = $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams, filter: "in_progress" } });
+        const notStartedReq = $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams, filter: "not_started" } });
+        const lateReq = $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams, filter: "late" } });
+
+        $.when(totalReq, completedReq, inProgressReq, notStartedReq, lateReq)
+            .done(function (totalRes, compRes, progRes, notRes, lateRes) {
                 try {
-                    const projects = normalizeArray(totalRes[0]);
-                    const countCompleted = normalizeArray(compRes[0]).length;
-                    const countOnProgress = normalizeArray(progRes[0]).length;
-                    const countNotStarted = normalizeArray(notRes[0]).length;
+                    // Use pagination.total to match exactly what filter shows
+                    const totalCount = extractTotal(totalRes[0]);
+                    const countCompleted = extractTotal(compRes[0]);
+                    const countOnProgress = extractTotal(progRes[0]);
+                    const countNotStarted = extractTotal(notRes[0]);
+                    const countLate = extractTotal(lateRes[0]);
 
-                    // Compute LATE using dashboard logic from tasks
-                    const buckets = (tRes && tRes[0] && tRes[0].data) || {};
-                    const tasksByProject = {};
-                    function collect(list, statusName) {
-                        if (!Array.isArray(list)) return;
-                        list.forEach(function (t) {
-                            const pid =
-                                t.project_id ||
-                                (t.project &&
-                                    (t.project.id || t.project.project_id));
-                            if (!pid) return;
-                            if (!tasksByProject[pid]) tasksByProject[pid] = [];
-                            tasksByProject[pid].push(
-                                Object.assign({}, t, { __status: statusName })
-                            );
-                        });
-                    }
-                    collect(buckets.not_started?.tasks, "not_started");
-                    collect(buckets.in_progress?.tasks, "in_progress");
-                    collect(buckets.completed?.tasks, "completed");
-                    collect(buckets.late?.tasks, "late");
-                    collect(buckets.rejected?.tasks, "rejected");
-                    collect(buckets.new_request?.tasks, "new_request");
-
-                    function parseDue(dateStr) {
-                        if (!dateStr) return null;
-                        const s = String(dateStr).trim();
-                        const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-                        if (m)
-                            return new Date(
-                                +m[1],
-                                +m[2] - 1,
-                                +m[3],
-                                23,
-                                59,
-                                59,
-                                999
-                            );
-                        const d = new Date(s);
-                        return isNaN(d.getTime()) ? null : d;
-                    }
-
-                    const now = new Date();
-                    let countLate = 0;
-                    projects.forEach(function (p) {
-                        const pid = p.id || p.project_id;
-                        const tasks = tasksByProject[pid] || [];
-                        if (!tasks.length) return; // no tasks -> not late
-                        const lateTasks = tasks.filter(function (t) {
-                            if (t.__status === "late") return true;
-                            const dueStr = t.due_date || t.due || t.deadline;
-                            const due = parseDue(dueStr);
-                            return !!(
-                                due &&
-                                due.getTime() < now.getTime() &&
-                                t.__status !== "completed"
-                            );
-                        });
-                        if (lateTasks.length > 0) countLate++;
+                    // Debug logging
+                    console.log('Chart Filter Results:', {
+                        total: totalCount,
+                        completed: countCompleted,
+                        in_progress: countOnProgress,
+                        not_started: countNotStarted,
+                        late: countLate
                     });
 
                     const derivedCounts = {
-                        total: projects.length,
+                        total: totalCount,
                         completed: countCompleted,
                         in_progress: countOnProgress,
                         late: countLate,
                         not_started: countNotStarted,
                     };
-                    updateProjectChartFromData(projects, derivedCounts);
+                    // We no longer need the full array for chart; pass empty list and rely on totals
+                    updateProjectChartFromData([], derivedCounts);
                 } catch (e) {
                     console.warn("Failed to derive project chart counts", e);
                 } finally {
@@ -9696,30 +9674,20 @@ document.addEventListener("DOMContentLoaded", function () {
             })
             .fail(function () {
                 try {
-                    // As a fallback, try to at least load total projects to avoid empty chart
-                    $.ajax({
-                        url: appUrl + "/project/index",
-                        type: "GET",
-                        dataType: "json",
-                    })
+                    // As a fallback, try to at least fetch total count from the same endpoint
+                    $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams } })
                         .done(function (res) {
-                            const projects = Array.isArray(res)
-                                ? res
-                                : Array.isArray(res.data)
-                                ? res.data
-                                : [];
+                            const totalCount = extractTotal(res);
                             const derivedCounts = {
-                                total: projects.length,
+                                total: totalCount,
                                 completed: 0,
                                 in_progress: 0,
                                 late: 0,
-                                not_started: projects.length,
+                                not_started: totalCount,
                             };
-                            updateProjectChartFromData(projects, derivedCounts);
+                            updateProjectChartFromData([], derivedCounts);
                         })
-                        .always(function () {
-                            $(".loader").fadeOut("fast");
-                        });
+                        .always(function () { $(".loader").fadeOut("fast"); });
                 } catch (_) {
                     $(".loader").fadeOut("fast");
                 }
