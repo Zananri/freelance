@@ -1,6 +1,23 @@
 (function ($) {
     "use strict";
 
+    // Add export project report click handler
+    $(document).on('click', '#exportProjectReportBtn', function (e) {
+        try {
+            e.preventDefault();
+        } catch (_) {}
+        try {
+            var pid = $(this).data('project-id') || $('meta[name="project-id"]').attr('content') || '';
+            if (!pid) return;
+            var base = (document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '').replace(/\/$/, '');
+            var url = base + '/project/' + encodeURIComponent(pid) + '/export-excel';
+            // start file download in a new window to avoid blocking
+            window.location.href = url;
+        } catch (err) {
+            try { console.error('Export project report failed', err); } catch (_) {}
+        }
+    });
+
     function getMeta(name) {
         return $('meta[name="' + name + '"]').attr("content") || "";
     }

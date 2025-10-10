@@ -87,6 +87,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
     Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
     Route::get('/project/export-excel', [ProjectController::class, 'exportProjectsExcel'])->name('project.export-excel');
+    // Export a single project's report to Excel
+    Route::get('/project/{id}/export-excel', [ProjectController::class, 'exportProjectExcelSingle'])->name('project.export-excel.single');
     Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
     // Accept optional slug segment for SEO-friendly URLs like /project/12/nama-project-permalink

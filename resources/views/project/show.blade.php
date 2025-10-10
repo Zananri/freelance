@@ -38,7 +38,7 @@
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
                     <span class="material-symbols-outlined">grid_view</span>
                 </button>
-                <button class="btn-submit-black">
+                <button class="btn-submit-black" id="exportProjectReportBtn" data-project-id="{{ $project->id ?? '' }}">
                     <span class="material-symbols-outlined me-2">download</span>Report
                 </button>
             </div>

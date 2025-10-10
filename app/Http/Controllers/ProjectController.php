@@ -3155,6 +3155,213 @@ class ProjectController extends Controller
         }
     }
 
+    /**
+     * Export a single project's report to Excel (same format as exportProjectsExcel but scoped).
+     */
+    public function exportProjectExcelSingle(Request $request, string $id)
+    {
+        try {
+            $employeeId = auth()->user()?->employee?->id;
+
+            // Load the single project with relationships; filter tasks to active and to this employee when present
+            $project = Project::where('status', '!=', 'DELETED')
+                ->where('id', $id)
+                ->when($employeeId, function ($q) use ($employeeId) {
+                    $q->whereHas('projectAssignments', function ($qa) use ($employeeId) {
+                        $qa->where('employee_id', $employeeId);
+                    });
+                })
+                ->with([
+                    'department',
+                    'division',
+                    'tasks' => function ($query) use ($employeeId) {
+                        $query->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
+                              ->when($employeeId, function ($q) use ($employeeId) {
+                                  $q->whereHas('assignments', function ($a) use ($employeeId) {
+                                      $a->where('employee_id', $employeeId);
+                                  });
+                              });
+                    },
+                    'projectAssignments.employee'
+                ])
+                ->withCount([
+                    'tasks as total_tasks' => function ($q) use ($employeeId) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
+                          ->when($employeeId, function ($q2) use ($employeeId) {
+                              $q2->whereHas('assignments', function ($a) use ($employeeId) {
+                                  $a->where('employee_id', $employeeId);
+                              });
+                          });
+                    },
+                    'tasks as completed_tasks' => function ($q) use ($employeeId) {
+                        $q->whereIn(DB::raw('LOWER(status)'), ['completed'])
+                          ->when($employeeId, function ($q2) use ($employeeId) {
+                              $q2->whereHas('assignments', function ($a) use ($employeeId) {
+                                  $a->where('employee_id', $employeeId);
+                              });
+                          });
+                    },
+                    'tasks as in_progress_tasks' => function ($q) use ($employeeId) {
+                        $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
+                          ->when($employeeId, function ($q2) use ($employeeId) {
+                              $q2->whereHas('assignments', function ($a) use ($employeeId) {
+                                  $a->where('employee_id', $employeeId);
+                              });
+                          });
+                    },
+                ])
+                ->first();
+
+            if (!$project) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Project not found or not accessible'
+                ], 404);
+            }
+
+            // Reuse the same spreadsheet layout as exportProjectsExcel but pass a single-element collection
+            $projects = collect([$project]);
+
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $activeWorksheet = $spreadsheet->getActiveSheet();
+
+            $activeWorksheet->mergeCells('A1:K1');
+            $activeWorksheet->setCellValue('A1', 'Project Report - NSA Office Management System');
+            $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $headers = [
+                'A2' => 'No',
+                'B2' => 'Nama Project',
+                'C2' => 'Part of Project',
+                'D2' => 'Project Type',
+                'E2' => 'Department',
+                'F2' => 'Division',
+                'G2' => 'Status',
+                'H2' => 'Task',
+                'I2' => 'Status Task',
+                'J2' => 'Waktu Mulai',
+                'K2' => 'Deadline',
+                'L2' => 'Jumlah Task',
+            ];
+            foreach ($headers as $cell => $value) { $activeWorksheet->setCellValue($cell, $value); }
+
+            $headerStyle = [
+                'borders' => [ 'allBorders' => [ 'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN ] ],
+                'fill' => [ 'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => [ 'argb' => 'FFE0E0E0' ] ],
+            ];
+            $activeWorksheet->getStyle('A2:L2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:L2')->getAlignment()->setWrapText(true)->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+            $columnWidths = ['A'=>5,'B'=>30,'C'=>20,'D'=>12,'E'=>15,'F'=>15,'G'=>12,'H'=>25,'I'=>15,'J'=>12,'K'=>12,'L'=>12];
+            foreach ($columnWidths as $col=>$w) { $activeWorksheet->getColumnDimension($col)->setWidth($w); }
+
+            $row = 3; $no = 1;
+            foreach ($projects as $p) {
+                $partOfProjectDisplay = $p->part_of_project ?? '-';
+                if (!empty($p->part_of_project) && is_numeric($p->part_of_project)) {
+                    try { $parent = Project::find((int)$p->part_of_project); if ($parent && isset($parent->title)) $partOfProjectDisplay = $parent->title; } catch (\Throwable $_) {}
+                }
+                $base = [
+                    'B' => $p->title,
+                    'C' => $partOfProjectDisplay,
+                    'D' => ucfirst($p->project_type ?? 'public'),
+                    'E' => $p->department ? $p->department->name_department : '-',
+                    'F' => $p->division ? $p->division->name_division : '-',
+                    'G' => ucfirst($p->status),
+                    'J' => $p->start_date ? \Carbon\Carbon::parse($p->start_date)->format('d-M-Y') : '-',
+                    'L' => $p->total_tasks ?? 0,
+                ];
+
+                $projectMaxDue = null;
+                foreach ($p->tasks as $t) {
+                    if (empty($t->due_date)) continue;
+                    try { $d = \Carbon\Carbon::parse($t->due_date); } catch (\Throwable $_) { continue; }
+                    if ($projectMaxDue === null || $d->greaterThan($projectMaxDue)) $projectMaxDue = $d;
+                }
+                if ($projectMaxDue === null && !empty($p->due_date)) {
+                    try { $projectMaxDue = \Carbon\Carbon::parse($p->due_date); } catch (\Throwable $_) { $projectMaxDue = null; }
+                }
+
+                if ($p->tasks->count() > 0) {
+                    $startRow = $row; $projNo = $no;
+                    foreach ($p->tasks as $task) {
+                        $activeWorksheet->setCellValue('B'.$row, $base['B']);
+                        $activeWorksheet->setCellValue('C'.$row, $base['C']);
+                        $activeWorksheet->setCellValue('D'.$row, $base['D']);
+                        $activeWorksheet->setCellValue('E'.$row, $base['E']);
+                        $activeWorksheet->setCellValue('F'.$row, $base['F']);
+                        $activeWorksheet->setCellValue('G'.$row, $base['G']);
+                        $activeWorksheet->setCellValue('H'.$row, $task->title ?? '-');
+                        $s = str_replace('_', ' ', (string)($task->status ?? '')); $s = trim($s); $s = $s === '' ? '-' : ucfirst($s);
+                        $activeWorksheet->setCellValue('I'.$row, $s);
+                        $activeWorksheet->setCellValue('J'.$row, $base['J']);
+                        $activeWorksheet->setCellValue('K'.$row, $projectMaxDue ? $projectMaxDue->format('d-M-Y') : '-');
+                        $activeWorksheet->setCellValue('L'.$row, $base['L']);
+                        $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+                        $row++;
+                    }
+                    $endRow = $row - 1;
+                    $activeWorksheet->setCellValue('A'.$startRow, $projNo);
+                    if ($endRow > $startRow) {
+                        foreach (['A','B','C','D','E','F','G','J','K','L'] as $col) {
+                            $activeWorksheet->mergeCells($col.$startRow.':'.$col.$endRow);
+                            $activeWorksheet->getStyle($col.$startRow.':'.$col.$endRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        }
+                    }
+                    $no++;
+                } else {
+                    $activeWorksheet->setCellValue('A'.$row, $no);
+                    $activeWorksheet->getStyle('A'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                    $activeWorksheet->setCellValue('B'.$row, $base['B']);
+                    foreach (['B','C','D','E','F','G'] as $col) { $activeWorksheet->getStyle($col.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER); }
+                    $activeWorksheet->setCellValue('C'.$row, $base['C']);
+                    $activeWorksheet->setCellValue('D'.$row, $base['D']);
+                    $activeWorksheet->setCellValue('E'.$row, $base['E']);
+                    $activeWorksheet->setCellValue('F'.$row, $base['F']);
+                    $activeWorksheet->setCellValue('G'.$row, $base['G']);
+                    $activeWorksheet->setCellValue('H'.$row, 'No Tasks');
+                    $activeWorksheet->setCellValue('I'.$row, '-');
+                    $activeWorksheet->setCellValue('J'.$row, $base['J']);
+                    $singleDue = $projectMaxDue ? $projectMaxDue->format('d-M-Y') : ($p->due_date ? \Carbon\Carbon::parse($p->due_date)->format('d-M-Y') : '-');
+                    $activeWorksheet->setCellValue('K'.$row, $singleDue);
+                    $activeWorksheet->setCellValue('L'.$row, $base['L']);
+                    $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+                    $row++; $no++;
+                }
+            }
+
+            if ($row > 3) {
+                $dataStyle = ['borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]];
+                $activeWorksheet->getStyle('A3:L'.($row-1))->applyFromArray($dataStyle);
+                $activeWorksheet->getStyle('A3:A'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('G3:G'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('D3:D'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('J3:J'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('K3:K'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('L3:L'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('H3:I'.($row-1))->getAlignment()->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            $activeWorksheet->setTitle('Project Report');
+            $filename = 'project_'.$id.'_report_'.date('Y_m_d_H_i_s').'.xlsx';
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $tempFile = tempnam(sys_get_temp_dir(), 'project_export_single');
+            $writer->save($tempFile);
+            return response()->download($tempFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => 'Failed to export project: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
 
 }
 
