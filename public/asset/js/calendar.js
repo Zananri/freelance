@@ -166,9 +166,19 @@ async function getAllEventEmployeeCalendarByMonth(year,month){
 
 function htmlItemEvent(dataRow){
 
+    let description = '';
+
+    if(dataRow.description != null && dataRow.description != '' && dataRow.description != 'null'){
+
+        description = `<div class="fs-12 text-body text-opacity-75">
+                        ${dataRow.description}
+                    </div>`;
+    }
+
+    //
     let htmlRow = `<div class="item-event mb-3">
         <div class="d-flex align-items-start">
-            <div class="col-time pt-3">
+            <div class="col-time pt-2">
                 <div class="d-flex-inline text-time me-3" >
                     ${formatTimeDisplay(dataRow.start_time)}
                 </div>
@@ -179,7 +189,7 @@ function htmlItemEvent(dataRow){
                         ${dataRow.title_event}
                     </span>
                     <div class="fs-12 text-body text-opacity-75">
-                        ${dataRow.description}
+                        ${description}
                     </div>
                 </div>
             </div>
@@ -272,7 +282,7 @@ function submitNewEmployeeCalendarEvent(){
             //$('.loader').fadeOut('fast');
         },
         success: function(res) {
-            
+            renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
             showAlertMsg(res.message,'success',5000);
             newEventModal.hide();
 
