@@ -60,8 +60,9 @@
     ];
 
     // Colors align with project page
-    const CHART_COLORS = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"]; // Not Started, Complete, On Progress, Late
-    const TIMELINE_COLORS = ["color1", "color2", "color3", "color4"]; // CSS classes
+    const CHART_COLORS = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
+    const TIMELINE_COLORS = ["color1", "color2", "color3", "color4"];
+    let timelineData = [];
 
     function createChart(ctx) {
         if (!ctx || typeof Chart === "undefined") return null;
@@ -129,17 +130,121 @@
         } catch (_) {}
     }
 
+    function loadTimelineProjects(filter = null) {
+        $.ajax({
+            url: appUrl + "/project/index",
+            type: "GET",
+            dataType: "json",
+            data: { task_scope: "me", filter: filter },
+            beforeSend: function () {
+                $(".loader").fadeIn("fast");
+            },
+            success: function (res) {
+                const projects = Array.isArray(res)
+                    ? res
+                    : Array.isArray(res.data)
+                    ? res.data
+                    : [];
+
+                const completeProjects = projects.filter(
+                    (p) => (p.start_date || p.start) && (p.due_date || p.due)
+                );
+                const incompleteProjects = projects.filter(
+                    (p) => !(p.start_date || p.start) || !(p.due_date || p.due)
+                );
+
+                try {
+                    buildTimelineFromProjects(completeProjects);
+                    renderTimeline(".timelineHeader", ".timelineRows", "week", currentMonth, currentYear, currentWeek);
+                } catch (e) {
+                    console.error("timeline build/render error", e);
+                }
+
+                if (incompleteProjects.length > 0) {
+                    incompleteProjects.forEach((p) => {
+                        $.ajax({
+                            url: appUrl + "/project/" + p.id,
+                            type: "GET",
+                            dataType: "json",
+                            success: function (resp) {
+                                const data = resp.data || resp;
+                                p.start_date = p.start_date || data.start_date || data.start;
+                                p.due_date = p.due_date || data.due_date || data.due;
+                                try {
+                                    const updatedProjects = completeProjects.concat(incompleteProjects);
+                                    buildTimelineFromProjects(updatedProjects);
+                                    renderTimeline(".timelineHeader", ".timelineRows", "week", currentMonth, currentYear, currentWeek);
+                                } catch (e) {
+                                    console.error("timeline update error", e);
+                                }
+                            },
+                            error: function (err) {
+                                console.warn("failed to fetch project detail for", p.id, err);
+                            },
+                        });
+                    });
+                }
+
+                $(".loader").fadeOut("fast");
+            },
+            error: function () {
+                console.error("Failed to load timeline projects");
+                $(".loader").fadeOut("fast");
+            },
+        });
+    }
+
+    function buildTimelineFromProjects(projects) {
+        timelineData = [];
+        if (!Array.isArray(projects)) return;
+        projects.forEach((p, idx) => {
+            function parseLocal(dateStr, fallback) {
+                const src = (dateStr || "").toString().trim();
+                if (!src) {
+                    if (fallback) return parseLocal(fallback);
+                    return null;
+                }
+                const m = src.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+                if (m) {
+                    const y = parseInt(m[1], 10);
+                    const mon = parseInt(m[2], 10) - 1;
+                    const d = parseInt(m[3], 10);
+                    return new Date(y, mon, d);
+                }
+                return new Date(src);
+            }
+
+            let start = p.start_date ? parseLocal(p.start_date) : new Date();
+            let due = p.due_date ? parseLocal(p.due_date, p.start_date) : new Date(start);
+            if (start) start.setHours(0, 0, 0, 0);
+            if (due) due.setHours(23, 59, 59, 999);
+
+            timelineData.push({
+                id: p.id,
+                name: p.title || `Project ${p.id || idx + 1}`,
+                start_date: start,
+                due_date: due,
+                color: TIMELINE_COLORS[idx % TIMELINE_COLORS.length],
+            });
+        });
+    }
+
+    let currentMonth = new Date().getMonth();
+    let currentYear = new Date().getFullYear();
+    let currentWeek = (function () {
+        const today = new Date();
+        const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const offset = firstOfMonth.getDay() === 0 ? 6 : firstOfMonth.getDay() - 1;
+        return Math.ceil((today.getDate() + offset) / 7) - 1;
+    })();
+
     function getCalendarWeeks(year, month) {
         const firstOfMonth = new Date(year, month, 1);
         const lastOfMonth = new Date(year, month + 1, 0);
-
-        // Cari Senin pertama sebelum atau sama dengan tanggal 1
         let firstMonday = new Date(firstOfMonth);
         while (firstMonday.getDay() !== 1) {
             firstMonday.setDate(firstMonday.getDate() - 1);
         }
-
-        // Generate minggu per 7 hari
         const weeks = [];
         let start = new Date(firstMonday);
         while (start <= lastOfMonth || start.getMonth() === month) {
@@ -156,140 +261,147 @@
         return weeks.findIndex((w) => date >= w.start && date <= w.end);
     }
 
-    // Build timeline data from projects
-    function buildTimelineData(projects) {
-        const list = [];
-        if (!Array.isArray(projects)) return list;
+    function renderTimeline(headerSelector, rowsSelector, mode = "week", month = null, year = null, weekIndex = null) {
+        const headerEls = document.querySelectorAll(headerSelector);
+        const rowEls = document.querySelectorAll(rowsSelector);
+        if (!headerEls.length || !rowEls.length) return;
 
-        projects.forEach((p, idx) => {
-            const name = p.title || `Project ${p.id || idx + 1}`;
-            const color = TIMELINE_COLORS[idx % TIMELINE_COLORS.length];
+        month = month ?? new Date().getMonth();
+        year = year ?? new Date().getFullYear();
 
-            let start = parseLocal(p.start_date) || new Date();
-            let due = parseLocal(p.due_date) || new Date(start);
-            start.setHours(0, 0, 0, 0);
-            due.setHours(23, 59, 59, 999);
+        headerEls.forEach((el) => (el.innerHTML = ""));
+        rowEls.forEach((el) => (el.innerHTML = ""));
 
-            list.push({ id: p.id, name, start, due, color });
+        if (mode === "month") {
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            headerEls.forEach((headerRow) => {
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const th = document.createElement("th");
+                    th.textContent = d;
+                    headerRow.appendChild(th);
+                }
+            });
+
+            rowEls.forEach((rowsContainer) => {
+                timelineData.forEach((proj) => {
+                    const startDay = Math.max(
+                        1,
+                        proj.start_date.getMonth() === month ? proj.start_date.getDate() : 1
+                    );
+                    const endDay = Math.min(
+                        daysInMonth,
+                        proj.due_date.getMonth() === month ? proj.due_date.getDate() : daysInMonth
+                    );
+                    if (proj.start_date.getMonth() > month || proj.due_date.getMonth() < month) return;
+                    const tr = document.createElement("tr");
+                    for (let i = 1; i < startDay; i++) tr.appendChild(document.createElement("td"));
+                    if (endDay >= startDay) {
+                        const barTd = document.createElement("td");
+                        barTd.colSpan = endDay - startDay + 1;
+                        const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                        barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+                        tr.appendChild(barTd);
+                    }
+                    for (let i = endDay + 1; i <= daysInMonth; i++) tr.appendChild(document.createElement("td"));
+                    rowsContainer.appendChild(tr);
+                });
+            });
+
+            document.querySelectorAll("#timelineTitle").forEach((el) => {
+                el.textContent = `Timeline ${months[month]} ${year}`;
+            });
+            return;
+        }
+
+        const headerLabels = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+        headerEls.forEach((headerRow) => {
+            headerLabels.forEach((label) => {
+                const th = document.createElement("th");
+                th.textContent = label;
+                headerRow.appendChild(th);
+            });
         });
 
-        return list;
-    }
-
-    function getWeekStart(year, month, weekIndex) {
-        const firstOfMonth = new Date(year, month, 1);
-        const weekStartDate = new Date(firstOfMonth);
-        weekStartDate.setDate(weekStartDate.getDate() + weekIndex * 7);
-        // set to Monday
-        while (weekStartDate.getDay() !== 1) {
-            weekStartDate.setDate(weekStartDate.getDate() - 1);
+        const weeks = getCalendarWeeks(year, month);
+        if (weekIndex == null) {
+            const today = new Date();
+            weekIndex = getWeekOfDate(today, weeks);
+            if (weekIndex < 0) weekIndex = 0;
         }
-        weekStartDate.setHours(0, 0, 0, 0);
-        return weekStartDate;
-    }
-
-    function diffDaysUTC(a, b) {
-        const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
-        const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
-        return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
-    }
-
-    function parseLocal(d) {
-        const s = (d || "").toString().trim();
-        if (!s) return null;
-        const m = s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
-        if (m)
-            return new Date(
-                parseInt(m[1], 10),
-                parseInt(m[2], 10) - 1,
-                parseInt(m[3], 10)
-            );
-        return new Date(s);
-    }
-
-    function renderTimeline(
-        targetRows = "#timelineRows",
-        targetTitle = "#timelineTitle"
-    ) {
-        // Hitung minggu untuk bulan sekarang jika belum ada atau sudah tidak sesuai
-        if (
-            !weeksCache.length ||
-            weeksCache[0].start.getFullYear() !== currentYearProject ||
-            weeksCache[0].start.getMonth() !== currentMonthProject
-        ) {
-            weeksCache = getCalendarWeeks(currentYearProject, currentMonthProject);
-        }
-        if (weeksCache.length === 0) return;
-
-        // Jangan reset currentWeekProject di sini, gunakan nilai yang sudah ada
-
-        const weekInfo = weeksCache[currentWeekProject];
+        const weekInfo = weeks[weekIndex];
         if (!weekInfo) return;
+        const weekStartDate = weekInfo.start;
+        const weekEndDate = weekInfo.end;
 
-        // Title
-        $(targetTitle).text(
-            `${months[currentMonthProject]} Week ${
-                currentWeekProject + 1
-            }`
+        const filteredProjects = timelineData.filter(
+            (proj) => proj.start_date <= weekEndDate && proj.due_date >= weekStartDate
         );
 
-        const $rows = $(targetRows);
-        if (!$rows.length) return;
-        $rows.empty();
+        rowEls.forEach((rowsContainer) => {
+            filteredProjects.forEach((proj) => {
+                const tr = document.createElement("tr");
+                function diffDaysUTC(a, b) {
+                    const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+                    const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+                    return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+                }
+                const rawStart = diffDaysUTC(proj.start_date, weekStartDate);
+                const rawEnd = diffDaysUTC(proj.due_date, weekStartDate);
+                const projStartIdx = Math.max(0, rawStart);
+                const projEndIdx = Math.min(6, rawEnd);
 
-        const weekStart = weekInfo.start;
-        const weekEnd = weekInfo.end;
+                for (let i = 0; i < projStartIdx; i++) tr.appendChild(document.createElement("td"));
+                if (projEndIdx >= projStartIdx) {
+                    const barTd = document.createElement("td");
+                    barTd.colSpan = projEndIdx - projStartIdx + 1;
+                    const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                    barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span><div class="bar-name">${proj.name}</div></div>`;
+                    tr.appendChild(barTd);
+                }
+                for (let i = projEndIdx + 1; i < 7; i++) tr.appendChild(document.createElement("td"));
+                rowsContainer.appendChild(tr);
+            });
+        });
 
-        const data = buildTimelineData(projectsCache);
-        data.forEach((proj) => {
-            // Build a 7-day row container
-            const $row = $("<div>")
-                .addClass("timeline-row d-flex")
-                .css("position", "relative");
-
-            for (let i = 0; i < 7; i++) {
-                $row.append(
-                    $("<div>")
-                        .addClass("timeline-cell")
-                        .css("position", "relative")
-                );
-            }
-
-            const rawStart = diffDaysUTC(proj.start, weekStart);
-            const rawEnd = diffDaysUTC(proj.due, weekStart);
-            const startIdx = Math.max(0, rawStart);
-            const endIdx = Math.min(6, rawEnd);
-
-            if (endIdx >= 0 && startIdx <= 6 && startIdx <= endIdx) {
-                const barLeft = startIdx * (100 / 7);
-                const barWidth = (endIdx - startIdx + 1) * (100 / 7);
-                const $bar = $("<div>")
-                    .addClass(`timeline-bar ${proj.color}`)
-                    .css({
-                        left: `${barLeft}%`,
-                        width: `${barWidth}%`,
-                        position: "absolute",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        border: "none",
-                    })
-                    .attr(
-                        "title",
-                        `${
-                            proj.name
-                        } (${proj.start.toLocaleDateString()} → ${proj.due.toLocaleDateString()})`
-                    )
-                    .attr("data-project-id", proj.id || "")
-                    .html(
-                        `<span class="circle border-0 ${proj.color}"></span><div class="bar-name">${proj.name}</div>`
-                    );
-
-                $row.append($bar);
-            }
-
-            $rows.append($row);
+        document.querySelectorAll("#timelineTitle").forEach((el) => {
+            el.textContent = `${months[month]} Week ${weekIndex + 1}`;
         });
     }
+
+    document.querySelectorAll("#prevTimeline").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            if (currentWeek > 0) {
+                currentWeek--;
+            } else {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                const weeks = getCalendarWeeks(currentYear, currentMonth);
+                currentWeek = weeks.length > 0 ? weeks.length - 1 : 0;
+            }
+            renderTimeline(".timelineHeader", ".timelineRows", "week", currentMonth, currentYear, currentWeek);
+        });
+    });
+
+    document.querySelectorAll("#nextTimeline").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const weeks = getCalendarWeeks(currentYear, currentMonth);
+            const maxWeek = weeks.length - 1;
+            if (currentWeek < maxWeek) {
+                currentWeek++;
+            } else {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                currentWeek = 0;
+            }
+            renderTimeline(".timelineHeader", ".timelineRows", "week", currentMonth, currentYear, currentWeek);
+        });
+    });
 
     async function fetchProjectsAndRender() {
         function normalizeArray(json) {
@@ -299,7 +411,10 @@
         }
         function extractTotal(json) {
             if (!json) return 0;
-            if (json.pagination && typeof json.pagination.total !== 'undefined') {
+            if (
+                json.pagination &&
+                typeof json.pagination.total !== "undefined"
+            ) {
                 return Number(json.pagination.total || 0);
             }
             const arr = normalizeArray(json);
@@ -309,37 +424,87 @@
             // Parallel requests using the same endpoint as project filter to guarantee identical counts
             const cacheBuster = Date.now();
             const url = appUrl + "/project/get-all-projects";
-            const base = new URLSearchParams({ task_scope: 'me', _cb: String(cacheBuster) });
-            if (window.currentSearch && String(window.currentSearch).trim() !== '') {
-                base.set('search', String(window.currentSearch).trim());
+            const base = new URLSearchParams({
+                task_scope: "me",
+                _cb: String(cacheBuster),
+            });
+            if (
+                window.currentSearch &&
+                String(window.currentSearch).trim() !== ""
+            ) {
+                base.set("search", String(window.currentSearch).trim());
             }
-            if (typeof window.currentProjectId !== 'undefined' && window.currentProjectId) {
-                base.set('project_id', String(window.currentProjectId));
+            if (
+                typeof window.currentProjectId !== "undefined" &&
+                window.currentProjectId
+            ) {
+                base.set("project_id", String(window.currentProjectId));
             }
-            if (window.currentFilterDate && String(window.currentFilterDate).trim() !== '') {
-                base.set('date', String(window.currentFilterDate).trim());
+            if (
+                window.currentFilterDate &&
+                String(window.currentFilterDate).trim() !== ""
+            ) {
+                base.set("date", String(window.currentFilterDate).trim());
             }
-            const sortBySel = document.getElementById('filterSortBy');
-            if (sortBySel && sortBySel.value) base.set('sort_by', sortBySel.value);
+            const sortBySel = document.getElementById("filterSortBy");
+            if (sortBySel && sortBySel.value)
+                base.set("sort_by", sortBySel.value);
 
-            const [totalRes, compRes, progRes, notRes, lateRes, tasksRes] = await Promise.all([
-                fetch(url + '?' + base.toString()),
-                fetch(url + '?' + new URLSearchParams({ ...Object.fromEntries(base), filter: 'completed' })),
-                fetch(url + '?' + new URLSearchParams({ ...Object.fromEntries(base), filter: 'in_progress' })),
-                fetch(url + '?' + new URLSearchParams({ ...Object.fromEntries(base), filter: 'not_started' })),
-                fetch(url + '?' + new URLSearchParams({ ...Object.fromEntries(base), filter: 'late' })),
-                fetch(appUrl + "/task/index/no-pagination?_cb=" + cacheBuster),
-            ]);
-
-            const [totalJson, compJson, progJson, notJson, lateJson, tasksJson] =
+            const [totalRes, compRes, progRes, notRes, lateRes, tasksRes] =
                 await Promise.all([
-                    totalRes.json(),
-                    compRes.json(),
-                    progRes.json(),
-                    notRes.json(),
-                    lateRes.json(),
-                    tasksRes.json(),
+                    fetch(url + "?" + base.toString()),
+                    fetch(
+                        url +
+                            "?" +
+                            new URLSearchParams({
+                                ...Object.fromEntries(base),
+                                filter: "completed",
+                            })
+                    ),
+                    fetch(
+                        url +
+                            "?" +
+                            new URLSearchParams({
+                                ...Object.fromEntries(base),
+                                filter: "in_progress",
+                            })
+                    ),
+                    fetch(
+                        url +
+                            "?" +
+                            new URLSearchParams({
+                                ...Object.fromEntries(base),
+                                filter: "not_started",
+                            })
+                    ),
+                    fetch(
+                        url +
+                            "?" +
+                            new URLSearchParams({
+                                ...Object.fromEntries(base),
+                                filter: "late",
+                            })
+                    ),
+                    fetch(
+                        appUrl + "/task/index/no-pagination?_cb=" + cacheBuster
+                    ),
                 ]);
+
+            const [
+                totalJson,
+                compJson,
+                progJson,
+                notJson,
+                lateJson,
+                tasksJson,
+            ] = await Promise.all([
+                totalRes.json(),
+                compRes.json(),
+                progRes.json(),
+                notRes.json(),
+                lateRes.json(),
+                tasksRes.json(),
+            ]);
 
             // Use totals derived from filter API
             const totalCount = extractTotal(totalJson);
@@ -421,11 +586,18 @@
             };
 
             // Debug logging
-            console.log('Dashboard Filter Results:', derivedCounts);
+            console.log("Dashboard Filter Results:", derivedCounts);
 
             updateChartAndLabels(projects, derivedCounts);
             projectsCache = projects;
-            renderTimeline("#timelineRows", "#timelineTitle");
+            renderTimeline(
+                "#timelineHeader",
+                "#timelineRows",
+                "week",
+                currentMonth,
+                currentYear,
+                currentWeek
+            );
         } catch (e) {
             console.error("fetchProjectsAndRender error", e);
             projectsCache = [];
@@ -435,7 +607,14 @@
                 late: 0,
                 not_started: 0,
             });
-            renderTimeline("#timelineRows", "#timelineTitle");
+            renderTimeline(
+                "#timelineHeader",
+                "#timelineRows",
+                "week",
+                currentMonth,
+                currentYear,
+                currentWeek
+            );
         }
     }
 
@@ -456,8 +635,14 @@
             late: 0,
             not_started: 0,
         });
-        renderTimeline("#timelineRows", "#timelineTitle");
-
+        renderTimeline(
+            "#timelineHeader",
+            "#timelineRows",
+            "week",
+            currentMonth,
+            currentYear,
+            currentWeek
+        );
         $("#prevTimeline").on("click", function () {
             if (currentWeekProject > 0) {
                 currentWeekProject--;
@@ -467,10 +652,20 @@
                     currentMonthProject = 11;
                     currentYearProject--;
                 }
-                weeksCache = getCalendarWeeks(currentYearProject, currentMonthProject);
+                weeksCache = getCalendarWeeks(
+                    currentYearProject,
+                    currentMonthProject
+                );
                 currentWeekProject = weeksCache.length - 1;
             }
-            renderTimeline("#timelineRows", "#timelineTitle");
+            renderTimeline(
+                "#timelineHeader",
+                "#timelineRows",
+                "week",
+                currentMonth,
+                currentYear,
+                currentWeek
+            );
         });
 
         $("#nextTimeline").on("click", function () {
@@ -482,25 +677,24 @@
                     currentMonthProject = 0;
                     currentYearProject++;
                 }
-                weeksCache = getCalendarWeeks(currentYearProject, currentMonthProject);
+                weeksCache = getCalendarWeeks(
+                    currentYearProject,
+                    currentMonthProject
+                );
                 currentWeekProject = 0;
             }
-            renderTimeline("#timelineRows", "#timelineTitle");
+            renderTimeline(
+                "#timelineHeader",
+                "#timelineRows",
+                "week",
+                currentMonth,
+                currentYear,
+                currentWeek
+            );
         });
 
-        // Toggle timeline (fix selector to dashboard DOM)
-        $(document).on("click", ".toggle-timeline", function () {
-            const $timelineCard = $(this)
-                .closest(".project-card")
-                .find(".timeline-card-mobile");
-            $timelineCard.slideToggle();
-            if ($timelineCard.is(":visible")) {
-                renderTimeline("#timelineRows", "#timelineTitle");
-            }
-        });
-
-        // Fetch and render
         fetchProjectsAndRender();
+        loadTimelineProjects();
     });
 
     // Open Project Detail modal when clicking a timeline bar (reuse project page endpoint)

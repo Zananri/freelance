@@ -34,7 +34,7 @@
                 <span class="material-symbols-outlined">grid_view</span>
             </button>
             <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
-                Add Project
+                Add <span class="visible-mobile">Project</span>
             </button>
         </div>
     </div>

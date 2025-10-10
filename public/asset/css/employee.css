@@ -673,3 +673,96 @@ table.table > tbody > tr > td {
     border: none;
     background: #e9eef4;
 }
+
+.custom-input select,
+.custom-input input,
+.custom-input textarea {
+    border: none;
+    height: 45px;
+}
+
+.modal-content-custom {
+    border-radius: 16px;
+    padding: 12px 12px;
+    background: rgb(240, 241, 248);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border: none;
+}
+
+.modal-body-custom {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.modal-footer-custom {
+    border: none;
+    justify-content: center;
+    width: 100%;
+    padding: 0;
+}
+
+.modal-footer-custom button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    height: 45px;
+}
+
+.btn-submit-black {
+    background-color: #444444;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-submit-black:hover {
+    background-color: #333;
+    color: white;
+}
+
+.btn-custom-close {
+    background-color: #e3e4ee;
+    color: #444444;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: normal;
+    font-size: 14px;
+    transition: background-color 0.3s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 45px;
+}
+
+.btn-custom-close:hover {
+    background-color: #e3e4ee;
+    color: #444444;
+}

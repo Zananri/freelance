@@ -4195,7 +4195,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const repComment = document.createElement('p');
                                             repComment.className = 'mb-1';
                                             repComment.style.fontSize = '13px';
-                                            repComment.textContent = rep.feedback_comment || '';
+                                            repComment.innerHTML = rep.feedback_comment || '';
                                             repContent.appendChild(repComment);
 
                                             const repMedia = document.createElement('div');
@@ -4497,17 +4497,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         const el = modalBody.querySelector(`.feedback-item[data-feedback-id="${fid}"]`);
                                                         if (el) el.remove();
                                                     } catch(_){}
-                                                    // update badge count on card
+                                                    // refresh badge count from backend to ensure correctness
                                                     try {
-                                                        const card = document.querySelector(`[data-project-id="${projectId}"]`);
-                                                        if (card) {
-                                                            const badge = card.querySelector('.project-feedback-count');
-                                                            if (badge) {
-                                                                const cur = parseInt(badge.textContent) || 0;
-                                                                badge.textContent = Math.max(0, cur - 1);
-                                                            }
-                                                        }
-                                                    } catch(_){}
+                                                        fetch(appUrl + '/project-feedbacks/count/' + projectId, { headers: { 'Accept': 'application/json' } })
+                                                            .then(r => r.json())
+                                                            .then(c => {
+                                                                if (c && c.data && typeof c.data.count === 'number') {
+                                                                    const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                                                                    if (card) {
+                                                                        const badge = card.querySelector('.project-feedback-count');
+                                                                        if (badge) { badge.textContent = String(c.data.count); }
+                                                                    }
+                                                                }
+                                                            }).catch(()=>{});
+                                                    } catch(_){ }
+                                                    // refresh modal list so replies/thread state is accurate
+                                                    try { loadFeedbackData(projectId); } catch(_) {}
                                                     showFloatingAlert(res.message || 'Feedback deleted', 'success', 1500);
                                                     // signal done to close modal
                                                     done(true);
@@ -4557,6 +4562,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                                             }
                                                         }
                                                     } catch(_){}
+                                                    // refresh badge count from backend after reply deletion
+                                                    try {
+                                                        fetch(appUrl + '/project-feedbacks/count/' + projectId, { headers: { 'Accept': 'application/json' } })
+                                                            .then(r => r.json())
+                                                            .then(c => {
+                                                                if (c && c.data && typeof c.data.count === 'number') {
+                                                                    const card = document.querySelector(`[data-project-id="${projectId}"]`);
+                                                                    if (card) {
+                                                                        const badge = card.querySelector('.project-feedback-count');
+                                                                        if (badge) { badge.textContent = String(c.data.count); }
+                                                                    }
+                                                                }
+                                                            }).catch(()=>{});
+                                                    } catch(_){ }
+                                                    // also refresh modal list to reflect removal
+                                                    try { loadFeedbackData(projectId); } catch(_) {}
                                                     showFloatingAlert(res.message || 'Reply deleted', 'success', 1500);
                                                     done(true);
                                                 }).catch(err => {

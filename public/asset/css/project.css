@@ -187,8 +187,8 @@
 #projectChart {
     max-width: 256.51px !important;
     max-height: 256.51px !important;
-    min-width: 150px;
-    min-height: 150px;
+    min-width: 256.51px !important;
+    min-height: 256.51px !important;
     display: block;
     margin: 0 auto;
 }
@@ -1223,34 +1223,11 @@
     #projectChart {
         max-width: 200px !important;
         max-height: 200px !important;
+        min-width: 200px !important;
+        min-height: 200px !important;
         display: block;
         margin: 0 auto;
     }
-
-    /* #all-cards-container {
-        max-height: 100vh;
-        overflow-y: auto;
-        padding-right: 8px;
-        overflow-x: hidden;
-    }
-
-    .project-bottom-cards {
-        width: 100%;
-        height: 200px;
-    }
-
-    #all-cards-container::-webkit-scrollbar {
-        width: 4px;
-    }
-
-    #all-cards-container::-webkit-scrollbar-track {
-        background-color: transparent;
-    }
-
-    #all-cards-container::-webkit-scrollbar-thumb {
-        background-color: #cccccc;
-        border-radius: 4px;
-    } */
 }
 
 @media (min-width: 769px) and (max-width: 1024px) {
@@ -1263,10 +1240,10 @@
     }
 
     #projectChart {
-        max-width: 256.51px !important;
-        max-height: 256.51px !important;
-        min-width: 150px;
-        min-height: 150px;
+        max-width: 200px !important;
+        max-height: 200px !important;
+        min-width: 200px !important;
+        min-height: 200px !important;
         display: block;
         margin: 0 auto;
     }
@@ -1417,11 +1394,15 @@
         min-height: 50%;
     }
 
+    .visible-mobile {
+        display: none;
+    }
+
     #projectChart {
-        max-width: 200px !important;
-        max-height: 200px !important;
-        min-width: 200px;
-        min-height: 200px;
+        max-width: 150px !important;
+        max-height: 150px !important;
+        min-width: 150px;
+        min-height: 150px;
         display: block;
         margin: 0 auto;
     }

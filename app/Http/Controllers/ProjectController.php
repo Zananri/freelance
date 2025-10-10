@@ -26,6 +26,50 @@ use Carbon\Carbon;
 class ProjectController extends Controller
 {
     /**
+     * Recursively delete a project feedback and its replies, including attached files.
+     */
+    private function deleteProjectFeedbackCascade(ProjectFeedback $feedback): void
+    {
+        // Delete children first
+        try {
+            $children = ProjectFeedback::where('parent_id', $feedback->id)->get();
+            foreach ($children as $child) {
+                $this->deleteProjectFeedbackCascade($child);
+            }
+        } catch (\Throwable $_) {}
+
+        // Delete attached image
+        try {
+            if (!empty($feedback->image)) {
+                $path = public_path('file/project/' . $feedback->image);
+                if (is_file($path)) { @unlink($path); }
+            }
+        } catch (\Throwable $_) {}
+
+        // Delete legacy single reference file
+        try {
+            if (!empty($feedback->reference_file)) {
+                $p = public_path('file/project/' . $feedback->reference_file);
+                if (is_file($p)) { @unlink($p); }
+            }
+        } catch (\Throwable $_) {}
+
+        // Delete array reference files
+        try {
+            $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
+            if (empty($refFiles) && is_string($feedback->reference_files) && $feedback->reference_files !== '') {
+                $decoded = json_decode($feedback->reference_files, true);
+                if (is_array($decoded)) $refFiles = $decoded;
+            }
+            foreach ($refFiles as $rf) {
+                if (!$rf) continue; $p = public_path('file/project/' . $rf); if (is_file($p)) { @unlink($p); }
+            }
+        } catch (\Throwable $_) {}
+
+        // Finally delete row
+        try { $feedback->delete(); } catch (\Throwable $_) {}
+    }
+    /**
      * Safely derive a proper HTTP status code from an exception.
      * Falls back to 500 when the exception code is non-numeric or out of 4xx/5xx range.
      */
@@ -2530,27 +2574,8 @@ class ProjectController extends Controller
                 ], 403);
             }
 
-            // Delete attached image if any
-            if (!empty($feedback->image)) {
-                $path = public_path('file/project/' . $feedback->image);
-                if (file_exists($path)) {
-                    @unlink($path);
-                }
-            }
-
-            // Delete attached reference files if any
-            $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
-            foreach ($refFiles as $rf) {
-                if (!$rf)
-                    continue;
-                $p = public_path('file/project/' . $rf);
-                if (file_exists($p)) {
-                    @unlink($p);
-                }
-            }
-
-            // Delete the feedback (this will also delete replies if cascade set; otherwise remove replies manually)
-            $feedback->delete();
+            // Cascade delete feedback + its replies and files
+            $this->deleteProjectFeedbackCascade($feedback);
 
             DB::commit();
 
@@ -2567,6 +2592,46 @@ class ProjectController extends Controller
                 'status' => 'error',
                 'message' => 'Failed to delete feedback: ' . $e->getMessage(),
             ], $status);
+        }
+    }
+
+    /**
+     * Get count of feedbacks for a specific project (excluding replies whose parent no longer exists).
+     */
+    public function getProjectFeedbackCount($projectId)
+    {
+        try {
+            $project = Project::find($projectId);
+            if (!$project || ($project->status ?? null) === 'DELETED') {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => ['count' => 0]
+                ]);
+            }
+
+            $count = ProjectFeedback::where('project_id', $projectId)
+                ->where(function($q){
+                    $q->whereNull('parent_id')
+                      ->orWhereExists(function($sub){
+                          $sub->select(DB::raw(1))
+                              ->from('project_feedbacks as p')
+                              ->whereColumn('p.id', 'project_feedbacks.parent_id');
+                      });
+                })
+                ->count();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => ['count' => $count]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => ['count' => 0]
+            ]);
         }
     }
 
@@ -3151,6 +3216,240 @@ class ProjectController extends Controller
                 'code' => 500,
                 'status' => 'error',
                 'message' => 'Failed to export projects: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Export a single project's report to Excel (same format as exportProjectsExcel but scoped).
+     */
+    public function exportProjectExcelSingle(Request $request, string $id)
+    {
+        try {
+            $employeeId = auth()->user()?->employee?->id;
+
+            // Load the single project with relationships; filter tasks to active and to this employee when present
+            $project = Project::where('status', '!=', 'DELETED')
+                ->where('id', $id)
+                ->when($employeeId, function ($q) use ($employeeId) {
+                    $q->whereHas('projectAssignments', function ($qa) use ($employeeId) {
+                        $qa->where('employee_id', $employeeId);
+                    });
+                })
+                ->with([
+                    'department',
+                    'division',
+                    'tasks' => function ($query) use ($employeeId) {
+                        $query->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
+                              ->when($employeeId, function ($q) use ($employeeId) {
+                                  $q->whereHas('assignments', function ($a) use ($employeeId) {
+                                      $a->where('employee_id', $employeeId);
+                                  });
+                              })
+                              ->with(['assignments.employee']);
+                    },
+                    'projectAssignments.employee'
+                ])
+                ->withCount([
+                    'tasks as total_tasks' => function ($q) use ($employeeId) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
+                          ->when($employeeId, function ($q2) use ($employeeId) {
+                              $q2->whereHas('assignments', function ($a) use ($employeeId) {
+                                  $a->where('employee_id', $employeeId);
+                              });
+                          });
+                    },
+                    'tasks as completed_tasks' => function ($q) use ($employeeId) {
+                        $q->whereIn(DB::raw('LOWER(status)'), ['completed'])
+                          ->when($employeeId, function ($q2) use ($employeeId) {
+                              $q2->whereHas('assignments', function ($a) use ($employeeId) {
+                                  $a->where('employee_id', $employeeId);
+                              });
+                          });
+                    },
+                    'tasks as in_progress_tasks' => function ($q) use ($employeeId) {
+                        $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
+                          ->when($employeeId, function ($q2) use ($employeeId) {
+                              $q2->whereHas('assignments', function ($a) use ($employeeId) {
+                                  $a->where('employee_id', $employeeId);
+                              });
+                          });
+                    },
+                ])
+                ->first();
+
+            if (!$project) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Project not found or not accessible'
+                ], 404);
+            }
+
+            // Reuse the same spreadsheet layout as exportProjectsExcel but pass a single-element collection
+            $projects = collect([$project]);
+
+            $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $activeWorksheet = $spreadsheet->getActiveSheet();
+
+            $activeWorksheet->mergeCells('A1:J1');
+            $activeWorksheet->setCellValue('A1', 'Project Report - NSA Office Management System');
+            $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+            $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            // New header layout for project detail export
+            $headers = [
+                'A2' => 'No',
+                'B2' => 'Nama Project',
+                'C2' => 'Status',
+                'D2' => 'Task',
+                'E2' => 'Status Task',
+                'F2' => 'Waktu Mulai',
+                'G2' => 'Deadline',
+                'H2' => 'PIC',
+                'I2' => 'Executors',
+                'J2' => 'Total Task',
+            ];
+            foreach ($headers as $cell => $value) { $activeWorksheet->setCellValue($cell, $value); }
+
+            $headerStyle = [
+                'borders' => [ 'allBorders' => [ 'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN ] ],
+                'fill' => [ 'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => [ 'argb' => 'FFE0E0E0' ] ],
+            ];
+            $activeWorksheet->getStyle('A2:J2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:J2')->getAlignment()->setWrapText(true)->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+            $columnWidths = [
+                'A' => 5,
+                'B' => 30,
+                'C' => 12,
+                'D' => 35,
+                'E' => 15,
+                'F' => 13,
+                'G' => 13,
+                'H' => 20,
+                'I' => 35,
+                'J' => 12,
+            ];
+            foreach ($columnWidths as $col=>$w) { $activeWorksheet->getColumnDimension($col)->setWidth($w); }
+
+            $row = 3; $no = 1;
+            foreach ($projects as $p) {
+                $totalTasks = $p->total_tasks ?? $p->tasks->count();
+                if ($p->tasks->count() > 0) {
+                    $projStartRow = $row;
+                    foreach ($p->tasks as $task) {
+                        // Prepare values per task
+                        $projectName = $p->title;
+                        $projectStatus = ucfirst((string)($p->status ?? '-'));
+                        $taskTitle = $task->title ?? '-';
+                        $taskStatus = ucfirst(trim(str_replace('_',' ', (string)($task->status ?? '')))) ?: '-';
+                        $start = $task->start_date ? \Carbon\Carbon::parse($task->start_date)->format('d-M-Y') : '-';
+                        $deadline = $task->due_date ? \Carbon\Carbon::parse($task->due_date)->format('d-M-Y') : '-';
+                        // PIC
+                        $picAssign = $task->assignments ? $task->assignments->firstWhere('role', 'PIC') : null;
+                        $picName = $picAssign && $picAssign->employee ? ($picAssign->employee->name ?? '-') : '-';
+                        // Executors
+                        $executorNames = '-';
+                        if ($task->assignments) {
+                            $execs = $task->assignments->where('role', 'EXECUTOR')
+                                ->map(function($a){ return $a->employee->name ?? null; })
+                                ->filter()
+                                ->unique()
+                                ->values()
+                                ->all();
+                            if (!empty($execs)) $executorNames = implode(', ', $execs);
+                        }
+
+                        // Set cells
+                        $activeWorksheet->setCellValue('A'.$row, $no);
+                        // Write project name and status only on the first row; we'll merge them after the loop
+                        if ($row === $projStartRow) {
+                            $activeWorksheet->setCellValue('B'.$row, $projectName);
+                            $activeWorksheet->setCellValue('C'.$row, $projectStatus);
+                        }
+                        $activeWorksheet->setCellValue('D'.$row, $taskTitle);
+                        $activeWorksheet->setCellValue('E'.$row, $taskStatus);
+                        $activeWorksheet->setCellValue('F'.$row, $start);
+                        $activeWorksheet->setCellValue('G'.$row, $deadline);
+                        $activeWorksheet->setCellValue('H'.$row, $picName);
+                        $activeWorksheet->setCellValue('I'.$row, $executorNames);
+                        // Total Task ditulis hanya di baris pertama project, nanti di-merge
+                        if ($row === $projStartRow) {
+                            $activeWorksheet->setCellValue('J'.$row, $totalTasks);
+                        }
+
+                        // Row height
+                        $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+                        $row++; $no++;
+                    }
+                    $projEndRow = $row - 1;
+                    if ($projEndRow > $projStartRow) {
+                        // Merge Nama Project and Status columns for this project's range
+                        $activeWorksheet->mergeCells('B'.$projStartRow.':B'.$projEndRow);
+                        $activeWorksheet->mergeCells('C'.$projStartRow.':C'.$projEndRow);
+                        // Merge Total Task column for this project's range
+                        $activeWorksheet->mergeCells('J'.$projStartRow.':J'.$projEndRow);
+                        // Alignment: center for both; vertical center for both
+                        $activeWorksheet->getStyle('B'.$projStartRow.':B'.$projEndRow)
+                            ->getAlignment()
+                            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        $activeWorksheet->getStyle('C'.$projStartRow.':C'.$projEndRow)
+                            ->getAlignment()
+                            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        $activeWorksheet->getStyle('J'.$projStartRow.':J'.$projEndRow)
+                            ->getAlignment()
+                            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                    }
+                } else {
+                    // No tasks: put a single row with project info and placeholders
+                    $activeWorksheet->setCellValue('A'.$row, $no);
+                    $activeWorksheet->setCellValue('B'.$row, $p->title);
+                    $activeWorksheet->setCellValue('C'.$row, ucfirst((string)($p->status ?? '-')));
+                    $activeWorksheet->setCellValue('D'.$row, 'No Tasks');
+                    $activeWorksheet->setCellValue('E'.$row, '-');
+                    $activeWorksheet->setCellValue('F'.$row, '-');
+                    $activeWorksheet->setCellValue('G'.$row, '-');
+                    $activeWorksheet->setCellValue('H'.$row, '-');
+                    $activeWorksheet->setCellValue('I'.$row, '-');
+                    $activeWorksheet->setCellValue('J'.$row, $totalTasks);
+                    $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+                    $row++; $no++;
+                }
+            }
+
+            if ($row > 3) {
+                $dataStyle = ['borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]];
+                $activeWorksheet->getStyle('A3:J'.($row-1))->applyFromArray($dataStyle);
+                // Center some columns
+                $activeWorksheet->getStyle('A3:A'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('B3:B'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('C3:C'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('F3:F'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('G3:G'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('J3:J'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                // Wrap long texts
+                $activeWorksheet->getStyle('D3:D'.($row-1))->getAlignment()->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+                $activeWorksheet->getStyle('H3:I'.($row-1))->getAlignment()->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
+            }
+
+            $activeWorksheet->setTitle('Project Report');
+            $filename = 'project_'.$id.'_report_'.date('Y_m_d_H_i_s').'.xlsx';
+
+            $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            $tempFile = tempnam(sys_get_temp_dir(), 'project_export_single');
+            $writer->save($tempFile);
+            return response()->download($tempFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])->deleteFileAfterSend(true);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => 'Failed to export project: ' . $e->getMessage(),
             ], 500);
         }
     }
