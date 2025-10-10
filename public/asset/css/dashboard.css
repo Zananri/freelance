@@ -558,6 +558,7 @@
 .timeline-wrapper {
     overflow-y: auto;
     position: relative;
+    max-height: 250px;
 }
 
 .timeline-table {

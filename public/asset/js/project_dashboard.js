@@ -775,24 +775,6 @@
             );
         });
 
-        // Toggle timeline (fix selector to dashboard DOM)
-        $(document).on("click", ".toggle-timeline", function () {
-            const $timelineCard = $(this)
-                .closest(".project-card")
-                .find(".timeline-card-mobile");
-            $timelineCard.slideToggle();
-            if ($timelineCard.is(":visible")) {
-                renderTimeline(
-                    "#timelineHeader",
-                    "#timelineRows",
-                    "week",
-                    currentMonth,
-                    currentYear,
-                    currentWeek
-                );
-            }
-        });
-
         fetchProjectsAndRender();
         loadTimelineProjects();
     });
