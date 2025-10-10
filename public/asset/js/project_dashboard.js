@@ -155,14 +155,7 @@
 
                 try {
                     buildTimelineFromProjects(completeProjects);
-                    renderTimeline(
-                        "#timelineHeader",
-                        "#timelineRows",
-                        "week",
-                        currentMonth,
-                        currentYear,
-                        currentWeek
-                    );
+                    renderTimeline(".timelineHeader", ".timelineRows", "week", currentMonth, currentYear, currentWeek);
                 } catch (e) {
                     console.error("timeline build/render error", e);
                 }
@@ -175,37 +168,18 @@
                             dataType: "json",
                             success: function (resp) {
                                 const data = resp.data || resp;
-                                p.start_date =
-                                    p.start_date ||
-                                    data.start_date ||
-                                    data.start;
-                                p.due_date =
-                                    p.due_date || data.due_date || data.due;
-
+                                p.start_date = p.start_date || data.start_date || data.start;
+                                p.due_date = p.due_date || data.due_date || data.due;
                                 try {
-                                    const updatedProjects =
-                                        completeProjects.concat(
-                                            incompleteProjects
-                                        );
+                                    const updatedProjects = completeProjects.concat(incompleteProjects);
                                     buildTimelineFromProjects(updatedProjects);
-                                    renderTimeline(
-                                        "#timelineHeader",
-                                        "#timelineRows",
-                                        "week",
-                                        currentMonth,
-                                        currentYear,
-                                        currentWeek
-                                    );
+                                    renderTimeline(".timelineHeader", ".timelineRows", "week", currentMonth, currentYear, currentWeek);
                                 } catch (e) {
                                     console.error("timeline update error", e);
                                 }
                             },
                             error: function (err) {
-                                console.warn(
-                                    "failed to fetch project detail for",
-                                    p.id,
-                                    err
-                                );
+                                console.warn("failed to fetch project detail for", p.id, err);
                             },
                         });
                     });
@@ -223,7 +197,6 @@
     function buildTimelineFromProjects(projects) {
         timelineData = [];
         if (!Array.isArray(projects)) return;
-
         projects.forEach((p, idx) => {
             function parseLocal(dateStr, fallback) {
                 const src = (dateStr || "").toString().trim();
@@ -242,9 +215,7 @@
             }
 
             let start = p.start_date ? parseLocal(p.start_date) : new Date();
-            let due = p.due_date
-                ? parseLocal(p.due_date, p.start_date)
-                : new Date(start);
+            let due = p.due_date ? parseLocal(p.due_date, p.start_date) : new Date(start);
             if (start) start.setHours(0, 0, 0, 0);
             if (due) due.setHours(23, 59, 59, 999);
 
@@ -270,12 +241,10 @@
     function getCalendarWeeks(year, month) {
         const firstOfMonth = new Date(year, month, 1);
         const lastOfMonth = new Date(year, month + 1, 0);
-
         let firstMonday = new Date(firstOfMonth);
         while (firstMonday.getDay() !== 1) {
             firstMonday.setDate(firstMonday.getDate() - 1);
         }
-
         const weeks = [];
         let start = new Date(firstMonday);
         while (start <= lastOfMonth || start.getMonth() === month) {
@@ -292,87 +261,65 @@
         return weeks.findIndex((w) => date >= w.start && date <= w.end);
     }
 
-    function renderTimeline(
-        targetHeaderSelector,
-        targetRowsSelector,
-        mode = "week",
-        month = null,
-        year = null,
-        weekIndex = null
-    ) {
-        const headerRow = document.querySelector(targetHeaderSelector);
-        const rowsContainer = document.querySelector(targetRowsSelector);
-        if (!headerRow || !rowsContainer) return;
-
-        headerRow.innerHTML = "";
-        rowsContainer.innerHTML = "";
+    function renderTimeline(headerSelector, rowsSelector, mode = "week", month = null, year = null, weekIndex = null) {
+        const headerEls = document.querySelectorAll(headerSelector);
+        const rowEls = document.querySelectorAll(rowsSelector);
+        if (!headerEls.length || !rowEls.length) return;
 
         month = month ?? new Date().getMonth();
         year = year ?? new Date().getFullYear();
 
+        headerEls.forEach((el) => (el.innerHTML = ""));
+        rowEls.forEach((el) => (el.innerHTML = ""));
+
         if (mode === "month") {
             const daysInMonth = new Date(year, month + 1, 0).getDate();
-            for (let d = 1; d <= daysInMonth; d++) {
-                const th = document.createElement("th");
-                th.textContent = d;
-                headerRow.appendChild(th);
-            }
-
-            timelineData.forEach((proj) => {
-                const startDay = Math.max(
-                    1,
-                    proj.start_date.getMonth() === month
-                        ? proj.start_date.getDate()
-                        : 1
-                );
-                const endDay = Math.min(
-                    daysInMonth,
-                    proj.due_date.getMonth() === month
-                        ? proj.due_date.getDate()
-                        : daysInMonth
-                );
-                if (
-                    proj.start_date.getMonth() > month ||
-                    proj.due_date.getMonth() < month
-                )
-                    return;
-                const tr = document.createElement("tr");
-                for (let i = 1; i < startDay; i++)
-                    tr.appendChild(document.createElement("td"));
-                if (endDay >= startDay) {
-                    const barTd = document.createElement("td");
-                    barTd.colSpan = endDay - startDay + 1;
-                    const titleText = `${
-                        proj.name
-                    } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
-                    barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
-                    tr.appendChild(barTd);
+            headerEls.forEach((headerRow) => {
+                for (let d = 1; d <= daysInMonth; d++) {
+                    const th = document.createElement("th");
+                    th.textContent = d;
+                    headerRow.appendChild(th);
                 }
-                for (let i = endDay + 1; i <= daysInMonth; i++)
-                    tr.appendChild(document.createElement("td"));
-                rowsContainer.appendChild(tr);
             });
-            const titleEl = document.getElementById("timelineModalTitle");
-            if (titleEl) {
-                titleEl.textContent = `Timeline ${months[month]} ${year}`;
-            }
+
+            rowEls.forEach((rowsContainer) => {
+                timelineData.forEach((proj) => {
+                    const startDay = Math.max(
+                        1,
+                        proj.start_date.getMonth() === month ? proj.start_date.getDate() : 1
+                    );
+                    const endDay = Math.min(
+                        daysInMonth,
+                        proj.due_date.getMonth() === month ? proj.due_date.getDate() : daysInMonth
+                    );
+                    if (proj.start_date.getMonth() > month || proj.due_date.getMonth() < month) return;
+                    const tr = document.createElement("tr");
+                    for (let i = 1; i < startDay; i++) tr.appendChild(document.createElement("td"));
+                    if (endDay >= startDay) {
+                        const barTd = document.createElement("td");
+                        barTd.colSpan = endDay - startDay + 1;
+                        const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                        barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span> ${proj.name}</div>`;
+                        tr.appendChild(barTd);
+                    }
+                    for (let i = endDay + 1; i <= daysInMonth; i++) tr.appendChild(document.createElement("td"));
+                    rowsContainer.appendChild(tr);
+                });
+            });
+
+            document.querySelectorAll("#timelineTitle").forEach((el) => {
+                el.textContent = `Timeline ${months[month]} ${year}`;
+            });
             return;
         }
 
-        let totalCells = 7;
-        const headerLabels = [
-            "Mo",
-            "Tu",
-            "We",
-            "Th",
-            "Fr",
-            "Sa",
-            "Su",
-        ];
-        headerLabels.forEach((label) => {
-            const th = document.createElement("th");
-            th.textContent = label;
-            headerRow.appendChild(th);
+        const headerLabels = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+        headerEls.forEach((headerRow) => {
+            headerLabels.forEach((label) => {
+                const th = document.createElement("th");
+                th.textContent = label;
+                headerRow.appendChild(th);
+            });
         });
 
         const weeks = getCalendarWeeks(year, month);
@@ -381,108 +328,79 @@
             weekIndex = getWeekOfDate(today, weeks);
             if (weekIndex < 0) weekIndex = 0;
         }
-
         const weekInfo = weeks[weekIndex];
         if (!weekInfo) return;
+        const weekStartDate = weekInfo.start;
+        const weekEndDate = weekInfo.end;
 
-        let weekStartDate = weekInfo.start;
-        let weekEndDate = weekInfo.end;
+        const filteredProjects = timelineData.filter(
+            (proj) => proj.start_date <= weekEndDate && proj.due_date >= weekStartDate
+        );
 
-        const filteredProjects = timelineData.filter((proj) => {
-            return (
-                proj.start_date <= weekEndDate && proj.due_date >= weekStartDate
-            );
+        rowEls.forEach((rowsContainer) => {
+            filteredProjects.forEach((proj) => {
+                const tr = document.createElement("tr");
+                function diffDaysUTC(a, b) {
+                    const utcA = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+                    const utcB = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+                    return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
+                }
+                const rawStart = diffDaysUTC(proj.start_date, weekStartDate);
+                const rawEnd = diffDaysUTC(proj.due_date, weekStartDate);
+                const projStartIdx = Math.max(0, rawStart);
+                const projEndIdx = Math.min(6, rawEnd);
+
+                for (let i = 0; i < projStartIdx; i++) tr.appendChild(document.createElement("td"));
+                if (projEndIdx >= projStartIdx) {
+                    const barTd = document.createElement("td");
+                    barTd.colSpan = projEndIdx - projStartIdx + 1;
+                    const titleText = `${proj.name} (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
+                    barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span><div class="bar-name">${proj.name}</div></div>`;
+                    tr.appendChild(barTd);
+                }
+                for (let i = projEndIdx + 1; i < 7; i++) tr.appendChild(document.createElement("td"));
+                rowsContainer.appendChild(tr);
+            });
         });
 
-        filteredProjects.forEach((proj) => {
-            const tr = document.createElement("tr");
-            function diffDaysUTC(a, b) {
-                const utcA = Date.UTC(
-                    a.getFullYear(),
-                    a.getMonth(),
-                    a.getDate()
-                );
-                const utcB = Date.UTC(
-                    b.getFullYear(),
-                    b.getMonth(),
-                    b.getDate()
-                );
-                return Math.floor((utcA - utcB) / (1000 * 60 * 60 * 24));
-            }
-            const rawStart = diffDaysUTC(proj.start_date, weekStartDate);
-            const rawEnd = diffDaysUTC(proj.due_date, weekStartDate);
-            const projStartIdx = Math.max(0, rawStart);
-            const projEndIdx = Math.min(6, rawEnd);
-
-            for (let i = 0; i < projStartIdx; i++)
-                tr.appendChild(document.createElement("td"));
-
-            if (projEndIdx >= projStartIdx) {
-                const barTd = document.createElement("td");
-                barTd.colSpan = projEndIdx - projStartIdx + 1;
-                const titleText = `${
-                    proj.name
-                } (${proj.start_date.toLocaleDateString()} → ${proj.due_date.toLocaleDateString()})`;
-                barTd.innerHTML = `<div class="timeline-bar ${proj.color}" data-project-id="${proj.id}" title="${titleText}"><span class="circle"></span><div class="bar-name">${proj.name}</div></div>`;
-                tr.appendChild(barTd);
-            }
-
-            for (let i = projEndIdx + 1; i < totalCells; i++)
-                tr.appendChild(document.createElement("td"));
-
-            rowsContainer.appendChild(tr);
+        document.querySelectorAll("#timelineTitle").forEach((el) => {
+            el.textContent = `${months[month]} Week ${weekIndex + 1}`;
         });
-
-        const titleEl = document.getElementById("timelineTitle");
-        if (titleEl) {
-            const monthShort = months[month];
-            titleEl.textContent = `${monthShort} Week ${weekIndex + 1}`;
-        }
     }
 
-    document.getElementById("prevTimeline").addEventListener("click", () => {
-        if (currentWeek > 0) {
-            currentWeek--;
-        } else {
-            currentMonth--;
-            if (currentMonth < 0) {
-                currentMonth = 11;
-                currentYear--;
+    document.querySelectorAll("#prevTimeline").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            if (currentWeek > 0) {
+                currentWeek--;
+            } else {
+                currentMonth--;
+                if (currentMonth < 0) {
+                    currentMonth = 11;
+                    currentYear--;
+                }
+                const weeks = getCalendarWeeks(currentYear, currentMonth);
+                currentWeek = weeks.length > 0 ? weeks.length - 1 : 0;
             }
-            const weeks = getCalendarWeeks(currentYear, currentMonth);
-            currentWeek = weeks.length > 0 ? weeks.length - 1 : 0;
-        }
-        renderTimeline(
-            "#timelineHeader",
-            "#timelineRows",
-            "week",
-            currentMonth,
-            currentYear,
-            currentWeek
-        );
+            renderTimeline(".timelineHeader", ".timelineRows", "week", currentMonth, currentYear, currentWeek);
+        });
     });
 
-    document.getElementById("nextTimeline").addEventListener("click", () => {
-        const weeks = getCalendarWeeks(currentYear, currentMonth);
-        const maxWeek = weeks.length - 1;
-        if (currentWeek < maxWeek) {
-            currentWeek++;
-        } else {
-            currentMonth++;
-            if (currentMonth > 11) {
-                currentMonth = 0;
-                currentYear++;
+    document.querySelectorAll("#nextTimeline").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            const weeks = getCalendarWeeks(currentYear, currentMonth);
+            const maxWeek = weeks.length - 1;
+            if (currentWeek < maxWeek) {
+                currentWeek++;
+            } else {
+                currentMonth++;
+                if (currentMonth > 11) {
+                    currentMonth = 0;
+                    currentYear++;
+                }
+                currentWeek = 0;
             }
-            currentWeek = 0;
-        }
-        renderTimeline(
-            "#timelineHeader",
-            "#timelineRows",
-            "week",
-            currentMonth,
-            currentYear,
-            currentWeek
-        );
+            renderTimeline(".timelineHeader", ".timelineRows", "week", currentMonth, currentYear, currentWeek);
+        });
     });
 
     async function fetchProjectsAndRender() {
@@ -773,24 +691,6 @@
                 currentYear,
                 currentWeek
             );
-        });
-
-        // Toggle timeline (fix selector to dashboard DOM)
-        $(document).on("click", ".toggle-timeline", function () {
-            const $timelineCard = $(this)
-                .closest(".project-card")
-                .find(".timeline-card-mobile");
-            $timelineCard.slideToggle();
-            if ($timelineCard.is(":visible")) {
-                renderTimeline(
-                    "#timelineHeader",
-                    "#timelineRows",
-                    "week",
-                    currentMonth,
-                    currentYear,
-                    currentWeek
-                );
-            }
         });
 
         fetchProjectsAndRender();

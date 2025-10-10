@@ -241,7 +241,7 @@
                                 <div class="chart-section">
                                     <div
                                         class="mobile-icon-project d-flex justify-content-end align-items-center mb-3">
-                                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn">
+                                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal" data-bs-target="#timelineModal">
                                             <span class="material-symbols-outlined"
                                                 style="font-size: 18px; color: #858CA0;">calendar_month</span>
                                         </button>
@@ -921,6 +921,42 @@
                                 </div>
 
 
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Timeline Modal Fullscreen --}}
+                <div class="modal fade" id="timelineModal" tabindex="-1" aria-labelledby="TimelineModalLabel"
+                    aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
+                        <div class="modal-content modal-content-custom" style="box-shadow: none; background-color: rgb(240, 241, 248);">
+                            <div class="modal-body modal-body-custom">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h5 id="timelineTitle" class="fw-semibold mb-0" style="font-size: 16px; color: #454545;">
+                                        Aug week 1
+                                    </h5>
+
+                                    <div class="d-flex align-items-center">
+                                        <button class="btn btn-sm me-2" id="prevTimeline">
+                                            <span class="material-symbols-outlined">chevron_left</span>
+                                        </button>
+                                        <button class="btn btn-sm me-2" id="nextTimeline">
+                                            <span class="material-symbols-outlined">chevron_right</span>
+                                        </button>
+                                        <button type="button" class="btn btn-sm" data-bs-dismiss="modal" aria-label="Close">
+                                            <span class="material-symbols-outlined">fullscreen_exit</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="timeline-wrapper">
+                                    <table class="timeline-table">
+                                        <thead>
+                                            <tr id="timelineHeader"></tr>
+                                        </thead>
+                                        <tbody id="timelineRows"></tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
