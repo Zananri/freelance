@@ -1376,6 +1376,14 @@ input[type="file"]::file-selector-button {
     min-height: calc(100vh - 450px);
 }
 
+.selected-files-list {
+    max-height: 75px;
+}
+
+.feedback-content-detail.fullscreen .selected-files-list {
+    max-height: 50px;
+}
+
 .feedback-content {
     max-height: calc(100vh - 585px);
     min-height: 140px;
