@@ -1,4 +1,4 @@
- document.addEventListener("DOMContentLoaded", function () {
+ $(function () {
     // Mark pure touch-only devices (coarse pointer & no hover) to adjust hover behavior.
     // Avoid disabling hover on hybrid laptops (touchscreen + mouse) which report touch capabilities.
     try {
@@ -150,12 +150,12 @@
     }
 
     // Listen for scroll on task containers to reinitialize tooltips
-    document.addEventListener('DOMContentLoaded', function() {
+    $(function() {
         const taskContainers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks'];
         taskContainers.forEach(containerId => {
             const container = document.getElementById(containerId);
             if (container) {
-                container.addEventListener('scroll', debouncedTooltipReinit, { passive: true });
+                $(container).on('scroll', debouncedTooltipReinit);
             }
         });
     });
@@ -169,11 +169,10 @@
         }, 100);
     }
 
-    window.addEventListener('resize', handleResponsiveTooltipUpdate, { passive: true });
-    window.addEventListener('orientationchange', handleResponsiveTooltipUpdate, { passive: true });
+    $(window).on('resize orientationchange', handleResponsiveTooltipUpdate);
 
     // Listen for global avatar update: refresh visible task cards (minimal: update any img[data-avatar-universal])
-    window.addEventListener('profilePictureUpdated', function(e){
+    $(window).on('profilePictureUpdated', function(e){
         try {
             // Update any universal avatar images
             document.querySelectorAll('img[data-avatar-universal], img[data-global-avatar]').forEach(function(img){
@@ -386,8 +385,8 @@
                 const mEl = document.getElementById(id);
                 const modal = new bootstrap.Modal(mEl);
                 modal.show();
-                mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
-                mEl.querySelector('#confirmAcceptInviteBtn').addEventListener('click', function(){
+                $(mEl).one('hidden.bs.modal', function(){ try { $(this).remove(); } catch(_){} });
+                $(mEl).find('#confirmAcceptInviteBtn').on('click', function(){
                     this.disabled = true; this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...';
                     $.ajax({
                         url: appUrl + '/task/' + taskId + '/accept',
@@ -499,8 +498,8 @@
                 const mEl = document.getElementById(id);
                 const modal = new bootstrap.Modal(mEl);
                 modal.show();
-                mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
-                mEl.querySelector('#confirmRejectInviteBtn').addEventListener('click', function(){
+                $(mEl).one('hidden.bs.modal', function(){ try { $(this).remove(); } catch(_){} });
+                $(mEl).find('#confirmRejectInviteBtn').on('click', function(){
                     const btn = this; btn.disabled = true; btn.textContent = 'Rejecting...';
                     $.ajax({
                         url: appUrl + '/task/' + taskId + '/reject',
@@ -555,7 +554,7 @@
     const projectSelect = document.getElementById("task_project_id");
 
     function setupImageInput(input, label, clearBtn) {
-        input.addEventListener("change", function () {
+        $(input).on("change", function () {
             if (input.files && input.files[0]) {
                 // Enforce image size limit
                 const file = input.files[0];
@@ -581,7 +580,7 @@
             }
         });
 
-        clearBtn.addEventListener("click", function (e) {
+        $(clearBtn).on("click", function (e) {
             e.preventDefault();
             input.value = "";
             label.style.backgroundImage =
@@ -654,37 +653,36 @@
                 </div>
             `;
 
-            selectedContainer
-                .querySelector(".btn-remove-project")
-                .addEventListener("click", () => {
-                    hiddenInput.value = "";
-                    input.value = "";
-                    selectedContainer.innerHTML = "";
-                    document.getElementById("task_parent_id").innerHTML = "<option value=''>No Parent</option>";
-                });
+            $(selectedContainer).find(".btn-remove-project").on("click", function(){
+                hiddenInput.value = "";
+                input.value = "";
+                selectedContainer.innerHTML = "";
+                document.getElementById("task_parent_id").innerHTML = "<option value=''>No Parent</option>";
+            });
 
             // 🔹 Trigger load related tasks
             // Use prefix string and let loadRelatedTasks query DOM by prefix (consistent with schedule usage)
             loadRelatedTasks(p.id, "task", null);
         }
 
-    fetch(appUrl + "/project/index")
-            .then((res) => res.json())
-            .then((payload) => {
+    $.ajax({ url: appUrl + "/project/index", type: "GET", dataType: "json" })
+            .done(function(payload){
                 projects = (payload.data || [])
-                    .map((p) => ({
-                        id: p.id,
-                        title: p.title,
-                        image: p.image || "",
-                        project_type: p.project_type || 'public'
-                    }));
+                    .map(function(p){
+                        return {
+                            id: p.id,
+                            title: p.title,
+                            image: p.image || "",
+                            project_type: p.project_type || 'public'
+                        };
+                    });
             })
-            .catch((err) => console.error("Error loading projects:", err));
+            .fail(function(err){ console.error("Error loading projects:", err); });
 
-        input.addEventListener("input", () => renderDropdown(input.value));
-        input.addEventListener("focus", () => renderDropdown(input.value));
+    $(input).on("input", function(){ renderDropdown(input.value); });
+    $(input).on("focus", function(){ renderDropdown(input.value); });
 
-        document.addEventListener("click", (e) => {
+        $(document).on("click", function(e){
             if (!dropdown.contains(e.target) && e.target !== input) {
                 dropdown.style.display = "none";
             }
@@ -764,7 +762,7 @@
                 </div>
             `;
 
-            selectedContainer.querySelector(".remove-task").addEventListener("click", () => {
+            $(selectedContainer).find(".remove-task").on("click", function(){
                 hiddenInput.value = "";
                 input.value = "";
                 selectedContainer.innerHTML = "";
@@ -797,18 +795,11 @@
             dropdown.style.display = filtered.length ? "block" : "none";
         }
 
-        fetch(appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks")
-            .then(res => res.json())
-            .then(payload => {
-                tasks = (payload.data || []).map(t => ({
-                    id: t.id,
-                    title: t.title,
-                    image: t.image || ""
-                }));
-
-                // Jika edit mode dan parent sudah ada → tampilkan langsung
+        $.ajax({ url: appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks", type: "GET", dataType: "json" })
+            .done(function(payload){
+                tasks = (payload.data || []).map(function(t){ return { id: t.id, title: t.title, image: t.image || "" }; });
                 if (selectedParentId) {
-                    const found = tasks.find(t => String(t.id) === String(selectedParentId));
+                    const found = tasks.find(function(t){ return String(t.id) === String(selectedParentId); });
                     if (found) {
                         hiddenInput.value = found.id;
                         input.value = found.title;
@@ -820,12 +811,12 @@
                     }
                 }
             })
-            .catch(err => console.error("Failed to load related tasks", err));
+            .fail(function(err){ console.error("Failed to load related tasks", err); });
 
-        input.addEventListener("input", () => renderDropdown(input.value));
-        input.addEventListener("focus", () => renderDropdown(input.value));
+    $(input).on("input", function(){ renderDropdown(input.value); });
+    $(input).on("focus", function(){ renderDropdown(input.value); });
 
-        document.addEventListener("click", (e) => {
+        $(document).on("click", function(e){
             if (!dropdown.contains(e.target) && e.target !== input) {
                 dropdown.style.display = "none";
             }
@@ -841,9 +832,8 @@
                 selectElement.value = String(parentId);
                 return;
             }
-            fetch(appUrl + '/task/' + encodeURIComponent(String(parentId)))
-                .then(r => r.ok ? r.json() : Promise.reject('Not found'))
-                .then(res => {
+            $.ajax({ url: appUrl + '/task/' + encodeURIComponent(String(parentId)), type: 'GET', dataType: 'json' })
+                .done(function(res){
                     const taskSingle = (res && (res.data || res)) || null;
                     if (taskSingle && taskSingle.id) {
                         const opt2 = document.createElement('option');
@@ -853,7 +843,7 @@
                         selectElement.value = String(taskSingle.id);
                     }
                 })
-                .catch(err => { console.warn('ensureParentOption fetch failed', err); });
+                .fail(function(err){ console.warn('ensureParentOption fetch failed', err); });
         } catch (e) { console.warn('ensureParentOption error', e); }
     }
 
@@ -870,7 +860,7 @@
     }
 
     if (addTaskModalEl) {
-        addTaskModalEl.addEventListener("hidden.bs.modal", function () {
+        $(addTaskModalEl).on("hidden.bs.modal", function () {
             if (addTaskForm) {
                 addTaskForm.reset();
                 try { if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root.innerHTML = ''; } catch(_){}
@@ -891,7 +881,7 @@
             }
         });
         // When Add Task modal is shown, set sensible defaults if fields are empty.
-        addTaskModalEl.addEventListener('show.bs.modal', function () {
+    $(addTaskModalEl).on('show.bs.modal', function () {
             try {
                 // Priority default: MEDIUM if not selected
                 const prio = document.getElementById('task_priority');
@@ -928,7 +918,7 @@
     }
 
     if (addTaskForm) {
-        addTaskForm.addEventListener("submit", function (e) {
+        $(addTaskForm).on("submit", function (e) {
             e.preventDefault();
 
             if (!addTaskForm.checkValidity()) {
@@ -1124,10 +1114,10 @@
             dropdown.innerHTML = html;
             dropdown.style.display = "block";
 
-            dropdown
-                .querySelectorAll(".executor-checkbox")
-                .forEach((checkbox) => {
-                    checkbox.addEventListener("change", function () {
+            $(dropdown)
+                .find(".executor-checkbox")
+                .each(function(){
+                    $(this).on("change", function () {
                         const id = parseInt(this.getAttribute("data-id"));
                         const name = this.getAttribute("data-name");
                         const employeeObj = employees.find(
@@ -1190,7 +1180,7 @@
                 removeBtn.type = "button";
                 removeBtn.className = "btn-close btn-sm ms-2";
                 removeBtn.setAttribute("aria-label", "Remove");
-                removeBtn.addEventListener("click", () => {
+                $(removeBtn).on("click", function(){
                     selectedEmployees = selectedEmployees.filter(
                         (e) => e.id !== emp.id
                     );
@@ -1224,15 +1214,9 @@
             renderDropdown();
         }
 
-        input.addEventListener("input", function () {
-            filterEmployees(this.value);
-        });
-
-        input.addEventListener("focus", function () {
-            filterEmployees(this.value);
-        });
-
-        document.addEventListener("click", function (e) {
+        $(input).on("input", function(){ filterEmployees(this.value); });
+        $(input).on("focus", function(){ filterEmployees(this.value); });
+        $(document).on("click", function (e) {
             if (!input.contains(e.target) && !dropdown.contains(e.target)) {
                 dropdown.style.display = "none";
             }
@@ -1275,7 +1259,7 @@
         const addProjectSel = document.getElementById('task_project_id');
         const addParentSel = document.getElementById('task_parent_id');
         if (addProjectSel) {
-            addProjectSel.addEventListener('change', function () {
+            $(addProjectSel).on('change', function () {
                 // Pass prefix string 'task' (not DOM element) for consistent behavior
                 loadRelatedTasks(this.value || null, 'task', null);
             });
@@ -1284,7 +1268,7 @@
         const editProjectSel = document.getElementById('edit_task_project_id');
         const editParentSel = document.getElementById('edit_task_parent_id');
         if (editProjectSel) {
-            editProjectSel.addEventListener('change', function () {
+            $(editProjectSel).on('change', function () {
                 const excludeId = document.getElementById('edit_task_id') ? document.getElementById('edit_task_id').value : null;
                 // Use prefix 'edit_task' so loadRelatedTasks populates the edit modal parent UI
                 loadRelatedTasks(this.value || null, 'edit_task', excludeId);
@@ -1308,24 +1292,20 @@
             };
 
             if (empDeptId) {
-                fetch(appUrl + '/divisions-for-projects?department_id=' + encodeURIComponent(empDeptId))
-                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
-                    .then(populateAddDivisions)
-                    .catch(err => {
-                        // fallback to unfiltered list
-                        fetch(appUrl + '/divisions-for-projects')
-                            .then(r => r.ok ? r.json() : Promise.reject('Failed'))
-                            .then(populateAddDivisions)
-                            .catch(() => {});
+                $.ajax({ url: appUrl + '/divisions-for-projects', type: 'GET', dataType: 'json', data: { department_id: empDeptId } })
+                    .done(populateAddDivisions)
+                    .fail(function(){
+                        $.ajax({ url: appUrl + '/divisions-for-projects', type: 'GET', dataType: 'json' })
+                            .done(populateAddDivisions)
+                            .fail(function(){});
                     });
             } else {
-                fetch(appUrl + '/divisions-for-projects')
-                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
-                    .then(populateAddDivisions)
-                    .catch(err => { /* ignore */ });
+                $.ajax({ url: appUrl + '/divisions-for-projects', type: 'GET', dataType: 'json' })
+                    .done(populateAddDivisions)
+                    .fail(function(){ /* ignore */ });
             }
 
-            addDivisionSel.addEventListener('change', function () {
+            $(addDivisionSel).on('change', function () {
                 const val = this.value;
                 const selectedName = (this.selectedOptions && this.selectedOptions[0] && this.selectedOptions[0].dataset && this.selectedOptions[0].dataset.name) ? this.selectedOptions[0].dataset.name : '';
                 if (!val) {
@@ -1334,22 +1314,17 @@
                     return;
                 }
                 // Fetch employees and filter by division name primarily
-                fetch(appUrl + '/employees-for-projects')
-                    .then(r => r.ok ? r.json() : Promise.reject('Failed'))
-                    .then(res => {
+                $.ajax({ url: appUrl + '/employees-for-projects', type: 'GET', dataType: 'json' })
+                    .done(function(res){
                         const arr = (res && res.data) || [];
                         const nameLower = String(selectedName || '').toLowerCase();
                         const filteredByName = arr.filter(emp => String(emp.division || '').toLowerCase() === nameLower);
-                        // If the employees payload contains division_id field, also try matching by id
                         const filteredById = arr.filter(emp => String(emp.division_id || '').toLowerCase() === String(val).toLowerCase());
                         const final = filteredByName.length ? filteredByName : (filteredById.length ? filteredById : []);
-                        if (!final.length) {
-                            try { showFloatingAlert('No employees found for selected division.', 'warning', 2500); } catch(_){}
-                            return;
-                        }
+                        if (!final.length) { try { showFloatingAlert('No employees found for selected division.', 'warning', 2500); } catch(_){}; return; }
                         if (window.setSelectedExecutorsAdd) window.setSelectedExecutorsAdd(final);
                     })
-                    .catch(err => { try { showFloatingAlert('Failed to load employees for division.', 'warning', 2500); } catch(_){} });
+                    .fail(function(){ try { showFloatingAlert('Failed to load employees for division.', 'warning', 2500); } catch(_){} });
             });
 
                 // Setup dropup UI for division select so it behaves like executor dropup
@@ -1391,20 +1366,20 @@
                         // Show dropup on focus/click. Also intercept mousedown to prevent
                         // the browser's native select dropdown from opening while still
                         // allowing the element to receive focus (useful for keyboard).
-                        addDivisionSel.addEventListener('focus', renderDivisionDropup);
+                        $(addDivisionSel).on('focus', renderDivisionDropup);
                         // Bind click on the transparent activator (placed above the select)
                         // so pointer clicks open our custom dropup while the real select
                         // remains non-interactive (pointer-events:none) on desktop.
                         const activator = document.getElementById('task_division_activator');
                         if (activator) {
-                            activator.addEventListener('click', function (e) {
+                            $(activator).on('click', function (e) {
                                 try { e.preventDefault(); e.stopPropagation(); } catch(_) {}
                                 renderDivisionDropup();
                                 try { addDivisionSel.focus(); } catch(_) {}
                             });
                         } else {
                             // Fallback: if activator not present, keep select's click behavior
-                            addDivisionSel.addEventListener('click', function (e) {
+                            $(addDivisionSel).on('click', function (e) {
                                 try { e.preventDefault(); e.stopPropagation(); } catch(_) {}
                                 renderDivisionDropup();
                                 try { addDivisionSel.focus(); } catch(_) {}
@@ -1412,7 +1387,7 @@
                         }
                         // Intercept certain keyboard keys (Space / ArrowDown / ArrowUp)
                         // to prevent native select opening and show custom dropup instead.
-                        addDivisionSel.addEventListener('keydown', function (e) {
+                        $(addDivisionSel).on('keydown', function (e) {
                             const k = e.key || '';
                             if (k === ' ' || k === 'Spacebar' || k === 'ArrowDown' || k === 'ArrowUp') {
                                 try { e.preventDefault(); renderDivisionDropup(); } catch (_) {}
@@ -1420,7 +1395,7 @@
                         });
 
                         // Hide when clicking outside
-                        document.addEventListener('click', function (e) {
+                        $(document).on('click', function (e) {
                             if (!addDivisionSel.contains(e.target) && !divisionDropdown.contains(e.target)) {
                                 divisionDropdown.style.display = 'none';
                             }
@@ -1433,16 +1408,15 @@
     (function loadProjectsForSchedule(){
         const select = document.getElementById('schedule_project_id');
         if (!select) return;
-    fetch(appUrl + "/project/index")
-            .then(r => r.ok ? r.json() : Promise.reject('Failed to load projects'))
-                .then(d => {
+    $.ajax({ url: appUrl + "/project/index", type: 'GET', dataType: 'json' })
+                .done(function(d){
                     if (!d || !d.data) return;
-                    let opts = '<option value="">No Project</option>';
-                    (d.data || []).filter(p => !p.project_type || String(p.project_type) === 'public')
-                        .forEach(p => { opts += `<option value="${p.id}">${p.title}</option>`; });
+                    var opts = '<option value="">No Project</option>';
+                    (d.data || []).filter(function(p){ return !p.project_type || String(p.project_type) === 'public'; })
+                        .forEach(function(p){ opts += `<option value="${p.id}">${p.title}</option>`; });
                     select.innerHTML = opts;
                 })
-            .catch(console.error);
+                .fail(function(err){ console.error(err); });
     })();
 
     try {
@@ -1466,24 +1440,21 @@
             };
 
             if (empDeptIdEdit) {
-                fetch(appUrl + '/divisions-for-projects?department_id=' + encodeURIComponent(empDeptIdEdit))
-                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
-                    .then(populateEditDivisions)
-                    .catch(err => {
-                        fetch(appUrl + '/divisions-for-projects')
-                            .then(r => r.ok ? r.json() : Promise.reject('Failed'))
-                            .then(populateEditDivisions)
-                            .catch(() => {});
+                $.ajax({ url: appUrl + '/divisions-for-projects', type: 'GET', dataType: 'json', data: { department_id: empDeptIdEdit } })
+                    .done(populateEditDivisions)
+                    .fail(function(){
+                        $.ajax({ url: appUrl + '/divisions-for-projects', type: 'GET', dataType: 'json' })
+                            .done(populateEditDivisions)
+                            .fail(function(){});
                     });
             } else {
-                fetch(appUrl + '/divisions-for-projects')
-                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
-                    .then(populateEditDivisions)
-                    .catch(err => console.warn('Failed to load divisions for edit', err));
+                $.ajax({ url: appUrl + '/divisions-for-projects', type: 'GET', dataType: 'json' })
+                    .done(populateEditDivisions)
+                    .fail(function(err){ console.warn('Failed to load divisions for edit', err); });
             }
 
             // Division change → fetch employees
-            editDivisionSel.addEventListener('change', function () {
+            $(editDivisionSel).on('change', function () {
                 const val = this.value;
                 const selectedName = (this.selectedOptions[0]?.dataset?.name || '').trim();
 
@@ -1492,29 +1463,17 @@
                     return;
                 }
 
-                fetch(appUrl + '/employees-for-projects')
-                    .then(r => r.ok ? r.json() : Promise.reject('Failed'))
-                    .then(res => {
-                        const arr = res?.data || [];
+                $.ajax({ url: appUrl + '/employees-for-projects', type: 'GET', dataType: 'json' })
+                    .done(function(res){
+                        const arr = (res && res.data) || [];
                         const valStr = String(val).toLowerCase();
                         const nameStr = String(selectedName).toLowerCase();
-
-                        // Cari by ID dulu, kalau ga ada fallback ke nama
                         let final = arr.filter(emp => String(emp.division_id || '').toLowerCase() === valStr);
-
-                        if (!final.length) {
-                            final = arr.filter(emp => String(emp.division || '').toLowerCase() === nameStr);
-                        }
-
-                        if (!final.length) {
-                            showFloatingAlert?.('No employees found for selected division.', 'warning', 2500);
-                            return;
-                        }
-                        window.setSelectedExecutorsEdit?.(final);
+                        if (!final.length) final = arr.filter(emp => String(emp.division || '').toLowerCase() === nameStr);
+                        if (!final.length) { try { showFloatingAlert('No employees found for selected division.', 'warning', 2500); } catch(_){}; return; }
+                        try { window.setSelectedExecutorsEdit(final); } catch(_){}
                     })
-                    .catch(() => {
-                        showFloatingAlert?.('Failed to load employees for division.', 'warning', 2500);
-                    });
+                    .fail(function(){ try { showFloatingAlert('Failed to load employees for division.', 'warning', 2500); } catch(_){} });
             });
 
             // Custom dropdown
@@ -1552,24 +1511,24 @@
                     })[m]);
                 }
 
-                editDivisionSel.addEventListener('focus', renderDivisionDropup);
+                $(editDivisionSel).on('focus', renderDivisionDropup);
 
                 const activator = document.getElementById('edit_task_division_activator');
-                (activator || editDivisionSel).addEventListener('click', e => {
+                $(activator || editDivisionSel).on('click', e => {
                     e.preventDefault();
                     e.stopPropagation();
                     renderDivisionDropup();
                     editDivisionSel.focus();
                 });
 
-                editDivisionSel.addEventListener('keydown', e => {
+                $(editDivisionSel).on('keydown', e => {
                     if ([' ', 'Spacebar', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
                         e.preventDefault();
                         renderDivisionDropup();
                     }
                 });
 
-                document.addEventListener('click', e => {
+                $(document).on('click', e => {
                     if (!editDivisionSel.contains(e.target) && !divisionDropdown.contains(e.target)) {
                         divisionDropdown.style.display = 'none';
                     }
@@ -1806,11 +1765,11 @@
                 if (defaultDue) defaultDue.value = '';
             }
         };
-        typeSel.addEventListener('change', sync);
+    $(typeSel).on('change', sync);
         // Sync monthly day-of-month from Start From
         const startEl = document.getElementById('schedule_recurrence_start_date');
         if (startEl) {
-            startEl.addEventListener('change', function(){
+            $(startEl).on('change', function(){
                 const type = typeSel.value;
                 if (type === 'monthly' && this.value) {
                     try {
@@ -1862,8 +1821,8 @@
                     </label>`;
             }).join('');
             dropdown.style.display='block';
-            dropdown.querySelectorAll('.schedule-executor-checkbox').forEach(cb => {
-                cb.addEventListener('change', function(){
+            $(dropdown).find('.schedule-executor-checkbox').each(function(){
+                $(this).on('change', function(){
                     const id = parseInt(this.getAttribute('data-id')); const name = this.getAttribute('data-name');
                     if (this.checked) { if (!selected.some(e => e.id === id)) selected.push({ id, name, user_photo: (employees.find(e => e.id===id)||{}).user_photo || null }); }
                     else { selected = selected.filter(e => e.id !== id); }
@@ -1879,16 +1838,16 @@
                 const badge = document.createElement('span'); badge.className = 'badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2';
                 const img = document.createElement('img'); img.src = photoUrl; img.alt = emp.name; img.className = 'rounded-circle me-2'; img.style.width='24px'; img.style.height='24px'; img.style.objectFit='cover';
                 const nameSpan = document.createElement('span'); nameSpan.textContent = emp.name;
-                const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn-close btn-sm ms-2'; removeBtn.addEventListener('click', () => { selected = selected.filter(e => e.id !== emp.id); renderSelected(); updateHidden(); renderDropdown(); });
+                const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn-close btn-sm ms-2'; $(removeBtn).on('click', function(){ selected = selected.filter(e => e.id !== emp.id); renderSelected(); updateHidden(); renderDropdown(); });
                 badge.appendChild(img); badge.appendChild(nameSpan); badge.appendChild(removeBtn); selectedContainer.appendChild(badge);
             });
         }
 
         function updateHidden(){ hiddenInput.value = JSON.stringify(selected.map(e => e.id)); }
 
-        input.addEventListener('input', function(){ const q = this.value.trim(); fetchEmployees(q); });
-        input.addEventListener('focus', function(){ fetchEmployees(''); });
-        document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
+    $(input).on('input', function(){ const q = this.value.trim(); fetchEmployees(q); });
+    $(input).on('focus', function(){ fetchEmployees(''); });
+    $(document).on('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
     })();
 
     // Removed inline schedule form submit (handled on dedicated page now)
@@ -1898,7 +1857,7 @@
     const editTaskForm = document.getElementById("editTaskForm");
 
     if (editTaskForm) {
-        editTaskForm.addEventListener("submit", function (e) {
+        $(editTaskForm).on("submit", function (e) {
             e.preventDefault();
 
             const taskId = document.getElementById("edit_task_id").value;
@@ -2574,27 +2533,24 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                 }
             } catch(_){}
 
-            // Send as multipart POST with _method=PUT to match server expectations
-            fetch(appUrl + '/task/' + taskId + '/status', {
+            // Send as multipart POST with _method=PUT to match server expectations (jQuery)
+            $.ajax({
+                url: appUrl + '/task/' + taskId + '/status',
                 method: 'POST',
-                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                body: fd,
-                credentials: 'same-origin'
-            }).then(function(r){
-                return r.ok ? r.json() : r.json().then(Promise.reject);
-            }).then(function(json){
-                // On success: close modal, show alert, and refresh/insert updated task
-                try { modal.hide(); } catch(_){}
-                try { showFloatingAlert(json.message || 'Task marked as completed.', 'success'); } catch(_){}
-                // Remove original card if present
-                try { if (taskCard && taskCard.parentNode) taskCard.parentNode.removeChild(taskCard); } catch(_){}
-                // Fetch updated task and insert
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                data: fd,
+                processData: false,
+                contentType: false
+            }).done(function(json){
+                try { modal.hide(); } catch(_){ }
+                try { showFloatingAlert(json.message || 'Task marked as completed.', 'success'); } catch(_){ }
+                try { if (taskCard && taskCard.parentNode) taskCard.parentNode.removeChild(taskCard); } catch(_){ }
                 try { fetchAndInsertTask(taskId); } catch(_) { try { fetchAndRenderTasks(); } catch(_){} }
-            }).catch(function(err){
-                let msg = 'Failed to mark task as completed.';
-                try { if (err && err.message) msg = err.message; } catch(_){}
+            }).fail(function(xhr){
+                var msg = 'Failed to mark task as completed.';
+                try { if (xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ }
                 showFloatingAlert(msg, 'danger');
-            }).finally(function(){ submitBtn.disabled = false; submitBtn.innerHTML = 'Submit'; });
+            }).always(function(){ submitBtn.disabled = false; submitBtn.innerHTML = 'Submit'; });
         });
 
     }).fail(function(){
@@ -3381,10 +3337,8 @@ function applyCurrentSearchFilter() {
             fetchAndRenderTasks(null, 1, false, q);
         }
 
-        document.addEventListener('input', function (e) {
-            const el = e.target;
-            if (!el || el.id !== 'search_filter') return;
-
+        $(document).on('input', '#search_filter', function () {
+            const el = this;
             const val = (el.value || '').trim();
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
@@ -3394,9 +3348,8 @@ function applyCurrentSearchFilter() {
             }, 500);
         });
 
-        document.addEventListener('keydown', function (e) {
-            const el = e.target;
-            if (!el || el.id !== 'search_filter') return;
+        $(document).on('keydown', '#search_filter', function (e) {
+            const el = this;
             if (e.key === 'Enter') {
                 e.preventDefault();
                 clearTimeout(debounceTimer);
@@ -7368,34 +7321,22 @@ function applyCurrentSearchFilter() {
             });
         }
 
-        fetch(appUrl + "/project/index")
-            .then((res) => res.json())
-                .then((payload) => {
-                    projects = (payload.data || []).map((p) => ({
-                                id: p.id,
-                                title: p.title,
-                                image: p.image || "",
-                                project_type: p.project_type || 'public'
-                            }));
-
-                // Kalau ada project yang sudah dipilih sebelumnya
+        $.ajax({ url: appUrl + "/project/index", type: 'GET', dataType: 'json' })
+            .done(function(payload){
+                projects = (payload.data || []).map(function(p){
+                    return { id: p.id, title: p.title, image: p.image || "", project_type: p.project_type || 'public' };
+                });
                 if (selectedProjectId) {
                     const project = projects.find(p => String(p.id) === String(selectedProjectId));
                     if (project) {
                         hiddenInput.value = project.id;
                         input.value = project.title;
                         showSelectedProject(project);
-                        // Important: do not auto-call loadRelatedTasks here. The caller that
-                        // initializes the edit modal (handleTaskEdit) is responsible for
-                        // invoking loadRelatedTasks with the correct selectedParentId and
-                        // selectedParentTitle to ensure the parent preview is accurate and
-                        // not overwritten by this initialization step.
                     }
                 }
-
                 if (typeof callback === "function") callback();
             })
-            .catch((err) => {
+            .fail(function(err){
                 console.error("Error loading projects for edit:", err);
                 if (typeof callback === "function") callback();
             });
@@ -7403,7 +7344,7 @@ function applyCurrentSearchFilter() {
         input.addEventListener("input", () => renderDropdown(input.value, true));
         input.addEventListener("focus", () => renderDropdown(input.value, true));
 
-        document.addEventListener("click", (e) => {
+        $(document).on("click", function(e){
             if (!dropdown.contains(e.target) && e.target !== input) {
                 dropdown.style.display = "none";
             }
@@ -8081,14 +8022,14 @@ function applyCurrentSearchFilter() {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
-            fetch(appUrl + '/task/' + encodeURIComponent(taskId) + '/reference-file', {
+            $.ajax({
+                url: appUrl + '/task/' + encodeURIComponent(taskId) + '/reference-file',
                 method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: fd
-            }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
-            .then(payload => {
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                data: fd,
+                processData: false,
+                contentType: false
+            }).done(function(payload){
                 // Determine new count from payload when available
                 const newCount = (function(p){
                     try {
@@ -8193,10 +8134,14 @@ function applyCurrentSearchFilter() {
                         });
                     } catch(_) { /* ignore fallback */ }
                 }
-            }).catch(err => {
-                console.error('Upload failed', err);
-                try { const msg = (err && (err.message || (err.error || (err.errors && err.errors[0]) ) )) || 'Upload failed'; showFloatingAlert && showFloatingAlert(msg, 'danger'); } catch(_) {}
-            }).finally(() => {
+            }).fail(function(xhr){
+                console.error('Upload failed', xhr);
+                try {
+                    let msg = 'Upload failed';
+                    if (xhr && xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error;
+                    showFloatingAlert && showFloatingAlert(msg, 'danger');
+                } catch(_) {}
+            }).always(function(){
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = 'Upload';
             });
@@ -8503,38 +8448,18 @@ function applyCurrentSearchFilter() {
     function loadProjectsForFilter() {
         if (!filterTaskProjectSelect) return;
 
-        fetch(appUrl + "/project/index?task_scope=all")
-            .then((response) => {
-                if (!response.ok) {
-                    throw new Error("Failed to load projects");
-                }
-                return response.json();
-            })
-            .then((data) => {
-                if (!data.data) return;
-                let options = '<option value="">All Projects</option>';
-                data.data.forEach((project) => {
-                    options += `<option value="${project.id}">${project.title}</option>`;
-                });
+        $.ajax({ url: appUrl + "/project/index?task_scope=all", type: 'GET', dataType: 'json' })
+            .done(function(data){
+                if (!data || !data.data) return;
+                var options = '<option value="">All Projects</option>';
+                data.data.forEach(function(project){ options += `<option value="${project.id}">${project.title}</option>`; });
                 filterTaskProjectSelect.innerHTML = options;
-
-                // Set current filter values if they exist
-                if (currentTaskFilters.project) {
-                    filterTaskProjectSelect.value = currentTaskFilters.project;
-                }
-                if (currentTaskFilters.status) {
-                    filterTaskStatusSelect.value = currentTaskFilters.status;
-                }
-                if (currentTaskFilters.priority) {
-                    filterTaskPrioritySelect.value = currentTaskFilters.priority;
-                }
-                if (currentTaskFilters.date) {
-                    filterTaskPrioritySelect.value = currentTaskFilters.date;
-                }
+                if (currentTaskFilters.project) filterTaskProjectSelect.value = currentTaskFilters.project;
+                if (currentTaskFilters.status) filterTaskStatusSelect.value = currentTaskFilters.status;
+                if (currentTaskFilters.priority) filterTaskPrioritySelect.value = currentTaskFilters.priority;
+                if (currentTaskFilters.date) filterTaskPrioritySelect.value = currentTaskFilters.date;
             })
-            .catch((error) => {
-                console.error("Error loading projects for filter:", error);
-            });
+            .fail(function(err){ console.error("Error loading projects for filter:", err); });
     }
 
     // Reset filters
@@ -8585,7 +8510,7 @@ function applyCurrentSearchFilter() {
     }
 
     // Close dropdown when clicking outside
-    document.addEventListener("click", function(e) {
+    $(document).on("click", function(e){
         const dropdown = document.getElementById("taskFilterDropdown");
         const button = document.getElementById("openTaskFilterBtn");
 
@@ -8595,7 +8520,7 @@ function applyCurrentSearchFilter() {
     });
 
     // Close dropdown on escape key
-    document.addEventListener("keydown", function(e) {
+    $(document).on("keydown", function(e){
         if (e.key === "Escape") {
             const dropdown = document.getElementById("taskFilterDropdown");
             if (dropdown) {
@@ -9151,20 +9076,18 @@ function applyCurrentSearchFilter() {
             if (archiveLoading || !archiveHasMore) return;
             archiveLoading = true;
 
-            // Fetch both canceled and deleted pages in parallel and merge
-            const [resCanceled, resDeleted] = await Promise.all([
-                fetch(`${baseAppUrl}/task/index?status=canceled&include_canceled=1&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null),
-                fetch(`${baseAppUrl}/task/index?status=deleted&include_canceled=1&per_page=10&page=${page}`, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).catch(() => null)
-            ]);
+            // Fetch both canceled and deleted pages in parallel and merge (jQuery)
+            const reqCanceled = $.ajax({ url: `${baseAppUrl}/task/index`, data: { status: 'canceled', include_canceled: 1, per_page: 10, page: page }, headers: { 'X-Requested-With': 'XMLHttpRequest' }, dataType: 'json' }).catch(() => null);
+            const reqDeleted  = $.ajax({ url: `${baseAppUrl}/task/index`, data: { status: 'deleted', include_canceled: 1, per_page: 10, page: page }, headers: { 'X-Requested-With': 'XMLHttpRequest' }, dataType: 'json' }).catch(() => null);
+            const [resCanceled, resDeleted] = await Promise.all([reqCanceled, reqDeleted]);
 
-            if ((!resCanceled || !resCanceled.ok) && (!resDeleted || !resDeleted.ok)) {
+            if (!resCanceled && !resDeleted) {
                 if (!append) body.innerHTML = '<div class="text-center text-muted py-3">Failed to load archived tasks</div>';
                 archiveLoading = false;
                 return;
             }
-            const parseTasksFromResponse = async (res) => {
-                if (!res || !res.ok) return [];
-                const j = await res.json().catch(() => ({}));
+            const parseTasksFromResponse = async (j) => {
+                if (!j) return [];
                 const data = (j && j.data) ? j.data : {};
                 let arr = [];
                 if (data) {
@@ -9463,8 +9386,7 @@ function applyCurrentSearchFilter() {
     async function fetchTimelineTasksOnce() {
         if (timelineTasksCache.length) return; // cache already prepared
         try {
-            const r = await fetch(appUrlTimeline + '/task/index/no-pagination', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-            const j = await r.json();
+            const j = await $.ajax({ url: appUrlTimeline + '/task/index/no-pagination', headers: { 'X-Requested-With': 'XMLHttpRequest' }, dataType: 'json' });
             const buckets = (j && j.data) ? j.data : {};
             const flat = [];
 
@@ -9494,9 +9416,7 @@ function applyCurrentSearchFilter() {
             await Promise.all(uniqueFlat.map(async (t) => {
                 if (t.start_date && t.due_date) return;
                 try {
-                    const rr = await fetch(appUrlTimeline + '/task/' + t.id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-                    if (!rr.ok) return;
-                    const dd = await rr.json();
+                    const dd = await $.ajax({ url: appUrlTimeline + '/task/' + t.id, headers: { 'X-Requested-With': 'XMLHttpRequest' }, dataType: 'json' });
                     const d = dd && (dd.data || dd);
                     if (d) {
                         t.start_date = t.start_date || d.start_date || d.start || d.startDate || null;
