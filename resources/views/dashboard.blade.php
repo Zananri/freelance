@@ -286,17 +286,13 @@
                                                 </button>
                                             </div>
                                         </div>
-                                        <div class="timeline-table justify-content-center align-items-center">
-                                            <div class="timeline-header d-flex">
-                                                <div class="timeline-cell fw-bold">Mo</div>
-                                                <div class="timeline-cell fw-bold">Tu</div>
-                                                <div class="timeline-cell fw-bold">We</div>
-                                                <div class="timeline-cell fw-bold">Th</div>
-                                                <div class="timeline-cell fw-bold">Fr</div>
-                                                <div class="timeline-cell fw-bold">Sa</div>
-                                                <div class="timeline-cell fw-bold">Su</div>
-                                            </div>
-                                            <div id="timelineRows"></div>
+                                        <div class="timeline-wrapper">
+                                            <table class="timeline-table">
+                                                <thead>
+                                                    <tr id="timelineHeader"></tr>
+                                                </thead>
+                                                <tbody id="timelineRows"></tbody>
+                                            </table>
                                         </div>
                                     </div>
                                 </div>
@@ -1069,7 +1065,7 @@
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content border-0 bg-transparent shadow-0">
                             <div class="modal-body bg-transparent">
-                                
+
                                 <div id="carouselExample" class="carousel slide">
                                     <div class="carousel-inner">
                                         <div class="carousel-item active">
@@ -1096,7 +1092,7 @@
                         </div>
                     </div>
                 </div>
-                
+
             </x-slot>
 
             <x-slot name="script_slot">
