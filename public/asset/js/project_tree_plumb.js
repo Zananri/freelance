@@ -37,7 +37,7 @@
             var $c = $("#task-tree");
             if ($c.length) {
                 if (typeof instance.setContainer === "function")
-                    instance.setContainer($c[0]);
+                    instance.setContainer($c.get(0));
                 if ($c.css("position") === "static") {
                     $c.css("position", "relative");
                 }
@@ -61,7 +61,10 @@
         var inst = ensureInstance();
         if (!inst || !el) return;
         try {
-            inst.makeSource(el, {
+            // accept either a jQuery object or raw element/selector
+            var $el = el && el.jquery ? el : $(el);
+            if (!$el.length) return;
+            inst.makeSource($el.get(0), {
                 filter: ".plumb-handle",
                 filterExclude: false,
                 extract: {
@@ -73,7 +76,9 @@
             });
         } catch (_) {}
         try {
-            inst.makeTarget(el, {
+            var $el2 = el && el.jquery ? el : $(el);
+            if (!$el2.length) return;
+            inst.makeTarget($el2.get(0), {
                 dropOptions: { hoverClass: "plumb-drop-ok" },
                 anchor: "Left",
                 allowLoopback: false,
@@ -85,17 +90,14 @@
     function buildExistingEdges(projects) {
         var edges = [];
         try {
-            (projects || []).forEach(function (p) {
+            $.each(projects || [], function (_i, p) {
                 var parents = [];
-                if (Array.isArray(p.parent_ids)) parents = p.parent_ids.slice();
-                if (p.legacy_parent_id && parents.indexOf(p.legacy_parent_id) === -1)
+                if ($.isArray(p.parent_ids)) parents = p.parent_ids.slice();
+                if (p.legacy_parent_id && $.inArray(p.legacy_parent_id, parents) === -1)
                     parents.push(p.legacy_parent_id);
-                parents.forEach(function (pid) {
+                $.each(parents, function (_j, pid) {
                     if (pid)
-                        edges.push({
-                            parent: String(pid),
-                            child: String(p.id),
-                        });
+                        edges.push({ parent: String(pid), child: String(p.id) });
                 });
             });
         } catch (_) {}
@@ -129,12 +131,10 @@
             inst.bind("connection", function (info, originalEvent) {
                 try {
                     try {
-                        if (info && info.source)
-                            info.source.setAttribute("draggable", "true");
+                        if (info && info.source) $(info.source).attr("draggable", "true");
                     } catch (_) {}
                     try {
-                        if (info && info.target)
-                            info.target.setAttribute("draggable", "true");
+                        if (info && info.target) $(info.target).attr("draggable", "true");
                     } catch (_) {}
                     var isUser =
                         !!originalEvent ||
@@ -147,14 +147,9 @@
                     if (!isUser) return;
                     var source = info.sourceId,
                         target = info.targetId;
-                    var $sEl = $("#" + source),
-                        $tEl = $("#" + target);
-                    var sRect = $sEl.length
-                        ? $sEl[0].getBoundingClientRect()
-                        : null;
-                    var tRect = $tEl.length
-                        ? $tEl[0].getBoundingClientRect()
-                        : null;
+                    var $sEl = $("#" + source), $tEl = $("#" + target);
+                    var sRect = $sEl.length ? $sEl.get(0).getBoundingClientRect() : null;
+                    var tRect = $tEl.length ? $tEl.get(0).getBoundingClientRect() : null;
                     var parentId = source.replace("proj-node-", "");
                     var childId = target.replace("proj-node-", "");
                     try {
@@ -231,14 +226,9 @@
                     var parentId = sId.replace("proj-node-", "");
                     var childId = tId.replace("proj-node-", "");
                     try {
-                        var $sEl = $("#" + sId),
-                            $tEl = $("#" + tId);
-                        var sRect = $sEl.length
-                            ? $sEl[0].getBoundingClientRect()
-                            : null;
-                        var tRect = $tEl.length
-                            ? $tEl[0].getBoundingClientRect()
-                            : null;
+                        var $sEl = $("#" + sId), $tEl = $("#" + tId);
+                        var sRect = $sEl.length ? $sEl.get(0).getBoundingClientRect() : null;
+                        var tRect = $tEl.length ? $tEl.get(0).getBoundingClientRect() : null;
                         if (sRect && tRect && tRect.left < sRect.left - 5) {
                             parentId = tId.replace("proj-node-", "");
                             childId = sId.replace("proj-node-", "");
@@ -246,11 +236,7 @@
                     } catch (_) {}
                     if (!parentId || !childId) return;
                     $.ajax({
-                        url:
-                            appUrl +
-                            "/project/" +
-                            encodeURIComponent(childId) +
-                            "/parents",
+                        url: appUrl + "/project/" + encodeURIComponent(childId) + "/parents",
                         type: "DELETE",
                         data: JSON.stringify({ parent_id: Number(parentId) }),
                         contentType: "application/json",
@@ -261,45 +247,25 @@
                         },
                     })
                         .done(function (res) {
-                            if (
-                                res &&
-                                (res.status === "success" || res.code === 200)
-                            ) {
+                            if (res && (res.status === "success" || res.code === 200)) {
                                 try {
                                     inst.deleteConnection(conn);
                                 } catch (_) {}
                                 try {
-                                    window.showFloatingAlert &&
-                                        window.showFloatingAlert(
-                                            "Parent dihapus",
-                                            "success",
-                                            1200
-                                        );
+                                    window.showFloatingAlert && window.showFloatingAlert("Parent dihapus", "success", 1200);
                                 } catch (_) {}
                                 try {
-                                    inst.repaintEverything &&
-                                        inst.repaintEverything();
+                                    inst.repaintEverything && inst.repaintEverything();
                                 } catch (_) {}
                             } else {
                                 try {
-                                    window.showFloatingAlert &&
-                                        window.showFloatingAlert(
-                                            (res && res.message) ||
-                                                "Gagal menghapus parent",
-                                            "warning",
-                                            2800
-                                        );
+                                    window.showFloatingAlert && window.showFloatingAlert((res && res.message) || "Gagal menghapus parent", "warning", 2800);
                                 } catch (_) {}
                             }
                         })
                         .fail(function () {
                             try {
-                                window.showFloatingAlert &&
-                                    window.showFloatingAlert(
-                                        "Gagal menghapus parent",
-                                        "warning",
-                                        2800
-                                    );
+                                window.showFloatingAlert && window.showFloatingAlert("Gagal menghapus parent", "warning", 2800);
                             } catch (_) {}
                         });
                 } catch (_) {}
@@ -309,7 +275,7 @@
 
     function layConnections(projects) {
         var edges = buildExistingEdges(projects);
-        edges.forEach(function (e) {
+        $.each(edges, function (_i, e) {
             connectEdge(e.parent, e.child);
         });
     }
@@ -321,9 +287,9 @@
         var inst = ensureInstance();
         if (!inst) return;
         try {
-            (projects || []).forEach(function (p) {
+            $.each(projects || [], function (_i, p) {
                 var $el = $("#" + getElId(p.id));
-                if ($el.length) makeSourceAndTarget($el[0]);
+                if ($el.length) makeSourceAndTarget($el);
             });
         } catch (_) {}
         layConnections(projects);
