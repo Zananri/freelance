@@ -105,6 +105,8 @@ Route::middleware('auth')->group(function () {
         ->name('project-feedbacks.latest');
     Route::get('/project-feedbacks/{projectId}', [ProjectController::class, 'getProjectFeedbacks'])->name('project-feedbacks.get');
     Route::get('/project-feedbacks', [ProjectController::class, 'getAllProjectFeedbacks'])->name('project-feedbacks.all');
+    // Count feedbacks for a project (excludes replies whose parent no longer exists)
+    Route::get('/project-feedbacks/count/{projectId}', [ProjectController::class, 'getProjectFeedbackCount'])->name('project-feedbacks.count');
     Route::get('/projects/feedbacks/unread-counts', [ProjectController::class, 'getAllUnreadCounts'])
         ->name('project-feedbacks.unread-counts');
 
