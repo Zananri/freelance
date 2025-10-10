@@ -44,27 +44,27 @@
                 <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel"
                     aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                        <div class="modal-content">
+                        <div class="modal-content modal-content-custom">
                             <div class="modal-header">
                                 <h5 class="modal-title" id="filterModalLabel">Filter Employees</h5>
                                 <button type="button" class="btn-close mt-1" data-bs-dismiss="modal"
                                     aria-label="Close"></button>
                             </div>
-                            <div class="modal-body">
+                            <div class="modal-body modal-body-custom">
                                 <form id="filterForm">
-                                    <div class="mb-3">
+                                    <div class="mb-3 custom-input">
                                         <label for="filterDepartment" class="form-label">Filter by Department</label>
                                         <select id="filterDepartment" class="form-select">
                                             <option value="">Select Department</option>
                                         </select>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="mb-3 custom-input">
                                         <label for="filterDivision" class="form-label">Filter by Division</label>
                                         <select id="filterDivision" class="form-select" disabled>
                                             <option value="">Select Division</option>
                                         </select>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="mb-3 custom-input">
                                         <label for="filterJob" class="form-label">Filter by Job</label>
                                         <select id="filterJob" class="form-select" disabled>
                                             <option value="">Select Job</option>
@@ -72,9 +72,9 @@
                                     </div>
                                 </form>
                             </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-primary" id="applyFilterBtn">Filter</button>
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-submit-black" id="applyFilterBtn">Filter</button>
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                             </div>
                         </div>
                     </div>
