@@ -22,6 +22,48 @@ use App\Models\TaskAssignmentLog;
 class TaskController extends Controller
 {
     /**
+     * Recursively delete a feedback and its replies, including attached files.
+     */
+    private function deleteFeedbackCascade(TaskFeedback $feedback): void
+    {
+        // Delete children first (depth-first)
+        try {
+            $children = TaskFeedback::where('parent_id', $feedback->id)->get();
+            foreach ($children as $child) {
+                $this->deleteFeedbackCascade($child);
+            }
+        } catch (\Throwable $_) {
+            // ignore
+        }
+
+        // Delete attached image if any
+        try {
+            if (!empty($feedback->image)) {
+                $path = public_path('file/task/' . $feedback->image);
+                if (is_file($path)) {@unlink($path);}            }
+        } catch (\Throwable $_) {}
+
+        // Delete attached reference file (legacy single)
+        try {
+            if (!empty($feedback->reference_file)) {
+                $p = public_path('file/task_reference_files/' . $feedback->reference_file);
+                if (is_file($p)) {@unlink($p);}            }
+        } catch (\Throwable $_) {}
+
+        // Delete attached reference files (array)
+        try {
+            $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
+            if (empty($refFiles) && is_string($feedback->reference_files) && $feedback->reference_files !== '') {
+                $decoded = json_decode($feedback->reference_files, true);
+                if (is_array($decoded)) $refFiles = $decoded;        }
+            foreach ($refFiles as $rf) {
+                if (!$rf) continue; $p = public_path('file/task_reference_files/' . $rf); if (is_file($p)) {@unlink($p);}            }
+        } catch (\Throwable $_) {}
+
+        // Finally delete the feedback row
+        try { $feedback->delete(); } catch (\Throwable $_) {}
+    }
+    /**
      * Derive HTTP status code from exception, defaulting to 500 for non-HTTP exceptions
      */
     private function deriveHttpStatusFromException(\Throwable $e): int
@@ -334,27 +376,8 @@ class TaskController extends Controller
                 ], 403);
             }
 
-            // Delete attached image if any
-            if (!empty($feedback->image)) {
-                $path = public_path('file/task/' . $feedback->image);
-                if (file_exists($path)) {
-                    @unlink($path);
-                }
-            }
-
-            // Delete attached reference files if any
-            $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
-            foreach ($refFiles as $rf) {
-                if (!$rf)
-                    continue;
-                $p = public_path('file/task_reference_files/' . $rf);
-                if (file_exists($p)) {
-                    @unlink($p);
-                }
-            }
-
-            // Delete the feedback (this will also delete replies if cascade set; otherwise remove replies manually)
-            $feedback->delete();
+            // Cascade delete the feedback and all its replies, including files
+            $this->deleteFeedbackCascade($feedback);
 
             DB::commit();
 
@@ -3273,7 +3296,17 @@ class TaskController extends Controller
     public function getTaskFeedbackCount($taskId)
     {
         try {
-            $count = TaskFeedback::where('task_id', $taskId)->count();
+            // Count only valid feedback rows: include top-level, and replies whose parent still exists
+            $count = TaskFeedback::where('task_id', $taskId)
+                ->where(function($q){
+                    $q->whereNull('parent_id')
+                      ->orWhereExists(function($sub){
+                          $sub->select(DB::raw(1))
+                              ->from('task_feedbacks as p')
+                              ->whereColumn('p.id', 'task_feedbacks.parent_id');
+                      });
+                })
+                ->count();
 
             return response()->json([
                 'code' => 200,
