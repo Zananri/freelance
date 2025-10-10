@@ -62,7 +62,7 @@ class AttendanceController extends Controller
                 ->where('date_shift', $yesterday)
         ->first();
 
-        $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2); 
+        $rangeStart = Carbon::parse($today.' '.$employee->shift->time_start)->subHours(2);
         $rangeEnd = Carbon::parse($today.' '.$employee->shift->time_end)->addHours(3);
 
         $timeStart = Carbon::parse($employee->shift->time_start);

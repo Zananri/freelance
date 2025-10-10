@@ -275,12 +275,16 @@
                         </a>
                     </li>
 
+                    @if (in_array(Auth::user()->user_type,['REGULAR','EMPLOYEE']))
+
                     <li>
                         <a href="{{ route('calendar') }}" class="{{ $menu_active == 'calendar' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">calendar_month</span>
                             <span class="text-menu">Calendar</span>
                         </a>
                     </li>
+                    
+                    @endif
 
                     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
 

@@ -205,35 +205,35 @@
 }
 
 .bg-custom-1{
-    background-color:#c4ebff; 
+    background-color:#c6ecff; 
 }
 
 .bg-custom-2{
-    background-color:#e6cdfe; 
+    background-color:#ead4ff; 
 }
 
 .bg-custom-3{
-    background-color:#fac5df; 
+    background-color:#ffc9e3; 
 }
 
 .bg-custom-4{
-    background-color:#febdbd; 
+    background-color:#ffc3c3; 
 }
 
 .bg-custom-5{
     background-color:#fdfdc1; 
 }
 .bg-custom-6{
-    background-color:#befdbe; 
+    background-color:#c3ffc3; 
 }
 
 .bg-custom-7{
-    background-color:#b6ffe7; 
+    background-color:#c0ffea; 
 }
 
 .dropdown-color .dropdown-menu{
     width: 50px !important;
-    min-width: 70px;
+    min-width: 65px;
 }
 
 .dropdown-color .dropdown-item.active, 

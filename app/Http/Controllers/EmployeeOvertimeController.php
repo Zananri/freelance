@@ -145,7 +145,7 @@ class EmployeeOvertimeController extends Controller
 
             $now = Carbon::now();
             $today = Carbon::today()->toDateString();
-
+            $tomorow = Carbon::today()->addDay()->toDateString();
             
             $employee = Employee::with('division', 'department', 'job','grade','shift',)->where('user_id', $user->id)->first();
             
@@ -175,10 +175,20 @@ class EmployeeOvertimeController extends Controller
 
                 $photoEnd = 'file/overtime/'.$fileName;
             }
-   
+
             $timeStart = Carbon::parse($existOvertime->time_start);
-            $totalOvertime = $timeStart->diff(Carbon::now())->format('%H:%I');
+
             
+            
+            $timeStart = Carbon::parse($today.' '.$existOvertime->time_start);
+            $timeEnd = Carbon::parse($today.' '.$existOvertime->time_end);
+
+            if($timeStart > $timeEnd){
+                $timeEnd = Carbon::parse($tomorow.' '.$existOvertime->time_end);
+            }
+
+            $totalOvertime = $timeStart->diff(Carbon::now())->format('%H:%I');
+
             $existOvertime->total_overtime = $totalOvertime;
             $existOvertime->status = 'REQUEST_SUBMIT';
             $existOvertime->time_end = $now->format('H:i');

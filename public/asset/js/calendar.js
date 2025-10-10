@@ -176,25 +176,27 @@ function htmlItemEvent(dataRow){
     }
 
     //
-    let htmlRow = `<div class="item-event mb-3">
-        <div class="d-flex align-items-start">
-            <div class="col-time pt-2">
-                <div class="d-flex-inline text-time me-3" >
-                    ${formatTimeDisplay(dataRow.start_time)}
+    let htmlRow = `
+        <div class="item-event mb-3 opacity-75">
+            <div class="d-flex align-items-start">
+                <div class="col-time pt-2">
+                    <div class="d-flex-inline text-time me-3" >
+                        ${formatTimeDisplay(dataRow.start_time)}
+                    </div>
                 </div>
-            </div>
-            <div class="col-event-title w-100">
-                <div class="p-2 rounded-3 fs-14" style="background-color:${dataRow.color_event};">
-                    <span class="text-title-event text-body">
-                        ${dataRow.title_event}
-                    </span>
-                    <div class="fs-12 text-body text-opacity-75">
-                        ${description}
+                <div class="col-event-title w-100">
+                    <div class="p-2 rounded-3 fs-14" style="background-color:${dataRow.color_event};">
+                        <span class="text-title-event text-body fw-medium">
+                            ${dataRow.title_event}
+                        </span>
+                        <div class="fs-12 text-body">
+                            ${description}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>`;
+    `;
 
     return htmlRow;
 

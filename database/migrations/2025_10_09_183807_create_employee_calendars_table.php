@@ -17,7 +17,7 @@ return new class extends Migration
         Schema::create('employee_calendars', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('employee_id');
-            $table->text('share_to')->default('PRIVATE');
+            $table->string('share_to')->default('PRIVATE');
             $table->string('status')->default('ACTIVE');
             $table->text('title_event');
             $table->text('description')->nullable();

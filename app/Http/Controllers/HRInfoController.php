@@ -24,6 +24,8 @@ class HRInfoController extends Controller
     public function countEmployeeRequest()
     {
 
+        $today = Carbon::today()->toDateString();
+        
         $employeeIds = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')
             ->where('employees.status',"ACTIVE")
@@ -34,6 +36,7 @@ class HRInfoController extends Controller
 
         $employeeOvertime = EmployeeOvertime::whereIn('employee_id',$employeeIds)
             ->where('status','REQUEST_SUBMIT')
+            ->where('date_overtime','<',$today)
             ->count();
 
         $employeeLave = EmployeeLeaveRequest::whereIn('employee_id',$employeeIds)
