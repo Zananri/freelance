@@ -636,7 +636,7 @@
                         <div class="task-detail-wrapper">
 
                             <!-- Header -->
-                            <div class="task-header d-flex justify-content-between align-items-start mb-2">
+                            <div class="task-header d-flex justify-content-between align-items-start mb-2 task-card-header">
                                 <div class="d-flex align-items-center">
                                     <div id="taskProjectAvatar" class="me-3"></div>
                                     <div>
