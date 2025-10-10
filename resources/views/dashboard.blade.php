@@ -930,7 +930,7 @@
                 <div class="modal fade" id="timelineModal" tabindex="-1" aria-labelledby="TimelineModalLabel"
                     aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width: 480px;">
-                        <div class="modal-content modal-content-custom" style="box-shadow: none;">
+                        <div class="modal-content modal-content-custom" style="box-shadow: none; background-color: rgb(240, 241, 248);">
                             <div class="modal-body modal-body-custom">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h5 id="timelineTitle" class="fw-semibold mb-0" style="font-size: 16px; color: #454545;">
