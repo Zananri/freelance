@@ -3180,7 +3180,8 @@ class ProjectController extends Controller
                                   $q->whereHas('assignments', function ($a) use ($employeeId) {
                                       $a->where('employee_id', $employeeId);
                                   });
-                              });
+                              })
+                              ->with(['assignments.employee']);
                     },
                     'projectAssignments.employee'
                 ])
@@ -3226,24 +3227,23 @@ class ProjectController extends Controller
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
             $activeWorksheet = $spreadsheet->getActiveSheet();
 
-            $activeWorksheet->mergeCells('A1:K1');
+            $activeWorksheet->mergeCells('A1:J1');
             $activeWorksheet->setCellValue('A1', 'Project Report - NSA Office Management System');
             $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
             $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
+            // New header layout for project detail export
             $headers = [
                 'A2' => 'No',
                 'B2' => 'Nama Project',
-                'C2' => 'Part of Project',
-                'D2' => 'Project Type',
-                'E2' => 'Department',
-                'F2' => 'Division',
-                'G2' => 'Status',
-                'H2' => 'Task',
-                'I2' => 'Status Task',
-                'J2' => 'Waktu Mulai',
-                'K2' => 'Deadline',
-                'L2' => 'Jumlah Task',
+                'C2' => 'Status',
+                'D2' => 'Task',
+                'E2' => 'Status Task',
+                'F2' => 'Waktu Mulai',
+                'G2' => 'Deadline',
+                'H2' => 'PIC',
+                'I2' => 'Executors',
+                'J2' => 'Total Task',
             ];
             foreach ($headers as $cell => $value) { $activeWorksheet->setCellValue($cell, $value); }
 
@@ -3251,82 +3251,106 @@ class ProjectController extends Controller
                 'borders' => [ 'allBorders' => [ 'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN ] ],
                 'fill' => [ 'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => [ 'argb' => 'FFE0E0E0' ] ],
             ];
-            $activeWorksheet->getStyle('A2:L2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
-            $activeWorksheet->getStyle('A2:L2')->getAlignment()->setWrapText(true)->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            $activeWorksheet->getStyle('A2:J2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:J2')->getAlignment()->setWrapText(true)->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
-            $columnWidths = ['A'=>5,'B'=>30,'C'=>20,'D'=>12,'E'=>15,'F'=>15,'G'=>12,'H'=>25,'I'=>15,'J'=>12,'K'=>12,'L'=>12];
+            $columnWidths = [
+                'A' => 5,
+                'B' => 30,
+                'C' => 12,
+                'D' => 35,
+                'E' => 15,
+                'F' => 13,
+                'G' => 13,
+                'H' => 20,
+                'I' => 35,
+                'J' => 12,
+            ];
             foreach ($columnWidths as $col=>$w) { $activeWorksheet->getColumnDimension($col)->setWidth($w); }
 
             $row = 3; $no = 1;
             foreach ($projects as $p) {
-                $partOfProjectDisplay = $p->part_of_project ?? '-';
-                if (!empty($p->part_of_project) && is_numeric($p->part_of_project)) {
-                    try { $parent = Project::find((int)$p->part_of_project); if ($parent && isset($parent->title)) $partOfProjectDisplay = $parent->title; } catch (\Throwable $_) {}
-                }
-                $base = [
-                    'B' => $p->title,
-                    'C' => $partOfProjectDisplay,
-                    'D' => ucfirst($p->project_type ?? 'public'),
-                    'E' => $p->department ? $p->department->name_department : '-',
-                    'F' => $p->division ? $p->division->name_division : '-',
-                    'G' => ucfirst($p->status),
-                    'J' => $p->start_date ? \Carbon\Carbon::parse($p->start_date)->format('d-M-Y') : '-',
-                    'L' => $p->total_tasks ?? 0,
-                ];
-
-                $projectMaxDue = null;
-                foreach ($p->tasks as $t) {
-                    if (empty($t->due_date)) continue;
-                    try { $d = \Carbon\Carbon::parse($t->due_date); } catch (\Throwable $_) { continue; }
-                    if ($projectMaxDue === null || $d->greaterThan($projectMaxDue)) $projectMaxDue = $d;
-                }
-                if ($projectMaxDue === null && !empty($p->due_date)) {
-                    try { $projectMaxDue = \Carbon\Carbon::parse($p->due_date); } catch (\Throwable $_) { $projectMaxDue = null; }
-                }
-
+                $totalTasks = $p->total_tasks ?? $p->tasks->count();
                 if ($p->tasks->count() > 0) {
-                    $startRow = $row; $projNo = $no;
+                    $projStartRow = $row;
                     foreach ($p->tasks as $task) {
-                        $activeWorksheet->setCellValue('B'.$row, $base['B']);
-                        $activeWorksheet->setCellValue('C'.$row, $base['C']);
-                        $activeWorksheet->setCellValue('D'.$row, $base['D']);
-                        $activeWorksheet->setCellValue('E'.$row, $base['E']);
-                        $activeWorksheet->setCellValue('F'.$row, $base['F']);
-                        $activeWorksheet->setCellValue('G'.$row, $base['G']);
-                        $activeWorksheet->setCellValue('H'.$row, $task->title ?? '-');
-                        $s = str_replace('_', ' ', (string)($task->status ?? '')); $s = trim($s); $s = $s === '' ? '-' : ucfirst($s);
-                        $activeWorksheet->setCellValue('I'.$row, $s);
-                        $activeWorksheet->setCellValue('J'.$row, $base['J']);
-                        $activeWorksheet->setCellValue('K'.$row, $projectMaxDue ? $projectMaxDue->format('d-M-Y') : '-');
-                        $activeWorksheet->setCellValue('L'.$row, $base['L']);
-                        $activeWorksheet->getRowDimension($row)->setRowHeight(18);
-                        $row++;
-                    }
-                    $endRow = $row - 1;
-                    $activeWorksheet->setCellValue('A'.$startRow, $projNo);
-                    if ($endRow > $startRow) {
-                        foreach (['A','B','C','D','E','F','G','J','K','L'] as $col) {
-                            $activeWorksheet->mergeCells($col.$startRow.':'.$col.$endRow);
-                            $activeWorksheet->getStyle($col.$startRow.':'.$col.$endRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        // Prepare values per task
+                        $projectName = $p->title;
+                        $projectStatus = ucfirst((string)($p->status ?? '-'));
+                        $taskTitle = $task->title ?? '-';
+                        $taskStatus = ucfirst(trim(str_replace('_',' ', (string)($task->status ?? '')))) ?: '-';
+                        $start = $task->start_date ? \Carbon\Carbon::parse($task->start_date)->format('d-M-Y') : '-';
+                        $deadline = $task->due_date ? \Carbon\Carbon::parse($task->due_date)->format('d-M-Y') : '-';
+                        // PIC
+                        $picAssign = $task->assignments ? $task->assignments->firstWhere('role', 'PIC') : null;
+                        $picName = $picAssign && $picAssign->employee ? ($picAssign->employee->name ?? '-') : '-';
+                        // Executors
+                        $executorNames = '-';
+                        if ($task->assignments) {
+                            $execs = $task->assignments->where('role', 'EXECUTOR')
+                                ->map(function($a){ return $a->employee->name ?? null; })
+                                ->filter()
+                                ->unique()
+                                ->values()
+                                ->all();
+                            if (!empty($execs)) $executorNames = implode(', ', $execs);
                         }
+
+                        // Set cells
+                        $activeWorksheet->setCellValue('A'.$row, $no);
+                        // Write project name and status only on the first row; we'll merge them after the loop
+                        if ($row === $projStartRow) {
+                            $activeWorksheet->setCellValue('B'.$row, $projectName);
+                            $activeWorksheet->setCellValue('C'.$row, $projectStatus);
+                        }
+                        $activeWorksheet->setCellValue('D'.$row, $taskTitle);
+                        $activeWorksheet->setCellValue('E'.$row, $taskStatus);
+                        $activeWorksheet->setCellValue('F'.$row, $start);
+                        $activeWorksheet->setCellValue('G'.$row, $deadline);
+                        $activeWorksheet->setCellValue('H'.$row, $picName);
+                        $activeWorksheet->setCellValue('I'.$row, $executorNames);
+                        // Total Task ditulis hanya di baris pertama project, nanti di-merge
+                        if ($row === $projStartRow) {
+                            $activeWorksheet->setCellValue('J'.$row, $totalTasks);
+                        }
+
+                        // Row height
+                        $activeWorksheet->getRowDimension($row)->setRowHeight(18);
+                        $row++; $no++;
                     }
-                    $no++;
+                    $projEndRow = $row - 1;
+                    if ($projEndRow > $projStartRow) {
+                        // Merge Nama Project and Status columns for this project's range
+                        $activeWorksheet->mergeCells('B'.$projStartRow.':B'.$projEndRow);
+                        $activeWorksheet->mergeCells('C'.$projStartRow.':C'.$projEndRow);
+                        // Merge Total Task column for this project's range
+                        $activeWorksheet->mergeCells('J'.$projStartRow.':J'.$projEndRow);
+                        // Alignment: center for both; vertical center for both
+                        $activeWorksheet->getStyle('B'.$projStartRow.':B'.$projEndRow)
+                            ->getAlignment()
+                            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        $activeWorksheet->getStyle('C'.$projStartRow.':C'.$projEndRow)
+                            ->getAlignment()
+                            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        $activeWorksheet->getStyle('J'.$projStartRow.':J'.$projEndRow)
+                            ->getAlignment()
+                            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                    }
                 } else {
+                    // No tasks: put a single row with project info and placeholders
                     $activeWorksheet->setCellValue('A'.$row, $no);
-                    $activeWorksheet->getStyle('A'.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-                    $activeWorksheet->setCellValue('B'.$row, $base['B']);
-                    foreach (['B','C','D','E','F','G'] as $col) { $activeWorksheet->getStyle($col.$row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER); }
-                    $activeWorksheet->setCellValue('C'.$row, $base['C']);
-                    $activeWorksheet->setCellValue('D'.$row, $base['D']);
-                    $activeWorksheet->setCellValue('E'.$row, $base['E']);
-                    $activeWorksheet->setCellValue('F'.$row, $base['F']);
-                    $activeWorksheet->setCellValue('G'.$row, $base['G']);
-                    $activeWorksheet->setCellValue('H'.$row, 'No Tasks');
+                    $activeWorksheet->setCellValue('B'.$row, $p->title);
+                    $activeWorksheet->setCellValue('C'.$row, ucfirst((string)($p->status ?? '-')));
+                    $activeWorksheet->setCellValue('D'.$row, 'No Tasks');
+                    $activeWorksheet->setCellValue('E'.$row, '-');
+                    $activeWorksheet->setCellValue('F'.$row, '-');
+                    $activeWorksheet->setCellValue('G'.$row, '-');
+                    $activeWorksheet->setCellValue('H'.$row, '-');
                     $activeWorksheet->setCellValue('I'.$row, '-');
-                    $activeWorksheet->setCellValue('J'.$row, $base['J']);
-                    $singleDue = $projectMaxDue ? $projectMaxDue->format('d-M-Y') : ($p->due_date ? \Carbon\Carbon::parse($p->due_date)->format('d-M-Y') : '-');
-                    $activeWorksheet->setCellValue('K'.$row, $singleDue);
-                    $activeWorksheet->setCellValue('L'.$row, $base['L']);
+                    $activeWorksheet->setCellValue('J'.$row, $totalTasks);
                     $activeWorksheet->getRowDimension($row)->setRowHeight(18);
                     $row++; $no++;
                 }
@@ -3334,13 +3358,16 @@ class ProjectController extends Controller
 
             if ($row > 3) {
                 $dataStyle = ['borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN]]];
-                $activeWorksheet->getStyle('A3:L'.($row-1))->applyFromArray($dataStyle);
+                $activeWorksheet->getStyle('A3:J'.($row-1))->applyFromArray($dataStyle);
+                // Center some columns
                 $activeWorksheet->getStyle('A3:A'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('B3:B'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('C3:C'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                $activeWorksheet->getStyle('F3:F'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                 $activeWorksheet->getStyle('G3:G'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('D3:D'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                 $activeWorksheet->getStyle('J3:J'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('K3:K'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-                $activeWorksheet->getStyle('L3:L'.($row-1))->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                // Wrap long texts
+                $activeWorksheet->getStyle('D3:D'.($row-1))->getAlignment()->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
                 $activeWorksheet->getStyle('H3:I'.($row-1))->getAlignment()->setWrapText(true)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP);
             }
 
