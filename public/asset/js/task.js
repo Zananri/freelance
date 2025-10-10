@@ -433,6 +433,22 @@
                 const t = res && (res.data || res) || {};
                 const title = t.title || 'Reject Task';
                 const desc = t.description || '';
+                                            // Refresh feedback count on task card after reply deletion
+                                            try {
+                                                $.ajax({
+                                                    url: appUrl + "/task-feedbacks/count/" + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || ''),
+                                                    type: 'GET',
+                                                    success: function(c){
+                                                        if (c && c.data && typeof c.data.count === 'number') {
+                                                            const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') + '"]');
+                                                            if (card) {
+                                                                let span = card.querySelector('.feedback-comments-count');
+                                                                if (span) { span.textContent = String(c.data.count); }
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            } catch(_) { }
                 const project_title = t.project.title || '';
                 const priority = t.priority || '';
                 const due_date = t.due_date || '';
