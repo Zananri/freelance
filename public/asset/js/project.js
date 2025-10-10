@@ -4195,7 +4195,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const repComment = document.createElement('p');
                                             repComment.className = 'mb-1';
                                             repComment.style.fontSize = '13px';
-                                            repComment.textContent = rep.feedback_comment || '';
+                                            repComment.innerHTML = rep.feedback_comment || '';
                                             repContent.appendChild(repComment);
 
                                             const repMedia = document.createElement('div');
