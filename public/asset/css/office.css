@@ -291,8 +291,8 @@ header .img-avatar span.material-symbols-outlined {
 
 .body-content {
     background-color: rgb(240, 241, 248);
-    min-height: 50vh;
-    max-height: calc(100vh - 160px);
+    /* min-height: 50vh;
+    max-height: calc(100vh - 160px); */
 }
 
 .body-content .table-title {

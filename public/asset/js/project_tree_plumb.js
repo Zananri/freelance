@@ -1,5 +1,6 @@
 /*
- Multi-parent task edges using jsPlumb. Draws additional connections between parent and child cards.
+ Project Tree multi-parent project edges using jsPlumb.
+ Draws connections between parent and child project cards.
  Requires: jsPlumb community lib loaded globally as jsPlumb or window.jsPlumb and jQuery ($).
 */
 (function ($) {
@@ -16,13 +17,12 @@
         (window.location && window.location.origin) ||
         ""
     ).replace(/\/$/, "");
-    var projectId = String(window.projectId || meta("project-id") || "");
     var csrf = window.csrfToken || meta("csrf-token") || "";
 
     var instance = null;
-    var endpoints = {};
-    function getElId(taskId) {
-        return "task-node-" + String(taskId);
+
+    function getElId(projectId) {
+        return "proj-node-" + String(projectId);
     }
 
     function ensureInstance() {
@@ -82,19 +82,19 @@
         } catch (_) {}
     }
 
-    function buildExistingEdges(tasks) {
+    function buildExistingEdges(projects) {
         var edges = [];
         try {
-            (tasks || []).forEach(function (t) {
+            (projects || []).forEach(function (p) {
                 var parents = [];
-                if (Array.isArray(t.parent_ids)) parents = t.parent_ids.slice();
-                if (t.parent_id && parents.indexOf(t.parent_id) === -1)
-                    parents.push(t.parent_id);
+                if (Array.isArray(p.parent_ids)) parents = p.parent_ids.slice();
+                if (p.legacy_parent_id && parents.indexOf(p.legacy_parent_id) === -1)
+                    parents.push(p.legacy_parent_id);
                 parents.forEach(function (pid) {
                     if (pid)
                         edges.push({
                             parent: String(pid),
-                            child: String(t.id),
+                            child: String(p.id),
                         });
                 });
             });
@@ -155,19 +155,19 @@
                     var tRect = $tEl.length
                         ? $tEl[0].getBoundingClientRect()
                         : null;
-                    var parentId = source.replace("task-node-", "");
-                    var childId = target.replace("task-node-", "");
+                    var parentId = source.replace("proj-node-", "");
+                    var childId = target.replace("proj-node-", "");
                     try {
                         if (sRect && tRect && tRect.left < sRect.left - 5) {
-                            parentId = target.replace("task-node-", "");
-                            childId = source.replace("task-node-", "");
+                            parentId = target.replace("proj-node-", "");
+                            childId = source.replace("proj-node-", "");
                         }
                     } catch (_) {}
                     if (!parentId || !childId || parentId === childId) return;
                     $.ajax({
                         url:
                             appUrl +
-                            "/task/" +
+                            "/project/" +
                             encodeURIComponent(childId) +
                             "/parents",
                         type: "POST",
@@ -228,8 +228,8 @@
                 try {
                     var sId = String(conn.sourceId || "");
                     var tId = String(conn.targetId || "");
-                    var parentId = sId.replace("task-node-", "");
-                    var childId = tId.replace("task-node-", "");
+                    var parentId = sId.replace("proj-node-", "");
+                    var childId = tId.replace("proj-node-", "");
                     try {
                         var $sEl = $("#" + sId),
                             $tEl = $("#" + tId);
@@ -240,15 +240,15 @@
                             ? $tEl[0].getBoundingClientRect()
                             : null;
                         if (sRect && tRect && tRect.left < sRect.left - 5) {
-                            parentId = tId.replace("task-node-", "");
-                            childId = sId.replace("task-node-", "");
+                            parentId = tId.replace("proj-node-", "");
+                            childId = sId.replace("proj-node-", "");
                         }
                     } catch (_) {}
                     if (!parentId || !childId) return;
                     $.ajax({
                         url:
                             appUrl +
-                            "/task/" +
+                            "/project/" +
                             encodeURIComponent(childId) +
                             "/parents",
                         type: "DELETE",
@@ -307,36 +307,36 @@
         } catch (_) {}
     }
 
-    function layConnections(tasks) {
-        var edges = buildExistingEdges(tasks);
+    function layConnections(projects) {
+        var edges = buildExistingEdges(projects);
         edges.forEach(function (e) {
             connectEdge(e.parent, e.child);
         });
     }
 
-    function init(tasks) {
+    function init(projects) {
         try {
             clearAll();
         } catch (_) {}
         var inst = ensureInstance();
         if (!inst) return;
         try {
-            (tasks || []).forEach(function (t) {
-                var $el = $("#" + getElId(t.id));
+            (projects || []).forEach(function (p) {
+                var $el = $("#" + getElId(p.id));
                 if ($el.length) makeSourceAndTarget($el[0]);
             });
         } catch (_) {}
-        layConnections(tasks);
+        layConnections(projects);
         attachEvents();
         try {
             inst.repaintEverything && inst.repaintEverything();
         } catch (_) {}
     }
 
-    window.initTaskPlumb = function (tasks) {
-        clearTimeout(window.__initTaskPlumbTimer);
-        window.__initTaskPlumbTimer = setTimeout(function () {
-            init(tasks);
+    window.initProjectPlumb = function (projects) {
+        clearTimeout(window.__initProjectPlumbTimer);
+        window.__initProjectPlumbTimer = setTimeout(function () {
+            init(projects);
         }, 60);
     };
 

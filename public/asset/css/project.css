@@ -194,7 +194,7 @@
 }
 
 .timeline-section {
-    max-height: 380px;
+    min-height: 50vh;
     border-radius: 20px;
 }
 
@@ -217,7 +217,6 @@
 }
 
 .timeline-wrapper {
-    max-height: 275px;
     overflow-y: auto;
     position: relative;
 }
@@ -232,6 +231,7 @@
 
 .timeline-table {
     width: 100%;
+    min-height: 37vh;
     border-collapse: collapse;
     border: 1px solid #dae3ed;
     table-layout: fixed;

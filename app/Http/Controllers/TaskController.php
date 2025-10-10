@@ -86,6 +86,8 @@ class TaskController extends Controller
 
             $projectId = $request->input('project');
             $statusFilter = $request->input('status');
+            $priorityFilter = $request->input('priority');
+            $dateFilter = $request->input('date');
             $search = $request->input('search');
             $perPage = (int) $request->input('per_page', 7);
             $page = (int) $request->input('page', 1);
@@ -112,6 +114,7 @@ class TaskController extends Controller
             if ($statusFilter && in_array(strtolower($statusFilter), ['canceled','deleted'])) {
                 $includeCanceled = true;
             }
+
             if ($request->filled('include_canceled')) {
                 $v = $request->input('include_canceled');
                 if ($v === 1 || $v === '1' || $v === 'true' || $v === true) {
@@ -125,6 +128,17 @@ class TaskController extends Controller
 
             if ($projectId)
                 $baseQuery->where('project_id', $projectId);
+
+            if ($priorityFilter) {
+                $baseQuery->where('priority', $priorityFilter);
+            }
+
+            if ($dateFilter) {
+                $baseQuery->where(function ($q) use ($dateFilter) {
+                    $q->whereDate('start_date', $dateFilter)
+                      ->orWhereDate('due_date', $dateFilter);
+                });
+            }
 
             if ($search) {
                 $baseQuery->where(function ($q) use ($search) {

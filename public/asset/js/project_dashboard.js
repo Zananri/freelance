@@ -297,30 +297,58 @@
             if (json && Array.isArray(json.data)) return json.data;
             return [];
         }
+        function extractTotal(json) {
+            if (!json) return 0;
+            if (json.pagination && typeof json.pagination.total !== 'undefined') {
+                return Number(json.pagination.total || 0);
+            }
+            const arr = normalizeArray(json);
+            return Array.isArray(arr) ? arr.length : 0;
+        }
         try {
-            // Parallel requests: total, completed, in_progress, not_started (from /project/index filters) and tasks aggregation for LATE
-            const [totalRes, compRes, progRes, notRes, tasksRes] =
-                await Promise.all([
-                    fetch(appUrl + "/project/index"),
-                    fetch(appUrl + "/project/index?filter=completed"),
-                    fetch(appUrl + "/project/index?filter=in_progress"),
-                    fetch(appUrl + "/project/index?filter=not_started"),
-                    fetch(appUrl + "/task/index/no-pagination"),
-                ]);
+            // Parallel requests using the same endpoint as project filter to guarantee identical counts
+            const cacheBuster = Date.now();
+            const url = appUrl + "/project/get-all-projects";
+            const base = new URLSearchParams({ task_scope: 'me', _cb: String(cacheBuster) });
+            if (window.currentSearch && String(window.currentSearch).trim() !== '') {
+                base.set('search', String(window.currentSearch).trim());
+            }
+            if (typeof window.currentProjectId !== 'undefined' && window.currentProjectId) {
+                base.set('project_id', String(window.currentProjectId));
+            }
+            if (window.currentFilterDate && String(window.currentFilterDate).trim() !== '') {
+                base.set('date', String(window.currentFilterDate).trim());
+            }
+            const sortBySel = document.getElementById('filterSortBy');
+            if (sortBySel && sortBySel.value) base.set('sort_by', sortBySel.value);
 
-            const [totalJson, compJson, progJson, notJson, tasksJson] =
+            const [totalRes, compRes, progRes, notRes, lateRes, tasksRes] = await Promise.all([
+                fetch(url + '?' + base.toString()),
+                fetch(url + '?' + new URLSearchParams({ ...Object.fromEntries(base), filter: 'completed' })),
+                fetch(url + '?' + new URLSearchParams({ ...Object.fromEntries(base), filter: 'in_progress' })),
+                fetch(url + '?' + new URLSearchParams({ ...Object.fromEntries(base), filter: 'not_started' })),
+                fetch(url + '?' + new URLSearchParams({ ...Object.fromEntries(base), filter: 'late' })),
+                fetch(appUrl + "/task/index/no-pagination?_cb=" + cacheBuster),
+            ]);
+
+            const [totalJson, compJson, progJson, notJson, lateJson, tasksJson] =
                 await Promise.all([
                     totalRes.json(),
                     compRes.json(),
                     progRes.json(),
                     notRes.json(),
+                    lateRes.json(),
                     tasksRes.json(),
                 ]);
 
-            const projects = normalizeArray(totalJson);
-            const completedArr = normalizeArray(compJson);
-            const inProgressArr = normalizeArray(progJson);
-            const notStartedArr = normalizeArray(notJson);
+            // Use totals derived from filter API
+            const totalCount = extractTotal(totalJson);
+            const completedCount = extractTotal(compJson);
+            const inProgressCount = extractTotal(progJson);
+            const notStartedCount = extractTotal(notJson);
+            const lateCount = extractTotal(lateJson);
+
+            const projects = normalizeArray(totalJson); // still used for timeline data enrichment
 
             // Enrich missing dates for timeline only
             const needsDetail = projects.filter(
@@ -384,32 +412,16 @@
                 const d = new Date(s);
                 return isNaN(d.getTime()) ? null : d;
             }
-            const now = new Date();
-            let countLate = 0;
-            projects.forEach((p) => {
-                const pid = p.id || p.project_id;
-                const tasks = tasksByProject[pid] || [];
-                if (!tasks.length) return; // no tasks -> not late
-                const hasLate = tasks.some((t) => {
-                    if (t.__status === "late") return true;
-                    const dueStr = t.due_date || t.due || t.deadline;
-                    const due = parseDue(dueStr);
-                    return !!(
-                        due &&
-                        due.getTime() < now.getTime() &&
-                        t.__status !== "completed"
-                    );
-                });
-                if (hasLate) countLate++;
-            });
-
             const derivedCounts = {
-                total: projects.length,
-                completed: completedArr.length,
-                in_progress: inProgressArr.length,
-                late: countLate,
-                not_started: notStartedArr.length,
+                total: totalCount,
+                completed: completedCount,
+                in_progress: inProgressCount,
+                late: lateCount,
+                not_started: notStartedCount,
             };
+
+            // Debug logging
+            console.log('Dashboard Filter Results:', derivedCounts);
 
             updateChartAndLabels(projects, derivedCounts);
             projectsCache = projects;

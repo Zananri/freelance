@@ -2857,7 +2857,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         `;
 
         return `
-        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}">
+        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;">
                 ${statusBadge}
                 ${dropdownHtml}
                 ${iconHtml}
@@ -8413,11 +8413,15 @@ function applyCurrentSearchFilter() {
     // Enhanced Task Filtering with All Project Support
     let currentTaskFilters = {
         project: "",
-        status: ""
+        status: "",
+        priority: "",
+        date: "",
     };
 
     const filterTaskProjectSelect = document.getElementById("filterTaskProject");
     const filterTaskStatusSelect = document.getElementById("filterTaskStatus");
+    const filterTaskPrioritySelect = document.getElementById("filterTaskPriority");
+    const filterByDate = document.getElementById("filterByDate");
     const applyTaskFilterBtn = document.getElementById("applyTaskFilterBtn");
     const openTaskFilterBtn = document.getElementById("openTaskFilterBtn");
     const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
@@ -8461,6 +8465,8 @@ function applyCurrentSearchFilter() {
         applyTaskFilterBtn.addEventListener("click", function () {
             if (filterTaskProjectSelect) currentTaskFilters.project = filterTaskProjectSelect.value;
             if (filterTaskStatusSelect) currentTaskFilters.status = filterTaskStatusSelect.value;
+            if (filterTaskPrioritySelect) currentTaskFilters.priority = filterTaskPrioritySelect.value;
+            if (filterTaskPrioritySelect) currentTaskFilters.date = filterByDate.value;
             fetchAndRenderFilteredTasks(currentTaskFilters);
             const dd = document.getElementById("taskFilterDropdown");
             if (dd) dd.style.display = "none";
@@ -8519,6 +8525,12 @@ function applyCurrentSearchFilter() {
                 if (currentTaskFilters.status) {
                     filterTaskStatusSelect.value = currentTaskFilters.status;
                 }
+                if (currentTaskFilters.priority) {
+                    filterTaskPrioritySelect.value = currentTaskFilters.priority;
+                }
+                if (currentTaskFilters.date) {
+                    filterTaskPrioritySelect.value = currentTaskFilters.date;
+                }
             })
             .catch((error) => {
                 console.error("Error loading projects for filter:", error);
@@ -8530,11 +8542,14 @@ function applyCurrentSearchFilter() {
         resetTaskFilterBtn.addEventListener("click", function() {
             currentTaskFilters = {
                 project: "",
-                status: ""
+                status: "",
+                priority: "",
             };
 
             if (filterTaskProjectSelect) filterTaskProjectSelect.value = "";
             if (filterTaskStatusSelect) filterTaskStatusSelect.value = "";
+            if (filterTaskPrioritySelect) filterTaskPrioritySelect.value = "";
+            if (filterByDate) filterByDate.value = "";
 
             fetchAndRenderTasks();
 
@@ -8596,8 +8611,10 @@ function applyCurrentSearchFilter() {
             dataType: "json",
             data: (function(){
                 const p = {};
-                if (filters && filters.project) p.project = filters.project; // backend expects 'project'
-                if (filters && filters.status) p.status = filters.status; // backend expects 'status'
+                if (filters && filters.project) p.project = filters.project;
+                if (filters && filters.status) p.status = filters.status;
+                if (filters && filters.priority) p.priority = filters.priority;
+                if (filters && filters.date) p.date = filters.date;
                 return p;
             })(),
             success: function (data) {
@@ -8651,10 +8668,17 @@ function applyCurrentSearchFilter() {
     function resetTaskFilters() {
         currentTaskFilters = {
             project: "",
-            status: ""
+            status: "",
+            priority: "",
+            date: "",
         };
 
         if (filterTaskProjectSelect) filterTaskProjectSelect.value = "";
+        if (filterTaskPrioritySelect) {
+            filterTaskPrioritySelect.value = "";
+            filterTaskPrioritySelect.disabled = false;
+        }
+        if (filterByDate) filterByDate.value = "";
         if (filterTaskStatusSelect) {
             filterTaskStatusSelect.value = "";
             filterTaskStatusSelect.disabled = false;
@@ -8714,13 +8738,19 @@ function applyCurrentSearchFilter() {
         );
 
         const params = { status, page };
+
         if (searchQueryMobile && searchQueryMobile.trim() !== "") {
             params.search = searchQueryMobile.trim();
         }
         if (currentTaskFilters?.project) {
-            params.project = currentTaskFilters.project; // backend expects 'project'
+            params.project = currentTaskFilters.project;
         }
-        // Do not add additional status filter on mobile; the bucket 'status' param above controls which list to show
+        if (currentTaskFilters?.priority) {
+            params.priority = currentTaskFilters.priority;
+        }
+        if (currentTaskFilters?.date) {
+            params.date = currentTaskFilters.date;
+        }
 
         $.ajax({
             url: appUrl + "/task/index",
@@ -8924,14 +8954,38 @@ function applyCurrentSearchFilter() {
 
     $(document).on("click", "#applyTaskFilterBtnMobile", function () {
         const projectId = $("#filterTaskProjectMobile").val() || "";
+        const priority = $("#filterTaskPriorityMobile").val() || "";
+        const date = $("#filterByDateMobile").val() || "";
 
         currentTaskFilters.project = projectId;
+        currentTaskFilters.priority = priority;
+        currentTaskFilters.date = date;
 
         delete currentTaskFilters.status;
 
         fetchAndRenderFilteredTasks(currentTaskFilters);
 
         $("#taskFilterDropdownMobile").hide();
+    });
+
+    $(document).on("click", "#resetTaskFilterBtnMobile", function() {
+        currentTaskFilters = {
+            project: "",
+            priority: "",
+            date: "",
+        };
+
+        $("#filterTaskProjectMobile").val("");
+        $("#filterTaskPriorityMobile").val("");
+        $("#filterByDateMobile").val("");
+
+        fetchAndRenderTasks();
+
+        updateProjectFilterDisplay();
+
+        $("#taskFilterDropdownMobile").hide();
+
+        console.log("✅ Filter reset ke default:", currentTaskFilters);
     });
 
 
@@ -8973,15 +9027,30 @@ function applyCurrentSearchFilter() {
         </div>
         <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
             <div class="dropdown-filter-body">
-            <div class="mb-3">
-                <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                <select id="filterTaskProjectMobile" class="form-select">
-                <option value="">All Projects</option>
-                </select>
-            </div>
+                <div class="mb-3">
+                    <label for="filterTaskProjectMobile" class="form-label">Project</label>
+                    <select id="filterTaskProjectMobile" class="form-select">
+                        <option value="">All Projects</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="filterTaskPriorityMobile" class="form-label label-custom">Priority</label>
+                    <select id="filterTaskPriorityMobile" class="form-select">
+                        <option value="">All Priority</option>
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="HIGH">High</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="filterByDateMobile" class="form-label label-custom">By Date</label>
+                    <input class="form-select border-0" type="date" name="filter_by_date"
+                        id="filterByDateMobile">
+                </div>
             </div>
             <div class="dropdown-filter-footer">
-            <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Filter</button>
+                <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Apply</button>
+                <button type="button" class="btn btn-submit-filter" id="resetTaskFilterBtnMobile">Reset</button>
             </div>
         </div>
     <div id="mobile-task-list" style="max-height: calc(100vh - 120px); overflow-y: auto;"></div>

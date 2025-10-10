@@ -140,7 +140,6 @@ function renderTaskNode(task, $template) {
             $handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
             $card.append($handle);
 
-            // 👇 Tambahin ini bre
             $card.hover(
                 function () { $(this).find('.plumb-handle').removeClass('d-none'); },
                 function () { $(this).find('.plumb-handle').addClass('d-none'); }
