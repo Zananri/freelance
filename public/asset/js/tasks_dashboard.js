@@ -40,7 +40,7 @@ function getStatusBackground(statusNorm) {
         bg = '#a1a3a60d';
     } else if (statusNorm === 'in_progress') {
         bg = '#edebdf';
-    } else if (statusNorm === 'complete') {
+    } else if (statusNorm === 'completed') {
         bg = '#baeed340';
     } else if (statusNorm === 'rejected') {
         bg = '#FFFFFF';
