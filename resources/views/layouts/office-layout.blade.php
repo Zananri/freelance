@@ -284,7 +284,12 @@
 
                     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
 
-
+                    <li>
+                        <a href="{{ route('calendar_management') }}" class="{{ $menu_active == 'calendar' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">calendar_month</span>
+                            <span class="text-menu">Calendar</span>
+                        </a>
+                    </li>
 
                     <li>
                         <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">

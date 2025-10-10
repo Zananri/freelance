@@ -169,7 +169,7 @@ const formatDateENMediumWithDay = (date) => {
   const day = dayNames[newDate.getDay()];
   const d = newDate.getDate();
   const m = monthNames[newDate.getMonth()];
-  const y = date.getFullYear();
+  const y = newDate.getFullYear();
 
   return `${day}, ${d} ${m} ${y}`;
 };

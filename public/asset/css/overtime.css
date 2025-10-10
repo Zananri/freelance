@@ -422,14 +422,15 @@
     height: 100%;
 }
 
+.modal .box-loader{
+    display: none;
+}
+
 .photo-start,
 .photo-end{
     cursor: pointer;
 }
 
-.modal .box-loader{
-    display: none;
-}
 
 .modal .btn-close-modal{
     background-color: #E3E4EE;
@@ -666,3 +667,4 @@
     margin-right: 15px;
     border-radius: 14px;
 }
+

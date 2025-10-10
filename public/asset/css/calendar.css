@@ -22,6 +22,22 @@
     cursor: pointer;
 }
 
+.btn-default-dark{
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 10px;
+    padding: 10px 16px;
+    background-color: #444444;
+    color: #E9EEF4;
+    cursor: pointer;
+}
+
+.btn-default-dark:hover,
+.btn-default-dark:active{
+    background-color: #343434 !important;
+    color: #fff !important;
+}
+
 .btn-default-modal {
     background-color: #e3e4ee;
     color: #313238;
@@ -85,13 +101,145 @@
 }
 
 
+
+.box-loader{
+    background-color: rgba(255, 255, 255,0.3);
+    position: absolute;
+    top:0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+.loader{ 
+    display: none;
+    position: absolute;
+    top:0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+}
+
+.modal .box-loader{
+    display: none;
+}
+
 .modal .modal-content{
     border-radius: 20px;
     background-color: #F0F1F8;
     border:0px;
 }
 
+.modal .form-select,
+.modal .form-control{
+    font-size: 14px !important;
+    padding : 12px 14px;
+    border-radius: 10px;
+    border:0px;
+}
 
+.modal .btn-close-modal{
+    background-color: #E3E4EE;
+    border: 0px;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 12px 5px;
+    color: #313131;
+}
+
+.modal .btn-close-modal:hover,
+.modal .btn-close-modal:active{
+    background-color: #dedfe9;
+    border: 0px;
+    color: #3a3e42;
+}
+
+.modal .btn-submit-modal{
+    background-color: #313131;
+    border: 0px;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 12px 5px;
+    color: #E3E4EE;
+}
+
+.modal .btn-submit-modal:hover,
+.modal .btn-submit-modal:active{
+    background-color: #272727;
+    border: 0px;
+    color: #E3E4EE;
+}
+
+.modal .input-search-event-day{
+    font-size: 14px;
+    font-weight: 400;
+    border-radius: 10px;
+    background-color: #f7f8fe;
+    color: #2A3542;
+    display: inline-block;
+    transition: width .3s;
+    outline: none;
+    border: none;
+    padding: 5px 10px 5px 34px !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 -960 960 960'%3e%3cpath fill='%238C909A' d='M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: left 10px center;
+    background-size: 16px;
+}
+
+.modal .box-data-event{
+    max-height: calc(100vh - 300px);
+    overflow: auto;
+}
+
+.modal .calendar-date{
+    white-space: nowrap;
+}
+.modal .item-event .text-time{
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.bg-custom-1{
+    background-color:#c4ebff; 
+}
+
+.bg-custom-2{
+    background-color:#e6cdfe; 
+}
+
+.bg-custom-3{
+    background-color:#fac5df; 
+}
+
+.bg-custom-4{
+    background-color:#febdbd; 
+}
+
+.bg-custom-5{
+    background-color:#fdfdc1; 
+}
+.bg-custom-6{
+    background-color:#befdbe; 
+}
+
+.bg-custom-7{
+    background-color:#b6ffe7; 
+}
+
+.dropdown-color .dropdown-menu{
+    width: 50px !important;
+    min-width: 70px;
+}
+
+.dropdown-color .dropdown-item.active, 
+.dropdown-color .dropdown-item:active {
+    background-color:#ecf3f6;
+}
 .header-calendar{
     padding: 15px 15px;
 }
@@ -253,8 +401,16 @@
     display: -webkit-box;
     -webkit-line-clamp: 1; /* Number of lines to show */
     -webkit-box-orient: vertical;
+    overflow: hidden;
+    white-space: nowrap;
 }
 
+@media (max-width: 567px) {
+    .table-calendar tbody td .text-event {
+        font-size: 8px;
+        padding: 1px 2px;
+    }
+}    
 .table-calendar tbody td.today .day{
     color: #0c6cea;
 }

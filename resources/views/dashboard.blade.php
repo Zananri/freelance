@@ -1063,13 +1063,49 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Tutorial Overtime Modal -->
+                <div class="modal fade" id="announcementModal" tabindex="-1" aria-labelledby="tutorialOvertimeModalLabel">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content border-0 bg-transparent shadow-0">
+                            <div class="modal-body bg-transparent">
+                                
+                                <div id="carouselExample" class="carousel slide">
+                                    <div class="carousel-inner">
+                                        <div class="carousel-item active">
+                                        <svg aria-label="Placeholder: First slide" class="bd-placeholder-img bd-placeholder-img-lg d-block w-100" height="400" preserveAspectRatio="xMidYMid slice" role="img" width="800" xmlns="http://www.w3.org/2000/svg"><title>Placeholder</title><rect width="100%" height="100%" fill="#777"></rect><text x="50%" y="50%" fill="#555" dy=".3em">First slide</text></svg>
+                                        </div>
+                                        <div class="carousel-item">
+                                        <svg aria-label="Placeholder: Second slide" class="bd-placeholder-img bd-placeholder-img-lg d-block w-100" height="400" preserveAspectRatio="xMidYMid slice" role="img" width="800" xmlns="http://www.w3.org/2000/svg"><title>Placeholder</title><rect width="100%" height="100%" fill="#666"></rect><text x="50%" y="50%" fill="#444" dy=".3em">Second slide</text></svg>
+                                        </div>
+                                        <div class="carousel-item">
+                                        <svg aria-label="Placeholder: Third slide" class="bd-placeholder-img bd-placeholder-img-lg d-block w-100" height="400" preserveAspectRatio="xMidYMid slice" role="img" width="800" xmlns="http://www.w3.org/2000/svg"><title>Placeholder</title><rect width="100%" height="100%" fill="#555"></rect><text x="50%" y="50%" fill="#333" dy=".3em">Third slide</text></svg>
+                                        </div>
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#carouselExample" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Previous</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#carouselExample" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Next</span>
+                                    </button>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
             </x-slot>
+
             <x-slot name="script_slot">
                 <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
                 <script src="{{ asset('asset/plugin/leaflet/leaflet.js') }}" crossorigin=""></script>
                 <script src="{{ asset('asset/js/dashboard.js') }}?v={{ time() }}"></script>
+                <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/attendance_dashboard_new.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/callendar_dashboard.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/tasks_dashboard.js') }}?v={{ time() }}"></script>

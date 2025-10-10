@@ -24,6 +24,7 @@ use App\Http\Controllers\ResetPasswordController;
 
 use App\Http\Controllers\TeamsController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\EmployeeCalendarController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\AttendanceTrackingController;
 use App\Http\Controllers\WeekdayOffController;
@@ -238,8 +239,9 @@ Route::middleware('auth')->group(function () {
         ->name('shift.soft-delete');
 
 
-    Route::get('/calendar', [CalendarController::class, 'showCalendarPage'])->name('calendar');
-    Route::get('/calendar/get-calendar-data', [CalendarController::class, 'getCalendarData'])->name('calendar.getCalendarData');
+    Route::get('/calendar', [EmployeeCalendarController::class, 'showCalendarPage'])->name('calendar');
+    Route::get('/calendar/all-event-employee-calendar-by-month', [EmployeeCalendarController::class, 'allEventEmployeeCalendarByMonth'])->name('calendar.allEventEmployeeCalendarByMonth');
+    Route::post('/calendar/new-employee-event', [EmployeeCalendarController::class, 'newEmployeeEvent'])->name('calendar.newEmployeeEvent');
 
     // Contributions heatmap for employee (completed tasks per day)
     Route::get('/employees/{id}/contributions', [TaskController::class, 'getEmployeeContributions'])
@@ -249,8 +251,8 @@ Route::middleware('auth')->group(function () {
 
 
 Route::middleware('auth', 'management')->group(function () {
-
-
+    Route::get('/calendar_management', [CalendarController::class, 'showCalendarPage'])->name('calendar_management');
+    
     Route::get('/master', function () {
         return view('master.master');
     })->name('master');
