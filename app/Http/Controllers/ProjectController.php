@@ -26,6 +26,50 @@ use Carbon\Carbon;
 class ProjectController extends Controller
 {
     /**
+     * Recursively delete a project feedback and its replies, including attached files.
+     */
+    private function deleteProjectFeedbackCascade(ProjectFeedback $feedback): void
+    {
+        // Delete children first
+        try {
+            $children = ProjectFeedback::where('parent_id', $feedback->id)->get();
+            foreach ($children as $child) {
+                $this->deleteProjectFeedbackCascade($child);
+            }
+        } catch (\Throwable $_) {}
+
+        // Delete attached image
+        try {
+            if (!empty($feedback->image)) {
+                $path = public_path('file/project/' . $feedback->image);
+                if (is_file($path)) { @unlink($path); }
+            }
+        } catch (\Throwable $_) {}
+
+        // Delete legacy single reference file
+        try {
+            if (!empty($feedback->reference_file)) {
+                $p = public_path('file/project/' . $feedback->reference_file);
+                if (is_file($p)) { @unlink($p); }
+            }
+        } catch (\Throwable $_) {}
+
+        // Delete array reference files
+        try {
+            $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
+            if (empty($refFiles) && is_string($feedback->reference_files) && $feedback->reference_files !== '') {
+                $decoded = json_decode($feedback->reference_files, true);
+                if (is_array($decoded)) $refFiles = $decoded;
+            }
+            foreach ($refFiles as $rf) {
+                if (!$rf) continue; $p = public_path('file/project/' . $rf); if (is_file($p)) { @unlink($p); }
+            }
+        } catch (\Throwable $_) {}
+
+        // Finally delete row
+        try { $feedback->delete(); } catch (\Throwable $_) {}
+    }
+    /**
      * Safely derive a proper HTTP status code from an exception.
      * Falls back to 500 when the exception code is non-numeric or out of 4xx/5xx range.
      */
@@ -2530,27 +2574,8 @@ class ProjectController extends Controller
                 ], 403);
             }
 
-            // Delete attached image if any
-            if (!empty($feedback->image)) {
-                $path = public_path('file/project/' . $feedback->image);
-                if (file_exists($path)) {
-                    @unlink($path);
-                }
-            }
-
-            // Delete attached reference files if any
-            $refFiles = is_array($feedback->reference_files) ? $feedback->reference_files : [];
-            foreach ($refFiles as $rf) {
-                if (!$rf)
-                    continue;
-                $p = public_path('file/project/' . $rf);
-                if (file_exists($p)) {
-                    @unlink($p);
-                }
-            }
-
-            // Delete the feedback (this will also delete replies if cascade set; otherwise remove replies manually)
-            $feedback->delete();
+            // Cascade delete feedback + its replies and files
+            $this->deleteProjectFeedbackCascade($feedback);
 
             DB::commit();
 
@@ -2567,6 +2592,46 @@ class ProjectController extends Controller
                 'status' => 'error',
                 'message' => 'Failed to delete feedback: ' . $e->getMessage(),
             ], $status);
+        }
+    }
+
+    /**
+     * Get count of feedbacks for a specific project (excluding replies whose parent no longer exists).
+     */
+    public function getProjectFeedbackCount($projectId)
+    {
+        try {
+            $project = Project::find($projectId);
+            if (!$project || ($project->status ?? null) === 'DELETED') {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => ['count' => 0]
+                ]);
+            }
+
+            $count = ProjectFeedback::where('project_id', $projectId)
+                ->where(function($q){
+                    $q->whereNull('parent_id')
+                      ->orWhereExists(function($sub){
+                          $sub->select(DB::raw(1))
+                              ->from('project_feedbacks as p')
+                              ->whereColumn('p.id', 'project_feedbacks.parent_id');
+                      });
+                })
+                ->count();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => ['count' => $count]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => ['count' => 0]
+            ]);
         }
     }
 
