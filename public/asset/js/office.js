@@ -44,42 +44,42 @@ $(document).ready(function() {
     })();
 
     // === Notification Helper Functions ===
-    
+
     // Helper function to check if notification should show "Read" label
     function shouldShowReadLabel(notificationId) {
         const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-        
+
         // Check if red dot (unread indicator) is still visible
         // Periksa apakah notification-unread-dot masih ada
         const hasRedDot = notificationElement.find('.notification-unread-dot').length > 0;
-        
+
         // Check badge count and visibility
         const badge = $('#notificationBadge');
         const badgeCount = parseInt(badge.text()) || 0;
         const isBadgeHidden = badge.is(':hidden') || badge.css('display') === 'none';
-        
+
         // PENTING: Label "Read" HANYA muncul jika:
         // 1. notification-unread-dot sudah hilang DAN
         // 2. badge count sudah 0 ATAU badge sudah disembunyikan
         // Jangan tampilkan "Read" jika notification-unread-dot masih ada atau badge count masih > 0
         return !hasRedDot && (badgeCount === 0 || isBadgeHidden);
     }
-    
+
     // Helper function to update notification read status with conditional "Read" label
     function updateNotificationReadStatus(notificationId) {
         const notificationElement = $(`[data-notification-id="${notificationId}"]`);
-        
+
         // Always create "Read" label with hidden attribute first
         notificationElement.find('.notification-actions').html('<div class="notification-read-label" hidden="">Read</div>');
-        
+
         // Always remove the red dot first
         notificationElement.find('.notification-unread-dot').remove();
-        
+
         // Wait a moment to ensure DOM is updated, then check if we should show the "Read" label
         setTimeout(function() {
             // Check if red dot is really gone
             const stillHasRedDot = notificationElement.find('.notification-unread-dot').length > 0;
-            
+
             if (!stillHasRedDot) {
                 // Remove hidden attribute to show "Read" label only when red dot is gone
                 notificationElement.find('.notification-read-label').removeAttr('hidden');
@@ -152,20 +152,18 @@ $(document).ready(function() {
 
     // Cache for latest fetched notifications with acceptance status
     let __notificationsCache = [];
-    
+
     // Track user interaction with notification dropdown
     let __dropdownWasOpenedByUser = false;
     // Track in-flight mark-as-read operations triggered on dropdown close
     let __pendingMarkReadPromise = null;
 
     function fetchNotifications() {
-        console.log('Fetching notifications...');
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
         $.ajax({
             url: appUrl + "/notifications",
             type: "GET",
             success: function(response) {
-                console.log('Notifications fetched:', response);
                 const notifications = response.data;
                 const notificationList = $('#notificationList');
 
@@ -295,18 +293,18 @@ $(document).ready(function() {
                 `;
             });
             notificationList.html(html);
-            
+
             // After rendering notifications, check and update "Read" label visibility for project notifications
             setTimeout(function() {
                 $('.notification-item').each(function() {
                     const notificationElement = $(this);
                     const notificationTitle = notificationElement.find('.notification-title').text().toLowerCase();
-                    
+
                     // Only process project notifications
                     if (notificationTitle.includes('project')) {
                         const hasRedDot = notificationElement.find('.notification-unread-dot').length > 0;
                         const readLabel = notificationElement.find('.notification-read-label');
-                        
+
                         if (!hasRedDot && readLabel.length > 0) {
                             // Remove hidden attribute to show "Read" label when red dot is gone
                             readLabel.removeAttr('hidden');
@@ -574,12 +572,10 @@ $(document).ready(function() {
                 const taskId = taskIdMatch ? taskIdMatch[1] : null;
 
                 if (taskId) {
-                    console.log('Checking accept status for task:', taskId, 'URL:', `${appUrl}/task/${taskId}/accept-status`);
                     return $.ajax({
                         url: `${appUrl}/task/${taskId}/accept-status`,
                         type: "GET"
                     }).then(response => {
-                        console.log('Accept status response for task', taskId, ':', response);
                         const data = response && response.data ? response.data : {};
                         const isAccepted = !!(response.is_accepted || data.is_accepted);
                         const notAssignedMsg = String(data.message || '').toLowerCase();
@@ -732,7 +728,7 @@ $(document).ready(function() {
                 fetchNotifications();
             });
         }
-        
+
         // Reset the flag after closing
         __dropdownWasOpenedByUser = false;
     }
@@ -868,28 +864,17 @@ $(document).ready(function() {
 
     // Accept project function for project assignment notifications
     function acceptProject(projectTitle, notificationId) {
-        console.log('=== Accept Project Debug ===');
-        console.log('Project Title:', projectTitle);
-        console.log('Notification ID:', notificationId);
 
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
-        console.log('App URL:', appUrl);
 
         // First, get all projects to find the project ID by title
         $.ajax({
             url: `${appUrl}/project/index?include_unaccepted=true`,
             type: "GET",
             success: function(response) {
-                console.log('Projects response:', response);
-                console.log('Looking for project title:', projectTitle);
-                console.log('Available projects:', response.data.map(p => ({ id: p.id, title: p.title })));
-
                 // Find the project with the matching title
                 const project = response.data.find(p => p.title === projectTitle);
-                console.log('Found project:', project);
-
                 if (project) {
-                    console.log('Calling accept endpoint for project ID:', project.id);
                     // Now call the accept endpoint with the project ID
                     $.ajax({
                         url: `${appUrl}/project/${project.id}/accept`,
@@ -898,7 +883,6 @@ $(document).ready(function() {
                             'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                         },
                         success: function(response) {
-                            console.log('Accept project response:', response);
                             if (typeof window.showAlertMsg === 'function') {
                                 window.showAlertMsg('Project accepted successfully!', 'light', 2000);
                             } else {
@@ -913,11 +897,9 @@ $(document).ready(function() {
                                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                             },
                             success: function() {
-                                console.log('Notification marked as read successfully');
-                                
                                 // Update notification count first
                                 fetchNotificationCount();
-                                
+
                                 // Then update the notification UI with conditional "Read" label
                                 setTimeout(function() {
                                     updateNotificationReadStatus(notificationId);
@@ -937,10 +919,10 @@ $(document).ready(function() {
                             },
                             error: function() {
                                 console.error('Failed to mark notification as read');
-                                
+
                                 // Still update the UI and count even if marking as read fails
                                 fetchNotificationCount();
-                                
+
                                 setTimeout(function() {
                                     updateNotificationReadStatus(notificationId);
                                 }, 200);
@@ -1138,50 +1120,69 @@ $(document).ready(function() {
         }
     });
 
+    function getTaskInitials(title) {
+        if (!title) return "NA";
+        const words = title.trim().split(/\s+/);
+        if (words.length === 1) {
+            return words[0].substring(0, 2).toUpperCase();
+        }
+        return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+    }
+
+    function getRandomColorFromText(text) {
+        const colors = [
+            "#6A5AE0", "#FF8A3C", "#00A881", "#D4526E", "#3E8EDE",
+            "#546E7A", "#8E44AD", "#2E7D32", "#AD1457", "#EF6C00"
+        ];
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+            hash = text.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    }
+
     // Show accept task confirmation modal
     function showAcceptTaskModal(taskId, notificationId) {
         const appUrl = (document.querySelector('meta[name=\"app-url\"]')?.getAttribute('content') || '').replace(/\/$/, '');
-        console.log('Fetching task details for ID:', taskId, 'with appUrl:', appUrl);
 
         // Fetch task details
         $.ajax({
             url: `${appUrl}/task/${taskId}`,
             method: 'GET',
             success: function(response) {
-                console.log('=== Office.js Debug Info ===');
-                console.log('Task details response:', response);
-                // Safely access response data with fallback defaults
                 const taskTitle = (response.data && response.data.title) || 'undefined';
                 const taskDescription = (response.data && response.data.description) || 'No description';
+                const priority = response.data.priority || '';
+                const due_date = response.data.due_date || '';
 
-                // Better image handling with multiple fallbacks
-                let taskImage;
-                if (response.data && response.data.image) {
-                    taskImage = `${appUrl}/file/task/${response.data.image}`;
+                let img = "";
+                if (response.data.image) {
+                    // Kalau ada gambar
+                    img = `<img src="${appUrl}/file/task/${response.data.image}"
+                                    alt="Task Image"
+                                    class="rounded-circle"
+                                    style="width:34px; height:34px; object-fit:cover;"
+                                    onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
                 } else {
-                    taskImage = `${appUrl}/asset/img/background/add-image.png`;
+                    const initials = getTaskInitials(response.data.title);
+                    const bgColor = getRandomColorFromText(response.data.title);
+
+                    img = `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:34px;height:34px;background:${bgColor};color:#fff;
+                                            font-size:13px;font-weight:600;">
+                                    ${initials}
+                            </div>`;
                 }
 
-                console.log('Task image URL:', taskImage);
-                console.log('Task data:', response.data);
-                console.log('=============================');
                 // Create modal HTML
                 const modalHtml = `
                     <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="acceptTaskModalLabel">Accept Task</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
                                     <div class="d-flex">
                                         <div class="me-3">
-                                            <img src="${taskImage}"
-                                                 alt="Task Image"
-                                                 class="rounded-circle task-image"
-                                                 style="width: 70px; height: 70px; object-fit: cover;"
-                                                 onerror="this.src='${appUrl}/asset/img/background/add-image.png'">
+                                            ${img}
                                         </div>
                                         <div>
                                             <h6 style="font-size: 16px; font-weight: 600; margin: 0;">${taskTitle}</h6>
@@ -1190,11 +1191,23 @@ $(document).ready(function() {
                                             </div>
                                         </div>
                                     </div>
+                                    <hr class="text-seperator rounded-md">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div style="font-size: 10px; font-weight: 400;">
+                                            <span style="color: #797E91;">Priority: </span>
+                                            <span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">
+                                                ${priority}
+                                            </span>
+                                        </div>
+                                        <div style="font-size: 10px; font-weight: 400;">
+                                            <span style="color: #797E91;">Deadline: </span>
+                                            <span style="#color: #4B4F5E">${due_date }</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-submit-black" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn"><span class="material-symbols-outlined me-1" style="font-size: 12px; vertical-align: middle;">check_circle</span>
-                                    Accept Task</button>
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>
                                 </div>
                             </div>
                         </div>
@@ -1255,7 +1268,6 @@ $(document).ready(function() {
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function() {
-                        console.log('Task notification marked as read successfully');
                         // Update the notification UI to show it as read
                         const notificationElement = $(`[data-notification-id="${notificationId}"]`);
 
