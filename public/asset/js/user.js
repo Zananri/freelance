@@ -172,13 +172,15 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     function initSearchFilter() {
-        $(document).on("keydown", "#search_filter", function (e) {
-            if (e.key === "Enter") {
-                e.preventDefault();
+        let debounceTimer;
 
-                const query = $(this).val().trim();
+        $(document).on("input", "#search_filter", function () {
+            const query = $(this).val().trim();
+
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
                 fetchUsers(null, query);
-            }
+            }, 500);
         });
     }
 
