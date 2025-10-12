@@ -21,6 +21,7 @@
     color: #3C404B;
     cursor: pointer;
 }
+ 
 
 .btn-default-dark{
     border: 0px;
@@ -142,7 +143,8 @@
     border:0px;
 }
 
-.modal .btn-close-modal{
+.modal .btn-close-modal,
+.modal .btn-edit-modal{
     background-color: #E3E4EE;
     border: 0px;
     font-size: 14px;
@@ -151,11 +153,29 @@
     color: #313131;
 }
 
+
 .modal .btn-close-modal:hover,
-.modal .btn-close-modal:active{
+.modal .btn-close-modal:active,
+.modal .btn-edit-modal:hover,
+.modal .btn-edit-modal:active{
     background-color: #dedfe9;
     border: 0px;
     color: #3a3e42;
+}
+ 
+.btn-delete-modal{
+    background-color: #f79da9;
+    border: 0px;
+    font-size: 14px;
+    font-weight: 300;
+    padding: 12px 5px;
+    color: #222121;
+}
+.modal .btn-delete-modal:hover,
+.modal .btn-delete-modal:active{
+    background-color: #ff96a4;
+    border: 0px;
+    color: #111010;
 }
 
 .modal .btn-submit-modal{
@@ -199,37 +219,74 @@
 .modal .calendar-date{
     white-space: nowrap;
 }
+.modal .item-event{
+    opacity: 0.8;
+    transition: all 0.3s;
+}
+
+.modal .item-event:hover{
+    opacity: 1;
+    cursor: pointer;
+}
 .modal .item-event .text-time{
     font-size: 12px;
     white-space: nowrap;
 }
 
 .bg-custom-1{
-    background-color:#c6ecff; 
+    background-color:#cceeff; 
 }
 
 .bg-custom-2{
-    background-color:#ead4ff; 
+    background-color:#ccd9ff; 
 }
 
 .bg-custom-3{
-    background-color:#ffc9e3; 
+    background-color:#d9ccff; 
 }
 
 .bg-custom-4{
-    background-color:#ffc3c3; 
+    background-color:#f2ccff; 
 }
 
 .bg-custom-5{
-    background-color:#fdfdc1; 
+    background-color:#ffccf2; 
 }
 .bg-custom-6{
-    background-color:#c3ffc3; 
+    background-color:#ffccd9; 
 }
 
 .bg-custom-7{
-    background-color:#c0ffea; 
+    background-color:#ffd9cc; 
 }
+
+.bg-custom-8{
+    background-color:#fff2cc; 
+}
+
+.bg-custom-9{
+    background-color:#f2ffcc; 
+}
+
+.bg-custom-10{
+    background-color:#ccffcc; 
+}
+
+.bg-custom-11{
+    background-color:#ccffef; 
+}
+
+.bg-custom-12{
+    background-color:#cceeff; 
+}
+
+.bg-custom-12{
+    background-color:#dbdfe9; 
+}
+ 
+
+
+
 
 .dropdown-color .dropdown-menu{
     width: 50px !important;
@@ -275,6 +332,7 @@
     margin-left: 10px;
 }
 
+.calendar-event-list,
 .calendar-next-month,
 .calendar-prev-month{
     font-size: 20px;
@@ -288,6 +346,8 @@
 .calendar-prev-month:hover,
 .calendar-next-month:active,
 .calendar-prev-month:active,
+.calendar-event-list:hover,
+.calendar-event-list:active,
 .dropdown-month .btn-dropdown-month:hover,
 .dropdown-month .btn-dropdown-month:active{
     color: #313642 !important;
