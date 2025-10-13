@@ -27,7 +27,7 @@
             <div class="title-content">
                 <h2>Task</h2>
             </div>
-            <div class="task-tabs mb-3">
+            <div class="task-tabs mb-3 me-2">
                 <ul class="custom-tab" id="taskTabMenu" role="tablist">
                     <li>
                         <button class="tab-btn active" id="grid-tab">

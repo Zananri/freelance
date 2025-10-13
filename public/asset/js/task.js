@@ -9280,6 +9280,48 @@ function filterTaskTableRows(queryRaw) {
 
     $("#task-cards-container").before(mobileCardHtml);
 
+        $(document).ready(function () {
+        const $listTab = $('#list-tab');
+        const $gridTab = $('#grid-tab');
+        const $statusMobileSection = $('.mobile-task-container');
+        const $tableSection = $('#task-table-section');
+
+        // Apply persisted view (default to grid)
+        const savedView = (function(){ try { return localStorage.getItem('taskView') || 'grid'; } catch(_) { return 'grid'; }})();
+        const setView = (view) => {
+            if (view === 'list') {
+                $listTab.addClass('active');
+                $gridTab.removeClass('active');
+                $statusMobileSection.addClass('d-none');
+                $tableSection.removeClass('d-none');
+                try { renderTaskTableFromCache(); } catch(_) {}
+            } else {
+                $gridTab.addClass('active');
+                $listTab.removeClass('active');
+                $statusMobileSection.removeClass('d-none');
+                $tableSection.addClass('d-none');
+            }
+        };
+        setView(savedView === 'list' ? 'list' : 'grid');
+
+        $listTab.on('click', function () {
+            $listTab.addClass('active');
+            $gridTab.removeClass('active');
+            $statusMobileSection.addClass('d-none');
+            $tableSection.removeClass('d-none');
+            try { localStorage.setItem('taskView', 'list'); } catch(_) {}
+            try { renderTaskTableFromCache(); } catch(_) {}
+        });
+
+        $gridTab.on('click', function () {
+            $gridTab.addClass('active');
+            $listTab.removeClass('active');
+            $statusMobileSection.removeClass('d-none');
+            $tableSection.addClass('d-none');
+            try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
+        });
+    });
+
     function toggleDropdownFilter() {
         let dropdown = $(".dropdown-filter-container");
         let mobileContainer = $(".mobile-task-container");
@@ -10066,6 +10108,7 @@ function filterTaskTableRows(queryRaw) {
         const $listTab = $('#list-tab');
         const $gridTab = $('#grid-tab');
         const $statusSection = $('#task-cards-container');
+        const $statusMobileSection = $('.mobile-task-container');
         const $tableSection = $('#task-table-section');
 
         // Apply persisted view (default to grid)
@@ -10075,12 +10118,14 @@ function filterTaskTableRows(queryRaw) {
                 $listTab.addClass('active');
                 $gridTab.removeClass('active');
                 $statusSection.addClass('d-none');
+                $statusMobileSection.addClass('d-none');
                 $tableSection.removeClass('d-none');
                 try { renderTaskTableFromCache(); } catch(_) {}
             } else {
                 $gridTab.addClass('active');
                 $listTab.removeClass('active');
                 $statusSection.removeClass('d-none');
+                $statusMobileSection.removeClass('d-none');
                 $tableSection.addClass('d-none');
             }
         };
@@ -10090,6 +10135,7 @@ function filterTaskTableRows(queryRaw) {
             $listTab.addClass('active');
             $gridTab.removeClass('active');
             $statusSection.addClass('d-none');
+            $statusMobileSection.addClass('d-none');
             $tableSection.removeClass('d-none');
             try { localStorage.setItem('taskView', 'list'); } catch(_) {}
             try { renderTaskTableFromCache(); } catch(_) {}
@@ -10099,6 +10145,7 @@ function filterTaskTableRows(queryRaw) {
             $gridTab.addClass('active');
             $listTab.removeClass('active');
             $statusSection.removeClass('d-none');
+            $statusMobileSection.removeClass('d-none');
             $tableSection.addClass('d-none');
             try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
         });
