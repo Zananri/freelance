@@ -21,7 +21,7 @@
             <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css?v=') . time() }}">
         </x-slot>
 
-        <div class="d-flex justify-content-between align-items-center mb-4 project-detail-header">
+        <div class="d-flex justify-content-between align-items-center mb-3 project-detail-header">
             <div class="title-content d-flex align-items-center gap-2">
                 <div class="nav-item d-inline-block">
                     <div class="nav-icon-arrow">
