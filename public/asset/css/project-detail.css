@@ -1430,8 +1430,11 @@ input[type="file"]::file-selector-button {
 
 .submit-feedback button {
     height: 40px;
-    width: 80px;
-    font-size: 10px;
+    width: 40px;
+}
+
+.submit-feedback button span {
+    font-size: 18px;
 }
 
 .btn-actions-feedback {
@@ -1692,4 +1695,144 @@ input[type="file"]::file-selector-button {
     background: rgb(240, 241, 248);
     z-index: 10;
     padding: 8px 0;
+}
+
+.custom-tab {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    top: 7px;
+    background: #f5f6f8;
+    border-radius: 50px;
+    width: fit-content;
+    margin-inline: auto;
+    min-width: 120px;
+}
+
+.tab-btn {
+    border: none;
+    background: transparent;
+    padding: 8px 14px;
+    border-radius: 40px;
+    font-size: 18px;
+    color: #444444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    z-index: 2;
+    transition: color 0.25s;
+    height: 40px;
+}
+
+.tab-btn:hover {
+    background: transparent;
+    color: #444444;
+}
+
+.tab-btn.active {
+    position: relative;
+    z-index: 2;
+    background: #ecedf5;
+    color: #444444;
+    box-shadow: 0 2px 6px rgba(236, 237, 245, 1);
+}
+
+.tab-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #ecedf5;
+    border-radius: 40px;
+    opacity: 0;
+    transform: scale(0.9);
+    transition: all 0.25s ease;
+    z-index: -1;
+}
+
+.tab-btn.active::after {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.table-transparent,
+.table-transparent th,
+.table-transparent td,
+.table-transparent thead,
+.table-transparent tbody {
+    background: transparent !important;
+}
+
+@media (max-width: 768px) {
+    .project-detail-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .project-detail-header .title-content {
+        width: 100%;
+        flex-direction: row;
+        align-items: center !important;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .nav-icon-arrow {
+        height: 40px;
+    }
+
+    .project-detail-header .title-content .task-tabs {
+        margin-bottom: 0;
+        top: 0;
+        flex-shrink: 0;
+        width: 100%;
+    }
+
+    .custom-tab {
+        margin: 0;
+        width: 100%;
+        justify-content: space-around;
+        min-width: unset;
+    }
+
+    .tab-btn.active {
+        position: relative;
+        z-index: 2;
+        background: #ecedf5;
+        color: #444444;
+        box-shadow: 0 2px 6px rgba(236, 237, 245, 1);
+    }
+
+    .project-detail-header .d-flex.align-items-center {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .project-detail-header .btn-contributor-custom {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .project-detail-header .btn-submit-black {
+        flex: 2;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .project-detail-header .btn-submit-black span {
+        font-size: 16px;
+    }
+
+    .table-transparent {
+        width: 200%;
+    }
 }
