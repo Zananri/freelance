@@ -3131,6 +3131,10 @@ function renderTasks(data) {
   try {
     applyCurrentSearchFilter()
   } catch (_) {}
+    try {
+        // Also refresh the List/Table view whenever grid data renders
+        renderTaskTableFromCache()
+    } catch (_) {}
   try {
     const clientMap = window.__clientArchivedTasks || new Map()
     if (clientMap && typeof clientMap.forEach === "function" && clientMap.size) {
@@ -3230,6 +3234,7 @@ function renderSingleSection(status, tasks, append = false) {
   try {
     applyCurrentSearchFilter()
   } catch (_) {}
+    try { renderTaskTableFromCache() } catch(_) {}
   try {
     if (status === "new_request" && typeof window.updateNewRequestArrowVisibility === "function") window.updateNewRequestArrowVisibility()
   } catch (_) {}
@@ -3366,6 +3371,139 @@ function applyCurrentSearchFilter() {
         if (!input) return;
         const q = input.value || '';
         filterVisibleTasks(q);
+        // Also filter table rows when list view is active
+        try { filterTaskTableRows(q); } catch (_) {}
+    } catch(_) { /* noop */ }
+}
+
+// ----- List/Table View Rendering -----
+function getAllTasksFlatFromCache() {
+    try {
+        const buckets = window.allTasksCache || {};
+        const newReq = (buckets.new_request && buckets.new_request.tasks) ? buckets.new_request.tasks : [];
+        const prog = (buckets.in_progress && buckets.in_progress.tasks) ? buckets.in_progress.tasks : [];
+        const rej = (buckets.rejected && buckets.rejected.tasks) ? buckets.rejected.tasks : [];
+        const comp = (buckets.completed && buckets.completed.tasks) ? buckets.completed.tasks : [];
+        // Merge rejected into in_progress visually similar to grid
+        const inProgressMerged = [...prog, ...rej];
+        return [...newReq, ...inProgressMerged, ...comp];
+    } catch(_) { return []; }
+}
+
+function getUserPhotoUrl(user) {
+    try {
+        if (!user) return appUrl + '/asset/img/avatar.png';
+        // Prefer explicit properties commonly returned by API
+        let img = user.image || user.profile_picture_url || user.profile_picture || user.user_photo || '';
+        if (!img) return appUrl + '/asset/img/avatar.png';
+        img = String(img).trim();
+        if (/^https?:\/\//i.test(img)) return img;
+        if (img.startsWith('/')) return appUrl + img;
+        if (img.indexOf('/') !== -1) return appUrl + '/' + img;
+        // Fallback to profile_picture folder for plain filenames
+        return appUrl + '/file/profile_picture/' + img;
+    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
+}
+
+function createExecutorsCellHtml(task) {
+    try {
+        const execs = Array.isArray(task?.executors) ? task.executors : [];
+        if (!execs.length) return '<span class="text-muted">-</span>';
+        const max = 4;
+        const shown = execs.slice(0, max);
+        const extra = execs.length - shown.length;
+        const imgs = shown.map((ex, idx) => {
+            const url = getUserPhotoUrl(ex);
+            const z = idx + 1;
+            const ml = idx === 0 ? 0 : -8;
+            const title = (ex && ex.name) ? String(ex.name) : '';
+            return `<img src="${url}" alt="${title}" title="${title}" data-bs-toggle="tooltip" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;border:2px solid #f0f1f8;margin-left:${ml}px;z-index:${z};position:relative;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+        }).join('');
+        const extraHtml = extra > 0 ? `<span class="ms-1 small text-muted">+${extra}</span>` : '';
+        return `<div class="d-inline-flex align-items-center">${imgs}${extraHtml}</div>`;
+    } catch(_) { return '<span class="text-muted">-</span>'; }
+}
+
+function statusLabel(statusRaw) {
+    const s = String(statusRaw || '').toLowerCase().replace(/\s+/g,'_');
+    if (s.includes('new')) return '<span class="badge bg-secondary text-dark" style="background:#ecedf5 !important;">New</span>';
+    if (s.includes('progress')) return '<span class="badge bg-info text-dark" style="background:#e9f3ff !important;">In Progress</span>';
+    if (s.includes('completed')) return '<span class="badge bg-success">Completed</span>';
+    if (s.includes('reject')) return '<span class="badge bg-danger">Rejected</span>';
+    return `<span class="badge bg-light text-dark">${statusRaw || '-'}</span>`;
+}
+
+function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { return ''; } }
+
+function renderTaskTableFromCache() {
+    try {
+        const section = document.getElementById('task-table-section');
+        if (!section) return;
+        const tbody = section.querySelector('tbody');
+        if (!tbody) return;
+        const tasks = getAllTasksFlatFromCache();
+        if (!Array.isArray(tasks)) return;
+        // Sort by due_date asc, then start_date
+        const parseDate = d => { try { const x = new Date(d); return isNaN(x) ? null : x.getTime(); } catch(_) { return null; } };
+        const sorted = tasks.slice().sort((a,b) => {
+            const ad = parseDate(a?.due_date); const bd = parseDate(b?.due_date);
+            if (ad !== bd) return (ad||Infinity) - (bd||Infinity);
+            const as = parseDate(a?.start_date); const bs = parseDate(b?.start_date);
+            return (as||Infinity) - (bs||Infinity);
+        });
+
+        let html = '';
+        sorted.forEach(t => {
+            const taskTitle = safeText(t.title);
+            const projectTitle = safeText(t.project_title || (t.project && t.project.title));
+            const pic = t.pic || null;
+            const picName = pic ? safeText(pic.name) : '-';
+            const picImg = pic ? getUserPhotoUrl(pic) : (appUrl + '/asset/img/avatar.png');
+            const execCell = createExecutorsCellHtml(t);
+            const startStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.start_date) : safeText(t.start_date);
+            const dueStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.due_date) : safeText(t.due_date);
+            const st = statusLabel(t.status);
+
+            html += `
+                <tr data-task-id="${t.id}">
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-semibold">${taskTitle}</span>
+                        </div>
+                    </td>
+                    <td>${projectTitle || '-'}</td>
+                    <td>
+                        <div class="d-inline-flex align-items-center gap-2">
+                            <img src="${picImg}" alt="${picName}" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                            <span>${picName}</span>
+                        </div>
+                    </td>
+                    <td>${execCell}</td>
+                    <td>${startStr || '-'}</td>
+                    <td>${dueStr || '-'}</td>
+                    <td>${st}</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html || '<tr><td colspan="7" class="text-center text-muted">No tasks found</td></tr>';
+        // Re-init tooltips for avatars
+        try { initBootstrapTooltips(section); } catch(_) {}
+        // Apply current search filter to rows too
+        try { const q = (document.getElementById('search_filter')?.value)||''; filterTaskTableRows(q); } catch(_) {}
+    } catch(e) { /* noop */ }
+}
+
+function filterTaskTableRows(queryRaw) {
+    try {
+        const q = String(queryRaw || '').trim().toLowerCase();
+        const section = document.getElementById('task-table-section');
+        if (!section) return;
+        const rows = section.querySelectorAll('tbody tr');
+        rows.forEach(tr => {
+            const colsText = Array.from(tr.querySelectorAll('td')).map(td => (td.textContent||'').toLowerCase()).join(' ');
+            const match = !q || colsText.includes(q);
+            tr.style.display = match ? '' : 'none';
+        });
     } catch(_) { /* noop */ }
 }
 
@@ -9862,16 +10000,31 @@ function applyCurrentSearchFilter() {
         const $statusSection = $('#task-cards-container');
         const $tableSection = $('#task-table-section');
 
-        $gridTab.addClass('active');
-        $listTab.removeClass('active');
-        $statusSection.removeClass('d-none');
-        $tableSection.addClass('d-none');
+        // Apply persisted view (default to grid)
+        const savedView = (function(){ try { return localStorage.getItem('taskView') || 'grid'; } catch(_) { return 'grid'; }})();
+        const setView = (view) => {
+            if (view === 'list') {
+                $listTab.addClass('active');
+                $gridTab.removeClass('active');
+                $statusSection.addClass('d-none');
+                $tableSection.removeClass('d-none');
+                try { renderTaskTableFromCache(); } catch(_) {}
+            } else {
+                $gridTab.addClass('active');
+                $listTab.removeClass('active');
+                $statusSection.removeClass('d-none');
+                $tableSection.addClass('d-none');
+            }
+        };
+        setView(savedView === 'list' ? 'list' : 'grid');
 
         $listTab.on('click', function () {
             $listTab.addClass('active');
             $gridTab.removeClass('active');
             $statusSection.addClass('d-none');
             $tableSection.removeClass('d-none');
+            try { localStorage.setItem('taskView', 'list'); } catch(_) {}
+            try { renderTaskTableFromCache(); } catch(_) {}
         });
 
         $gridTab.on('click', function () {
@@ -9879,6 +10032,7 @@ function applyCurrentSearchFilter() {
             $listTab.removeClass('active');
             $statusSection.removeClass('d-none');
             $tableSection.addClass('d-none');
+            try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
         });
     });
 
@@ -9904,13 +10058,37 @@ function applyCurrentSearchFilter() {
                 if (btn.id === 'grid-tab') {
                     statusSection.classList.remove('d-none');
                     tableSection.classList.add('d-none');
+                    try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
                 } else {
                     statusSection.classList.add('d-none');
                     tableSection.classList.remove('d-none');
+                    try { renderTaskTableFromCache(); } catch(_) {}
+                    try { localStorage.setItem('taskView', 'list'); } catch(_) {}
                 }
             });
         });
 
-        // Initial position
-        moveSliderBg(tabMenu.querySelector('.tab-btn.active'));
+        // Initial position: honor saved view
+        try {
+            const view = localStorage.getItem('taskView') || 'grid';
+            const initialBtn = view === 'list' ? document.getElementById('list-tab') : document.getElementById('grid-tab');
+            if (initialBtn) {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                initialBtn.classList.add('active');
+                // Ensure content visibility matches
+                if (view === 'list') {
+                    statusSection.classList.add('d-none');
+                    tableSection.classList.remove('d-none');
+                    try { renderTaskTableFromCache(); } catch(_) {}
+                } else {
+                    statusSection.classList.remove('d-none');
+                    tableSection.classList.add('d-none');
+                }
+                moveSliderBg(initialBtn);
+            } else {
+                moveSliderBg(tabMenu.querySelector('.tab-btn.active'));
+            }
+        } catch(_) {
+            moveSliderBg(tabMenu.querySelector('.tab-btn.active'));
+        }
     });
