@@ -206,7 +206,7 @@
                                     <input type="file" id="inline_feedback_image_input" name="feedback_image"
                                         accept="image/*" class="d-none">
                                     <input type="file" id="inline_feedback_files_input" name="reference_files[]"
-                                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" class="d-none">
+                                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
                                     <input type="text" id="inline_edit_feedback_input" name="edit_feedback"
                                         class="d-none">
                                 </div>
@@ -518,7 +518,7 @@
                                 <label for="edit_reference_file" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" class="form-control input-text" id="edit_reference_file"
-                                    name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                     multiple>
                                 <div id="edit_reference_files_preview" class="mt-2"></div>
                                 <div id="existing_reference_files" class="mt-2"></div>
@@ -635,7 +635,7 @@
                                     files</label>
                                 <input type="file" class="form-control input-text"
                                     id="add_project_reference_files" name="reference_files[]"
-                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple>
                             </div>
 
                             <div id="add_project_reference_files_preview" class="mt-2"></div>
@@ -792,7 +792,7 @@
                 <div class="mb-3 input-custom">
                     <label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="feedback_reference_files"
-                        name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                        name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
                     <div id="feedback_reference_files_preview" class="mt-2"></div>
                 </div>
             </form>
@@ -860,7 +860,7 @@
                 <div class="mb-3 input-custom">
                     <label for="reply_reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="reply_reference_files" name="reference_files[]"
-                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
                     <div id="reply_reference_files_preview" class="mt-2"></div>
                 </div>
             </form>
@@ -1081,7 +1081,7 @@
                 <div class="mb-3 input-custom">
                     <label for="edit_reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="edit_reference_files" name="reference_files[]"
-                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
                     <input type="hidden" id="existing_feedback_reference_files_input"
                         name="existing_reference_files" value="[]">
                     <div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>
