@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test File Upload</title>
+</head>
+<body>
+    <h2>Test Excel File Upload</h2>
+    <form action="/nsa-office/public/project-feedbacks" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="project_id" value="1">
+        <input type="hidden" name="employee_id" value="1">
+        
+        <label>Feedback Comment:</label><br>
+        <textarea name="feedback_comment" required>Test feedback with Excel file</textarea><br><br>
+        
+        <label>Reference Files:</label><br>
+        <input type="file" name="reference_files[]" multiple accept=".xlsx,.xls"><br><br>
+        
+        <button type="submit">Submit</button>
+    </form>
+
+    <script>
+        // Get CSRF token from meta or create one
+        fetch('/nsa-office/public/sanctum/csrf-cookie').then(response => {
+            console.log('CSRF cookie set');
+        });
+    </script>
+</body>
+</html>
