@@ -3388,6 +3388,8 @@ class TaskController extends Controller
                     'due_date' => $task->due_date,
                     'due' => $task->due_date,
                     'deadline' => $task->due_date,
+                    'project_title' => $task->project ? $task->project->title : null,
+                    'project_image' => $task->project ? $task->project->image : null,
                     'children' => [],
                 ];
                 return $payload;

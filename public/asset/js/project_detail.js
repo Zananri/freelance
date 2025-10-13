@@ -8087,6 +8087,276 @@ $("#fullscreen-feedback-btn").on("click", function () {
     }
 });
 
+// Global variable to store filtered project tasks
+window.projectTasksCache = [];
+
+// Helper functions for project task table rendering
+function safeText(v) {
+    return v === null || typeof v === "undefined" ? "-" : String(v);
+}
+
+function getUserPhotoUrl(user) {
+    try {
+        if (!user) return appUrl + '/asset/img/avatar.png';
+        // Prefer explicit properties commonly returned by API
+        let img = user.image || user.profile_picture_url || user.profile_picture || user.user_photo || '';
+        if (!img) return appUrl + '/asset/img/avatar.png';
+        img = String(img).trim();
+        if (/^https?:\/\//i.test(img)) return img;
+        if (img.startsWith('/')) return appUrl + img;
+        if (img.indexOf('/') !== -1) return appUrl + '/' + img;
+        // Fallback to profile_picture folder for plain filenames
+        return appUrl + '/file/profile_picture/' + img;
+    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
+}
+
+function createExecutorsCellHtml(task) {
+    try {
+        const execs = Array.isArray(task?.executors) ? task.executors : [];
+        if (!execs.length) return '<span class="text-muted">-</span>';
+        const max = 4;
+        const shown = execs.slice(0, max);
+        const extra = execs.length - shown.length;
+        const imgs = shown.map((ex, idx) => {
+            const url = getUserPhotoUrl(ex);
+            const z = idx + 1;
+            const ml = idx === 0 ? 0 : -8;
+            const title = (ex && ex.name) ? String(ex.name) : '';
+            return `<img src="${url}" alt="${title}" title="${title}" data-bs-toggle="tooltip" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;border:2px solid #f0f1f8;margin-left:${ml}px;z-index:${z};position:relative;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+        }).join('');
+        const extraHtml = extra > 0 ? `<span class="ms-1 small text-muted">+${extra}</span>` : '';
+        return `<div class="d-inline-flex align-items-center">${imgs}${extraHtml}</div>`;
+    } catch(_) { return '<span class="text-muted">-</span>'; }
+}
+
+function statusLabel(statusRaw) {
+    const s = String(statusRaw || '').toLowerCase().replace(/\s+/g,'_');
+    if (s.includes('new')) return '<span class="badge bg-secondary text-dark" style="background:#ecedf5 !important;">New</span>';
+    if (s.includes('progress')) return '<span class="badge bg-info text-dark" style="background:#edebdf !important; color:#5b4b00;">In Progress</span>';
+    if (s.includes('completed') || s.includes('complete')) return '<span class="badge bg-success text-dark" style="background:#e6f4ea !important; color:#0d5016;">Completed</span>';
+    if (s.includes('rejected') || s.includes('reject')) return '<span class="badge bg-danger text-white" style="background:#f28b82 !important;">Rejected</span>';
+    if (s.includes('cancelled') || s.includes('cancel')) return '<span class="badge bg-secondary text-white">Cancelled</span>';
+    return '<span class="badge bg-light text-dark">' + (statusRaw || 'Unknown') + '</span>';
+}
+
+// Handle task detail modal (reuse existing function from project_detail_depedencies.js)
+function handleTaskDetail(taskId) {
+    if (typeof window.handleTaskDetail === 'function') {
+        return window.handleTaskDetail(taskId);
+    }
+    
+    // Fallback implementation
+    $.getJSON(`${appUrl}/task/${taskId}`)
+        .done(function(response) {
+            const task = response?.data || response;
+            if (!task) return;
+            
+            // Populate task detail modal
+            $("#taskProjectTitle").text(task.project?.title || "-");
+            $("#taskTitle").text(task.title || "Untitled Task");
+            $("#taskDescription").html(task.description || "No description");
+            $("#taskPriority").html(task.priority || "-");
+            $("#taskDeadline").text((typeof formatDateENMedium === 'function') ? formatDateENMedium(task.due_date) : (task.due_date || "-"));
+            $("#taskDepartment").text(task.project?.department || "-");
+            $("#taskDivision").text(task.project?.division || "-");
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
+            modal.show();
+        })
+        .fail(function() {
+            try { 
+                showFloatingAlert("Failed to load task details.", "danger", 3000); 
+            } catch(_) { 
+                alert("Failed to load task details."); 
+            }
+        });
+}
+
+// Function to render project task table with filtered data
+function renderProjectTaskTable() {
+    try {
+        const section = document.getElementById('task-table-section');
+        if (!section) return;
+        const tbody = section.querySelector('tbody');
+        if (!tbody) return;
+        
+        const tasks = window.projectTasksCache || [];
+        if (!Array.isArray(tasks)) return;
+        
+        // Sort by due_date asc, then start_date
+        const parseDate = d => { 
+            try { 
+                const x = new Date(d); 
+                return isNaN(x) ? null : x.getTime(); 
+            } catch(_) { 
+                return null; 
+            } 
+        };
+        
+        const sorted = tasks.slice().sort((a,b) => {
+            const ad = parseDate(a?.due_date); 
+            const bd = parseDate(b?.due_date);
+            if (ad !== bd) return (ad||Infinity) - (bd||Infinity);
+            const as = parseDate(a?.start_date); 
+            const bs = parseDate(b?.start_date);
+            return (as||Infinity) - (bs||Infinity);
+        });
+
+        let html = '';
+        sorted.forEach(t => {
+            const taskTitle = safeText(t.title);
+            const projectTitle = safeText(t.project_title || (t.project && t.project.title));
+            const pic = t.pic || null;
+            const picName = pic ? safeText(pic.name) : '-';
+            const picImg = pic ? getUserPhotoUrl(pic) : (appUrl + '/asset/img/avatar.png');
+            const execCell = createExecutorsCellHtml(t);
+            const startStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.start_date) : safeText(t.start_date);
+            const dueStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.due_date) : safeText(t.due_date);
+            const st = statusLabel(t.status);
+
+            // Build project image
+            let taskImgHtml = '';
+            const titleForInitials = taskTitle || projectTitle || 'NA';
+            const initials = (function(text){
+                const s = String(text || '').trim();
+                if (!s) return 'NA';
+                const parts = s.split(/\s+/).filter(Boolean);
+                if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+                return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+            })(titleForInitials);
+            
+            const bgColor = (function(key){
+                const colors = ['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
+                if (!key) return colors[0];
+                let hash=0; 
+                for (let i=0;i<key.length;i++){ 
+                    hash = (hash*31 + key.charCodeAt(i))>>>0; 
+                }
+                return colors[hash % colors.length];
+            })(titleForInitials);
+
+            // Resolve project image
+            const projectImg = (function() {
+                try {
+                    const raw = (t && t.project_image);
+                    if (!raw) return null;
+                    const val = String(raw || '').trim();
+                    if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') return null;
+                    if (/^https?:\/\//i.test(val)) return val;
+                    if (val.includes('/file/project/')) {
+                        const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
+                        if (!fname) return null;
+                        return `${appUrl}/file/project/${fname}`;
+                    }
+                    if (val.includes('/asset/')) {
+                        const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
+                        return `${appUrl}/asset/${suffix}`;
+                    }
+                    if (val.startsWith('/asset/')) {
+                        const suffix = val.replace(/^\/+/, '');
+                        return `${appUrl}/${suffix}`;
+                    }
+                    if (val.startsWith('/')) return `${appUrl}${val}`;
+                    return `${appUrl}/file/project/${val}`;
+                } catch(_) { return null; }
+            })();
+
+            if (projectImg) {
+                taskImgHtml = `<img src="${projectImg}" alt="Project Image" class="rounded-circle" width="40" height="40" style="object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+            } else {
+                taskImgHtml = `<div class="rounded-circle d-inline-flex align-items-center justify-content-center" style="width:40px;height:40px;background:${bgColor};color:#fff;font-size:12px;font-weight:600;">${initials}</div>`;
+            }
+
+            html += `
+                <tr data-task-id="${t.id}" style="cursor: pointer;" onclick="handleTaskDetail(${t.id})">
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            ${taskImgHtml}
+                            <div>
+                                <div class="fw-semibold" style="font-size: 14px;">${taskTitle}</div>
+                                <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-inline-flex align-items-center gap-2">
+                            <img src="${picImg}" alt="${picName}" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                            <span>${picName}</span>
+                        </div>
+                    </td>
+                    <td>${execCell}</td>
+                    <td>${startStr || '-'}</td>
+                    <td>${dueStr || '-'}</td>
+                    <td>${st}</td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">No tasks found for this project</td></tr>';
+        
+        // Re-init tooltips for avatars
+        try { 
+            if (typeof initBootstrapTooltips === 'function') {
+                initBootstrapTooltips(section); 
+            } else {
+                // Fallback: initialize tooltips manually
+                const tooltipElements = section.querySelectorAll('[data-bs-toggle="tooltip"]');
+                tooltipElements.forEach(el => {
+                    new bootstrap.Tooltip(el);
+                });
+            }
+        } catch(_) {}
+        
+    } catch(e) { 
+        console.error('Error rendering project task table:', e);
+    }
+}
+
+// Function to load tasks for current project
+function loadProjectTasks() {
+    const projectId = document.querySelector('meta[name="project-id"]')?.getAttribute('content') || '';
+    if (!projectId) {
+        console.error('No project ID found');
+        return;
+    }
+    
+    // Show loading state
+    const section = document.getElementById('task-table-section');
+    if (section) {
+        const tbody = section.querySelector('tbody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div> Loading tasks...</td></tr>';
+        }
+    }
+    
+    $.ajax({
+        url: `${appUrl}/projects/${projectId}/tasks`,
+        type: "GET",
+        dataType: "json",
+        success: function(response) {
+            if (response.status === "success" && response.data) {
+                window.projectTasksCache = response.data;
+                renderProjectTaskTable();
+            } else {
+                window.projectTasksCache = [];
+                renderProjectTaskTable();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error loading project tasks:', error);
+            window.projectTasksCache = [];
+            const section = document.getElementById('task-table-section');
+            if (section) {
+                const tbody = section.querySelector('tbody');
+                if (tbody) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Failed to load tasks</td></tr>';
+                }
+            }
+        }
+    });
+}
+
 $(document).ready(function () {
     const $listTab = $('#list-tab');
     const $gridTab = $('#grid-tab');
@@ -8100,7 +8370,8 @@ $(document).ready(function () {
             $gridTab.removeClass('active');
             $detailProjectSection.addClass('d-none');
             $detailTableSection.removeClass('d-none');
-            try { renderTaskTableFromCache(); } catch(_) {}
+            // Load and render project-specific tasks
+            loadProjectTasks();
         } else {
             $gridTab.addClass('active');
             $listTab.removeClass('active');
@@ -8116,7 +8387,8 @@ $(document).ready(function () {
         $detailProjectSection.addClass('d-none');
         $detailTableSection.removeClass('d-none');
         try { localStorage.setItem('taskView', 'list'); } catch(_) {}
-        try { renderTaskTableFromCache(); } catch(_) {}
+        // Load and render project-specific tasks
+        loadProjectTasks();
     });
 
     $gridTab.on('click', function () {
