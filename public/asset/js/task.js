@@ -9862,20 +9862,23 @@ function applyCurrentSearchFilter() {
         const $statusSection = $('#task-cards-container');
         const $tableSection = $('#task-table-section');
 
+        $gridTab.addClass('active');
+        $listTab.removeClass('active');
+        $statusSection.removeClass('d-none');
+        $tableSection.addClass('d-none');
+
         $listTab.on('click', function () {
             $listTab.addClass('active');
             $gridTab.removeClass('active');
-
-            $statusSection.removeClass('d-none');
-            $tableSection.addClass('d-none');
+            $statusSection.addClass('d-none');
+            $tableSection.removeClass('d-none');
         });
 
         $gridTab.on('click', function () {
             $gridTab.addClass('active');
             $listTab.removeClass('active');
-
-            $statusSection.addClass('d-none');
-            $tableSection.removeClass('d-none');
+            $statusSection.removeClass('d-none');
+            $tableSection.addClass('d-none');
         });
     });
 
@@ -9883,12 +9886,12 @@ function applyCurrentSearchFilter() {
         const tabMenu = document.getElementById('taskTabMenu');
         const tabBtns = tabMenu.querySelectorAll('.tab-btn');
         const sliderBg = tabMenu.querySelector('.tab-slider-bg');
+        const statusSection = document.getElementById('task-cards-container');
+        const tableSection = document.getElementById('task-table-section');
 
         function moveSliderBg(activeBtn) {
-            const rect = activeBtn.getBoundingClientRect();
-            const parentRect = tabMenu.getBoundingClientRect();
-            sliderBg.style.width = rect.width + 'px';
-            sliderBg.style.left = (activeBtn.offsetLeft) + 'px';
+            sliderBg.style.width = activeBtn.offsetWidth + 'px';
+            sliderBg.style.left = activeBtn.offsetLeft + 'px';
         }
 
         tabBtns.forEach(btn => {
@@ -9896,8 +9899,18 @@ function applyCurrentSearchFilter() {
                 tabBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 moveSliderBg(btn);
+
+                // Toggle content
+                if (btn.id === 'grid-tab') {
+                    statusSection.classList.remove('d-none');
+                    tableSection.classList.add('d-none');
+                } else {
+                    statusSection.classList.add('d-none');
+                    tableSection.classList.remove('d-none');
+                }
             });
         });
 
+        // Initial position
         moveSliderBg(tabMenu.querySelector('.tab-btn.active'));
     });
