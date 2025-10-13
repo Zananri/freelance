@@ -196,7 +196,7 @@
                                 </div>
                                 <div class="d-flex justify-content-end submit-feedback">
                                     <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
-                                        Send
+                                        <span class="material-symbols-outlined">send</span>
                                     </button>
                                 </div>
                             </div>

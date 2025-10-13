@@ -1430,8 +1430,11 @@ input[type="file"]::file-selector-button {
 
 .submit-feedback button {
     height: 40px;
-    width: 80px;
-    font-size: 10px;
+    width: 40px;
+}
+
+.submit-feedback button span {
+    font-size: 18px;
 }
 
 .btn-actions-feedback {
