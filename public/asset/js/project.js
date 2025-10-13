@@ -3629,11 +3629,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     })(),
                                                 };
                                                 // Gunakan inline edit untuk feedback utama
-                                                try { 
-                                                    if (typeof window.startInlineEditFeedback === 'function') { 
-                                                        window.startInlineEditFeedback(payload); 
-                                                        return; 
-                                                    } 
+                                                try {
+                                                    if (typeof window.startInlineEditFeedback === 'function') {
+                                                        window.startInlineEditFeedback(payload);
+                                                        return;
+                                                    }
                                                 } catch(_) {}
                                                 // Fallback ke modal jika inline edit tidak tersedia
                                                 showEditFeedbackForm(
@@ -4078,12 +4078,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         );
                                                     })(),
                                                 };
-                                                // Gunakan inline edit untuk feedback utama 
-                                                try { 
-                                                    if (typeof window.startInlineEditFeedback === 'function') { 
-                                                        window.startInlineEditFeedback(payload); 
-                                                        return; 
-                                                    } 
+                                                // Gunakan inline edit untuk feedback utama
+                                                try {
+                                                    if (typeof window.startInlineEditFeedback === 'function') {
+                                                        window.startInlineEditFeedback(payload);
+                                                        return;
+                                                    }
                                                 } catch(_) {}
                                                 // Fallback ke modal jika inline edit tidak tersedia
                                                 showEditFeedbackForm(
@@ -4119,7 +4119,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     replyWrapper.addEventListener("click", function () {
                                         try {
                                             showReplyFeedbackForm(projectId, feedback.id);
-                                        } catch(_) { 
+                                        } catch(_) {
                                             // Fallback: set inline parent id and focus editor
                                             try {
                                                 let inlinePid = document.getElementById('inline_parent_id_input');
@@ -4387,7 +4387,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 try {
                                                     showReplyFeedbackForm(projectId, feedback.id);
                                                 } catch(_) {
-                                                    // Fallback: set inline parent id and focus editor  
+                                                    // Fallback: set inline parent id and focus editor
                                                     try {
                                                         let inlinePid = document.getElementById('inline_parent_id_input');
                                                         if (!inlinePid) {
@@ -6703,14 +6703,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                             // PERBAIKAN: Gunakan array file yang sudah dipilih, bukan input native
                                             if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) {
                                                 console.log('DEBUG: Adding files from array:', window.inlineFeedbackSelectedFiles.length);
-                                                window.inlineFeedbackSelectedFiles.forEach(function(f){ 
+                                                window.inlineFeedbackSelectedFiles.forEach(function(f){
                                                     console.log('DEBUG: Adding file to FormData:', {
-                                                        name: f.name, 
-                                                        type: f.type, 
+                                                        name: f.name,
+                                                        type: f.type,
                                                         size: f.size,
                                                         lastModified: f.lastModified
                                                     });
-                                                    fd.append('reference_files[]', f); 
+                                                    fd.append('reference_files[]', f);
                                                 });
                                             } else {
                                                 console.log('DEBUG: Array empty, trying native input');
@@ -6718,13 +6718,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 var filesInp = document.getElementById('inline_feedback_files_input');
                                                 if (filesInp && filesInp.files && filesInp.files.length) {
                                                     console.log('DEBUG: Adding files from native input:', filesInp.files.length);
-                                                    Array.from(filesInp.files).forEach(function(f){ 
+                                                    Array.from(filesInp.files).forEach(function(f){
                                                         console.log('DEBUG: Native file info:', {
-                                                            name: f.name, 
-                                                            type: f.type, 
+                                                            name: f.name,
+                                                            type: f.type,
                                                             size: f.size
                                                         });
-                                                        fd.append('reference_files[]', f); 
+                                                        fd.append('reference_files[]', f);
                                                     });
                                                 } else {
                                                     console.log('DEBUG: No files found in native input either');
@@ -6737,13 +6737,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                         if (isEdit) {
                                             url = appUrl + '/project-feedbacks/' + encodeURIComponent(editIdInput.value);
                                             fd.append('_method', 'PUT');
-                                            
+
                                             // Tambahkan existing files yang ingin dipertahankan
                                             try {
                                                 var keep = window.inlineExistingFilesKeep || [];
                                                 fd.set('existing_reference_files', JSON.stringify(keep));
                                             } catch(_) {}
-                                            
+
                                             // Tambahkan flag remove image jika diperlukan
                                             try {
                                                 if (typeof window.__inlineRemoveImage !== 'undefined') {
@@ -6769,7 +6769,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             .then(function(r){ return r.text().then(function(t){ try{ var j = JSON.parse(t); if (r.ok) return j; return Promise.reject(j); }catch(e){ if (r.ok) return { message: t }; return Promise.reject({ message: t }); } }); })
                                             .then(function(res){
                                                 showFloatingAlert(res.message || (isEdit ? 'Feedback updated' : 'Feedback added'), 'success', 1600);
-                                                
+
                                                 // Jika dalam mode edit, panggil cancel untuk reset ke mode normal
                                                 if (isEdit) {
                                                     try { window.cancelInlineEditFeedback(); } catch(_){}
@@ -6780,7 +6780,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     try { if (editIdInput) editIdInput.value = ''; } catch(_){}
                                                     try { if (parentIdInput) parentIdInput.value = ''; } catch(_){}
                                                     // Clear reply preview if it was a reply
-                                                    try { 
+                                                    try {
                                                         var replyPreview = document.getElementById('reply_parent_preview_inline');
                                                         if (replyPreview && replyPreview.parentNode) replyPreview.parentNode.removeChild(replyPreview);
                                                     } catch(_){}
@@ -6790,7 +6790,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     try { if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview(); } catch(_){}
                                                     try { if (typeof removeInlineImagePreview === 'function') removeInlineImagePreview(); } catch(_){}
                                                 }
-                                                
+
                                                 try { loadFeedbackData(projectId); } catch(_){}
                                             })
                                             .catch(function(err){
@@ -6930,11 +6930,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                 }
 
                                 if (fileBtn && fileInp) {
-                                    fileBtn.addEventListener('click', function(){ 
-                                        try { 
-                                            console.log('DEBUG: File button clicked'); 
-                                            fileInp.click(); 
-                                        } catch(_){} 
+                                    fileBtn.addEventListener('click', function(){
+                                        try {
+                                            console.log('DEBUG: File button clicked');
+                                            fileInp.click();
+                                        } catch(_){}
                                     });
                                 }
                             } catch(_){}
@@ -6954,11 +6954,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             try {
                                 var q = window.__quillProjectFeedbackInline || initInlineEditorOnce();
                                 if (!q) return;
-                                
+
                                 // Set ID feedback yang diedit
                                 var editIdInput = document.getElementById('inline_edit_feedback_input');
                                 if (editIdInput) editIdInput.value = String(data && data.id ? data.id : '');
-                                
+
                                 // Set parent_id jika ini adalah reply
                                 var parentIdInput = document.getElementById('inline_parent_id_input');
                                 if (!parentIdInput) {
@@ -6971,12 +6971,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     if (inlineForm) inlineForm.appendChild(parentIdInput);
                                 }
                                 if (parentIdInput) parentIdInput.value = String(data && data.parent_id ? data.parent_id : '');
-                                
+
                                 // Set konten feedback ke editor
-                                try { 
-                                    q.root.innerHTML = data && data.feedback_comment ? data.feedback_comment : '<p><br></p>'; 
+                                try {
+                                    q.root.innerHTML = data && data.feedback_comment ? data.feedback_comment : '<p><br></p>';
                                 } catch(_){ }
-                                
+
                                 // Tampilkan existing image jika ada
                                 try {
                                     var imgUrl = data.image_url || data.image || "";
@@ -6988,7 +6988,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         showInlineImagePreviewFromUrl(url);
                                     }
                                 } catch(_) {}
-                                
+
                                 // Tampilkan existing files jika ada
                                 try {
                                     var files = [];
@@ -6998,14 +6998,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                     else if (data.reference_file) files = [data.reference_file];
                                     renderInlineExistingFiles(files);
                                 } catch(_) {}
-                                
+
                                 // Ubah tombol Send menjadi Update
                                 var sendBtn = document.getElementById("inlineFeedbackSendBtn");
                                 if (sendBtn) {
                                     sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
-                                    sendBtn.innerHTML = '<span class="material-symbols-outlined">update</span>';
+                                    sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
                                 }
-                                
+
                                 // Tambahkan tombol Cancel
                                 var actions = document.querySelector('.btn-actions-feedback .submit-feedback');
                                 if (actions && !document.getElementById('inlineFeedbackCancelBtn')) {
@@ -7019,7 +7019,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     });
                                     actions.insertBefore(cancel, actions.firstChild);
                                 }
-                                
+
                                 focusInlineEditor();
                             } catch (_) {}
                         };
@@ -7049,19 +7049,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                 window.__inlineFeedbackImageFile = null;
 
                                 // Clear file inputs
-                                try { 
-                                    var imgInp = document.getElementById('inline_feedback_image_input'); 
-                                    if (imgInp) imgInp.value = ''; 
+                                try {
+                                    var imgInp = document.getElementById('inline_feedback_image_input');
+                                    if (imgInp) imgInp.value = '';
                                 } catch(_){}
-                                try { 
-                                    var filesInp = document.getElementById('inline_feedback_files_input'); 
-                                    if (filesInp) filesInp.value = ''; 
+                                try {
+                                    var filesInp = document.getElementById('inline_feedback_files_input');
+                                    if (filesInp) filesInp.value = '';
                                 } catch(_){}
 
                                 // Clear selected files array dan preview
-                                try { 
-                                    window.inlineFeedbackSelectedFiles = []; 
-                                    if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview(); 
+                                try {
+                                    window.inlineFeedbackSelectedFiles = [];
+                                    if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview();
                                 } catch(_){}
 
                                 // Clear Quill editor
@@ -7088,9 +7088,9 @@ document.addEventListener("DOMContentLoaded", function () {
                                 } catch(_) {}
 
                                 // Remove cancel button
-                                try { 
-                                    var cancel = document.getElementById('inlineFeedbackCancelBtn'); 
-                                    if (cancel && cancel.parentNode) cancel.parentNode.removeChild(cancel); 
+                                try {
+                                    var cancel = document.getElementById('inlineFeedbackCancelBtn');
+                                    if (cancel && cancel.parentNode) cancel.parentNode.removeChild(cancel);
                                 } catch(_){}
 
                                 // Reset remove-image flag
@@ -7122,25 +7122,25 @@ document.addEventListener("DOMContentLoaded", function () {
                                     try { return s.split("/").pop(); } catch(_) { return s; }
                                 }
 
-                                if (!arr.length) { 
-                                    if (box && box.parentNode) box.parentNode.removeChild(box); 
-                                    return; 
+                                if (!arr.length) {
+                                    if (box && box.parentNode) box.parentNode.removeChild(box);
+                                    return;
                                 }
 
-                                if (!box) { 
-                                    box = document.createElement("div"); 
-                                    box.id = id; 
-                                    box.className = "mt-2"; 
-                                    parent.insertBefore(box, editorEl); 
+                                if (!box) {
+                                    box = document.createElement("div");
+                                    box.id = id;
+                                    box.className = "mt-2";
+                                    parent.insertBefore(box, editorEl);
                                 }
 
                                 box.innerHTML = "";
-                                var list = document.createElement("div"); 
+                                var list = document.createElement("div");
                                 list.className = "existing-files-list w-100";
 
                                 arr.forEach(function(f) {
-                                    var url = toUrl(f); 
-                                    var name = toName(f); 
+                                    var url = toUrl(f);
+                                    var name = toName(f);
                                     if (!name) return;
                                     window.inlineExistingFilesKeep.push(name);
 
@@ -7167,12 +7167,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     rm.style.lineHeight = "1";
                                     rm.style.fontSize = "10px";
                                     rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                                    rm.addEventListener("click", function() { 
-                                        try { 
-                                            item.remove(); 
-                                            var idx = window.inlineExistingFilesKeep.indexOf(name); 
-                                            if (idx > -1) window.inlineExistingFilesKeep.splice(idx, 1); 
-                                        } catch(_) {} 
+                                    rm.addEventListener("click", function() {
+                                        try {
+                                            item.remove();
+                                            var idx = window.inlineExistingFilesKeep.indexOf(name);
+                                            if (idx > -1) window.inlineExistingFilesKeep.splice(idx, 1);
+                                        } catch(_) {}
                                     });
 
                                     item.appendChild(iconWrap);
@@ -7184,55 +7184,93 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch(_) {}
                         };
 
-                        window.showInlineImagePreviewFromUrl = function(url){
+                        window.showInlineImagePreviewFromUrl = function (url) {
                             try {
-                                var editorEl = document.getElementById("inline_feedback_editor");
-                                if (!editorEl || !editorEl.parentNode) return;
-                                var parent = editorEl.parentNode;
+                                // ambil / bikin container preview
                                 var previewContainer = document.getElementById("inline_feedback_image_preview");
-                                
                                 if (!previewContainer) {
                                     previewContainer = document.createElement("div");
                                     previewContainer.id = "inline_feedback_image_preview";
-                                    previewContainer.className = "mt-2";
-                                    parent.insertBefore(previewContainer, editorEl);
+                                    previewContainer.style.cssText =
+                                        "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+                                    // sisipin setelah tombol file
+                                    var fileBtn = document.getElementById("inlineFeedbackFileBtn");
+                                    if (fileBtn && fileBtn.parentNode) {
+                                        fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                                    }
                                 }
 
+                                // hapus konten lama biar bersih
                                 previewContainer.innerHTML = "";
-                                var wrapper = document.createElement("div");
-                                wrapper.className = "d-flex align-items-center gap-2 p-2 rounded bg-light";
 
-                                var img = document.createElement("img");
-                                img.src = url;
-                                img.style.width = "40px";
-                                img.style.height = "40px";
-                                img.style.objectFit = "cover";
-                                img.style.borderRadius = "4px";
+                                // container gambar sama seperti preview baru
+                                var imageLabel = document.createElement("div");
+                                imageLabel.className = "custom-image-upload position-relative";
+                                imageLabel.style.cssText =
+                                    "width: 32px; " +
+                                    "height: 32px; " +
+                                    "background-image: url('" + url + "'); " +
+                                    "background-size: cover; " +
+                                    "background-position: center center; " +
+                                    "background-repeat: no-repeat; " +
+                                    "border-radius: 6px; " +
+                                    "cursor: pointer; " +
+                                    "border: 1px solid #ddd; " +
+                                    "margin-right: 4px; " +
+                                    "opacity: 1; " +
+                                    "background-color: #ffffff; " +
+                                    "box-shadow: 0 1px 3px rgba(0,0,0,0.12); " +
+                                    "overflow: visible; ";
 
-                                var span = document.createElement("span");
-                                span.className = "flex-grow-1";
-                                span.style.fontSize = "10px";
-                                span.textContent = "Existing image";
+                                // tombol remove × merah
+                                var clearBtn = document.createElement("span");
+                                clearBtn.className = "image-clear-btn";
+                                clearBtn.innerHTML = "&times;";
+                                clearBtn.title = "Remove image";
+                                clearBtn.style.cssText =
+                                    "position: absolute; " +
+                                    "top: -6px; " +
+                                    "right: -6px; " +
+                                    "background: #ff4444; " +
+                                    "color: #ffffff; " +
+                                    "border-radius: 50%; " +
+                                    "width: 16px; " +
+                                    "height: 16px; " +
+                                    "font-size: 12px; " +
+                                    "line-height: 16px; " +
+                                    "text-align: center; " +
+                                    "cursor: pointer; " +
+                                    "font-weight: 700; " +
+                                    "border: none; " +
+                                    "box-shadow: 0 2px 6px rgba(0,0,0,0.25); " +
+                                    "z-index: 30; " +
+                                    "opacity: 1; ";
 
-                                var rmBtn = document.createElement("button");
-                                rmBtn.type = "button";
-                                rmBtn.className = "btn btn-sm btn-remove-task remove-task";
-                                rmBtn.style.lineHeight = "1";
-                                rmBtn.style.fontSize = "10px";
-                                rmBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                                rmBtn.addEventListener("click", function() {
+                                clearBtn.addEventListener("click", function (e) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
                                     try {
                                         previewContainer.remove();
-                                        window.__inlineRemoveImage = true;
-                                    } catch(_) {}
+                                        window.__inlineRemoveImage = true; // flag supaya tahu user hapus gambar existing
+                                    } catch (_) {}
                                 });
 
-                                wrapper.appendChild(img);
-                                wrapper.appendChild(span);
-                                wrapper.appendChild(rmBtn);
-                                previewContainer.appendChild(wrapper);
-                            } catch(_) {}
+                                // klik gambar = buka overlay besar (WhatsApp-like)
+                                imageLabel.addEventListener("click", function (e) {
+                                    e.preventDefault();
+                                    try {
+                                        showInlineImagePreview(null, url); // panggil existing overlay
+                                    } catch (_) {}
+                                });
+
+                                imageLabel.appendChild(clearBtn);
+                                previewContainer.appendChild(imageLabel);
+                            } catch (e) {
+                                console.warn("Failed to show inline image preview from URL:", e);
+                            }
                         };
+
                     } catch(_){}
 
                     // Remove old confirm dialog and use modal instead
