@@ -21,7 +21,7 @@
             <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css?v=') . time() }}">
         </x-slot>
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-4 project-detail-header">
             <div class="title-content d-flex align-items-center gap-2">
                 <div class="nav-item d-inline-block">
                     <div class="nav-icon-arrow">
@@ -33,12 +33,27 @@
                     </div>
                 </div>
                 <h2 class="m-0">Project Detail</h2>
+                <div class="task-tabs mb-3 position-relative">
+                    <ul class="custom-tab" id="taskTabMenu" role="tablist">
+                        <li>
+                            <button class="tab-btn active" id="grid-tab">
+                                <span class="material-symbols-outlined">grid_view</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="tab-btn" id="list-tab">
+                                <span class="material-symbols-outlined">list</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
             </div>
             <div class="d-flex align-items-center">
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
                     <span class="material-symbols-outlined">grid_view</span>
                 </button>
-                <button class="btn-submit-black" id="exportProjectReportBtn" data-project-id="{{ $project->id ?? '' }}">
+                <button class="btn-submit-black" id="exportProjectReportBtn"
+                    data-project-id="{{ $project->id ?? '' }}">
                     <span class="material-symbols-outlined me-2">download</span>Report
                 </button>
             </div>
@@ -47,7 +62,8 @@
         <div class="detail-project-container">
             {{-- Hidden fields for Contributions modal JS (scope to this project) --}}
             <input type="hidden" name="employee_id" value="{{ auth()->user()->employee->id ?? '' }}">
-            <input type="hidden" id="contrib-endpoint" value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
+            <input type="hidden" id="contrib-endpoint"
+                value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
             <input type="hidden" id="contrib-project-id" value="{{ $project->id ?? '' }}">
             {{-- Above Content --}}
             {{-- Left Above Content --}}
@@ -253,13 +269,36 @@
             </div>
         </div>
 
+        <div id="task-table-section" class="task-table-section d-none">
+            <div class="body-content scrollable-container rounded-4 px-4 py-3">
+                <table class="table table-borderless align-middle table-transparent">
+                    <thead>
+                        <tr>
+                            <th scope="col">Task</th>
+                            <th scope="col">PIC</th>
+                            <th scope="col">Executors</th>
+                            <th scope="col">Start Date</th>
+                            <th scope="col">Due Date</th>
+                            <th scope="col">Status</th>
+
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         {{-- Contributions Modal (same UI as Project page) --}}
-        <div class="modal fade" id="contributionsModal" tabindex="-1" aria-labelledby="contributionsModalLabel" aria-hidden="true">
+        <div class="modal fade" id="contributionsModal" tabindex="-1" aria-labelledby="contributionsModalLabel"
+            aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-lg">
                 <div class="modal-content rounded-4 border-0">
                     <div class="modal-header border-0">
                         <h5 class="modal-title modal-title-custom" id="contributionsModalLabel">My Contributions</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
                     <div class="modal-body modal-body-custom p-3">
                         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -636,11 +675,13 @@
                         <div class="task-detail-wrapper">
 
                             <!-- Header -->
-                            <div class="task-header d-flex justify-content-between align-items-start mb-2 task-card-header">
+                            <div
+                                class="task-header d-flex justify-content-between align-items-start mb-2 task-card-header">
                                 <div class="d-flex align-items-center">
                                     <div id="taskProjectAvatar" class="me-3"></div>
                                     <div>
-                                        <small class="text-muted" style="font-size: 11px;" id="taskProjectTitle"></small>
+                                        <small class="text-muted" style="font-size: 11px;"
+                                            id="taskProjectTitle"></small>
                                         <h5 class="mb-0" id="taskTitle" style="font-size:16px;font-weight:600;">-
                                         </h5>
                                     </div>

@@ -29,7 +29,6 @@
             </div>
             <div class="task-tabs mb-3">
                 <ul class="custom-tab" id="taskTabMenu" role="tablist">
-                    <div class="tab-slider-bg"></div>
                     <li>
                         <button class="tab-btn active" id="grid-tab">
                             <span class="material-symbols-outlined">grid_view</span>

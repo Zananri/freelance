@@ -8086,3 +8086,44 @@ $("#fullscreen-feedback-btn").on("click", function () {
         $("body").css("overflow", "hidden");
     }
 });
+
+$(document).ready(function () {
+    const $listTab = $('#list-tab');
+    const $gridTab = $('#grid-tab');
+    const $detailProjectSection = $('.detail-project-container');
+    const $detailTableSection = $('#task-table-section');
+
+    const savedView = (function(){ try { return localStorage.getItem('taskView') || 'grid'; } catch(_) { return 'grid'; }})();
+    const setView = (view) => {
+        if (view === 'list') {
+            $listTab.addClass('active');
+            $gridTab.removeClass('active');
+            $detailProjectSection.addClass('d-none');
+            $detailTableSection.removeClass('d-none');
+            try { renderTaskTableFromCache(); } catch(_) {}
+        } else {
+            $gridTab.addClass('active');
+            $listTab.removeClass('active');
+            $detailProjectSection.removeClass('d-none');
+            $detailTableSection.addClass('d-none');
+        }
+    };
+    setView(savedView === 'list' ? 'list' : 'grid');
+
+    $listTab.on('click', function () {
+        $listTab.addClass('active');
+        $gridTab.removeClass('active');
+        $detailProjectSection.addClass('d-none');
+        $detailTableSection.removeClass('d-none');
+        try { localStorage.setItem('taskView', 'list'); } catch(_) {}
+        try { renderTaskTableFromCache(); } catch(_) {}
+    });
+
+    $gridTab.on('click', function () {
+        $gridTab.addClass('active');
+        $listTab.removeClass('active');
+        $detailProjectSection.removeClass('d-none');
+        $detailTableSection.addClass('d-none');
+        try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
+    });
+});
