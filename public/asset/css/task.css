@@ -10,7 +10,7 @@
 .task-container {
     max-height: 75vh;
     min-width: 100%;
-    overflow-x: hidden;
+    overflow: hidden;
     padding-right: 8px;
 }
 
