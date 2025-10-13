@@ -5059,7 +5059,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             // If an inline feedback form exists on the page, insert the preview there and set a hidden parent_id.
                             try {
                                 var inlineForm = projectFeedbackModalEl.querySelector('.feedback-form') || document.querySelector('.feedback-form');
-                                console.log('DEBUG inline form found:', !!inlineForm);
                                 if (inlineForm) {
                                     // ensure inline editor initialized
                                     try { initInlineEditorOnce && initInlineEditorOnce(); } catch(_){}
@@ -6522,8 +6521,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         });
                                                         fd.append('reference_files[]', f);
                                                     });
-                                                } else {
-                                                    console.log('DEBUG: No files found in native input either');
                                                 }
                                             }
                                         } catch(_){}
