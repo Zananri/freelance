@@ -10,7 +10,7 @@
 .task-container {
     max-height: 75vh;
     min-width: 100%;
-    overflow: hidden;
+    overflow-x: hidden;
     padding-right: 8px;
 }
 
@@ -103,6 +103,24 @@
 }
 
 .task-list::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.task-table-section {
+    overflow: auto;
+    max-height: 75vh;
+}
+
+.task-table-section::-webkit-scrollbar {
+    width: 4px;
+}
+
+.task-table-section::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-table-section::-webkit-scrollbar-thumb {
     background-color: #a0a0a0;
     border-radius: 4px;
 }
