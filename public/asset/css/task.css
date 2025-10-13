@@ -1108,6 +1108,46 @@ p {
         position: sticky;
         top: 0;
         z-index: 10;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .header-task-container .left-header-content {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .header-task-container .title-content {
+        width: 50%;
+        text-align: start;
+    }
+
+    .header-task-container .task-tabs {
+        width: 50%;
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0;
+        margin-right: 0;
+    }
+
+    .header-task-container > .d-flex.align-items-center.gap-2 {
+        width: 100%;
+        justify-content: space-between;
+        gap: 0;
+    }
+
+    .btn-schedule-custom,
+    .btn-add-custom {
+        flex: 1;
+        width: 50%;
+        padding: 10px;
+        font-size: 14px;
+    }
+
+    .btn-text-add {
+        display: inline;
     }
 
     /* Mobile bulk controls bar di bawah action buttons */
@@ -1335,6 +1375,10 @@ p {
     }
     #statusConfirmModal .custom-card {
         min-width: 87%;
+    }
+
+    .table-transparent {
+        width: 300%;
     }
 }
 
