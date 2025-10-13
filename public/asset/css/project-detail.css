@@ -1836,3 +1836,21 @@ input[type="file"]::file-selector-button {
         width: 200%;
     }
 }
+
+.task-table-section {
+    overflow-y: auto;
+    max-height: calc(100vh - 190px);
+}
+
+.task-table-section::-webkit-scrollbar {
+    width: 4px;
+}
+
+.task-table-section::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-table-section::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
