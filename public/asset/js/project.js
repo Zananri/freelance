@@ -4724,6 +4724,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     error
                                 );
                             });
+
+                        try {
+                            const previewEl = document.getElementById("inline_feedback_image_preview");
+                            if (previewEl && previewEl.parentNode) previewEl.parentNode.removeChild(previewEl);
+                            window.__inlineFeedbackImageFile = null;
+                        } catch (_) {}
                     }
 
                     // Function to show add feedback form
