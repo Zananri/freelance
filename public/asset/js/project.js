@@ -4724,6 +4724,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     error
                                 );
                             });
+
+                        try {
+                            const previewEl = document.getElementById("inline_feedback_image_preview");
+                            if (previewEl && previewEl.parentNode) previewEl.parentNode.removeChild(previewEl);
+                            window.__inlineFeedbackImageFile = null;
+                        } catch (_) {}
                     }
 
                     // Function to show add feedback form
@@ -4944,38 +4950,24 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
 
                     function submitFeedbackForm(form, projectId) {
-
                         const formData = new FormData(form);
-                        // Map first non-empty reference_urls[] to single reference_url for backend
+
                         try {
-                            const urlInputs = form.querySelectorAll(
-                                'input[name="reference_urls[]"]'
-                            );
+                            const urlInputs = form.querySelectorAll('input[name="reference_urls[]"]');
                             const urls = Array.from(urlInputs)
                                 .map((i) => (i.value || "").trim())
                                 .filter(Boolean);
-                            if (urls.length)
-                                formData.set("reference_url", urls[0]);
+                            if (urls.length) formData.set("reference_url", urls[0]);
                         } catch (_) {}
 
-                        // Append selected reference files for add form
                         try {
-                            if (
-                                window.addFeedbackSelectedFiles &&
-                                window.addFeedbackSelectedFiles.length
-                            ) {
+                            if (window.addFeedbackSelectedFiles && window.addFeedbackSelectedFiles.length) {
                                 window.addFeedbackSelectedFiles.forEach((f) =>
                                     formData.append("reference_files[]", f)
                                 );
                             } else {
-                                const rfInput = form.querySelector(
-                                    "#feedback_reference_files"
-                                );
-                                if (
-                                    rfInput &&
-                                    rfInput.files &&
-                                    rfInput.files.length
-                                ) {
+                                const rfInput = form.querySelector("#feedback_reference_files");
+                                if (rfInput && rfInput.files && rfInput.files.length) {
                                     Array.from(rfInput.files).forEach((f) =>
                                         formData.append("reference_files[]", f)
                                     );
@@ -5001,85 +4993,59 @@ document.addEventListener("DOMContentLoaded", function () {
                                 return response.json();
                             })
                             .then((data) => {
-                                // Show success alert
                                 showFloatingAlert(
-                                    data.message ||
-                                        "Feedback submitted successfully!",
+                                    data.message || "Feedback submitted successfully!",
                                     "success",
                                     1500
                                 );
 
-                                // Update feedback badge count immediately
-                                const card = document.querySelector(
-                                    `[data-project-id="${projectId}"]`
-                                );
+                                const card = document.querySelector(`[data-project-id="${projectId}"]`);
                                 if (card) {
-                                    const feedbackBadge = card.querySelector(
-                                        ".project-feedback-count"
-                                    );
+                                    const feedbackBadge = card.querySelector(".project-feedback-count");
                                     if (feedbackBadge) {
-                                        const currentCount =
-                                            parseInt(
-                                                feedbackBadge.textContent
-                                            ) || 0;
-                                        feedbackBadge.textContent =
-                                            currentCount + 1;
+                                        const currentCount = parseInt(feedbackBadge.textContent) || 0;
+                                        feedbackBadge.textContent = currentCount + 1;
                                     }
                                 }
 
-                                // Muat ulang daftar feedback setelah 1 detik
+                                form.reset();
+
+                                // FORCE clear file input & image preview
+                                const fileInput = form.querySelector("#feedback_reference_files");
+                                if (fileInput) {
+                                    fileInput.value = "";
+                                }
+                                window.addFeedbackSelectedFiles = [];
+
+                                const imageLabel = form.querySelector("#feedbackImageLabel");
+                                const imageClearBtn = form.querySelector("#feedbackImageClearBtn");
+                                if (imageLabel) {
+                                    imageLabel.style.backgroundImage =
+                                        "url('" + appUrl + "/asset/img/background/add-image.png')";
+                                    imageLabel.style.backgroundPosition = "center center";
+                                    imageLabel.style.backgroundRepeat = "no-repeat";
+                                    imageLabel.style.backgroundSize = "50%";
+                                    imageLabel.classList.remove("has-image");
+                                    imageLabel.style.opacity = "0.5";
+                                }
+                                if (imageClearBtn) {
+                                    imageClearBtn.classList.add("d-none");
+                                }
+
                                 setTimeout(() => {
                                     loadFeedbackData(projectId);
-
-                                    // Reset form setelah sukses untuk memungkinkan tambah feedback lagi
-                                    form.reset();
-
-                                    // Reset image preview
-                                    const imageLabel = form.querySelector(
-                                        "#feedbackImageLabel"
-                                    );
-                                    const imageClearBtn = form.querySelector(
-                                        "#feedbackImageClearBtn"
-                                    );
-                                    if (imageLabel) {
-                                        imageLabel.style.backgroundImage =
-                                            "url('" +
-                                            appUrl +
-                                            "/asset/img/background/add-image.png')";
-                                        imageLabel.style.backgroundPosition =
-                                            "center center";
-                                        imageLabel.style.backgroundRepeat =
-                                            "no-repeat";
-                                        imageLabel.style.backgroundSize = "50%";
-                                        imageLabel.classList.remove(
-                                            "has-image"
-                                        );
-                                        imageLabel.style.opacity = "0.5";
-                                    }
-                                    if (imageClearBtn) {
-                                        imageClearBtn.classList.add("d-none");
-                                    }
                                 }, 1000);
                             })
                             .catch((error) => {
-                                let errorMessage =
-                                    "Failed to submit feedback. Please try again.";
+                                let errorMessage = "Failed to submit feedback. Please try again.";
                                 if (error.errors) {
-                                    errorMessage = Object.values(
-                                        error.errors
-                                    ).join("<br>");
+                                    errorMessage = Object.values(error.errors).join("<br>");
                                 } else if (error.message) {
                                     errorMessage = error.message;
                                 }
-
-                                showFloatingAlert(
-                                    errorMessage,
-                                    "warning",
-                                    4000
-                                );
+                                showFloatingAlert(errorMessage, "warning", 4000);
                             })
                             .finally(() => {
-                                // Reset tombol submit
                                 submitBtn.innerHTML = originalBtnText;
                                 submitBtn.disabled = false;
                             });
@@ -5088,10 +5054,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Show reply form for a given parent feedback (using inline approach like project_detail.js)
                     window.showReplyFeedbackForm = function (projectId, parentId) {
                         try {
-                            console.log('DEBUG showReplyFeedbackForm called:', projectId, parentId);
-                            console.log('DEBUG projectFeedbackModalEl:', !!projectFeedbackModalEl);
-                            console.log('DEBUG modalBody:', !!modalBody);
-                            // DEBUG: mark when our handler runs (helps detect cached/other handlers)
                             try { if (modalBody && modalBody.setAttribute) modalBody.setAttribute('data-reply-handler','project.js'); } catch(_){}
 
                             // If an inline feedback form exists on the page, insert the preview there and set a hidden parent_id.
@@ -6403,127 +6365,31 @@ document.addEventListener("DOMContentLoaded", function () {
                     // show inline image preview overlay (WhatsApp-like)
                     function showInlineImagePreview(fileObj, dataUrl) {
                         try {
-                            // avoid duplicate overlays
-                            if (document.getElementById("inlineImagePreviewOverlay"))
-                                return;
-
-                            var overlay = document.createElement("div");
-                            overlay.id = "inlineImagePreviewOverlay";
-                            overlay.style.position = "fixed";
-                            overlay.style.inset = "0";
-                            overlay.style.zIndex = "9999";
-                            overlay.style.background = "rgba(0,0,0,0.6)";
-                            overlay.style.display = "flex";
-                            overlay.style.alignItems = "center";
-                            overlay.style.justifyContent = "center";
-
-                            var box = document.createElement("div");
-                            box.style.background = "#fff";
-                            box.style.padding = "12px";
-                            box.style.borderRadius = "8px";
-                            box.style.maxWidth = "720px";
-                            box.style.width = "90%";
-                            box.style.maxHeight = "90%";
-                            box.style.overflow = "auto";
-                            box.style.boxShadow = "0 8px 30px rgba(0,0,0,0.4)";
-
-                            // image
-                            var imgWrap = document.createElement("div");
-                            imgWrap.style.textAlign = "center";
-                            imgWrap.style.marginBottom = "8px";
-                            var img = document.createElement("img");
-                            img.src = dataUrl;
-                            img.style.maxWidth = "100%";
-                            img.style.maxHeight = "60vh";
-                            img.style.borderRadius = "6px";
-                            imgWrap.appendChild(img);
-
-                            // caption input (single-line-ish)
-                            var caption = document.createElement("textarea");
-                            caption.placeholder = "Add a caption...";
-                            caption.style.width = "100%";
-                            caption.style.minHeight = "56px";
-                            caption.style.resize = "vertical";
-                            caption.style.marginTop = "8px";
-                            caption.style.padding = "8px";
-                            caption.style.border = "1px solid #ddd";
-                            caption.style.borderRadius = "6px";
-
-                            // buttons wrapper
-                            var actions = document.createElement("div");
-                            actions.style.display = "flex";
-                            actions.style.justifyContent = "flex-end";
-                            actions.style.gap = "8px";
-                            actions.style.marginTop = "10px";
-
-                            var cancelBtn = document.createElement("button");
-                            cancelBtn.type = "button";
-                            // use existing project Cancel style
-                            cancelBtn.className = "btn btn-custom-close";
-                            cancelBtn.textContent = "Cancel";
-                            // match modal footer .btn-custom-close appearance (inline because overlay isn't inside modal footer)
-                            cancelBtn.style.backgroundColor = "#e3e4ee";
-                            cancelBtn.style.color = "#444444";
-                            cancelBtn.style.fontSize = "12px";
-                            cancelBtn.style.padding = "10px";
-                            cancelBtn.style.height = "45px";
-                            cancelBtn.style.border = "none";
-                            cancelBtn.style.borderRadius = "10px";
-                            cancelBtn.style.minWidth = "120px";
-
-                            var sendBtn = document.createElement("button");
-                            sendBtn.type = "button";
-                            // use existing project Send style (black submit button)
-                            sendBtn.className = "btn btn-submit-black";
-                            // use material icon as requested
-                            sendBtn.innerHTML =
-                                '<span class="material-symbols-outlined">send</span>';
-                            sendBtn.setAttribute("aria-label", "Send");
-                            sendBtn.style.padding = "6px 12px";
-                            sendBtn.style.fontSize = "13px";
-
-                            actions.appendChild(cancelBtn);
-                            actions.appendChild(sendBtn);
-
-                            box.appendChild(imgWrap);
-                            box.appendChild(caption);
-                            box.appendChild(actions);
-                            overlay.appendChild(box);
-                            document.body.appendChild(overlay);
-
-                            // focus caption
-                            try {
-                                caption.focus();
-                            } catch (_) {}
+                            if (document.getElementById("inlineImagePreviewOverlay")) return;
 
                             function cleanup() {
                                 try {
-                                    var inp = document.getElementById(
-                                        "inline_feedback_image_input"
-                                    );
+                                    const inp = document.getElementById("inline_feedback_image_input");
                                     if (inp) inp.value = "";
                                 } catch (_) {}
                                 try {
-                                    if (overlay && overlay.parentNode)
-                                        overlay.parentNode.removeChild(overlay);
+                                    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                                } catch (_) {}
+                                try {
+                                    window.__inlineFeedbackImageFile = null;
+                                    const previewContainer = document.getElementById("inline_feedback_image_preview");
+                                    if (previewContainer && previewContainer.parentNode) {
+                                        previewContainer.parentNode.removeChild(previewContainer);
+                                    }
                                 } catch (_) {}
                             }
 
-                            cancelBtn.addEventListener("click", function () {
-                                try {
-                                    cleanup();
-                                } catch (_) {}
-                            });
+                            cancelBtn.addEventListener("click", cleanup);
 
                             sendBtn.addEventListener("click", function () {
                                 try {
-                                    var cap = (caption.value || "").trim();
-                                    var fd = new FormData();
-                                    fd.append("feedback_comment", cap || "");
-                                    fd.append(
-                                        "project_id",
-                                        getMeta("project-id") || ""
-                                    );
+                                    const fd = new FormData();
+                                    fd.append("project_id", getMeta("project-id") || "");
                                     fd.append(
                                         "employee_id",
                                         document
@@ -6531,110 +6397,49 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ?.getAttribute("data-employee-id") || ""
                                     );
 
-                                    // Use the file from small preview if available, otherwise use the provided fileObj
-                                    var imageFileToUse =
-                                        window.__inlineFeedbackImageFile || fileObj;
-                                    if (imageFileToUse)
-                                        fd.append("feedback_image", imageFileToUse);
+                                    const imageFileToUse = window.__inlineFeedbackImageFile || fileObj;
+                                    if (imageFileToUse) fd.append("feedback_image", imageFileToUse);
 
-                                    // UI feedback
-                                    var origText = sendBtn.innerHTML;
+                                    const origText = sendBtn.innerHTML;
                                     sendBtn.disabled = true;
                                     sendBtn.innerHTML =
                                         '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
 
-                                    var editId = (document.getElementById('inline_edit_feedback_input')||{}).value || '';
-                                    var isEdit = String(editId).trim() !== '';
-                                    if (isEdit) {
-                                        try {
-                                            // include edit extras
-                                            // existing files kept
-                                            var keep = window.inlineExistingFilesKeep || [];
-                                            fd.set('existing_reference_files', JSON.stringify(keep));
-                                            // remove_image flag
-                                            if (typeof window.__inlineRemoveImage !== 'undefined') {
-                                                fd.set('remove_image', window.__inlineRemoveImage ? '1' : '0');
-                                            }
-                                            // ensure new files appended
-                                            if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length){
-                                                window.inlineFeedbackSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); });
-                                            }
-                                            // method override
-                                            fd.append('_method','PUT');
-                                        } catch(_){}
-                                    }
-
-                                    var reqUrl = isEdit
-                                        ? getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + editId
-                                        : getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks';
-                                    var reqMethod = 'POST';
-                                    fetch(reqUrl, {
-                                        method: reqMethod,
+                                    fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks", {
+                                        method: "POST",
                                         headers: {
-                                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                            "X-CSRF-TOKEN": document
+                                                .querySelector('meta[name="csrf-token"]')
+                                                .getAttribute("content"),
                                         },
                                         body: fd,
                                     })
-                                        .then(function (res) {
+                                        .then((res) => {
                                             if (!res.ok)
-                                                return res.json().then(function (j) {
-                                                    return Promise.reject(j);
-                                                });
+                                                return res.json().then((j) => Promise.reject(j));
                                             return res.json();
                                         })
-                                        .then(function (data) {
-                                            window.showFloatingAlert && window.showFloatingAlert(
-                                                isEdit ? "Feedback updated" : "Feedback submitted",
-                                                "success",
-                                                2000
-                                            );
+                                        .then((data) => {
+                                            window.showFloatingAlert &&
+                                                window.showFloatingAlert(
+                                                    "Feedback submitted",
+                                                    "success",
+                                                    2000
+                                                );
                                             try {
                                                 loadFeedbackData(getMeta("project-id"));
                                             } catch (_) {}
                                             cleanup();
-                                            if (isEdit) {
-                                                try { cancelInlineEditFeedback(); } catch(_){}
-                                            }
-                                            try {
-                                                if (window.__quillProjectFeedbackInline)
-                                                    window.__quillProjectFeedbackInline.root.innerHTML =
-                                                        "";
-                                            } catch (_) {}
-                                            // Clear small image preview
-                                            try {
-                                                window.__inlineFeedbackImageFile = null;
-                                                var previewContainer =
-                                                    document.getElementById(
-                                                        "inline_feedback_image_preview"
-                                                    );
-                                                if (
-                                                    previewContainer &&
-                                                    previewContainer.parentNode
-                                                ) {
-                                                    previewContainer.parentNode.removeChild(
-                                                        previewContainer
-                                                    );
-                                                }
-                                            } catch (_) {}
                                         })
-                                        .catch(function (err) {
-                                            var msg = "Failed to submit feedback";
-                                            try {
-                                                if (err && err.errors)
-                                                    msg = Object.values(
-                                                        err.errors
-                                                    ).join("\n");
-                                                else if (err && err.message)
-                                                    msg = err.message;
-                                            } catch (_) {}
+                                        .catch((err) => {
+                                            let msg = "Failed to submit feedback";
+                                            if (err?.errors)
+                                                msg = Object.values(err.errors).join("\n");
+                                            else if (err?.message) msg = err.message;
                                             window.showFloatingAlert &&
-                                                window.showFloatingAlert(
-                                                    msg,
-                                                    "warning",
-                                                    4000
-                                                );
+                                                window.showFloatingAlert(msg, "warning", 4000);
                                         })
-                                        .finally(function () {
+                                        .finally(() => {
                                             sendBtn.disabled = false;
                                             sendBtn.innerHTML = origText;
                                         });
@@ -6683,7 +6488,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         var parentIdInput = document.getElementById('inline_parent_id_input');
                                         var isEdit = !!(editIdInput && editIdInput.value);
                                         if (!isEdit && !text && !(document.getElementById('inline_feedback_image_input')?.files?.length) && !(document.getElementById('inline_feedback_files_input')?.files?.length)) {
-                                            showFloatingAlert('Komentar tidak boleh kosong', 'warning', 2500);
+                                            showFloatingAlert('Comments cannot be empty', 'warning', 2500);
                                             try { q.focus(); } catch(_){}
                                             return;
                                         }
@@ -6702,22 +6507,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                         try {
                                             // PERBAIKAN: Gunakan array file yang sudah dipilih, bukan input native
                                             if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) {
-                                                console.log('DEBUG: Adding files from array:', window.inlineFeedbackSelectedFiles.length);
                                                 window.inlineFeedbackSelectedFiles.forEach(function(f){
-                                                    console.log('DEBUG: Adding file to FormData:', {
-                                                        name: f.name,
-                                                        type: f.type,
-                                                        size: f.size,
-                                                        lastModified: f.lastModified
-                                                    });
                                                     fd.append('reference_files[]', f);
                                                 });
                                             } else {
-                                                console.log('DEBUG: Array empty, trying native input');
                                                 // Fallback ke input native jika array kosong
                                                 var filesInp = document.getElementById('inline_feedback_files_input');
                                                 if (filesInp && filesInp.files && filesInp.files.length) {
-                                                    console.log('DEBUG: Adding files from native input:', filesInp.files.length);
                                                     Array.from(filesInp.files).forEach(function(f){
                                                         console.log('DEBUG: Native file info:', {
                                                             name: f.name,
@@ -6752,8 +6548,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                             } catch(_) {}
                                         }
 
-                                        // DEBUG: Log semua FormData yang dikirim
-                                        console.log('DEBUG: FormData contents:');
                                         for (let [key, value] of fd.entries()) {
                                             if (value instanceof File) {
                                                 console.log(`${key}: File - ${value.name} (${value.type}, ${value.size} bytes)`);
@@ -6769,17 +6563,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                             .then(function(r){ return r.text().then(function(t){ try{ var j = JSON.parse(t); if (r.ok) return j; return Promise.reject(j); }catch(e){ if (r.ok) return { message: t }; return Promise.reject({ message: t }); } }); })
                                             .then(function(res){
                                                 showFloatingAlert(res.message || (isEdit ? 'Feedback updated' : 'Feedback added'), 'success', 1600);
-
-                                                // Jika dalam mode edit, panggil cancel untuk reset ke mode normal
                                                 if (isEdit) {
                                                     try { window.cancelInlineEditFeedback(); } catch(_){}
                                                 } else {
-                                                    // Mode add: bersihkan seperti biasa
                                                     try { q.root.innerHTML = '<p><br></p>'; } catch(_){}
                                                     try { document.getElementById('inline_feedback_comment').value = ''; } catch(_){}
                                                     try { if (editIdInput) editIdInput.value = ''; } catch(_){}
                                                     try { if (parentIdInput) parentIdInput.value = ''; } catch(_){}
-                                                    // Clear reply preview if it was a reply
                                                     try {
                                                         var replyPreview = document.getElementById('reply_parent_preview_inline');
                                                         if (replyPreview && replyPreview.parentNode) replyPreview.parentNode.removeChild(replyPreview);
@@ -6798,6 +6588,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 showFloatingAlert(msg, 'warning', 3500);
                                             })
                                             .finally(function(){ sendBtn.disabled = false; sendBtn.innerHTML = old; });
+                                            initInlineEditorOnce();
                                     } catch (e) {}
                                 });
                             }
@@ -7186,7 +6977,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         window.showInlineImagePreviewFromUrl = function (url) {
                             try {
-                                // ambil / bikin container preview
                                 var previewContainer = document.getElementById("inline_feedback_image_preview");
                                 if (!previewContainer) {
                                     previewContainer = document.createElement("div");
@@ -7194,17 +6984,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                     previewContainer.style.cssText =
                                         "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
 
-                                    // sisipin setelah tombol file
                                     var fileBtn = document.getElementById("inlineFeedbackFileBtn");
                                     if (fileBtn && fileBtn.parentNode) {
                                         fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
                                     }
                                 }
 
-                                // hapus konten lama biar bersih
                                 previewContainer.innerHTML = "";
 
-                                // container gambar sama seperti preview baru
                                 var imageLabel = document.createElement("div");
                                 imageLabel.className = "custom-image-upload position-relative";
                                 imageLabel.style.cssText =
@@ -7223,7 +7010,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                     "box-shadow: 0 1px 3px rgba(0,0,0,0.12); " +
                                     "overflow: visible; ";
 
-                                // tombol remove × merah
                                 var clearBtn = document.createElement("span");
                                 clearBtn.className = "image-clear-btn";
                                 clearBtn.innerHTML = "&times;";
@@ -7252,15 +7038,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                     e.stopPropagation();
                                     try {
                                         previewContainer.remove();
-                                        window.__inlineRemoveImage = true; // flag supaya tahu user hapus gambar existing
+                                        window.__inlineRemoveImage = true;
                                     } catch (_) {}
                                 });
 
-                                // klik gambar = buka overlay besar (WhatsApp-like)
                                 imageLabel.addEventListener("click", function (e) {
                                     e.preventDefault();
                                     try {
-                                        showInlineImagePreview(null, url); // panggil existing overlay
+                                        showInlineImagePreview(null, url);
                                     } catch (_) {}
                                 });
 

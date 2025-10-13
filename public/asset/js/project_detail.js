@@ -8144,13 +8144,13 @@ function handleTaskDetail(taskId) {
     if (typeof window.handleTaskDetail === 'function') {
         return window.handleTaskDetail(taskId);
     }
-    
+
     // Fallback implementation
     $.getJSON(`${appUrl}/task/${taskId}`)
         .done(function(response) {
             const task = response?.data || response;
             if (!task) return;
-            
+
             // Populate task detail modal
             $("#taskProjectTitle").text(task.project?.title || "-");
             $("#taskTitle").text(task.title || "Untitled Task");
@@ -8159,16 +8159,16 @@ function handleTaskDetail(taskId) {
             $("#taskDeadline").text((typeof formatDateENMedium === 'function') ? formatDateENMedium(task.due_date) : (task.due_date || "-"));
             $("#taskDepartment").text(task.project?.department || "-");
             $("#taskDivision").text(task.project?.division || "-");
-            
+
             // Show modal
             const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
             modal.show();
         })
         .fail(function() {
-            try { 
-                showFloatingAlert("Failed to load task details.", "danger", 3000); 
-            } catch(_) { 
-                alert("Failed to load task details."); 
+            try {
+                showFloatingAlert("Failed to load task details.", "danger", 3000);
+            } catch(_) {
+                alert("Failed to load task details.");
             }
         });
 }
@@ -8180,25 +8180,25 @@ function renderProjectTaskTable() {
         if (!section) return;
         const tbody = section.querySelector('tbody');
         if (!tbody) return;
-        
+
         const tasks = window.projectTasksCache || [];
         if (!Array.isArray(tasks)) return;
-        
+
         // Sort by due_date asc, then start_date
-        const parseDate = d => { 
-            try { 
-                const x = new Date(d); 
-                return isNaN(x) ? null : x.getTime(); 
-            } catch(_) { 
-                return null; 
-            } 
+        const parseDate = d => {
+            try {
+                const x = new Date(d);
+                return isNaN(x) ? null : x.getTime();
+            } catch(_) {
+                return null;
+            }
         };
-        
+
         const sorted = tasks.slice().sort((a,b) => {
-            const ad = parseDate(a?.due_date); 
+            const ad = parseDate(a?.due_date);
             const bd = parseDate(b?.due_date);
             if (ad !== bd) return (ad||Infinity) - (bd||Infinity);
-            const as = parseDate(a?.start_date); 
+            const as = parseDate(a?.start_date);
             const bs = parseDate(b?.start_date);
             return (as||Infinity) - (bs||Infinity);
         });
@@ -8225,13 +8225,13 @@ function renderProjectTaskTable() {
                 if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
                 return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
             })(titleForInitials);
-            
+
             const bgColor = (function(key){
                 const colors = ['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
                 if (!key) return colors[0];
-                let hash=0; 
-                for (let i=0;i<key.length;i++){ 
-                    hash = (hash*31 + key.charCodeAt(i))>>>0; 
+                let hash=0;
+                for (let i=0;i<key.length;i++){
+                    hash = (hash*31 + key.charCodeAt(i))>>>0;
                 }
                 return colors[hash % colors.length];
             })(titleForInitials);
@@ -8275,7 +8275,6 @@ function renderProjectTaskTable() {
                             ${taskImgHtml}
                             <div>
                                 <div class="fw-semibold" style="font-size: 14px;">${taskTitle}</div>
-                                <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
                             </div>
                         </div>
                     </td>
@@ -8292,13 +8291,13 @@ function renderProjectTaskTable() {
                 </tr>
             `;
         });
-        
+
         tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">No tasks found for this project</td></tr>';
-        
+
         // Re-init tooltips for avatars
-        try { 
+        try {
             if (typeof initBootstrapTooltips === 'function') {
-                initBootstrapTooltips(section); 
+                initBootstrapTooltips(section);
             } else {
                 // Fallback: initialize tooltips manually
                 const tooltipElements = section.querySelectorAll('[data-bs-toggle="tooltip"]');
@@ -8307,8 +8306,8 @@ function renderProjectTaskTable() {
                 });
             }
         } catch(_) {}
-        
-    } catch(e) { 
+
+    } catch(e) {
         console.error('Error rendering project task table:', e);
     }
 }
@@ -8320,7 +8319,7 @@ function loadProjectTasks() {
         console.error('No project ID found');
         return;
     }
-    
+
     // Show loading state
     const section = document.getElementById('task-table-section');
     if (section) {
@@ -8329,7 +8328,7 @@ function loadProjectTasks() {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm" role="status"><span class="visually-hidden">Loading...</span></div> Loading tasks...</td></tr>';
         }
     }
-    
+
     $.ajax({
         url: `${appUrl}/projects/${projectId}/tasks`,
         type: "GET",
