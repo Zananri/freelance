@@ -6436,6 +6436,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             try { preventInlineImageDropAndPaste(q, '#inline_feedback_editor'); } catch(_){}
                             window.__quillProjectFeedbackInline = q;
 
+                            // Inisialisasi array file feedback
+                            if (!window.inlineFeedbackSelectedFiles) {
+                                window.inlineFeedbackSelectedFiles = [];
+                            }
+
                             // Wire buttons
                             var sendBtn = document.getElementById('inlineFeedbackSendBtn');
                             if (sendBtn) {
@@ -6466,9 +6471,23 @@ document.addEventListener("DOMContentLoaded", function () {
                                             if (imgInp && imgInp.files && imgInp.files[0]) fd.append('feedback_image', imgInp.files[0]);
                                         } catch(_){}
                                         try {
-                                            var filesInp = document.getElementById('inline_feedback_files_input');
-                                            if (filesInp && filesInp.files && filesInp.files.length) {
-                                                Array.from(filesInp.files).forEach(function(f){ fd.append('reference_files[]', f); });
+                                            // PERBAIKAN: Gunakan array file yang sudah dipilih, bukan input native
+                                            if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length) {
+                                                console.log('DEBUG: Adding files from array:', window.inlineFeedbackSelectedFiles.length);
+                                                window.inlineFeedbackSelectedFiles.forEach(function(f){ 
+                                                    console.log('DEBUG: Adding file to FormData:', f.name, f.type, f.size);
+                                                    fd.append('reference_files[]', f); 
+                                                });
+                                            } else {
+                                                console.log('DEBUG: Array empty, trying native input');
+                                                // Fallback ke input native jika array kosong
+                                                var filesInp = document.getElementById('inline_feedback_files_input');
+                                                if (filesInp && filesInp.files && filesInp.files.length) {
+                                                    console.log('DEBUG: Adding files from native input:', filesInp.files.length);
+                                                    Array.from(filesInp.files).forEach(function(f){ fd.append('reference_files[]', f); });
+                                                } else {
+                                                    console.log('DEBUG: No files found in native input either');
+                                                }
                                             }
                                         } catch(_){}
 
@@ -6477,6 +6496,16 @@ document.addEventListener("DOMContentLoaded", function () {
                                         if (isEdit) {
                                             url = appUrl + '/project-feedbacks/' + encodeURIComponent(editIdInput.value);
                                             fd.append('_method', 'PUT');
+                                        }
+
+                                        // DEBUG: Log semua FormData yang dikirim
+                                        console.log('DEBUG: FormData contents:');
+                                        for (let [key, value] of fd.entries()) {
+                                            if (value instanceof File) {
+                                                console.log(`${key}: File - ${value.name} (${value.type}, ${value.size} bytes)`);
+                                            } else {
+                                                console.log(`${key}: ${value}`);
+                                            }
                                         }
 
                                         // disable while sending
@@ -6492,6 +6521,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 try { if (parentIdInput) parentIdInput.value = ''; } catch(_){}
                                                 try { var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value=''; } catch(_){}
                                                 try { var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value=''; } catch(_){}
+                                                // PERBAIKAN: Bersihkan array file yang dipilih dan preview
+                                                try { window.inlineFeedbackSelectedFiles = []; } catch(_){}
+                                                try { if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview(); } catch(_){}
+                                                try { removeInlineImagePreview(); } catch(_){}
                                                 try { loadFeedbackData(projectId); } catch(_){}
                                             })
                                             .catch(function(err){
@@ -6537,10 +6570,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     fileInp.addEventListener("change", function (ev) {
                                         try {
                                             var files = Array.from(this.files || []);
+                                            console.log('DEBUG: Files selected:', files.length, files.map(f => f.name));
                                             if (!files.length) return;
                                             window.inlineFeedbackSelectedFiles = (
                                                 window.inlineFeedbackSelectedFiles || []
                                             ).concat(files);
+                                            console.log('DEBUG: Total files in array:', window.inlineFeedbackSelectedFiles.length);
                                             renderInlineFilesPreview();
                                             try {
                                                 this.value = "";
@@ -6628,7 +6663,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                     } catch (e) {}
                                 }
 
-                                if (fileBtn && fileInp) fileBtn.addEventListener('click', function(){ try { fileInp.click(); } catch(_){} });
+                                if (fileBtn && fileInp) {
+                                    fileBtn.addEventListener('click', function(){ 
+                                        try { 
+                                            console.log('DEBUG: File button clicked'); 
+                                            fileInp.click(); 
+                                        } catch(_){} 
+                                    });
+                                }
                             } catch(_){}
 
                             return q;
