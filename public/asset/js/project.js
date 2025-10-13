@@ -30,6 +30,44 @@ function escapeHtml(str) {
     });
 }
 
+// Basic sanitizer for feedback HTML (allow minimal formatting and links)
+function sanitizeHtml(input) {
+    try {
+        if (!input) return '';
+        var allowed = ['p','br','strong','em','b','i','ul','ol','li','a'];
+        // decode any encoded HTML first
+        var decoder = document.createElement('textarea');
+        decoder.innerHTML = String(input);
+        var decoded = decoder.value || decoder.textContent || String(input);
+        var tpl = document.createElement('template');
+        tpl.innerHTML = decoded;
+        var walker = document.createTreeWalker(tpl.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null, false);
+        var node;
+        while ((node = walker.nextNode())) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+                var tag = node.tagName.toLowerCase();
+                if (allowed.indexOf(tag) === -1) {
+                    var txt = document.createTextNode(node.textContent || '');
+                    node.parentNode && node.parentNode.replaceChild(txt, node);
+                    walker = document.createTreeWalker(tpl.content, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null, false);
+                } else {
+                    if (tag === 'a') {
+                        var href = node.getAttribute('href') || '';
+                        if (!href || (!/^https?:\/\//i.test(href) && href.indexOf('/') !== 0 && href.indexOf('#') !== 0)) {
+                            node.removeAttribute('href');
+                        }
+                    } else {
+                        Array.from(node.attributes || []).forEach(function(a){ if (a.name !== 'href') node.removeAttribute(a.name); });
+                    }
+                }
+            }
+        }
+        return tpl.innerHTML;
+    } catch (e) {
+        return String(input).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+}
+
 // Helper: human-friendly relative time formatter used in feedback modals
 function timeAgo(createdAt){
     try {
@@ -3215,8 +3253,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Function to load feedback data with loading spinner
                     function loadFeedbackData(projectId) {
                         modalTitle.textContent = "Feedback";
-                        modalBody.innerHTML =
-                            '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                        var listContainer = document.getElementById('projectFeedbackListContainer');
+                        if (listContainer) {
+                            listContainer.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                        } else {
+                            modalBody.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                        }
 
                         resetAddFeedbackButton();
 
@@ -3230,7 +3272,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 return response.json();
                             })
                             .then((data) => {
-                                modalBody.innerHTML = ""; // Clear loading spinner
+                                var listContainer = document.getElementById('projectFeedbackListContainer') || modalBody;
+                                if (listContainer) listContainer.innerHTML = ""; // Clear loading spinner for the list only
                                 // Ensure dialog element is available for height toggling
                                 const dialogEl =
                                     projectFeedbackModalEl.closest(
@@ -3255,7 +3298,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 }
 
                                 if (!data.data || data.data.length === 0) {
-                                    modalBody.innerHTML =
+                                    (listContainer || modalBody).innerHTML =
                                         '<p class="text-center text-muted">No feedback available for this project.</p>';
                                     // Shrink modal height when empty
                                     if (dialogEl)
@@ -3593,7 +3636,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                     // Comment
                                     const commentDiv = document.createElement("div");
                                     commentDiv.className = "feedback-comment mb-2";
-                                    commentDiv.textContent = feedback.feedback_comment || "";
+                                    try { commentDiv.innerHTML = sanitizeHtml(feedback.feedback_comment || ""); }
+                                    catch(_) { commentDiv.textContent = feedback.feedback_comment || ""; }
                                     commentDiv.style.fontSize = "13px";
 
                                     // Media attachments
@@ -3612,7 +3656,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         const refContainer =
                                             document.createElement("div");
                                         refContainer.className =
-                                            "feedback-reference-container";
+                                            "feedback-reference-container mb-2";
 
                                         // Render one or multiple reference URLs
                                         (function () {
@@ -3722,8 +3766,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     }
 
                                     if (feedback.image) {
-                                        const feedbackImage =
-                                            document.createElement("img");
+                                        const feedbackImage = document.createElement("img");
                                         // Normalize image URL
                                         let imgSrc = feedback.image;
                                         if (
@@ -3735,33 +3778,20 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 String(imgSrc).startsWith("/")
                                             )
                                         ) {
-                                            imgSrc =
-                                                appUrl +
-                                                "/file/project/" +
-                                                imgSrc;
-                                        } else if (
-                                            imgSrc &&
-                                            String(imgSrc).startsWith("/")
-                                        ) {
+                                            imgSrc = appUrl + "/file/project/" + imgSrc;
+                                        } else if (imgSrc && String(imgSrc).startsWith("/")) {
                                             imgSrc = appUrl + imgSrc;
                                         }
                                         feedbackImage.src = imgSrc;
                                         feedbackImage.alt = "Feedback Image";
-                                        feedbackImage.className =
-                                            "feedback-image me-2 mb-4";
-                                        feedbackImage.style.maxWidth = "150px";
-                                        feedbackImage.style.maxHeight = "150px";
-                                        feedbackImage.style.borderRadius =
-                                            "8px";
+                                        feedbackImage.className = "img-fluid rounded mb-2 feedback-image";
+                                        feedbackImage.style.width = "60%";
+                                        feedbackImage.style.height = "60%";
+                                        feedbackImage.style.borderRadius = "8px";
                                         feedbackImage.style.cursor = "pointer";
-                                        feedbackImage.addEventListener(
-                                            "click",
-                                            () => {
-                                                showImageModal(
-                                                    feedbackImage.src
-                                                );
-                                            }
-                                        );
+                                        feedbackImage.addEventListener("click", function() {
+                                            try { showImageModal(imgSrc); } catch(_) { window.open(imgSrc, '_blank'); }
+                                        });
                                         mediaDiv.appendChild(feedbackImage);
                                     }
 
@@ -4034,7 +4064,18 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     // Local click still works (keeps behavior consistent)
                                     replyWrapper.addEventListener("click", function () {
-                                        showReplyFeedbackForm(projectId, feedback.id);
+                                        try {
+                                            // set inline parent id and focus editor
+                                            let inlinePid = document.getElementById('inline_parent_id_input');
+                                            if (!inlinePid) {
+                                                inlinePid = document.createElement('input');
+                                                inlinePid.type = 'hidden'; inlinePid.id = 'inline_parent_id_input'; inlinePid.name = 'parent_id';
+                                                const form = projectFeedbackModalEl.querySelector('.feedback-form') || projectFeedbackModalEl;
+                                                form.appendChild(inlinePid);
+                                            }
+                                            inlinePid.value = String(feedback.id);
+                                            try { if (typeof focusInlineEditor === 'function') focusInlineEditor(); else { var el = document.getElementById('inline_feedback_editor'); el && el.scrollIntoView({ behavior:'smooth', block:'center' }); } } catch(_){}
+                                        } catch(_) { try { showReplyFeedbackForm(projectId, feedback.id); } catch(__){} }
                                     });
 
                                     // Append actions in requested order: Reply, Edit, Delete
@@ -4195,11 +4236,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const repComment = document.createElement('p');
                                             repComment.className = 'mb-1';
                                             repComment.style.fontSize = '13px';
-                                            repComment.innerHTML = rep.feedback_comment || '';
+                                            try { repComment.innerHTML = sanitizeHtml(rep.feedback_comment || ''); } catch(_) { repComment.textContent = rep.feedback_comment || ''; }
                                             repContent.appendChild(repComment);
 
                                             const repMedia = document.createElement('div');
-                                            repMedia.className = 'feedback-reference-container mb-1';
+                                            repMedia.className = 'feedback-reference-container mt-1';
                                             // render reference urls/files (existing logic reused)
                                             (function(){
                                                 let urls = [];
@@ -4243,8 +4284,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 let rsrc = rep.image;
                                                 if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) rsrc = appUrl + '/file/project/' + rsrc;
                                                 else if (rsrc && String(rsrc).startsWith('/')) rsrc = appUrl + rsrc;
-                                                rImg.src = rsrc; rImg.className = 'img-fluid rounded reply-image'; rImg.style.width = '70px'; rImg.style.borderRadius = '8px'; rImg.style.cursor = 'pointer'; rImg.style.marginTop = '6px';
-                                                rImg.addEventListener('click', function(){ if (this.src) window.open(this.src, '_blank'); });
+                                                rImg.src = rsrc;
+                                                rImg.className = 'img-fluid rounded mb-2 feedback-image';
+                                                rImg.style.width = '40%';
+                                                rImg.style.height = '40%';
+                                                rImg.style.borderRadius = '6px';
+                                                rImg.style.cursor = 'pointer';
+                                                rImg.addEventListener('click', function(){ try{ showImageModal(rsrc); } catch(_) { window.open(rsrc, '_blank'); } });
                                             }
 
                                             // Create reply actions container for edit, reply and delete (matching task.js)
@@ -4280,7 +4326,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                             const replyIcon = document.createElement('span'); replyIcon.className = 'material-symbols-outlined'; replyIcon.style.cssText = 'font-size:18px; line-height:1; margin-right:5px;'; replyIcon.textContent = 'reply';
                                             const replyText = document.createElement('span'); replyText.textContent = 'Reply';
                                             replyRep.appendChild(replyIcon); replyRep.appendChild(replyText);
-                                            replyRep.addEventListener('click', function(){ showReplyFeedbackForm(projectId, feedback.id); });
+                                            replyRep.addEventListener('click', function(){
+                                                try {
+                                                    let inlinePid = document.getElementById('inline_parent_id_input');
+                                                    if (!inlinePid) {
+                                                        inlinePid = document.createElement('input');
+                                                        inlinePid.type='hidden'; inlinePid.id='inline_parent_id_input'; inlinePid.name='parent_id';
+                                                        const form = projectFeedbackModalEl.querySelector('.feedback-form') || projectFeedbackModalEl;
+                                                        form.appendChild(inlinePid);
+                                                    }
+                                                    inlinePid.value = String(feedback.id);
+                                                    try { if (typeof focusInlineEditor === 'function') focusInlineEditor(); } catch(_){}
+                                                } catch(_) { try { showReplyFeedbackForm(projectId, feedback.id); } catch(__){} }
+                                            });
                                             replyActionsDiv.appendChild(replyRep);
 
                                             // Then Edit (if allowed)
@@ -4295,6 +4353,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 editRep.appendChild(editIcon); editRep.appendChild(editText);
                                                 editRep.addEventListener('click', function(){
                                                     const payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ const v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ const p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ let rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ const p = JSON.parse(rf); if (Array.isArray(p)) rf = p; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ const img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return appUrl + img; return appUrl + '/file/project/' + img; })() };
+                                                    try { if (typeof window.startInlineEditFeedback === 'function') { window.startInlineEditFeedback(payload); return; } } catch(_){ }
                                                     showEditFeedbackForm(projectId, payload, true);
                                                 });
                                                 replyActionsDiv.appendChild(editRep);
@@ -4368,7 +4427,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         );
                                     }
 
-                                    modalBody.appendChild(feedbackItem);
+                                    (listContainer || modalBody).appendChild(feedbackItem);
                                 });
 
                                 // After render: auto-scroll to target reply/feedback (if any)
@@ -4591,7 +4650,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 } catch (_) {}
                             })
                             .catch((error) => {
-                                modalBody.innerHTML =
+                                (document.getElementById('projectFeedbackListContainer') || modalBody).innerHTML =
                                     '<div class="text-center text-muted">Failed to load feedback data.</div>';
                                 showFloatingAlert(
                                     "Error loading feedback data. Please try again.",
@@ -6281,6 +6340,155 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     }
 
+                    // ===== Inline feedback editor inside Project Feedback modal =====
+                    function preventInlineImageDropAndPaste(quill, editorSelector) {
+                        try {
+                            var editor = document.querySelector(editorSelector);
+                            if (!editor || !quill) return;
+                            editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); }catch(_){}}
+                            , true);
+                            editor.addEventListener('drop', function(e){ try{
+                                if (!e.dataTransfer) return;
+                                var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                var html = (e.dataTransfer.getData && e.dataTransfer.getData('text/html')) || '';
+                                if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+                            }catch(_){}}
+                            , true);
+                            editor.addEventListener('paste', function(e){ try{
+                                var cb = e.clipboardData || window.clipboardData; if (!cb) return;
+                                var items = cb.items || [];
+                                for (var i=0;i<items.length;i++){ var t = items[i].type || ''; if (t.indexOf && t.indexOf('image')===0){ e.preventDefault(); e.stopImmediatePropagation(); return; } }
+                                var html = (cb.getData && cb.getData('text/html')) || '';
+                                if (/<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+                            }catch(_){}}
+                            , true);
+                        } catch (_) {}
+                    }
+
+                    function initInlineEditorOnce() {
+                        try {
+                            if (window.__quillProjectFeedbackInline) return window.__quillProjectFeedbackInline;
+                            var el = document.getElementById('inline_feedback_editor');
+                            if (!el) return null;
+                            var q = new Quill('#inline_feedback_editor', {
+                                modules: { toolbar: false, clipboard: { matchVisual: false } },
+                                theme: 'snow',
+                                placeholder: 'Write feedback...'
+                            });
+                            try {
+                                var Delta = Quill.import && Quill.import('delta');
+                                if (q && q.clipboard && typeof q.clipboard.addMatcher === 'function') {
+                                    q.clipboard.addMatcher('IMG', function(node, delta){ try{ return new Delta(); }catch(_){ return delta; } });
+                                }
+                                if (q && typeof q.on === 'function') {
+                                    q.on('text-change', function(){ try{ var imgs = q.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); }catch(_){}});
+                                }
+                            } catch(_) {}
+                            try { preventInlineImageDropAndPaste(q, '#inline_feedback_editor'); } catch(_){}
+                            window.__quillProjectFeedbackInline = q;
+
+                            // Wire buttons
+                            var sendBtn = document.getElementById('inlineFeedbackSendBtn');
+                            if (sendBtn) {
+                                sendBtn.addEventListener('click', function(){
+                                    try {
+                                        var projectId = projectFeedbackModalEl.getAttribute('data-project-id');
+                                        if (!projectId) return;
+                                        var html = q.root.innerHTML || '';
+                                        var tmp = document.createElement('div'); tmp.innerHTML = html; var text = (tmp.textContent || tmp.innerText || '').trim();
+                                        var editIdInput = document.getElementById('inline_edit_feedback_input');
+                                        var parentIdInput = document.getElementById('inline_parent_id_input');
+                                        var isEdit = !!(editIdInput && editIdInput.value);
+                                        if (!isEdit && !text && !(document.getElementById('inline_feedback_image_input')?.files?.length) && !(document.getElementById('inline_feedback_files_input')?.files?.length)) {
+                                            showFloatingAlert('Komentar tidak boleh kosong', 'warning', 2500);
+                                            try { q.focus(); } catch(_){}
+                                            return;
+                                        }
+
+                                        var fd = new FormData();
+                                        fd.append('project_id', projectId);
+                                        fd.append('employee_id', projectFeedbackModalEl.getAttribute('data-employee-id') || '');
+                                        fd.append('feedback_comment', html);
+                                        if (parentIdInput && parentIdInput.value) fd.append('parent_id', parentIdInput.value);
+
+                                        // files
+                                        try {
+                                            var imgInp = document.getElementById('inline_feedback_image_input');
+                                            if (imgInp && imgInp.files && imgInp.files[0]) fd.append('feedback_image', imgInp.files[0]);
+                                        } catch(_){}
+                                        try {
+                                            var filesInp = document.getElementById('inline_feedback_files_input');
+                                            if (filesInp && filesInp.files && filesInp.files.length) {
+                                                Array.from(filesInp.files).forEach(function(f){ fd.append('reference_files[]', f); });
+                                            }
+                                        } catch(_){}
+
+                                        var url = appUrl + '/project-feedbacks';
+                                        var method = 'POST';
+                                        if (isEdit) {
+                                            url = appUrl + '/project-feedbacks/' + encodeURIComponent(editIdInput.value);
+                                            fd.append('_method', 'PUT');
+                                        }
+
+                                        // disable while sending
+                                        var old = sendBtn.innerHTML; sendBtn.disabled = true; sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + (isEdit ? 'Updating...' : 'Sending...');
+
+                                        fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, body: fd })
+                                            .then(function(r){ return r.text().then(function(t){ try{ var j = JSON.parse(t); if (r.ok) return j; return Promise.reject(j); }catch(e){ if (r.ok) return { message: t }; return Promise.reject({ message: t }); } }); })
+                                            .then(function(res){
+                                                showFloatingAlert(res.message || (isEdit ? 'Feedback updated' : 'Feedback added'), 'success', 1600);
+                                                try { q.root.innerHTML = ''; } catch(_){}
+                                                try { document.getElementById('inline_feedback_comment').value = ''; } catch(_){}
+                                                try { if (editIdInput) editIdInput.value = ''; } catch(_){}
+                                                try { if (parentIdInput) parentIdInput.value = ''; } catch(_){}
+                                                try { var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value=''; } catch(_){}
+                                                try { var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value=''; } catch(_){}
+                                                try { loadFeedbackData(projectId); } catch(_){}
+                                            })
+                                            .catch(function(err){
+                                                var msg = (err && (err.message || (err.errors && Object.values(err.errors).join('\n')))) || 'Failed to submit feedback';
+                                                showFloatingAlert(msg, 'warning', 3500);
+                                            })
+                                            .finally(function(){ sendBtn.disabled = false; sendBtn.innerHTML = old; });
+                                    } catch (e) {}
+                                });
+                            }
+
+                            // Photo/file buttons
+                            try {
+                                var photoBtn = document.getElementById('inlineFeedbackPhotoBtn');
+                                var photoInp = document.getElementById('inline_feedback_image_input');
+                                if (photoBtn && photoInp) photoBtn.addEventListener('click', function(){ try { photoInp.click(); } catch(_){} });
+                                var fileBtn = document.getElementById('inlineFeedbackFileBtn');
+                                var fileInp = document.getElementById('inline_feedback_files_input');
+                                if (fileBtn && fileInp) fileBtn.addEventListener('click', function(){ try { fileInp.click(); } catch(_){} });
+                            } catch(_){}
+
+                            return q;
+                        } catch (e) { return null; }
+                    }
+
+                    function focusInlineEditor(){ try { var q = window.__quillProjectFeedbackInline || initInlineEditorOnce(); if (q && typeof q.focus === 'function') q.focus(); } catch(_){} }
+
+                    // Expose small helpers globally for cross-calls
+                    try {
+                        window.initInlineEditorOnce = initInlineEditorOnce;
+                        window.focusInlineEditor = focusInlineEditor;
+                        window.startInlineEditFeedback = function(data){
+                            try {
+                                var q = window.__quillProjectFeedbackInline || initInlineEditorOnce();
+                                if (!q) return;
+                                var editIdInput = document.getElementById('inline_edit_feedback_input');
+                                if (editIdInput) editIdInput.value = String(data && data.id ? data.id : '');
+                                var parentIdInput = document.getElementById('inline_parent_id_input');
+                                if (parentIdInput) parentIdInput.value = String(data && data.parent_id ? data.parent_id : '');
+                                // set content
+                                try { q.root.innerHTML = data && data.feedback_comment ? data.feedback_comment : '<p><br></p>'; } catch(_){ }
+                                focusInlineEditor();
+                            } catch (_) {}
+                        };
+                    } catch(_){}
+
                     // Remove old confirm dialog and use modal instead
                     document
                         .querySelectorAll(".delete-project")
@@ -7003,88 +7211,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     );
 
                     function resetAddFeedbackButton() {
-                        // Resolve footer consistently (like Task)
-                        const footer = (function () {
-                            try {
-                                return (
-                                    projectFeedbackModalEl.querySelector(
-                                        ".feedback-modal-footer"
-                                    ) ||
-                                    projectFeedbackModalEl.querySelector(
-                                        ".modal-footer"
-                                    ) ||
-                                    projectFeedbackModalEl.querySelector(
-                                        ".modal-footer-custom"
-                                    )
-                                );
-                            } catch (_) {
-                                return null;
-                            }
-                        })();
-
-                        if (footer) {
-                            try {
-                                // Clear footer completely and rebuild single Add Feedback button
-                                footer.innerHTML = "";
-                                const addBtn = document.createElement("button");
-                                addBtn.type = "button";
-                                addBtn.className = "btn btn-submit-black w-100";
-                                addBtn.id = "addFeedbackButton";
-                                addBtn.textContent = "Add Feedback";
-                                addBtn.addEventListener("click", function () {
-                                    const projectId =
-                                        projectFeedbackModalEl.getAttribute(
-                                            "data-project-id"
-                                        );
-                                    if (projectId)
-                                        showAddFeedbackForm(projectId);
-                                });
-                                footer.appendChild(addBtn);
-                            } catch (_) {
-                                /* noop */
-                            }
-                        } else {
-                            // Fallback: just update existing button text
-                            try {
-                                const addFeedbackButton =
-                                    document.getElementById(
-                                        "addFeedbackButton"
-                                    );
-                                if (addFeedbackButton) {
-                                    addFeedbackButton.textContent =
-                                        "Add Feedback";
-                                    addFeedbackButton.classList.add("w-100");
-                                    const fresh =
-                                        addFeedbackButton.cloneNode(true);
-                                    addFeedbackButton.parentNode.replaceChild(
-                                        fresh,
-                                        addFeedbackButton
-                                    );
-                                    fresh.addEventListener(
-                                        "click",
-                                        function () {
-                                            const projectId =
-                                                projectFeedbackModalEl.getAttribute(
-                                                    "data-project-id"
-                                                );
-                                            if (projectId)
-                                                showAddFeedbackForm(projectId);
-                                        }
-                                    );
-                                }
-                            } catch (_) {
-                                /* noop */
-                            }
-                        }
+                        // Footer now permanently hosts the inline feedback form; nothing to rebuild.
+                        return;
                     }
 
                     // Inisialisasi event listener untuk tombol Add Feedback saat modal muncul
-                    feedbackModalEl.addEventListener(
-                        "shown.bs.modal",
-                        function () {
-                            resetAddFeedbackButton();
-                        }
-                    );
+                    feedbackModalEl.addEventListener("shown.bs.modal", function () {
+                        resetAddFeedbackButton();
+                        try { if (typeof initInlineEditorOnce === 'function') initInlineEditorOnce(); } catch(_){}
+                    });
 
                     // Update badge counts for all project cards after rendering - optimized for speed
                     setTimeout(() => {}, 50);

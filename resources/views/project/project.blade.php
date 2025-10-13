@@ -634,10 +634,31 @@
                 </div>
 
                 <div class="modal-body feedback-modal-body" id="projectFeedbackList">
+                    <div class="feedback-content" id="projectFeedbackListContainer"></div>
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
-                        style="white-space: nowrap;">Add Feedback</button>
+                    <div class="feedback-form mt-2" style="width:100%;">
+                        <div id="inline_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
+
+                        <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+
+                        <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                            <div class="d-flex-justify-content-start">
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                    <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                </button>
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                    <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                </button>
+                                <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                                <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" class="d-none">
+                                <input type="text" id="inline_edit_feedback_input" name="edit_feedback" class="d-none">
+                            </div>
+                            <div class="d-flex justify-content-end submit-feedback">
+                                <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">Send</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="alert-container mt-2" style="width: 100%;"></div>
