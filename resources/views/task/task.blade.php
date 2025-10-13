@@ -21,9 +21,27 @@
                 d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
         </symbol>
     </svg>
+
     <div class="d-flex justify-content-between align-items-center mb-4 mt-1 header-task-container">
-        <div class="title-content">
-            <h2>Task</h2>
+        <div class="d-flex align-items-center gap-3 left-header-content">
+            <div class="title-content">
+                <h2>Task</h2>
+            </div>
+            <div class="task-tabs mb-3">
+                <ul class="custom-tab" id="taskTabMenu" role="tablist">
+                    <div class="tab-slider-bg"></div>
+                    <li>
+                        <button class="tab-btn active" id="list-tab">
+                            <span class="material-symbols-outlined">list</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="tab-btn" id="grid-tab">
+                            <span class="material-symbols-outlined">grid_view</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
         </div>
 
         <div class="d-flex align-items-center gap-2">
@@ -145,7 +163,29 @@
             </div>
         </div>
     </div>
-    <div id="kanban-drag-layer"></div>
+
+    <div id="task-table-section" class="task-table-section d-none">
+        <div class="body-content scrollable-container rounded-4 px-4 py-3">
+            <table class="table table-borderless align-middle table-transparent">
+                <thead>
+                    <tr>
+                        <th scope="col">Task Name</th>
+                        <th scope="col">Project</th>
+                        <th scope="col">PIC</th>
+                        <th scope="col">Executors</th>
+                        <th scope="col">Start Date</th>
+                        <th scope="col">Due Date</th>
+                        <th scope="col">Status</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <!-- Edit Task Modal -->
     <div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"

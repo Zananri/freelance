@@ -9855,3 +9855,49 @@ function applyCurrentSearchFilter() {
             console.warn("Task not found for ID:", taskId);
         }
     });
+
+    $(document).ready(function () {
+        const $listTab = $('#list-tab');
+        const $gridTab = $('#grid-tab');
+        const $statusSection = $('#task-cards-container');
+        const $tableSection = $('#task-table-section');
+
+        $listTab.on('click', function () {
+            $listTab.addClass('active');
+            $gridTab.removeClass('active');
+
+            $statusSection.removeClass('d-none');
+            $tableSection.addClass('d-none');
+        });
+
+        $gridTab.on('click', function () {
+            $gridTab.addClass('active');
+            $listTab.removeClass('active');
+
+            $statusSection.addClass('d-none');
+            $tableSection.removeClass('d-none');
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const tabMenu = document.getElementById('taskTabMenu');
+        const tabBtns = tabMenu.querySelectorAll('.tab-btn');
+        const sliderBg = tabMenu.querySelector('.tab-slider-bg');
+
+        function moveSliderBg(activeBtn) {
+            const rect = activeBtn.getBoundingClientRect();
+            const parentRect = tabMenu.getBoundingClientRect();
+            sliderBg.style.width = rect.width + 'px';
+            sliderBg.style.left = (activeBtn.offsetLeft) + 'px';
+        }
+
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', function () {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                moveSliderBg(btn);
+            });
+        });
+
+        moveSliderBg(tabMenu.querySelector('.tab-btn.active'));
+    });
