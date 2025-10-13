@@ -3591,6 +3591,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         );
                                                     })(),
                                                 };
+                                                // Gunakan inline edit untuk feedback utama
+                                                try { 
+                                                    if (typeof window.startInlineEditFeedback === 'function') { 
+                                                        window.startInlineEditFeedback(payload); 
+                                                        return; 
+                                                    } 
+                                                } catch(_) {}
+                                                // Fallback ke modal jika inline edit tidak tersedia
                                                 showEditFeedbackForm(
                                                     projectId,
                                                     payload,
@@ -4033,6 +4041,14 @@ document.addEventListener("DOMContentLoaded", function () {
                                                         );
                                                     })(),
                                                 };
+                                                // Gunakan inline edit untuk feedback utama 
+                                                try { 
+                                                    if (typeof window.startInlineEditFeedback === 'function') { 
+                                                        window.startInlineEditFeedback(payload); 
+                                                        return; 
+                                                    } 
+                                                } catch(_) {}
+                                                // Fallback ke modal jika inline edit tidak tersedia
                                                 showEditFeedbackForm(
                                                     projectId,
                                                     payload,
@@ -6496,6 +6512,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                         if (isEdit) {
                                             url = appUrl + '/project-feedbacks/' + encodeURIComponent(editIdInput.value);
                                             fd.append('_method', 'PUT');
+                                            
+                                            // Tambahkan existing files yang ingin dipertahankan
+                                            try {
+                                                var keep = window.inlineExistingFilesKeep || [];
+                                                fd.set('existing_reference_files', JSON.stringify(keep));
+                                            } catch(_) {}
+                                            
+                                            // Tambahkan flag remove image jika diperlukan
+                                            try {
+                                                if (typeof window.__inlineRemoveImage !== 'undefined') {
+                                                    fd.set('remove_image', window.__inlineRemoveImage ? '1' : '0');
+                                                }
+                                            } catch(_) {}
                                         }
 
                                         // DEBUG: Log semua FormData yang dikirim
@@ -6515,16 +6544,23 @@ document.addEventListener("DOMContentLoaded", function () {
                                             .then(function(r){ return r.text().then(function(t){ try{ var j = JSON.parse(t); if (r.ok) return j; return Promise.reject(j); }catch(e){ if (r.ok) return { message: t }; return Promise.reject({ message: t }); } }); })
                                             .then(function(res){
                                                 showFloatingAlert(res.message || (isEdit ? 'Feedback updated' : 'Feedback added'), 'success', 1600);
-                                                try { q.root.innerHTML = ''; } catch(_){}
-                                                try { document.getElementById('inline_feedback_comment').value = ''; } catch(_){}
-                                                try { if (editIdInput) editIdInput.value = ''; } catch(_){}
-                                                try { if (parentIdInput) parentIdInput.value = ''; } catch(_){}
-                                                try { var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value=''; } catch(_){}
-                                                try { var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value=''; } catch(_){}
-                                                // PERBAIKAN: Bersihkan array file yang dipilih dan preview
-                                                try { window.inlineFeedbackSelectedFiles = []; } catch(_){}
-                                                try { if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview(); } catch(_){}
-                                                try { removeInlineImagePreview(); } catch(_){}
+                                                
+                                                // Jika dalam mode edit, panggil cancel untuk reset ke mode normal
+                                                if (isEdit) {
+                                                    try { window.cancelInlineEditFeedback(); } catch(_){}
+                                                } else {
+                                                    // Mode add: bersihkan seperti biasa
+                                                    try { q.root.innerHTML = '<p><br></p>'; } catch(_){}
+                                                    try { document.getElementById('inline_feedback_comment').value = ''; } catch(_){}
+                                                    try { if (editIdInput) editIdInput.value = ''; } catch(_){}
+                                                    try { if (parentIdInput) parentIdInput.value = ''; } catch(_){}
+                                                    try { var imgInp = document.getElementById('inline_feedback_image_input'); if (imgInp) imgInp.value=''; } catch(_){}
+                                                    try { var filesInp = document.getElementById('inline_feedback_files_input'); if (filesInp) filesInp.value=''; } catch(_){}
+                                                    try { window.inlineFeedbackSelectedFiles = []; } catch(_){}
+                                                    try { if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview(); } catch(_){}
+                                                    try { if (typeof removeInlineImagePreview === 'function') removeInlineImagePreview(); } catch(_){}
+                                                }
+                                                
                                                 try { loadFeedbackData(projectId); } catch(_){}
                                             })
                                             .catch(function(err){
@@ -6683,18 +6719,289 @@ document.addEventListener("DOMContentLoaded", function () {
                     try {
                         window.initInlineEditorOnce = initInlineEditorOnce;
                         window.focusInlineEditor = focusInlineEditor;
+                        // Fungsi untuk masuk ke mode edit inline feedback
                         window.startInlineEditFeedback = function(data){
                             try {
                                 var q = window.__quillProjectFeedbackInline || initInlineEditorOnce();
                                 if (!q) return;
+                                
+                                // Set ID feedback yang diedit
                                 var editIdInput = document.getElementById('inline_edit_feedback_input');
                                 if (editIdInput) editIdInput.value = String(data && data.id ? data.id : '');
+                                
+                                // Set parent_id jika ini adalah reply
                                 var parentIdInput = document.getElementById('inline_parent_id_input');
+                                if (!parentIdInput) {
+                                    // Buat input parent_id jika belum ada
+                                    var inlineForm = document.querySelector('.feedback-form');
+                                    parentIdInput = document.createElement('input');
+                                    parentIdInput.type = 'hidden';
+                                    parentIdInput.id = 'inline_parent_id_input';
+                                    parentIdInput.name = 'parent_id';
+                                    if (inlineForm) inlineForm.appendChild(parentIdInput);
+                                }
                                 if (parentIdInput) parentIdInput.value = String(data && data.parent_id ? data.parent_id : '');
-                                // set content
-                                try { q.root.innerHTML = data && data.feedback_comment ? data.feedback_comment : '<p><br></p>'; } catch(_){ }
+                                
+                                // Set konten feedback ke editor
+                                try { 
+                                    q.root.innerHTML = data && data.feedback_comment ? data.feedback_comment : '<p><br></p>'; 
+                                } catch(_){ }
+                                
+                                // Tampilkan existing image jika ada
+                                try {
+                                    var imgUrl = data.image_url || data.image || "";
+                                    if (imgUrl) {
+                                        var url = imgUrl;
+                                        if (url.indexOf('http') !== 0) {
+                                            url = (url.indexOf('/') === 0 ? appUrl.replace(/\/$/, "") + url : appUrl.replace(/\/$/, "") + "/file/project/" + url);
+                                        }
+                                        showInlineImagePreviewFromUrl(url);
+                                    }
+                                } catch(_) {}
+                                
+                                // Tampilkan existing files jika ada
+                                try {
+                                    var files = [];
+                                    if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls;
+                                    else if (Array.isArray(data.reference_files)) files = data.reference_files;
+                                    else if (data.reference_file_url) files = [data.reference_file_url];
+                                    else if (data.reference_file) files = [data.reference_file];
+                                    renderInlineExistingFiles(files);
+                                } catch(_) {}
+                                
+                                // Ubah tombol Send menjadi Update
+                                var sendBtn = document.getElementById("inlineFeedbackSendBtn");
+                                if (sendBtn) {
+                                    sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
+                                    sendBtn.innerHTML = '<span class="material-symbols-outlined">update</span>';
+                                }
+                                
+                                // Tambahkan tombol Cancel
+                                var actions = document.querySelector('.btn-actions-feedback .submit-feedback');
+                                if (actions && !document.getElementById('inlineFeedbackCancelBtn')) {
+                                    var cancel = document.createElement('button');
+                                    cancel.type = 'button';
+                                    cancel.id = 'inlineFeedbackCancelBtn';
+                                    cancel.className = 'btn btn-custom-close me-2';
+                                    cancel.innerHTML = '<span class="material-symbols-outlined">cancel</span>';
+                                    cancel.addEventListener('click', function() {
+                                        try { window.cancelInlineEditFeedback(); } catch(_) {}
+                                    });
+                                    actions.insertBefore(cancel, actions.firstChild);
+                                }
+                                
                                 focusInlineEditor();
                             } catch (_) {}
+                        };
+
+                        // Fungsi untuk keluar dari mode edit inline feedback
+                        window.cancelInlineEditFeedback = function(){
+                            try {
+                                // Clear edit marker
+                                var editIdInput = document.getElementById('inline_edit_feedback_input');
+                                if (editIdInput) editIdInput.value = '';
+
+                                var parentIdInput = document.getElementById('inline_parent_id_input');
+                                if (parentIdInput) parentIdInput.value = '';
+
+                                // Clear existing files preview dan keep list
+                                window.inlineExistingFilesKeep = [];
+                                try {
+                                    var ex = document.getElementById('inline_existing_files_preview');
+                                    if (ex && ex.parentNode) ex.parentNode.removeChild(ex);
+                                } catch(_){}
+
+                                // Remove image preview
+                                try {
+                                    var ip = document.getElementById('inline_feedback_image_preview');
+                                    if (ip && ip.parentNode) ip.parentNode.removeChild(ip);
+                                } catch(_){}
+                                window.__inlineFeedbackImageFile = null;
+
+                                // Clear file inputs
+                                try { 
+                                    var imgInp = document.getElementById('inline_feedback_image_input'); 
+                                    if (imgInp) imgInp.value = ''; 
+                                } catch(_){}
+                                try { 
+                                    var filesInp = document.getElementById('inline_feedback_files_input'); 
+                                    if (filesInp) filesInp.value = ''; 
+                                } catch(_){}
+
+                                // Clear selected files array dan preview
+                                try { 
+                                    window.inlineFeedbackSelectedFiles = []; 
+                                    if (typeof renderInlineFilesPreview === 'function') renderInlineFilesPreview(); 
+                                } catch(_){}
+
+                                // Clear Quill editor
+                                try {
+                                    var q = window.__quillProjectFeedbackInline;
+                                    if (q && q.root) {
+                                        q.root.innerHTML = '<p><br></p>';
+                                        if (typeof q.setSelection === 'function') {
+                                            try { q.setSelection(0); } catch(_){}
+                                        }
+                                    }
+                                } catch(_){}
+
+                                // Restore send button
+                                try {
+                                    var sendBtn = document.getElementById('inlineFeedbackSendBtn');
+                                    if (sendBtn) {
+                                        if (sendBtn._origHTML) {
+                                            sendBtn.innerHTML = sendBtn._origHTML;
+                                        } else {
+                                            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+                                        }
+                                    }
+                                } catch(_) {}
+
+                                // Remove cancel button
+                                try { 
+                                    var cancel = document.getElementById('inlineFeedbackCancelBtn'); 
+                                    if (cancel && cancel.parentNode) cancel.parentNode.removeChild(cancel); 
+                                } catch(_){}
+
+                                // Reset remove-image flag
+                                window.__inlineRemoveImage = false;
+                            } catch(_) {}
+                        };
+
+                        // Helper functions untuk menampilkan existing files dan image
+                        window.renderInlineExistingFiles = function(files){
+                            try {
+                                var editorEl = document.getElementById("inline_feedback_editor");
+                                if (!editorEl || !editorEl.parentNode) return;
+                                var parent = editorEl.parentNode;
+                                var id = "inline_existing_files_preview";
+                                var box = document.getElementById(id);
+                                var arr = Array.isArray(files) ? files.slice() : [];
+                                window.inlineExistingFilesKeep = [];
+
+                                function toUrl(v) {
+                                    if (!v) return "";
+                                    var s = String(v);
+                                    if (s.indexOf("http://") === 0 || s.indexOf("https://") === 0) return s;
+                                    if (s.indexOf("/") === 0) return appUrl.replace(/\/$/, "") + s;
+                                    return appUrl.replace(/\/$/, "") + "/file/project/" + s;
+                                }
+
+                                function toName(u) {
+                                    var s = String(u || "");
+                                    try { return s.split("/").pop(); } catch(_) { return s; }
+                                }
+
+                                if (!arr.length) { 
+                                    if (box && box.parentNode) box.parentNode.removeChild(box); 
+                                    return; 
+                                }
+
+                                if (!box) { 
+                                    box = document.createElement("div"); 
+                                    box.id = id; 
+                                    box.className = "mt-2"; 
+                                    parent.insertBefore(box, editorEl); 
+                                }
+
+                                box.innerHTML = "";
+                                var list = document.createElement("div"); 
+                                list.className = "existing-files-list w-100";
+
+                                arr.forEach(function(f) {
+                                    var url = toUrl(f); 
+                                    var name = toName(f); 
+                                    if (!name) return;
+                                    window.inlineExistingFilesKeep.push(name);
+
+                                    var item = document.createElement("div");
+                                    item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task";
+
+                                    var iconWrap = document.createElement("div");
+                                    iconWrap.style.fontSize = "10px";
+                                    iconWrap.style.textAlign = "center";
+                                    iconWrap.innerHTML = '<span class="material-symbols-outlined">description</span>';
+
+                                    var link = document.createElement("a");
+                                    link.href = url;
+                                    link.target = "_blank";
+                                    link.className = "flex-grow-1";
+                                    link.style.fontSize = "10px";
+                                    link.style.color = '#444444';
+                                    link.style.textDecoration = 'none';
+                                    link.textContent = name;
+
+                                    var rm = document.createElement("button");
+                                    rm.type = "button";
+                                    rm.className = "btn btn-sm btn-remove-task remove-task";
+                                    rm.style.lineHeight = "1";
+                                    rm.style.fontSize = "10px";
+                                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                    rm.addEventListener("click", function() { 
+                                        try { 
+                                            item.remove(); 
+                                            var idx = window.inlineExistingFilesKeep.indexOf(name); 
+                                            if (idx > -1) window.inlineExistingFilesKeep.splice(idx, 1); 
+                                        } catch(_) {} 
+                                    });
+
+                                    item.appendChild(iconWrap);
+                                    item.appendChild(link);
+                                    item.appendChild(rm);
+                                    list.appendChild(item);
+                                });
+                                box.appendChild(list);
+                            } catch(_) {}
+                        };
+
+                        window.showInlineImagePreviewFromUrl = function(url){
+                            try {
+                                var editorEl = document.getElementById("inline_feedback_editor");
+                                if (!editorEl || !editorEl.parentNode) return;
+                                var parent = editorEl.parentNode;
+                                var previewContainer = document.getElementById("inline_feedback_image_preview");
+                                
+                                if (!previewContainer) {
+                                    previewContainer = document.createElement("div");
+                                    previewContainer.id = "inline_feedback_image_preview";
+                                    previewContainer.className = "mt-2";
+                                    parent.insertBefore(previewContainer, editorEl);
+                                }
+
+                                previewContainer.innerHTML = "";
+                                var wrapper = document.createElement("div");
+                                wrapper.className = "d-flex align-items-center gap-2 p-2 rounded bg-light";
+
+                                var img = document.createElement("img");
+                                img.src = url;
+                                img.style.width = "40px";
+                                img.style.height = "40px";
+                                img.style.objectFit = "cover";
+                                img.style.borderRadius = "4px";
+
+                                var span = document.createElement("span");
+                                span.className = "flex-grow-1";
+                                span.style.fontSize = "10px";
+                                span.textContent = "Existing image";
+
+                                var rmBtn = document.createElement("button");
+                                rmBtn.type = "button";
+                                rmBtn.className = "btn btn-sm btn-remove-task remove-task";
+                                rmBtn.style.lineHeight = "1";
+                                rmBtn.style.fontSize = "10px";
+                                rmBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                rmBtn.addEventListener("click", function() {
+                                    try {
+                                        previewContainer.remove();
+                                        window.__inlineRemoveImage = true;
+                                    } catch(_) {}
+                                });
+
+                                wrapper.appendChild(img);
+                                wrapper.appendChild(span);
+                                wrapper.appendChild(rmBtn);
+                                previewContainer.appendChild(wrapper);
+                            } catch(_) {}
                         };
                     } catch(_){}
 
