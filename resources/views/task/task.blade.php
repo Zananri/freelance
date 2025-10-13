@@ -31,13 +31,13 @@
                 <ul class="custom-tab" id="taskTabMenu" role="tablist">
                     <div class="tab-slider-bg"></div>
                     <li>
-                        <button class="tab-btn active" id="list-tab">
-                            <span class="material-symbols-outlined">list</span>
+                        <button class="tab-btn active" id="grid-tab">
+                            <span class="material-symbols-outlined">grid_view</span>
                         </button>
                     </li>
                     <li>
-                        <button class="tab-btn" id="grid-tab">
-                            <span class="material-symbols-outlined">grid_view</span>
+                        <button class="tab-btn" id="list-tab">
+                            <span class="material-symbols-outlined">list</span>
                         </button>
                     </li>
                 </ul>
