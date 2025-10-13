@@ -1669,10 +1669,6 @@ input[type="file"]::file-selector-button {
         max-height: 65vh;
         min-height: 65vh;
     }
-
-    .custom-tab {
-        width: ;
-    }
 }
 
 #taskDetailModal .collab-name {
@@ -1732,6 +1728,7 @@ input[type="file"]::file-selector-button {
     position: relative;
     z-index: 2;
     transition: color 0.25s;
+    height: 40px;
 }
 
 .tab-btn:hover {
@@ -1748,7 +1745,7 @@ input[type="file"]::file-selector-button {
 }
 
 .tab-btn::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     background: #ecedf5;
@@ -1770,4 +1767,72 @@ input[type="file"]::file-selector-button {
 .table-transparent thead,
 .table-transparent tbody {
     background: transparent !important;
+}
+
+@media (max-width: 768px) {
+    .project-detail-header {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+    }
+
+    .project-detail-header .title-content {
+        width: 100%;
+        flex-direction: row;
+        align-items: center !important;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .nav-icon-arrow {
+        height: 40px;
+    }
+
+    .project-detail-header .title-content .task-tabs {
+        margin-bottom: 0;
+        top: 0;
+        flex-shrink: 0;
+        width: 100%;
+    }
+
+    .custom-tab {
+        margin: 0;
+        width: 100%;
+        justify-content: space-around;
+        min-width: unset;
+    }
+
+    .tab-btn.active {
+        position: relative;
+        z-index: 2;
+        background: #ecedf5;
+        color: #444444;
+        box-shadow: 0 2px 6px rgba(236, 237, 245, 1);
+    }
+
+    .project-detail-header .d-flex.align-items-center {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .project-detail-header .btn-contributor-custom {
+        flex: 1;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .project-detail-header .btn-submit-black {
+        flex: 2;
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .project-detail-header .btn-submit-black span {
+        font-size: 16px;
+    }
+
+    .table-transparent {
+        width: 200%;
+    }
 }
