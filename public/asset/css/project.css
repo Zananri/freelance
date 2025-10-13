@@ -2291,3 +2291,17 @@ input[type="file"]::-webkit-file-upload-button {
 input[type="file"]::file-selector-button {
     display: none;
 }
+
+.submit-feedback button {
+    border-radius: 50%;
+}
+
+.feedback-form {
+    background: #ffffff;
+    padding: 0 10px 10px 10px;
+    border-radius: 20px;
+}
+
+.submit-feedback button span {
+    font-size: 24px;
+}

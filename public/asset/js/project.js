@@ -6365,6 +6365,367 @@ document.addEventListener("DOMContentLoaded", function () {
                         } catch (_) {}
                     }
 
+                    function showInlineImagePreviewSmall(fileObj, dataUrl) {
+                        try {
+                            // Create or get the preview container
+                            var previewContainer = document.getElementById(
+                                "inline_feedback_image_preview"
+                            );
+                            if (!previewContainer) {
+                                previewContainer = document.createElement("div");
+                                previewContainer.id = "inline_feedback_image_preview";
+                                // ensure container and its children are fully opaque and do not inherit any translucent styles
+                                previewContainer.style.cssText =
+                                    "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+                                // Insert after the file button
+                                var fileBtn = document.getElementById(
+                                    "inlineFeedbackFileBtn"
+                                );
+                                if (fileBtn && fileBtn.parentNode) {
+                                    fileBtn.parentNode.insertBefore(
+                                        previewContainer,
+                                        fileBtn.nextSibling
+                                    );
+                                }
+                            }
+
+                            // Create the image preview similar to modal add project style
+                            previewContainer.innerHTML = "";
+
+                            var imageLabel = document.createElement("div");
+                            imageLabel.className =
+                                "custom-image-upload position-relative";
+                            // apply explicit opaque styles so the preview doesn't look translucent
+                            imageLabel.style.cssText =
+                                "" +
+                                "width: 32px; " +
+                                "height: 32px; " +
+                                "background-image: url('" +
+                                dataUrl +
+                                "'); " +
+                                "background-size: cover; " +
+                                "background-position: center center; " +
+                                "background-repeat: no-repeat; " +
+                                "border-radius: 6px; " +
+                                "cursor: pointer; " +
+                                "border: 1px solid #ddd; " +
+                                "margin-right: 4px; " +
+                                "opacity: 1; " +
+                                "background-color: #ffffff; " +
+                                "box-shadow: 0 1px 3px rgba(0,0,0,0.12); " +
+                                "overflow: visible; ";
+
+                            var clearBtn = document.createElement("span");
+                            clearBtn.className = "image-clear-btn";
+                            clearBtn.innerHTML = "&times;";
+                            clearBtn.title = "Remove image";
+                            // make the clear button visually prominent and above other elements
+                            clearBtn.style.cssText =
+                                "" +
+                                "position: absolute; " +
+                                "top: -6px; " +
+                                "right: -6px; " +
+                                "background: #ff4444; " +
+                                "color: #ffffff; " +
+                                "border-radius: 50%; " +
+                                "width: 16px; " +
+                                "height: 16px; " +
+                                "font-size: 12px; " +
+                                "line-height: 16px; " +
+                                "text-align: center; " +
+                                "cursor: pointer; " +
+                                "font-weight: 700; " +
+                                "border: none; " +
+                                "box-shadow: 0 2px 6px rgba(0,0,0,0.25); " +
+                                "z-index: 30; " +
+                                "opacity: 1; ";
+
+                            // Store the file object for later use
+                            window.__inlineFeedbackImageFile = fileObj;
+
+                            clearBtn.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                try {
+                                    // Clear the file input
+                                    var inp = document.getElementById(
+                                        "inline_feedback_image_input"
+                                    );
+                                    if (inp) inp.value = "";
+                                    // Clear the stored file
+                                    window.__inlineFeedbackImageFile = null;
+                                    // Remove the preview container
+                                    if (
+                                        previewContainer &&
+                                        previewContainer.parentNode
+                                    ) {
+                                        previewContainer.parentNode.removeChild(
+                                            previewContainer
+                                        );
+                                    }
+                                } catch (_) {}
+                            });
+
+                            // Add click to preview (optional - could open larger view)
+                            imageLabel.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                // Optional: show larger preview or do nothing
+                                try {
+                                    showInlineImagePreview(fileObj, dataUrl);
+                                } catch (_) {}
+                            });
+
+                            imageLabel.appendChild(clearBtn);
+                            previewContainer.appendChild(imageLabel);
+                        } catch (e) {
+                            console.warn("Failed to show image preview:", e);
+                        }
+                    }
+
+                    // show inline image preview overlay (WhatsApp-like)
+                    function showInlineImagePreview(fileObj, dataUrl) {
+                        try {
+                            // avoid duplicate overlays
+                            if (document.getElementById("inlineImagePreviewOverlay"))
+                                return;
+
+                            var overlay = document.createElement("div");
+                            overlay.id = "inlineImagePreviewOverlay";
+                            overlay.style.position = "fixed";
+                            overlay.style.inset = "0";
+                            overlay.style.zIndex = "9999";
+                            overlay.style.background = "rgba(0,0,0,0.6)";
+                            overlay.style.display = "flex";
+                            overlay.style.alignItems = "center";
+                            overlay.style.justifyContent = "center";
+
+                            var box = document.createElement("div");
+                            box.style.background = "#fff";
+                            box.style.padding = "12px";
+                            box.style.borderRadius = "8px";
+                            box.style.maxWidth = "720px";
+                            box.style.width = "90%";
+                            box.style.maxHeight = "90%";
+                            box.style.overflow = "auto";
+                            box.style.boxShadow = "0 8px 30px rgba(0,0,0,0.4)";
+
+                            // image
+                            var imgWrap = document.createElement("div");
+                            imgWrap.style.textAlign = "center";
+                            imgWrap.style.marginBottom = "8px";
+                            var img = document.createElement("img");
+                            img.src = dataUrl;
+                            img.style.maxWidth = "100%";
+                            img.style.maxHeight = "60vh";
+                            img.style.borderRadius = "6px";
+                            imgWrap.appendChild(img);
+
+                            // caption input (single-line-ish)
+                            var caption = document.createElement("textarea");
+                            caption.placeholder = "Add a caption...";
+                            caption.style.width = "100%";
+                            caption.style.minHeight = "56px";
+                            caption.style.resize = "vertical";
+                            caption.style.marginTop = "8px";
+                            caption.style.padding = "8px";
+                            caption.style.border = "1px solid #ddd";
+                            caption.style.borderRadius = "6px";
+
+                            // buttons wrapper
+                            var actions = document.createElement("div");
+                            actions.style.display = "flex";
+                            actions.style.justifyContent = "flex-end";
+                            actions.style.gap = "8px";
+                            actions.style.marginTop = "10px";
+
+                            var cancelBtn = document.createElement("button");
+                            cancelBtn.type = "button";
+                            // use existing project Cancel style
+                            cancelBtn.className = "btn btn-custom-close";
+                            cancelBtn.textContent = "Cancel";
+                            // match modal footer .btn-custom-close appearance (inline because overlay isn't inside modal footer)
+                            cancelBtn.style.backgroundColor = "#e3e4ee";
+                            cancelBtn.style.color = "#444444";
+                            cancelBtn.style.fontSize = "12px";
+                            cancelBtn.style.padding = "10px";
+                            cancelBtn.style.height = "45px";
+                            cancelBtn.style.border = "none";
+                            cancelBtn.style.borderRadius = "10px";
+                            cancelBtn.style.minWidth = "120px";
+
+                            var sendBtn = document.createElement("button");
+                            sendBtn.type = "button";
+                            // use existing project Send style (black submit button)
+                            sendBtn.className = "btn btn-submit-black";
+                            // use material icon as requested
+                            sendBtn.innerHTML =
+                                '<span class="material-symbols-outlined">send</span>';
+                            sendBtn.setAttribute("aria-label", "Send");
+                            sendBtn.style.padding = "6px 12px";
+                            sendBtn.style.fontSize = "13px";
+
+                            actions.appendChild(cancelBtn);
+                            actions.appendChild(sendBtn);
+
+                            box.appendChild(imgWrap);
+                            box.appendChild(caption);
+                            box.appendChild(actions);
+                            overlay.appendChild(box);
+                            document.body.appendChild(overlay);
+
+                            // focus caption
+                            try {
+                                caption.focus();
+                            } catch (_) {}
+
+                            function cleanup() {
+                                try {
+                                    var inp = document.getElementById(
+                                        "inline_feedback_image_input"
+                                    );
+                                    if (inp) inp.value = "";
+                                } catch (_) {}
+                                try {
+                                    if (overlay && overlay.parentNode)
+                                        overlay.parentNode.removeChild(overlay);
+                                } catch (_) {}
+                            }
+
+                            cancelBtn.addEventListener("click", function () {
+                                try {
+                                    cleanup();
+                                } catch (_) {}
+                            });
+
+                            sendBtn.addEventListener("click", function () {
+                                try {
+                                    var cap = (caption.value || "").trim();
+                                    var fd = new FormData();
+                                    fd.append("feedback_comment", cap || "");
+                                    fd.append(
+                                        "project_id",
+                                        getMeta("project-id") || ""
+                                    );
+                                    fd.append(
+                                        "employee_id",
+                                        document
+                                            .getElementById("projectFeedbackModal")
+                                            ?.getAttribute("data-employee-id") || ""
+                                    );
+
+                                    // Use the file from small preview if available, otherwise use the provided fileObj
+                                    var imageFileToUse =
+                                        window.__inlineFeedbackImageFile || fileObj;
+                                    if (imageFileToUse)
+                                        fd.append("feedback_image", imageFileToUse);
+
+                                    // UI feedback
+                                    var origText = sendBtn.innerHTML;
+                                    sendBtn.disabled = true;
+                                    sendBtn.innerHTML =
+                                        '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+                                    var editId = (document.getElementById('inline_edit_feedback_input')||{}).value || '';
+                                    var isEdit = String(editId).trim() !== '';
+                                    if (isEdit) {
+                                        try {
+                                            // include edit extras
+                                            // existing files kept
+                                            var keep = window.inlineExistingFilesKeep || [];
+                                            fd.set('existing_reference_files', JSON.stringify(keep));
+                                            // remove_image flag
+                                            if (typeof window.__inlineRemoveImage !== 'undefined') {
+                                                fd.set('remove_image', window.__inlineRemoveImage ? '1' : '0');
+                                            }
+                                            // ensure new files appended
+                                            if (window.inlineFeedbackSelectedFiles && window.inlineFeedbackSelectedFiles.length){
+                                                window.inlineFeedbackSelectedFiles.forEach(function(f){ fd.append('reference_files[]', f); });
+                                            }
+                                            // method override
+                                            fd.append('_method','PUT');
+                                        } catch(_){}
+                                    }
+
+                                    var reqUrl = isEdit
+                                        ? getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks/' + editId
+                                        : getMeta('app-url').replace(/\/$/, '') + '/project-feedbacks';
+                                    var reqMethod = 'POST';
+                                    fetch(reqUrl, {
+                                        method: reqMethod,
+                                        headers: {
+                                            "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                        },
+                                        body: fd,
+                                    })
+                                        .then(function (res) {
+                                            if (!res.ok)
+                                                return res.json().then(function (j) {
+                                                    return Promise.reject(j);
+                                                });
+                                            return res.json();
+                                        })
+                                        .then(function (data) {
+                                            window.showFloatingAlert && window.showFloatingAlert(
+                                                isEdit ? "Feedback updated" : "Feedback submitted",
+                                                "success",
+                                                2000
+                                            );
+                                            try {
+                                                loadFeedbackData(getMeta("project-id"));
+                                            } catch (_) {}
+                                            cleanup();
+                                            if (isEdit) {
+                                                try { cancelInlineEditFeedback(); } catch(_){}
+                                            }
+                                            try {
+                                                if (window.__quillProjectFeedbackInline)
+                                                    window.__quillProjectFeedbackInline.root.innerHTML =
+                                                        "";
+                                            } catch (_) {}
+                                            // Clear small image preview
+                                            try {
+                                                window.__inlineFeedbackImageFile = null;
+                                                var previewContainer =
+                                                    document.getElementById(
+                                                        "inline_feedback_image_preview"
+                                                    );
+                                                if (
+                                                    previewContainer &&
+                                                    previewContainer.parentNode
+                                                ) {
+                                                    previewContainer.parentNode.removeChild(
+                                                        previewContainer
+                                                    );
+                                                }
+                                            } catch (_) {}
+                                        })
+                                        .catch(function (err) {
+                                            var msg = "Failed to submit feedback";
+                                            try {
+                                                if (err && err.errors)
+                                                    msg = Object.values(
+                                                        err.errors
+                                                    ).join("\n");
+                                                else if (err && err.message)
+                                                    msg = err.message;
+                                            } catch (_) {}
+                                            window.showFloatingAlert &&
+                                                window.showFloatingAlert(
+                                                    msg,
+                                                    "warning",
+                                                    4000
+                                                );
+                                        })
+                                        .finally(function () {
+                                            sendBtn.disabled = false;
+                                            sendBtn.innerHTML = origText;
+                                        });
+                                } catch (_) {}
+                            });
+                        } catch (_) {}
+                    }
+
                     function initInlineEditorOnce() {
                         try {
                             if (window.__quillProjectFeedbackInline) return window.__quillProjectFeedbackInline;
@@ -6459,8 +6820,133 @@ document.addEventListener("DOMContentLoaded", function () {
                                 var photoBtn = document.getElementById('inlineFeedbackPhotoBtn');
                                 var photoInp = document.getElementById('inline_feedback_image_input');
                                 if (photoBtn && photoInp) photoBtn.addEventListener('click', function(){ try { photoInp.click(); } catch(_){} });
+                                if (photoInp) {
+                                    photoInp.addEventListener("change", function (ev) {
+                                        try {
+                                            var f = (this.files && this.files[0]) || null;
+                                            if (!f) return;
+                                            if (!f.type || f.type.indexOf("image/") !== 0)
+                                                return;
+
+                                            var reader = new FileReader();
+                                            reader.onload = function (e) {
+                                                try {
+                                                    showInlineImagePreviewSmall(
+                                                        f,
+                                                        e.target.result
+                                                    );
+                                                } catch (_) {}
+                                            };
+                                            reader.readAsDataURL(f);
+                                        } catch (_) {}
+                                    });
+                                }
+
                                 var fileBtn = document.getElementById('inlineFeedbackFileBtn');
                                 var fileInp = document.getElementById('inline_feedback_files_input');
+
+                                if (fileInp) {
+                                    fileInp.addEventListener("change", function (ev) {
+                                        try {
+                                            var files = Array.from(this.files || []);
+                                            if (!files.length) return;
+                                            // append to selected array
+                                            window.inlineFeedbackSelectedFiles = (
+                                                window.inlineFeedbackSelectedFiles || []
+                                            ).concat(files);
+                                            renderInlineFilesPreview();
+                                            // clear native input so user can reselect same file later if needed
+                                            try {
+                                                this.value = "";
+                                            } catch (_) {}
+                                        } catch (_) {}
+                                    });
+                                }
+
+                                function renderInlineFilesPreview() {
+                                    try {
+                                        var editorEl = document.getElementById(
+                                            "inline_feedback_editor"
+                                        );
+                                        if (!editorEl) return;
+                                        var parent = editorEl.parentNode;
+                                        if (!parent) return;
+                                        var previewId = "inline_feedback_files_preview";
+                                        var preview = document.getElementById(previewId);
+                                        var sel = window.inlineFeedbackSelectedFiles || [];
+
+                                        // if no files selected, remove preview container if exists
+                                        if (!sel.length) {
+                                            try {
+                                                if (preview && preview.parentNode)
+                                                    preview.parentNode.removeChild(preview);
+                                            } catch (_) {}
+                                            return;
+                                        }
+
+                                        if (!preview) {
+                                            preview = document.createElement("div");
+                                            preview.id = previewId;
+                                            preview.className = "mt-2";
+                                            parent.insertBefore(preview, editorEl);
+                                        }
+                                        // build list
+                                        preview.innerHTML = "";
+                                        var listWrap = document.createElement("div");
+                                        listWrap.className = "selected-files-list mt-2";
+                                        sel.forEach(function (f, idx) {
+                                            try {
+                                                var item = document.createElement("div");
+                                                // match user's requested styling for selected file item
+                                                item.className =
+                                                    "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task";
+
+                                                var iconWrap = document.createElement("div");
+                                                // small file icon placeholder (compact)
+                                                iconWrap.innerHTML =
+                                                    '<span class="material-symbols-outlined">description</span>';
+                                                iconWrap.style.fontSize = "10px";
+                                                iconWrap.style.textAlign = "center";
+
+                                                var name = document.createElement("span");
+                                                name.className = "flex-grow-1";
+                                                name.style.fontSize = "10px";
+                                                var sizeMb = (f.size || 0) / 1024 / 1024;
+                                                name.textContent =
+                                                    (f.name || "") +
+                                                    (isFinite(sizeMb)
+                                                        ? " (" + sizeMb.toFixed(2) + " MB)"
+                                                        : "");
+
+                                                var rm = document.createElement("button");
+                                                rm.type = "button";
+                                                rm.className =
+                                                    "btn btn-sm btn-remove-task remove-task";
+                                                // inline styles to match requested snippet
+                                                rm.style.lineHeight = "1";
+                                                rm.style.fontSize = "10px";
+                                                rm.innerHTML =
+                                                    '<span class="material-symbols-outlined">close</span>';
+                                                rm.addEventListener("click", function () {
+                                                    try {
+                                                        window.inlineFeedbackSelectedFiles.splice(
+                                                            idx,
+                                                            1
+                                                        );
+                                                        renderInlineFilesPreview();
+                                                    } catch (_) {}
+                                                });
+
+                                                item.appendChild(iconWrap);
+                                                item.appendChild(name);
+                                                item.appendChild(rm);
+                                                listWrap.appendChild(item);
+                                            } catch (_) {}
+                                        });
+                                        preview.appendChild(listWrap);
+                                    } catch (e) {}
+                                }
+
                                 if (fileBtn && fileInp) fileBtn.addEventListener('click', function(){ try { fileInp.click(); } catch(_){} });
                             } catch(_){}
 
