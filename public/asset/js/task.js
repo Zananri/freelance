@@ -8863,6 +8863,22 @@ function filterTaskTableRows(queryRaw) {
 
                 // ⬇️ Refresh mobile view biar ikutin hasil terbaru
                 $("#taskStatusSelect").trigger("change");
+                // Update the client-side cache so the List/Table view can render the filtered results
+                try {
+                    // Ensure merged rejected tasks are included in in_progress bucket
+                    const rejectedArr = Array.isArray(payload.rejected) ? (payload.rejected.tasks || payload.rejected) : (payload.rejected?.tasks || []);
+                    const inProgressMergedForCache = Array.isArray(payload.in_progress?.tasks) ? [...payload.in_progress.tasks] : (Array.isArray(payload.in_progress) ? payload.in_progress : []);
+                    if (Array.isArray(rejectedArr) && rejectedArr.length) {
+                        inProgressMergedForCache.push(...rejectedArr);
+                    }
+
+                    allTasksCache.new_request = { tasks: Array.isArray(payload.new_request) ? payload.new_request : (payload.new_request?.tasks || []), pagination: payload.new_request?.pagination || {} };
+                    allTasksCache.in_progress = { tasks: inProgressMergedForCache, pagination: payload.in_progress?.pagination || {} };
+                    allTasksCache.completed = { tasks: Array.isArray(payload.completed) ? payload.completed : (payload.completed?.tasks || []), pagination: payload.completed?.pagination || {} };
+                } catch (_) {}
+
+                // Refresh the List/Table view to reflect current filters
+                try { renderTaskTableFromCache(); } catch (_) {}
             },
             error: function (xhr, status, error) {
                 console.error("Error fetching filtered tasks:", error);
