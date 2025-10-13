@@ -637,7 +637,7 @@
                     <div class="feedback-content" id="projectFeedbackListContainer"></div>
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <div class="feedback-form mt-2" style="width:100%;">
+                    <div class="feedback-form w-100">
                         <div id="inline_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
 
                         <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
@@ -655,7 +655,9 @@
                                 <input type="text" id="inline_edit_feedback_input" name="edit_feedback" class="d-none">
                             </div>
                             <div class="d-flex justify-content-end submit-feedback">
-                                <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">Send</button>
+                                <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
+                                    <span class="material-symbols-outlined">send</span>
+                                </button>
                             </div>
                         </div>
                     </div>
