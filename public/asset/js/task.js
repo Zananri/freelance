@@ -3464,14 +3464,66 @@ function renderTaskTableFromCache() {
             const dueStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.due_date) : safeText(t.due_date);
             const st = statusLabel(t.status);
 
+            // Build project image (same as grid): prefer project image, else initials based on task title
+            let taskImgHtml = '';
+            const titleForInitials = taskTitle || projectTitle || 'NA';
+            const initials = (function(text){
+                const s = String(text || '').trim();
+                if (!s) return 'NA';
+                const parts = s.split(/\s+/).filter(Boolean);
+                if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+                return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+            })(titleForInitials);
+            const bgColor = (function(key){
+                const colors = ['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
+                if (!key) return colors[0];
+                let hash=0; for (let i=0;i<key.length;i++){ hash = (hash*31 + key.charCodeAt(i))>>>0; }
+                return colors[hash % colors.length];
+            })(titleForInitials);
+
+            // Resolve project image similar to grid view logic
+            const projectImg = (function() {
+                try {
+                    const raw = (t && t.project_image);
+                    if (!raw) return null;
+                    const val = String(raw || '').trim();
+                    if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') return null;
+                    if (/^https?:\/\//i.test(val)) return val;
+                    if (val.includes('/file/project/')) {
+                        const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
+                        if (!fname) return null;
+                        return `${appUrl}/file/project/${fname}`;
+                    }
+                    if (val.includes('/asset/')) {
+                        const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
+                        return `${appUrl}/asset/${suffix}`;
+                    }
+                    if (val.startsWith('/asset/')) {
+                        const suffix = val.replace(/^\/+/, '');
+                        return `${appUrl}/${suffix}`;
+                    }
+                    if (val.startsWith('/')) return `${appUrl}${val}`;
+                    return `${appUrl}/file/project/${val}`;
+                } catch(_) { return null; }
+            })();
+
+            if (projectImg) {
+                taskImgHtml = `<img src="${projectImg}" alt="Project Image" class="rounded-circle" width="40" height="40" style="object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+            } else {
+                taskImgHtml = `<div class=\"rounded-circle d-inline-flex align-items-center justify-content-center\" style=\"width:40px;height:40px;background:${bgColor};color:#fff;font-size:12px;font-weight:600;\">${initials}</div>`;
+            }
+
             html += `
                 <tr data-task-id="${t.id}">
                     <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="fw-semibold">${taskTitle}</span>
+                        <div class="d-flex align-items-center gap-3">
+                            ${taskImgHtml}
+                            <div>
+                                <div class="fw-semibold" style="font-size: 14px;">${taskTitle}</div>
+                                <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
+                            </div>
                         </div>
                     </td>
-                    <td>${projectTitle || '-'}</td>
                     <td>
                         <div class="d-inline-flex align-items-center gap-2">
                             <img src="${picImg}" alt="${picName}" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
@@ -3485,7 +3537,7 @@ function renderTaskTableFromCache() {
                 </tr>
             `;
         });
-        tbody.innerHTML = html || '<tr><td colspan="7" class="text-center text-muted">No tasks found</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">No tasks found</td></tr>';
         // Re-init tooltips for avatars
         try { initBootstrapTooltips(section); } catch(_) {}
         // Apply current search filter to rows too

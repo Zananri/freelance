@@ -169,8 +169,7 @@
             <table class="table table-borderless align-middle table-transparent">
                 <thead>
                     <tr>
-                        <th scope="col">Task Name</th>
-                        <th scope="col">Project</th>
+                        <th scope="col">Task</th>
                         <th scope="col">PIC</th>
                         <th scope="col">Executors</th>
                         <th scope="col">Start Date</th>
@@ -180,8 +179,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                    </tr>
+                    <tr></tr>
                 </tbody>
             </table>
         </div>
