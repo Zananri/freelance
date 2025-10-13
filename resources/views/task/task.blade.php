@@ -755,9 +755,30 @@
                 <div class="modal-body feedback-modal-body" id="taskFeedbackList">
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton">
-                        Add Feedback
-                    </button>
+                    <div class="feedback-form w-100">
+                        <div id="inline_feedback_editor" class="border-0 ql-container ql-snow"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
+
+                        <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+
+                        <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                            <div class="d-flex-justify-content-start">
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                    <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                </button>
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                    <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                </button>
+                                <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                                <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                                <input type="text" id="inline_edit_feedback_input" name="edit_feedback" class="d-none">
+                            </div>
+                            <div class="d-flex justify-content-end submit-feedback">
+                                <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
+                                    <span class="material-symbols-outlined">send</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="alert-container mt-2"></div>

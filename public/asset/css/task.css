@@ -10,7 +10,7 @@
 .task-container {
     max-height: 75vh;
     min-width: 100%;
-    overflow-x: hidden;
+    overflow: hidden;
     padding-right: 8px;
 }
 
@@ -2268,4 +2268,10 @@ input[type="file"]::file-selector-button {
 .table-transparent thead,
 .table-transparent tbody {
     background: transparent !important;
+}
+
+.feedback-form {
+    background: #ffffff;
+    padding: 0 10px 10px 10px;
+    border-radius: 20px;
 }
