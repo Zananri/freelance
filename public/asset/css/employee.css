@@ -732,7 +732,7 @@ table.table > tbody > tr > td {
     padding: 10px 24px;
     border-radius: 8px;
     font-weight: normal;
-    font-size: 14px;
+    font-size: 12px;
     transition: background-color 0.3s ease;
     cursor: pointer;
     display: inline-flex;
@@ -753,7 +753,7 @@ table.table > tbody > tr > td {
     padding: 10px 24px;
     border-radius: 8px;
     font-weight: normal;
-    font-size: 14px;
+    font-size: 12px;
     transition: background-color 0.3s ease;
     cursor: pointer;
     display: inline-flex;
@@ -765,4 +765,20 @@ table.table > tbody > tr > td {
 .btn-custom-close:hover {
     background-color: #e3e4ee;
     color: #444444;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 32px;
+    right: 0;
+    background-color: rgb(240, 241, 248);
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-width: 160px;
+    padding: 8px 0;
+    display: none;
+    flex-direction: column;
+    font-size: 12px;
+    color: #333;
 }

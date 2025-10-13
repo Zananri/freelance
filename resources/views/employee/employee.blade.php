@@ -62,7 +62,7 @@
                             </div>
                             <div class="d-flex gap-2">
                                 <button type="button" class="btn btn-submit-black flex-grow-1" id="applyFilterBtn">Apply</button>
-                                <button type="button" class="btn btn-close-custom flex-grow-1" id="clearFilterBtn">Clear</button>
+                                <button type="button" class="btn btn-custom-close flex-grow-1" id="clearFilterBtn">Clear</button>
                             </div>
                         </form>
                     </ul>
