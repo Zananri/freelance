@@ -635,12 +635,10 @@
 
                 <div class="modal-body feedback-modal-body" id="projectFeedbackList">
                     <div class="feedback-content" id="projectFeedbackListContainer"></div>
-
-                    <div class="feedback-form mt-2">
-                        <div id="inline_feedback_editor" class="border-0 ql-container ql-snow"
-                             style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
-                            <div class="ql-editor" data-placeholder="Write feedback..."><p><br></p></div>
-                        </div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <div class="feedback-form mt-2" style="width:100%;">
+                        <div id="inline_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
 
                         <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
 
@@ -661,10 +659,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
-                        style="white-space: nowrap;">Add Feedback</button>
                 </div>
             </div>
             <div class="alert-container mt-2" style="width: 100%;"></div>

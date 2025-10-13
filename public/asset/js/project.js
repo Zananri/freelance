@@ -7220,72 +7220,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     );
 
                     function resetAddFeedbackButton() {
-                        // Resolve footer consistently (like Task)
-                        const footer = (function () {
-                            try {
-                                return (
-                                    projectFeedbackModalEl.querySelector(
-                                        ".feedback-modal-footer"
-                                    ) ||
-                                    projectFeedbackModalEl.querySelector(
-                                        ".modal-footer"
-                                    ) ||
-                                    projectFeedbackModalEl.querySelector(
-                                        ".modal-footer-custom"
-                                    )
-                                );
-                            } catch (_) {
-                                return null;
-                            }
-                        })();
-
-                        if (footer) {
-                            try {
-                                // Clear footer completely and rebuild single Add Feedback button
-                                footer.innerHTML = "";
-                                const addBtn = document.createElement("button");
-                                addBtn.type = "button";
-                                addBtn.className = "btn btn-submit-black w-100";
-                                addBtn.id = "addFeedbackButton";
-                                addBtn.textContent = "Add Feedback";
-                                addBtn.addEventListener("click", function () {
-                                    try {
-                                        if (typeof focusInlineEditor === 'function') focusInlineEditor();
-                                        else {
-                                            var el = document.getElementById('inline_feedback_editor');
-                                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                        }
-                                    } catch(_) {}
-                                });
-                                footer.appendChild(addBtn);
-                            } catch (_) {
-                                /* noop */
-                            }
-                        } else {
-                            // Fallback: just update existing button text
-                            try {
-                                const addFeedbackButton =
-                                    document.getElementById(
-                                        "addFeedbackButton"
-                                    );
-                                if (addFeedbackButton) {
-                                    addFeedbackButton.textContent =
-                                        "Add Feedback";
-                                    addFeedbackButton.classList.add("w-100");
-                                    const fresh =
-                                        addFeedbackButton.cloneNode(true);
-                                    addFeedbackButton.parentNode.replaceChild(
-                                        fresh,
-                                        addFeedbackButton
-                                    );
-                                    fresh.addEventListener("click", function () {
-                                        try { if (typeof focusInlineEditor === 'function') focusInlineEditor(); } catch(_){}
-                                    });
-                                }
-                            } catch (_) {
-                                /* noop */
-                            }
-                        }
+                        // Footer now permanently hosts the inline feedback form; nothing to rebuild.
+                        return;
                     }
 
                     // Inisialisasi event listener untuk tombol Add Feedback saat modal muncul
