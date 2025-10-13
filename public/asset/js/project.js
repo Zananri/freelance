@@ -4836,16 +4836,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch (_) {}
                         })();
 
-                        // Change Add Feedback button text to Submit
-                        addFeedbackButton.textContent = "Submit";
-
-                        // Remove previous event listeners and add submit handler
-                        const newButton = addFeedbackButton.cloneNode(true);
-                        addFeedbackButton.parentNode.replaceChild(
-                            newButton,
-                            addFeedbackButton
-                        );
-
                         newButton.addEventListener("click", function (e) {
                             e.preventDefault();
                             const form =
@@ -4859,14 +4849,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             try {
                                 const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
-                                const submitBtnRef =
-                                    document.getElementById(
-                                        "addFeedbackButton"
-                                    );
-                                if (!submitBtnRef) return;
-                                // Match Task: side-by-side with flex-grow-1
-                                submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.classList.add("flex-grow-1");
 
                                 // Cleanup old wrapper if any
                                 const oldWrapper = footer.querySelector(
@@ -4887,27 +4869,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 closeBtn.className =
                                     "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.addEventListener("click", function () {
-                                    try {
-                                        // Restore footer to single Add Feedback button (like Task)
-                                        footer.innerHTML = "";
-                                        const restore =
-                                            document.createElement("button");
-                                        restore.type = "button";
-                                        restore.className =
-                                            "btn btn-submit-black w-100";
-                                        restore.id = "addFeedbackButton";
-                                        restore.textContent = "Add Feedback";
-                                        restore.addEventListener(
-                                            "click",
-                                            function () {
-                                                showAddFeedbackForm(projectId);
-                                            }
-                                        );
-                                        footer.appendChild(restore);
-                                    } catch (_) {}
-                                    loadFeedbackData(projectId);
-                                });
 
                                 // Insert elements
                                 wrap.appendChild(closeBtn);
@@ -4921,14 +4882,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
 
                     function submitFeedbackForm(form, projectId) {
-                        const submitBtn =
-                            document.getElementById("addFeedbackButton");
-                        const originalBtnText = submitBtn.innerHTML;
-
-                        // Tampilkan loading state
-                        submitBtn.innerHTML =
-                            '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...';
-                        submitBtn.disabled = true;
 
                         const formData = new FormData(form);
                         // Map first non-empty reference_urls[] to single reference_url for backend
@@ -5250,113 +5203,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch (_) {}
                         })();
 
-                        const addBtn =
-                            document.getElementById("addFeedbackButton");
-                        if (addBtn) {
-                            addBtn.textContent = "Submit";
-                            const fresh = addBtn.cloneNode(true);
-                            addBtn.parentNode.replaceChild(fresh, addBtn);
-                            fresh.addEventListener("click", function (e) {
-                                e.preventDefault();
-                                const form =
-                                    document.getElementById(
-                                        "replyFeedbackForm"
-                                    );
-                                if (!form) return;
-                                const fd = new FormData(form);
-                                // Map first non-empty reference_urls[] to single reference_url for backend
-                                try {
-                                    const urlInputs = form.querySelectorAll(
-                                        'input[name="reference_urls[]"]'
-                                    );
-                                    const urls = Array.from(urlInputs)
-                                        .map((i) => (i.value || "").trim())
-                                        .filter(Boolean);
-                                    if (urls.length)
-                                        fd.set("reference_url", urls[0]);
-                                } catch (_) {}
-                                // Append selected reference files for reply form
-                                try {
-                                    if (
-                                        window.replyFeedbackSelectedFiles &&
-                                        window.replyFeedbackSelectedFiles.length
-                                    ) {
-                                        window.replyFeedbackSelectedFiles.forEach(
-                                            (f) =>
-                                                fd.append(
-                                                    "reference_files[]",
-                                                    f
-                                                )
-                                        );
-                                    } else {
-                                        const rfInput = form.querySelector(
-                                            "#reply_reference_files"
-                                        );
-                                        if (
-                                            rfInput &&
-                                            rfInput.files &&
-                                            rfInput.files.length
-                                        ) {
-                                            Array.from(rfInput.files).forEach(
-                                                (f) =>
-                                                    fd.append(
-                                                        "reference_files[]",
-                                                        f
-                                                    )
-                                            );
-                                        }
-                                    }
-                                } catch (_) {}
-
-                                fetch(appUrl + "/project-feedbacks", {
-                                    method: "POST",
-                                    headers: {
-                                        "X-CSRF-TOKEN": document
-                                            .querySelector(
-                                                'meta[name="csrf-token"]'
-                                            )
-                                            .getAttribute("content"),
-                                    },
-                                    body: fd,
-                                })
-                                    .then((r) =>
-                                        r.ok
-                                            ? r.json()
-                                            : r.json().then(Promise.reject)
-                                    )
-                                    .then((res) => {
-                                        showFloatingAlert(
-                                            res.message || "Reply submitted",
-                                            "success",
-                                            1500
-                                        );
-                                        loadFeedbackData(projectId);
-                                    })
-                                    .catch((err) => {
-                                        const msg =
-                                            (err &&
-                                                (err.message ||
-                                                    (err.errors &&
-                                                        Object.values(
-                                                            err.errors
-                                                        ).join("\n")))) ||
-                                            "Failed to submit reply";
-                                        showFloatingAlert(msg, "warning", 3500);
-                                    });
-                            });
-                        }
                         // Arrange Close & Submit buttons side-by-side
                         (function () {
                             try {
                                 const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
-                                const submitBtnRef =
-                                    document.getElementById(
-                                        "addFeedbackButton"
-                                    );
-                                if (!submitBtnRef) return;
-                                submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.classList.add("flex-grow-1");
                                 const oldWrapper = footer.querySelector(
                                     "#feedbackFormButtonsWrapper"
                                 );
@@ -5371,26 +5222,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 closeBtn.className =
                                     "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.addEventListener("click", function () {
-                                    try {
-                                        footer.innerHTML = "";
-                                        const restore =
-                                            document.createElement("button");
-                                        restore.type = "button";
-                                        restore.className =
-                                            "btn btn-submit-black w-100";
-                                        restore.id = "addFeedbackButton";
-                                        restore.textContent = "Add Feedback";
-                                        restore.addEventListener(
-                                            "click",
-                                            function () {
-                                                showAddFeedbackForm(projectId);
-                                            }
-                                        );
-                                        footer.appendChild(restore);
-                                    } catch (_) {}
-                                    loadFeedbackData(projectId);
-                                });
                                 wrap.appendChild(closeBtn);
                                 wrap.appendChild(submitBtnRef);
                                 footer.innerHTML = "";
@@ -5589,122 +5420,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             } catch (_) {}
                         })();
 
-                        const addBtn =
-                            document.getElementById("addFeedbackButton");
-                        if (addBtn) {
-                            addBtn.textContent = "Update";
-                            const fresh = addBtn.cloneNode(true);
-                            addBtn.parentNode.replaceChild(fresh, addBtn);
-                            fresh.addEventListener("click", function (e) {
-                                e.preventDefault();
-                                const form =
-                                    document.getElementById("editFeedbackForm");
-                                if (!form) return;
-                                const fd = new FormData(form);
-                                // Map first non-empty reference_urls[] to single reference_url for backend
-                                try {
-                                    const urlInputs = form.querySelectorAll(
-                                        'input[name="reference_urls[]"]'
-                                    );
-                                    const urls = Array.from(urlInputs)
-                                        .map((i) => (i.value || "").trim())
-                                        .filter(Boolean);
-                                    if (urls.length)
-                                        fd.set("reference_url", urls[0]);
-                                    else fd.set("reference_url", "");
-                                } catch (_) {}
-                                // Include existing files and new selected files for edit form
-                                try {
-                                    const existingHidden = form.querySelector(
-                                        "#existing_feedback_reference_files_input"
-                                    );
-                                    const existingList = form.querySelectorAll(
-                                        "#existing_feedback_reference_files .existing-file-item a"
-                                    );
-                                    let keep = [];
-                                    existingList.forEach((a) => {
-                                        const name = (
-                                            a.textContent || ""
-                                        ).trim();
-                                        if (name) keep.push(name);
-                                    });
-                                    if (existingHidden)
-                                        existingHidden.value =
-                                            JSON.stringify(keep);
-                                } catch (_) {}
-                                try {
-                                    if (
-                                        window.editFeedbackSelectedFiles &&
-                                        window.editFeedbackSelectedFiles.length
-                                    ) {
-                                        window.editFeedbackSelectedFiles.forEach(
-                                            (f) =>
-                                                fd.append(
-                                                    "reference_files[]",
-                                                    f
-                                                )
-                                        );
-                                    } else {
-                                        const rfInput = form.querySelector(
-                                            "#edit_reference_files"
-                                        );
-                                        if (
-                                            rfInput &&
-                                            rfInput.files &&
-                                            rfInput.files.length
-                                        ) {
-                                            Array.from(rfInput.files).forEach(
-                                                (f) =>
-                                                    fd.append(
-                                                        "reference_files[]",
-                                                        f
-                                                    )
-                                            );
-                                        }
-                                    }
-                                } catch (_) {}
-                                fd.append("_method", "PUT");
-                                fetch(
-                                    appUrl + `/project-feedbacks/${data.id}`,
-                                    {
-                                        method: "POST",
-                                        headers: {
-                                            "X-CSRF-TOKEN": document
-                                                .querySelector(
-                                                    'meta[name="csrf-token"]'
-                                                )
-                                                .getAttribute("content"),
-                                        },
-                                        body: fd,
-                                    }
-                                )
-                                    .then((r) =>
-                                        r.ok
-                                            ? r.json()
-                                            : r.json().then(Promise.reject)
-                                    )
-                                    .then((res) => {
-                                        showFloatingAlert(
-                                            res.message || "Feedback updated",
-                                            "success",
-                                            1500
-                                        );
-                                        loadFeedbackData(projectId);
-                                    })
-                                    .catch((err) => {
-                                        const msg =
-                                            (err &&
-                                                (err.message ||
-                                                    (err.errors &&
-                                                        Object.values(
-                                                            err.errors
-                                                        ).join("\n")))) ||
-                                            "Failed to update feedback";
-                                        showFloatingAlert(msg, "warning", 3500);
-                                    });
-                            });
-                        }
-
                         // Prefill reference URLs container for edit form
                         (function () {
                             const container = document.getElementById(
@@ -5882,13 +5597,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             try {
                                 const footer = getProjectFeedbackFooter();
                                 if (!footer) return;
-                                const submitBtnRef =
-                                    document.getElementById(
-                                        "addFeedbackButton"
-                                    );
-                                if (!submitBtnRef) return;
-                                submitBtnRef.classList.remove("w-100");
-                                submitBtnRef.classList.add("flex-grow-1");
                                 const oldWrapper = footer.querySelector(
                                     "#feedbackFormButtonsWrapper"
                                 );
@@ -5903,26 +5611,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                 closeBtn.className =
                                     "btn btn-close-reply flex-grow-1";
                                 closeBtn.textContent = "Close";
-                                closeBtn.addEventListener("click", function () {
-                                    try {
-                                        footer.innerHTML = "";
-                                        const restore =
-                                            document.createElement("button");
-                                        restore.type = "button";
-                                        restore.className =
-                                            "btn btn-submit-black w-100";
-                                        restore.id = "addFeedbackButton";
-                                        restore.textContent = "Add Feedback";
-                                        restore.addEventListener(
-                                            "click",
-                                            function () {
-                                                showAddFeedbackForm(projectId);
-                                            }
-                                        );
-                                        footer.appendChild(restore);
-                                    } catch (_) {}
-                                    loadFeedbackData(projectId);
-                                });
                                 wrap.appendChild(closeBtn);
                                 wrap.appendChild(submitBtnRef);
                                 footer.innerHTML = "";
@@ -6850,12 +6538,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                         try {
                                             var files = Array.from(this.files || []);
                                             if (!files.length) return;
-                                            // append to selected array
                                             window.inlineFeedbackSelectedFiles = (
                                                 window.inlineFeedbackSelectedFiles || []
                                             ).concat(files);
                                             renderInlineFilesPreview();
-                                            // clear native input so user can reselect same file later if needed
                                             try {
                                                 this.value = "";
                                             } catch (_) {}
@@ -6875,7 +6561,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                         var preview = document.getElementById(previewId);
                                         var sel = window.inlineFeedbackSelectedFiles || [];
 
-                                        // if no files selected, remove preview container if exists
                                         if (!sel.length) {
                                             try {
                                                 if (preview && preview.parentNode)
@@ -6890,19 +6575,16 @@ document.addEventListener("DOMContentLoaded", function () {
                                             preview.className = "mt-2";
                                             parent.insertBefore(preview, editorEl);
                                         }
-                                        // build list
                                         preview.innerHTML = "";
                                         var listWrap = document.createElement("div");
                                         listWrap.className = "selected-files-list mt-2";
                                         sel.forEach(function (f, idx) {
                                             try {
                                                 var item = document.createElement("div");
-                                                // match user's requested styling for selected file item
                                                 item.className =
                                                     "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task";
 
                                                 var iconWrap = document.createElement("div");
-                                                // small file icon placeholder (compact)
                                                 iconWrap.innerHTML =
                                                     '<span class="material-symbols-outlined">description</span>';
                                                 iconWrap.style.fontSize = "10px";
@@ -6922,7 +6604,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 rm.type = "button";
                                                 rm.className =
                                                     "btn btn-sm btn-remove-task remove-task";
-                                                // inline styles to match requested snippet
                                                 rm.style.lineHeight = "1";
                                                 rm.style.fontSize = "10px";
                                                 rm.innerHTML =
@@ -7677,17 +7358,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Reset footer button text and remove submit handler when modal is closed
                     const feedbackModalEl = document.getElementById(
                         "projectFeedbackModal"
-                    );
-                    feedbackModalEl.addEventListener(
-                        "hidden.bs.modal",
-                        function () {
-                            // Remove any click event listeners by cloning the button
-                            const newButton = addFeedbackButton.cloneNode(true);
-                            addFeedbackButton.parentNode.replaceChild(
-                                newButton,
-                                addFeedbackButton
-                            );
-                        }
                     );
 
                     // Reset button text to "Add Feedback" when loading feedback list
