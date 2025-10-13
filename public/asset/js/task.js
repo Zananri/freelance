@@ -3427,7 +3427,7 @@ function createExecutorsCellHtml(task) {
 function statusLabel(statusRaw) {
     const s = String(statusRaw || '').toLowerCase().replace(/\s+/g,'_');
     if (s.includes('new')) return '<span class="badge bg-secondary text-dark" style="background:#ecedf5 !important;">New</span>';
-    if (s.includes('progress')) return '<span class="badge bg-info text-dark" style="background:#e9f3ff !important;">In Progress</span>';
+    if (s.includes('progress')) return '<span class="badge bg-info text-dark" style="background:#edebdf !important; color:#5b4b00;">In Progress</span>';
     if (s.includes('completed')) return '<span class="badge bg-success">Completed</span>';
     if (s.includes('reject')) return '<span class="badge bg-danger">Rejected</span>';
     return `<span class="badge bg-light text-dark">${statusRaw || '-'}</span>`;
