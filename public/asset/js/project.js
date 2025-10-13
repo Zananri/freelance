@@ -3656,7 +3656,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         const refContainer =
                                             document.createElement("div");
                                         refContainer.className =
-                                            "feedback-reference-container";
+                                            "feedback-reference-container mb-2";
 
                                         // Render one or multiple reference URLs
                                         (function () {
@@ -3766,8 +3766,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     }
 
                                     if (feedback.image) {
-                                        const feedbackImage =
-                                            document.createElement("img");
+                                        const feedbackImage = document.createElement("img");
                                         // Normalize image URL
                                         let imgSrc = feedback.image;
                                         if (
@@ -3779,33 +3778,20 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 String(imgSrc).startsWith("/")
                                             )
                                         ) {
-                                            imgSrc =
-                                                appUrl +
-                                                "/file/project/" +
-                                                imgSrc;
-                                        } else if (
-                                            imgSrc &&
-                                            String(imgSrc).startsWith("/")
-                                        ) {
+                                            imgSrc = appUrl + "/file/project/" + imgSrc;
+                                        } else if (imgSrc && String(imgSrc).startsWith("/")) {
                                             imgSrc = appUrl + imgSrc;
                                         }
                                         feedbackImage.src = imgSrc;
                                         feedbackImage.alt = "Feedback Image";
-                                        feedbackImage.className =
-                                            "feedback-image me-2 mb-4";
-                                        feedbackImage.style.maxWidth = "150px";
-                                        feedbackImage.style.maxHeight = "150px";
-                                        feedbackImage.style.borderRadius =
-                                            "8px";
+                                        feedbackImage.className = "img-fluid rounded mb-2 feedback-image";
+                                        feedbackImage.style.width = "60%";
+                                        feedbackImage.style.height = "60%";
+                                        feedbackImage.style.borderRadius = "8px";
                                         feedbackImage.style.cursor = "pointer";
-                                        feedbackImage.addEventListener(
-                                            "click",
-                                            () => {
-                                                showImageModal(
-                                                    feedbackImage.src
-                                                );
-                                            }
-                                        );
+                                        feedbackImage.addEventListener("click", function() {
+                                            try { showImageModal(imgSrc); } catch(_) { window.open(imgSrc, '_blank'); }
+                                        });
                                         mediaDiv.appendChild(feedbackImage);
                                     }
 
@@ -4254,7 +4240,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             repContent.appendChild(repComment);
 
                                             const repMedia = document.createElement('div');
-                                            repMedia.className = 'feedback-reference-container mb-1';
+                                            repMedia.className = 'feedback-reference-container mt-1';
                                             // render reference urls/files (existing logic reused)
                                             (function(){
                                                 let urls = [];
@@ -4298,8 +4284,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 let rsrc = rep.image;
                                                 if (rsrc && !(String(rsrc).startsWith('http') || String(rsrc).startsWith('/'))) rsrc = appUrl + '/file/project/' + rsrc;
                                                 else if (rsrc && String(rsrc).startsWith('/')) rsrc = appUrl + rsrc;
-                                                rImg.src = rsrc; rImg.className = 'img-fluid rounded reply-image'; rImg.style.width = '70px'; rImg.style.borderRadius = '8px'; rImg.style.cursor = 'pointer'; rImg.style.marginTop = '6px';
-                                                rImg.addEventListener('click', function(){ if (this.src) window.open(this.src, '_blank'); });
+                                                rImg.src = rsrc;
+                                                rImg.className = 'img-fluid rounded mb-2 feedback-image';
+                                                rImg.style.width = '40%';
+                                                rImg.style.height = '40%';
+                                                rImg.style.borderRadius = '6px';
+                                                rImg.style.cursor = 'pointer';
+                                                rImg.addEventListener('click', function(){ try{ showImageModal(rsrc); } catch(_) { window.open(rsrc, '_blank'); } });
                                             }
 
                                             // Create reply actions container for edit, reply and delete (matching task.js)
