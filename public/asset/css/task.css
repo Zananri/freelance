@@ -1615,8 +1615,23 @@ p {
 }
 
 .feedback-modal-body {
-    max-height: 600px;
+    padding: 8px;
+    max-height: 100%;
     overflow-y: auto;
+    flex-grow: 1;
+}
+
+.feedback-modal-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.feedback-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.feedback-modal-body::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
 }
 
 .feedback-item {
@@ -1632,9 +1647,10 @@ p {
     object-fit: cover;
 }
 
-.feedback-comment {
+.feedback-comment,
+.feedback-comment * {
     margin-top: 0.5rem;
-    font-size: 1rem;
+    font-size: 13px;
     color: #444;
 }
 
@@ -2274,4 +2290,18 @@ input[type="file"]::file-selector-button {
     background: #ffffff;
     padding: 0 10px 10px 10px;
     border-radius: 20px;
+}
+
+#inlineFeedbackPhotoBtn,
+#inlineFeedbackFileBtn,
+.submit-feedback button {
+    border-radius: 50%;
+    height: 40px;
+    width: 40px;
+}
+
+.feedback-photo-icon,
+.feedback-file-icon,
+.submit-feedback button span {
+    font-size: 20px;
 }

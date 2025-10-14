@@ -5435,7 +5435,7 @@ function filterTaskTableRows(queryRaw) {
                                                                                             <div><small class="text-muted d-block" style="font-size:9px;">${rDate}</small></div>
                                                                                         </div>
 
-                                                                                        <div class="mt-2">
+                                                                                        <div class="feedback-comment mt-2">
                                                                                             <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
 
                                                                                             ${
@@ -5477,7 +5477,7 @@ function filterTaskTableRows(queryRaw) {
                                                                 <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
                                                             </div>
 
-                                                            <div class="mt-2">
+                                                            <div class="feedback-comment mt-2">
                                                                 <p class="mb-2" style="font-size:13px;">${feedback.feedback_comment}</p>
 
                                                                 ${
@@ -5536,7 +5536,7 @@ function filterTaskTableRows(queryRaw) {
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
-                            
+
                             // Prefer inline edit in the footer panel (similar to project feedback)
                             const inlineEditor = document.getElementById("inline_task_feedback_editor");
                             if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
@@ -5567,7 +5567,7 @@ function filterTaskTableRows(queryRaw) {
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
-                            
+
                             // Prefer inline edit for replies too
                             const inlineEditor = document.getElementById("inline_task_feedback_editor");
                             if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
@@ -10684,7 +10684,7 @@ function filterTaskTableRows(queryRaw) {
     // Helper function to add image preview from URL (for existing images)
     function addImagePreviewFromUrl(previewContainer, imageUrl, filename) {
         if (!imageUrl) return;
-        
+
         const imagePreview = document.createElement('div');
         imagePreview.className = 'image-preview existing-image';
         imagePreview.innerHTML = `
@@ -11058,18 +11058,18 @@ function filterTaskTableRows(queryRaw) {
         try {
             const hiddenInput = document.getElementById("inline_edit_task_feedback_input");
             if (hiddenInput) hiddenInput.value = data.id || "";
-            
+
             // Set parent_id for replies
             try {
                 const inlinePid = document.getElementById('inline_parent_id_input');
                 if (inlinePid) inlinePid.value = data.parent_id || '';
             } catch(_) {}
-            
+
             // Fill editor with existing content
             if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
                 window.__quillTaskFeedbackInline.root.innerHTML = data.feedback_comment || "";
             }
-            
+
             // Show existing image if available
             try {
                 const rawImg = data.image_url || data.image || "";
@@ -11081,7 +11081,7 @@ function filterTaskTableRows(queryRaw) {
                     showTaskInlineImagePreviewFromUrl(url);
                 }
             } catch(_) {}
-            
+
             // Show existing files if available
             try {
                 let files = [];
@@ -11096,29 +11096,31 @@ function filterTaskTableRows(queryRaw) {
                 }
                 renderInlineTaskExistingFiles(files);
             } catch(_) {}
-            
+
             // Change Send button to Update
             const sendBtn = document.getElementById("inlineTaskFeedbackSendBtn");
             if (sendBtn) {
                 sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
-                try { 
-                    sendBtn.innerHTML = 'Update'; 
-                } catch(_) { 
-                    sendBtn.textContent = 'Update'; 
+                try {
+                    sendBtn.innerHTML = `
+                        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">send</span>
+                    `;
+                } catch(_) {
+                    sendBtn.textContent = 'Update';
                 }
             }
-            
+
             // Add Cancel button
             const actions = document.querySelector('.btn-actions-feedback .submit-feedback');
             if (actions && !document.getElementById('inlineTaskFeedbackCancelBtn')) {
                 const cancel = document.createElement('button');
                 cancel.type = 'button';
                 cancel.id = 'inlineTaskFeedbackCancelBtn';
-                cancel.className = 'btn btn-custom-close me-2';
-                cancel.textContent = 'Cancel';
+                cancel.className = 'btn btn-custom-close me-2 d-flex align-items-center gap-1';
+                cancel.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">cancel</span>';
                 cancel.addEventListener('click', function() {
-                    try { 
-                        window.cancelInlineTaskEditFeedback(); 
+                    try {
+                        window.cancelInlineTaskEditFeedback();
                     } catch(_) {}
                 });
                 actions.insertBefore(cancel, actions.firstChild);
@@ -11132,7 +11134,7 @@ function filterTaskTableRows(queryRaw) {
             // Clear edit marker
             const hiddenInput = document.getElementById('inline_edit_task_feedback_input');
             if (hiddenInput) hiddenInput.value = '';
-            
+
             // Clear parent_id
             const inlinePid = document.getElementById('inline_parent_id_input');
             if (inlinePid) inlinePid.value = '';
@@ -11176,8 +11178,8 @@ function filterTaskTableRows(queryRaw) {
                 if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
                     window.__quillTaskFeedbackInline.root.innerHTML = '';
                     if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
-                        try { 
-                            window.__quillTaskFeedbackInline.setSelection(0); 
+                        try {
+                            window.__quillTaskFeedbackInline.setSelection(0);
                         } catch(_) {}
                     }
                 }
@@ -11194,16 +11196,16 @@ function filterTaskTableRows(queryRaw) {
                 const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
                 if (sendBtn) {
                     if (sendBtn._origHTML) {
-                        try { 
-                            sendBtn.innerHTML = sendBtn._origHTML; 
-                        } catch(_) { 
-                            sendBtn.textContent = sendBtn._origHTML; 
+                        try {
+                            sendBtn.innerHTML = sendBtn._origHTML;
+                        } catch(_) {
+                            sendBtn.textContent = sendBtn._origHTML;
                         }
                     } else {
-                        try { 
-                            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>'; 
-                        } catch(_) { 
-                            sendBtn.textContent = 'Send'; 
+                        try {
+                            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+                        } catch(_) {
+                            sendBtn.textContent = 'Send';
                         }
                     }
                 }
@@ -11242,7 +11244,7 @@ function filterTaskTableRows(queryRaw) {
 
             const imageLabel = document.createElement("div");
             imageLabel.className = "custom-image-upload position-relative";
-            imageLabel.style.cssText = 
+            imageLabel.style.cssText =
                 "width: 32px; height: 32px; " +
                 "background-image: url('" + imageUrl + "'); " +
                 "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
@@ -11289,12 +11291,12 @@ function filterTaskTableRows(queryRaw) {
         try {
             const container = document.getElementById('inline_existing_files_preview');
             let existingContainer = container;
-            
+
             if (!existingContainer) {
                 existingContainer = document.createElement('div');
                 existingContainer.id = 'inline_existing_files_preview';
                 existingContainer.className = 'mb-2';
-                
+
                 // Insert before the editor
                 const editor = document.getElementById('inline_task_feedback_editor');
                 if (editor && editor.parentNode) {
@@ -11315,22 +11317,22 @@ function filterTaskTableRows(queryRaw) {
                 if (!fileUrl) return;
 
                 const item = document.createElement('div');
-                item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-1 p-2 bg-light border rounded';
-                
+                item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-1 p-2 bg-transparent border-0 rounded';
+
                 const info = document.createElement('div');
                 info.className = 'd-flex align-items-center flex-grow-1';
-                
+
                 const icon = document.createElement('span');
                 icon.className = 'material-symbols-outlined me-2';
                 icon.textContent = 'description';
                 icon.style.fontSize = '16px';
-                
+
                 const link = document.createElement('a');
                 link.href = fileUrl;
                 link.target = '_blank';
                 link.style.textDecoration = 'none';
                 link.style.color = '#444';
-                
+
                 const fileName = (function() {
                     try {
                         const url = new URL(fileUrl, window.location.origin);
@@ -11341,11 +11343,11 @@ function filterTaskTableRows(queryRaw) {
                     }
                 })();
                 link.textContent = fileName;
-                
+
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'btn btn-sm btn-outline-danger ms-2';
-                removeBtn.innerHTML = '&times;';
+                removeBtn.className = 'btn btn-sm ms-2';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
                 removeBtn.title = 'Remove file';
                 removeBtn.addEventListener('click', function() {
                     // Remove from keep list
@@ -11357,7 +11359,7 @@ function filterTaskTableRows(queryRaw) {
                     // Remove from DOM
                     item.remove();
                 });
-                
+
                 info.appendChild(icon);
                 info.appendChild(link);
                 item.appendChild(info);
@@ -11608,8 +11610,8 @@ function filterTaskTableRows(queryRaw) {
                 sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + (isEdit ? 'Updating...' : 'Sending...');
             }
 
-            const reqUrl = isEdit 
-                ? appUrl + '/task-feedbacks/' + editId 
+            const reqUrl = isEdit
+                ? appUrl + '/task-feedbacks/' + editId
                 : appUrl + '/task-feedbacks';
             const reqMethod = 'POST';
 
