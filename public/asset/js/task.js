@@ -5536,6 +5536,17 @@ function filterTaskTableRows(queryRaw) {
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
+                            
+                            // Prefer inline edit in the footer panel (similar to project feedback)
+                            const inlineEditor = document.getElementById("inline_task_feedback_editor");
+                            if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
+                                try {
+                                    window.startInlineTaskEditFeedback(payload);
+                                    try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                    return;
+                                } catch (_) {}
+                            }
+                            // Fallback to modal-based edit if inline not available
                             showEditFeedbackForm(tId, payload, false);
                         });
                     });
@@ -5556,6 +5567,17 @@ function filterTaskTableRows(queryRaw) {
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
+                            
+                            // Prefer inline edit for replies too
+                            const inlineEditor = document.getElementById("inline_task_feedback_editor");
+                            if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
+                                try {
+                                    window.startInlineTaskEditFeedback(payload);
+                                    try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                    return;
+                                } catch (_) {}
+                            }
+                            // Fallback to modal-based edit
                             showEditFeedbackForm(tId, payload, true);
                         });
                     });
@@ -10659,6 +10681,27 @@ function filterTaskTableRows(queryRaw) {
         }
     }
 
+    // Helper function to add image preview from URL (for existing images)
+    function addImagePreviewFromUrl(previewContainer, imageUrl, filename) {
+        if (!imageUrl) return;
+        
+        const imagePreview = document.createElement('div');
+        imagePreview.className = 'image-preview existing-image';
+        imagePreview.innerHTML = `
+            <img src="${imageUrl}" alt="${filename || 'Image'}" style="max-width: 200px; max-height: 150px; object-fit: cover;">
+            <span class="filename">${filename || 'Existing Image'}</span>
+        `;
+        previewContainer.appendChild(imagePreview);
+    }
+
+    // Helper function to cleanup existing file previews
+    function cleanupExistingFiles(container) {
+        try {
+            const existingPreviews = container.querySelectorAll('.existing-image, .existing-file');
+            existingPreviews.forEach(preview => preview.remove());
+        } catch (e) {}
+    }
+
     // Initialize Quill editors for task feedback forms (similar to project feedback)
     function initTaskFeedbackQuillEditors(containerEl) {
         try {
@@ -10973,11 +11016,14 @@ function filterTaskTableRows(queryRaw) {
             footer.innerHTML = `
                 <div class="feedback-form w-100">
                 <div id="inline_task_feedback_files_preview"></div>
+                <div id="inline_existing_files_preview"></div>
                     <div id="inline_task_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
                         <div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div>
                     </div>
 
                     <textarea id="inline_task_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+                    <input type="hidden" id="inline_edit_task_feedback_input" value="">
+                    <input type="hidden" id="inline_parent_id_input" name="parent_id" value="">
 
                     <div class="d-flex justify-content-between btn-actions-feedback mt-2">
                         <div class="d-flex-justify-content-start">
@@ -11006,6 +11052,322 @@ function filterTaskTableRows(queryRaw) {
             console.warn('Failed to setup inline task feedback editor:', e);
         }
     }
+
+    // Enter inline EDIT mode for task feedback (similar to project feedback)
+    window.startInlineTaskEditFeedback = function(data) {
+        try {
+            const hiddenInput = document.getElementById("inline_edit_task_feedback_input");
+            if (hiddenInput) hiddenInput.value = data.id || "";
+            
+            // Set parent_id for replies
+            try {
+                const inlinePid = document.getElementById('inline_parent_id_input');
+                if (inlinePid) inlinePid.value = data.parent_id || '';
+            } catch(_) {}
+            
+            // Fill editor with existing content
+            if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
+                window.__quillTaskFeedbackInline.root.innerHTML = data.feedback_comment || "";
+            }
+            
+            // Show existing image if available
+            try {
+                const rawImg = data.image_url || data.image || "";
+                if (rawImg) {
+                    let url = rawImg;
+                    if (url.indexOf('http') !== 0) {
+                        url = (url.indexOf('/') === 0) ? appUrl.replace(/\/$/, "") + url : appUrl.replace(/\/$/, "") + "/file/task_feedback/" + url;
+                    }
+                    showTaskInlineImagePreviewFromUrl(url);
+                }
+            } catch(_) {}
+            
+            // Show existing files if available
+            try {
+                let files = [];
+                if (Array.isArray(data.reference_files_urls)) {
+                    files = data.reference_files_urls;
+                } else if (Array.isArray(data.reference_files)) {
+                    files = data.reference_files;
+                } else if (data.reference_file_url) {
+                    files = [data.reference_file_url];
+                } else if (data.reference_file) {
+                    files = [data.reference_file];
+                }
+                renderInlineTaskExistingFiles(files);
+            } catch(_) {}
+            
+            // Change Send button to Update
+            const sendBtn = document.getElementById("inlineTaskFeedbackSendBtn");
+            if (sendBtn) {
+                sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
+                try { 
+                    sendBtn.innerHTML = 'Update'; 
+                } catch(_) { 
+                    sendBtn.textContent = 'Update'; 
+                }
+            }
+            
+            // Add Cancel button
+            const actions = document.querySelector('.btn-actions-feedback .submit-feedback');
+            if (actions && !document.getElementById('inlineTaskFeedbackCancelBtn')) {
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.id = 'inlineTaskFeedbackCancelBtn';
+                cancel.className = 'btn btn-custom-close me-2';
+                cancel.textContent = 'Cancel';
+                cancel.addEventListener('click', function() {
+                    try { 
+                        window.cancelInlineTaskEditFeedback(); 
+                    } catch(_) {}
+                });
+                actions.insertBefore(cancel, actions.firstChild);
+            }
+        } catch(_) {}
+    };
+
+    // Exit inline EDIT mode for task feedback
+    window.cancelInlineTaskEditFeedback = function() {
+        try {
+            // Clear edit marker
+            const hiddenInput = document.getElementById('inline_edit_task_feedback_input');
+            if (hiddenInput) hiddenInput.value = '';
+            
+            // Clear parent_id
+            const inlinePid = document.getElementById('inline_parent_id_input');
+            if (inlinePid) inlinePid.value = '';
+
+            // Clear existing files keep list and remove preview
+            window.inlineTaskExistingFilesKeep = [];
+            try {
+                const existingPreview = document.getElementById('inline_existing_files_preview');
+                if (existingPreview && existingPreview.parentNode) {
+                    existingPreview.parentNode.removeChild(existingPreview);
+                }
+            } catch(_) {}
+
+            // Remove image preview and clear stored image file
+            try {
+                const imagePreview = document.getElementById('inline_task_feedback_image_preview');
+                if (imagePreview && imagePreview.parentNode) {
+                    imagePreview.parentNode.removeChild(imagePreview);
+                }
+            } catch(_) {}
+            window.__taskInlineFeedbackImageFile = null;
+
+            // Clear native file inputs
+            try {
+                const imgInput = document.getElementById('inline_task_feedback_image_input');
+                if (imgInput) imgInput.value = '';
+            } catch(_) {}
+            try {
+                const filesInput = document.getElementById('inline_task_feedback_files_input');
+                if (filesInput) filesInput.value = '';
+            } catch(_) {}
+
+            // Clear selected files array and file previews
+            try {
+                window.inlineTaskFeedbackSelectedFiles = [];
+                renderInlineTaskFeedbackFilesPreview();
+            } catch(_) {}
+
+            // Clear Quill editor
+            try {
+                if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
+                    window.__quillTaskFeedbackInline.root.innerHTML = '';
+                    if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
+                        try { 
+                            window.__quillTaskFeedbackInline.setSelection(0); 
+                        } catch(_) {}
+                    }
+                }
+            } catch(_) {}
+
+            // Clear fallback textarea
+            try {
+                const textarea = document.getElementById('inline_task_feedback_comment');
+                if (textarea) textarea.value = '';
+            } catch(_) {}
+
+            // Restore send button text
+            try {
+                const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
+                if (sendBtn) {
+                    if (sendBtn._origHTML) {
+                        try { 
+                            sendBtn.innerHTML = sendBtn._origHTML; 
+                        } catch(_) { 
+                            sendBtn.textContent = sendBtn._origHTML; 
+                        }
+                    } else {
+                        try { 
+                            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>'; 
+                        } catch(_) { 
+                            sendBtn.textContent = 'Send'; 
+                        }
+                    }
+                }
+            } catch(_) {}
+
+            // Remove cancel button
+            try {
+                const cancelBtn = document.getElementById('inlineTaskFeedbackCancelBtn');
+                if (cancelBtn && cancelBtn.parentNode) {
+                    cancelBtn.parentNode.removeChild(cancelBtn);
+                }
+            } catch(_) {}
+
+            // Reset remove-image flag
+            window.__inlineTaskRemoveImage = false;
+        } catch(_) {}
+    };
+
+    // Show inline image preview from URL for existing image
+    window.showTaskInlineImagePreviewFromUrl = function(imageUrl) {
+        try {
+            // Create preview container if not exists
+            let previewContainer = document.getElementById("inline_task_feedback_image_preview");
+            if (!previewContainer) {
+                previewContainer = document.createElement("div");
+                previewContainer.id = "inline_task_feedback_image_preview";
+                previewContainer.style.cssText = "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+                const fileBtn = document.getElementById("inlineTaskFeedbackFileBtn");
+                if (fileBtn && fileBtn.parentNode) {
+                    fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                }
+            }
+
+            previewContainer.innerHTML = "";
+
+            const imageLabel = document.createElement("div");
+            imageLabel.className = "custom-image-upload position-relative";
+            imageLabel.style.cssText = 
+                "width: 32px; height: 32px; " +
+                "background-image: url('" + imageUrl + "'); " +
+                "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
+                "border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; " +
+                "opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: visible;";
+
+            const clearBtn = document.createElement("span");
+            clearBtn.className = "image-clear-btn";
+            clearBtn.innerHTML = "&times;";
+            clearBtn.title = "Remove image";
+            clearBtn.style.cssText =
+                "position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; " +
+                "border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; " +
+                "text-align: center; cursor: pointer; font-weight: 700; border: none; " +
+                "box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30; opacity: 1;";
+
+            clearBtn.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    // Set remove flag for existing image
+                    window.__inlineTaskRemoveImage = true;
+                    // Clear any new image input
+                    const inp = document.getElementById("inline_task_feedback_image_input");
+                    if (inp) inp.value = "";
+                    // Clear stored new image
+                    window.__taskInlineFeedbackImageFile = null;
+                    // Remove preview
+                    if (previewContainer && previewContainer.parentNode) {
+                        previewContainer.parentNode.removeChild(previewContainer);
+                    }
+                } catch(_) {}
+            });
+
+            imageLabel.appendChild(clearBtn);
+            previewContainer.appendChild(imageLabel);
+        } catch(e) {
+            console.warn("Failed to show inline image preview from URL:", e);
+        }
+    };
+
+    // Render existing files for inline edit mode
+    window.renderInlineTaskExistingFiles = function(files) {
+        try {
+            const container = document.getElementById('inline_existing_files_preview');
+            let existingContainer = container;
+            
+            if (!existingContainer) {
+                existingContainer = document.createElement('div');
+                existingContainer.id = 'inline_existing_files_preview';
+                existingContainer.className = 'mb-2';
+                
+                // Insert before the editor
+                const editor = document.getElementById('inline_task_feedback_editor');
+                if (editor && editor.parentNode) {
+                    editor.parentNode.insertBefore(existingContainer, editor);
+                }
+            }
+
+            existingContainer.innerHTML = '';
+
+            if (!Array.isArray(files) || files.length === 0) return;
+
+            // Initialize keep list
+            if (!window.inlineTaskExistingFilesKeep) {
+                window.inlineTaskExistingFilesKeep = files.slice();
+            }
+
+            files.forEach(function(fileUrl, idx) {
+                if (!fileUrl) return;
+
+                const item = document.createElement('div');
+                item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-1 p-2 bg-light border rounded';
+                
+                const info = document.createElement('div');
+                info.className = 'd-flex align-items-center flex-grow-1';
+                
+                const icon = document.createElement('span');
+                icon.className = 'material-symbols-outlined me-2';
+                icon.textContent = 'description';
+                icon.style.fontSize = '16px';
+                
+                const link = document.createElement('a');
+                link.href = fileUrl;
+                link.target = '_blank';
+                link.style.textDecoration = 'none';
+                link.style.color = '#444';
+                
+                const fileName = (function() {
+                    try {
+                        const url = new URL(fileUrl, window.location.origin);
+                        return decodeURIComponent(url.pathname.split('/').pop());
+                    } catch(e) {
+                        const parts = String(fileUrl).split('/');
+                        return decodeURIComponent(parts[parts.length - 1] || String(fileUrl));
+                    }
+                })();
+                link.textContent = fileName;
+                
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger ms-2';
+                removeBtn.innerHTML = '&times;';
+                removeBtn.title = 'Remove file';
+                removeBtn.addEventListener('click', function() {
+                    // Remove from keep list
+                    const keepList = window.inlineTaskExistingFilesKeep || [];
+                    const indexInKeep = keepList.indexOf(fileUrl);
+                    if (indexInKeep !== -1) {
+                        keepList.splice(indexInKeep, 1);
+                    }
+                    // Remove from DOM
+                    item.remove();
+                });
+                
+                info.appendChild(icon);
+                info.appendChild(link);
+                item.appendChild(info);
+                item.appendChild(removeBtn);
+                existingContainer.appendChild(item);
+            });
+        } catch(e) {
+            console.warn('Failed to render existing files:', e);
+        }
+    };
 
     // Initialize inline Quill editor for task feedback
     function initTaskInlineFeedbackEditor(taskId) {
@@ -11166,10 +11528,29 @@ function filterTaskTableRows(queryRaw) {
         try {
             const html = quill.root.innerHTML || '';
 
-            // Validate content
-            if (!html || String(html).replace(/<[^>]+>/g, '').trim() === '') {
+            // Allow empty comment only if at least one file is attached (image or reference)
+            let hasImage = false, hasRefFiles = false;
+            try {
+                if (window.__taskInlineFeedbackImageFile) {
+                    hasImage = true;
+                } else {
+                    const pi = document.getElementById("inline_task_feedback_image_input");
+                    if (pi && pi.files && pi.files.length) hasImage = true;
+                }
+            } catch(_) {}
+            try {
+                if (window.inlineTaskFeedbackSelectedFiles && window.inlineTaskFeedbackSelectedFiles.length) {
+                    hasRefFiles = true;
+                } else {
+                    const fi = document.getElementById("inline_task_feedback_files_input");
+                    if (fi && fi.files && fi.files.length) hasRefFiles = true;
+                }
+            } catch(_) {}
+
+            const plainText = String(html || '').replace(/<[^>]+>/g, '').trim();
+            if (!plainText && !hasImage && !hasRefFiles) {
                 if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert('Feedback is required', 'warning', 3000);
+                    showFloatingAlert('Please write feedback or attach a file', 'warning');
                 }
                 return;
             }
@@ -11181,6 +11562,12 @@ function filterTaskTableRows(queryRaw) {
             fd.append('feedback_comment', html);
             fd.append('task_id', taskId);
             fd.append('employee_id', employeeId);
+
+            // Include parent_id if replying via inline form
+            try {
+                const pid = document.getElementById('inline_parent_id_input');
+                if (pid && pid.value) fd.append('parent_id', pid.value);
+            } catch(_) {}
 
             // Add image if selected
             const imageFile = window.__taskInlineFeedbackImageFile;
@@ -11194,16 +11581,40 @@ function filterTaskTableRows(queryRaw) {
                 fd.append('reference_files[]', file);
             });
 
+            // Detect inline edit mode
+            const editId = (document.getElementById('inline_edit_task_feedback_input') || {}).value || '';
+            const isEdit = String(editId).trim() !== '';
+            if (isEdit) {
+                try {
+                    // Include keep-list for existing files
+                    const keepList = window.inlineTaskExistingFilesKeep || [];
+                    fd.set('existing_reference_files', JSON.stringify(keepList));
+                } catch(_) {}
+                try {
+                    // Include remove_image flag
+                    if (typeof window.__inlineTaskRemoveImage !== 'undefined') {
+                        fd.set('remove_image', window.__inlineTaskRemoveImage ? '1' : '0');
+                    }
+                } catch(_) {}
+                // Method override
+                fd.append('_method', 'PUT');
+            }
+
             // UI feedback
             const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
             const origText = sendBtn ? sendBtn.innerHTML : '';
             if (sendBtn) {
                 sendBtn.disabled = true;
-                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + (isEdit ? 'Updating...' : 'Sending...');
             }
 
-            fetch(appUrl + "/task-feedbacks", {
-                method: "POST",
+            const reqUrl = isEdit 
+                ? appUrl + '/task-feedbacks/' + editId 
+                : appUrl + '/task-feedbacks';
+            const reqMethod = 'POST';
+
+            fetch(reqUrl, {
+                method: reqMethod,
                 headers: {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
                 },
@@ -11214,7 +11625,7 @@ function filterTaskTableRows(queryRaw) {
                 return res.json();
             })
             .then(function (data) {
-                const msg = (data && data.message) || 'Feedback submitted successfully!';
+                const msg = (data && data.message) || (isEdit ? 'Feedback updated successfully!' : 'Feedback submitted successfully!');
                 if (typeof window.showAlertMsg === 'function') {
                     window.showAlertMsg(String(msg), 'light', 2000);
                 } else if (typeof showFloatingAlert === 'function') {
@@ -11243,13 +11654,28 @@ function filterTaskTableRows(queryRaw) {
                     }
                 } catch (_) {}
 
+                // Clear existing files preview
+                try {
+                    const existingPreview = document.getElementById("inline_existing_files_preview");
+                    if (existingPreview && existingPreview.parentNode) {
+                        existingPreview.parentNode.removeChild(existingPreview);
+                    }
+                } catch (_) {}
+
+                // Reset edit mode if it was an edit
+                if (isEdit) {
+                    try {
+                        window.cancelInlineTaskEditFeedback();
+                    } catch(_) {}
+                }
+
                 // Reload feedback data
                 try {
                     loadTaskFeedbackData(taskId);
                 } catch (_) {}
             })
             .catch(function (err) {
-                let msg = "Failed to submit feedback";
+                let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
                 try {
                     if (err && err.errors) msg = Object.values(err.errors).join("\n");
                     else if (err && err.message) msg = err.message;
