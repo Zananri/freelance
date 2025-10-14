@@ -5286,6 +5286,7 @@ function filterTaskTableRows(queryRaw) {
             url: appUrl + "/task-feedbacks/" + taskId,
             type: "GET",
             dataType: "json",
+            cache: false,
             success: function (response) {
                 if (response.data && response.data.length > 0) {
                     let feedbackHtml = "";
@@ -5985,9 +5986,12 @@ function filterTaskTableRows(queryRaw) {
                     .getAttribute("content"),
             },
             success: function (response) {
-                // Floating success alert
-                if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(response.message || "Feedback submitted successfully!", "success");
+                // Use the app's white alert style (Settings/Project): showAlertMsg -> light
+                const msg = (response && response.message) || 'Feedback submitted successfully!';
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(String(msg), 'light', 2000);
+                } else if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(msg, 'light', 2000);
                 }
 
                 // Switch back to list view inside the modal (keep modal open)
@@ -6028,7 +6032,8 @@ function filterTaskTableRows(queryRaw) {
                     if (closeBtn && closeBtn.parentNode) {
                         closeBtn.parentNode.removeChild(closeBtn);
                     }
-                    loadTaskFeedbackData(taskId);
+                    // Reload feedback list inside modal so newly created feedback appears without full page reload
+                    try { loadTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
                 } catch (e) { /* noop */ }
 
                 // Clear selected files buffer and preview
@@ -6055,6 +6060,8 @@ function filterTaskTableRows(queryRaw) {
                 });
                 // Refresh task cards so counts and other data reflect the latest changes
                 try { fetchAndRenderTasks(); } catch(_) {}
+                // Avoid page reload when closing modal
+                try { feedbackSubmitted = false; } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = "Failed to submit feedback. Please try again.";
@@ -6912,11 +6919,12 @@ function filterTaskTableRows(queryRaw) {
                     .getAttribute("content"),
             },
             success: function (response) {
-                // mark to reload after modal closes
-                feedbackSubmitted = true;
-                // floating success alert
-                if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(response.message || "Feedback submitted successfully!", "success");
+                // Use the app's white alert style
+                const msg = (response && response.message) || 'Feedback submitted successfully!';
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(String(msg), 'light', 2000);
+                } else if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(msg, 'light', 2000);
                 }
                 // Switch back to list view inside the modal (keep modal open)
                 try {
@@ -6954,7 +6962,8 @@ function filterTaskTableRows(queryRaw) {
                         addBtn.removeAttribute('disabled');
                         addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
-                    loadTaskFeedbackData(taskId);
+                    // Reload feedback list inside modal so newly created feedback appears without full page reload
+                    try { loadTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
                 } catch (e) { /* noop */ }
 
                 // Clear local buffers and preview area after successful submit
@@ -7012,6 +7021,8 @@ function filterTaskTableRows(queryRaw) {
                         }
                     }
                 });
+                // Avoid page reload when closing modal
+                try { feedbackSubmitted = false; } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = "Failed to submit feedback. Please try again.";
@@ -11203,8 +11214,11 @@ function filterTaskTableRows(queryRaw) {
                 return res.json();
             })
             .then(function (data) {
-                if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(data.message || "Feedback submitted successfully!", "success", 2000);
+                const msg = (data && data.message) || 'Feedback submitted successfully!';
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(String(msg), 'light', 2000);
+                } else if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(msg, 'light', 2000);
                 }
 
                 // Clear editor
