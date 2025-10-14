@@ -2067,7 +2067,8 @@
     height: 40px;
 }
 
-.btn-contributor-custom {
+.btn-contributor-custom,
+.btn-export-custom {
     border: none;
     border-radius: 10px;
     background: #e9eef4;

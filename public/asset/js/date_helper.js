@@ -154,6 +154,14 @@ const formatDateENMediumDayMonth = (date) => {
   return `${d} ${m}`;
 };
 
+const formatDateWithSlash = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+}
+
 // Function to format a date into a full Indonesian format with day, month, and year names.
 // @param {Date} date - The date to format.
 // @returns {string} The formatted date string with full day and month names.
@@ -200,7 +208,7 @@ const formatDateENFull = (date) => {
  * @returns {string} String tanggal yang diformat.
  */
 function formatDatePHP(format, dateString) {
-    
+
     if (!dateString) return '';
 
     const dateObj = new Date(dateString);
@@ -279,21 +287,21 @@ function formatDatePHP(format, dateString) {
         'r': dateObj.toUTCString(),         // RFC 2822 (Email)
         'U': Math.floor(dateObj.getTime() / 1000) // Detik sejak Epoch (1 Januari 1970 00:00:00 GMT)
     };
- 
+
 
     // Split the string into an array of individual characters
     let charFormat = format.split('');
 
     // Iterate over each character using forEach
     let newStringFormat = '';
-    
+
     charFormat.forEach(char => {
         if(tokens[char]){
             newStringFormat += tokens[char];
         }else{
             newStringFormat += char;
         }
-         
+
     });
 
     return newStringFormat;
@@ -310,14 +318,14 @@ function formatTimeDisplay(timeString) {
         const m = timeString.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
         if (m) return `${m[1]}:${m[2]}`;
     }
-    
+
     let date = new Date(timeString);
 
     if (isNaN(date.getTime()) && typeof timeString === 'string' && timeString.includes(' ')) {
-        
+
         date = new Date(timeString.replace(' ', 'T'));
     }
-    
+
     if (isNaN(date.getTime())) {
         return '--:--';
     }

@@ -33,7 +33,9 @@
                     </div>
                 </div>
                 <h2 class="m-0">Project Detail</h2>
-                <div class="task-tabs mb-3 position-relative">
+            </div>
+            <div class="d-flex align-items-center">
+                <div class="task-tabs mb-3 position-relative me-2">
                     <ul class="custom-tab" id="taskTabMenu" role="tablist">
                         <li>
                             <button class="tab-btn active" id="grid-tab">
@@ -47,14 +49,12 @@
                         </li>
                     </ul>
                 </div>
-            </div>
-            <div class="d-flex align-items-center">
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
                     <span class="material-symbols-outlined">grid_view</span>
                 </button>
-                <button class="btn-submit-black" id="exportProjectReportBtn"
+                <button class="btn btn-export-custom" id="exportProjectReportBtn" title="Export Project"
                     data-project-id="{{ $project->id ?? '' }}">
-                    <span class="material-symbols-outlined me-2">download</span>Report
+                    <span class="material-symbols-outlined">download</span>
                 </button>
             </div>
         </div>
@@ -280,6 +280,7 @@
                             <th scope="col">Start Date</th>
                             <th scope="col">Due Date</th>
                             <th scope="col">Status</th>
+                            <th scope="col"></th>
 
                         </tr>
                     </thead>
@@ -663,6 +664,159 @@
                         <button type="button" class="btn btn-submit-black" id="confirmDeleteBtn">Delete</button>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="editTaskModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-loading-overlay d-none" id="editTaskModalLoader">
+                        <div class="loader-spinner"></div>
+                    </div>
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom" id="editTaskModalLabel">Edit Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="editTaskForm" enctype="multipart/form-data">
+                        <input type="hidden" id="edit_task_id" name="task_id" value="">
+                        <div class="modal-body modal-body-custom">
+                            <div id="editTaskAlert" class="alert alert-success d-none" role="alert"
+                                style="display:none;">
+                                Task updated successfully!
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="title-label-image">
+                                    <span>Upload image</span>
+                                </div>
+                                <label for="edit_task_image" class="custom-image-upload position-relative"
+                                    id="editTaskImageLabel" style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
+                                    <input type="file" class="input-image" id="edit_task_image" name="image"
+                                        accept="image/*" hidden>
+                                    <span class="image-clear-btn d-none" id="editTaskImageClearBtn"
+                                        title="Remove image">&times;</span>
+                                </label>
+                                <div class="invalid-feedback">
+                                    Please select an image file.
+                                </div>
+                            </div>
+
+                            <div class="mb-3 custom-input">
+                                <label for="edit_task_title" class="form-label label-custom">Title</label>
+                                <input type="text" class="form-control input-text" id="edit_task_title"
+                                    name="title" required>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="edit_task_description" class="form-label label-custom">Description</label>
+                                <div id="edit_task_description_editor"
+                                    style="min-height:120px; background:#fff; border: none; border-radius:6px;">
+                                </div>
+                                <textarea class="form-control input-text d-none" id="edit_task_description" name="description" rows="6"
+                                    style="display:none;"></textarea>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="edit_task_project_input" class="form-label label-custom">Project</label>
+                                <input type="text" class="form-control input-text" id="edit_task_project_input"
+                                    autocomplete="off" placeholder="Search project..." required>
+                                <div id="edit_task_project_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="edit_task_selected_project" class="mt-2"></div>
+                                <input type="hidden" id="edit_task_project_id" name="project_id" value="">
+                            </div>
+
+                            <div class="mb-3 custom-input">
+                                <label for="edit_task_parent_input" class="form-label label-custom">Related to Task
+                                    (optional)</label>
+                                <input type="text" class="form-control input-text" id="edit_task_parent_input"
+                                    autocomplete="off" placeholder="Search task...">
+                                <div id="edit_task_parent_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="edit_task_selected_parent" class="mt-2"></div>
+                                <input type="hidden" id="edit_task_parent_id" name="parent_id" value="">
+                            </div>
+
+                            <div class="mb-3 custom-input">
+                                <label for="edit_task_point" class="form-label label-custom">Point</label>
+                                <input type="number" class="form-control input-text" id="edit_task_point"
+                                    name="point" value="1" min="1" required>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="edit_task_priority" class="form-label label-custom">Priority</label>
+                                <select class="form-select input-select" id="edit_task_priority" name="priority"
+                                    required>
+                                    <option value="">Select Priority</option>
+                                    <option value="HIGH">HIGH</option>
+                                    <option value="MEDIUM">MEDIUM</option>
+                                    <option value="LOW">LOW</option>
+                                </select>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Reference URLs</label>
+                                <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="input-group">
+                                        <input type="url" class="form-control input-text" name="reference_urls[]"
+                                            placeholder="https://example.com">
+                                        <button type="button" class="btn btn-submit-black add-ref-url aria-label="Add
+                                            URL">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="edit_task_reference_files" class="form-label label-custom">Reference
+                                    Files</label>
+                                <input type="file" class="form-control input-text" id="edit_task_reference_files"
+                                    name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    multiple>
+                                <div class="form-text">Multiple files supported.</div>
+                                <div id="existing_reference_files" class="mt-2"></div>
+                                <div id="edit_reference_files_preview" class="mt-2"></div>
+                            </div>
+                            <div class="mb-3 custom-input d-flex justify-content-between">
+                                <div class="date-form">
+                                    <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
+                                    <input type="date" class="form-control input-text" id="edit_task_start_date"
+                                        name="start_date" required>
+                                </div>
+                                <div class="date-form">
+                                    <label for="edit_task_due_date" class="form-label label-custom">Due Date</label>
+                                    <input type="date" class="form-control input-text" id="edit_task_due_date"
+                                        name="due_date" required>
+                                </div>
+                            </div>
+                            <div class="mb-1 custom-input position-relative">
+                                <label for="edit_executor_input" class="form-label label-custom">Executor</label>
+
+                                <select aria-label="Division (optional)"
+                                    class="form-select input-select position-absolute" id="edit_task_division_id"
+                                    name="division_id">
+                                    <option value="">Select Division</option>
+                                </select>
+
+                                <div id="edit_task_division_activator" class="division-activator position-absolute"
+                                    aria-hidden="true"></div>
+                                <div id="edit_task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
+                                <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
+                            </div>
+                            <div class="mb-3 custom-input position-relative">
+                                <input type="text" class="form-control input-text" id="edit_executor_input"
+                                    name="executor_input" autocomplete="off" placeholder="Search employees...">
+
+                                <div id="edit_selected_executors" class="mt-2 d-flex flex-wrap gap-2"></div>
+                                <input type="hidden" id="edit_executors" name="executors" value="">
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn-custom-close" data-bs-dismiss="modal">
+                                Close
+                            </button>
+                            <button type="submit" class="btn-submit-custom">
+                                Submit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="alert-container mt-2"></div>
             </div>
         </div>
 
