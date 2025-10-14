@@ -1428,13 +1428,19 @@ input[type="file"]::file-selector-button {
     font-size: 10px;
 }
 
+#inlineFeedbackFileBtn,
+#inlineFeedbackPhotoBtn,
 .submit-feedback button {
     height: 40px;
     width: 40px;
+    border-radius: 50%;
+    padding: 0;
 }
 
+.feedback-photo-icon,
+.feedback-file-icon,
 .submit-feedback button span {
-    font-size: 18px;
+    font-size: 20px;
 }
 
 .btn-actions-feedback {
