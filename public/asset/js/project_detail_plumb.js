@@ -25,6 +25,32 @@
         return "task-node-" + String(taskId);
     }
 
+    // Refresh only the task tree section by fetching latest tasks from server
+    function refreshTaskTreePartial() {
+        try {
+            var $c = $("#task-tree");
+            var st = $c.scrollTop();
+            var sl = $c.scrollLeft();
+            if (typeof window.getTaskByProject === "function" && projectId) {
+                var req = window.getTaskByProject(projectId);
+                if (req && typeof req.always === "function") {
+                    req.always(function () {
+                        try {
+                            $c.scrollTop(st);
+                            $c.scrollLeft(sl);
+                        } catch (_) {}
+                    });
+                }
+            } else {
+                // Fallback: just repaint existing connections
+                try {
+                    var inst = ensureInstance();
+                    inst && inst.repaintEverything && inst.repaintEverything();
+                } catch (_) {}
+            }
+        } catch (_) {}
+    }
+
     function ensureInstance() {
         if (instance) return instance;
         if (!(window.jsPlumb && window.jsPlumb.jsPlumb)) {
@@ -207,10 +233,8 @@
                                             1400
                                         );
                                 } catch (_) {}
-                                try {
-                                    inst.repaintEverything &&
-                                        inst.repaintEverything();
-                                } catch (_) {}
+                                // Reload only the tree content to reflect new relationship
+                                refreshTaskTreePartial();
                             }
                         })
                         .fail(function () {
@@ -276,10 +300,8 @@
                                             1200
                                         );
                                 } catch (_) {}
-                                try {
-                                    inst.repaintEverything &&
-                                        inst.repaintEverything();
-                                } catch (_) {}
+                                // Reload only the tree content to reflect removal
+                                refreshTaskTreePartial();
                             } else {
                                 try {
                                     window.showFloatingAlert &&
