@@ -5280,7 +5280,7 @@ function filterTaskTableRows(queryRaw) {
     function loadTaskFeedbackData(taskId) {
         const modalBody = document.getElementById("taskFeedbackList");
         modalBody.innerHTML =
-            '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 
         $.ajax({
             url: appUrl + "/task-feedbacks/" + taskId,
@@ -5631,9 +5631,23 @@ function filterTaskTableRows(queryRaw) {
                                         },
                                         success: function (res) {
                                             try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Feedback deleted', 'success'); } catch(_){ }
-                                            // Remove feedback DOM
-                                            const el = modalBody.querySelector(`.feedback-item[data-feedback-id="${fid}"]`);
-                                            if (el && el.parentNode) el.parentNode.removeChild(el);
+                                            
+                                            // Show loading spinner while refreshing
+                                            try {
+                                                const modalBodyEl = document.getElementById("taskFeedbackList");
+                                                if (modalBodyEl) {
+                                                    modalBodyEl.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                                                }
+                                            } catch (_) {}
+                                            
+                                            // Refresh modal list to reflect deletion (like project.js)
+                                            try { 
+                                                const taskIdFromModal = modalBody.closest('#taskFeedbackModal')?.dataset?.taskId;
+                                                if (taskIdFromModal) {
+                                                    loadTaskFeedbackData(taskIdFromModal); 
+                                                }
+                                            } catch(_) {}
+                                            
                                             // Refresh feedback count on task card
                                             try { $.ajax({ url: appUrl + '/task-feedbacks/count/' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') , type: 'GET', success: function(c){ if (c && c.data && typeof c.data.count === 'number') { const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') + '"]'); if (card) { let span = card.querySelector('.feedback-comments-count'); if (span) { span.textContent = String(c.data.count); } } } } }); } catch(_){ }
                                             done(true);
@@ -5665,8 +5679,23 @@ function filterTaskTableRows(queryRaw) {
                                         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                                         success: function (res) {
                                             try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reply deleted', 'success'); } catch(_){}
-                                            const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"][data-parent-id="${pid}"]`);
-                                            if (el && el.parentNode) el.parentNode.removeChild(el);
+                                            
+                                            // Show loading spinner while refreshing
+                                            try {
+                                                const modalBodyEl = document.getElementById("taskFeedbackList");
+                                                if (modalBodyEl) {
+                                                    modalBodyEl.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                                                }
+                                            } catch (_) {}
+                                            
+                                            // Refresh modal list to reflect deletion (like project.js)
+                                            try { 
+                                                const taskIdFromModal = modalBody.closest('#taskFeedbackModal')?.dataset?.taskId;
+                                                if (taskIdFromModal) {
+                                                    loadTaskFeedbackData(taskIdFromModal); 
+                                                }
+                                            } catch(_) {}
+                                            
                                             done(true);
                                         },
                                         error: function (xhr) {
@@ -6054,6 +6083,15 @@ function filterTaskTableRows(queryRaw) {
                     if (closeBtn && closeBtn.parentNode) {
                         closeBtn.parentNode.removeChild(closeBtn);
                     }
+                    
+                    // Show loading spinner while refreshing
+                    try {
+                        const modalBodyEl = document.getElementById("taskFeedbackList");
+                        if (modalBodyEl) {
+                            modalBodyEl.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                        }
+                    } catch (_) {}
+                    
                     // Reload feedback list inside modal so newly created feedback appears without full page reload
                     try { loadTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
                 } catch (e) { /* noop */ }
@@ -6984,6 +7022,15 @@ function filterTaskTableRows(queryRaw) {
                         addBtn.removeAttribute('disabled');
                         addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
+                    
+                    // Show loading spinner while refreshing
+                    try {
+                        const modalBodyEl = document.getElementById("taskFeedbackList");
+                        if (modalBodyEl) {
+                            modalBodyEl.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                        }
+                    } catch (_) {}
+                    
                     // Reload feedback list inside modal so newly created feedback appears without full page reload
                     try { loadTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
                 } catch (e) { /* noop */ }
@@ -11012,6 +11059,13 @@ function filterTaskTableRows(queryRaw) {
             let footer = modal.querySelector('.modal-footer') || modal.querySelector('.modal-footer-custom');
             if (!footer) return;
 
+            // Clean up existing inline editor if any
+            try {
+                if (window.__quillTaskFeedbackInline) {
+                    window.__quillTaskFeedbackInline = null;
+                }
+            } catch (_) {}
+
             // Replace footer content with inline feedback editor
             footer.innerHTML = `
                 <div class="feedback-form w-100">
@@ -11373,7 +11427,13 @@ function filterTaskTableRows(queryRaw) {
     function initTaskInlineFeedbackEditor(taskId) {
         try {
             if (typeof Quill === "undefined") return;
-            if (window.__quillTaskFeedbackInline) return window.__quillTaskFeedbackInline;
+            
+            // Check if editor already exists and DOM is still valid
+            if (window.__quillTaskFeedbackInline && 
+                window.__quillTaskFeedbackInline.container && 
+                document.contains(window.__quillTaskFeedbackInline.container)) {
+                return window.__quillTaskFeedbackInline;
+            }
 
             const editorEl = document.getElementById("inline_task_feedback_editor");
             if (!editorEl) return null;
@@ -11669,10 +11729,69 @@ function filterTaskTableRows(queryRaw) {
                     } catch(_) {}
                 }
 
+                // Show loading spinner in modal body while refreshing data
+                try {
+                    const modalBody = document.getElementById("taskFeedbackList");
+                    if (modalBody) {
+                        modalBody.innerHTML = '<div class="text-center my-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                    }
+                } catch (_) {}
+                
                 // Reload feedback data
                 try {
                     loadTaskFeedbackData(taskId);
                 } catch (_) {}
+                
+                // Update feedback count on task card
+                if (!isEdit) {
+                    // For new feedback, optimistically increment count
+                    try {
+                        const getExistingFeedbackCount = (taskId) => {
+                            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                            const span = card ? card.querySelector('.feedback-comments-count') : null;
+                            const n = span ? parseInt(span.textContent, 10) : NaN;
+                            return Number.isFinite(n) ? n : 0;
+                        };
+                        const setFeedbackCount = (taskId, count) => {
+                            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                            if (!card) return;
+                            let span = card.querySelector('.feedback-comments-count');
+                            if (!span) {
+                                span = document.createElement('span');
+                                span.className = 'feedback-comments-count ms-1';
+                                span.style.color = '#555';
+                                const icon = card.querySelector('.task-icon.mode_comment');
+                                if (icon && icon.parentNode) {
+                                    icon.parentNode.appendChild(span);
+                                } else {
+                                    return; // no place to put it
+                                }
+                            }
+                            span.textContent = String(count);
+                        };
+                        const prev = getExistingFeedbackCount(taskId);
+                        setFeedbackCount(taskId, Math.max(prev + 1, 1));
+                    } catch (_) {}
+                }
+                
+                // Always refresh feedback count from server to ensure accuracy
+                try { 
+                    $.ajax({ 
+                        url: appUrl + '/task-feedbacks/count/' + taskId, 
+                        type: 'GET', 
+                        success: function(c){ 
+                            if (c && c.data && typeof c.data.count === 'number') { 
+                                const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]'); 
+                                if (card) { 
+                                    let span = card.querySelector('.feedback-comments-count'); 
+                                    if (span) { 
+                                        span.textContent = String(c.data.count); 
+                                    } 
+                                } 
+                            } 
+                        } 
+                    }); 
+                } catch(_) {}
             })
             .catch(function (err) {
                 let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
