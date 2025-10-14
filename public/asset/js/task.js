@@ -3516,7 +3516,7 @@ function renderTaskTableFromCache() {
                         <div class="d-flex align-items-center gap-3">
                             ${taskImgHtml}
                             <div>
-                                <div class="task-name-wrapper fw-semibold task-title" style="font-size: 14px; cursor: pointer;" onclick="handleTaskDetail(${t.id})">${taskTitle}</div>
+                                <div class="task-name-wrapper fw-semibold task-title" style="font-size: 14px; cursor: pointer;">${taskTitle}</div>
                                 <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
                             </div>
                         </div>
