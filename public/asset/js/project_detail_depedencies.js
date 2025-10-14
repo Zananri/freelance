@@ -10,6 +10,7 @@ function renderChildGroups(task, $container, $template) {
         const child = task.children[i];
         const $child = renderTaskNode(child, $template);
         const $wrap = $('<div class="task-item"></div>');
+        try { $wrap.css({ overflow: 'visible', position: 'relative' }); } catch(_) {}
         // Old connector stub removed in jsPlumb-only mode
         $wrap.append($child);
         $container.append($wrap);
@@ -126,7 +127,9 @@ function renderTaskNode(task, $template) {
     } catch (_) {}
 
     try {
-        $card.css("position", function(i, v){ return v || "relative"; });
+    $card.css("position", function(i, v){ return v || "relative"; });
+    // Ensure the overflow is visible so half-outside controls remain clickable
+    try { if (!$card.css('overflow') || $card.css('overflow') === 'hidden') { $card.css('overflow', 'visible'); } } catch(_){ }
         if ($card.find('.plumb-handle').length === 0) {
             const $handle = $('<div class="plumb-handle d-none" title="Drag a line to add a parent"\
                 style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
@@ -139,12 +142,33 @@ function renderTaskNode(task, $template) {
             });
             $handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
             $card.append($handle);
-
-            $card.hover(
-                function () { $(this).find('.plumb-handle').removeClass('d-none'); },
-                function () { $(this).find('.plumb-handle').addClass('d-none'); }
-            );
         }
+
+        // Add three-dots menu button and menu
+        if ($card.find('.task-more-btn').length === 0) {
+            const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:4000;user-select:none;border:1px solid rgba(0,0,0,0.08);"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
+            $moreBtn.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
+            $card.append($moreBtn);
+
+            const $menu = $('<div class="task-more-menu d-none" style="position:absolute;top:30px;right:6px;min-width:140px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:4001;overflow:hidden;"><button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;">Clear Parent</button></div>');
+            $menu.on('click', function(e){ try { e.stopPropagation(); } catch(_){} });
+            $card.append($menu);
+
+            // Always show on mobile devices (no hover)
+            try {
+                var isMobile =
+                    window.matchMedia && window.matchMedia('(max-width: 1024px)').matches ||
+                    window.innerWidth <= 1024 ||
+                    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile) $moreBtn.removeClass('d-none');
+            } catch(_){}
+        }
+
+        // Show both handle and menu button on hover
+        $card.hover(
+            function () { $(this).find('.plumb-handle, .task-more-btn').removeClass('d-none'); },
+            function () { $(this).find('.plumb-handle, .task-more-btn').addClass('d-none'); /* don't auto-hide menu here */ }
+        );
     } catch(_) {}
 
     if (visual === "complete") $card.css("background-color", "#B2EECD");
@@ -171,6 +195,7 @@ function renderTaskNode(task, $template) {
             flexDirection: "column",
             gap: "20px",
             position: "relative",
+            overflow: "visible",
         });
         renderChildGroups(task, $childGroup, $template);
         $branch.append($childGroup);
@@ -1246,6 +1271,7 @@ $("#fullscreen-tree-btn").on("click", function () {
 
 $(document).on("click", ".task-box, .timeline-bar", function (e) {
     if ($(e.target).closest('.plumb-handle').length) { e.preventDefault(); e.stopPropagation(); return; }
+    if ($(e.target).closest('.task-more-btn, .task-more-menu').length) { e.preventDefault(); e.stopPropagation(); return; }
     const taskId = $(this).data("task-id");
     if (taskId) handleTaskDetail(taskId);
 });
@@ -1514,3 +1540,65 @@ function initTaskDetailModal() {
 
     modal.show();
 }
+
+// Task more-menu global handlers (bind once)
+(function setupTaskMoreMenu(){
+    if (window.__taskMoreMenuBound) return; window.__taskMoreMenuBound = true;
+    // Toggle menu
+    $(document).on('click', '.task-more-btn', function(e){
+        try {
+            e.preventDefault(); e.stopPropagation();
+            var $card = $(this).closest('.task-box');
+            var $menu = $card.find('.task-more-menu');
+            $('.task-more-menu').not($menu).addClass('d-none');
+            $menu.toggleClass('d-none');
+        } catch(_){}
+    });
+    // Clear Parent action
+    $(document).on('click', '.task-more-menu .clear-parent-action', function(e){
+        try {
+            e.preventDefault(); e.stopPropagation();
+            var $card = $(this).closest('.task-box');
+            var taskId = $card.attr('data-task-id');
+            if (!taskId) return;
+            var $menu = $(this).closest('.task-more-menu');
+            $menu.addClass('d-none');
+            $.ajax({
+                url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
+                type: 'PUT',
+                data: { parent_id: null },
+                dataType: 'json',
+            })
+            .done(function(res){
+                try {
+                    if (typeof window.refreshTaskTreePartial === 'function') {
+                        window.refreshTaskTreePartial();
+                    } else {
+                        // Fallback local update
+                        var idStr = String(taskId);
+                        (allTasks || []).forEach(function(t){ if (String(t.id) === idStr) t.parent_id = null; });
+                        renderTaskList(allTasks);
+                    }
+                    if (typeof window.showFloatingAlert === 'function') {
+                        window.showFloatingAlert('Parent dibersihkan', 'success', 1400);
+                    }
+                } catch(_){}
+            })
+            .fail(function(xhr){
+                try {
+                    console.error('Gagal clear parent', xhr && xhr.responseText);
+                    if (typeof window.showFloatingAlert === 'function') {
+                        window.showFloatingAlert('Gagal menghapus parent', 'warning', 2400);
+                    } else { alert('Gagal menghapus parent'); }
+                } catch(_){}
+            });
+        } catch(_){}
+    });
+    // Click outside to close
+    $(document).on('click', function(){ try { $('.task-more-menu').addClass('d-none'); } catch(_){} });
+    // Keep menu open when hovered
+    $(document).on('mouseenter', '.task-more-menu', function(){ try { $(this).removeClass('d-none'); } catch(_){} });
+    $(document).on('mouseleave', '.task-more-menu', function(){ try { $(this).addClass('d-none'); } catch(_){} });
+    // Hide on scroll
+    $(window).on('scroll', function(){ try { $('.task-more-menu').addClass('d-none'); } catch(_){} });
+})();
