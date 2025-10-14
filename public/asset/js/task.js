@@ -5435,7 +5435,7 @@ function filterTaskTableRows(queryRaw) {
                                                                                             <div><small class="text-muted d-block" style="font-size:9px;">${rDate}</small></div>
                                                                                         </div>
 
-                                                                                        <div class="mt-2">
+                                                                                        <div class="feedback-comment mt-2">
                                                                                             <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
 
                                                                                             ${
@@ -5477,7 +5477,7 @@ function filterTaskTableRows(queryRaw) {
                                                                 <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
                                                             </div>
 
-                                                            <div class="mt-2">
+                                                            <div class="feedback-comment mt-2">
                                                                 <p class="mb-2" style="font-size:13px;">${feedback.feedback_comment}</p>
 
                                                                 ${
@@ -5536,7 +5536,7 @@ function filterTaskTableRows(queryRaw) {
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
-                            
+
                             // Prefer inline edit in the footer panel (similar to project feedback)
                             const inlineEditor = document.getElementById("inline_task_feedback_editor");
                             if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
@@ -5567,7 +5567,7 @@ function filterTaskTableRows(queryRaw) {
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
-                            
+
                             // Prefer inline edit for replies too
                             const inlineEditor = document.getElementById("inline_task_feedback_editor");
                             if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
@@ -9857,8 +9857,6 @@ function filterTaskTableRows(queryRaw) {
         }
     } catch(_) {}
 
-});
-
  let currentMonth = new Date().getMonth();
     let currentYear = new Date().getFullYear();
 
@@ -10684,7 +10682,7 @@ function filterTaskTableRows(queryRaw) {
     // Helper function to add image preview from URL (for existing images)
     function addImagePreviewFromUrl(previewContainer, imageUrl, filename) {
         if (!imageUrl) return;
-        
+
         const imagePreview = document.createElement('div');
         imagePreview.className = 'image-preview existing-image';
         imagePreview.innerHTML = `
@@ -11058,18 +11056,18 @@ function filterTaskTableRows(queryRaw) {
         try {
             const hiddenInput = document.getElementById("inline_edit_task_feedback_input");
             if (hiddenInput) hiddenInput.value = data.id || "";
-            
+
             // Set parent_id for replies
             try {
                 const inlinePid = document.getElementById('inline_parent_id_input');
                 if (inlinePid) inlinePid.value = data.parent_id || '';
             } catch(_) {}
-            
+
             // Fill editor with existing content
             if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
                 window.__quillTaskFeedbackInline.root.innerHTML = data.feedback_comment || "";
             }
-            
+
             // Show existing image if available
             try {
                 const rawImg = data.image_url || data.image || "";
@@ -11081,7 +11079,7 @@ function filterTaskTableRows(queryRaw) {
                     showTaskInlineImagePreviewFromUrl(url);
                 }
             } catch(_) {}
-            
+
             // Show existing files if available
             try {
                 let files = [];
@@ -11096,29 +11094,31 @@ function filterTaskTableRows(queryRaw) {
                 }
                 renderInlineTaskExistingFiles(files);
             } catch(_) {}
-            
+
             // Change Send button to Update
             const sendBtn = document.getElementById("inlineTaskFeedbackSendBtn");
             if (sendBtn) {
                 sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
-                try { 
-                    sendBtn.innerHTML = 'Update'; 
-                } catch(_) { 
-                    sendBtn.textContent = 'Update'; 
+                try {
+                    sendBtn.innerHTML = `
+                        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">send</span>
+                    `;
+                } catch(_) {
+                    sendBtn.textContent = 'Update';
                 }
             }
-            
+
             // Add Cancel button
             const actions = document.querySelector('.btn-actions-feedback .submit-feedback');
             if (actions && !document.getElementById('inlineTaskFeedbackCancelBtn')) {
                 const cancel = document.createElement('button');
                 cancel.type = 'button';
                 cancel.id = 'inlineTaskFeedbackCancelBtn';
-                cancel.className = 'btn btn-custom-close me-2';
-                cancel.textContent = 'Cancel';
+                cancel.className = 'btn btn-custom-close me-2 d-flex align-items-center gap-1';
+                cancel.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">cancel</span>';
                 cancel.addEventListener('click', function() {
-                    try { 
-                        window.cancelInlineTaskEditFeedback(); 
+                    try {
+                        window.cancelInlineTaskEditFeedback();
                     } catch(_) {}
                 });
                 actions.insertBefore(cancel, actions.firstChild);
@@ -11132,7 +11132,7 @@ function filterTaskTableRows(queryRaw) {
             // Clear edit marker
             const hiddenInput = document.getElementById('inline_edit_task_feedback_input');
             if (hiddenInput) hiddenInput.value = '';
-            
+
             // Clear parent_id
             const inlinePid = document.getElementById('inline_parent_id_input');
             if (inlinePid) inlinePid.value = '';
@@ -11176,8 +11176,8 @@ function filterTaskTableRows(queryRaw) {
                 if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
                     window.__quillTaskFeedbackInline.root.innerHTML = '';
                     if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
-                        try { 
-                            window.__quillTaskFeedbackInline.setSelection(0); 
+                        try {
+                            window.__quillTaskFeedbackInline.setSelection(0);
                         } catch(_) {}
                     }
                 }
@@ -11194,16 +11194,16 @@ function filterTaskTableRows(queryRaw) {
                 const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
                 if (sendBtn) {
                     if (sendBtn._origHTML) {
-                        try { 
-                            sendBtn.innerHTML = sendBtn._origHTML; 
-                        } catch(_) { 
-                            sendBtn.textContent = sendBtn._origHTML; 
+                        try {
+                            sendBtn.innerHTML = sendBtn._origHTML;
+                        } catch(_) {
+                            sendBtn.textContent = sendBtn._origHTML;
                         }
                     } else {
-                        try { 
-                            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>'; 
-                        } catch(_) { 
-                            sendBtn.textContent = 'Send'; 
+                        try {
+                            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+                        } catch(_) {
+                            sendBtn.textContent = 'Send';
                         }
                     }
                 }
@@ -11242,7 +11242,7 @@ function filterTaskTableRows(queryRaw) {
 
             const imageLabel = document.createElement("div");
             imageLabel.className = "custom-image-upload position-relative";
-            imageLabel.style.cssText = 
+            imageLabel.style.cssText =
                 "width: 32px; height: 32px; " +
                 "background-image: url('" + imageUrl + "'); " +
                 "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
@@ -11289,12 +11289,12 @@ function filterTaskTableRows(queryRaw) {
         try {
             const container = document.getElementById('inline_existing_files_preview');
             let existingContainer = container;
-            
+
             if (!existingContainer) {
                 existingContainer = document.createElement('div');
                 existingContainer.id = 'inline_existing_files_preview';
                 existingContainer.className = 'mb-2';
-                
+
                 // Insert before the editor
                 const editor = document.getElementById('inline_task_feedback_editor');
                 if (editor && editor.parentNode) {
@@ -11315,22 +11315,22 @@ function filterTaskTableRows(queryRaw) {
                 if (!fileUrl) return;
 
                 const item = document.createElement('div');
-                item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-1 p-2 bg-light border rounded';
-                
+                item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-1 p-2 bg-transparent border-0 rounded';
+
                 const info = document.createElement('div');
                 info.className = 'd-flex align-items-center flex-grow-1';
-                
+
                 const icon = document.createElement('span');
                 icon.className = 'material-symbols-outlined me-2';
                 icon.textContent = 'description';
                 icon.style.fontSize = '16px';
-                
+
                 const link = document.createElement('a');
                 link.href = fileUrl;
                 link.target = '_blank';
                 link.style.textDecoration = 'none';
                 link.style.color = '#444';
-                
+
                 const fileName = (function() {
                     try {
                         const url = new URL(fileUrl, window.location.origin);
@@ -11341,11 +11341,11 @@ function filterTaskTableRows(queryRaw) {
                     }
                 })();
                 link.textContent = fileName;
-                
+
                 const removeBtn = document.createElement('button');
                 removeBtn.type = 'button';
-                removeBtn.className = 'btn btn-sm btn-outline-danger ms-2';
-                removeBtn.innerHTML = '&times;';
+                removeBtn.className = 'btn btn-sm ms-2';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
                 removeBtn.title = 'Remove file';
                 removeBtn.addEventListener('click', function() {
                     // Remove from keep list
@@ -11357,7 +11357,7 @@ function filterTaskTableRows(queryRaw) {
                     // Remove from DOM
                     item.remove();
                 });
-                
+
                 info.appendChild(icon);
                 info.appendChild(link);
                 item.appendChild(info);
@@ -11508,7 +11508,6 @@ function filterTaskTableRows(queryRaw) {
 
     // Submit inline task feedback
     function submitInlineTaskFeedback(taskId, quill) {
-        // Define appUrl locally
         const appUrl = (function(){
             try {
                 const meta = document.querySelector('meta[name="app-url"]');
@@ -11527,21 +11526,19 @@ function filterTaskTableRows(queryRaw) {
 
         try {
             const html = quill.root.innerHTML || '';
-
-            // Allow empty comment only if at least one file is attached (image or reference)
             let hasImage = false, hasRefFiles = false;
+
             try {
-                if (window.__taskInlineFeedbackImageFile) {
-                    hasImage = true;
-                } else {
+                if (window.__taskInlineFeedbackImageFile) hasImage = true;
+                else {
                     const pi = document.getElementById("inline_task_feedback_image_input");
                     if (pi && pi.files && pi.files.length) hasImage = true;
                 }
             } catch(_) {}
+
             try {
-                if (window.inlineTaskFeedbackSelectedFiles && window.inlineTaskFeedbackSelectedFiles.length) {
-                    hasRefFiles = true;
-                } else {
+                if (window.inlineTaskFeedbackSelectedFiles && window.inlineTaskFeedbackSelectedFiles.length) hasRefFiles = true;
+                else {
                     const fi = document.getElementById("inline_task_feedback_files_input");
                     if (fi && fi.files && fi.files.length) hasRefFiles = true;
                 }
@@ -11549,9 +11546,8 @@ function filterTaskTableRows(queryRaw) {
 
             const plainText = String(html || '').replace(/<[^>]+>/g, '').trim();
             if (!plainText && !hasImage && !hasRefFiles) {
-                if (typeof showFloatingAlert === 'function') {
+                if (typeof showFloatingAlert === 'function')
                     showFloatingAlert('Please write feedback or attach a file', 'warning');
-                }
                 return;
             }
 
@@ -11563,139 +11559,88 @@ function filterTaskTableRows(queryRaw) {
             fd.append('task_id', taskId);
             fd.append('employee_id', employeeId);
 
-            // Include parent_id if replying via inline form
             try {
                 const pid = document.getElementById('inline_parent_id_input');
                 if (pid && pid.value) fd.append('parent_id', pid.value);
             } catch(_) {}
 
-            // Add image if selected
             const imageFile = window.__taskInlineFeedbackImageFile;
-            if (imageFile) {
-                fd.append('feedback_image', imageFile);
-            }
+            if (imageFile) fd.append('feedback_image', imageFile);
 
-            // Add files if selected
             const selectedFiles = window.inlineTaskFeedbackSelectedFiles || [];
-            selectedFiles.forEach(function(file) {
-                fd.append('reference_files[]', file);
-            });
+            selectedFiles.forEach(f => fd.append('reference_files[]', f));
 
-            // Detect inline edit mode
             const editId = (document.getElementById('inline_edit_task_feedback_input') || {}).value || '';
             const isEdit = String(editId).trim() !== '';
             if (isEdit) {
                 try {
-                    // Include keep-list for existing files
                     const keepList = window.inlineTaskExistingFilesKeep || [];
                     fd.set('existing_reference_files', JSON.stringify(keepList));
                 } catch(_) {}
                 try {
-                    // Include remove_image flag
                     if (typeof window.__inlineTaskRemoveImage !== 'undefined') {
                         fd.set('remove_image', window.__inlineTaskRemoveImage ? '1' : '0');
                     }
                 } catch(_) {}
-                // Method override
                 fd.append('_method', 'PUT');
             }
 
-            // UI feedback
-            const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
-            const origText = sendBtn ? sendBtn.innerHTML : '';
-            if (sendBtn) {
-                sendBtn.disabled = true;
-                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + (isEdit ? 'Updating...' : 'Sending...');
-            }
+            const sendBtn = $("#inlineTaskFeedbackSendBtn");
+            const origText = sendBtn.html();
+            sendBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>' + (isEdit ? 'Updating...' : 'Sending...'));
 
-            const reqUrl = isEdit 
-                ? appUrl + '/task-feedbacks/' + editId 
-                : appUrl + '/task-feedbacks';
-            const reqMethod = 'POST';
-
-            fetch(reqUrl, {
-                method: reqMethod,
+            $.ajax({
+                url: isEdit ? appUrl + '/task-feedbacks/' + editId : appUrl + '/task-feedbacks',
+                type: 'POST',
+                data: fd,
+                processData: false,
+                contentType: false,
                 headers: {
-                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
                 },
-                body: fd,
-            })
-            .then(function (res) {
-                if (!res.ok) return res.json().then(function (j) { return Promise.reject(j); });
-                return res.json();
-            })
-            .then(function (data) {
-                const msg = (data && data.message) || (isEdit ? 'Feedback updated successfully!' : 'Feedback submitted successfully!');
-                if (typeof window.showAlertMsg === 'function') {
-                    window.showAlertMsg(String(msg), 'light', 2000);
-                } else if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(msg, 'light', 2000);
-                }
+                success: function (res) {
+                    const msg = (res && res.message) || (isEdit ? 'Feedback updated successfully!' : 'Feedback submitted successfully!');
+                    if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'light', 2000);
 
-                // Clear editor
-                quill.root.innerHTML = '';
+                    // Reset editor dan file
+                    quill.root.innerHTML = '';
+                    window.inlineTaskFeedbackSelectedFiles = [];
+                    window.__taskInlineFeedbackImageFile = null;
 
-                // Clear files
-                window.inlineTaskFeedbackSelectedFiles = [];
-                window.__taskInlineFeedbackImageFile = null;
+                    $('#inline_task_feedback_image_preview, #inline_task_feedback_files_preview, #inline_existing_files_preview').empty();
 
-                // Clear previews
-                try {
-                    const imagePreview = document.getElementById("inline_task_feedback_image_preview");
-                    if (imagePreview && imagePreview.parentNode) {
-                        imagePreview.parentNode.removeChild(imagePreview);
-                    }
-                } catch (_) {}
-
-                try {
-                    const filesPreview = document.getElementById("inline_task_feedback_files_preview");
-                    if (filesPreview) {
-                        filesPreview.innerHTML = '';
-                    }
-                } catch (_) {}
-
-                // Clear existing files preview
-                try {
-                    const existingPreview = document.getElementById("inline_existing_files_preview");
-                    if (existingPreview && existingPreview.parentNode) {
-                        existingPreview.parentNode.removeChild(existingPreview);
-                    }
-                } catch (_) {}
-
-                // Reset edit mode if it was an edit
-                if (isEdit) {
-                    try {
+                    if (isEdit && typeof window.cancelInlineTaskEditFeedback === 'function') {
                         window.cancelInlineTaskEditFeedback();
-                    } catch(_) {}
-                }
+                    }
 
-                // Reload feedback data
-                try {
-                    loadTaskFeedbackData(taskId);
-                } catch (_) {}
-            })
-            .catch(function (err) {
-                let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
-                try {
-                    if (err && err.errors) msg = Object.values(err.errors).join("\n");
-                    else if (err && err.message) msg = err.message;
-                } catch (_) {}
-                if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(msg, "warning", 4000);
-                }
-            })
-            .finally(function () {
-                if (sendBtn) {
-                    sendBtn.disabled = false;
-                    sendBtn.innerHTML = origText;
+                    setTimeout(() => {
+                        try {
+                            loadTaskFeedbackData(taskId + '?t=' + Date.now());
+                        } catch (e) {
+                            console.warn('Failed to reload feedback list', e);
+                        }
+                    }, 300);
+                },
+                error: function (xhr) {
+                    let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    if (typeof showFloatingAlert === 'function')
+                        showFloatingAlert(msg, "danger", 4000);
+                    else alert(msg);
+                },
+                complete: function () {
+                    sendBtn.prop('disabled', false).html(origText);
                 }
             });
 
         } catch (e) {
             console.warn('Failed to submit inline task feedback:', e);
-            if (typeof showFloatingAlert === 'function') {
+            if (typeof showFloatingAlert === 'function')
                 showFloatingAlert("Failed to submit feedback", "warning");
-            }
         }
     }
 
@@ -11825,3 +11770,4 @@ function filterTaskTableRows(queryRaw) {
             preview.appendChild(listWrap);
         } catch (e) {}
     }
+});
