@@ -531,7 +531,7 @@
                                          
                                             @php
                                                 $photoPofile = asset('asset/img/avatar.png');
-                                                if(file_exists(asset($item->profile_picture))){
+                                                if($item->profile_picture){
                                                     $photoPofile = asset($item->profile_picture);
                                                 }
                                             @endphp
@@ -712,7 +712,7 @@
                                          
                                             @php
                                                 $photoPofile = asset('asset/img/avatar.png');
-                                                if(file_exists(asset($item->profile_picture))){
+                                                if($item->profile_picture){
                                                     $photoPofile = asset($item->profile_picture);
                                                 }
                                             @endphp
