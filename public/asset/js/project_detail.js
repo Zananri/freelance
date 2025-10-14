@@ -8605,6 +8605,303 @@ function handleTaskEdit(taskId) {
     });
 }
 
+// Wire up Edit Task form behaviors on project detail page (image preview, files preview, submit)
+(function(){
+    try {
+        // Provide local executor picker rendering if shared version not present
+        if (typeof window.setSelectedExecutorsEdit !== 'function') {
+            (function(){
+                const container = document.getElementById('edit_selected_executors');
+                const hiddenInput = document.getElementById('edit_executors');
+                if (!container || !hiddenInput) { return; }
+
+                let selectedEmployees = [];
+
+                function buildPhotoUrl(raw){
+                    try {
+                        if (!raw) return appUrl + '/asset/img/avatar.png';
+                        const s = String(raw).trim();
+                        if (!s) return appUrl + '/asset/img/avatar.png';
+                        if (/^https?:\/\//i.test(s)) return s;
+                        if (s.startsWith('/')) return appUrl + s;
+                        if (s.startsWith('file/photo') || s.startsWith('file/profile_picture')) return appUrl + '/' + s;
+                        if (s.includes('/')) return appUrl + '/' + s;
+                        return appUrl + '/file/profile_picture/' + s;
+                    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
+                }
+
+                function updateHidden(){
+                    try { hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id)); } catch(_) { hiddenInput.value = '[]'; }
+                }
+
+                function renderSelected(){
+                    container.innerHTML = '';
+                    selectedEmployees.forEach((emp, idx) => {
+                        const badge = document.createElement('span');
+                        badge.className = 'badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2';
+                        const img = document.createElement('img');
+                        img.src = buildPhotoUrl(emp.user_photo || emp.profile_picture || emp.profile_picture_url);
+                        img.alt = emp.name || '';
+                        img.className = 'rounded-circle me-2';
+                        img.style.width = '24px';
+                        img.style.height = '24px';
+                        img.style.objectFit = 'cover';
+
+                        const nameCol = document.createElement('div');
+                        nameCol.className = 'd-flex flex-column';
+                        const nameText = document.createElement('span');
+                        nameText.textContent = emp.name || '';
+                        nameText.style.marginBottom = '5px';
+                        const divSmall = document.createElement('small');
+                        divSmall.className = 'text-muted executor-division';
+                        divSmall.textContent = emp.division || emp.division_name || '';
+                        nameCol.appendChild(nameText);
+                        nameCol.appendChild(divSmall);
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn-close btn-sm ms-2';
+                        removeBtn.setAttribute('aria-label','Remove');
+                        removeBtn.addEventListener('click', function(){
+                            selectedEmployees.splice(idx,1);
+                            renderSelected();
+                            updateHidden();
+                        });
+
+                        badge.appendChild(img);
+                        badge.appendChild(nameCol);
+                        badge.appendChild(removeBtn);
+                        container.appendChild(badge);
+                    });
+                }
+
+                window.clearSelectedExecutorsEdit = function(){
+                    selectedEmployees = [];
+                    renderSelected();
+                    updateHidden();
+                };
+
+                window.setSelectedExecutorsEdit = function(executors){
+                    try {
+                        selectedEmployees = (executors || []).map(ex => ({
+                            id: ex.id,
+                            name: ex.name,
+                            user_photo: ex.user_photo || ex.photo || ex.image || '',
+                            division: ex.division || ex.division_name || ''
+                        }));
+                        renderSelected();
+                        updateHidden();
+                    } catch(e) {
+                        console.warn('setSelectedExecutorsEdit failed', e);
+                    }
+                };
+            })();
+        }
+
+        // Setup image input for edit task modal (reuse setupImageInput if available)
+        const imgInput = document.getElementById('edit_task_image');
+        const imgLabel = document.getElementById('editTaskImageLabel');
+        const imgClear = document.getElementById('editTaskImageClearBtn');
+        if (imgInput && imgLabel) {
+            if (typeof window.setupImageInput === 'function') {
+                try { window.setupImageInput(imgInput, imgLabel, imgClear); } catch(_) {}
+            } else {
+                // Fallback light preview logic
+                imgInput.addEventListener('change', function(){
+                    const file = this.files && this.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e){
+                            imgLabel.style.backgroundImage = `url('${e.target.result}')`;
+                            imgLabel.classList.add('has-image');
+                            imgLabel.style.opacity = '1';
+                            imgClear && imgClear.classList.remove('d-none');
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                        imgLabel.classList.remove('has-image');
+                        imgLabel.style.opacity = '0.5';
+                        imgClear && imgClear.classList.add('d-none');
+                    }
+                });
+                imgClear && imgClear.addEventListener('click', function(){
+                    imgInput.value = '';
+                    imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                    imgLabel.classList.remove('has-image');
+                    imgLabel.style.opacity = '0.5';
+                    imgClear.classList.add('d-none');
+                });
+            }
+        }
+
+        // Preview/edit selected reference files for edit task
+        const filesInput = document.getElementById('edit_task_reference_files');
+        const filesPreview = document.getElementById('edit_reference_files_preview');
+        // Store selected files in a global to reuse on submit
+        window.editSelectedFiles = window.editSelectedFiles || [];
+
+        function displayEditSelectedFiles(){
+            if (!filesPreview) return;
+            const list = window.editSelectedFiles || [];
+            filesPreview.innerHTML = '';
+            if (!list.length) return;
+            list.forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = 'preview-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
+                const info = document.createElement('div');
+                info.className = 'd-flex align-items-center flex-grow-1';
+                const icon = document.createElement('span');
+                icon.className = 'material-symbols-outlined me-2';
+                icon.textContent = (file.type || '').startsWith('image/') ? 'image' : 'attach_file';
+                const name = document.createElement('span');
+                name.textContent = file.name;
+                info.appendChild(icon);
+                info.appendChild(name);
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'border-0 bg-transparent';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444444;">close</span>';
+                removeBtn.addEventListener('click', function(){
+                    try {
+                        window.editSelectedFiles.splice(idx, 1);
+                        displayEditSelectedFiles();
+                    } catch(_) {}
+                });
+                item.appendChild(info);
+                item.appendChild(removeBtn);
+                filesPreview.appendChild(item);
+            });
+        }
+
+        if (filesInput) {
+            filesInput.addEventListener('change', function(){
+                const chosen = Array.from(this.files || []);
+                window.editSelectedFiles = chosen; // overwrite with latest selection
+                displayEditSelectedFiles();
+            });
+        }
+
+        // Provide minimal existing files renderer if not present
+        if (typeof window.displayExistingReferenceFiles !== 'function') {
+            window.displayExistingReferenceFiles = function(files){
+                try {
+                    const container = document.getElementById('existing_reference_files');
+                    if (!container) return;
+                    container.innerHTML = '';
+                    (files || []).forEach((f) => {
+                        const div = document.createElement('div');
+                        div.className = 'd-flex align-items-center gap-2 mb-1';
+                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined'; icon.textContent = 'insert_drive_file';
+                        const a = document.createElement('a'); a.href = (typeof f === 'string') ? (f.startsWith('http') ? f : (appUrl + '/' + f.replace(/^\//,''))) : '#'; a.textContent = (f.name || f.file_name || f) || 'file'; a.target = '_blank';
+                        div.appendChild(icon); div.appendChild(a);
+                        container.appendChild(div);
+                    });
+                } catch(_) {}
+            };
+        }
+
+        // Submit handler for edit task (works on project detail page)
+        const editForm = document.getElementById('editTaskForm');
+        if (editForm && !editForm._boundSubmitHandler) {
+            editForm.addEventListener('submit', function(e){
+                e.preventDefault();
+
+                // Sync Quill editor to hidden textarea if present
+                try {
+                    if (window.__quillTaskEdit && window.__quillTaskEdit.root) {
+                        const ta = document.getElementById('edit_task_description');
+                        if (ta) ta.value = window.__quillTaskEdit.root.innerHTML;
+                    }
+                } catch(_) {}
+
+                const taskIdEl = document.getElementById('edit_task_id');
+                const taskId = taskIdEl && taskIdEl.value;
+                if (!taskId) {
+                    try { showFloatingAlert('Task ID is missing.', 'warning', 2500); } catch(_) { alert('Task ID is missing.'); }
+                    return;
+                }
+
+                if (!editForm.checkValidity()) {
+                    editForm.classList.add('was-validated');
+                    return;
+                }
+                editForm.classList.remove('was-validated');
+
+                // Optional: ensure at least one executor selected if widget present
+                try {
+                    const execHidden = document.getElementById('edit_executors');
+                    if (execHidden) {
+                        let arr = [];
+                        if (execHidden.value) { try { arr = JSON.parse(execHidden.value); } catch(_) { arr = []; } }
+                        if (!Array.isArray(arr) || arr.length === 0) {
+                            try { showFloatingAlert('Please select at least one executor.', 'warning', 2500); } catch(_) {}
+                            return;
+                        }
+                    }
+                } catch(_) {}
+
+                const loader = document.getElementById('editTaskModalLoader');
+                loader && loader.classList.remove('d-none');
+                const submitBtn = editForm.querySelector("button[type='submit']");
+                if (submitBtn) submitBtn.disabled = true;
+
+                const fd = new FormData(editForm);
+                fd.append('_method', 'PUT');
+
+                // Append reference files selected in preview
+                try {
+                    const files = Array.isArray(window.editSelectedFiles) ? window.editSelectedFiles : [];
+                    // Clear any existing so we avoid duplicates
+                    try { fd.delete('reference_files[]'); } catch(_) {}
+                    files.forEach(f => fd.append('reference_files[]', f));
+                } catch(_) {}
+
+                $.ajax({
+                    url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
+                    type: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    },
+                    data: fd,
+                    processData: false,
+                    contentType: false,
+                    success: function(res){
+                        try { showFloatingAlert(res && (res.message || res.status) ? (res.message || 'Task updated successfully.') : 'Task updated successfully.', 'success', 2500); } catch(_) {}
+                        // Close edit modal
+                        try {
+                            const modalEl = document.getElementById('editTaskModal');
+                            const instance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+                            instance.hide();
+                        } catch(_) {}
+
+                        // Refresh tasks list for this project if list view visible
+                        try { loadProjectTasks(); } catch(_) {}
+                    },
+                    error: function(xhr){
+                        let msg = 'Failed to update task.';
+                        try {
+                            if (xhr.responseJSON && xhr.responseJSON.errors) {
+                                msg = Object.values(xhr.responseJSON.errors).flat().join('\n');
+                            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                                msg = xhr.responseJSON.message;
+                            }
+                        } catch(_) {}
+                        try { showFloatingAlert(msg, 'danger', 3000); } catch(_) { alert(msg); }
+                    },
+                    complete: function(){
+                        loader && loader.classList.add('d-none');
+                        if (submitBtn) submitBtn.disabled = false;
+                    }
+                });
+            });
+            // guard against double-binding
+            editForm._boundSubmitHandler = true;
+        }
+    } catch(_) {}
+})();
+
 // Function to render project task table with filtered data
 function renderProjectTaskTable() {
     try {
