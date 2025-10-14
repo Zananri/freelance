@@ -27,6 +27,9 @@
             <div class="title-content">
                 <h2>Task</h2>
             </div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
             <div class="task-tabs mb-3 me-2">
                 <ul class="custom-tab" id="taskTabMenu" role="tablist">
                     <li>
@@ -41,9 +44,6 @@
                     </li>
                 </ul>
             </div>
-        </div>
-
-        <div class="d-flex align-items-center gap-2">
             <div class="dropdown-filter-container">
                 <div class="search-input-container">
                     <span class="material-symbols-outlined search-icon">search</span>
