@@ -11138,8 +11138,32 @@ function filterTaskTableRows(queryRaw) {
                 </div>
             `;
 
-            // Initialize inline Quill editor
+            // Initialize inline Quill editor (if available)
             initTaskInlineFeedbackEditor(taskId);
+
+            // Ensure placeholder toggling is attached for contenteditable fallback
+            try {
+                const editor = document.getElementById('inline_task_feedback_editor');
+                if (editor) {
+                    const editorRoot = editor.querySelector('.ql-editor');
+                    if (editorRoot && !editorRoot.dataset.placeholderHandlerAttached) {
+                        const togglePlaceholder = function () {
+                            try {
+                                const txt = (editorRoot.textContent || '').replace(/\uFEFF/g, '').trim();
+                                if (txt.length > 0) {
+                                    editorRoot.classList.remove('ql-blank');
+                                } else {
+                                    if (!editorRoot.classList.contains('ql-blank')) editorRoot.classList.add('ql-blank');
+                                }
+                            } catch (_) {}
+                        };
+                        editorRoot.addEventListener('input', togglePlaceholder);
+                        editorRoot.addEventListener('keydown', function () { setTimeout(togglePlaceholder, 0); });
+                        // Mark as attached so we don't double-bind
+                        editorRoot.dataset.placeholderHandlerAttached = '1';
+                    }
+                }
+            } catch(_) {}
 
         } catch (e) {
             console.warn('Failed to setup inline task feedback editor:', e);
@@ -11505,10 +11529,39 @@ function filterTaskTableRows(queryRaw) {
                             i.remove();
                         });
                     } catch (_) {}
+
+                    // Toggle placeholder state immediately when user types or removes content.
+                    try {
+                        const plain = (typeof q.getText === 'function') ? (q.getText() || '').trim() : (q.root.textContent || '').replace(/\s+/g, '').trim();
+                        if (plain && String(plain).length > 0) {
+                            q.root.classList.remove('ql-blank');
+                        } else {
+                            if (!q.root.classList.contains('ql-blank')) q.root.classList.add('ql-blank');
+                        }
+                    } catch (_) {}
                 });
             } catch (_) {}
 
             window.__quillTaskFeedbackInline = q;
+
+            // Ensure contenteditable root toggles placeholder on native input as well
+            try {
+                const editorRoot = editorEl.querySelector('.ql-editor');
+                if (editorRoot) {
+                    const togglePlaceholder = function () {
+                        try {
+                            const txt = (editorRoot.textContent || '').replace(/\uFEFF/g, '').trim();
+                            if (txt.length > 0) {
+                                editorRoot.classList.remove('ql-blank');
+                            } else {
+                                if (!editorRoot.classList.contains('ql-blank')) editorRoot.classList.add('ql-blank');
+                            }
+                        } catch (_) {}
+                    };
+                    editorRoot.addEventListener('input', togglePlaceholder);
+                    editorRoot.addEventListener('keydown', function () { setTimeout(togglePlaceholder, 0); });
+                }
+            } catch (_) {}
 
             // Initialize selected files array
             if (!window.inlineTaskFeedbackSelectedFiles) {
