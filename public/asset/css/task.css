@@ -1847,7 +1847,7 @@ p {
     width: 40px;
     height: 40px;
     font-size: 24px;
-    color: #858ca0;
+    color: #3C404B;
     border: none;
 }
 
@@ -1861,7 +1861,7 @@ p {
     background: #ecedf5;
     border: none;
     border-radius: 10px;
-    color: #555c6e;
+    color: #3C404B;
     height: 40px;
 }
 
@@ -1870,7 +1870,7 @@ p {
 .toggle-filter:hover {
     background: #ecedf5;
     border: none;
-    color: #555c6e;
+    color: #3C404B;
 }
 
 .btn-add-custom {
