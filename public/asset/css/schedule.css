@@ -64,7 +64,7 @@
     top: 50%;
     left: 12px;
     transform: translateY(-50%);
-    font-size: 24px;
+    font-size: 18px;
     color: #888;
     pointer-events: none;
 }
@@ -84,6 +84,11 @@
     align-items: center;
     gap: 4px;
     height: 40px;
+}
+
+.btn-filter-custom .icon {
+    font-size: 18px;
+    color: #3C404B;
 }
 
 .dropdown-filter-menu {
