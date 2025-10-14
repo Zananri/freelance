@@ -21,23 +21,117 @@
 
     var instance = null;
     var endpoints = {};
+    var currentTasks = [];
     function getElId(taskId) {
         return "task-node-" + String(taskId);
     }
 
-    // Refresh only the task tree section by fetching latest tasks from server
+    // Refresh only the task tree section by fetching latest tasks from server,
+    // while preserving the user's viewport position.
     function refreshTaskTreePartial() {
         try {
             var $c = $("#task-tree");
-            var st = $c.scrollTop();
-            var sl = $c.scrollLeft();
+            var cEl = $c[0] || null;
+            var containerScrolls = {
+                st: $c.scrollTop(),
+                sl: $c.scrollLeft(),
+            };
+
+            // Determine if the tree container is the scroll container
+            function isContainerScrollable() {
+                try {
+                    if (!cEl) return false;
+                    var sh = cEl.scrollHeight || 0,
+                        ch = cEl.clientHeight || 0,
+                        sw = cEl.scrollWidth || 0,
+                        cw = cEl.clientWidth || 0;
+                    return sh > ch + 2 || sw > cw + 2;
+                } catch (_) {
+                    return false;
+                }
+            }
+
+            // Pick an anchor: task box closest to the viewport center
+            function pickAnchor() {
+                var nodes = [].slice.call(document.querySelectorAll("#task-tree .task-box"));
+                if (!nodes.length) return null;
+                var useContainer = isContainerScrollable();
+                var vRect = useContainer && cEl
+                    ? cEl.getBoundingClientRect()
+                    : { top: 0, left: 0, width: window.innerWidth || 0, height: window.innerHeight || 0 };
+                var vMidX = vRect.left + (vRect.width || 0) / 2;
+                var vMidY = vRect.top + (vRect.height || 0) / 2;
+                var best = null;
+                nodes.forEach(function (el) {
+                    try {
+                        var r = el.getBoundingClientRect();
+                        // Only consider elements that intersect viewport vertically
+                        if (r.bottom < vRect.top || r.top > vRect.top + (vRect.height || 0)) return;
+                        var cx = r.left + r.width / 2;
+                        var cy = r.top + r.height / 2;
+                        var d = Math.abs(cy - vMidY) + Math.abs(cx - vMidX);
+                        if (!best || d < best.d) best = { el: el, d: d, rect: r };
+                    } catch (_) {}
+                });
+                if (!best) return null;
+                var id = best.el && best.el.getAttribute("id");
+                if (!id) return null;
+                return {
+                    id: id,
+                    // Position of the anchor within the viewport (container or window)
+                    topInView: best.rect.top - vRect.top,
+                    leftInView: best.rect.left - vRect.left,
+                    useContainer: useContainer,
+                    winX: window.pageXOffset || document.documentElement.scrollLeft || 0,
+                    winY: window.pageYOffset || document.documentElement.scrollTop || 0,
+                };
+            }
+
+            var anchor = pickAnchor();
+
+            // Prevent layout jump while emptying the tree by fixing min-height temporarily
+            var prevH = $c.height();
+            if (prevH && prevH > 0) {
+                try { $c.css("min-height", prevH + "px"); } catch (_) {}
+            }
+
             if (typeof window.getTaskByProject === "function" && projectId) {
                 var req = window.getTaskByProject(projectId);
                 if (req && typeof req.always === "function") {
                     req.always(function () {
                         try {
-                            $c.scrollTop(st);
-                            $c.scrollLeft(sl);
+                            // Remove temp min-height
+                            $c.css("min-height", "");
+
+                            // Try anchor-based restoration first
+                            if (anchor && anchor.id) {
+                                var elNew = document.getElementById(anchor.id);
+                                if (elNew) {
+                                    var vRectNew = (anchor.useContainer && cEl)
+                                        ? cEl.getBoundingClientRect()
+                                        : { top: 0, left: 0 };
+                                    var rNew = elNew.getBoundingClientRect();
+                                    var dY = (rNew.top - vRectNew.top) - anchor.topInView;
+                                    var dX = (rNew.left - vRectNew.left) - anchor.leftInView;
+                                    if (anchor.useContainer && cEl) {
+                                        cEl.scrollTop += dY;
+                                        cEl.scrollLeft += dX;
+                                    } else {
+                                        window.scrollTo(
+                                            (anchor.winX || 0) + dX,
+                                            (anchor.winY || 0) + dY
+                                        );
+                                    }
+                                } else {
+                                    // Fallback to simple container scroll restore
+                                    $c.scrollTop(containerScrolls.st);
+                                    $c.scrollLeft(containerScrolls.sl);
+                                }
+                            } else {
+                                // Fallback to simple container scroll restore
+                                $c.scrollTop(containerScrolls.st);
+                                $c.scrollLeft(containerScrolls.sl);
+                            }
                         } catch (_) {}
                     });
                 }
@@ -47,9 +141,13 @@
                     var inst = ensureInstance();
                     inst && inst.repaintEverything && inst.repaintEverything();
                 } catch (_) {}
+                try { $c.css("min-height", ""); } catch (_) {}
             }
         } catch (_) {}
     }
+
+    // Expose to global so other modules (DnD) can request a partial refresh while preserving scroll
+    try { window.refreshTaskTreePartial = refreshTaskTreePartial; } catch (_) {}
 
     function ensureInstance() {
         if (instance) return instance;
@@ -190,15 +288,12 @@
                         }
                     } catch (_) {}
                     if (!parentId || !childId || parentId === childId) return;
+                    // Re-parent the child to the selected parent (single-parent tree layout)
                     $.ajax({
-                        url:
-                            appUrl +
-                            "/task/" +
-                            encodeURIComponent(childId) +
-                            "/parents",
-                        type: "POST",
-                        data: JSON.stringify({ parent_id: Number(parentId) }),
-                        contentType: "application/json",
+                        url: appUrl + "/task/" + encodeURIComponent(childId),
+                        type: "PUT",
+                        data: { parent_id: String(parentId) },
+                        dataType: "json",
                         headers: {
                             "X-CSRF-TOKEN": csrf,
                             "X-Requested-With": "XMLHttpRequest",
@@ -207,8 +302,7 @@
                     })
                         .done(function (res) {
                             var ok = !!(
-                                res &&
-                                (res.status === "success" || res.code === 200)
+                                res && (res.status === "success" || res.code === 200)
                             );
                             if (!ok) {
                                 try {
@@ -218,8 +312,7 @@
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            (res && res.message) ||
-                                                "Gagal menambah parent",
+                                            (res && res.message) || "Gagal memindahkan task",
                                             "warning",
                                             3000
                                         );
@@ -228,10 +321,14 @@
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            "Parent ditambahkan",
+                                            "Task dipindahkan",
                                             "success",
                                             1400
                                         );
+                                } catch (_) {}
+                                // Remove the temporary connection right away to prevent odd visuals
+                                try {
+                                    info.connection && inst.deleteConnection(info.connection);
                                 } catch (_) {}
                                 // Reload only the tree content to reflect new relationship
                                 refreshTaskTreePartial();
@@ -269,33 +366,59 @@
                         }
                     } catch (_) {}
                     if (!parentId || !childId) return;
-                    $.ajax({
-                        url:
-                            appUrl +
-                            "/task/" +
-                            encodeURIComponent(childId) +
-                            "/parents",
-                        type: "DELETE",
-                        data: JSON.stringify({ parent_id: Number(parentId) }),
-                        contentType: "application/json",
-                        headers: {
-                            "X-CSRF-TOKEN": csrf,
-                            "X-Requested-With": "XMLHttpRequest",
-                            Accept: "application/json",
-                        },
-                    })
+                    // If the clicked edge is the main parent relation, clear parent_id; otherwise remove extra parent link
+                    var child = null;
+                    try {
+                        var idStr = String(childId);
+                        for (var i = 0; i < (currentTasks || []).length; i++) {
+                            if (String(currentTasks[i].id) === idStr) {
+                                child = currentTasks[i];
+                                break;
+                            }
+                        }
+                    } catch (_) {}
+
+                    var isMainParent = false;
+                    try { isMainParent = child && String(child.parent_id || '') === String(parentId); } catch(_) {}
+
+                    var ajaxOpts = isMainParent
+                        ? {
+                              url: appUrl + "/task/" + encodeURIComponent(childId),
+                              type: "PUT",
+                              data: { parent_id: null },
+                              dataType: "json",
+                              headers: {
+                                  "X-CSRF-TOKEN": csrf,
+                                  "X-Requested-With": "XMLHttpRequest",
+                                  Accept: "application/json",
+                              },
+                          }
+                        : {
+                              url:
+                                  appUrl +
+                                  "/task/" +
+                                  encodeURIComponent(childId) +
+                                  "/parents",
+                              type: "DELETE",
+                              data: JSON.stringify({ parent_id: Number(parentId) }),
+                              contentType: "application/json",
+                              headers: {
+                                  "X-CSRF-TOKEN": csrf,
+                                  "X-Requested-With": "XMLHttpRequest",
+                                  Accept: "application/json",
+                              },
+                          };
+
+                    $.ajax(ajaxOpts)
                         .done(function (res) {
-                            if (
-                                res &&
-                                (res.status === "success" || res.code === 200)
-                            ) {
+                            if (res && (res.status === "success" || res.code === 200)) {
                                 try {
                                     inst.deleteConnection(conn);
                                 } catch (_) {}
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            "Parent dihapus",
+                                            isMainParent ? "Parent utama dihapus" : "Parent dihapus",
                                             "success",
                                             1200
                                         );
@@ -342,6 +465,7 @@
         } catch (_) {}
         var inst = ensureInstance();
         if (!inst) return;
+        try { currentTasks = Array.isArray(tasks) ? tasks.slice() : []; } catch(_) { currentTasks = []; }
         try {
             (tasks || []).forEach(function (t) {
                 var $el = $("#" + getElId(t.id));

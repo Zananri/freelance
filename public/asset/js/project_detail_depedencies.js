@@ -738,21 +738,17 @@ $("#fullscreen-tree-btn").on("click", function () {
                 },
                 dataType: "json",
             })
-                .done(function (response) {
+                .done(function () {
                     try {
-                        var map = taskMap();
-                        var dragged = map[String(draggedId)];
-                        if (dragged) {
-                            dragged.parent_id = null;
+                        if (typeof window.refreshTaskTreePartial === 'function') {
+                            window.refreshTaskTreePartial();
+                        } else {
+                            // Fallback to local render if global not available
+                            var map = taskMap();
+                            var dragged = map[String(draggedId)];
+                            if (dragged) dragged.parent_id = null;
+                            renderTaskList(allTasks);
                         }
-                        renderTaskList(allTasks);
-                    } catch (_) {}
-
-                    // Don't reload from server to preserve positioning
-                    // Local data is already updated above
-
-                    // Show success message
-                    try {
                         if (typeof window.showFloatingAlert === "function") {
                             window.showFloatingAlert(
                                 "Task berhasil dikeluarkan dari parent",
@@ -838,13 +834,13 @@ $("#fullscreen-tree-btn").on("click", function () {
             })
                 .done(function () {
                     try {
-                        if (dragged) {
-                            dragged.parent_id = targetId;
+                        if (typeof window.refreshTaskTreePartial === 'function') {
+                            window.refreshTaskTreePartial();
+                        } else {
+                            if (dragged) dragged.parent_id = targetId;
+                            try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                         }
-                        // Avoid full re-render to keep card positions stable; let jsPlumb repaint
-                        try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                     } catch (_) {}
-                    // Don't reload from server to maintain consistent behavior
                 })
                 .fail(function (xhr) {
                     try {
@@ -1055,18 +1051,13 @@ $("#fullscreen-tree-btn").on("click", function () {
                 })
                     .done(function () {
                         try {
-                            if (dragged) {
-                                dragged.parent_id = null;
+                            if (typeof window.refreshTaskTreePartial === 'function') {
+                                window.refreshTaskTreePartial();
+                            } else {
+                                if (dragged) dragged.parent_id = null;
+                                renderTaskList(allTasks);
                             }
-                            renderTaskList(allTasks);
-                        } catch (_) {}
-
-                        // Don't reload from server to preserve positioning
-                        // Local data is already updated above
-                        try {
-                            if (
-                                typeof window.showFloatingAlert === "function"
-                            ) {
+                            if (typeof window.showFloatingAlert === "function") {
                                 window.showFloatingAlert(
                                     "Task berhasil dikeluarkan dari parent",
                                     "success",
@@ -1126,12 +1117,13 @@ $("#fullscreen-tree-btn").on("click", function () {
                 })
                     .done(function () {
                         try {
-                            if (dragged) {
-                                dragged.parent_id = targetId;
+                            if (typeof window.refreshTaskTreePartial === 'function') {
+                                window.refreshTaskTreePartial();
+                            } else {
+                                if (dragged) dragged.parent_id = targetId;
+                                try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                             }
-                            try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                         } catch (_) {}
-                        // Don't reload from server to maintain consistent behavior
                     })
                     .fail(function (xhr) {
                         try {
