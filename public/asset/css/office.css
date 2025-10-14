@@ -1078,6 +1078,25 @@ td > .btn-delete {
   "21x9": calc(9 / 21 * 100%)
 ); */
 
+
+.w-14px{
+    width: 24px;
+}
+
+.h-14px{
+    height: 14px;
+}
+
+.w-24px{
+    width: 24px;
+}
+
+.h-24px{
+    height: 24px;
+}
+
+
+
 .bg-opacity-10 {
     --bs-bg-opacity: 0.1;
 }

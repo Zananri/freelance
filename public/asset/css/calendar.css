@@ -129,6 +129,12 @@
     display: none;
 }
 
+.modal .act-icon-edit,
+.modal .act-icon-delete{
+    color: #3C404B;
+    cursor: pointer;
+}
+
 .modal .modal-content{
     border-radius: 20px;
     background-color: #F0F1F8;
@@ -222,6 +228,7 @@
 .modal .item-event{
     opacity: 0.8;
     transition: all 0.3s;
+    cursor: pointer;
 }
 
 .modal .item-event:hover{
@@ -285,8 +292,44 @@
 }
  
 
+.dropdown-list-employee{
+    position: absolute;
+    bottom: 0px; left: 0px;
+    max-height: 250px;
+    overflow: auto;
+    width: 100%;
+}
+.dropdown-list-employee .dropdown-item:hover{
+    cursor: pointer;
+    background-color: #eeeff6;
+}
+.dropdown-list-employee .dropdown-item .employee-photo{
+    width: 34px;
+    height: 34px;
+    object-fit: cover;
+}
 
+.box-selected-employee .employee-item{
+    background-color: #f9faff;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
 
+.box-selected-employee .employee-item .employee-photo{
+    width: 28px;
+    height: 28px;
+    object-fit: cover;
+}
+.box-selected-employee .employee-item .act-remove-employee{
+    color: #444;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.box-selected-employee .employee-item .act-remove-employee:hover{
+    color: #b53b3b;
+}
 
 .dropdown-color .dropdown-menu{
     width: 50px !important;

@@ -314,14 +314,18 @@
                         </div>
                         
                         
-                        <div class="loader d-none" >
-                            <div class="box-loader rounded-20" >
-                                <div class="text-center">
-                                    <div class="spinner-border text-secondary" role="status">
+                        <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                            <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                                <div>
+                                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
+                                    <div class="fs-14">Loading...</div>
                                 </div>
+                                
                             </div>
+                            
                         </div>
 
                     </div> 
@@ -338,7 +342,20 @@
                     <div class="modal-body position-relative p-0">
                         <div class="box-header-event rounded-top-4">
                             <div class="p-4 pb-3 bg-white bg-opacity-40  rounded-top-4">
-                                <div class="text-event-title fs-16 fw-medium"></div>
+                                
+                                <div class="d-flex gap-3 align-items-center justify-content-between w-100">
+                                    <div class="w-100">
+                                        <span class="text-event-title fs-16 fw-medium" ></span>
+                                    </div>
+                                    <div class="">
+                                        <div class="white-space-nowrap fs-12">
+                                            <span class="material-symbols-outlined fs-14 me-3 act-icon-edit">edit</span>
+                                            <span class="material-symbols-outlined fs-14 act-icon-delete">delete</span>
+                                        </div>
+                                    </div>
+                                    
+                                </div>  
+
                                 <div class="d-flex gap-3 align-items-center justify-content-between w-100">
                                     <div class="text-event-date fs-10 fw-normal  "></div>
                                     <div class="text-event-time fs-10 fw-normal  "></div>
@@ -355,31 +372,27 @@
                         <div class="p-4">
                             <div class="row">
                                 
-                                <div class="col-4">
+                                <div class="col-6">
                                     <button type="button" class="btn btn-close-modal w-100" >Close</button>
                                 </div>
 
-                                <div class="col-4">
-                                    <button type="button" class="btn btn-edit-modal w-100 btn-edit-event" >Edit</button>
-                                </div>
-
-                                <div class="col-4">
-                                    <button type="button" class="btn btn-delete-modal  w-100 btn-delete-event" >Delete</button>
-                                </div>
-
                             </div>
                         </div>
                         
                         
-                        <div class="loader d-none" >
-                            <div class="box-loader rounded-20" >
-                                <div class="text-center">
-                                    <div class="spinner-border text-secondary" role="status">
+                        <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                            <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                                <div>
+                                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
                                         <span class="visually-hidden">Loading...</span>
                                     </div>
+                                    <div class="fs-14">Loading...</div>
                                 </div>
+                                
                             </div>
-                        </div>
+                            
+                        </div> 
 
                     </div> 
 
@@ -500,18 +513,80 @@
 
                                 <div class="mb-3">
                                     <label for="event-description" class="form-label fs-14">Description</label>
-                                    <textarea class="form-control" name="event_description" id="event-description" rows="3"></textarea>
+                                    <textarea class="form-control" name="event_description" id="event-description" rows="2"></textarea>
                                 </div>
+
+                                <div class="mb-3">
+                                    <label for="event-share-to" class="form-label fs-14">Share to</label>
+                                    <select class="form-select" name="event_share_to" id="event-share-to" >
+                                        <option value="PERSONAL">Personal</option>
+                                        <option value="PUBLIC">Public</option>
+                                        <option value="GUEST">Add Guest</option>
+                                    </select>
+                                </div>
+
+                                <div class="position-relative">
+                                    <div class="dropdown-list-employee bg-light rounded-2 shadow-sm scrollbar-transparent d-none">
+                                        @foreach ($employee as $item)
+                                         
+                                            @php
+                                                $photoPofile = asset('asset/img/avatar.png');
+                                                if(file_exists(asset($item->profile_picture))){
+                                                    $photoPofile = asset($item->profile_picture);
+                                                }
+                                            @endphp
+
+                                            <label class="dropdown-item d-flex align-items-center justify-content-between p-2" data-id="{{ $item->id }}" data-name="{{ $item->name }}" data-photo="{{ $photoPofile }}" data-division-job="{{ $item->name_division}}/{{ $item->job_name}}">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="{{ $photoPofile }}" alt="{{ $item->name }}" class="employee-photo rounded-circle me-2">
+                                                    <div class="d-flex flex-column">
+                                                        <span class="employee-name fs-14">{{ $item->name }}</span>
+                                                        <small class="fs-10">{{ $item->name_division}}/{{ $item->job_name}}</small>
+                                                    </div>
+                                                </div>
+                                                <input type="checkbox" class="employee-checkbox" data-id="{{ $item->id }}" data-name="{{ $item->name }}" data-photo="{{ $photoPofile }}" data-division-job="{{ $item->name_division}}/{{ $item->job_name}}">
+                                            </label>
+
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                <div class="box-input-guest mb-3 d-none">
+                                    <label for="search-guest" class="form-label fs-14">Select Guest</label>
+                                    <input type="text" class="form-control" name="event_search_guest" id="edit-search-guest" placeholder="Guest name" />
+                                </div>
+                                
+                                <input type="hidden" name="employee_share_id">
+
+                                <div class="box-selected-employee">
+
+                                    {{-- <div class="employee-item">
+                                        <div class="d-flex align-items-center justify-content-between p-2" data-id="{{ $item->id }}" data-photo="{{ $photoPofile }}" data-division-job="{{ $item->name_division}}/{{ $item->job_name}}">
+                                            <div class="d-flex align-items-center">
+                                                <img src="{{ $photoPofile }}" alt="{{ $item->name }}" class="employee-photo rounded-circle me-2">
+                                                <div class="d-flex flex-column">
+                                                    <span class="employee-name fs-12 fw-medium">{{ $item->name }}</span>
+                                                    <small class="fs-10">{{ $item->name_division}}/{{ $item->job_name}}</small>
+                                                </div>
+                                            </div>
+                                            <span class="material-symbols-outlined act-remove-employee">
+                                                delete
+                                            </span>
+                                        </div>
+                                    </div> --}}
+
+                                </div>
+
 
                                 <div class="mb-3">
                                     <div class="row">
                                         <div class="col-6">
                                             <label for="start-date" class="form-label fs-14">Start Date</label>
-                                            <input type="date" class="form-control" name="start_date" id="start-date"  />
+                                            <input type="date" class="form-control" name="start_date" id="start-date" value="{{ date('Y-m-d') }}"  />
                                         </div>
                                         <div class="col-6">
                                             <label for="end-date" class="form-label fs-14">End Date</label>
-                                            <input type="date" class="form-control" name="end_date" id="end-date"  />
+                                            <input type="date" class="form-control" name="end_date" id="end-date" value="{{ date('Y-m-d') }}" />
                                         </div>
                                     </div>
                                 </div>
@@ -520,11 +595,11 @@
                                     <div class="row">
                                         <div class="col-6">
                                             <label for="start-time" class="form-label fs-14">Start Time</label>
-                                            <input type="time" class="form-control" name="start_time" id="start-time"  />
+                                            <input type="time" class="form-control" name="start_time" id="start-time" value="{{ date('H:i') }}"  />
                                         </div>
                                         <div class="col-6">
                                             <label for="end-time" class="form-label fs-14">End Time</label>
-                                            <input type="time" class="form-control" name="end_time" id="end-time"  />
+                                            <input type="time" class="form-control" name="end_time" id="end-time"  value="{{ date('H:i') }}"  />
                                         </div>
                                     </div>
                                 </div>
@@ -617,8 +692,57 @@
 
                                 <div class="mb-3">
                                     <label for="edit-event-description" class="form-label fs-14">Description</label>
-                                    <textarea class="form-control" name="event_description" id="edit-event-description" rows="3"></textarea>
+                                    <textarea class="form-control" name="event_description" id="edit-event-description" rows="2"></textarea>
                                 </div>
+
+                                
+
+                                <div class="mb-3">
+                                    <label for="event-share-to" class="form-label fs-14">Share to</label>
+                                    <select class="form-select" name="event_share_to" id="event-share-to" >
+                                        <option value="PERSONAL">Personal</option>
+                                        <option value="PUBLIC">Public</option>
+                                        <option value="GUEST">Add Guest</option>
+                                    </select>
+                                </div>
+
+                                <div class="position-relative">
+                                    <div class="dropdown-list-employee bg-light rounded-2 shadow-sm scrollbar-transparent d-none">
+                                        @foreach ($employee as $item)
+                                         
+                                            @php
+                                                $photoPofile = asset('asset/img/avatar.png');
+                                                if(file_exists(asset($item->profile_picture))){
+                                                    $photoPofile = asset($item->profile_picture);
+                                                }
+                                            @endphp
+
+                                            <label class="dropdown-item d-flex align-items-center justify-content-between p-2" data-id="{{ $item->id }}" data-photo="{{ $photoPofile }}" data-division-job="{{ $item->name_division}}/{{ $item->job_name}}">
+                                                <div class="d-flex align-items-center">
+                                                    <img src="{{ $photoPofile }}" alt="{{ $item->name }}" class="employee-photo rounded-circle me-2">
+                                                    <div class="d-flex flex-column">
+                                                        <span class="employee-name fs-14">{{ $item->name }}</span>
+                                                        <small class="fs-10">{{ $item->name_division}}/{{ $item->job_name}}</small>
+                                                    </div>
+                                                </div>
+                                                <input type="checkbox" class="employee-checkbox" data-id="{{ $item->id }}" data-name="{{ $item->name }}" data-photo="{{ $photoPofile }}" data-division-job="{{ $item->name_division}}/{{ $item->job_name}}">
+                                            </label>
+
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                <div class="box-input-guest mb-3 d-none">
+                                    <label for="search-guest" class="form-label fs-14">Select Guest</label>
+                                    <input type="text" class="form-control" name="event_search_guest" id="edit-search-guest" placeholder="Guest name" />
+                                </div>
+
+                                <input type="hidden" name="employee_share_id">
+
+                                <div class="box-selected-employee">
+
+                                </div>
+
 
                                 <div class="mb-3">
                                     <div class="row">

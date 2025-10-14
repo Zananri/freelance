@@ -118,7 +118,7 @@ let ARR_DATA_CALENDAR = [];
 
 async function getAllEventEmployeeCalendarByMonth(year,month){
 
-    $.ajax({
+    return getAllEven = await $.ajax({
         url: appUrl + "/calendar/all-event-employee-calendar-by-month",
         type: "GET",
         data:{
@@ -134,6 +134,7 @@ async function getAllEventEmployeeCalendarByMonth(year,month){
         },
         success: function(response) {
             
+            ARR_DATA_CALENDAR = [];
 
             var resData = response.data;
             var employeeCalendar = resData.employeeCalendar;
@@ -150,7 +151,6 @@ async function getAllEventEmployeeCalendarByMonth(year,month){
             if(ARR_DATA_CALENDAR.length == 0){
                 $('#calendarAllModal .box-data-event').html(' ');
             }
-                    
 
             return 'done-get-data';
         }
@@ -207,12 +207,14 @@ function htmlItemEvent(dataRow){
                     </div>
                 </div>
                 <div class="col-event-title w-100">
-                    <div class="p-2 rounded-3 fs-14" style="background-color:${dataRow.color_event};">
-                        <span class="text-title-event text-body fw-medium">
-                            ${dataRow.title_event}
-                        </span>
-                        <div class="fs-12 text-body text-description-event">
-                            ${description}
+                    <div class=" rounded-3 fs-14" style="background-color:${dataRow.color_event};">
+                        <div class="p-2 pb-3 bg-white bg-opacity-20  rounded-3">
+                            <span class="text-title-event text-body fw-medium">
+                                ${dataRow.title_event}
+                            </span>
+                            <div class="fs-12 text-body text-description-event">
+                                ${description}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -342,6 +344,107 @@ $('#calendarDayModal .btn-new-event').on('click',function(){
     newEventModal.show();
 });
 
+$('#newEventModal [name="event_share_to"]').on('change',function(){
+    let shareTo = $(this).val();
+    
+    if(shareTo == 'GUEST'){
+        $('#newEventModal .box-input-guest, #newEventModal .box-selected-employee').removeClass('d-none');
+    }else{
+        $('#newEventModal .box-input-guest, #newEventModal .box-selected-employee').addClass('d-none');
+        $('#newEventModal [name="employee_share_id"]').val();
+        $('#newEventModal .box-selected-employee').html(' ');
+        $('#newEventModal .employee-checkbox').prop("checked", false);
+    }
+});
+
+$('#newEventModal .box-input-guest [name="event_search_guest"]').focus(function(){
+    $('#newEventModal .dropdown-list-employee').removeClass('d-none');
+});
+
+$('#newEventModal .box-input-guest [name="event_search_guest"]').on('keyup',function(){
+    let searchQuery = $(this).val();
+
+    $('#newEventModal .dropdown-list-employee .dropdown-item').addClass('d-none');
+
+    $('#newEventModal .dropdown-list-employee .dropdown-item').each(function(){
+        let employeeName = $(this).find('.employee-name').text();
+        
+        if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
+            $(this).closest('.dropdown-item').removeClass('d-none');
+        }
+
+    });
+
+});
+
+$(document).click(function(event) {
+  // Check if the clicked element is not the target element or a descendant of it
+  if (!$(event.target).closest("#newEventModal .dropdown-list-employee").length && !$(event.target).closest('#newEventModal .box-input-guest [name="event_search_guest"]').length ) {
+    // Code to execute when a click occurs outside #myElement
+    $('#newEventModal .dropdown-list-employee').addClass('d-none');
+  }
+});
+
+// To prevent clicks inside #myElement from triggering the document click handler
+$("#newEventModal .dropdown-list-employee").click(function(event) {
+    event.stopPropagation();
+});
+
+$('#newEventModal .employee-checkbox').on('change',function(){
+    setEmployeeSelected();
+});
+
+function htmlEmployeeSelected(employeeId){
+
+    //dropdown-item d-flex align-items-center justify-content-between p-2" data-id="{{ $item->id }}"
+    //<input type="checkbox" class="employee-checkbox" data-id="{{ $item->id }}" data-name="{{ $item->name }}" data-photo="{{ $photoPofile }}" data-division-job="{{ $item->name_division}}/{{ $item->job_name}}">
+    //let employeeId = $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).attr('data-id');
+    let employeeName = $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).attr('data-name');
+    let employeePhoto = $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).attr('data-photo');
+    let employeeDivisionJob = $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).attr('data-division-job');
+
+    let rowHtml = `<div class="employee-item">
+                        <div class="d-flex align-items-center justify-content-between p-2" >
+                            <div class="d-flex align-items-center">
+                                <img src="${employeePhoto}" alt="" class="employee-photo rounded-circle me-2">
+                                <div class="d-flex flex-column">
+                                    <span class="employee-name fs-12 fw-medium">${employeeName}</span>
+                                    <small class="fs-10">${employeeDivisionJob}</small>
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined act-remove-employee" data-id="${employeeId}">
+                                delete
+                            </span>
+                        </div>
+                    </div>`;
+    return rowHtml;
+}
+
+function setEmployeeSelected(){
+
+    $('#newEventModal .box-selected-employee').html(' ');
+
+    let arrId = [];
+
+    $('#newEventModal .employee-checkbox:checked').each(function(){
+        let idEmployee = $(this).attr('data-id');
+        arrId.push(idEmployee);
+        $('#newEventModal .box-selected-employee').append(htmlEmployeeSelected(idEmployee));
+    });
+
+    $('#newEventModal [name="employee_share_id"]').val(arrId.join(','));
+}
+
+$(document).on('click','#newEventModal .act-remove-employee',function(){
+    let employeeId = $(this).attr('data-id');
+
+    $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).prop("checked", false);
+    setEmployeeSelected();
+});
+
+
+
+
 
 $('#newEventModal .dropdown-color .dropdown-item').click(function(){
     let color = $(this).find('.dot-color').css('background-color');
@@ -391,56 +494,110 @@ function submitNewEmployeeCalendarEvent(){
 }
 
 
-$(document).on('click','#calendarDayModal .item-event',function(){
+$(document).on('click','#calendarDayModal .item-event, #calendarAllModal .item-event',function(){
 
     let itemEvenId = $(this).attr('data-event-id');
     let employeeId = $(this).attr('data-employee');
     let status = $(this).attr('data-status');
 
-    setEventDetail(itemEvenId,employeeId);
-
-    eventDetailModal.show();
-    calendarDayModal.hide();
+    $('#calendarDayModal .box-loader,#calendarAllModal .box-loader').fadeIn();
+    
+    getEventDetail(itemEvenId,employeeId).then(res=>{
+        eventDetailModal.show();
+        calendarDayModal.hide();
+        calendarAllModal.hide();
+        $('#calendarDayModal .box-loader,#calendarAllModal .box-loader').fadeOut();
+    });
+    
+    $('#calendarDayModal .box-loader,#calendarAllModal .box-loader').fadeOut();
 
     // calendarDayModal.hide();
     // newEventModal.show();
 });
 
-function setEventDetail(itemEvenId,employeeId){
-    let rowItem = ARR_DATA_CALENDAR.find(item => item.id == itemEvenId);
+function setEventDetail(employeeCalendar,employeeCalendarShare){
 
     //showAlertMsg(rowItem.title_event,'success',5000);
 
     // text-event-title text-event-date text-event-time text-event-description
 
-    $('#eventDetailModal .text-event-title, #deleteEventModal .text-event-title').text(rowItem.title_event);
-    $('#eventDetailModal .text-event-date, #deleteEventModal .text-event-date').text(formatDateENMediumWithDay(rowItem.date_event));
-    $('#eventDetailModal .text-event-time, #deleteEventModal .text-event-time').text(formatTimeDisplay(rowItem.start_time) + ' - ' + formatTimeDisplay(rowItem.end_time));
-    $('#eventDetailModal .text-event-description').text(rowItem.description);
-    $('#eventDetailModal .box-header-event, #deleteEventModal .box-header-event').css('background-color',rowItem.color_event);
+    $('#eventDetailModal .text-event-title, #deleteEventModal .text-event-title').text(employeeCalendar.title_event);
+    $('#eventDetailModal .text-event-date, #deleteEventModal .text-event-date').text(formatDateENMediumWithDay(employeeCalendar.date_event));
+    $('#eventDetailModal .text-event-time, #deleteEventModal .text-event-time').text(formatTimeDisplay(employeeCalendar.start_time) + ' - ' + formatTimeDisplay(employeeCalendar.end_time));
+    $('#eventDetailModal .text-event-description').text(employeeCalendar.description);
+    $('#eventDetailModal .box-header-event, #deleteEventModal .box-header-event').css('background-color',employeeCalendar.color_event);
 
-    $('#editEventModal [name="event_id"], #deleteEventModal [name="event_id"]').val(itemEvenId);
-    $('#editEventModal [name="employee_id"], #deleteEventModal [name="employee_id"]').val(employeeId);
+    $(`#editEventModal .employee-checkbox`).prop("checked", false);
+    
+    for (let i = 0; i < employeeCalendarShare.length; i++) {
+        const employeeId = employeeCalendarShare[i].employee_id;
+        
+        $(`#editEventModal .employee-checkbox[data-id="${employeeId}"]`).prop("checked", true);
+    }
+    
+    setEmployeeSelectedEdit();
 
-    $('#editEventModal [name="event_title"]').val(rowItem.title_event);
-    $('#editEventModal [name="event_description"]').val(rowItem.description);
-    $('#editEventModal [name="event_color"]').val(rowItem.color_event);
+    $('#editEventModal [name="event_id"], #deleteEventModal [name="event_id"]').val(employeeCalendar.id);
+    $('#editEventModal [name="employee_id"], #deleteEventModal [name="employee_id"]').val(employeeCalendar.employee_id);
 
-    $('#editEventModal [name="start_date"]').val(rowItem.date_event);
-    $('#editEventModal [name="end_date"]').val(rowItem.date_event);
-    $('#editEventModal [name="start_time"]').val(rowItem.start_time);
-    $('#editEventModal [name="end_time"]').val(rowItem.end_time);
+    if(employeeCalendar.share_to == 'GUEST'){
+        $('#editEventModal .box-input-guest, #editEventModal .box-selected-employee').removeClass('d-none');
+    }else{
+        $('#editEventModal .box-input-guest, #editEventModal .box-selected-employee').addClass('d-none');
+        $('#editEventModal [name="employee_share_id"]').val();
+        $('#editEventModal .box-selected-employee').html(' ');
+        $('#editEventModal .employee-checkbox').prop("checked", false);
+    }
 
-    $('#editEventModal .dropdown-color .btn-dot-color').css('background-color',rowItem.color_event);
+    $('#editEventModal [name="event_share_to"]').val(employeeCalendar.share_to);
+    $('#editEventModal [name="event_title"]').val(employeeCalendar.title_event);
+    $('#editEventModal [name="event_description"]').val(employeeCalendar.description);
+    $('#editEventModal [name="event_color"]').val(employeeCalendar.color_event);
+
+    $('#editEventModal [name="start_date"]').val(employeeCalendar.date_event);
+    $('#editEventModal [name="end_date"]').val(employeeCalendar.date_event);
+    $('#editEventModal [name="start_time"]').val(employeeCalendar.start_time);
+    $('#editEventModal [name="end_time"]').val(employeeCalendar.end_time);
+
+    $('#editEventModal .dropdown-color .btn-dot-color').css('background-color',employeeCalendar.color_event);
 
 }
 
+async function getEventDetail(itemEvenId,employeeId){
+    let ajaxGetDetail = await $.ajax({
+        url: appUrl + "/calendar/event-employee-detail",
+        type: "GET",
+        data:{
+            'EVENT_ID' : itemEvenId,
+            'EMPLOYEE_ID' : employeeId
+        },
+        beforeSend:function(){
+            //$('.col-user-management .loader').fadeIn('fast');
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+        },
+        success: function(response) {
+            
+            var employeeCalendar = response.data.employeeCalendar;
+            var employeeCalendarShare = response.data.employeeCalendarShare;
+
+            setEventDetail(employeeCalendar,employeeCalendarShare);
+        }
+         
+    });
+
+    return ajaxGetDetail;
+}
+
+
 $('#eventDetailModal .btn-close-modal').click(function(){
     eventDetailModal.hide();
-    calendarDayModal.show();
+    //calendarDayModal.show();
 });
 
-$('#eventDetailModal .btn-edit-modal').click(function(){
+$('#eventDetailModal .act-icon-edit').click(function(){
     eventDetailModal.hide();
     editEventModal.show();
 });
@@ -457,53 +614,176 @@ $('#editEventModal .btn-close-modal').click(function(){
 });
 
 $('#editEventModal .btn-submit-modal').click(function(){
-    submitEditEmployeeCalendarEvent();
+    processEditEvent();
 });
 
-async function submitEditEmployeeCalendarEvent(){
-    $.ajax({
-        url: appUrl + "/calendar/edit-employee-event",
-        type: "POST",
-        data: new FormData($('#form-edit-event').get(0)) ,
-        cache: false,
-        processData: false,
-        contentType: false,
-        beforeSend:function(){
-            $('#editEventModal .box-loader').fadeIn();
-        },
-        error:function(res){
-            var resJson = res.responseJSON;
-            showAlertMsg(resJson.message,'error',5000);
-            $('#editEventModal .box-loader').fadeOut();
-            //$('.loader').fadeOut('fast');
-        },
-        success: function(response) {
+async function processEditEvent() {
+  try {
+    const editEvent = await submitEditEmployeeCalendarEvent();
+    const processRender = await renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth());
 
-            renderEventCalendar(currentDate.getFullYear(), currentDate.getMonth()).then(res=>{
-                
-                let itemEvenId = $('#editEventModal [name="event_id"]').val();
-                let employeeId = $('#editEventModal [name="employee_id"]').val();
+    //console.log(processRender);
+    if((editEvent.status) == 'success' && processRender){
+        let itemEvenId = $('#editEventModal [name="event_id"]').val();
+        let employeeId = $('#editEventModal [name="employee_id"]').val();
 
-                setEventDetail(itemEvenId,employeeId);
-                editEventModal.hide();
-                showAlertMsg(response.message,'success',5000);
-                eventDetailModal.hide();
+        getEventDetail(itemEvenId,employeeId);
 
-                $('#editEventModal .box-loader').fadeOut();
-            });
-            
+        editEventModal.hide();
+        eventDetailModal.show();
 
-            
+        $('#editEventModal .box-loader').fadeOut();
+    }
 
-        }
-    });
+
+    // Further operations with the received data
+  }catch (error) {
+    console.error('Error in processing data:', error);
+  }
 }
+
+async function submitEditEmployeeCalendarEvent(){
+    try {
+        const result = await $.ajax({
+            url: appUrl + "/calendar/edit-employee-event",
+            type: "POST",
+            data: new FormData($('#form-edit-event').get(0)) ,
+            cache: false,
+            processData: false,
+            contentType: false,
+            beforeSend:function(){
+                $('#editEventModal .box-loader').fadeIn();
+            },
+            error:function(res){
+                var resJson = res.responseJSON;
+                showAlertMsg(resJson.message,'error',5000);
+                $('#editEventModal .box-loader').fadeOut();
+                //$('.loader').fadeOut('fast');
+                return 'ERROR';
+            },
+            success: function(response) {
+                //$('#editEventModal .box-loader').fadeOut();
+                showAlertMsg(response.message,'success',5000);
+                $('#editEventModal .box-loader').fadeOut();
+                return 'SUCCESS';
+            }
+        });
+        
+    return result;
+  } catch (error) {
+    console.error('AJAX request failed:', error);
+    throw error; // Re-throw the error for further handling if needed
+  }
+
+    
+}
+
+
+$('#editEventModal [name="event_share_to"]').on('change',function(){
+    let shareTo = $(this).val();
+    
+    if(shareTo == 'GUEST'){
+        $('#editEventModal .box-input-guest, #editEventModal .box-selected-employee').removeClass('d-none');
+    }else{
+        $('#editEventModal .box-input-guest, #editEventModal .box-selected-employee').addClass('d-none');
+        $('#editEventModal [name="employee_share_id"]').val();
+        $('#editEventModal .box-selected-employee').html(' ');
+        $('#editEventModal .employee-checkbox').prop("checked", false);
+    }
+});
+
+$('#editEventModal .box-input-guest [name="event_search_guest"]').focus(function(){
+    $('#editEventModal .dropdown-list-employee').removeClass('d-none');
+});
+
+$('#editEventModal .box-input-guest [name="event_search_guest"]').on('keyup',function(){
+    let searchQuery = $(this).val();
+
+    $('#editEventModal .dropdown-list-employee .dropdown-item').addClass('d-none');
+
+    $('#editEventModal .dropdown-list-employee .dropdown-item').each(function(){
+        let employeeName = $(this).find('.employee-name').text();
+        
+        if(employeeName.toLowerCase().includes(searchQuery.toLowerCase())){
+            $(this).closest('.dropdown-item').removeClass('d-none');
+        }
+
+    });
+
+});
+
+$(document).click(function(event) {
+  // Check if the clicked element is not the target element or a descendant of it
+  if (!$(event.target).closest("#editEventModal .dropdown-list-employee").length && !$(event.target).closest('#editEventModal .box-input-guest [name="event_search_guest"]').length ) {
+    // Code to execute when a click occurs outside #myElement
+    $('#editEventModal .dropdown-list-employee').addClass('d-none');
+  }
+});
+
+// To prevent clicks inside #myElement from triggering the document click handler
+$("#editEventModal .dropdown-list-employee").click(function(event) {
+    event.stopPropagation();
+});
+
+$('#editEventModal .employee-checkbox').on('change',function(){
+    setEmployeeSelectedEdit();
+});
+
+function htmlEmployeeSelectedEdit(employeeId){
+
+    //dropdown-item d-flex align-items-center justify-content-between p-2" data-id="{{ $item->id }}"
+    //<input type="checkbox" class="employee-checkbox" data-id="{{ $item->id }}" data-name="{{ $item->name }}" data-photo="{{ $photoPofile }}" data-division-job="{{ $item->name_division}}/{{ $item->job_name}}">
+    //let employeeId = $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).attr('data-id');
+    let employeeName = $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).attr('data-name');
+    let employeePhoto = $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).attr('data-photo');
+    let employeeDivisionJob = $(`#newEventModal .employee-checkbox[data-id="${employeeId}"]`).attr('data-division-job');
+
+    let rowHtml = `<div class="employee-item">
+                        <div class="d-flex align-items-center justify-content-between p-2" >
+                            <div class="d-flex align-items-center">
+                                <img src="${employeePhoto}" alt="" class="employee-photo rounded-circle me-2">
+                                <div class="d-flex flex-column">
+                                    <span class="employee-name fs-12 fw-medium">${employeeName}</span>
+                                    <small class="fs-10">${employeeDivisionJob}</small>
+                                </div>
+                            </div>
+                            <span class="material-symbols-outlined act-remove-employee" data-id="${employeeId}">
+                                delete
+                            </span>
+                        </div>
+                    </div>`;
+    return rowHtml;
+}
+
+function setEmployeeSelectedEdit(){
+
+    $('#editEventModal .box-selected-employee').html(' ');
+
+    let arrId = [];
+
+    $('#editEventModal .employee-checkbox:checked').each(function(){
+        let idEmployee = $(this).attr('data-id');
+        arrId.push(idEmployee);
+        $('#editEventModal .box-selected-employee').append(htmlEmployeeSelectedEdit(idEmployee));
+    });
+
+    $('#editEventModal [name="employee_share_id"]').val(arrId.join(','));
+}
+
+$(document).on('click','#editEventModal .act-remove-employee',function(){
+    let employeeId = $(this).attr('data-id');
+
+    $(`#editEventModal .employee-checkbox[data-id="${employeeId}"]`).prop("checked", false);
+    setEmployeeSelectedEdit();
+});
+
+
 
 $('#deleteEventModal .btn-close-modal').click(function(){
     eventDetailModal.show();
     deleteEventModal.hide();
 });
-$('#eventDetailModal .btn-delete-modal').click(function(){
+$('#eventDetailModal .act-icon-delete').click(function(){
     eventDetailModal.hide();
     deleteEventModal.show();
 });
