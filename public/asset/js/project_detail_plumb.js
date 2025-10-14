@@ -96,7 +96,8 @@
             }
 
             if (typeof window.getTaskByProject === "function" && projectId) {
-                var req = window.getTaskByProject(projectId);
+                // Add timestamp to prevent caching
+                var req = window.getTaskByProject(projectId, true); // pass true to force refresh
                 if (req && typeof req.always === "function") {
                     req.always(function () {
                         try {
@@ -282,12 +283,35 @@
                     var parentId = source.replace("task-node-", "");
                     var childId = target.replace("task-node-", "");
                     try {
-                        if (sRect && tRect && tRect.left < sRect.left - 5) {
-                            parentId = target.replace("task-node-", "");
-                            childId = source.replace("task-node-", "");
+                        if (sRect && tRect) {
+                            // Check horizontal first (left card = parent, right card = child)
+                            var horizontalDiff = Math.abs(tRect.left - sRect.left);
+                            var verticalDiff = Math.abs(tRect.top - sRect.top);
+                            
+                            if (horizontalDiff > 10) {
+                                // Horizontal layout: left = parent, right = child
+                                if (tRect.left < sRect.left - 5) {
+                                    parentId = target.replace("task-node-", "");
+                                    childId = source.replace("task-node-", "");
+                                }
+                            } else {
+                                // Vertical layout: top = parent, bottom = child
+                                if (sRect.top > tRect.top + 5) {
+                                    parentId = target.replace("task-node-", "");
+                                    childId = source.replace("task-node-", "");
+                                }
+                            }
                         }
                     } catch (_) {}
                     if (!parentId || !childId || parentId === childId) return;
+                    
+                    // Immediately remove the temporary connection to avoid odd visuals
+                    try {
+                        if (info && info.connection) {
+                            inst.deleteConnection(info.connection);
+                        }
+                    } catch (_) {}
+                    
                     // Add parent to the child's parent_ids array (multi-parent support)
                     $.ajax({
                         url:
@@ -310,10 +334,6 @@
                             );
                             if (!ok) {
                                 try {
-                                    info.connection &&
-                                        inst.deleteConnection(info.connection);
-                                } catch (_) {}
-                                try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
                                             (res && res.message) || "Gagal menambahkan parent",
@@ -335,9 +355,14 @@
                             }
                         })
                         .fail(function () {
+                            // Connection already deleted, just notify
                             try {
-                                info.connection &&
-                                    inst.deleteConnection(info.connection);
+                                window.showFloatingAlert &&
+                                    window.showFloatingAlert(
+                                        "Gagal menambahkan parent",
+                                        "warning",
+                                        2800
+                                    );
                             } catch (_) {}
                         });
                 } catch (_) {}
@@ -360,9 +385,24 @@
                         var tRect = $tEl.length
                             ? $tEl[0].getBoundingClientRect()
                             : null;
-                        if (sRect && tRect && tRect.left < sRect.left - 5) {
-                            parentId = tId.replace("task-node-", "");
-                            childId = sId.replace("task-node-", "");
+                        if (sRect && tRect) {
+                            // Check horizontal first (left card = parent, right card = child)
+                            var horizontalDiff = Math.abs(tRect.left - sRect.left);
+                            var verticalDiff = Math.abs(tRect.top - sRect.top);
+                            
+                            if (horizontalDiff > 10) {
+                                // Horizontal layout: left = parent, right = child
+                                if (tRect.left < sRect.left - 5) {
+                                    parentId = tId.replace("task-node-", "");
+                                    childId = sId.replace("task-node-", "");
+                                }
+                            } else {
+                                // Vertical layout: top = parent, bottom = child
+                                if (sRect.top > tRect.top + 5) {
+                                    parentId = tId.replace("task-node-", "");
+                                    childId = sId.replace("task-node-", "");
+                                }
+                            }
                         }
                     } catch (_) {}
                     if (!parentId || !childId) return;

@@ -466,16 +466,23 @@ if (!window.USE_PLUMB_ONLY) {
     });
 }
 
-function getTaskByProject(projectId) {
+function getTaskByProject(projectId, bustCache) {
     fetchProjectDueDate(projectId);
     $("#task-loading").removeClass("d-none");
     $("#task-error").addClass("d-none");
     $("#task-tree").empty();
+    
+    var ajaxData = { pageTab: currentMaxLevel };
+    if (bustCache) {
+        ajaxData._t = Date.now(); // Add timestamp to prevent caching
+    }
+    
     return $.ajax({
         url: `${appUrl}/projects/${projectId}/tasks/tree`,
         type: "GET",
-        data: { pageTab: currentMaxLevel },
+        data: ajaxData,
         dataType: "json",
+        cache: false, // Disable jQuery cache
     })
         .done(function (response) {
             $("#task-loading").addClass("d-none");
@@ -1600,11 +1607,21 @@ function initTaskDetailModal() {
             var taskId = currentTaskId;
             if (!taskId) return;
             hideMenu();
+            
+            // Clear all parents: set parent_id to null AND clear parent_ids array
+            // Use jQuery AJAX with proper data format
             $.ajax({
                 url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
                 type: 'PUT',
-                data: { parent_id: null },
+                data: { 
+                    parent_id: null,
+                    parent_ids: []
+                },
                 dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             })
             .done(function(res){
                 try {
@@ -1612,11 +1629,16 @@ function initTaskDetailModal() {
                         window.refreshTaskTreePartial();
                     } else {
                         var idStr = String(taskId);
-                        (allTasks || []).forEach(function(t){ if (String(t.id) === idStr) t.parent_id = null; });
+                        (allTasks || []).forEach(function(t){ 
+                            if (String(t.id) === idStr) {
+                                t.parent_id = null;
+                                t.parent_ids = [];
+                            }
+                        });
                         renderTaskList(allTasks);
                     }
                     if (typeof window.showFloatingAlert === 'function') {
-                        window.showFloatingAlert('Parent dibersihkan', 'success', 1400);
+                        window.showFloatingAlert('Semua parent dibersihkan', 'success', 1400);
                     }
                 } catch(_){}
             })
