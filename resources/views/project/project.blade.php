@@ -179,7 +179,7 @@
                                 <span class="material-symbols-outlined icon">file_export</span> <span
                                     class="btn-text-filter">Export</span>
                             </button>
-                            <button class="btn btn-timeline-filter-custom" type="button" data-bs-toggle="modal"
+                            <button class="btn btn-timeline-custom" type="button" data-bs-toggle="modal"
                                 data-bs-target="#timelineModal" data-label="TImeline" id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">view_timeline</span> <span
                                     class="btn-text-filter">Timeline</span>
