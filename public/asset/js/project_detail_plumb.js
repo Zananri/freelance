@@ -288,12 +288,16 @@
                         }
                     } catch (_) {}
                     if (!parentId || !childId || parentId === childId) return;
-                    // Re-parent the child to the selected parent (single-parent tree layout)
+                    // Add parent to the child's parent_ids array (multi-parent support)
                     $.ajax({
-                        url: appUrl + "/task/" + encodeURIComponent(childId),
-                        type: "PUT",
-                        data: { parent_id: String(parentId) },
-                        dataType: "json",
+                        url:
+                            appUrl +
+                            "/task/" +
+                            encodeURIComponent(childId) +
+                            "/parents",
+                        type: "POST",
+                        data: JSON.stringify({ parent_id: Number(parentId) }),
+                        contentType: "application/json",
                         headers: {
                             "X-CSRF-TOKEN": csrf,
                             "X-Requested-With": "XMLHttpRequest",
@@ -312,7 +316,7 @@
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            (res && res.message) || "Gagal memindahkan task",
+                                            (res && res.message) || "Gagal menambahkan parent",
                                             "warning",
                                             3000
                                         );
@@ -321,14 +325,10 @@
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            "Task dipindahkan",
+                                            "Parent ditambahkan",
                                             "success",
                                             1400
                                         );
-                                } catch (_) {}
-                                // Remove the temporary connection right away to prevent odd visuals
-                                try {
-                                    info.connection && inst.deleteConnection(info.connection);
                                 } catch (_) {}
                                 // Reload only the tree content to reflect new relationship
                                 refreshTaskTreePartial();
@@ -366,50 +366,22 @@
                         }
                     } catch (_) {}
                     if (!parentId || !childId) return;
-                    // If the clicked edge is the main parent relation, clear parent_id; otherwise remove extra parent link
-                    var child = null;
-                    try {
-                        var idStr = String(childId);
-                        for (var i = 0; i < (currentTasks || []).length; i++) {
-                            if (String(currentTasks[i].id) === idStr) {
-                                child = currentTasks[i];
-                                break;
-                            }
-                        }
-                    } catch (_) {}
-
-                    var isMainParent = false;
-                    try { isMainParent = child && String(child.parent_id || '') === String(parentId); } catch(_) {}
-
-                    var ajaxOpts = isMainParent
-                        ? {
-                              url: appUrl + "/task/" + encodeURIComponent(childId),
-                              type: "PUT",
-                              data: { parent_id: null },
-                              dataType: "json",
-                              headers: {
-                                  "X-CSRF-TOKEN": csrf,
-                                  "X-Requested-With": "XMLHttpRequest",
-                                  Accept: "application/json",
-                              },
-                          }
-                        : {
-                              url:
-                                  appUrl +
-                                  "/task/" +
-                                  encodeURIComponent(childId) +
-                                  "/parents",
-                              type: "DELETE",
-                              data: JSON.stringify({ parent_id: Number(parentId) }),
-                              contentType: "application/json",
-                              headers: {
-                                  "X-CSRF-TOKEN": csrf,
-                                  "X-Requested-With": "XMLHttpRequest",
-                                  Accept: "application/json",
-                              },
-                          };
-
-                    $.ajax(ajaxOpts)
+                    // Remove parent from child's parent_ids array (multi-parent)
+                    $.ajax({
+                        url:
+                            appUrl +
+                            "/task/" +
+                            encodeURIComponent(childId) +
+                            "/parents",
+                        type: "DELETE",
+                        data: JSON.stringify({ parent_id: Number(parentId) }),
+                        contentType: "application/json",
+                        headers: {
+                            "X-CSRF-TOKEN": csrf,
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                        },
+                    })
                         .done(function (res) {
                             if (res && (res.status === "success" || res.code === 200)) {
                                 try {
@@ -418,7 +390,7 @@
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            isMainParent ? "Parent utama dihapus" : "Parent dihapus",
+                                            "Parent dihapus",
                                             "success",
                                             1200
                                         );

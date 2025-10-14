@@ -130,6 +130,7 @@ function renderTaskNode(task, $template) {
     $card.css("position", function(i, v){ return v || "relative"; });
     // Ensure the overflow is visible so half-outside controls remain clickable
     try { if (!$card.css('overflow') || $card.css('overflow') === 'hidden') { $card.css('overflow', 'visible'); } } catch(_){ }
+    try { if ($card.css('z-index') == null || $card.css('z-index') === 'auto') { $card.css('z-index', 10); } } catch(_){}
         if ($card.find('.plumb-handle').length === 0) {
             const $handle = $('<div class="plumb-handle d-none" title="Drag a line to add a parent"\
                 style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
@@ -144,15 +145,12 @@ function renderTaskNode(task, $template) {
             $card.append($handle);
         }
 
-        // Add three-dots menu button and menu
+        // Add three-dots menu button (menu will be portaled to body)
         if ($card.find('.task-more-btn').length === 0) {
-            const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:4000;user-select:none;border:1px solid rgba(0,0,0,0.08);"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
-            $moreBtn.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
+            const taskId = task && task.id ? String(task.id) : null;
+            const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
+            if (taskId) $moreBtn.attr('data-task-id', taskId);
             $card.append($moreBtn);
-
-            const $menu = $('<div class="task-more-menu d-none" style="position:absolute;top:30px;right:6px;min-width:140px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:4001;overflow:hidden;"><button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;">Clear Parent</button></div>');
-            $menu.on('click', function(e){ try { e.stopPropagation(); } catch(_){} });
-            $card.append($menu);
 
             // Always show on mobile devices (no hover)
             try {
@@ -207,10 +205,12 @@ function renderTaskNode(task, $template) {
 function renderTaskList(data) {
     const $tree = $("#task-tree");
     $tree.empty();
+    try { $tree.css({ overflow: 'visible', position: function(i,v){ return v || 'relative'; } }); } catch(_){}
     if (!data || data.length === 0) return;
 
     const treeData = buildTaskTree(data);
     const $rootCol = $('<div class="root-column"></div>');
+    try { $rootCol.css({ overflow: 'visible', position: 'relative' }); } catch(_){}
     $tree.append($rootCol);
     treeData.forEach((root) => {
         $rootCol.append(renderTaskNode(root, $("#task-template")));
@@ -1544,25 +1544,62 @@ function initTaskDetailModal() {
 // Task more-menu global handlers (bind once)
 (function setupTaskMoreMenu(){
     if (window.__taskMoreMenuBound) return; window.__taskMoreMenuBound = true;
+    
+    var $globalMenu = null;
+    var currentTaskId = null;
+
+    function createOrGetMenu() {
+        if (!$globalMenu || !$globalMenu.parent().length) {
+            $globalMenu = $('<div id="task-global-more-menu" class="d-none" style="position:fixed;min-width:140px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;overflow:hidden;pointer-events:auto;"><button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button></div>');
+            $('body').append($globalMenu);
+        }
+        return $globalMenu;
+    }
+
+    function showMenuAt($btn, taskId) {
+        try {
+            var $menu = createOrGetMenu();
+            var rect = $btn[0].getBoundingClientRect();
+            var top = rect.bottom + 4;
+            var left = rect.left - 60;
+            if (left < 10) left = 10;
+            $menu.css({ top: top + 'px', left: left + 'px' });
+            $menu.removeClass('d-none');
+            currentTaskId = taskId;
+        } catch(_){}
+    }
+
+    function hideMenu() {
+        try {
+            if ($globalMenu) $globalMenu.addClass('d-none');
+            currentTaskId = null;
+        } catch(_){}
+    }
+
     // Toggle menu
     $(document).on('click', '.task-more-btn', function(e){
         try {
             e.preventDefault(); e.stopPropagation();
-            var $card = $(this).closest('.task-box');
-            var $menu = $card.find('.task-more-menu');
-            $('.task-more-menu').not($menu).addClass('d-none');
-            $menu.toggleClass('d-none');
+            var $btn = $(this);
+            var taskId = $btn.attr('data-task-id') || $btn.closest('.task-box').attr('data-task-id');
+            if (!taskId) return;
+            var $menu = createOrGetMenu();
+            if (!$menu.hasClass('d-none') && currentTaskId === taskId) {
+                hideMenu();
+            } else {
+                hideMenu();
+                showMenuAt($btn, taskId);
+            }
         } catch(_){}
     });
+
     // Clear Parent action
-    $(document).on('click', '.task-more-menu .clear-parent-action', function(e){
+    $(document).on('click', '#task-global-more-menu .clear-parent-action', function(e){
         try {
             e.preventDefault(); e.stopPropagation();
-            var $card = $(this).closest('.task-box');
-            var taskId = $card.attr('data-task-id');
+            var taskId = currentTaskId;
             if (!taskId) return;
-            var $menu = $(this).closest('.task-more-menu');
-            $menu.addClass('d-none');
+            hideMenu();
             $.ajax({
                 url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
                 type: 'PUT',
@@ -1574,7 +1611,6 @@ function initTaskDetailModal() {
                     if (typeof window.refreshTaskTreePartial === 'function') {
                         window.refreshTaskTreePartial();
                     } else {
-                        // Fallback local update
                         var idStr = String(taskId);
                         (allTasks || []).forEach(function(t){ if (String(t.id) === idStr) t.parent_id = null; });
                         renderTaskList(allTasks);
@@ -1594,11 +1630,16 @@ function initTaskDetailModal() {
             });
         } catch(_){}
     });
+
     // Click outside to close
-    $(document).on('click', function(){ try { $('.task-more-menu').addClass('d-none'); } catch(_){} });
-    // Keep menu open when hovered
-    $(document).on('mouseenter', '.task-more-menu', function(){ try { $(this).removeClass('d-none'); } catch(_){} });
-    $(document).on('mouseleave', '.task-more-menu', function(){ try { $(this).addClass('d-none'); } catch(_){} });
+    $(document).on('click', function(e){ 
+        try { 
+            if (!$(e.target).closest('#task-global-more-menu, .task-more-btn').length) {
+                hideMenu();
+            }
+        } catch(_){} 
+    });
+
     // Hide on scroll
-    $(window).on('scroll', function(){ try { $('.task-more-menu').addClass('d-none'); } catch(_){} });
+    $(window).on('scroll', function(){ try { hideMenu(); } catch(_){} });
 })();
