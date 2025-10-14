@@ -11139,6 +11139,10 @@ function filterTaskTableRows(queryRaw) {
             `;
 
             // Initialize inline Quill editor (if available)
+            // If a previous Quill instance exists it may be bound to a removed DOM node
+            // (footer.innerHTML replaced). Clear it so initTaskInlineFeedbackEditor
+            // will create a fresh instance bound to the newly-inserted editor element.
+            try { window.__quillTaskFeedbackInline = null; } catch(_) {}
             initTaskInlineFeedbackEditor(taskId);
 
             // Ensure placeholder toggling is attached for contenteditable fallback
@@ -11182,10 +11186,28 @@ function filterTaskTableRows(queryRaw) {
                 if (inlinePid) inlinePid.value = data.parent_id || '';
             } catch(_) {}
 
-            // Fill editor with existing content
-            if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
-                window.__quillTaskFeedbackInline.root.innerHTML = data.feedback_comment || "";
-            }
+            // Ensure inline editor exists; initialize if not
+            try {
+                if (!window.__quillTaskFeedbackInline) {
+                    // Attempt to create it synchronously
+                    initTaskInlineFeedbackEditor((document.getElementById('taskFeedbackModal')||{}).dataset?.taskId || '');
+                }
+            } catch(_) {}
+
+            // Fill editor with existing content (guarded)
+            try {
+                if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
+                    // Use setTimeout(0) to ensure DOM is painted and Quill has attached
+                    setTimeout(function(){
+                        try { window.__quillTaskFeedbackInline.root.innerHTML = data.feedback_comment || ""; } catch(_) {}
+                        try {
+                            if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
+                                try { window.__quillTaskFeedbackInline.setSelection(0, 0); } catch(_) {}
+                            }
+                        } catch(_) {}
+                    }, 0);
+                }
+            } catch(_) {}
 
             // Show existing image if available
             try {
