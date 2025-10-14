@@ -1764,7 +1764,7 @@ class TaskController extends Controller
 
                 $task->parent_id = $newParentId ?: null;
                 
-                // Handle parent_ids array if provided
+                // Handle parent_ids array if provided (explicit handling for empty array to clear all parents)
                 if ($request->has('parent_ids')) {
                     $parentIdsInput = $request->input('parent_ids');
                     if (is_string($parentIdsInput)) {
@@ -1776,7 +1776,12 @@ class TaskController extends Controller
                             $parentIdsInput = [];
                         }
                     }
-                    $task->parent_ids = is_array($parentIdsInput) ? array_values(array_filter(array_map('intval', $parentIdsInput))) : [];
+                    // Explicitly set to empty array if input is empty (to clear all multi-parents)
+                    if (is_array($parentIdsInput) && empty($parentIdsInput)) {
+                        $task->parent_ids = [];
+                    } else {
+                        $task->parent_ids = is_array($parentIdsInput) ? array_values(array_filter(array_map('intval', $parentIdsInput))) : [];
+                    }
                 }
                 
                 $task->updated_by = auth()->id();

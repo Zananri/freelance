@@ -1609,18 +1609,20 @@ function initTaskDetailModal() {
             hideMenu();
             
             // Clear all parents: set parent_id to null AND clear parent_ids array
-            // Use jQuery AJAX with proper data format
+            // Send as JSON to ensure proper array handling
             $.ajax({
                 url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
                 type: 'PUT',
-                data: { 
+                data: JSON.stringify({ 
                     parent_id: null,
                     parent_ids: []
-                },
+                }),
+                contentType: 'application/json',
                 dataType: 'json',
                 headers: {
                     'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
                 }
             })
             .done(function(res){
