@@ -49,7 +49,7 @@ class ProjectController extends Controller
         // Delete legacy single reference file
         try {
             if (!empty($feedback->reference_file)) {
-                $p = public_path('file/project/' . $feedback->reference_file);
+                $p = public_path('file/project_reference_files/' . $feedback->reference_file);
                 if (is_file($p)) { @unlink($p); }
             }
         } catch (\Throwable $_) {}
@@ -62,7 +62,7 @@ class ProjectController extends Controller
                 if (is_array($decoded)) $refFiles = $decoded;
             }
             foreach ($refFiles as $rf) {
-                if (!$rf) continue; $p = public_path('file/project/' . $rf); if (is_file($p)) { @unlink($p); }
+                if (!$rf) continue; $p = public_path('file/project_reference_files/' . $rf); if (is_file($p)) { @unlink($p); }
             }
         } catch (\Throwable $_) {}
 
@@ -2356,6 +2356,14 @@ class ProjectController extends Controller
      */
     public function storeFeedback(Request $request)
     {
+        // Debug: log all request data
+        \Log::info('StoreFeedback request data:', [
+            'all_request_data' => $request->all(),
+            'files' => $request->allFiles(),
+            'has_reference_files' => $request->hasFile('reference_files'),
+            'reference_files_count' => $request->hasFile('reference_files') ? count($request->file('reference_files')) : 0
+        ]);
+
         DB::beginTransaction();
         try {
             $request->validate([
@@ -2368,9 +2376,9 @@ class ProjectController extends Controller
                 'reference_url' => 'nullable|url',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url',
-                // Multiple reference files support (match Task mimes & 5MB limit)
+                // Multiple reference files support (match Task mimes & 5MB limit) 
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|max:5120',
             ]);
 
             $feedback = new ProjectFeedback();
@@ -2405,8 +2413,17 @@ class ProjectController extends Controller
                 foreach ((array) $request->file('reference_files') as $file) {
                     if (!$file)
                         continue;
+                    
+                    // Debug: log file info
+                    \Log::info('Uploading reference file:', [
+                        'original_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getMimeType(),
+                        'extension' => $file->getClientOriginalExtension(),
+                        'size' => $file->getSize()
+                    ]);
+                    
                     $fileName = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
-                    $file->move(public_path('file/project'), $fileName);
+                    $file->move(public_path('file/project_reference_files'), $fileName);
                     $uploaded[] = $fileName;
                 }
             }
@@ -2468,7 +2485,7 @@ class ProjectController extends Controller
                 'feedback_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
                 // Multiple reference files update (match Task)
                 'reference_files' => 'nullable|array',
-                'reference_files.*' => 'file|mimes:jpeg,png,jpg,gif,svg,webp,pdf,doc,docx,xls,xlsx,zip|max:5120',
+                'reference_files.*' => 'file|max:5120',
                 'existing_reference_files' => 'nullable', // JSON array of filenames to keep
             ]);
 
@@ -2513,7 +2530,7 @@ class ProjectController extends Controller
             // Delete removed
             $toDelete = array_diff($current, $existing);
             foreach ($toDelete as $del) {
-                $path = public_path('file/project/' . $del);
+                $path = public_path('file/project_reference_files/' . $del);
                 if ($del && file_exists($path))
                     @unlink($path);
             }
@@ -2522,8 +2539,17 @@ class ProjectController extends Controller
                 foreach ((array) $request->file('reference_files') as $rf) {
                     if (!$rf)
                         continue;
+                    
+                    // Debug: log file info for update
+                    \Log::info('Updating reference file:', [
+                        'original_name' => $rf->getClientOriginalName(),
+                        'mime_type' => $rf->getMimeType(),
+                        'extension' => $rf->getClientOriginalExtension(),
+                        'size' => $rf->getSize()
+                    ]);
+                    
                     $name = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $rf->getClientOriginalExtension();
-                    $rf->move(public_path('file/project'), $name);
+                    $rf->move(public_path('file/project_reference_files'), $name);
                     $finalFiles[] = $name;
                 }
             }

@@ -52,8 +52,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const filterDivisionSelect = document.getElementById("filterDivision");
     const filterJobSelect = document.getElementById("filterJob");
     const searchInput = document.getElementById("searchInput");
-    const applyFilterBtn = document.getElementById("applyFilterBtn");
-    const openFilterModalBtn = document.getElementById("openFilterModalBtn");
 
     // Load departments for filter select
     function loadDepartments() {
@@ -64,7 +62,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (response) {
                 const data = response.data || response;
                 filterDepartmentSelect.innerHTML =
-                    '<option value="">Select Department</option>';
+                    '<option value="">Department</option>';
                 data.forEach((dept) => {
                     const option = document.createElement("option");
                     option.value = dept.id;
@@ -72,10 +70,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     filterDepartmentSelect.appendChild(option);
                 });
                 filterDivisionSelect.innerHTML =
-                    '<option value="">Select Division</option>';
+                    '<option value="">Division</option>';
                 filterDivisionSelect.disabled = true;
                 filterJobSelect.innerHTML =
-                    '<option value="">Select Job</option>';
+                    '<option value="">Job</option>';
                 filterJobSelect.disabled = true;
             },
             error: function () {
@@ -88,9 +86,9 @@ document.addEventListener("DOMContentLoaded", function () {
     function loadDivisions(departmentId) {
         if (!departmentId) {
             filterDivisionSelect.innerHTML =
-                '<option value="">Select Division</option>';
+                '<option value="">Division</option>';
             filterDivisionSelect.disabled = true;
-            filterJobSelect.innerHTML = '<option value="">Select Job</option>';
+            filterJobSelect.innerHTML = '<option value="">Job</option>';
             filterJobSelect.disabled = true;
             return;
         }
@@ -102,7 +100,7 @@ document.addEventListener("DOMContentLoaded", function () {
             success: function (response) {
                 const data = response.data || response;
                 filterDivisionSelect.innerHTML =
-                    '<option value="">Select Division</option>';
+                    '<option value="">Division</option>';
                 data.forEach((div) => {
                     const option = document.createElement("option");
                     option.value = div.id;
@@ -111,7 +109,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 filterDivisionSelect.disabled = false;
                 filterJobSelect.innerHTML =
-                    '<option value="">Select Job</option>';
+                    '<option value="">Job</option>';
                 filterJobSelect.disabled = true;
             },
             error: function () {
@@ -123,7 +121,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Load jobs based on selected division
     function loadJobs(divisionId) {
         if (!divisionId) {
-            filterJobSelect.innerHTML = '<option value="">Select Job</option>';
+            filterJobSelect.innerHTML = '<option value="">Job</option>';
             filterJobSelect.disabled = true;
             return;
         }
@@ -137,7 +135,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 console.log(data);
 
                 filterJobSelect.innerHTML =
-                    '<option value="">Select Job</option>';
+                    '<option value="">Job</option>';
                 data.forEach((job) => {
                     const option = document.createElement("option");
                     option.value = job.id;
@@ -425,13 +423,7 @@ $(document).on("click", ".btn-detail", function () {
         });
     });
 
-    // Filter modal open button
-    openFilterModalBtn.addEventListener("click", () => {
-        loadDepartments();
-        $("#filterModal").modal("show");
-    });
-
-    // Filter selects change events
+    // Filter selects change events (only load cascading, no auto-apply)
     filterDepartmentSelect.addEventListener("change", () => {
         const departmentId = filterDepartmentSelect.value;
         loadDivisions(departmentId);
@@ -442,21 +434,33 @@ $(document).on("click", ".btn-detail", function () {
         loadJobs(divisionId);
     });
 
-    // Apply filter button click
+    // Apply filter button
+    const applyFilterBtn = document.getElementById("applyFilterBtn");
     applyFilterBtn.addEventListener("click", () => {
-        currentFilters.department = filterDepartmentSelect.value
-            ? [filterDepartmentSelect.value]
-            : [];
-        currentFilters.division = filterDivisionSelect.value
-            ? [filterDivisionSelect.value]
-            : [];
-        currentFilters.job = filterJobSelect.value
-            ? [filterJobSelect.value]
-            : [];
-        currentFilters.query = searchInput.value.trim();
-
+        currentFilters.department = filterDepartmentSelect.value ? [filterDepartmentSelect.value] : [];
+        currentFilters.division = filterDivisionSelect.value ? [filterDivisionSelect.value] : [];
+        currentFilters.job = filterJobSelect.value ? [filterJobSelect.value] : [];
         fetchEmployees(currentFilters);
-        $("#filterModal").modal("hide");
+        // Close dropdown
+        const dropdown = bootstrap.Dropdown.getInstance(document.getElementById("filterDropdownBtn"));
+        if (dropdown) dropdown.hide();
+    });
+
+    // Clear filter button
+    const clearFilterBtn = document.getElementById("clearFilterBtn");
+    clearFilterBtn.addEventListener("click", () => {
+        filterDepartmentSelect.value = "";
+        filterDivisionSelect.value = "";
+        filterJobSelect.value = "";
+        filterDivisionSelect.disabled = true;
+        filterJobSelect.disabled = true;
+        currentFilters.department = [];
+        currentFilters.division = [];
+        currentFilters.job = [];
+        fetchEmployees(currentFilters);
+        // Close dropdown
+        const dropdown = bootstrap.Dropdown.getInstance(document.getElementById("filterDropdownBtn"));
+        if (dropdown) dropdown.hide();
     });
 
     // Search input event
@@ -465,7 +469,8 @@ $(document).on("click", ".btn-detail", function () {
         fetchEmployees(currentFilters);
     });
 
-    // Initial fetch employees without filters
+    // Initial load departments and fetch employees without filters
+    loadDepartments();
     fetchEmployees();
 
     window.addEventListener('profilePictureUpdated', function(){

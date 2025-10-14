@@ -3131,6 +3131,10 @@ function renderTasks(data) {
   try {
     applyCurrentSearchFilter()
   } catch (_) {}
+    try {
+        // Also refresh the List/Table view whenever grid data renders
+        renderTaskTableFromCache()
+    } catch (_) {}
   try {
     const clientMap = window.__clientArchivedTasks || new Map()
     if (clientMap && typeof clientMap.forEach === "function" && clientMap.size) {
@@ -3230,6 +3234,7 @@ function renderSingleSection(status, tasks, append = false) {
   try {
     applyCurrentSearchFilter()
   } catch (_) {}
+    try { renderTaskTableFromCache() } catch(_) {}
   try {
     if (status === "new_request" && typeof window.updateNewRequestArrowVisibility === "function") window.updateNewRequestArrowVisibility()
   } catch (_) {}
@@ -3366,6 +3371,187 @@ function applyCurrentSearchFilter() {
         if (!input) return;
         const q = input.value || '';
         filterVisibleTasks(q);
+        // Also filter table rows when list view is active
+        try { filterTaskTableRows(q); } catch (_) {}
+    } catch(_) { /* noop */ }
+}
+
+// ----- List/Table View Rendering -----
+function getAllTasksFlatFromCache() {
+    try {
+        const buckets = window.allTasksCache || {};
+        const newReq = (buckets.new_request && buckets.new_request.tasks) ? buckets.new_request.tasks : [];
+        const prog = (buckets.in_progress && buckets.in_progress.tasks) ? buckets.in_progress.tasks : [];
+        const rej = (buckets.rejected && buckets.rejected.tasks) ? buckets.rejected.tasks : [];
+        const comp = (buckets.completed && buckets.completed.tasks) ? buckets.completed.tasks : [];
+        // Merge rejected into in_progress visually similar to grid
+        const inProgressMerged = [...prog, ...rej];
+        return [...newReq, ...inProgressMerged, ...comp];
+    } catch(_) { return []; }
+}
+
+function getUserPhotoUrl(user) {
+    try {
+        if (!user) return appUrl + '/asset/img/avatar.png';
+        // Prefer explicit properties commonly returned by API
+        let img = user.image || user.profile_picture_url || user.profile_picture || user.user_photo || '';
+        if (!img) return appUrl + '/asset/img/avatar.png';
+        img = String(img).trim();
+        if (/^https?:\/\//i.test(img)) return img;
+        if (img.startsWith('/')) return appUrl + img;
+        if (img.indexOf('/') !== -1) return appUrl + '/' + img;
+        // Fallback to profile_picture folder for plain filenames
+        return appUrl + '/file/profile_picture/' + img;
+    } catch(_) { return appUrl + '/asset/img/avatar.png'; }
+}
+
+function createExecutorsCellHtml(task) {
+    try {
+        const execs = Array.isArray(task?.executors) ? task.executors : [];
+        if (execs.length === 0) return '<span class="text-muted">-</span>';
+
+        const execsName = execs.map(e => safeText(e.name || '-')).join(', ');
+
+        return `
+            <div class="executor-wrapper">
+                ${execsName}
+            </div>
+        `;
+    } catch(_) {
+        return '<span class="text-muted">-</span>';
+    }
+}
+
+function statusLabel(statusRaw) {
+    const s = String(statusRaw || '').toLowerCase().replace(/\s+/g,'_');
+    if (s.includes('new')) return '<span class="badge bg-secondary text-dark" style="background:#ecedf5 !important;">New</span>';
+    if (s.includes('progress')) return '<span class="badge bg-info text-dark" style="background:#edebdf !important; color:#5b4b00;">In Progress</span>';
+    if (s.includes('completed')) return '<span class="badge bg-success">Completed</span>';
+    if (s.includes('reject')) return '<span class="badge bg-danger">Rejected</span>';
+    return `<span class="badge bg-light text-dark">${statusRaw || '-'}</span>`;
+}
+
+function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { return ''; } }
+
+function renderTaskTableFromCache() {
+    try {
+        const section = document.getElementById('task-table-section');
+        if (!section) return;
+        const tbody = section.querySelector('tbody');
+        if (!tbody) return;
+        const tasks = getAllTasksFlatFromCache();
+        if (!Array.isArray(tasks)) return;
+        // Sort by due_date asc, then start_date
+        const parseDate = d => { try { const x = new Date(d); return isNaN(x) ? null : x.getTime(); } catch(_) { return null; } };
+        const sorted = tasks.slice().sort((a,b) => {
+            const ad = parseDate(a?.due_date); const bd = parseDate(b?.due_date);
+            if (ad !== bd) return (ad||Infinity) - (bd||Infinity);
+            const as = parseDate(a?.start_date); const bs = parseDate(b?.start_date);
+            return (as||Infinity) - (bs||Infinity);
+        });
+
+        let html = '';
+        sorted.forEach(t => {
+            const taskTitle = safeText(t.title);
+            const projectTitle = safeText(t.project_title || (t.project && t.project.title));
+            const pic = t.pic || null;
+            const picName = pic ? safeText(pic.name) : '-';
+            const execCell = createExecutorsCellHtml(t);
+            const startStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.start_date) : safeText(t.start_date);
+            const dueStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.due_date) : safeText(t.due_date);
+            const st = statusLabel(t.status);
+
+            // Build project image (same as grid): prefer project image, else initials based on task title
+            let taskImgHtml = '';
+            const titleForInitials = taskTitle || projectTitle || 'NA';
+            const initials = (function(text){
+                const s = String(text || '').trim();
+                if (!s) return 'NA';
+                const parts = s.split(/\s+/).filter(Boolean);
+                if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+                return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+            })(titleForInitials);
+            const bgColor = (function(key){
+                const colors = ['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
+                if (!key) return colors[0];
+                let hash=0; for (let i=0;i<key.length;i++){ hash = (hash*31 + key.charCodeAt(i))>>>0; }
+                return colors[hash % colors.length];
+            })(titleForInitials);
+
+            // Resolve project image similar to grid view logic
+            const projectImg = (function() {
+                try {
+                    const raw = (t && t.project_image);
+                    if (!raw) return null;
+                    const val = String(raw || '').trim();
+                    if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') return null;
+                    if (/^https?:\/\//i.test(val)) return val;
+                    if (val.includes('/file/project/')) {
+                        const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
+                        if (!fname) return null;
+                        return `${appUrl}/file/project/${fname}`;
+                    }
+                    if (val.includes('/asset/')) {
+                        const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
+                        return `${appUrl}/asset/${suffix}`;
+                    }
+                    if (val.startsWith('/asset/')) {
+                        const suffix = val.replace(/^\/+/, '');
+                        return `${appUrl}/${suffix}`;
+                    }
+                    if (val.startsWith('/')) return `${appUrl}${val}`;
+                    return `${appUrl}/file/project/${val}`;
+                } catch(_) { return null; }
+            })();
+
+            if (projectImg) {
+                taskImgHtml = `<img src="${projectImg}" alt="Project Image" class="rounded-circle" width="40" height="40" style="object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+            } else {
+                taskImgHtml = `<div class=\"rounded-circle d-inline-flex align-items-center justify-content-center\" style=\"width:40px;height:40px;background:${bgColor};color:#fff;font-size:12px;font-weight:600;\">${initials}</div>`;
+            }
+
+            html += `
+                <tr data-task-id="${t.id}">
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            ${taskImgHtml}
+                            <div>
+                                <div class="task-name-wrapper fw-semibold task-title" style="font-size: 14px; cursor: pointer;">${taskTitle}</div>
+                                <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="d-inline-flex align-items-center gap-2">
+                            <span>${picName}</span>
+                        </div>
+                    </td>
+                    <td>${execCell}</td>
+                    <td>${startStr || '-'}</td>
+                    <td>${dueStr || '-'}</td>
+                    <td>${st}</td>
+                </tr>
+            `;
+        });
+    tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">No tasks found</td></tr>';
+        // Re-init tooltips for avatars
+        try { initBootstrapTooltips(section); } catch(_) {}
+        // Apply current search filter to rows too
+        try { const q = (document.getElementById('search_filter')?.value)||''; filterTaskTableRows(q); } catch(_) {}
+    } catch(e) { /* noop */ }
+}
+
+function filterTaskTableRows(queryRaw) {
+    try {
+        const q = String(queryRaw || '').trim().toLowerCase();
+        const section = document.getElementById('task-table-section');
+        if (!section) return;
+        const rows = section.querySelectorAll('tbody tr');
+        rows.forEach(tr => {
+            const colsText = Array.from(tr.querySelectorAll('td')).map(td => (td.textContent||'').toLowerCase()).join(' ');
+            const match = !q || colsText.includes(q);
+            tr.style.display = match ? '' : 'none';
+        });
     } catch(_) { /* noop */ }
 }
 
@@ -3953,9 +4139,15 @@ function applyCurrentSearchFilter() {
             // Click on task title -> open detail modal
             const titleEl = e.target.closest('.task-title');
             if (titleEl) {
-                // Find nearest task card and its id
+                // Find nearest task card and its id; if not in card (table/list view),
+                // try to find enclosing table row with data-task-id.
+                let taskId = null;
                 const card = titleEl.closest('.custom-card');
-                const taskId = card ? card.getAttribute('data-task-id') : null;
+                if (card) taskId = card.getAttribute('data-task-id');
+                if (!taskId) {
+                    const tr = titleEl.closest('tr[data-task-id]');
+                    if (tr) taskId = tr.getAttribute('data-task-id');
+                }
                 if (taskId) {
                     try {
                         // If detail modal already open, hide it first to avoid duplicates
@@ -5096,6 +5288,7 @@ function applyCurrentSearchFilter() {
             url: appUrl + "/task-feedbacks/" + taskId,
             type: "GET",
             dataType: "json",
+            cache: false,
             success: function (response) {
                 if (response.data && response.data.length > 0) {
                     let feedbackHtml = "";
@@ -5244,7 +5437,7 @@ function applyCurrentSearchFilter() {
                                                                                             <div><small class="text-muted d-block" style="font-size:9px;">${rDate}</small></div>
                                                                                         </div>
 
-                                                                                        <div class="mt-2">
+                                                                                        <div class="feedback-comment mt-2">
                                                                                             <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
 
                                                                                             ${
@@ -5286,7 +5479,7 @@ function applyCurrentSearchFilter() {
                                                                 <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
                                                             </div>
 
-                                                            <div class="mt-2">
+                                                            <div class="feedback-comment mt-2">
                                                                 <p class="mb-2" style="font-size:13px;">${feedback.feedback_comment}</p>
 
                                                                 ${
@@ -5345,6 +5538,17 @@ function applyCurrentSearchFilter() {
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
+
+                            // Prefer inline edit in the footer panel (similar to project feedback)
+                            const inlineEditor = document.getElementById("inline_task_feedback_editor");
+                            if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
+                                try {
+                                    window.startInlineTaskEditFeedback(payload);
+                                    try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                    return;
+                                } catch (_) {}
+                            }
+                            // Fallback to modal-based edit if inline not available
                             showEditFeedbackForm(tId, payload, false);
                         });
                     });
@@ -5365,6 +5569,17 @@ function applyCurrentSearchFilter() {
                                 reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
                                 image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
                             };
+
+                            // Prefer inline edit for replies too
+                            const inlineEditor = document.getElementById("inline_task_feedback_editor");
+                            if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
+                                try {
+                                    window.startInlineTaskEditFeedback(payload);
+                                    try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                    return;
+                                } catch (_) {}
+                            }
+                            // Fallback to modal-based edit
                             showEditFeedbackForm(tId, payload, true);
                         });
                     });
@@ -5452,8 +5667,61 @@ function applyCurrentSearchFilter() {
                                         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                                         success: function (res) {
                                             try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reply deleted', 'success'); } catch(_){}
+
+                                            // Remove the reply element
                                             const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"][data-parent-id="${pid}"]`);
                                             if (el && el.parentNode) el.parentNode.removeChild(el);
+
+                                            // Update the "View all" button and replies count
+                                            const repliesContainer = modalBody.querySelector(`#replies-${pid}`);
+                                            const viewAllBtn = modalBody.querySelector(`.view-replies-toggle[data-feedback-id="${pid}"]`);
+
+                                            if (repliesContainer && viewAllBtn) {
+                                                // Count remaining replies in the container
+                                                const remainingReplies = repliesContainer.querySelectorAll('.feedback-reply');
+                                                const remainingCount = remainingReplies.length;
+
+                                                if (remainingCount === 0) {
+                                                    // No replies left, remove the View all button and replies container
+                                                    viewAllBtn.remove();
+                                                    repliesContainer.remove();
+                                                } else {
+                                                    // Update the count in the View all button
+                                                    viewAllBtn.setAttribute('data-replies-count'    , remainingCount);
+                                                    const isVisible = !repliesContainer.classList.contains('d-none');
+                                                    if (isVisible) {
+                                                        viewAllBtn.textContent = 'Hide';
+                                                    } else {
+                                                        viewAllBtn.textContent = `View all (${remainingCount})`;
+                                                    }
+                                                }
+                                            }
+
+                                            // Refresh feedback count on task card after reply deletion
+                                            try {
+                                                $.ajax({
+                                                    url: appUrl + "/task-feedbacks/count/" + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || ''),
+                                                    type: 'GET',
+                                                    success: function(c){
+                                                        if (c && c.data && typeof c.data.count === 'number') {
+                                                            const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') + '"]');
+                                                            if (card) {
+                                                                let span = card.querySelector('.feedback-comments-count');
+                                                                if (span) {
+                                                                    span.textContent = String(c.data.count);
+                                                                    // Hide the span if count is 0
+                                                                    if (c.data.count === 0) {
+                                                                        span.style.display = 'none';
+                                                                    } else {
+                                                                        span.style.display = '';
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            } catch(_) {}
+
                                             done(true);
                                         },
                                         error: function (xhr) {
@@ -5510,6 +5778,18 @@ function applyCurrentSearchFilter() {
                     modalBody.innerHTML =
                         '<p class="text-center text-muted">No feedback available for this task.</p>';
                 }
+
+                // Initialize Quill editors after modal content is loaded
+                try {
+                    if (typeof initTaskFeedbackQuillEditors === 'function') {
+                        initTaskFeedbackQuillEditors(modalBody);
+                    }
+                } catch (_) {}
+
+                // Setup inline feedback editor in footer
+                try {
+                    setupTaskInlineFeedbackEditor(taskId);
+                } catch (_) {}
             },
             error: function () {
                 modalBody.innerHTML =
@@ -5566,83 +5846,110 @@ function applyCurrentSearchFilter() {
 
         form.appendChild(commentDiv);
 
-        // Image upload
-        const imageDiv = document.createElement("div");
-        imageDiv.className = "mb-3";
+        // Attachment buttons (Photo & File) like project feedback
+        const attachmentDiv = document.createElement("div");
+        attachmentDiv.className = "d-flex align-items-center gap-2 mb-3";
 
-        const imageLabelTitle = document.createElement("div");
-        imageLabelTitle.className = "title-label-image";
-        imageLabelTitle.textContent = "Upload Image";
-        imageDiv.appendChild(imageLabelTitle);
+        const photoBtn = document.createElement("button");
+        photoBtn.type = "button";
+        photoBtn.className = "btn btn-outline-secondary d-flex align-items-center";
+        photoBtn.id = "taskFeedbackPhotoBtn";
+        photoBtn.innerHTML = '<span class="material-symbols-outlined me-1">photo_camera</span>Photo';
 
-        const imageLabel = document.createElement("label");
-        imageLabel.className = "custom-image-upload position-relative";
-        imageLabel.style.backgroundPosition = "center center";
-        imageLabel.style.backgroundRepeat = "no-repeat";
-        imageLabel.style.backgroundSize = "50%";
-        imageLabel.style.backgroundImage =
-            "url('" + appUrl + "/asset/img/background/add-image.png')";
-        imageLabel.htmlFor = "feedback_image";
+        const fileBtn = document.createElement("button");
+        fileBtn.type = "button";
+        fileBtn.className = "btn btn-outline-secondary d-flex align-items-center ms-2";
+        fileBtn.id = "taskFeedbackFileBtn";
+        fileBtn.innerHTML = '<span class="material-symbols-outlined me-1">attach_file</span>File';
 
+        // Hidden inputs for image and files
         const imageInput = document.createElement("input");
         imageInput.type = "file";
-        imageInput.className = "input-image";
-        imageInput.id = "feedback_image";
+        imageInput.id = "task_feedback_image_input";
         imageInput.name = "feedback_image";
         imageInput.accept = "image/*";
         imageInput.hidden = true;
 
-        const imageClearBtn = document.createElement("span");
-        imageClearBtn.className = "image-clear-btn d-none";
-        imageClearBtn.id = "feedbackImageClearBtn";
-        imageClearBtn.title = "Remove image";
-        imageClearBtn.textContent = "×";
+        const filesInput = document.createElement("input");
+        filesInput.type = "file";
+        filesInput.id = "task_feedback_files_input";
+        filesInput.name = "reference_files[]";
+        filesInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+        filesInput.multiple = true;
+        filesInput.hidden = true;
 
-        imageLabel.appendChild(imageInput);
-        imageLabel.appendChild(imageClearBtn);
-        imageDiv.appendChild(imageLabel);
+        attachmentDiv.appendChild(photoBtn);
+        attachmentDiv.appendChild(fileBtn);
+        form.appendChild(attachmentDiv);
+        form.appendChild(imageInput);
+        form.appendChild(filesInput);
 
-        form.appendChild(imageDiv);
+        // Initialize selected files array and setup handlers
+        window.taskFeedbackSelectedFiles = window.taskFeedbackSelectedFiles || [];
 
-        // Reference URL
+        photoBtn.addEventListener('click', function() {
+            imageInput.click();
+        });
+
+        fileBtn.addEventListener('click', function() {
+            filesInput.click();
+        });
+
+        // Handle image preview (show small preview like project)
+        imageInput.addEventListener('change', function(ev) {
+            try {
+                var f = (this.files && this.files[0]) || null;
+                if (!f) return;
+                if (!f.type || f.type.indexOf("image/") !== 0) return;
+                if (f.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                    this.value = '';
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        showInlineImagePreviewSmall(f, e.target.result);
+                    } catch (_) {}
+                };
+                reader.readAsDataURL(f);
+            } catch (_) {}
+        });
+
+        // Handle file attachments preview
+        filesInput.addEventListener('change', function(ev) {
+            try {
+                var files = Array.from(this.files || []);
+                if (!files.length) return;
+                window.taskFeedbackSelectedFiles = (window.taskFeedbackSelectedFiles || []).concat(files);
+                renderTaskFeedbackFilesPreview();
+                try { this.value = ""; } catch (_) {}
+            } catch (_) {}
+        });
+
+        // Reference URLs (Multiple URLs like project)
         const refUrlDiv = document.createElement("div");
-        refUrlDiv.className = "mb-3";
+        refUrlDiv.className = "mb-3 custom-input";
 
         const refUrlLabel = document.createElement("label");
-        refUrlLabel.htmlFor = "reference_url";
         refUrlLabel.className = "form-label label-custom";
-        refUrlLabel.textContent = "Reference URL";
+        refUrlLabel.textContent = "Reference URLs (Optional)";
         refUrlDiv.appendChild(refUrlLabel);
 
-        const refUrlInput = document.createElement("input");
-        refUrlInput.type = "text";
-        refUrlInput.className = "form-control input-text";
-        refUrlInput.id = "reference_url";
-        refUrlInput.name = "reference_url";
-        refUrlDiv.appendChild(refUrlInput);
+        const refUrlContainer = document.createElement("div");
+        refUrlContainer.id = "task_feedback_reference_urls_container";
+        refUrlContainer.className = "d-flex flex-column gap-2";
 
+        // Add initial URL row
+        const initialUrlRow = document.createElement("div");
+        initialUrlRow.className = "d-flex gap-2 align-items-center";
+        initialUrlRow.innerHTML = '<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">' +
+            '<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>';
+        refUrlContainer.appendChild(initialUrlRow);
+
+        refUrlDiv.appendChild(refUrlContainer);
         form.appendChild(refUrlDiv);
-
-    // Reference Files
-        const refFileDiv = document.createElement("div");
-        refFileDiv.className = "mb-3";
-
-        const refFileLabel = document.createElement("label");
-    refFileLabel.htmlFor = "reference_files";
-        refFileLabel.className = "form-label label-custom";
-    refFileLabel.textContent = "Reference Files";
-        refFileDiv.appendChild(refFileLabel);
-
-        const refFileInput = document.createElement("input");
-        refFileInput.type = "file";
-        refFileInput.className = "form-control input-text";
-    refFileInput.id = "reference_files";
-    refFileInput.name = "reference_files[]";
-    refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
-    refFileInput.multiple = true;
-        refFileDiv.appendChild(refFileInput);
-
-        form.appendChild(refFileDiv);
 
     modalBody.appendChild(form);
 
@@ -5660,6 +5967,13 @@ function applyCurrentSearchFilter() {
             const form = document.getElementById('addFeedbackForm');
             if (form) submitTaskFeedbackForm(form, taskId);
         });
+
+        // Initialize Quill editors after modal content is set (first version)
+        try {
+            if (typeof initTaskFeedbackQuillEditors === 'function') {
+                initTaskFeedbackQuillEditors(modalBody);
+            }
+        } catch (_) {}
     }
 
     // Function to submit task feedback form (Task page legacy path) – use floating alert and keep modal open
@@ -5749,9 +6063,12 @@ function applyCurrentSearchFilter() {
                     .getAttribute("content"),
             },
             success: function (response) {
-                // Floating success alert
-                if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(response.message || "Feedback submitted successfully!", "success");
+                // Use the app's white alert style (Settings/Project): showAlertMsg -> light
+                const msg = (response && response.message) || 'Feedback submitted successfully!';
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(String(msg), 'light', 2000);
+                } else if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(msg, 'light', 2000);
                 }
 
                 // Switch back to list view inside the modal (keep modal open)
@@ -5792,7 +6109,8 @@ function applyCurrentSearchFilter() {
                     if (closeBtn && closeBtn.parentNode) {
                         closeBtn.parentNode.removeChild(closeBtn);
                     }
-                    loadTaskFeedbackData(taskId);
+                    // Reload feedback list inside modal so newly created feedback appears without full page reload
+                    try { loadTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
                 } catch (e) { /* noop */ }
 
                 // Clear selected files buffer and preview
@@ -5819,6 +6137,8 @@ function applyCurrentSearchFilter() {
                 });
                 // Refresh task cards so counts and other data reflect the latest changes
                 try { fetchAndRenderTasks(); } catch(_) {}
+                // Avoid page reload when closing modal
+                try { feedbackSubmitted = false; } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = "Failed to submit feedback. Please try again.";
@@ -5874,43 +6194,9 @@ function applyCurrentSearchFilter() {
 
         const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("taskFeedbackModalLabel");
         const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("taskFeedbackList");
-        let addFeedbackButton = document.getElementById("addFeedbackButton");
-        // If the Add Feedback button was removed (e.g., moved into body then cleared), recreate it in footer
-        if (!addFeedbackButton) {
-            const footer = feedbackModalEl.querySelector('.modal-footer') || feedbackModalEl.querySelector('.modal-footer-custom');
-            if (footer) {
-                addFeedbackButton = document.createElement('button');
-                addFeedbackButton.type = 'button';
-                addFeedbackButton.className = 'btn btn-submit-black';
-                addFeedbackButton.id = 'addFeedbackButton';
-                addFeedbackButton.textContent = 'Add Feedback';
-                footer.appendChild(addFeedbackButton);
-            }
-        }
-
         // Reset modal
         if (modalTitle) modalTitle.textContent = "Task Feedback";
         if (modalBody) modalBody.innerHTML = "";
-
-        // Reset button
-        if (addFeedbackButton) {
-            addFeedbackButton.textContent = "Add Feedback";
-            const newButton = addFeedbackButton.cloneNode(true);
-            if (addFeedbackButton.parentNode) {
-                addFeedbackButton.parentNode.replaceChild(newButton, addFeedbackButton);
-            }
-
-            // Hapus leftover close
-            const leftoverClose = document.getElementById('replyCloseButton');
-            if (leftoverClose && leftoverClose.parentNode) {
-                leftoverClose.parentNode.removeChild(leftoverClose);
-            }
-
-            // Listener baru
-            newButton.addEventListener("click", function () {
-                showAddFeedbackForm(taskId);
-            });
-        }
 
         try { loadTaskFeedbackData(taskId); } catch(_) {}
 
@@ -6065,117 +6351,185 @@ function applyCurrentSearchFilter() {
             const form = document.getElementById('addFeedbackForm');
             if (form) submitTaskFeedbackForm(form, taskId);
         });
-    }
 
-    // Show reply form (reuses add form but with parent_id and title)
-    function showReplyFeedbackForm(taskId, parentId) {
-        const feedbackModalEl = document.getElementById("taskFeedbackModal");
-        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
-        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
-        const addFeedbackButton = document.getElementById("addFeedbackButton");
-
-        modalTitle.textContent = "Reply Feedback";
-
-        modalBody.innerHTML = `
-            <form id="addFeedbackForm" enctype="multipart/form-data">
-                <input type="hidden" name="task_id" value="${taskId}">
-                <input type="hidden" name="parent_id" value="${parentId}">
-                <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
-
-                <div class="mb-3 custom-input">
-                    <label class="form-label">Upload Image</label>
-                    <div class="image-upload-container">
-                        <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
-                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                            <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
-                            <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="mb-3 custom-input">
-                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
-                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
-                </div>
-
-                <div class="mb-3 custom-input">
-                    <label class="form-label">Reference URLs (Optional)</label>
-                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3 custom-input">
-                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
-                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
-                    <div id="feedback_reference_files_preview"></div>
-                </div>
-            </form>
-        `;
-
-        // Setup image preview and clear button logic (same as add feedback)
-        const imageInput = modalBody.querySelector("#feedback_image");
-        const imageLabel = modalBody.querySelector("#feedbackImageLabel");
-        const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
-
-        imageInput.addEventListener("change", function () {
-            if (this.files && this.files[0]) {
-                const file = this.files[0];
-                if (file.size > MAX_IMAGE_BYTES) {
-                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
-                    this.value = '';
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    imageLabel.style.backgroundImage = `url('${e.target.result}')`;
-                    imageLabel.classList.add("has-image");
-                    imageLabel.style.backgroundSize = "cover";
-                    imageLabel.style.opacity = "1";
-                    imageClearBtn.classList.remove("d-none");
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        imageClearBtn.addEventListener("click", function (e) {
-            e.preventDefault();
-            imageInput.value = "";
-            imageLabel.style.backgroundImage =
-                "url('" + appUrl + "/asset/img/background/add-image.png')";
-            imageLabel.style.backgroundPosition = "center center";
-            imageLabel.style.backgroundRepeat = "no-repeat";
-            imageLabel.style.backgroundSize = "50%";
-            imageLabel.classList.remove("has-image");
-            imageLabel.style.opacity = "0.5";
-            imageClearBtn.classList.add("d-none");
-        });
-
-        // Multi-file reference preview (same UX as Add Task)
+        // Initialize Quill editors after modal content is set (second version)
         try {
-            selectedFiles = [];
-            const refInput = modalBody.querySelector('#reference_files');
-            if (refInput) {
-                refInput.addEventListener('change', function () {
-                    const files = Array.from(this.files || []);
-                    if (files.length) {
-                        selectedFiles = [...selectedFiles, ...files];
-                        if (typeof displaySelectedFiles === 'function') {
-                            displaySelectedFiles();
-                        }
-                    }
-                    this.value = '';
-                });
+            if (typeof initTaskFeedbackQuillEditors === 'function') {
+                initTaskFeedbackQuillEditors(modalBody);
             }
         } catch (_) {}
+    }
 
-        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
-            const form = document.getElementById('addFeedbackForm');
-            if (form) submitFeedbackForm(form, taskId);
-        });
+    // Helper to clear reply state
+    function clearReplyState() {
+        try {
+            const pid = document.getElementById('inline_parent_id_input');
+            if (pid) pid.value = '';
+            const previewContainer = document.getElementById('reply_parent_preview_inline');
+            if (previewContainer) previewContainer.remove();
+        } catch(_) {}
+    }
+
+    // Show reply form (using inline approach like project.js)
+    function showReplyFeedbackForm(taskId, parentId) {
+        try {
+            const feedbackModalEl = document.getElementById("taskFeedbackModal");
+            const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+            const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+
+            // Look for the inline feedback form in the modal footer
+            const inlineForm = feedbackModalEl.querySelector('.feedback-form');
+            if (inlineForm) {
+                // Create or update hidden parent id input
+                let inlinePid = inlineForm.querySelector('#inline_parent_id_input');
+                if (!inlinePid) {
+                    inlinePid = document.createElement('input');
+                    inlinePid.type = 'hidden';
+                    inlinePid.id = 'inline_parent_id_input';
+                    inlinePid.name = 'parent_id';
+                    inlineForm.appendChild(inlinePid);
+                }
+                inlinePid.value = parentId || '';
+
+                // Prepare preview container inside inline form
+                let previewContainer = inlineForm.querySelector('#reply_parent_preview_inline');
+                if (!previewContainer) {
+                    previewContainer = document.createElement('div');
+                    previewContainer.id = 'reply_parent_preview_inline';
+                    previewContainer.className = 'mt-2';
+                }
+
+                // Default preview while fetching
+                previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Loading...</div><div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
+
+                // Fetch feedback data to show preview
+                try {
+                    fetch(appUrl + '/task-feedbacks/' + taskId)
+                        .then(function (res) {
+                            if (!res.ok) return res.json().then(Promise.reject);
+                            return res.json();
+                        })
+                        .then(function (json) {
+                            const payload = json && json.data ? json.data : json;
+                            let fb = null;
+
+                            // Find feedback by parentId
+                            function findById(node, id) {
+                                if (!node) return null;
+                                if (Array.isArray(node)) {
+                                    for (let k = 0; k < node.length; k++) {
+                                        const r = findById(node[k], id);
+                                        if (r) return r;
+                                    }
+                                    return null;
+                                }
+                                try {
+                                    if (node && String(node.id) === String(id)) return node;
+                                    if (node && node.replies && Array.isArray(node.replies)) {
+                                        const rr = findById(node.replies, id);
+                                        if (rr) return rr;
+                                    }
+                                } catch (_) {}
+                                return null;
+                            }
+
+                            fb = findById(payload, parentId);
+
+                            const title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) ||
+                                         (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
+                            const commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
+
+                            try {
+                                const empRaw = (fb && fb.employee) || {};
+                                let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                                // Use the same buildPhotoUrl helper from task.js if available
+                                const avatarUrl = (typeof buildPhotoUrl === 'function') ?
+                                    buildPhotoUrl(avatarRaw, empRaw.profile_picture, empRaw.profile_picture_url) :
+                                    (avatarRaw ? appUrl + '/file/profile_picture/' + avatarRaw : appUrl + '/asset/img/avatar.png');
+
+                                let plain = '';
+                                try {
+                                    plain = (commentRaw || '').replace(/<[^>]+>/g, '');
+                                } catch (_) {
+                                    plain = (commentRaw || '') + '';
+                                }
+                                if (plain && plain.length > 120) plain = plain.substring(0, 120).trim() + '...';
+
+                                let html = '';
+                                html += '<div class="selected-files-list mt-2">';
+                                html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                                html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                                html += '<img src="' + avatarUrl + '" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src=\'' + appUrl + '/asset/img/avatar.png\';">';
+                                html += '</div>';
+                                html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                                html += '<div style="font-weight:500;font-size:11px">' + (title || 'Unknown') + '</div>';
+                                html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">' + (plain || '') + '</div>';
+                                html += '</div>';
+                                html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                                html += '</div></div>';
+                                previewContainer.innerHTML = html;
+                            } catch (_) {}
+
+                            try {
+                                const btn = previewContainer.querySelector('.remove-task');
+                                if (btn) btn.addEventListener('click', function () {
+                                    try {
+                                        previewContainer.remove();
+                                        inlinePid.value = '';
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        })
+                        .catch(function () {
+                            // Handle error with remove button
+                            try {
+                                const btn = previewContainer.querySelector('.remove-task');
+                                if (btn) btn.addEventListener('click', function () {
+                                    try {
+                                        previewContainer.remove();
+                                        inlinePid.value = '';
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        });
+                } catch (_) {}
+
+                // Insert preview before inline files preview if present
+                try {
+                    const filesPreview = inlineForm.querySelector('#inline_feedback_files_preview');
+                    const editor = inlineForm.querySelector('#inline_feedback_editor');
+                    if (filesPreview && filesPreview.parentNode) {
+                        filesPreview.parentNode.insertBefore(previewContainer, filesPreview);
+                    } else if (editor && editor.parentNode) {
+                        editor.parentNode.insertBefore(previewContainer, editor);
+                    } else {
+                        inlineForm.insertBefore(previewContainer, inlineForm.firstChild);
+                    }
+                } catch(_) {}
+
+                // Focus inline editor
+                try {
+                    const editorEl = document.querySelector('#inline_feedback_editor .ql-editor');
+                    if (editorEl) {
+                        editorEl.focus();
+                        // Scroll into view smoothly
+                        editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } catch(_) {}
+
+                return; // handled via inline form
+            }
+
+            // Fallback: if no inline form found, show message
+            try {
+                showFloatingAlert('Reply functionality requires inline feedback form.', 'warning', 3000);
+            } catch (_) {
+                console.warn('No inline feedback form found for reply');
+            }
+
+        } catch (e) {
+            console.warn("showReplyFeedbackForm error", e);
+        }
     }
 
     // Show edit form (for feedback or reply) with prefilled data
@@ -6197,20 +6551,46 @@ function applyCurrentSearchFilter() {
                 <input type="hidden" name="task_id" value="${taskId}">
                 ${data.parent_id ? `<input type=\"hidden\" name=\"parent_id\" value=\"${data.parent_id}\">` : ''}
 
-                <!-- Put image section at the very top -->
+                <!-- Attachment buttons (Photo & File) -->
                 <div class="mb-3">
-                    <div class="title-label-image">Upload Image</div>
-                    <div class="image-upload-container">
-                        <label for="feedback_image" class="custom-image-upload position-relative" id="editFeedbackImageLabel" style="background-position: center center; background-repeat: no-repeat; ${bgImage} cursor: pointer;">
-                            <input type="file" id="feedback_image" ${isReply ? 'name="image"' : 'name="feedback_image"'} accept="image/*" class="d-none">
-                            <span class="image-clear-btn ${clearBtnClass}" id="editFeedbackImageClearBtn" title="Remove image">&times;</span>
-                        </label>
+                    <label class="form-label">Attachment</label>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-outline-secondary d-flex align-items-center" id="taskEditFeedbackPhotoBtn">
+                            <span class="material-symbols-outlined me-1">photo_camera</span>Photo
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary d-flex align-items-center ms-2" id="taskEditFeedbackFileBtn">
+                            <span class="material-symbols-outlined me-1">attach_file</span>File
+                        </button>
                     </div>
+                    <!-- Hidden inputs -->
+                    <input type="file" id="task_edit_feedback_image_input" ${isReply ? 'name="image"' : 'name="feedback_image"'} accept="image/*" hidden>
+                    <input type="file" id="task_edit_feedback_files_input" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple hidden>
                 </div>
 
                 <div class="mb-3 custom-input">
                     <label for="feedback_comment" class="form-label">Feedback Comment</label>
-                    <textarea class="form-control" id="feedback_comment" name="feedback_comment" rows="3" required>${data.feedback_comment || ''}</textarea>
+
+                    <!-- Quill toolbar + editor (visual) -->
+                    <div id="task_edit_feedback_toolbar">
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                        </span>
+                    </div>
+
+                    <div id="task_edit_feedback_editor"
+                        style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+
+                    <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" required style="display:none;">${data.feedback_comment || ''}</textarea>
                 </div>
 
                 <div class="mb-3 custom-input">
@@ -6219,10 +6599,8 @@ function applyCurrentSearchFilter() {
                 </div>
 
                 <div class="mb-3 custom-input">
-                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
-                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
-                    <div class="form-text">Multiple files supported.</div>
-                    <div id="feedback_reference_files_preview" class="mt-2"></div>
+                    <label class="form-label">Reference Files (Optional)</label>
+                    <div id="task_edit_feedback_files_preview" class="mt-2"></div>
                     <div id="existing_feedback_reference_files" class="mt-2"></div>
                     <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
                 </div>
@@ -6381,10 +6759,81 @@ function applyCurrentSearchFilter() {
             }
         } catch (_) {}
 
+        // Setup photo/file button handlers for edit form
+        try {
+            const photoBtn = document.getElementById('taskEditFeedbackPhotoBtn');
+            const fileBtn = document.getElementById('taskEditFeedbackFileBtn');
+            const imageInput = document.getElementById('task_edit_feedback_image_input');
+            const filesInput = document.getElementById('task_edit_feedback_files_input');
+
+            if (photoBtn && imageInput) {
+                photoBtn.addEventListener('click', function() {
+                    imageInput.click();
+                });
+            }
+
+            if (fileBtn && filesInput) {
+                fileBtn.addEventListener('click', function() {
+                    filesInput.click();
+                });
+            }
+
+            // Image input handler
+            if (imageInput) {
+                imageInput.addEventListener('change', function() {
+                    const file = this.files && this.files[0];
+                    if (!file) return;
+
+                    // Size validation
+                    if (file.size > MAX_IMAGE_BYTES) {
+                        if (typeof showFloatingAlert === 'function') {
+                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning');
+                        }
+                        this.value = '';
+                        return;
+                    }
+
+                    // Create preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        showInlineImagePreviewSmall(file, e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Files input handler
+            if (filesInput) {
+                filesInput.addEventListener('change', function() {
+                    const files = Array.from(this.files || []);
+                    if (!files.length) return;
+
+                    // Add to selection
+                    if (!window.taskEditFeedbackSelectedFiles) window.taskEditFeedbackSelectedFiles = [];
+                    window.taskEditFeedbackSelectedFiles = [...window.taskEditFeedbackSelectedFiles, ...files];
+
+                    // Render preview
+                    renderTaskEditFeedbackFilesPreview();
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
+
         setUnifiedTaskFeedbackFooter(taskId, 'Save', function(){
             const form = document.getElementById('editFeedbackForm');
             if (!form) return; submitEditFeedbackForm(form, taskId, data.id, isReply);
         });
+
+        // Initialize Quill editors after modal content is set and pre-fill with existing content
+        try {
+            if (typeof initTaskFeedbackQuillEditors === 'function') {
+                initTaskFeedbackQuillEditors(modalBody);
+                // Set content for edit form
+                if (window.__quillTaskFeedbackEdit && data.feedback_comment) {
+                    window.__quillTaskFeedbackEdit.root.innerHTML = data.feedback_comment || '';
+                }
+            }
+        } catch (_) {}
     }
 
     // Helper to unify footer button styling (Close + Submit/Save) identical to Add Feedback modal
@@ -6410,16 +6859,8 @@ function applyCurrentSearchFilter() {
         closeBtn.className = 'btn btn-close-reply flex-grow-1';
         closeBtn.textContent = 'Close';
         closeBtn.addEventListener('click', function(){
-            footer.innerHTML = '';
-            const restore = document.createElement('button');
-            restore.type = 'button';
-            restore.className = 'btn btn-submit-black w-100';
-            restore.id = 'addFeedbackButton';
-            restore.textContent = 'Add Feedback';
-            restore.addEventListener('click', function(){ showAddFeedbackForm(taskId); });
-            footer.appendChild(restore);
             if (titleEl) titleEl.textContent = 'Task Feedback';
-            loadTaskFeedbackData(taskId);
+            loadTaskFeedbackData(taskId); // This will restore inline editor via setupTaskInlineFeedbackEditor
         });
         const submitBtn = document.createElement('button');
         submitBtn.type = 'button';
@@ -6460,8 +6901,9 @@ function applyCurrentSearchFilter() {
         formData.append('_method', 'PUT');
         // Append any newly selected reference files from preview buffer
         try {
-            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
-                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            const editSelectedFiles = window.taskEditFeedbackSelectedFiles || selectedFiles || [];
+            if (Array.isArray(editSelectedFiles) && editSelectedFiles.length > 0) {
+                editSelectedFiles.forEach(file => formData.append('reference_files[]', file));
             }
         } catch (_) {}
         // Ensure correct image field name already set in form; nothing extra here
@@ -6594,11 +7036,12 @@ function applyCurrentSearchFilter() {
                     .getAttribute("content"),
             },
             success: function (response) {
-                // mark to reload after modal closes
-                feedbackSubmitted = true;
-                // floating success alert
-                if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(response.message || "Feedback submitted successfully!", "success");
+                // Use the app's white alert style
+                const msg = (response && response.message) || 'Feedback submitted successfully!';
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(String(msg), 'light', 2000);
+                } else if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(msg, 'light', 2000);
                 }
                 // Switch back to list view inside the modal (keep modal open)
                 try {
@@ -6636,7 +7079,8 @@ function applyCurrentSearchFilter() {
                         addBtn.removeAttribute('disabled');
                         addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
                     }
-                    loadTaskFeedbackData(taskId);
+                    // Reload feedback list inside modal so newly created feedback appears without full page reload
+                    try { loadTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
                 } catch (e) { /* noop */ }
 
                 // Clear local buffers and preview area after successful submit
@@ -6694,6 +7138,8 @@ function applyCurrentSearchFilter() {
                         }
                     }
                 });
+                // Avoid page reload when closing modal
+                try { feedbackSubmitted = false; } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = "Failed to submit feedback. Please try again.";
@@ -8673,6 +9119,22 @@ function applyCurrentSearchFilter() {
 
                 // ⬇️ Refresh mobile view biar ikutin hasil terbaru
                 $("#taskStatusSelect").trigger("change");
+                // Update the client-side cache so the List/Table view can render the filtered results
+                try {
+                    // Ensure merged rejected tasks are included in in_progress bucket
+                    const rejectedArr = Array.isArray(payload.rejected) ? (payload.rejected.tasks || payload.rejected) : (payload.rejected?.tasks || []);
+                    const inProgressMergedForCache = Array.isArray(payload.in_progress?.tasks) ? [...payload.in_progress.tasks] : (Array.isArray(payload.in_progress) ? payload.in_progress : []);
+                    if (Array.isArray(rejectedArr) && rejectedArr.length) {
+                        inProgressMergedForCache.push(...rejectedArr);
+                    }
+
+                    allTasksCache.new_request = { tasks: Array.isArray(payload.new_request) ? payload.new_request : (payload.new_request?.tasks || []), pagination: payload.new_request?.pagination || {} };
+                    allTasksCache.in_progress = { tasks: inProgressMergedForCache, pagination: payload.in_progress?.pagination || {} };
+                    allTasksCache.completed = { tasks: Array.isArray(payload.completed) ? payload.completed : (payload.completed?.tasks || []), pagination: payload.completed?.pagination || {} };
+                } catch (_) {}
+
+                // Refresh the List/Table view to reflect current filters
+                try { renderTaskTableFromCache(); } catch (_) {}
             },
             error: function (xhr, status, error) {
                 console.error("Error fetching filtered tasks:", error);
@@ -9074,6 +9536,48 @@ function applyCurrentSearchFilter() {
 
     $("#task-cards-container").before(mobileCardHtml);
 
+        $(document).ready(function () {
+        const $listTab = $('#list-tab');
+        const $gridTab = $('#grid-tab');
+        const $statusMobileSection = $('.mobile-task-container');
+        const $tableSection = $('#task-table-section');
+
+        // Apply persisted view (default to grid)
+        const savedView = (function(){ try { return localStorage.getItem('taskView') || 'grid'; } catch(_) { return 'grid'; }})();
+        const setView = (view) => {
+            if (view === 'list') {
+                $listTab.addClass('active');
+                $gridTab.removeClass('active');
+                $statusMobileSection.addClass('d-none');
+                $tableSection.removeClass('d-none');
+                try { renderTaskTableFromCache(); } catch(_) {}
+            } else {
+                $gridTab.addClass('active');
+                $listTab.removeClass('active');
+                $statusMobileSection.removeClass('d-none');
+                $tableSection.addClass('d-none');
+            }
+        };
+        setView(savedView === 'list' ? 'list' : 'grid');
+
+        $listTab.on('click', function () {
+            $listTab.addClass('active');
+            $gridTab.removeClass('active');
+            $statusMobileSection.addClass('d-none');
+            $tableSection.removeClass('d-none');
+            try { localStorage.setItem('taskView', 'list'); } catch(_) {}
+            try { renderTaskTableFromCache(); } catch(_) {}
+        });
+
+        $gridTab.on('click', function () {
+            $gridTab.addClass('active');
+            $listTab.removeClass('active');
+            $statusMobileSection.removeClass('d-none');
+            $tableSection.addClass('d-none');
+            try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
+        });
+    });
+
     function toggleDropdownFilter() {
         let dropdown = $(".dropdown-filter-container");
         let mobileContainer = $(".mobile-task-container");
@@ -9447,8 +9951,6 @@ function applyCurrentSearchFilter() {
             });
         }
     } catch(_) {}
-
-});
 
  let currentMonth = new Date().getMonth();
     let currentYear = new Date().getFullYear();
@@ -9855,3 +10357,1589 @@ function applyCurrentSearchFilter() {
             console.warn("Task not found for ID:", taskId);
         }
     });
+
+    $(document).ready(function () {
+        const $listTab = $('#list-tab');
+        const $gridTab = $('#grid-tab');
+        const $statusSection = $('#task-cards-container');
+        const $statusMobileSection = $('.mobile-task-container');
+        const $tableSection = $('#task-table-section');
+
+        // Apply persisted view (default to grid)
+        const savedView = (function(){ try { return localStorage.getItem('taskView') || 'grid'; } catch(_) { return 'grid'; }})();
+        const setView = (view) => {
+            if (view === 'list') {
+                $listTab.addClass('active');
+                $gridTab.removeClass('active');
+                $statusSection.addClass('d-none');
+                $statusMobileSection.addClass('d-none');
+                $tableSection.removeClass('d-none');
+                try { renderTaskTableFromCache(); } catch(_) {}
+            } else {
+                $gridTab.addClass('active');
+                $listTab.removeClass('active');
+                $statusSection.removeClass('d-none');
+                $statusMobileSection.removeClass('d-none');
+                $tableSection.addClass('d-none');
+            }
+        };
+        setView(savedView === 'list' ? 'list' : 'grid');
+
+        $listTab.on('click', function () {
+            $listTab.addClass('active');
+            $gridTab.removeClass('active');
+            $statusSection.addClass('d-none');
+            $statusMobileSection.addClass('d-none');
+            $tableSection.removeClass('d-none');
+            try { localStorage.setItem('taskView', 'list'); } catch(_) {}
+            try { renderTaskTableFromCache(); } catch(_) {}
+        });
+
+        $gridTab.on('click', function () {
+            $gridTab.addClass('active');
+            $listTab.removeClass('active');
+            $statusSection.removeClass('d-none');
+            $statusMobileSection.removeClass('d-none');
+            $tableSection.addClass('d-none');
+            try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
+        });
+    });
+
+    // Helper functions for task feedback image and file preview (similar to project feedback)
+                    function showInlineImagePreviewSmall(fileObj, dataUrl) {
+                        try {
+                            // Create or get the preview container
+                            var previewContainer = document.getElementById(
+                                "inline_feedback_image_preview"
+                            );
+                            if (!previewContainer) {
+                                previewContainer = document.createElement("div");
+                                previewContainer.id = "inline_feedback_image_preview";
+                                // ensure container and its children are fully opaque and do not inherit any translucent styles
+                                previewContainer.style.cssText =
+                                    "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+                                // Insert after the file button
+                                var fileBtn = document.getElementById(
+                                    "inlineFeedbackFileBtn"
+                                );
+                                if (fileBtn && fileBtn.parentNode) {
+                                    fileBtn.parentNode.insertBefore(
+                                        previewContainer,
+                                        fileBtn.nextSibling
+                                    );
+                                }
+                            }
+
+                            // Create the image preview similar to modal add project style
+                            previewContainer.innerHTML = "";
+
+                            var imageLabel = document.createElement("div");
+                            imageLabel.className =
+                                "custom-image-upload position-relative";
+                            // apply explicit opaque styles so the preview doesn't look translucent
+                            imageLabel.style.cssText =
+                                "" +
+                                "width: 32px; " +
+                                "height: 32px; " +
+                                "background-image: url('" +
+                                dataUrl +
+                                "'); " +
+                                "background-size: cover; " +
+                                "background-position: center center; " +
+                                "background-repeat: no-repeat; " +
+                                "border-radius: 6px; " +
+                                "cursor: pointer; " +
+                                "border: 1px solid #ddd; " +
+                                "margin-right: 4px; " +
+                                "opacity: 1; " +
+                                "background-color: #ffffff; " +
+                                "box-shadow: 0 1px 3px rgba(0,0,0,0.12); " +
+                                "overflow: visible; ";
+
+                            var clearBtn = document.createElement("span");
+                            clearBtn.className = "image-clear-btn";
+                            clearBtn.innerHTML = "&times;";
+                            clearBtn.title = "Remove image";
+                            // make the clear button visually prominent and above other elements
+                            clearBtn.style.cssText =
+                                "" +
+                                "position: absolute; " +
+                                "top: -6px; " +
+                                "right: -6px; " +
+                                "background: #ff4444; " +
+                                "color: #ffffff; " +
+                                "border-radius: 50%; " +
+                                "width: 16px; " +
+                                "height: 16px; " +
+                                "font-size: 12px; " +
+                                "line-height: 16px; " +
+                                "text-align: center; " +
+                                "cursor: pointer; " +
+                                "font-weight: 700; " +
+                                "border: none; " +
+                                "box-shadow: 0 2px 6px rgba(0,0,0,0.25); " +
+                                "z-index: 30; " +
+                                "opacity: 1; ";
+
+                            // Store the file object for later use
+                            window.__inlineFeedbackImageFile = fileObj;
+
+                            clearBtn.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                try {
+                                    // Clear the file input
+                                    var inp = document.getElementById(
+                                        "inline_feedback_image_input"
+                                    );
+                                    if (inp) inp.value = "";
+                                    // Clear the stored file
+                                    window.__inlineFeedbackImageFile = null;
+                                    // Remove the preview container
+                                    if (
+                                        previewContainer &&
+                                        previewContainer.parentNode
+                                    ) {
+                                        previewContainer.parentNode.removeChild(
+                                            previewContainer
+                                        );
+                                    }
+                                } catch (_) {}
+                            });
+
+                            // Add click to preview (optional - could open larger view)
+                            imageLabel.addEventListener("click", function (e) {
+                                e.preventDefault();
+                                // Optional: show larger preview or do nothing
+                                try {
+                                    showInlineImagePreview(fileObj, dataUrl);
+                                } catch (_) {}
+                            });
+
+                            imageLabel.appendChild(clearBtn);
+                            previewContainer.appendChild(imageLabel);
+                        } catch (e) {
+                            console.warn("Failed to show image preview:", e);
+                        }
+                    }
+
+                    // show inline image preview overlay (WhatsApp-like)
+                    function showInlineImagePreview(fileObj, dataUrl) {
+                        try {
+                            if (document.getElementById("inlineImagePreviewOverlay")) return;
+
+                            function cleanup() {
+                                try {
+                                    const inp = document.getElementById("inline_feedback_image_input");
+                                    if (inp) inp.value = "";
+                                } catch (_) {}
+                                try {
+                                    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                                } catch (_) {}
+                                try {
+                                    window.__inlineFeedbackImageFile = null;
+                                    const previewContainer = document.getElementById("inline_feedback_image_preview");
+                                    if (previewContainer && previewContainer.parentNode) {
+                                        previewContainer.parentNode.removeChild(previewContainer);
+                                    }
+                                } catch (_) {}
+                            }
+
+                            cancelBtn.addEventListener("click", cleanup);
+
+                            sendBtn.addEventListener("click", function () {
+                                try {
+                                    const fd = new FormData();
+                                    fd.append("project_id", getMeta("project-id") || "");
+                                    fd.append(
+                                        "employee_id",
+                                        document
+                                            .getElementById("projectFeedbackModal")
+                                            ?.getAttribute("data-employee-id") || ""
+                                    );
+
+                                    const imageFileToUse = window.__inlineFeedbackImageFile || fileObj;
+                                    if (imageFileToUse) fd.append("feedback_image", imageFileToUse);
+
+                                    const origText = sendBtn.innerHTML;
+                                    sendBtn.disabled = true;
+                                    sendBtn.innerHTML =
+                                        '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+                                    fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks", {
+                                        method: "POST",
+                                        headers: {
+                                            "X-CSRF-TOKEN": document
+                                                .querySelector('meta[name="csrf-token"]')
+                                                .getAttribute("content"),
+                                        },
+                                        body: fd,
+                                    })
+                                        .then((res) => {
+                                            if (!res.ok)
+                                                return res.json().then((j) => Promise.reject(j));
+                                            return res.json();
+                                        })
+                                        .then((data) => {
+                                            window.showFloatingAlert &&
+                                                window.showFloatingAlert(
+                                                    "Feedback submitted",
+                                                    "success",
+                                                    2000
+                                                );
+                                            try {
+                                                loadFeedbackData(getMeta("project-id"));
+                                            } catch (_) {}
+                                            cleanup();
+                                        })
+                                        .catch((err) => {
+                                            let msg = "Failed to submit feedback";
+                                            if (err?.errors)
+                                                msg = Object.values(err.errors).join("\n");
+                                            else if (err?.message) msg = err.message;
+                                            window.showFloatingAlert &&
+                                                window.showFloatingAlert(msg, "warning", 4000);
+                                        })
+                                        .finally(() => {
+                                            sendBtn.disabled = false;
+                                            sendBtn.innerHTML = origText;
+                                        });
+                                } catch (_) {}
+                            });
+                        } catch (_) {}
+                    }
+
+    // Render task feedback files preview (similar to project feedback)
+    function renderTaskFeedbackFilesPreview() {
+        try {
+            var preview = document.getElementById("task_feedback_files_preview");
+            if (!preview) {
+                // Create preview container if it doesn't exist
+                var form = document.getElementById("addFeedbackForm");
+                if (form) {
+                    preview = document.createElement("div");
+                    preview.id = "task_feedback_files_preview";
+                    preview.className = "mt-2";
+                    form.appendChild(preview);
+                }
+            }
+            if (!preview) return;
+
+            var sel = window.taskFeedbackSelectedFiles || [];
+            preview.innerHTML = "";
+
+            if (!sel.length) return;
+
+            var listWrap = document.createElement("div");
+            listWrap.className = "selected-files-list mt-2";
+
+            sel.forEach(function (f, idx) {
+                try {
+                    var item = document.createElement("div");
+                    item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                    var iconWrap = document.createElement("div");
+                    var iconName = getFileTypeIcon(f.name || '');
+                    iconWrap.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span>';
+                    iconWrap.style.fontSize = "10px";
+                    iconWrap.style.textAlign = "center";
+
+                    var name = document.createElement("span");
+                    name.className = "flex-grow-1";
+                    name.style.fontSize = "10px";
+                    var sizeMb = (f.size || 0) / 1024 / 1024;
+                    name.textContent = (f.name || "") + (isFinite(sizeMb) ? " (" + sizeMb.toFixed(2) + " MB)" : "");
+
+                    var rm = document.createElement("button");
+                    rm.type = "button";
+                    rm.className = "btn btn-sm btn-remove-task remove-task";
+                    rm.style.lineHeight = "1";
+                    rm.style.fontSize = "10px";
+                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                    rm.addEventListener("click", function () {
+                        try {
+                            window.taskFeedbackSelectedFiles.splice(idx, 1);
+                            renderTaskFeedbackFilesPreview();
+                        } catch (_) {}
+                    });
+
+                    item.appendChild(iconWrap);
+                    item.appendChild(name);
+                    item.appendChild(rm);
+                    listWrap.appendChild(item);
+                } catch (_) {}
+            });
+
+            preview.appendChild(listWrap);
+        } catch (e) {}
+    }
+
+    // Render task edit feedback files preview (similar to add feedback)
+    function renderTaskEditFeedbackFilesPreview() {
+        try {
+            var preview = document.getElementById("task_edit_feedback_files_preview");
+            if (!preview) return;
+
+            var sel = window.taskEditFeedbackSelectedFiles || [];
+            preview.innerHTML = "";
+
+            if (!sel.length) return;
+
+            var listWrap = document.createElement("div");
+            listWrap.className = "selected-files-list mt-2";
+
+            sel.forEach(function (f, idx) {
+                try {
+                    var item = document.createElement("div");
+                    item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                    var iconWrap = document.createElement("div");
+                    var iconName = getFileTypeIcon(f.name || '');
+                    iconWrap.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span>';
+                    iconWrap.style.fontSize = "10px";
+                    iconWrap.style.textAlign = "center";
+
+                    var name = document.createElement("span");
+                    name.className = "flex-grow-1";
+                    name.style.fontSize = "10px";
+                    var sizeMb = (f.size || 0) / 1024 / 1024;
+                    name.textContent = (f.name || "") + (isFinite(sizeMb) ? " (" + sizeMb.toFixed(2) + " MB)" : "");
+
+                    var rm = document.createElement("button");
+                    rm.type = "button";
+                    rm.className = "btn btn-sm btn-remove-task remove-task";
+                    rm.style.lineHeight = "1";
+                    rm.style.fontSize = "10px";
+                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                    rm.addEventListener("click", function () {
+                        try {
+                            window.taskEditFeedbackSelectedFiles.splice(idx, 1);
+                            renderTaskEditFeedbackFilesPreview();
+                        } catch (_) {}
+                    });
+
+                    item.appendChild(iconWrap);
+                    item.appendChild(name);
+                    item.appendChild(rm);
+                    listWrap.appendChild(item);
+                } catch (_) {}
+            });
+
+            preview.appendChild(listWrap);
+        } catch (e) {}
+    }
+
+    // Helper function to get appropriate file type icon
+    function getFileTypeIcon(fileName) {
+        try {
+            var ext = (fileName || '').toLowerCase().split('.').pop();
+            switch (ext) {
+                case 'pdf':
+                    return 'picture_as_pdf';
+                case 'doc':
+                case 'docx':
+                    return 'article';
+                case 'xls':
+                case 'xlsx':
+                    return 'grid_on';
+                case 'zip':
+                case 'rar':
+                case '7z':
+                    return 'folder_zip';
+                case 'jpg':
+                case 'jpeg':
+                case 'png':
+                case 'gif':
+                case 'webp':
+                    return 'image';
+                case 'mp4':
+                case 'avi':
+                case 'mov':
+                    return 'movie';
+                case 'mp3':
+                case 'wav':
+                case 'ogg':
+                    return 'audio_file';
+                case 'txt':
+                    return 'text_snippet';
+                case 'ppt':
+                case 'pptx':
+                    return 'slideshow';
+                default:
+                    return 'description';
+            }
+        } catch (_) {
+            return 'description';
+        }
+    }
+
+    // Helper function to add image preview from URL (for existing images)
+    function addImagePreviewFromUrl(previewContainer, imageUrl, filename) {
+        if (!imageUrl) return;
+
+        const imagePreview = document.createElement('div');
+        imagePreview.className = 'image-preview existing-image';
+        imagePreview.innerHTML = `
+            <img src="${imageUrl}" alt="${filename || 'Image'}" style="max-width: 200px; max-height: 150px; object-fit: cover;">
+            <span class="filename">${filename || 'Existing Image'}</span>
+        `;
+        previewContainer.appendChild(imagePreview);
+    }
+
+    // Helper function to cleanup existing file previews
+    function cleanupExistingFiles(container) {
+        try {
+            const existingPreviews = container.querySelectorAll('.existing-image, .existing-file');
+            existingPreviews.forEach(preview => preview.remove());
+        } catch (e) {}
+    }
+
+    // Initialize Quill editors for task feedback forms (similar to project feedback)
+    function initTaskFeedbackQuillEditors(containerEl) {
+        try {
+            // helper to prevent image paste/drop
+            function preventImageDropAndPaste(quill, selector) {
+                try {
+                    var editor = document.querySelector(selector);
+                    if (!editor || !quill) return;
+                    editor.addEventListener(
+                        "dragover",
+                        function (e) {
+                            try {
+                                e.preventDefault();
+                            } catch (_) {}
+                        },
+                        true
+                    );
+                    editor.addEventListener(
+                        "drop",
+                        function (e) {
+                            try {
+                                if (!e.dataTransfer) return;
+                                var hasFiles =
+                                    e.dataTransfer.files &&
+                                    e.dataTransfer.files.length > 0;
+                                var html =
+                                    (e.dataTransfer.getData &&
+                                        e.dataTransfer.getData(
+                                            "text/html"
+                                        )) ||
+                                    "";
+                                if (hasFiles || /<img\s*/i.test(html)) {
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
+                                    return;
+                                }
+                            } catch (_) {}
+                        },
+                        true
+                    );
+                    editor.addEventListener(
+                        "paste",
+                        function (e) {
+                            try {
+                                var clipboard =
+                                    e.clipboardData ||
+                                    window.clipboardData;
+                                if (!clipboard) return;
+                                var items = clipboard.items || [];
+                                for (var i = 0; i < items.length; i++) {
+                                    var t = items[i].type || "";
+                                    if (
+                                        t.indexOf &&
+                                        t.indexOf("image") === 0
+                                    ) {
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return;
+                                    }
+                                }
+                                var html =
+                                    (clipboard.getData &&
+                                        clipboard.getData(
+                                            "text/html"
+                                        )) ||
+                                    "";
+                                if (/<img\s*/i.test(html)) {
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
+                                    return;
+                                }
+                            } catch (_) {}
+                        },
+                        true
+                    );
+                } catch (_) {}
+            }
+
+            // safe create quill if container exists and not already created
+            function createQuillIfNeeded(
+                editorSelector,
+                toolbarSelector,
+                globalName
+            ) {
+                try {
+                    if (!document.querySelector(editorSelector))
+                        return null;
+                    if (window[globalName]) return window[globalName];
+                    var q = new Quill(editorSelector, {
+                        modules: {
+                            toolbar: toolbarSelector,
+                            clipboard: { matchVisual: false },
+                        },
+                        theme: "snow",
+                    });
+                    // remove any images inserted
+                    try {
+                        var Delta =
+                            Quill.import && Quill.import("delta");
+                        if (
+                            q &&
+                            q.clipboard &&
+                            typeof q.clipboard.addMatcher === "function"
+                        ) {
+                            try {
+                                q.clipboard.addMatcher(
+                                    "IMG",
+                                    function (node, delta) {
+                                        try {
+                                            return new Delta();
+                                        } catch (_) {
+                                            return delta;
+                                        }
+                                    }
+                                );
+                            } catch (_) {}
+                        }
+                    } catch (_) {}
+                    try {
+                        q.on &&
+                            q.on("text-change", function () {
+                                try {
+                                    var imgs =
+                                        q.root.querySelectorAll("img");
+                                    imgs.forEach(function (i) {
+                                        i.remove();
+                                    });
+                                } catch (_) {}
+                            });
+                    } catch (_) {}
+                    try {
+                        preventImageDropAndPaste(q, editorSelector);
+                    } catch (_) {}
+                    window[globalName] = q;
+                    return q;
+                } catch (e) {
+                    return null;
+                }
+            }
+
+            // initialize any editors present inside modal body
+            try {
+                createQuillIfNeeded(
+                    "#task_feedback_editor",
+                    "#task_feedback_toolbar",
+                    "__quillTaskFeedbackAdd"
+                );
+                createQuillIfNeeded(
+                    "#task_edit_feedback_editor",
+                    "#task_edit_feedback_toolbar",
+                    "__quillTaskFeedbackEdit"
+                );
+            } catch (_) {}
+        } catch (_) {}
+    }
+
+    // Ensure Quill content is synced to hidden textarea before forms are submitted
+    function syncAllTaskFeedbackQuills() {
+        try {
+            try {
+                if (window.__quillTaskFeedbackAdd) {
+                    var ta = document.querySelector(
+                        "#addFeedbackForm #feedback_comment"
+                    );
+                    if (ta)
+                        ta.value =
+                            window.__quillTaskFeedbackAdd.root
+                                .innerHTML || "";
+                }
+            } catch (_) {}
+            try {
+                if (window.__quillTaskFeedbackEdit) {
+                    var ta3 = document.querySelector(
+                        "#editFeedbackForm #feedback_comment"
+                    );
+                    if (ta3)
+                        ta3.value =
+                            window.__quillTaskFeedbackEdit.root
+                                .innerHTML || "";
+                }
+            } catch (_) {}
+        } catch (_) {}
+    }
+
+    // Hook capture-phase submit on modal to ensure sync between Quill and textarea
+    try {
+        document.addEventListener(
+            "submit",
+            function (ev) {
+                try {
+                    var form = ev.target || null;
+                    if (!form) return;
+                    if (
+                        form.id === "addFeedbackForm" ||
+                        form.id === "editFeedbackForm"
+                    ) {
+                        syncAllTaskFeedbackQuills(); // basic validation
+                        try {
+                            var tmp =
+                                (
+                                    form.querySelector(
+                                        "#feedback_comment"
+                                    ) || {}
+                                ).value || "";
+                            if (
+                                !tmp ||
+                                String(tmp)
+                                    .replace(/<[^>]+>/g, "")
+                                    .trim() === ""
+                            ) {
+                                ev.preventDefault();
+                                if (typeof showFloatingAlert === 'function') {
+                                    showFloatingAlert(
+                                        "Feedback is required",
+                                        "warning",
+                                        3000
+                                    );
+                                }
+                                return false;
+                            }
+                        } catch (_) {}
+                    }
+                } catch (_) {}
+            },
+            true
+        );
+    } catch (_) {}
+
+    // Delegated handler: add/remove reference URL rows (match project feedback behavior)
+    document.addEventListener("click", function (e) {
+        try {
+            var addBtn = e.target.closest(".add-ref-url");
+            if (addBtn) {
+                e.preventDefault && e.preventDefault();
+                var container = addBtn.closest(
+                    "#task_feedback_reference_urls_container, #feedback_reference_urls_container"
+                );
+                if (!container) return;
+                var row = document.createElement("div");
+                row.className = "input-group";
+                row.innerHTML =
+                    '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' +
+                    ' <button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>';
+                container.appendChild(row);
+                var input = row.querySelector('input[type="url"]');
+                if (input)
+                    try {
+                        input.focus();
+                    } catch (_) {}
+                return;
+            }
+        } catch (_) {}
+
+        try {
+            var remBtn = e.target.closest(".remove-ref-url");
+            if (remBtn) {
+                e.preventDefault && e.preventDefault();
+                var row = remBtn.closest(".input-group");
+                if (row && row.parentNode) row.parentNode.removeChild(row);
+                return;
+            }
+        } catch (_) {}
+    });
+
+    // Clean up Quill instances when task feedback modal is hidden to avoid stale instances
+    try {
+        var taskFeedbackModal = document.getElementById("taskFeedbackModal");
+        if (taskFeedbackModal) {
+            taskFeedbackModal.addEventListener("hidden.bs.modal", function () {
+                try {
+                    if (window.__quillTaskFeedbackAdd) {
+                        window.__quillTaskFeedbackAdd = null;
+                    }
+                } catch (_) {}
+                try {
+                    if (window.__quillTaskFeedbackEdit) {
+                        window.__quillTaskFeedbackEdit = null;
+                    }
+                } catch (_) {}
+                try {
+                    // Clear selected files arrays
+                    window.taskFeedbackSelectedFiles = [];
+                    window.taskEditFeedbackSelectedFiles = [];
+                } catch (_) {}
+                try {
+                    // Clear image preview files
+                    window.__taskFeedbackImageFile = null;
+                } catch (_) {}
+                try {
+                    // Clear inline feedback variables
+                    if (window.__quillTaskFeedbackInline) {
+                        window.__quillTaskFeedbackInline = null;
+                    }
+                    window.inlineTaskFeedbackSelectedFiles = [];
+                    window.__taskInlineFeedbackImageFile = null;
+                    // Clear reply state when modal closes
+                    clearReplyState();
+                } catch (_) {}
+            });
+        }
+    } catch (_) {}
+
+    // Setup inline feedback editor in task modal footer (similar to project feedback)
+    function setupTaskInlineFeedbackEditor(taskId) {
+        try {
+            const modal = document.getElementById('taskFeedbackModal');
+            if (!modal) return;
+
+            // Find modal footer
+            let footer = modal.querySelector('.modal-footer') || modal.querySelector('.modal-footer-custom');
+            if (!footer) return;
+
+            // Replace footer content with inline feedback editor
+            footer.innerHTML = `
+                <div class="feedback-form w-100">
+                <div id="inline_task_feedback_files_preview"></div>
+                <div id="inline_existing_files_preview"></div>
+                    <div id="inline_task_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
+                        <div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div>
+                    </div>
+
+                    <textarea id="inline_task_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+                    <input type="hidden" id="inline_edit_task_feedback_input" value="">
+                    <input type="hidden" id="inline_parent_id_input" name="parent_id" value="">
+
+                    <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                        <div class="d-flex-justify-content-start">
+                            <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackPhotoBtn" title="Upload photo">
+                                <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                            </button>
+                            <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackFileBtn" title="Attach file">
+                                <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                            </button>
+                            <input type="file" id="inline_task_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                            <input type="file" id="inline_task_feedback_files_input" name="reference_files[]" multiple="" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                        </div>
+                        <div class="d-flex justify-content-end submit-feedback">
+                            <button type="button" class="btn btn-submit-black" id="inlineTaskFeedbackSendBtn">
+                                <span class="material-symbols-outlined">send</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+
+            try { window.__quillTaskFeedbackInline = null; } catch(_) {}
+            initTaskInlineFeedbackEditor(taskId);
+
+            // Ensure placeholder toggling is attached for contenteditable fallback
+            try {
+                const editor = document.getElementById('inline_task_feedback_editor');
+                if (editor) {
+                    const editorRoot = editor.querySelector('.ql-editor');
+                    if (editorRoot && !editorRoot.dataset.placeholderHandlerAttached) {
+                        const togglePlaceholder = function () {
+                            try {
+                                const txt = (editorRoot.textContent || '').replace(/\uFEFF/g, '').trim();
+                                if (txt.length > 0) {
+                                    editorRoot.classList.remove('ql-blank');
+                                } else {
+                                    if (!editorRoot.classList.contains('ql-blank')) editorRoot.classList.add('ql-blank');
+                                }
+                            } catch (_) {}
+                        };
+                        editorRoot.addEventListener('input', togglePlaceholder);
+                        editorRoot.addEventListener('keydown', function () { setTimeout(togglePlaceholder, 0); });
+                        // Mark as attached so we don't double-bind
+                        editorRoot.dataset.placeholderHandlerAttached = '1';
+                    }
+                }
+            } catch(_) {}
+
+        } catch (e) {
+            console.warn('Failed to setup inline task feedback editor:', e);
+        }
+    }
+
+    // Enter inline EDIT mode for task feedback (similar to project feedback)
+    window.startInlineTaskEditFeedback = function(data) {
+        try {
+            const hiddenInput = document.getElementById("inline_edit_task_feedback_input");
+            if (hiddenInput) hiddenInput.value = data.id || "";
+
+            // Set parent_id for replies
+            try {
+                const inlinePid = document.getElementById('inline_parent_id_input');
+                if (inlinePid) inlinePid.value = data.parent_id || '';
+            } catch(_) {}
+
+            // Ensure inline editor exists; initialize if not
+            try {
+                if (!window.__quillTaskFeedbackInline) {
+                    // Attempt to create it synchronously
+                    initTaskInlineFeedbackEditor((document.getElementById('taskFeedbackModal')||{}).dataset?.taskId || '');
+                }
+            } catch(_) {}
+
+            // Fill editor with existing content (guarded)
+            try {
+                if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
+                    // Use setTimeout(0) to ensure DOM is painted and Quill has attached
+                    setTimeout(function(){
+                        try { window.__quillTaskFeedbackInline.root.innerHTML = data.feedback_comment || ""; } catch(_) {}
+                        try {
+                            if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
+                                try { window.__quillTaskFeedbackInline.setSelection(0, 0); } catch(_) {}
+                            }
+                        } catch(_) {}
+                    }, 0);
+                }
+            } catch(_) {}
+
+            // Show existing image if available
+            try {
+                const rawImg = data.image_url || data.image || "";
+                if (rawImg) {
+                    let url = rawImg;
+                    if (url.indexOf('http') !== 0) {
+                        url = (url.indexOf('/') === 0) ? appUrl.replace(/\/$/, "") + url : appUrl.replace(/\/$/, "") + "/file/task_feedback/" + url;
+                    }
+                    showTaskInlineImagePreviewFromUrl(url);
+                }
+            } catch(_) {}
+
+            // Show existing files if available
+            try {
+                let files = [];
+                if (Array.isArray(data.reference_files_urls)) {
+                    files = data.reference_files_urls;
+                } else if (Array.isArray(data.reference_files)) {
+                    files = data.reference_files;
+                } else if (data.reference_file_url) {
+                    files = [data.reference_file_url];
+                } else if (data.reference_file) {
+                    files = [data.reference_file];
+                }
+                renderInlineTaskExistingFiles(files);
+            } catch(_) {}
+
+            // Change Send button to Update
+            const sendBtn = document.getElementById("inlineTaskFeedbackSendBtn");
+            if (sendBtn) {
+                sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
+                try {
+                    sendBtn.innerHTML = `
+                        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">send</span>
+                    `;
+                } catch(_) {
+                    sendBtn.textContent = 'Update';
+                }
+            }
+
+            // Add Cancel button
+            const actions = document.querySelector('.btn-actions-feedback .submit-feedback');
+            if (actions && !document.getElementById('inlineTaskFeedbackCancelBtn')) {
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.id = 'inlineTaskFeedbackCancelBtn';
+                cancel.className = 'btn btn-custom-close me-2 d-flex align-items-center gap-1';
+                cancel.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">cancel</span>';
+                cancel.addEventListener('click', function() {
+                    try {
+                        window.cancelInlineTaskEditFeedback();
+                    } catch(_) {}
+                });
+                actions.insertBefore(cancel, actions.firstChild);
+            }
+        } catch(_) {}
+    };
+
+    // Exit inline EDIT mode for task feedback
+    window.cancelInlineTaskEditFeedback = function() {
+        try {
+            // Clear edit marker
+            const hiddenInput = document.getElementById('inline_edit_task_feedback_input');
+            if (hiddenInput) hiddenInput.value = '';
+
+            // Clear parent_id
+            const inlinePid = document.getElementById('inline_parent_id_input');
+            if (inlinePid) inlinePid.value = '';
+
+            // Clear existing files keep list and remove preview
+            window.inlineTaskExistingFilesKeep = [];
+            try {
+                const existingPreview = document.getElementById('inline_existing_files_preview');
+                if (existingPreview && existingPreview.parentNode) {
+                    existingPreview.parentNode.removeChild(existingPreview);
+                }
+            } catch(_) {}
+
+            // Remove image preview and clear stored image file
+            try {
+                const imagePreview = document.getElementById('inline_task_feedback_image_preview');
+                if (imagePreview && imagePreview.parentNode) {
+                    imagePreview.parentNode.removeChild(imagePreview);
+                }
+            } catch(_) {}
+            window.__taskInlineFeedbackImageFile = null;
+
+            // Clear native file inputs
+            try {
+                const imgInput = document.getElementById('inline_task_feedback_image_input');
+                if (imgInput) imgInput.value = '';
+            } catch(_) {}
+            try {
+                const filesInput = document.getElementById('inline_task_feedback_files_input');
+                if (filesInput) filesInput.value = '';
+            } catch(_) {}
+
+            // Clear selected files array and file previews
+            try {
+                window.inlineTaskFeedbackSelectedFiles = [];
+                renderInlineTaskFeedbackFilesPreview();
+            } catch(_) {}
+
+            // Clear Quill editor
+            try {
+                if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
+                    window.__quillTaskFeedbackInline.root.innerHTML = '';
+                    if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
+                        try {
+                            window.__quillTaskFeedbackInline.setSelection(0);
+                        } catch(_) {}
+                    }
+                }
+            } catch(_) {}
+
+            // Clear fallback textarea
+            try {
+                const textarea = document.getElementById('inline_task_feedback_comment');
+                if (textarea) textarea.value = '';
+            } catch(_) {}
+
+            // Restore send button text
+            try {
+                const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
+                if (sendBtn) {
+                    if (sendBtn._origHTML) {
+                        try {
+                            sendBtn.innerHTML = sendBtn._origHTML;
+                        } catch(_) {
+                            sendBtn.textContent = sendBtn._origHTML;
+                        }
+                    } else {
+                        try {
+                            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+                        } catch(_) {
+                            sendBtn.textContent = 'Send';
+                        }
+                    }
+                }
+            } catch(_) {}
+
+            // Remove cancel button
+            try {
+                const cancelBtn = document.getElementById('inlineTaskFeedbackCancelBtn');
+                if (cancelBtn && cancelBtn.parentNode) {
+                    cancelBtn.parentNode.removeChild(cancelBtn);
+                }
+            } catch(_) {}
+
+            // Reset remove-image flag
+            window.__inlineTaskRemoveImage = false;
+        } catch(_) {}
+    };
+
+    // Show inline image preview from URL for existing image
+    window.showTaskInlineImagePreviewFromUrl = function(imageUrl) {
+        try {
+            // Create preview container if not exists
+            let previewContainer = document.getElementById("inline_task_feedback_image_preview");
+            if (!previewContainer) {
+                previewContainer = document.createElement("div");
+                previewContainer.id = "inline_task_feedback_image_preview";
+                previewContainer.style.cssText = "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+                const fileBtn = document.getElementById("inlineTaskFeedbackFileBtn");
+                if (fileBtn && fileBtn.parentNode) {
+                    fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                }
+            }
+
+            previewContainer.innerHTML = "";
+
+            const imageLabel = document.createElement("div");
+            imageLabel.className = "custom-image-upload position-relative";
+            imageLabel.style.cssText =
+                "width: 32px; height: 32px; " +
+                "background-image: url('" + imageUrl + "'); " +
+                "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
+                "border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; " +
+                "opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: visible;";
+
+            const clearBtn = document.createElement("span");
+            clearBtn.className = "image-clear-btn";
+            clearBtn.innerHTML = "&times;";
+            clearBtn.title = "Remove image";
+            clearBtn.style.cssText =
+                "position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; " +
+                "border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; " +
+                "text-align: center; cursor: pointer; font-weight: 700; border: none; " +
+                "box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30; opacity: 1;";
+
+            clearBtn.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    // Set remove flag for existing image
+                    window.__inlineTaskRemoveImage = true;
+                    // Clear any new image input
+                    const inp = document.getElementById("inline_task_feedback_image_input");
+                    if (inp) inp.value = "";
+                    // Clear stored new image
+                    window.__taskInlineFeedbackImageFile = null;
+                    // Remove preview
+                    if (previewContainer && previewContainer.parentNode) {
+                        previewContainer.parentNode.removeChild(previewContainer);
+                    }
+                } catch(_) {}
+            });
+
+            imageLabel.appendChild(clearBtn);
+            previewContainer.appendChild(imageLabel);
+        } catch(e) {
+            console.warn("Failed to show inline image preview from URL:", e);
+        }
+    };
+
+    // Render existing files for inline edit mode
+    window.renderInlineTaskExistingFiles = function(files) {
+        try {
+            const container = document.getElementById('inline_existing_files_preview');
+            let existingContainer = container;
+
+            if (!existingContainer) {
+                existingContainer = document.createElement('div');
+                existingContainer.id = 'inline_existing_files_preview';
+                existingContainer.className = 'mb-2';
+
+                // Insert before the editor
+                const editor = document.getElementById('inline_task_feedback_editor');
+                if (editor && editor.parentNode) {
+                    editor.parentNode.insertBefore(existingContainer, editor);
+                }
+            }
+
+            existingContainer.innerHTML = '';
+
+            if (!Array.isArray(files) || files.length === 0) return;
+
+            // Initialize keep list
+            if (!window.inlineTaskExistingFilesKeep) {
+                window.inlineTaskExistingFilesKeep = files.slice();
+            }
+
+            files.forEach(function(fileUrl, idx) {
+                if (!fileUrl) return;
+
+                const item = document.createElement('div');
+                item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-1 p-2 bg-transparent border-0 rounded';
+
+                const info = document.createElement('div');
+                info.className = 'd-flex align-items-center flex-grow-1';
+
+                const icon = document.createElement('span');
+                icon.className = 'material-symbols-outlined me-2';
+                icon.textContent = 'description';
+                icon.style.fontSize = '16px';
+
+                const link = document.createElement('a');
+                link.href = fileUrl;
+                link.target = '_blank';
+                link.style.textDecoration = 'none';
+                link.style.color = '#444';
+
+                const fileName = (function() {
+                    try {
+                        const url = new URL(fileUrl, window.location.origin);
+                        return decodeURIComponent(url.pathname.split('/').pop());
+                    } catch(e) {
+                        const parts = String(fileUrl).split('/');
+                        return decodeURIComponent(parts[parts.length - 1] || String(fileUrl));
+                    }
+                })();
+                link.textContent = fileName;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm ms-2';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.title = 'Remove file';
+                removeBtn.addEventListener('click', function() {
+                    // Remove from keep list
+                    const keepList = window.inlineTaskExistingFilesKeep || [];
+                    const indexInKeep = keepList.indexOf(fileUrl);
+                    if (indexInKeep !== -1) {
+                        keepList.splice(indexInKeep, 1);
+                    }
+                    // Remove from DOM
+                    item.remove();
+                });
+
+                info.appendChild(icon);
+                info.appendChild(link);
+                item.appendChild(info);
+                item.appendChild(removeBtn);
+                existingContainer.appendChild(item);
+            });
+        } catch(e) {
+            console.warn('Failed to render existing files:', e);
+        }
+    };
+
+    // Initialize inline Quill editor for task feedback
+    function initTaskInlineFeedbackEditor(taskId) {
+        try {
+            if (typeof Quill === "undefined") return;
+            if (window.__quillTaskFeedbackInline) return window.__quillTaskFeedbackInline;
+
+            const editorEl = document.getElementById("inline_task_feedback_editor");
+            if (!editorEl) return null;
+
+            // Create Quill with minimal toolbar (no visible toolbar)
+            const q = new Quill("#inline_task_feedback_editor", {
+                modules: {
+                    toolbar: false, // No toolbar for inline editor
+                    clipboard: { matchVisual: false },
+                },
+                theme: "snow",
+                placeholder: "Write feedback...",
+            });
+
+            // Remove images if pasted
+            try {
+                const Delta = Quill.import && Quill.import("delta");
+                if (q && q.clipboard && typeof q.clipboard.addMatcher === "function") {
+                    q.clipboard.addMatcher("IMG", function (node, delta) {
+                        try {
+                            return new Delta();
+                        } catch (_) {
+                            return delta;
+                        }
+                    });
+                }
+            } catch (_) {}
+
+            try {
+                q.on && q.on("text-change", function () {
+                    try {
+                        const imgs = q.root.querySelectorAll("img");
+                        imgs.forEach(function (i) {
+                            i.remove();
+                        });
+                    } catch (_) {}
+
+                    // Toggle placeholder state immediately when user types or removes content.
+                    try {
+                        const plain = (typeof q.getText === 'function') ? (q.getText() || '').trim() : (q.root.textContent || '').replace(/\s+/g, '').trim();
+                        if (plain && String(plain).length > 0) {
+                            q.root.classList.remove('ql-blank');
+                        } else {
+                            if (!q.root.classList.contains('ql-blank')) q.root.classList.add('ql-blank');
+                        }
+                    } catch (_) {}
+                });
+            } catch (_) {}
+
+            window.__quillTaskFeedbackInline = q;
+
+            // Ensure contenteditable root toggles placeholder on native input as well
+            try {
+                const editorRoot = editorEl.querySelector('.ql-editor');
+                if (editorRoot) {
+                    const togglePlaceholder = function () {
+                        try {
+                            const txt = (editorRoot.textContent || '').replace(/\uFEFF/g, '').trim();
+                            if (txt.length > 0) {
+                                editorRoot.classList.remove('ql-blank');
+                            } else {
+                                if (!editorRoot.classList.contains('ql-blank')) editorRoot.classList.add('ql-blank');
+                            }
+                        } catch (_) {}
+                    };
+                    editorRoot.addEventListener('input', togglePlaceholder);
+                    editorRoot.addEventListener('keydown', function () { setTimeout(togglePlaceholder, 0); });
+                }
+            } catch (_) {}
+
+            // Initialize selected files array
+            if (!window.inlineTaskFeedbackSelectedFiles) {
+                window.inlineTaskFeedbackSelectedFiles = [];
+            }
+
+            // Setup button handlers
+            setupInlineTaskFeedbackButtons(taskId, q);
+
+            return q;
+        } catch (e) {
+            console.warn('Failed to init inline task feedback editor:', e);
+            return null;
+        }
+    }
+
+    // Setup button handlers for inline task feedback editor
+    function setupInlineTaskFeedbackButtons(taskId, quill) {
+        try {
+            const photoBtn = document.getElementById('inlineTaskFeedbackPhotoBtn');
+            const fileBtn = document.getElementById('inlineTaskFeedbackFileBtn');
+            const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
+            const imageInput = document.getElementById('inline_task_feedback_image_input');
+            const filesInput = document.getElementById('inline_task_feedback_files_input');
+            const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+            // Photo button handler
+            if (photoBtn && imageInput) {
+                photoBtn.addEventListener('click', function() {
+                    imageInput.click();
+                });
+            }
+
+            // File button handler
+            if (fileBtn && filesInput) {
+                fileBtn.addEventListener('click', function() {
+                    filesInput.click();
+                });
+            }
+
+            // Image input handler
+            if (imageInput) {
+                imageInput.addEventListener('change', function() {
+                    const file = this.files && this.files[0];
+                    if (!file) return;
+
+                    // Size validation
+                    if (file.size > MAX_IMAGE_BYTES) {
+                        if (typeof showFloatingAlert === 'function') {
+                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning');
+                        }
+                        this.value = '';
+                        return;
+                    }
+
+                    // Create preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        showTaskInlineImagePreviewSmall(file, e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Files input handler
+            if (filesInput) {
+                filesInput.addEventListener('change', function() {
+                    const files = Array.from(this.files || []);
+                    if (!files.length) return;
+
+                    // Add to selection
+                    if (!window.inlineTaskFeedbackSelectedFiles) window.inlineTaskFeedbackSelectedFiles = [];
+                    window.inlineTaskFeedbackSelectedFiles = [...window.inlineTaskFeedbackSelectedFiles, ...files];
+
+                    // Render preview
+                    renderInlineTaskFeedbackFilesPreview();
+                    this.value = '';
+                });
+            }
+
+            // Send button handler
+            if (sendBtn && quill) {
+                sendBtn.addEventListener('click', function() {
+                    submitInlineTaskFeedback(taskId, quill);
+                });
+            }
+
+        } catch (e) {
+            console.warn('Failed to setup inline task feedback buttons:', e);
+        }
+    }
+
+    // Submit inline task feedback
+    function submitInlineTaskFeedback(taskId, quill) {
+        const appUrl = (function(){
+            try {
+                const meta = document.querySelector('meta[name="app-url"]');
+                let v = (meta && meta.getAttribute('content')) || '';
+                if (v) {
+                    v = new URL(v, window.location.origin).href.replace(/\/+$/, '');
+                    return v;
+                }
+                const parts = (window.location.pathname || '').split('/').filter(Boolean);
+                const baseSeg = parts.length > 0 ? ('/' + parts[0]) : '';
+                return (window.location.origin + baseSeg).replace(/\/+$/, '');
+            } catch(_) {
+                return (window.location.origin || '').replace(/\/+$/, '');
+            }
+        })();
+
+        try {
+            const html = quill.root.innerHTML || '';
+            let hasImage = false, hasRefFiles = false;
+
+            try {
+                if (window.__taskInlineFeedbackImageFile) hasImage = true;
+                else {
+                    const pi = document.getElementById("inline_task_feedback_image_input");
+                    if (pi && pi.files && pi.files.length) hasImage = true;
+                }
+            } catch(_) {}
+
+            try {
+                if (window.inlineTaskFeedbackSelectedFiles && window.inlineTaskFeedbackSelectedFiles.length) hasRefFiles = true;
+                else {
+                    const fi = document.getElementById("inline_task_feedback_files_input");
+                    if (fi && fi.files && fi.files.length) hasRefFiles = true;
+                }
+            } catch(_) {}
+
+            const plainText = String(html || '').replace(/<[^>]+>/g, '').trim();
+            if (!plainText && !hasImage && !hasRefFiles) {
+                if (typeof showFloatingAlert === 'function')
+                    showFloatingAlert('Please write feedback or attach a file', 'warning');
+                return;
+            }
+
+            const feedbackModalEl = document.getElementById('taskFeedbackModal');
+            const employeeId = feedbackModalEl?.getAttribute('data-employee-id') || '';
+
+            const fd = new FormData();
+            fd.append('feedback_comment', html);
+            fd.append('task_id', taskId);
+            fd.append('employee_id', employeeId);
+
+            try {
+                const pid = document.getElementById('inline_parent_id_input');
+                if (pid && pid.value) fd.append('parent_id', pid.value);
+            } catch(_) {}
+
+            const imageFile = window.__taskInlineFeedbackImageFile;
+            if (imageFile) fd.append('feedback_image', imageFile);
+
+            const selectedFiles = window.inlineTaskFeedbackSelectedFiles || [];
+            selectedFiles.forEach(f => fd.append('reference_files[]', f));
+
+            const editId = (document.getElementById('inline_edit_task_feedback_input') || {}).value || '';
+            const isEdit = String(editId).trim() !== '';
+            if (isEdit) {
+                try {
+                    const keepList = window.inlineTaskExistingFilesKeep || [];
+                    fd.set('existing_reference_files', JSON.stringify(keepList));
+                } catch(_) {}
+                try {
+                    if (typeof window.__inlineTaskRemoveImage !== 'undefined') {
+                        fd.set('remove_image', window.__inlineTaskRemoveImage ? '1' : '0');
+                    }
+                } catch(_) {}
+                fd.append('_method', 'PUT');
+            }
+
+            const sendBtn = $("#inlineTaskFeedbackSendBtn");
+            const origText = sendBtn.html();
+            sendBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>' + (isEdit ? 'Updating...' : 'Sending...'));
+
+            $.ajax({
+                url: isEdit ? appUrl + '/task-feedbacks/' + editId : appUrl + '/task-feedbacks',
+                type: 'POST',
+                data: fd,
+                processData: false,
+                contentType: false,
+                headers: {
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function (res) {
+                    const msg = (res && res.message) || (isEdit ? 'Feedback updated successfully!' : 'Feedback submitted successfully!');
+                    if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'light', 2000);
+
+                    // Reset editor dan file
+                    quill.root.innerHTML = '';
+                    window.inlineTaskFeedbackSelectedFiles = [];
+                    window.__taskInlineFeedbackImageFile = null;
+
+                    $('#inline_task_feedback_image_preview, #inline_task_feedback_files_preview, #inline_existing_files_preview').empty();
+
+                    // Clear reply state
+                    clearReplyState();
+
+                    if (isEdit && typeof window.cancelInlineTaskEditFeedback === 'function') {
+                        window.cancelInlineTaskEditFeedback();
+                    }
+
+                    setTimeout(() => {
+                        try {
+                            loadTaskFeedbackData(taskId + '?t=' + Date.now());
+                        } catch (e) {
+                            console.warn('Failed to reload feedback list', e);
+                        }
+                    }, 300);
+                },
+                error: function (xhr) {
+                    let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    if (typeof showFloatingAlert === 'function')
+                        showFloatingAlert(msg, "danger", 4000);
+                    else alert(msg);
+                },
+                complete: function () {
+                    sendBtn.prop('disabled', false).html(origText);
+                }
+            });
+
+        } catch (e) {
+            console.warn('Failed to submit inline task feedback:', e);
+            if (typeof showFloatingAlert === 'function')
+                showFloatingAlert("Failed to submit feedback", "warning");
+        }
+    }
+
+    // Show inline task feedback image preview
+    function showTaskInlineImagePreviewSmall(fileObj, dataUrl) {
+        try {
+            // Create or get the preview container
+            let previewContainer = document.getElementById("inline_task_feedback_image_preview");
+            if (!previewContainer) {
+                previewContainer = document.createElement("div");
+                previewContainer.id = "inline_task_feedback_image_preview";
+                previewContainer.style.cssText = "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+                // Insert after the file button
+                const fileBtn = document.getElementById("inlineTaskFeedbackFileBtn");
+                if (fileBtn && fileBtn.parentNode) {
+                    fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                }
+            }
+
+            // Create the image preview
+            previewContainer.innerHTML = "";
+
+            const imageLabel = document.createElement("div");
+            imageLabel.className = "custom-image-upload position-relative";
+            imageLabel.style.cssText =
+                "width: 32px; height: 32px; " +
+                "background-image: url('" + dataUrl + "'); " +
+                "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
+                "border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; " +
+                "opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: visible;";
+
+            const clearBtn = document.createElement("span");
+            clearBtn.className = "image-clear-btn";
+            clearBtn.innerHTML = "&times;";
+            clearBtn.title = "Remove image";
+            clearBtn.style.cssText =
+                "position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; " +
+                "border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; " +
+                "text-align: center; cursor: pointer; font-weight: 700; border: none; " +
+                "box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30; opacity: 1;";
+
+            // Store the file object for later use
+            window.__taskInlineFeedbackImageFile = fileObj;
+
+            clearBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    const inp = document.getElementById("inline_task_feedback_image_input");
+                    if (inp) inp.value = "";
+                    window.__taskInlineFeedbackImageFile = null;
+                    if (previewContainer && previewContainer.parentNode) {
+                        previewContainer.parentNode.removeChild(previewContainer);
+                    }
+                } catch (_) {}
+            });
+
+            imageLabel.appendChild(clearBtn);
+            previewContainer.appendChild(imageLabel);
+        } catch (e) {
+            console.warn("Failed to show inline task image preview:", e);
+        }
+    }
+
+    // Render inline task feedback files preview
+    function renderInlineTaskFeedbackFilesPreview() {
+        try {
+            let preview = document.getElementById("inline_task_feedback_files_preview");
+            if (!preview) {
+                // Create preview container if it doesn't exist
+                const form = document.querySelector(".feedback-form");
+                if (form) {
+                    preview = document.createElement("div");
+                    preview.id = "inline_task_feedback_files_preview";
+                    preview.className = "mt-2";
+                    form.appendChild(preview);
+                }
+            }
+            if (!preview) return;
+
+            const sel = window.inlineTaskFeedbackSelectedFiles || [];
+            preview.innerHTML = "";
+
+            if (!sel.length) return;
+
+            const listWrap = document.createElement("div");
+            listWrap.className = "selected-files-list mt-2";
+
+            sel.forEach(function (f, idx) {
+                try {
+                    const item = document.createElement("div");
+                    item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                    const iconWrap = document.createElement("div");
+                    const iconName = getFileTypeIcon(f.name || '');
+                    iconWrap.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span>';
+                    iconWrap.style.fontSize = "10px";
+                    iconWrap.style.textAlign = "center";
+
+                    const name = document.createElement("span");
+                    name.className = "flex-grow-1";
+                    name.style.fontSize = "10px";
+                    const sizeMb = (f.size || 0) / 1024 / 1024;
+                    name.textContent = (f.name || "") + (isFinite(sizeMb) ? " (" + sizeMb.toFixed(2) + " MB)" : "");
+
+                    const rm = document.createElement("button");
+                    rm.type = "button";
+                    rm.className = "btn btn-sm btn-remove-task remove-task";
+                    rm.style.lineHeight = "1";
+                    rm.style.fontSize = "10px";
+                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                    rm.addEventListener("click", function () {
+                        try {
+                            window.inlineTaskFeedbackSelectedFiles.splice(idx, 1);
+                            renderInlineTaskFeedbackFilesPreview();
+                        } catch (_) {}
+                    });
+
+                    item.appendChild(iconWrap);
+                    item.appendChild(name);
+                    item.appendChild(rm);
+                    listWrap.appendChild(item);
+                } catch (_) {}
+            });
+
+            preview.appendChild(listWrap);
+        } catch (e) {}
+    }
+});

@@ -10,6 +10,7 @@ function renderChildGroups(task, $container, $template) {
         const child = task.children[i];
         const $child = renderTaskNode(child, $template);
         const $wrap = $('<div class="task-item"></div>');
+        try { $wrap.css({ overflow: 'visible', position: 'relative' }); } catch(_) {}
         // Old connector stub removed in jsPlumb-only mode
         $wrap.append($child);
         $container.append($wrap);
@@ -126,7 +127,10 @@ function renderTaskNode(task, $template) {
     } catch (_) {}
 
     try {
-        $card.css("position", function(i, v){ return v || "relative"; });
+    $card.css("position", function(i, v){ return v || "relative"; });
+    // Ensure the overflow is visible so half-outside controls remain clickable
+    try { if (!$card.css('overflow') || $card.css('overflow') === 'hidden') { $card.css('overflow', 'visible'); } } catch(_){ }
+    try { if ($card.css('z-index') == null || $card.css('z-index') === 'auto') { $card.css('z-index', 10); } } catch(_){}
         if ($card.find('.plumb-handle').length === 0) {
             const $handle = $('<div class="plumb-handle d-none" title="Drag a line to add a parent"\
                 style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
@@ -139,12 +143,30 @@ function renderTaskNode(task, $template) {
             });
             $handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
             $card.append($handle);
-
-            $card.hover(
-                function () { $(this).find('.plumb-handle').removeClass('d-none'); },
-                function () { $(this).find('.plumb-handle').addClass('d-none'); }
-            );
         }
+
+        // Add three-dots menu button (menu will be portaled to body)
+        if ($card.find('.task-more-btn').length === 0) {
+            const taskId = task && task.id ? String(task.id) : null;
+            const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
+            if (taskId) $moreBtn.attr('data-task-id', taskId);
+            $card.append($moreBtn);
+
+            // Always show on mobile devices (no hover)
+            try {
+                var isMobile =
+                    window.matchMedia && window.matchMedia('(max-width: 1024px)').matches ||
+                    window.innerWidth <= 1024 ||
+                    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if (isMobile) $moreBtn.removeClass('d-none');
+            } catch(_){}
+        }
+
+        // Show both handle and menu button on hover
+        $card.hover(
+            function () { $(this).find('.plumb-handle, .task-more-btn').removeClass('d-none'); },
+            function () { $(this).find('.plumb-handle, .task-more-btn').addClass('d-none'); /* don't auto-hide menu here */ }
+        );
     } catch(_) {}
 
     if (visual === "complete") $card.css("background-color", "#B2EECD");
@@ -171,6 +193,7 @@ function renderTaskNode(task, $template) {
             flexDirection: "column",
             gap: "20px",
             position: "relative",
+            overflow: "visible",
         });
         renderChildGroups(task, $childGroup, $template);
         $branch.append($childGroup);
@@ -182,10 +205,12 @@ function renderTaskNode(task, $template) {
 function renderTaskList(data) {
     const $tree = $("#task-tree");
     $tree.empty();
+    try { $tree.css({ overflow: 'visible', position: function(i,v){ return v || 'relative'; } }); } catch(_){}
     if (!data || data.length === 0) return;
 
     const treeData = buildTaskTree(data);
     const $rootCol = $('<div class="root-column"></div>');
+    try { $rootCol.css({ overflow: 'visible', position: 'relative' }); } catch(_){}
     $tree.append($rootCol);
     treeData.forEach((root) => {
         $rootCol.append(renderTaskNode(root, $("#task-template")));
@@ -441,16 +466,23 @@ if (!window.USE_PLUMB_ONLY) {
     });
 }
 
-function getTaskByProject(projectId) {
+function getTaskByProject(projectId, bustCache) {
     fetchProjectDueDate(projectId);
     $("#task-loading").removeClass("d-none");
     $("#task-error").addClass("d-none");
     $("#task-tree").empty();
+    
+    var ajaxData = { pageTab: currentMaxLevel };
+    if (bustCache) {
+        ajaxData._t = Date.now(); // Add timestamp to prevent caching
+    }
+    
     return $.ajax({
         url: `${appUrl}/projects/${projectId}/tasks/tree`,
         type: "GET",
-        data: { pageTab: currentMaxLevel },
+        data: ajaxData,
         dataType: "json",
+        cache: false, // Disable jQuery cache
     })
         .done(function (response) {
             $("#task-loading").addClass("d-none");
@@ -738,21 +770,17 @@ $("#fullscreen-tree-btn").on("click", function () {
                 },
                 dataType: "json",
             })
-                .done(function (response) {
+                .done(function () {
                     try {
-                        var map = taskMap();
-                        var dragged = map[String(draggedId)];
-                        if (dragged) {
-                            dragged.parent_id = null;
+                        if (typeof window.refreshTaskTreePartial === 'function') {
+                            window.refreshTaskTreePartial();
+                        } else {
+                            // Fallback to local render if global not available
+                            var map = taskMap();
+                            var dragged = map[String(draggedId)];
+                            if (dragged) dragged.parent_id = null;
+                            renderTaskList(allTasks);
                         }
-                        renderTaskList(allTasks);
-                    } catch (_) {}
-
-                    // Don't reload from server to preserve positioning
-                    // Local data is already updated above
-
-                    // Show success message
-                    try {
                         if (typeof window.showFloatingAlert === "function") {
                             window.showFloatingAlert(
                                 "Task berhasil dikeluarkan dari parent",
@@ -838,13 +866,13 @@ $("#fullscreen-tree-btn").on("click", function () {
             })
                 .done(function () {
                     try {
-                        if (dragged) {
-                            dragged.parent_id = targetId;
+                        if (typeof window.refreshTaskTreePartial === 'function') {
+                            window.refreshTaskTreePartial();
+                        } else {
+                            if (dragged) dragged.parent_id = targetId;
+                            try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                         }
-                        // Avoid full re-render to keep card positions stable; let jsPlumb repaint
-                        try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                     } catch (_) {}
-                    // Don't reload from server to maintain consistent behavior
                 })
                 .fail(function (xhr) {
                     try {
@@ -1055,18 +1083,13 @@ $("#fullscreen-tree-btn").on("click", function () {
                 })
                     .done(function () {
                         try {
-                            if (dragged) {
-                                dragged.parent_id = null;
+                            if (typeof window.refreshTaskTreePartial === 'function') {
+                                window.refreshTaskTreePartial();
+                            } else {
+                                if (dragged) dragged.parent_id = null;
+                                renderTaskList(allTasks);
                             }
-                            renderTaskList(allTasks);
-                        } catch (_) {}
-
-                        // Don't reload from server to preserve positioning
-                        // Local data is already updated above
-                        try {
-                            if (
-                                typeof window.showFloatingAlert === "function"
-                            ) {
+                            if (typeof window.showFloatingAlert === "function") {
                                 window.showFloatingAlert(
                                     "Task berhasil dikeluarkan dari parent",
                                     "success",
@@ -1126,12 +1149,13 @@ $("#fullscreen-tree-btn").on("click", function () {
                 })
                     .done(function () {
                         try {
-                            if (dragged) {
-                                dragged.parent_id = targetId;
+                            if (typeof window.refreshTaskTreePartial === 'function') {
+                                window.refreshTaskTreePartial();
+                            } else {
+                                if (dragged) dragged.parent_id = targetId;
+                                try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                             }
-                            try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
                         } catch (_) {}
-                        // Don't reload from server to maintain consistent behavior
                     })
                     .fail(function (xhr) {
                         try {
@@ -1254,6 +1278,7 @@ $("#fullscreen-tree-btn").on("click", function () {
 
 $(document).on("click", ".task-box, .timeline-bar", function (e) {
     if ($(e.target).closest('.plumb-handle').length) { e.preventDefault(); e.stopPropagation(); return; }
+    if ($(e.target).closest('.task-more-btn, .task-more-menu').length) { e.preventDefault(); e.stopPropagation(); return; }
     const taskId = $(this).data("task-id");
     if (taskId) handleTaskDetail(taskId);
 });
@@ -1522,3 +1547,123 @@ function initTaskDetailModal() {
 
     modal.show();
 }
+
+// Task more-menu global handlers (bind once)
+(function setupTaskMoreMenu(){
+    if (window.__taskMoreMenuBound) return; window.__taskMoreMenuBound = true;
+    
+    var $globalMenu = null;
+    var currentTaskId = null;
+
+    function createOrGetMenu() {
+        if (!$globalMenu || !$globalMenu.parent().length) {
+            $globalMenu = $('<div id="task-global-more-menu" class="d-none" style="position:fixed;min-width:140px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;overflow:hidden;pointer-events:auto;"><button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button></div>');
+            $('body').append($globalMenu);
+        }
+        return $globalMenu;
+    }
+
+    function showMenuAt($btn, taskId) {
+        try {
+            var $menu = createOrGetMenu();
+            var rect = $btn[0].getBoundingClientRect();
+            var top = rect.bottom + 4;
+            var left = rect.left - 60;
+            if (left < 10) left = 10;
+            $menu.css({ top: top + 'px', left: left + 'px' });
+            $menu.removeClass('d-none');
+            currentTaskId = taskId;
+        } catch(_){}
+    }
+
+    function hideMenu() {
+        try {
+            if ($globalMenu) $globalMenu.addClass('d-none');
+            currentTaskId = null;
+        } catch(_){}
+    }
+
+    // Toggle menu
+    $(document).on('click', '.task-more-btn', function(e){
+        try {
+            e.preventDefault(); e.stopPropagation();
+            var $btn = $(this);
+            var taskId = $btn.attr('data-task-id') || $btn.closest('.task-box').attr('data-task-id');
+            if (!taskId) return;
+            var $menu = createOrGetMenu();
+            if (!$menu.hasClass('d-none') && currentTaskId === taskId) {
+                hideMenu();
+            } else {
+                hideMenu();
+                showMenuAt($btn, taskId);
+            }
+        } catch(_){}
+    });
+
+    // Clear Parent action
+    $(document).on('click', '#task-global-more-menu .clear-parent-action', function(e){
+        try {
+            e.preventDefault(); e.stopPropagation();
+            var taskId = currentTaskId;
+            if (!taskId) return;
+            hideMenu();
+            
+            // Clear all parents: set parent_id to null AND clear parent_ids array
+            // Send as JSON to ensure proper array handling
+            $.ajax({
+                url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
+                type: 'PUT',
+                data: JSON.stringify({ 
+                    parent_id: null,
+                    parent_ids: []
+                }),
+                contentType: 'application/json',
+                dataType: 'json',
+                headers: {
+                    'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .done(function(res){
+                try {
+                    if (typeof window.refreshTaskTreePartial === 'function') {
+                        window.refreshTaskTreePartial();
+                    } else {
+                        var idStr = String(taskId);
+                        (allTasks || []).forEach(function(t){ 
+                            if (String(t.id) === idStr) {
+                                t.parent_id = null;
+                                t.parent_ids = [];
+                            }
+                        });
+                        renderTaskList(allTasks);
+                    }
+                    if (typeof window.showFloatingAlert === 'function') {
+                        window.showFloatingAlert('Semua parent dibersihkan', 'success', 1400);
+                    }
+                } catch(_){}
+            })
+            .fail(function(xhr){
+                try {
+                    console.error('Gagal clear parent', xhr && xhr.responseText);
+                    if (typeof window.showFloatingAlert === 'function') {
+                        window.showFloatingAlert('Gagal menghapus parent', 'warning', 2400);
+                    } else { alert('Gagal menghapus parent'); }
+                } catch(_){}
+            });
+        } catch(_){}
+    });
+
+    // Click outside to close
+    $(document).on('click', function(e){ 
+        try { 
+            if (!$(e.target).closest('#task-global-more-menu, .task-more-btn').length) {
+                hideMenu();
+            }
+        } catch(_){} 
+    });
+
+    // Hide on scroll
+    $(window).on('scroll', function(){ try { hideMenu(); } catch(_){} });
+})();

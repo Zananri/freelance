@@ -35,49 +35,37 @@
                     <input type="text" id="searchInput" class="form-control border-dddd height-38"
                         placeholder="Search" />
                 </div>
-                <!-- Replace dropdown filter with button to open modal -->
-                <button class="btn btn-icon-toggle border-dddd filter-btn" type="button" id="openFilterModalBtn">
-                    <span class="material-symbols-outlined icon">filter_list</span><span class="text-btn">Filter</span>
-                </button>
-
-                <!-- Filter Modal -->
-                <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel"
-                    aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                        <div class="modal-content modal-content-custom">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="filterModalLabel">Filter Employees</h5>
-                                <button type="button" class="btn-close mt-1" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
+                <!-- Filter Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-icon-toggle border-dddd filter-btn dropdown-toggle" type="button" id="filterDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="material-symbols-outlined icon">filter_list</span><span class="text-btn">Filter</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end border-0" aria-labelledby="filterDropdownBtn" style="min-width: 300px; padding: 15px;">
+                        <form id="filterForm">
+                            <div class="mb-3 custom-input">
+                                <label for="filterDepartment" class="form-label small">Department</label>
+                                <select id="filterDepartment" class="form-select form-select-sm">
+                                    <option value="">Select Department</option>
+                                </select>
                             </div>
-                            <div class="modal-body modal-body-custom">
-                                <form id="filterForm">
-                                    <div class="mb-3 custom-input">
-                                        <label for="filterDepartment" class="form-label">Filter by Department</label>
-                                        <select id="filterDepartment" class="form-select">
-                                            <option value="">Select Department</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3 custom-input">
-                                        <label for="filterDivision" class="form-label">Filter by Division</label>
-                                        <select id="filterDivision" class="form-select" disabled>
-                                            <option value="">Select Division</option>
-                                        </select>
-                                    </div>
-                                    <div class="mb-3 custom-input">
-                                        <label for="filterJob" class="form-label">Filter by Job</label>
-                                        <select id="filterJob" class="form-select" disabled>
-                                            <option value="">Select Job</option>
-                                        </select>
-                                    </div>
-                                </form>
+                            <div class="mb-3 custom-input">
+                                <label for="filterDivision" class="form-label small">Division</label>
+                                <select id="filterDivision" class="form-select form-select-sm" disabled>
+                                    <option value="">Select Division</option>
+                                </select>
                             </div>
-                            <div class="modal-footer modal-footer-custom">
-                                <button type="button" class="btn btn-submit-black" id="applyFilterBtn">Filter</button>
-                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                            <div class="mb-3 custom-input">
+                                <label for="filterJob" class="form-label small">Job</label>
+                                <select id="filterJob" class="form-select form-select-sm" disabled>
+                                    <option value="">Select Job</option>
+                                </select>
                             </div>
-                        </div>
-                    </div>
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-submit-black flex-grow-1" id="applyFilterBtn">Apply</button>
+                                <button type="button" class="btn btn-custom-close flex-grow-1" id="clearFilterBtn">Clear</button>
+                            </div>
+                        </form>
+                    </ul>
                 </div>
 
                 <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd add-btn">

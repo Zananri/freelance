@@ -179,7 +179,7 @@
                                 <span class="material-symbols-outlined icon">file_export</span> <span
                                     class="btn-text-filter">Export</span>
                             </button>
-                            <button class="btn btn-timeline-filter-custom" type="button" data-bs-toggle="modal"
+                            <button class="btn btn-timeline-custom" type="button" data-bs-toggle="modal"
                                 data-bs-target="#timelineModal" data-label="TImeline" id="openProjectFilterBtn">
                                 <span class="material-symbols-outlined icon">view_timeline</span> <span
                                     class="btn-text-filter">Timeline</span>
@@ -328,7 +328,7 @@
                         <div class="mb-3 input-custom">
                             <label for="reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="reference_file"
-                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                 multiple>
                             <div class="form-text">Multiple files supported.
                             </div>
@@ -480,7 +480,7 @@
                         <div class="mb-3 input-custom">
                             <label for="edit_reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="edit_reference_file"
-                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                 multiple>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                             <div id="existing_reference_files" class="mt-2"></div>
@@ -605,7 +605,7 @@
                                 files</label>
                             <input type="file" class="form-control border-0 input-text"
                                 id="add_project_reference_files" name="reference_files[]"
-                                accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple>
                         </div>
 
                         <div id="add_project_reference_files_preview" class="mt-2"></div>
@@ -634,10 +634,33 @@
                 </div>
 
                 <div class="modal-body feedback-modal-body" id="projectFeedbackList">
+                    <div class="feedback-content" id="projectFeedbackListContainer"></div>
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton"
-                        style="white-space: nowrap;">Add Feedback</button>
+                    <div class="feedback-form w-100">
+                        <div id="inline_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
+
+                        <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+
+                        <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                            <div class="d-flex-justify-content-start">
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                    <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                </button>
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                    <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                </button>
+                                <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                                <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                                <input type="text" id="inline_edit_feedback_input" name="edit_feedback" class="d-none">
+                            </div>
+                            <div class="d-flex justify-content-end submit-feedback">
+                                <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
+                                    <span class="material-symbols-outlined">send</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="alert-container mt-2" style="width: 100%;"></div>

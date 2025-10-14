@@ -579,7 +579,7 @@ function loadDashboardTaskFeedbackData(taskId) {
     bodyEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
 
     const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
-    fetch((appUrl ? appUrl : '') + '/task-feedbacks/' + taskId, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+    fetch((appUrl ? appUrl : '') + '/task-feedbacks/' + taskId + '?_=' + Date.now(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' })
         .then(r => r.json())
         .then(res => {
             const data = res.data || [];
@@ -738,10 +738,10 @@ function showDashboardAddFeedbackForm(taskId) {
                 // lightweight fallback
                 const alertDiv = document.createElement('div');
                 alertDiv.className = 'alert alert-success d-flex align-items-center';
-                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '9999', opacity: '1', minWidth: '300px', margin: '0' });
+                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '20000', opacity: '1', minWidth: '300px', margin: '0' });
                 alertDiv.textContent = msg;
                 document.body.appendChild(alertDiv);
-                setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1500);
+                setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1800);
             }
             // Keep modal open and switch back to list view
             try {
@@ -787,7 +787,7 @@ function showDashboardAddFeedbackForm(taskId) {
                 setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 2000);
             }
     })
-    .finally(() => {
+    .catch(() => {
             newBtn.innerHTML = originalBtnHtml;
             newBtn.disabled = false;
     });
@@ -798,7 +798,7 @@ function showDashboardAddFeedbackForm(taskId) {
 if (typeof window.showFloatingAlert !== 'function') {
     window.showFloatingAlert = function(message) {
         if (typeof window.showAlertMsg === 'function') {
-            // Force light style
+                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '20000', opacity: '1', minWidth: '300px', margin: '0' });
             window.showAlertMsg(String(message || ''), 'light', 2000);
             return;
         }

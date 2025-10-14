@@ -21,12 +21,29 @@
                 d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z" />
         </symbol>
     </svg>
+
     <div class="d-flex justify-content-between align-items-center mb-4 mt-1 header-task-container">
-        <div class="title-content">
-            <h2>Task</h2>
+        <div class="d-flex align-items-center gap-3 left-header-content">
+            <div class="title-content">
+                <h2>Task</h2>
+            </div>
         </div>
 
         <div class="d-flex align-items-center gap-2">
+            <div class="task-tabs mb-3 me-2">
+                <ul class="custom-tab" id="taskTabMenu" role="tablist">
+                    <li>
+                        <button class="tab-btn active" id="grid-tab">
+                            <span class="material-symbols-outlined">grid_view</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button class="tab-btn" id="list-tab">
+                            <span class="material-symbols-outlined">list</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
             <div class="dropdown-filter-container">
                 <div class="search-input-container">
                     <span class="material-symbols-outlined search-icon">search</span>
@@ -145,7 +162,27 @@
             </div>
         </div>
     </div>
-    <div id="kanban-drag-layer"></div>
+
+    <div id="task-table-section" class="task-table-section d-none">
+        <div class="body-content scrollable-container table-container rounded-4 px-4 py-3">
+            <table class="table table-borderless align-middle table-transparent">
+                <thead>
+                    <tr>
+                        <th scope="col">Task</th>
+                        <th scope="col">PIC</th>
+                        <th scope="col">Executors</th>
+                        <th scope="col">Start Date</th>
+                        <th scope="col">Due Date</th>
+                        <th scope="col">Status</th>
+
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
     <!-- Edit Task Modal -->
     <div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
@@ -718,9 +755,30 @@
                 <div class="modal-body feedback-modal-body" id="taskFeedbackList">
                 </div>
                 <div class="modal-footer modal-footer-custom">
-                    <button type="button" class="btn btn-submit-black" id="addFeedbackButton">
-                        Add Feedback
-                    </button>
+                    <div class="feedback-form w-100">
+                        <div id="inline_feedback_editor" class="border-0 ql-container ql-snow"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
+
+                        <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+
+                        <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                            <div class="d-flex-justify-content-start">
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                    <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                </button>
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                    <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                </button>
+                                <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                                <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                                <input type="text" id="inline_edit_feedback_input" name="edit_feedback" class="d-none">
+                            </div>
+                            <div class="d-flex justify-content-end submit-feedback">
+                                <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
+                                    <span class="material-symbols-outlined">send</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="alert-container mt-2"></div>

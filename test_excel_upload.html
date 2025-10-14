@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Excel Upload</title>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body>
+    <h2>Test Excel File Upload</h2>
+    <form id="testForm" enctype="multipart/form-data">
+        <div>
+            <label>Project ID:</label>
+            <input type="number" name="project_id" value="1" required>
+        </div>
+        <div>
+            <label>Employee ID:</label>
+            <input type="number" name="employee_id" value="1" required>
+        </div>
+        <div>
+            <label>Feedback Comment:</label>
+            <textarea name="feedback_comment" required>Test feedback with Excel file</textarea>
+        </div>
+        <div>
+            <label>Excel Files:</label>
+            <input type="file" name="reference_files[]" multiple accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+        </div>
+        <button type="submit">Submit Feedback</button>
+    </form>
+
+    <div id="result"></div>
+
+    <script>
+        // Get CSRF token
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        
+        document.getElementById('testForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const projectId = document.querySelector('[name="project_id"]').value;
+            const employeeId = document.querySelector('[name="employee_id"]').value;
+            const comment = document.querySelector('[name="feedback_comment"]').value;
+            const files = document.querySelector('[name="reference_files[]"]').files;
+            
+            formData.append('project_id', projectId);
+            formData.append('employee_id', employeeId);
+            formData.append('feedback_comment', comment);
+            
+            // Add files with debug info
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                console.log('Adding file:', {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    lastModified: file.lastModified
+                });
+                formData.append('reference_files[]', file);
+            }
+            
+            // Debug: log all FormData entries
+            console.log('FormData entries:');
+            for (let pair of formData.entries()) {
+                if (pair[1] instanceof File) {
+                    console.log(pair[0] + ':', pair[1].name + ' (' + pair[1].type + ')');
+                } else {
+                    console.log(pair[0] + ':', pair[1]);
+                }
+            }
+            
+            fetch('/project-feedbacks', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken
+                },
+                body: formData
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerHTML = '<pre style="color: red;">Error: ' + error.message + '</pre>';
+            });
+        });
+    </script>
+</body>
+</html>
