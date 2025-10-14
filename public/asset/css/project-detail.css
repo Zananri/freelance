@@ -2080,7 +2080,8 @@ input[type="file"]::file-selector-button {
     font-size: 13px;
 }
 
-.executor-wrapper {
+.executor-wrapper,
+.picname-wrapper{
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -2092,10 +2093,7 @@ input[type="file"]::file-selector-button {
     scrollbar-width: none;
 }
 
-.executor-wrapper::-webkit-scrollbar {
+.executor-wrapper::-webkit-scrollbar,
+.picname-wrapper::-webkit-scrollbar {
     display: none;
-}
-
-.task-table-body {
-    overflow: auto;
 }
