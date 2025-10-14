@@ -3519,7 +3519,7 @@ function renderTaskTableFromCache() {
                         <div class="d-flex align-items-center gap-3">
                             ${taskImgHtml}
                             <div>
-                                <div class="fw-semibold" style="font-size: 14px;">${taskTitle}</div>
+                                <div class="fw-semibold task-title" style="font-size: 14px; cursor: pointer;">${taskTitle}</div>
                                 <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
                             </div>
                         </div>
@@ -4143,9 +4143,15 @@ function filterTaskTableRows(queryRaw) {
             // Click on task title -> open detail modal
             const titleEl = e.target.closest('.task-title');
             if (titleEl) {
-                // Find nearest task card and its id
+                // Find nearest task card and its id; if not in card (table/list view),
+                // try to find enclosing table row with data-task-id.
+                let taskId = null;
                 const card = titleEl.closest('.custom-card');
-                const taskId = card ? card.getAttribute('data-task-id') : null;
+                if (card) taskId = card.getAttribute('data-task-id');
+                if (!taskId) {
+                    const tr = titleEl.closest('tr[data-task-id]');
+                    if (tr) taskId = tr.getAttribute('data-task-id');
+                }
                 if (taskId) {
                     try {
                         // If detail modal already open, hide it first to avoid duplicates
