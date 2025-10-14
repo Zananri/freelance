@@ -6305,136 +6305,176 @@ function filterTaskTableRows(queryRaw) {
         } catch (_) {}
     }
 
-    // Show reply form (reuses add form but with parent_id and title)
-    function showReplyFeedbackForm(taskId, parentId) {
-        const feedbackModalEl = document.getElementById("taskFeedbackModal");
-        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
-        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
-        const addFeedbackButton = document.getElementById("addFeedbackButton");
-
-        modalTitle.textContent = "Reply Feedback";
-
-        modalBody.innerHTML = `
-            <form id="addFeedbackForm" enctype="multipart/form-data">
-                <input type="hidden" name="task_id" value="${taskId}">
-                <input type="hidden" name="parent_id" value="${parentId}">
-                <input type="hidden" name="employee_id" value="${feedbackModalEl.dataset.employeeId || ''}">
-
-                <div class="mb-3 custom-input">
-                    <label class="form-label">Upload Image</label>
-                    <div class="image-upload-container">
-                        <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
-                            style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                            <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
-                            <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="mb-3 custom-input">
-                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
-
-                    <!-- Quill toolbar + editor (visual) -->
-                    <div id="task_feedback_toolbar">
-                        <span class="ql-formats">
-                            <button class="ql-bold"></button>
-                            <button class="ql-italic"></button>
-                            <button class="ql-underline"></button>
-                        </span>
-                        <span class="ql-formats">
-                            <button class="ql-list" value="ordered"></button>
-                            <button class="ql-list" value="bullet"></button>
-                        </span>
-                        <span class="ql-formats">
-                            <button class="ql-link"></button>
-                        </span>
-                    </div>
-
-                    <div id="task_feedback_editor"
-                        style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
-
-                    <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
-                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" required style="display:none;"></textarea>
-                </div>
-
-                <div class="mb-3 custom-input">
-                    <label class="form-label">Reference URLs (Optional)</label>
-                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2">
-                        <div class="d-flex gap-2 align-items-center">
-                            <input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">
-                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3 custom-input">
-                    <label for="reference_files" class="form-label">Reference Files (Optional)</label>
-                    <input type="file" class="form-control" id="reference_files" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
-                    <div id="feedback_reference_files_preview"></div>
-                </div>
-            </form>
-        `;
-
-        // Setup image preview and clear button logic (same as add feedback)
-        const imageInput = modalBody.querySelector("#feedback_image");
-        const imageLabel = modalBody.querySelector("#feedbackImageLabel");
-        const imageClearBtn = modalBody.querySelector("#feedbackImageClearBtn");
-
-        imageInput.addEventListener("change", function () {
-            if (this.files && this.files[0]) {
-                const file = this.files[0];
-                if (file.size > MAX_IMAGE_BYTES) {
-                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
-                    this.value = '';
-                    return;
-                }
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    imageLabel.style.backgroundImage = `url('${e.target.result}')`;
-                    imageLabel.classList.add("has-image");
-                    imageLabel.style.backgroundSize = "cover";
-                    imageLabel.style.opacity = "1";
-                    imageClearBtn.classList.remove("d-none");
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        imageClearBtn.addEventListener("click", function (e) {
-            e.preventDefault();
-            imageInput.value = "";
-            imageLabel.style.backgroundImage =
-                "url('" + appUrl + "/asset/img/background/add-image.png')";
-            imageLabel.style.backgroundPosition = "center center";
-            imageLabel.style.backgroundRepeat = "no-repeat";
-            imageLabel.style.backgroundSize = "50%";
-            imageLabel.classList.remove("has-image");
-            imageLabel.style.opacity = "0.5";
-            imageClearBtn.classList.add("d-none");
-        });
-
-        // Multi-file reference preview (same UX as Add Task)
+    // Helper to clear reply state
+    function clearReplyState() {
         try {
-            selectedFiles = [];
-            const refInput = modalBody.querySelector('#reference_files');
-            if (refInput) {
-                refInput.addEventListener('change', function () {
-                    const files = Array.from(this.files || []);
-                    if (files.length) {
-                        selectedFiles = [...selectedFiles, ...files];
-                        if (typeof displaySelectedFiles === 'function') {
-                            displaySelectedFiles();
-                        }
-                    }
-                    this.value = '';
-                });
-            }
-        } catch (_) {}
+            const pid = document.getElementById('inline_parent_id_input');
+            if (pid) pid.value = '';
+            const previewContainer = document.getElementById('reply_parent_preview_inline');
+            if (previewContainer) previewContainer.remove();
+        } catch(_) {}
+    }
 
-        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
-            const form = document.getElementById('addFeedbackForm');
-            if (form) submitFeedbackForm(form, taskId);
-        });
+    // Show reply form (using inline approach like project.js)
+    function showReplyFeedbackForm(taskId, parentId) {
+        try {
+            const feedbackModalEl = document.getElementById("taskFeedbackModal");
+            const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+            const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+            
+            // Look for the inline feedback form in the modal footer
+            const inlineForm = feedbackModalEl.querySelector('.feedback-form');
+            if (inlineForm) {
+                // Create or update hidden parent id input
+                let inlinePid = inlineForm.querySelector('#inline_parent_id_input');
+                if (!inlinePid) {
+                    inlinePid = document.createElement('input');
+                    inlinePid.type = 'hidden';
+                    inlinePid.id = 'inline_parent_id_input';
+                    inlinePid.name = 'parent_id';
+                    inlineForm.appendChild(inlinePid);
+                }
+                inlinePid.value = parentId || '';
+
+                // Prepare preview container inside inline form
+                let previewContainer = inlineForm.querySelector('#reply_parent_preview_inline');
+                if (!previewContainer) {
+                    previewContainer = document.createElement('div');
+                    previewContainer.id = 'reply_parent_preview_inline';
+                    previewContainer.className = 'mt-2';
+                }
+
+                // Default preview while fetching
+                previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Loading...</div><div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
+
+                // Fetch feedback data to show preview
+                try {
+                    fetch(appUrl + '/task-feedbacks/' + taskId)
+                        .then(function (res) {
+                            if (!res.ok) return res.json().then(Promise.reject);
+                            return res.json();
+                        })
+                        .then(function (json) {
+                            const payload = json && json.data ? json.data : json;
+                            let fb = null;
+                            
+                            // Find feedback by parentId
+                            function findById(node, id) {
+                                if (!node) return null;
+                                if (Array.isArray(node)) {
+                                    for (let k = 0; k < node.length; k++) {
+                                        const r = findById(node[k], id);
+                                        if (r) return r;
+                                    }
+                                    return null;
+                                }
+                                try {
+                                    if (node && String(node.id) === String(id)) return node;
+                                    if (node && node.replies && Array.isArray(node.replies)) {
+                                        const rr = findById(node.replies, id);
+                                        if (rr) return rr;
+                                    }
+                                } catch (_) {}
+                                return null;
+                            }
+                            
+                            fb = findById(payload, parentId);
+                            
+                            const title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || 
+                                         (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
+                            const commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
+                            
+                            try {
+                                const empRaw = (fb && fb.employee) || {};
+                                let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                                // Use the same buildPhotoUrl helper from task.js if available
+                                const avatarUrl = (typeof buildPhotoUrl === 'function') ? 
+                                    buildPhotoUrl(avatarRaw, empRaw.profile_picture, empRaw.profile_picture_url) :
+                                    (avatarRaw ? appUrl + '/file/profile_picture/' + avatarRaw : appUrl + '/asset/img/avatar.png');
+                                
+                                let plain = '';
+                                try { 
+                                    plain = (commentRaw || '').replace(/<[^>]+>/g, ''); 
+                                } catch (_) { 
+                                    plain = (commentRaw || '') + ''; 
+                                }
+                                if (plain && plain.length > 120) plain = plain.substring(0, 120).trim() + '...';
+                                
+                                let html = '';
+                                html += '<div class="selected-files-list mt-2">';
+                                html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                                html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                                html += '<img src="' + avatarUrl + '" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src=\'' + appUrl + '/asset/img/avatar.png\';">';
+                                html += '</div>';
+                                html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                                html += '<div style="font-weight:500;font-size:11px">' + (title || 'Unknown') + '</div>';
+                                html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">' + (plain || '') + '</div>';
+                                html += '</div>';
+                                html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                                html += '</div></div>';
+                                previewContainer.innerHTML = html;
+                            } catch (_) {}
+                            
+                            try {
+                                const btn = previewContainer.querySelector('.remove-task');
+                                if (btn) btn.addEventListener('click', function () { 
+                                    try { 
+                                        previewContainer.remove(); 
+                                        inlinePid.value = ''; 
+                                    } catch (_) {} 
+                                });
+                            } catch (_) {}
+                        })
+                        .catch(function () {
+                            // Handle error with remove button
+                            try {
+                                const btn = previewContainer.querySelector('.remove-task');
+                                if (btn) btn.addEventListener('click', function () { 
+                                    try { 
+                                        previewContainer.remove(); 
+                                        inlinePid.value = ''; 
+                                    } catch (_) {} 
+                                });
+                            } catch (_) {}
+                        });
+                } catch (_) {}
+
+                // Insert preview before inline files preview if present
+                try {
+                    const filesPreview = inlineForm.querySelector('#inline_feedback_files_preview');
+                    const editor = inlineForm.querySelector('#inline_feedback_editor');
+                    if (filesPreview && filesPreview.parentNode) {
+                        filesPreview.parentNode.insertBefore(previewContainer, filesPreview);
+                    } else if (editor && editor.parentNode) {
+                        editor.parentNode.insertBefore(previewContainer, editor);
+                    } else {
+                        inlineForm.insertBefore(previewContainer, inlineForm.firstChild);
+                    }
+                } catch(_) {}
+
+                // Focus inline editor
+                try { 
+                    const editorEl = document.querySelector('#inline_feedback_editor .ql-editor');
+                    if (editorEl) {
+                        editorEl.focus();
+                        // Scroll into view smoothly
+                        editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } catch(_) {}
+
+                return; // handled via inline form
+            }
+            
+            // Fallback: if no inline form found, show message
+            try {
+                showFloatingAlert('Reply functionality requires inline feedback form.', 'warning', 3000);
+            } catch (_) {
+                console.warn('No inline feedback form found for reply');
+            }
+            
+        } catch (e) {
+            console.warn("showReplyFeedbackForm error", e);
+        }
     }
 
     // Show edit form (for feedback or reply) with prefilled data
@@ -10995,6 +11035,8 @@ function filterTaskTableRows(queryRaw) {
                     }
                     window.inlineTaskFeedbackSelectedFiles = [];
                     window.__taskInlineFeedbackImageFile = null;
+                    // Clear reply state when modal closes
+                    clearReplyState();
                 } catch (_) {}
             });
         }
@@ -11608,6 +11650,9 @@ function filterTaskTableRows(queryRaw) {
                     window.__taskInlineFeedbackImageFile = null;
 
                     $('#inline_task_feedback_image_preview, #inline_task_feedback_files_preview, #inline_existing_files_preview').empty();
+
+                    // Clear reply state
+                    clearReplyState();
 
                     if (isEdit && typeof window.cancelInlineTaskEditFeedback === 'function') {
                         window.cancelInlineTaskEditFeedback();
