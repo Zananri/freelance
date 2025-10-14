@@ -1822,7 +1822,7 @@ p {
 .search-input-container .search-icon {
     position: absolute;
     left: 10px;
-    font-size: 24px;
+    font-size: 18px;
     color: #a9adb7;
     pointer-events: none;
 }
@@ -1849,6 +1849,12 @@ p {
     font-size: 24px;
     color: #858ca0;
     border: none;
+}
+
+.toggle-timeline span,
+.toggle-archieve span,
+.toggle-filter .icon{
+    font-size: 18px;
 }
 
 .toggle-filter {
@@ -2314,7 +2320,6 @@ input[type="file"]::file-selector-button {
     background: transparent;
     padding: 8px 14px;
     border-radius: 40px;
-    font-size: 18px;
     color: #444444;
     display: flex;
     align-items: center;
@@ -2323,6 +2328,10 @@ input[type="file"]::file-selector-button {
     position: relative;
     z-index: 2;
     transition: color 0.25s;
+}
+
+.tab-btn span {
+    font-size: 18px;
 }
 
 .tab-btn:hover {
