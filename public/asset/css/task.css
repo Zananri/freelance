@@ -2305,3 +2305,21 @@ input[type="file"]::file-selector-button {
 .submit-feedback button span {
     font-size: 20px;
 }
+
+.executor-wrapper,
+.task-name-wrapper{
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 150px;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 4px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.executor-wrapper::-webkit-scrollbar,
+.task-name-wrapper::-webkit-scrollbar {
+    display: none;
+}

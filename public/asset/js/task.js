@@ -3408,20 +3408,18 @@ function getUserPhotoUrl(user) {
 function createExecutorsCellHtml(task) {
     try {
         const execs = Array.isArray(task?.executors) ? task.executors : [];
-        if (!execs.length) return '<span class="text-muted">-</span>';
-        const max = 4;
-        const shown = execs.slice(0, max);
-        const extra = execs.length - shown.length;
-        const imgs = shown.map((ex, idx) => {
-            const url = getUserPhotoUrl(ex);
-            const z = idx + 1;
-            const ml = idx === 0 ? 0 : -8;
-            const title = (ex && ex.name) ? String(ex.name) : '';
-            return `<img src="${url}" alt="${title}" title="${title}" data-bs-toggle="tooltip" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;border:2px solid #f0f1f8;margin-left:${ml}px;z-index:${z};position:relative;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
-        }).join('');
-        const extraHtml = extra > 0 ? `<span class="ms-1 small text-muted">+${extra}</span>` : '';
-        return `<div class="d-inline-flex align-items-center">${imgs}${extraHtml}</div>`;
-    } catch(_) { return '<span class="text-muted">-</span>'; }
+        if (execs.length === 0) return '<span class="text-muted">-</span>';
+
+        const execsName = execs.map(e => safeText(e.name || '-')).join(', ');
+
+        return `
+            <div class="executor-wrapper">
+                ${execsName}
+            </div>
+        `;
+    } catch(_) {
+        return '<span class="text-muted">-</span>';
+    }
 }
 
 function statusLabel(statusRaw) {
@@ -3458,10 +3456,9 @@ function renderTaskTableFromCache() {
             const projectTitle = safeText(t.project_title || (t.project && t.project.title));
             const pic = t.pic || null;
             const picName = pic ? safeText(pic.name) : '-';
-            const picImg = pic ? getUserPhotoUrl(pic) : (appUrl + '/asset/img/avatar.png');
             const execCell = createExecutorsCellHtml(t);
-            const startStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.start_date) : safeText(t.start_date);
-            const dueStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.due_date) : safeText(t.due_date);
+            const startStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.start_date) : safeText(t.start_date);
+            const dueStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.due_date) : safeText(t.due_date);
             const st = statusLabel(t.status);
 
             // Build project image (same as grid): prefer project image, else initials based on task title
@@ -3519,14 +3516,13 @@ function renderTaskTableFromCache() {
                         <div class="d-flex align-items-center gap-3">
                             ${taskImgHtml}
                             <div>
-                                <div class="fw-semibold task-title" style="font-size: 14px; cursor: pointer;">${taskTitle}</div>
+                                <div class="task-name-wrapper fw-semibold task-title" style="font-size: 14px; cursor: pointer;" onclick="handleTaskDetail(${t.id})">${taskTitle}</div>
                                 <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
                             </div>
                         </div>
                     </td>
                     <td>
                         <div class="d-inline-flex align-items-center gap-2">
-                            <img src="${picImg}" alt="${picName}" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
                             <span>${picName}</span>
                         </div>
                     </td>
@@ -5671,20 +5667,20 @@ function filterTaskTableRows(queryRaw) {
                                         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                                         success: function (res) {
                                             try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reply deleted', 'success'); } catch(_){}
-                                            
+
                                             // Remove the reply element
                                             const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"][data-parent-id="${pid}"]`);
                                             if (el && el.parentNode) el.parentNode.removeChild(el);
-                                            
+
                                             // Update the "View all" button and replies count
                                             const repliesContainer = modalBody.querySelector(`#replies-${pid}`);
                                             const viewAllBtn = modalBody.querySelector(`.view-replies-toggle[data-feedback-id="${pid}"]`);
-                                            
+
                                             if (repliesContainer && viewAllBtn) {
                                                 // Count remaining replies in the container
                                                 const remainingReplies = repliesContainer.querySelectorAll('.feedback-reply');
                                                 const remainingCount = remainingReplies.length;
-                                                
+
                                                 if (remainingCount === 0) {
                                                     // No replies left, remove the View all button and replies container
                                                     viewAllBtn.remove();
@@ -5700,7 +5696,7 @@ function filterTaskTableRows(queryRaw) {
                                                     }
                                                 }
                                             }
-                                            
+
                                             // Refresh feedback count on task card after reply deletion
                                             try {
                                                 $.ajax({
@@ -5711,7 +5707,7 @@ function filterTaskTableRows(queryRaw) {
                                                             const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') + '"]');
                                                             if (card) {
                                                                 let span = card.querySelector('.feedback-comments-count');
-                                                                if (span) { 
+                                                                if (span) {
                                                                     span.textContent = String(c.data.count);
                                                                     // Hide the span if count is 0
                                                                     if (c.data.count === 0) {
@@ -5725,7 +5721,7 @@ function filterTaskTableRows(queryRaw) {
                                                     }
                                                 });
                                             } catch(_) {}
-                                            
+
                                             done(true);
                                         },
                                         error: function (xhr) {
@@ -6380,7 +6376,7 @@ function filterTaskTableRows(queryRaw) {
             const feedbackModalEl = document.getElementById("taskFeedbackModal");
             const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
             const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
-            
+
             // Look for the inline feedback form in the modal footer
             const inlineForm = feedbackModalEl.querySelector('.feedback-form');
             if (inlineForm) {
@@ -6416,7 +6412,7 @@ function filterTaskTableRows(queryRaw) {
                         .then(function (json) {
                             const payload = json && json.data ? json.data : json;
                             let fb = null;
-                            
+
                             // Find feedback by parentId
                             function findById(node, id) {
                                 if (!node) return null;
@@ -6436,29 +6432,29 @@ function filterTaskTableRows(queryRaw) {
                                 } catch (_) {}
                                 return null;
                             }
-                            
+
                             fb = findById(payload, parentId);
-                            
-                            const title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) || 
+
+                            const title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) ||
                                          (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
                             const commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
-                            
+
                             try {
                                 const empRaw = (fb && fb.employee) || {};
                                 let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
                                 // Use the same buildPhotoUrl helper from task.js if available
-                                const avatarUrl = (typeof buildPhotoUrl === 'function') ? 
+                                const avatarUrl = (typeof buildPhotoUrl === 'function') ?
                                     buildPhotoUrl(avatarRaw, empRaw.profile_picture, empRaw.profile_picture_url) :
                                     (avatarRaw ? appUrl + '/file/profile_picture/' + avatarRaw : appUrl + '/asset/img/avatar.png');
-                                
+
                                 let plain = '';
-                                try { 
-                                    plain = (commentRaw || '').replace(/<[^>]+>/g, ''); 
-                                } catch (_) { 
-                                    plain = (commentRaw || '') + ''; 
+                                try {
+                                    plain = (commentRaw || '').replace(/<[^>]+>/g, '');
+                                } catch (_) {
+                                    plain = (commentRaw || '') + '';
                                 }
                                 if (plain && plain.length > 120) plain = plain.substring(0, 120).trim() + '...';
-                                
+
                                 let html = '';
                                 html += '<div class="selected-files-list mt-2">';
                                 html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
@@ -6473,14 +6469,14 @@ function filterTaskTableRows(queryRaw) {
                                 html += '</div></div>';
                                 previewContainer.innerHTML = html;
                             } catch (_) {}
-                            
+
                             try {
                                 const btn = previewContainer.querySelector('.remove-task');
-                                if (btn) btn.addEventListener('click', function () { 
-                                    try { 
-                                        previewContainer.remove(); 
-                                        inlinePid.value = ''; 
-                                    } catch (_) {} 
+                                if (btn) btn.addEventListener('click', function () {
+                                    try {
+                                        previewContainer.remove();
+                                        inlinePid.value = '';
+                                    } catch (_) {}
                                 });
                             } catch (_) {}
                         })
@@ -6488,11 +6484,11 @@ function filterTaskTableRows(queryRaw) {
                             // Handle error with remove button
                             try {
                                 const btn = previewContainer.querySelector('.remove-task');
-                                if (btn) btn.addEventListener('click', function () { 
-                                    try { 
-                                        previewContainer.remove(); 
-                                        inlinePid.value = ''; 
-                                    } catch (_) {} 
+                                if (btn) btn.addEventListener('click', function () {
+                                    try {
+                                        previewContainer.remove();
+                                        inlinePid.value = '';
+                                    } catch (_) {}
                                 });
                             } catch (_) {}
                         });
@@ -6512,7 +6508,7 @@ function filterTaskTableRows(queryRaw) {
                 } catch(_) {}
 
                 // Focus inline editor
-                try { 
+                try {
                     const editorEl = document.querySelector('#inline_feedback_editor .ql-editor');
                     if (editorEl) {
                         editorEl.focus();
@@ -6523,14 +6519,14 @@ function filterTaskTableRows(queryRaw) {
 
                 return; // handled via inline form
             }
-            
+
             // Fallback: if no inline form found, show message
             try {
                 showFloatingAlert('Reply functionality requires inline feedback form.', 'warning', 3000);
             } catch (_) {
                 console.warn('No inline feedback form found for reply');
             }
-            
+
         } catch (e) {
             console.warn("showReplyFeedbackForm error", e);
         }
@@ -11144,7 +11140,7 @@ function filterTaskTableRows(queryRaw) {
                 </div>
             `;
 
-         
+
             try { window.__quillTaskFeedbackInline = null; } catch(_) {}
             initTaskInlineFeedbackEditor(taskId);
 
