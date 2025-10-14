@@ -1767,14 +1767,6 @@ input[type="file"]::file-selector-button {
     transform: scale(1);
 }
 
-.table-transparent,
-.table-transparent th,
-.table-transparent td,
-.table-transparent thead,
-.table-transparent tbody {
-    background: transparent !important;
-}
-
 @media (max-width: 768px) {
     .project-detail-header {
         flex-direction: column;
@@ -1844,21 +1836,82 @@ input[type="file"]::file-selector-button {
 }
 
 .task-table-section {
-    overflow-y: auto;
-    max-height: calc(100vh - 190px);
+    padding: 0px 15px 15px 15px;
 }
 
-.task-table-section::-webkit-scrollbar {
-    width: 4px;
+.table-container {
+    max-height: calc(100vh - 270px);
+    overflow: auto;
+    position: relative;
+    margin: auto;
 }
 
-.task-table-section::-webkit-scrollbar-track {
-    background: transparent;
+.table-container::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    background-color: #9ca3af19;
 }
 
-.task-table-section::-webkit-scrollbar-thumb {
-    background-color: #cccccc;
+.table-container::-webkit-scrollbar-thumb {
+    background-color:  #9ca3af75;
     border-radius: 4px;
+}
+
+.table-transparent {
+    width: 100%;
+}
+
+.table-transparent td {
+    padding: 10px;
+    text-align: left;
+    white-space: nowrap;
+    font-weight: 400;
+    font-size: 12px;
+    color: #42484F;
+    z-index:0;
+}
+
+.table-transparent thead th {
+    padding: 8px 16px;
+    font-weight: 400;
+    font-size: 12px;
+    vertical-align: top;
+    text-align: center;
+    color: #42484F;
+    background-color: #F0F1F8;
+    position: sticky;
+    top: -17px;
+    z-index: 1;
+}
+
+.table-transparent th:first-child{
+    font-weight: 600;
+    vertical-align: middle;
+}
+.table-transparent tbody tr:nth-child(odd) {
+    background-color:  #F0F1F8;
+}
+.table-transparent tbody tr:nth-child(even) {
+    background-color: #F0F1F8;
+}
+.table-transparent tbody td {
+    background-color: inherit;
+    position: relative;
+}
+.table-transparent th:first-child,
+.table-transparent td:first-child {
+    position: sticky;
+    left: 0;
+}
+
+.table-transparent thead th:first-child {
+    z-index: 2;
+}
+
+.table-transparent td:first-child{
+    z-index:1;
+    padding: 0;
+    width: 210px;
 }
 
 .task-dropdown-menu {
@@ -2041,4 +2094,8 @@ input[type="file"]::file-selector-button {
 
 .executor-wrapper::-webkit-scrollbar {
     display: none;
+}
+
+.task-table-body {
+    overflow: auto;
 }
