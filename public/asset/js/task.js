@@ -11138,10 +11138,7 @@ function filterTaskTableRows(queryRaw) {
                 </div>
             `;
 
-            // Initialize inline Quill editor (if available)
-            // If a previous Quill instance exists it may be bound to a removed DOM node
-            // (footer.innerHTML replaced). Clear it so initTaskInlineFeedbackEditor
-            // will create a fresh instance bound to the newly-inserted editor element.
+         
             try { window.__quillTaskFeedbackInline = null; } catch(_) {}
             initTaskInlineFeedbackEditor(taskId);
 
