@@ -5665,8 +5665,61 @@ function filterTaskTableRows(queryRaw) {
                                         headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                                         success: function (res) {
                                             try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reply deleted', 'success'); } catch(_){}
+                                            
+                                            // Remove the reply element
                                             const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"][data-parent-id="${pid}"]`);
                                             if (el && el.parentNode) el.parentNode.removeChild(el);
+                                            
+                                            // Update the "View all" button and replies count
+                                            const repliesContainer = modalBody.querySelector(`#replies-${pid}`);
+                                            const viewAllBtn = modalBody.querySelector(`.view-replies-toggle[data-feedback-id="${pid}"]`);
+                                            
+                                            if (repliesContainer && viewAllBtn) {
+                                                // Count remaining replies in the container
+                                                const remainingReplies = repliesContainer.querySelectorAll('.feedback-reply');
+                                                const remainingCount = remainingReplies.length;
+                                                
+                                                if (remainingCount === 0) {
+                                                    // No replies left, remove the View all button and replies container
+                                                    viewAllBtn.remove();
+                                                    repliesContainer.remove();
+                                                } else {
+                                                    // Update the count in the View all button
+                                                    viewAllBtn.setAttribute('data-replies-count'    , remainingCount);
+                                                    const isVisible = !repliesContainer.classList.contains('d-none');
+                                                    if (isVisible) {
+                                                        viewAllBtn.textContent = 'Hide';
+                                                    } else {
+                                                        viewAllBtn.textContent = `View all (${remainingCount})`;
+                                                    }
+                                                }
+                                            }
+                                            
+                                            // Refresh feedback count on task card after reply deletion
+                                            try {
+                                                $.ajax({
+                                                    url: appUrl + "/task-feedbacks/count/" + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || ''),
+                                                    type: 'GET',
+                                                    success: function(c){
+                                                        if (c && c.data && typeof c.data.count === 'number') {
+                                                            const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') + '"]');
+                                                            if (card) {
+                                                                let span = card.querySelector('.feedback-comments-count');
+                                                                if (span) { 
+                                                                    span.textContent = String(c.data.count);
+                                                                    // Hide the span if count is 0
+                                                                    if (c.data.count === 0) {
+                                                                        span.style.display = 'none';
+                                                                    } else {
+                                                                        span.style.display = '';
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            } catch(_) {}
+                                            
                                             done(true);
                                         },
                                         error: function (xhr) {
