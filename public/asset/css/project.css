@@ -2292,8 +2292,12 @@ input[type="file"]::file-selector-button {
     display: none;
 }
 
+#inlineFeedbackPhotoBtn,
+#inlineFeedbackFileBtn,
 .submit-feedback button {
     border-radius: 50%;
+    height: 40px;
+    width: 40px;
 }
 
 .feedback-form {
@@ -2302,6 +2306,8 @@ input[type="file"]::file-selector-button {
     border-radius: 20px;
 }
 
+.feedback-photo-icon,
+.feedback-file-icon,
 .submit-feedback button span {
-    font-size: 24px;
+    font-size: 20px;
 }
