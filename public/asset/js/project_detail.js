@@ -3281,7 +3281,7 @@
                                 window.__quillProjectFeedbackInline.root.innerHTML = data.feedback_comment || "";
                             try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
                             try { var files = []; if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls; else if (Array.isArray(data.reference_files)) files = data.reference_files; else if (data.reference_file_url) files = [data.reference_file_url]; else if (data.reference_file) files = [data.reference_file]; window.renderInlineExistingFiles(files); } catch(_){ }
-                            var sendBtn = document.getElementById("inlineFeedbackSendBtn");
+                            var sendBtn = document.getElementById(" ");
                             if (sendBtn){
                                 // preserve the full original HTML (may include icons) so we can restore exactly on cancel
                                 sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
@@ -8113,20 +8113,18 @@ function getUserPhotoUrl(user) {
 function createExecutorsCellHtml(task) {
     try {
         const execs = Array.isArray(task?.executors) ? task.executors : [];
-        if (!execs.length) return '<span class="text-muted">-</span>';
-        const max = 4;
-        const shown = execs.slice(0, max);
-        const extra = execs.length - shown.length;
-        const imgs = shown.map((ex, idx) => {
-            const url = getUserPhotoUrl(ex);
-            const z = idx + 1;
-            const ml = idx === 0 ? 0 : -8;
-            const title = (ex && ex.name) ? String(ex.name) : '';
-            return `<img src="${url}" alt="${title}" title="${title}" data-bs-toggle="tooltip" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;border:2px solid #f0f1f8;margin-left:${ml}px;z-index:${z};position:relative;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
-        }).join('');
-        const extraHtml = extra > 0 ? `<span class="ms-1 small text-muted">+${extra}</span>` : '';
-        return `<div class="d-inline-flex align-items-center">${imgs}${extraHtml}</div>`;
-    } catch(_) { return '<span class="text-muted">-</span>'; }
+        if (execs.length === 0) return '<span class="text-muted">-</span>';
+
+        const execsName = execs.map(e => safeText(e.name || '-')).join(', ');
+
+        return `
+            <div class="executor-wrapper">
+                ${execsName}
+            </div>
+        `;
+    } catch(_) {
+        return '<span class="text-muted">-</span>';
+    }
 }
 
 function statusLabel(statusRaw) {
@@ -8139,7 +8137,271 @@ function statusLabel(statusRaw) {
     return '<span class="badge bg-light text-dark">' + (statusRaw || 'Unknown') + '</span>';
 }
 
-// Handle task detail modal (reuse existing function from project_detail_depedencies.js)
+    function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
+        try {
+            // If prefix is a DOM element (e.g., a select), derive prefix from its id
+            if (prefix && typeof prefix !== 'string' && prefix.id) {
+                var match = String(prefix.id).match(/^(.+)_parent_id$/) || String(prefix.id).match(/^(.+)_parent_input$/);
+                if (match) prefix = match[1];
+            }
+        } catch (_) {}
+
+        try {
+            // If selectedParentId is actually a DOM element (e.g., passed accidentally), extract its value
+            if (selectedParentId && typeof selectedParentId !== 'string' && typeof selectedParentId !== 'number') {
+                if (selectedParentId.id && String(selectedParentId.id).match(/_parent_id$/) && typeof selectedParentId.value !== 'undefined') {
+                    selectedParentId = selectedParentId.value;
+                } else if (selectedParentId.getAttribute && selectedParentId.getAttribute('data-parent-id')) {
+                    selectedParentId = selectedParentId.getAttribute('data-parent-id');
+                } else {
+                    // fallback: not a usable value
+                    selectedParentId = selectedParentId || null;
+                }
+            }
+        } catch (_) { selectedParentId = null; }
+
+        const input = document.getElementById(`${prefix}_parent_input`);
+        const dropdown = document.getElementById(`${prefix}_parent_dropdown`);
+        const selectedContainer = document.getElementById(`${prefix}_selected_parent`);
+        const hiddenInput = document.getElementById(`${prefix}_parent_id`);
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let tasks = [];
+
+        function getInitialAvatar(name) {
+            const colors = [
+                "#F44336", "#E91E63", "#9C27B0", "#673AB7",
+                "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
+                "#009688", "#4CAF50", "#8BC34A", "#FFC107",
+                "#FF9800", "#FF5722", "#795548"
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const initial = (name || "?").charAt(0).toUpperCase();
+            return `<div style="
+                width:28px;height:28px;
+                border-radius:50%;
+                background:${color};
+                color:#fff;
+                font-size:13px;
+                font-weight:bold;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+            ">${initial}</div>`;
+        }
+
+        function showSelectedTask(task) {
+            try {
+                if (window.__debugLoadRelatedTasks) console.debug('loadRelatedTasks.showSelectedTask', { prefix: prefix, taskId: task && task.id, taskTitle: task && task.title });
+            } catch(_) {}
+            let avatarHtml = task.image
+                ? `<img src="${appUrl}/file/task/${task.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                : getInitialAvatar(task.title);
+
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                    ${avatarHtml}
+                    <span class="flex-grow-1">${task.title}</span>
+                    <button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            selectedContainer.querySelector(".remove-task").addEventListener("click", () => {
+                hiddenInput.value = "";
+                input.value = "";
+                selectedContainer.innerHTML = "";
+            });
+        }
+
+        function renderDropdown(filter = "") {
+            dropdown.innerHTML = "";
+            let filtered = tasks.filter(t =>
+                t.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            filtered.forEach(t => {
+                let avatarHtml = t.image
+                    ? `<img src="${appUrl}/file/task/${t.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`
+                    : getInitialAvatar(t.title);
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.innerHTML = `${avatarHtml}<span>${t.title}</span>`;
+                item.addEventListener("click", () => {
+                    hiddenInput.value = t.id;
+                    input.value = t.title;
+                    dropdown.style.display = "none";
+                    showSelectedTask(t);
+                });
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = filtered.length ? "block" : "none";
+        }
+
+        fetch(appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks")
+            .then(res => res.json())
+            .then(payload => {
+                tasks = (payload.data || []).map(t => ({
+                    id: t.id,
+                    title: t.title,
+                    image: t.image || ""
+                }));
+
+                if (selectedParentId) {
+                    const found = tasks.find(t => String(t.id) === String(selectedParentId));
+                    if (found) {
+                        hiddenInput.value = found.id;
+                        input.value = found.title;
+                        showSelectedTask(found);
+                    } else if (selectedParentTitle) {
+                        hiddenInput.value = selectedParentId;
+                        input.value = selectedParentTitle;
+                        showSelectedTask({ id: selectedParentId, title: selectedParentTitle, image: "" });
+                    }
+                }
+            })
+            .catch(err => console.error("Failed to load related tasks", err));
+
+        input.addEventListener("input", () => renderDropdown(input.value));
+        input.addEventListener("focus", () => renderDropdown(input.value));
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
+    }
+
+    function ensureParentOption(selectElement, parentId) {
+        if (!selectElement || !parentId) return;
+        try {
+            const found = selectElement.querySelector('option[value="' + String(parentId) + '"]');
+            if (found) {
+                selectElement.value = String(parentId);
+                return;
+            }
+            fetch(appUrl + '/task/' + encodeURIComponent(String(parentId)))
+                .then(r => r.ok ? r.json() : Promise.reject('Not found'))
+                .then(res => {
+                    const taskSingle = (res && (res.data || res)) || null;
+                    if (taskSingle && taskSingle.id) {
+                        const opt2 = document.createElement('option');
+                        opt2.value = taskSingle.id;
+                        opt2.textContent = taskSingle.title || ('Task #' + taskSingle.id);
+                        selectElement.appendChild(opt2);
+                        selectElement.value = String(taskSingle.id);
+                    }
+                })
+                .catch(err => { console.warn('ensureParentOption fetch failed', err); });
+        } catch (e) { console.warn('ensureParentOption error', e); }
+    }
+
+    function loadProjectsForEdit(selectedProjectId = null, callback) {
+        const input = document.getElementById("edit_task_project_input");
+        const dropdown = document.getElementById("edit_task_project_dropdown");
+        const selectedContainer = document.getElementById("edit_task_selected_project");
+        const hiddenInput = document.getElementById("edit_task_project_id");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let projects = [];
+
+        function renderDropdown(filter = "", autoShow = false) {
+            dropdown.innerHTML = "";
+            const filtered = projects.filter((p) =>
+                p.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            filtered.forEach((p) => {
+                let avatarHtml = p.image
+                    ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>`
+                    : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">
+                            ${p.title.charAt(0).toUpperCase()}
+                    </div>`;
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                item.addEventListener("click", () => {
+                    hiddenInput.value = p.id;
+                    input.value = p.title;
+                    dropdown.style.display = "none";
+                    showSelectedProject(p);
+                    loadRelatedTasks(p.id, "edit_task", null);
+                });
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = (filtered.length && autoShow) ? "block" : "none";
+        }
+
+        function showSelectedProject(p) {
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                    ${
+                        p.image
+                            ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                            : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">
+                                    ${p.title.charAt(0).toUpperCase()}
+                            </div>`
+                    }
+                    <span class="flex-grow-1">${p.title}</span>
+                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            selectedContainer.querySelector(".btn-remove-project").addEventListener("click", () => {
+                hiddenInput.value = "";
+                input.value = "";
+                selectedContainer.innerHTML = "";
+                document.getElementById("edit_task_parent_id").innerHTML = "<option value=''>No Parent</option>";
+            });
+        }
+
+        fetch(appUrl + "/project/index")
+            .then((res) => res.json())
+                .then((payload) => {
+                    projects = (payload.data || []).map((p) => ({
+                                id: p.id,
+                                title: p.title,
+                                image: p.image || "",
+                                project_type: p.project_type || 'public'
+                            }));
+
+                if (selectedProjectId) {
+                    const project = projects.find(p => String(p.id) === String(selectedProjectId));
+                    if (project) {
+                        hiddenInput.value = project.id;
+                        input.value = project.title;
+                        showSelectedProject(project);
+                    }
+                }
+
+                if (typeof callback === "function") callback();
+            })
+            .catch((err) => {
+                console.error("Error loading projects for edit:", err);
+                if (typeof callback === "function") callback();
+            });
+
+        input.addEventListener("input", () => renderDropdown(input.value, true));
+        input.addEventListener("focus", () => renderDropdown(input.value, true));
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
+    }
+
 function handleTaskDetail(taskId) {
     if (typeof window.handleTaskDetail === 'function') {
         return window.handleTaskDetail(taskId);
@@ -8171,6 +8433,176 @@ function handleTaskDetail(taskId) {
                 alert("Failed to load task details.");
             }
         });
+}
+
+function handleTaskEdit(taskId) {
+    const modalEl = document.getElementById("editTaskModal");
+    if (!modalEl) {
+        if (typeof showFloatingAlert === 'function') showFloatingAlert('Edit modal not found.', 'danger');
+        return;
+    }
+
+    const detailEl = document.getElementById('taskDetailModal');
+    if (detailEl) {
+        detailEl.setAttribute('data-child-opened', '1');
+
+        if (detailEl._timelineHiddenHandler) {
+            detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+            detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+            detailEl._timelineHiddenHandler = null;
+        }
+    }
+
+    const form = document.getElementById("editTaskForm");
+    form && form.reset();
+    const idInput = document.getElementById("edit_task_id");
+    if (idInput) idInput.value = taskId;
+
+    const loader = document.getElementById("editTaskModalLoader");
+    if (loader) loader.classList.remove("d-none");
+
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+        if (idx < arr.length - 1) el.remove();
+    });
+
+    $.ajax({
+        url: appUrl + "/task/" + taskId + "/edit",
+        type: "GET",
+        dataType: "json",
+        success: function (res) {
+            const t = (res && res.data) ? res.data : (res || {});
+
+            try {
+                const earlyParentSel = document.getElementById('edit_task_parent_id');
+                if (earlyParentSel && t.parent_id) {
+                    ensureParentOption(earlyParentSel, t.parent_id);
+                }
+            } catch (e) { console.warn('early ensureParentOption failed', e); }
+
+            const titleEl = document.getElementById("edit_task_title");
+            const descEl = document.getElementById("edit_task_description");
+            if (titleEl) titleEl.value = t.title || "";
+            if (descEl) {
+                descEl.value = t.description || "";
+                try {
+                    if (window.__quillTaskEdit && window.__quillTaskEdit.root) {
+                        window.__quillTaskEdit.root.innerHTML = t.description || '';
+                    }
+                } catch (e) { /* noop */ }
+            }
+
+            const projectId = t.project_id || (t.project && t.project.id);
+            try {
+                const editProjSelected = document.getElementById('edit_task_selected_project');
+                const editProjInput = document.getElementById('edit_task_project_input');
+                const editParentSel = document.getElementById('edit_task_parent_id');
+                const editParentInput = document.getElementById('edit_task_parent_input');
+                const editParentSelected = document.getElementById('edit_task_selected_parent');
+                if (editProjSelected) editProjSelected.innerHTML = '';
+                if (editProjInput) editProjInput.value = '';
+                if (editParentSel) editParentSel.innerHTML = "<option value=''>No Parent</option>";
+                if (editParentInput) editParentInput.value = '';
+                if (editParentSelected) editParentSelected.innerHTML = '';
+            } catch(_) {}
+
+            loadProjectsForEdit(projectId, function () {
+                loadRelatedTasks(projectId, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
+                ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id);
+            });
+
+            const pointEl = document.getElementById("edit_task_point");
+            if (pointEl) pointEl.value = t.point || 1;
+            const prioEl = document.getElementById("edit_task_priority");
+            if (prioEl) prioEl.value = (t.priority || '').toUpperCase();
+
+            (function() {
+                const container = document.getElementById('edit_task_reference_urls_container');
+                if (!container) return;
+                container.innerHTML = '';
+                let urls = [];
+                let ru = t.reference_urls;
+                if (!Array.isArray(ru) && typeof ru === 'string') {
+                    try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
+                }
+                if (Array.isArray(ru) && ru.length > 0) {
+                    urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
+                } else if (t.reference_url) {
+                    urls = [t.reference_url];
+                }
+                if (urls.length === 0) urls = [''];
+                urls.forEach((u, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'input-group';
+                    const controls = (idx === 0)
+                        ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                        : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                    row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
+                    container.appendChild(row);
+                });
+            })();
+
+                const startEl = document.getElementById("edit_task_start_date");
+                const dueEl = document.getElementById("edit_task_due_date");
+                if (startEl) startEl.value = (t.start_date || '').slice(0, 10);
+                if (dueEl) dueEl.value = (t.due_date || '').slice(0, 10);
+
+                const imgLabel = document.getElementById("editTaskImageLabel");
+                const clearBtn = document.getElementById("editTaskImageClearBtn");
+                if (imgLabel) {
+                    if (t.image) {
+                        let imgUrl = t.image;
+                        if (typeof imgUrl === 'string') {
+                            const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                            const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
+                            const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+                            if (!isAbsolute && !isFileTask && !isPublicPath) {
+                                imgUrl = appUrl + '/file/task/' + imgUrl;
+                            } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                                imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
+                            }
+                        }
+                        imgLabel.style.backgroundImage = `url('${imgUrl}')`;
+                        imgLabel.classList.add('has-image');
+                        imgLabel.style.backgroundSize = 'cover';
+                        imgLabel.style.opacity = '1';
+                        clearBtn && clearBtn.classList.remove('d-none');
+                    } else {
+                        imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                        imgLabel.classList.remove('has-image');
+                        imgLabel.style.opacity = '0.5';
+                        clearBtn && clearBtn.classList.add('d-none');
+                    }
+                }
+
+            if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
+                window.setSelectedExecutorsEdit(t.executors.map(e => ({
+                    id: e.id,
+                    name: e.name,
+                    user_photo: e.user_photo || e.photo || e.image || '',
+                    division: e.division || e.division_name || ''
+                })));
+            }
+
+            let refFiles = t.reference_files;
+            if (typeof refFiles === 'string') {
+                try { refFiles = JSON.parse(refFiles); }
+                catch (e) { refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean); }
+            }
+            if (typeof window.displayExistingReferenceFiles === 'function') {
+                window.displayExistingReferenceFiles(Array.isArray(refFiles) ? refFiles : []);
+            }
+
+        },
+        error: function () {
+            showFloatingAlert('Failed to load task data.', 'danger');
+        },
+        complete: function () {
+            if (loader) loader.classList.add('d-none');
+        }
+    });
 }
 
 // Function to render project task table with filtered data
@@ -8209,10 +8641,9 @@ function renderProjectTaskTable() {
             const projectTitle = safeText(t.project_title || (t.project && t.project.title));
             const pic = t.pic || null;
             const picName = pic ? safeText(pic.name) : '-';
-            const picImg = pic ? getUserPhotoUrl(pic) : (appUrl + '/asset/img/avatar.png');
             const execCell = createExecutorsCellHtml(t);
-            const startStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.start_date) : safeText(t.start_date);
-            const dueStr = (typeof formatDateENMedium === 'function') ? formatDateENMedium(t.due_date) : safeText(t.due_date);
+            const startStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.start_date) : safeText(t.start_date);
+            const dueStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.due_date) : safeText(t.due_date);
             const st = statusLabel(t.status);
 
             // Build project image
@@ -8269,18 +8700,17 @@ function renderProjectTaskTable() {
             }
 
             html += `
-                <tr data-task-id="${t.id}" style="cursor: pointer;" onclick="handleTaskDetail(${t.id})">
+                <tr data-task-id="${t.id}">
                     <td>
                         <div class="d-flex align-items-center gap-3">
                             ${taskImgHtml}
                             <div>
-                                <div class="fw-semibold" style="font-size: 14px;">${taskTitle}</div>
+                                <div class="fw-semibold" style="font-size: 14px; cursor: pointer;" onclick="handleTaskDetail(${t.id})">${taskTitle}</div>
                             </div>
                         </div>
                     </td>
                     <td>
                         <div class="d-inline-flex align-items-center gap-2">
-                            <img src="${picImg}" alt="${picName}" class="rounded-circle" style="width:24px;height:24px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
                             <span>${picName}</span>
                         </div>
                     </td>
@@ -8288,11 +8718,18 @@ function renderProjectTaskTable() {
                     <td>${startStr || '-'}</td>
                     <td>${dueStr || '-'}</td>
                     <td>${st}</td>
+                    <td>
+                        <span class="material-symbols-outlined" style="color: #444444; font-size: 20px; cursor: pointer;">
+                            more_vert
+                        </span>
+                    </td>
                 </tr>
             `;
         });
 
         tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">No tasks found for this project</td></tr>';
+
+        initTaskMoreDropdowns();
 
         // Re-init tooltips for avatars
         try {
@@ -8310,6 +8747,59 @@ function renderProjectTaskTable() {
     } catch(e) {
         console.error('Error rendering project task table:', e);
     }
+}
+
+function initTaskMoreDropdowns() {
+    document.querySelectorAll('#task-table-section .material-symbols-outlined').forEach(icon => {
+        icon.removeEventListener('click', icon._dropdownHandler || (()=>{}));
+
+        icon._dropdownHandler = function (e) {
+            e.stopPropagation();
+            const existing = document.querySelector('.task-dropdown-menu');
+            if (existing) existing.remove();
+
+            const tr = icon.closest('tr');
+            const taskId = tr?.getAttribute('data-task-id') || '';
+
+            // Buat dropdown element
+            const dropdown = document.createElement('div');
+            dropdown.className = 'task-dropdown-menu position-absolute shadow bg-white rounded-3 border';
+            dropdown.style.minWidth = '150px';
+            dropdown.style.zIndex = 9999;
+            dropdown.innerHTML = `
+                <div class="dropdown-item p-2 px-3" style="cursor:pointer;">Detail</div>
+                <div class="dropdown-item p-2 px-3" style="cursor:pointer;">Edit</div>
+            `;
+
+            document.body.appendChild(dropdown);
+
+            // Posisi dropdown
+            const rect = icon.getBoundingClientRect();
+            dropdown.style.top = rect.bottom + 4 + 'px';
+            dropdown.style.left = (rect.left - dropdown.offsetWidth + 85) + 'px';
+
+            // Event klik
+            const items = dropdown.querySelectorAll('.dropdown-item');
+            items[0].addEventListener('click', () => {
+                handleTaskDetail(taskId);
+                dropdown.remove();
+            });
+            items[1].addEventListener('click', () => {
+                handleTaskEdit(taskId);
+                dropdown.remove();
+            });
+
+            // Tutup dropdown kalau klik di luar
+            document.addEventListener('click', function onDocClick(ev) {
+                if (!dropdown.contains(ev.target)) {
+                    dropdown.remove();
+                    document.removeEventListener('click', onDocClick);
+                }
+            });
+        };
+
+        icon.addEventListener('click', icon._dropdownHandler);
+    });
 }
 
 // Function to load tasks for current project
