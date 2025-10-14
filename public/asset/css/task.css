@@ -108,21 +108,82 @@
 }
 
 .task-table-section {
+    padding: 0px 15px 15px 15px;
+}
+
+.table-container {
+    max-height: calc(100vh - 270px);
     overflow: auto;
-    max-height: 75vh;
+    position: relative;
+    margin: auto;
 }
 
-.task-table-section::-webkit-scrollbar {
-    width: 4px;
+.table-container::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+    background-color: #9ca3af19;
 }
 
-.task-table-section::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.task-table-section::-webkit-scrollbar-thumb {
-    background-color: #a0a0a0;
+.table-container::-webkit-scrollbar-thumb {
+    background-color: #9ca3af75;
     border-radius: 4px;
+}
+
+.table-transparent {
+    width: 100%;
+}
+
+.table-transparent td {
+    padding: 10px;
+    text-align: left;
+    white-space: nowrap;
+    font-weight: 400;
+    font-size: 12px;
+    color: #42484f;
+    z-index: 0;
+}
+
+.table-transparent thead th {
+    padding: 8px 16px;
+    font-weight: 400;
+    font-size: 12px;
+    vertical-align: top;
+    text-align: center;
+    color: #42484f;
+    background-color: #f0f1f8;
+    position: sticky;
+    top: -17px;
+    z-index: 1;
+}
+
+.table-transparent th:first-child {
+    font-weight: 600;
+    vertical-align: middle;
+}
+.table-transparent tbody tr:nth-child(odd) {
+    background-color: #f0f1f8;
+}
+.table-transparent tbody tr:nth-child(even) {
+    background-color: #f0f1f8;
+}
+.table-transparent tbody td {
+    background-color: inherit;
+    position: relative;
+}
+.table-transparent th:first-child,
+.table-transparent td:first-child {
+    position: sticky;
+    left: 0;
+}
+
+.table-transparent thead th:first-child {
+    z-index: 2;
+}
+
+.table-transparent td:first-child {
+    z-index: 1;
+    padding: 0;
+    width: 210px;
 }
 
 .custom-card {
@@ -1398,6 +1459,22 @@ p {
     .table-transparent {
         width: 300%;
     }
+
+    .table-transparent th:first-child,
+    .table-transparent td:first-child {
+        position: sticky;
+        left: -25px;
+        max-width: 150px !important;
+        width: 150px !important;
+    }
+
+    .executor-wrapper,
+    .task-name-wrapper {
+        max-width: 80px !important;
+        width: 80px !important;
+        padding: 2px !important;
+        gap: 2px !important;
+    }
 }
 
 /* Description styling similar to project description */
@@ -2163,10 +2240,10 @@ input[type="file"]::file-selector-button {
 }
 
 #kanban-drag-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
 }
 
 .no-select {
@@ -2262,7 +2339,7 @@ input[type="file"]::file-selector-button {
 }
 
 .tab-btn::after {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     background: #ecedf5;
@@ -2276,14 +2353,6 @@ input[type="file"]::file-selector-button {
 .tab-btn.active::after {
     opacity: 1;
     transform: scale(1);
-}
-
-.table-transparent,
-.table-transparent th,
-.table-transparent td,
-.table-transparent thead,
-.table-transparent tbody {
-    background: transparent !important;
 }
 
 .feedback-form {
@@ -2307,7 +2376,7 @@ input[type="file"]::file-selector-button {
 }
 
 .executor-wrapper,
-.task-name-wrapper{
+.task-name-wrapper {
     display: inline-flex;
     align-items: center;
     gap: 4px;
