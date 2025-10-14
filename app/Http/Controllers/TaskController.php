@@ -1698,8 +1698,9 @@ class TaskController extends Controller
             }
 
             $payloadKeys = array_keys($request->all());
-            $allowedParentOnlyKeys = ['parent_id', 'project_id'];
-            $isParentOnly = $request->has('parent_id') && count(array_diff($payloadKeys, $allowedParentOnlyKeys)) === 0;
+            $allowedParentOnlyKeys = ['parent_id', 'project_id', 'parent_ids'];
+            $isParentOnly = ($request->has('parent_id') || $request->has('parent_ids')) 
+                && count(array_diff($payloadKeys, $allowedParentOnlyKeys)) === 0;
 
             // Check if this is a positioning-only update
             $allowedPositioningKeys = ['parent_id', 'project_id', 'position_x', 'position_y', 'free_positioned'];
@@ -1710,6 +1711,8 @@ class TaskController extends Controller
                 $parentOnlyValidator = Validator::make($request->all(), [
                     'project_id' => 'nullable|exists:projects,id',
                     'parent_id' => 'nullable|exists:tasks,id',
+                    'parent_ids' => 'nullable|array',
+                    'parent_ids.*' => 'nullable|integer|exists:tasks,id',
                 ]);
 
                 if ($parentOnlyValidator->fails()) {
@@ -1760,6 +1763,27 @@ class TaskController extends Controller
                 }
 
                 $task->parent_id = $newParentId ?: null;
+                
+                // Handle parent_ids array if provided (explicit handling for empty array to clear all parents)
+                if ($request->has('parent_ids')) {
+                    $parentIdsInput = $request->input('parent_ids');
+                    if (is_string($parentIdsInput)) {
+                        // If it's JSON string, decode it
+                        try {
+                            $decoded = json_decode($parentIdsInput, true);
+                            $parentIdsInput = is_array($decoded) ? $decoded : [];
+                        } catch (\Throwable $e) {
+                            $parentIdsInput = [];
+                        }
+                    }
+                    // Explicitly set to empty array if input is empty (to clear all multi-parents)
+                    if (is_array($parentIdsInput) && empty($parentIdsInput)) {
+                        $task->parent_ids = [];
+                    } else {
+                        $task->parent_ids = is_array($parentIdsInput) ? array_values(array_filter(array_map('intval', $parentIdsInput))) : [];
+                    }
+                }
+                
                 $task->updated_by = auth()->id();
                 $task->save();
 
@@ -1771,6 +1795,7 @@ class TaskController extends Controller
                     'data' => [
                         'id' => $task->id,
                         'parent_id' => $task->parent_id,
+                        'parent_ids' => $task->parent_ids,
                         'project_id' => $task->project_id,
                     ]
                 ]);
@@ -3596,7 +3621,11 @@ class TaskController extends Controller
 
             $arr = is_array($task->parent_ids) ? $task->parent_ids : [];
             if (!in_array($parentId, $arr, true)) $arr[] = $parentId;
-            // Do NOT change legacy parent_id on multi-parent add to avoid card repositioning in UI
+            
+            // Update legacy parent_id to the LAST added parent (for tree structure positioning)
+            // This ensures the task appears as a child of the most recent parent connection
+            $task->parent_id = $parentId;
+            
             $task->parent_ids = array_values(array_unique(array_filter($arr)));
             $task->updated_by = auth()->id();
             $task->save();

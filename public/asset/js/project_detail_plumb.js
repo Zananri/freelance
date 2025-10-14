@@ -96,7 +96,8 @@
             }
 
             if (typeof window.getTaskByProject === "function" && projectId) {
-                var req = window.getTaskByProject(projectId);
+                // Add timestamp to prevent caching
+                var req = window.getTaskByProject(projectId, true); // pass true to force refresh
                 if (req && typeof req.always === "function") {
                     req.always(function () {
                         try {
@@ -282,18 +283,45 @@
                     var parentId = source.replace("task-node-", "");
                     var childId = target.replace("task-node-", "");
                     try {
-                        if (sRect && tRect && tRect.left < sRect.left - 5) {
-                            parentId = target.replace("task-node-", "");
-                            childId = source.replace("task-node-", "");
+                        if (sRect && tRect) {
+                            // Check horizontal first (left card = parent, right card = child)
+                            var horizontalDiff = Math.abs(tRect.left - sRect.left);
+                            var verticalDiff = Math.abs(tRect.top - sRect.top);
+                            
+                            if (horizontalDiff > 10) {
+                                // Horizontal layout: left = parent, right = child
+                                if (tRect.left < sRect.left - 5) {
+                                    parentId = target.replace("task-node-", "");
+                                    childId = source.replace("task-node-", "");
+                                }
+                            } else {
+                                // Vertical layout: top = parent, bottom = child
+                                if (sRect.top > tRect.top + 5) {
+                                    parentId = target.replace("task-node-", "");
+                                    childId = source.replace("task-node-", "");
+                                }
+                            }
                         }
                     } catch (_) {}
                     if (!parentId || !childId || parentId === childId) return;
-                    // Re-parent the child to the selected parent (single-parent tree layout)
+                    
+                    // Immediately remove the temporary connection to avoid odd visuals
+                    try {
+                        if (info && info.connection) {
+                            inst.deleteConnection(info.connection);
+                        }
+                    } catch (_) {}
+                    
+                    // Add parent to the child's parent_ids array (multi-parent support)
                     $.ajax({
-                        url: appUrl + "/task/" + encodeURIComponent(childId),
-                        type: "PUT",
-                        data: { parent_id: String(parentId) },
-                        dataType: "json",
+                        url:
+                            appUrl +
+                            "/task/" +
+                            encodeURIComponent(childId) +
+                            "/parents",
+                        type: "POST",
+                        data: JSON.stringify({ parent_id: Number(parentId) }),
+                        contentType: "application/json",
                         headers: {
                             "X-CSRF-TOKEN": csrf,
                             "X-Requested-With": "XMLHttpRequest",
@@ -306,13 +334,9 @@
                             );
                             if (!ok) {
                                 try {
-                                    info.connection &&
-                                        inst.deleteConnection(info.connection);
-                                } catch (_) {}
-                                try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            (res && res.message) || "Gagal memindahkan task",
+                                            (res && res.message) || "Gagal menambahkan parent",
                                             "warning",
                                             3000
                                         );
@@ -321,23 +345,24 @@
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            "Task dipindahkan",
+                                            "Parent ditambahkan",
                                             "success",
                                             1400
                                         );
-                                } catch (_) {}
-                                // Remove the temporary connection right away to prevent odd visuals
-                                try {
-                                    info.connection && inst.deleteConnection(info.connection);
                                 } catch (_) {}
                                 // Reload only the tree content to reflect new relationship
                                 refreshTaskTreePartial();
                             }
                         })
                         .fail(function () {
+                            // Connection already deleted, just notify
                             try {
-                                info.connection &&
-                                    inst.deleteConnection(info.connection);
+                                window.showFloatingAlert &&
+                                    window.showFloatingAlert(
+                                        "Gagal menambahkan parent",
+                                        "warning",
+                                        2800
+                                    );
                             } catch (_) {}
                         });
                 } catch (_) {}
@@ -360,56 +385,43 @@
                         var tRect = $tEl.length
                             ? $tEl[0].getBoundingClientRect()
                             : null;
-                        if (sRect && tRect && tRect.left < sRect.left - 5) {
-                            parentId = tId.replace("task-node-", "");
-                            childId = sId.replace("task-node-", "");
-                        }
-                    } catch (_) {}
-                    if (!parentId || !childId) return;
-                    // If the clicked edge is the main parent relation, clear parent_id; otherwise remove extra parent link
-                    var child = null;
-                    try {
-                        var idStr = String(childId);
-                        for (var i = 0; i < (currentTasks || []).length; i++) {
-                            if (String(currentTasks[i].id) === idStr) {
-                                child = currentTasks[i];
-                                break;
+                        if (sRect && tRect) {
+                            // Check horizontal first (left card = parent, right card = child)
+                            var horizontalDiff = Math.abs(tRect.left - sRect.left);
+                            var verticalDiff = Math.abs(tRect.top - sRect.top);
+                            
+                            if (horizontalDiff > 10) {
+                                // Horizontal layout: left = parent, right = child
+                                if (tRect.left < sRect.left - 5) {
+                                    parentId = tId.replace("task-node-", "");
+                                    childId = sId.replace("task-node-", "");
+                                }
+                            } else {
+                                // Vertical layout: top = parent, bottom = child
+                                if (sRect.top > tRect.top + 5) {
+                                    parentId = tId.replace("task-node-", "");
+                                    childId = sId.replace("task-node-", "");
+                                }
                             }
                         }
                     } catch (_) {}
-
-                    var isMainParent = false;
-                    try { isMainParent = child && String(child.parent_id || '') === String(parentId); } catch(_) {}
-
-                    var ajaxOpts = isMainParent
-                        ? {
-                              url: appUrl + "/task/" + encodeURIComponent(childId),
-                              type: "PUT",
-                              data: { parent_id: null },
-                              dataType: "json",
-                              headers: {
-                                  "X-CSRF-TOKEN": csrf,
-                                  "X-Requested-With": "XMLHttpRequest",
-                                  Accept: "application/json",
-                              },
-                          }
-                        : {
-                              url:
-                                  appUrl +
-                                  "/task/" +
-                                  encodeURIComponent(childId) +
-                                  "/parents",
-                              type: "DELETE",
-                              data: JSON.stringify({ parent_id: Number(parentId) }),
-                              contentType: "application/json",
-                              headers: {
-                                  "X-CSRF-TOKEN": csrf,
-                                  "X-Requested-With": "XMLHttpRequest",
-                                  Accept: "application/json",
-                              },
-                          };
-
-                    $.ajax(ajaxOpts)
+                    if (!parentId || !childId) return;
+                    // Remove parent from child's parent_ids array (multi-parent)
+                    $.ajax({
+                        url:
+                            appUrl +
+                            "/task/" +
+                            encodeURIComponent(childId) +
+                            "/parents",
+                        type: "DELETE",
+                        data: JSON.stringify({ parent_id: Number(parentId) }),
+                        contentType: "application/json",
+                        headers: {
+                            "X-CSRF-TOKEN": csrf,
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                        },
+                    })
                         .done(function (res) {
                             if (res && (res.status === "success" || res.code === 200)) {
                                 try {
@@ -418,7 +430,7 @@
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
-                                            isMainParent ? "Parent utama dihapus" : "Parent dihapus",
+                                            "Parent dihapus",
                                             "success",
                                             1200
                                         );
