@@ -9857,8 +9857,6 @@ function filterTaskTableRows(queryRaw) {
         }
     } catch(_) {}
 
-});
-
  let currentMonth = new Date().getMonth();
     let currentYear = new Date().getFullYear();
 
@@ -11510,7 +11508,6 @@ function filterTaskTableRows(queryRaw) {
 
     // Submit inline task feedback
     function submitInlineTaskFeedback(taskId, quill) {
-        // Define appUrl locally
         const appUrl = (function(){
             try {
                 const meta = document.querySelector('meta[name="app-url"]');
@@ -11529,21 +11526,19 @@ function filterTaskTableRows(queryRaw) {
 
         try {
             const html = quill.root.innerHTML || '';
-
-            // Allow empty comment only if at least one file is attached (image or reference)
             let hasImage = false, hasRefFiles = false;
+
             try {
-                if (window.__taskInlineFeedbackImageFile) {
-                    hasImage = true;
-                } else {
+                if (window.__taskInlineFeedbackImageFile) hasImage = true;
+                else {
                     const pi = document.getElementById("inline_task_feedback_image_input");
                     if (pi && pi.files && pi.files.length) hasImage = true;
                 }
             } catch(_) {}
+
             try {
-                if (window.inlineTaskFeedbackSelectedFiles && window.inlineTaskFeedbackSelectedFiles.length) {
-                    hasRefFiles = true;
-                } else {
+                if (window.inlineTaskFeedbackSelectedFiles && window.inlineTaskFeedbackSelectedFiles.length) hasRefFiles = true;
+                else {
                     const fi = document.getElementById("inline_task_feedback_files_input");
                     if (fi && fi.files && fi.files.length) hasRefFiles = true;
                 }
@@ -11551,9 +11546,8 @@ function filterTaskTableRows(queryRaw) {
 
             const plainText = String(html || '').replace(/<[^>]+>/g, '').trim();
             if (!plainText && !hasImage && !hasRefFiles) {
-                if (typeof showFloatingAlert === 'function') {
+                if (typeof showFloatingAlert === 'function')
                     showFloatingAlert('Please write feedback or attach a file', 'warning');
-                }
                 return;
             }
 
@@ -11565,139 +11559,88 @@ function filterTaskTableRows(queryRaw) {
             fd.append('task_id', taskId);
             fd.append('employee_id', employeeId);
 
-            // Include parent_id if replying via inline form
             try {
                 const pid = document.getElementById('inline_parent_id_input');
                 if (pid && pid.value) fd.append('parent_id', pid.value);
             } catch(_) {}
 
-            // Add image if selected
             const imageFile = window.__taskInlineFeedbackImageFile;
-            if (imageFile) {
-                fd.append('feedback_image', imageFile);
-            }
+            if (imageFile) fd.append('feedback_image', imageFile);
 
-            // Add files if selected
             const selectedFiles = window.inlineTaskFeedbackSelectedFiles || [];
-            selectedFiles.forEach(function(file) {
-                fd.append('reference_files[]', file);
-            });
+            selectedFiles.forEach(f => fd.append('reference_files[]', f));
 
-            // Detect inline edit mode
             const editId = (document.getElementById('inline_edit_task_feedback_input') || {}).value || '';
             const isEdit = String(editId).trim() !== '';
             if (isEdit) {
                 try {
-                    // Include keep-list for existing files
                     const keepList = window.inlineTaskExistingFilesKeep || [];
                     fd.set('existing_reference_files', JSON.stringify(keepList));
                 } catch(_) {}
                 try {
-                    // Include remove_image flag
                     if (typeof window.__inlineTaskRemoveImage !== 'undefined') {
                         fd.set('remove_image', window.__inlineTaskRemoveImage ? '1' : '0');
                     }
                 } catch(_) {}
-                // Method override
                 fd.append('_method', 'PUT');
             }
 
-            // UI feedback
-            const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
-            const origText = sendBtn ? sendBtn.innerHTML : '';
-            if (sendBtn) {
-                sendBtn.disabled = true;
-                sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>' + (isEdit ? 'Updating...' : 'Sending...');
-            }
+            const sendBtn = $("#inlineTaskFeedbackSendBtn");
+            const origText = sendBtn.html();
+            sendBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>' + (isEdit ? 'Updating...' : 'Sending...'));
 
-            const reqUrl = isEdit
-                ? appUrl + '/task-feedbacks/' + editId
-                : appUrl + '/task-feedbacks';
-            const reqMethod = 'POST';
-
-            fetch(reqUrl, {
-                method: reqMethod,
+            $.ajax({
+                url: isEdit ? appUrl + '/task-feedbacks/' + editId : appUrl + '/task-feedbacks',
+                type: 'POST',
+                data: fd,
+                processData: false,
+                contentType: false,
                 headers: {
-                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
                 },
-                body: fd,
-            })
-            .then(function (res) {
-                if (!res.ok) return res.json().then(function (j) { return Promise.reject(j); });
-                return res.json();
-            })
-            .then(function (data) {
-                const msg = (data && data.message) || (isEdit ? 'Feedback updated successfully!' : 'Feedback submitted successfully!');
-                if (typeof window.showAlertMsg === 'function') {
-                    window.showAlertMsg(String(msg), 'light', 2000);
-                } else if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(msg, 'light', 2000);
-                }
+                success: function (res) {
+                    const msg = (res && res.message) || (isEdit ? 'Feedback updated successfully!' : 'Feedback submitted successfully!');
+                    if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'light', 2000);
 
-                // Clear editor
-                quill.root.innerHTML = '';
+                    // Reset editor dan file
+                    quill.root.innerHTML = '';
+                    window.inlineTaskFeedbackSelectedFiles = [];
+                    window.__taskInlineFeedbackImageFile = null;
 
-                // Clear files
-                window.inlineTaskFeedbackSelectedFiles = [];
-                window.__taskInlineFeedbackImageFile = null;
+                    $('#inline_task_feedback_image_preview, #inline_task_feedback_files_preview, #inline_existing_files_preview').empty();
 
-                // Clear previews
-                try {
-                    const imagePreview = document.getElementById("inline_task_feedback_image_preview");
-                    if (imagePreview && imagePreview.parentNode) {
-                        imagePreview.parentNode.removeChild(imagePreview);
-                    }
-                } catch (_) {}
-
-                try {
-                    const filesPreview = document.getElementById("inline_task_feedback_files_preview");
-                    if (filesPreview) {
-                        filesPreview.innerHTML = '';
-                    }
-                } catch (_) {}
-
-                // Clear existing files preview
-                try {
-                    const existingPreview = document.getElementById("inline_existing_files_preview");
-                    if (existingPreview && existingPreview.parentNode) {
-                        existingPreview.parentNode.removeChild(existingPreview);
-                    }
-                } catch (_) {}
-
-                // Reset edit mode if it was an edit
-                if (isEdit) {
-                    try {
+                    if (isEdit && typeof window.cancelInlineTaskEditFeedback === 'function') {
                         window.cancelInlineTaskEditFeedback();
-                    } catch(_) {}
-                }
+                    }
 
-                // Reload feedback data
-                try {
-                    loadTaskFeedbackData(taskId);
-                } catch (_) {}
-            })
-            .catch(function (err) {
-                let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
-                try {
-                    if (err && err.errors) msg = Object.values(err.errors).join("\n");
-                    else if (err && err.message) msg = err.message;
-                } catch (_) {}
-                if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(msg, "warning", 4000);
-                }
-            })
-            .finally(function () {
-                if (sendBtn) {
-                    sendBtn.disabled = false;
-                    sendBtn.innerHTML = origText;
+                    setTimeout(() => {
+                        try {
+                            loadTaskFeedbackData(taskId + '?t=' + Date.now());
+                        } catch (e) {
+                            console.warn('Failed to reload feedback list', e);
+                        }
+                    }, 300);
+                },
+                error: function (xhr) {
+                    let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    if (typeof showFloatingAlert === 'function')
+                        showFloatingAlert(msg, "danger", 4000);
+                    else alert(msg);
+                },
+                complete: function () {
+                    sendBtn.prop('disabled', false).html(origText);
                 }
             });
 
         } catch (e) {
             console.warn('Failed to submit inline task feedback:', e);
-            if (typeof showFloatingAlert === 'function') {
+            if (typeof showFloatingAlert === 'function')
                 showFloatingAlert("Failed to submit feedback", "warning");
-            }
         }
     }
 
@@ -11827,3 +11770,4 @@ function filterTaskTableRows(queryRaw) {
             preview.appendChild(listWrap);
         } catch (e) {}
     }
+});
