@@ -21,6 +21,7 @@
 
     var instance = null;
     var currentProjects = [];
+    var eventsAttached = false;
 
     function getElId(projectId) {
         return "proj-node-" + String(projectId);
@@ -86,8 +87,8 @@
             }
             instance.importDefaults({
                 Connector: ["Flowchart", {
-                stub: [60, 60],
-                cornerRadius: 30,
+                stub: [10, 10],
+                cornerRadius: 8,
                 }],
                 Endpoint: ["Dot", { radius: 2 }],
                 PaintStyle: { stroke: "#D2D3E1", strokeWidth: 2 },
@@ -161,14 +162,20 @@
         if (!inst) return;
         try {
             inst.deleteEveryConnection();
-            inst.reset();
+            // Don't reset instance, just clear connections
+            // inst.reset();
         } catch (_) {}
-        instance = null;
+        // Don't set instance = null here to avoid re-creating instance
+        // instance = null;
     }
 
     function attachEvents() {
         var inst = ensureInstance();
         if (!inst) return;
+        
+        // Only attach events once to avoid duplicate handlers
+        if (eventsAttached) return;
+        eventsAttached = true;
         try {
             inst.bind("connection", function (info, originalEvent) {
                 try {
