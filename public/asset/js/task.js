@@ -5444,8 +5444,23 @@ function filterTaskTableRows(queryRaw) {
                                                                                                 ((Array.isArray(repRefUrls) && repRefUrls.length > 0) || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
                                                                                                     ? `
                                                                                                         <div class="feedback-reference-container mb-1">
-                                                                                                            ${Array.isArray(repRefUrls) && repRefUrls.length > 0 ? repRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
-                                                                                                            ${Array.isArray(repRefFiles) && repRefFiles.length > 0 ? repRefFiles.map((u, idx) => `<a href=\"${u}\" download class="feedback-reference-file ms-2"><span class="material-symbols-outlined">draft</span> FILE ${idx+1}</a>`).join('') : ''}
+                                                                                                        ${Array.isArray(repRefUrls) && repRefUrls.length > 0
+                                                                                                            ? repRefUrls.map((u) => {
+                                                                                                                const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                                                                                                return `<a href="${u}" target="_blank" class="feedback-reference-url me-2">
+                                                                                                                            <span class="material-symbols-outlined">link</span> ${shortUrl}
+                                                                                                                        </a>`;
+                                                                                                            }).join('')
+                                                                                                            : ''}
+
+                                                                                                        ${Array.isArray(repRefFiles) && repRefFiles.length > 0
+                                                                                                            ? repRefFiles.map((u) => {
+                                                                                                                const fileName = u.split('/').pop();
+                                                                                                                return `<a href="${u}" download class="feedback-reference-file ms-2">
+                                                                                                                            <span class="material-symbols-outlined">draft</span> ${fileName}
+                                                                                                                        </a>`;
+                                                                                                            }).join('')
+                                                                                                            : ''}
                                                                                                         </div>
                                                                                                     `
                                                                                                     : ''
@@ -5486,8 +5501,25 @@ function filterTaskTableRows(queryRaw) {
                                 ((Array.isArray(topRefUrls) && topRefUrls.length > 0) || (Array.isArray(topRefFiles) && topRefFiles.length > 0))
                                     ? `
                                 <div class="feedback-reference-container mb-2">
-                                    ${Array.isArray(topRefUrls) && topRefUrls.length > 0 ? topRefUrls.map((u, idx) => `<a href="${u}" target="_blank" class="feedback-reference-url me-2"><span class="material-symbols-outlined">link</span> Link ${idx+1}</a>`).join('') : ''}
-                                    ${Array.isArray(topRefFiles) && topRefFiles.length > 0 ? topRefFiles.map((u, idx) => `<a href=\"${u}\" download class="feedback-reference-file ms-2"><span class="material-symbols-outlined">draft</span> FILE ${idx+1}</a>`).join('') : ''}
+                                    ${Array.isArray(topRefUrls) && topRefUrls.length > 0
+                                    ? topRefUrls.map((u) => {
+                                        // Buat tampilan URL lebih pendek biar gak kepanjangan
+                                        const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                        return `<a href="${u}" target="_blank" class="feedback-reference-url bg-light rounded-2">
+                                                    <span class="material-symbols-outlined" style="color: #444444;">link</span> ${shortUrl}
+                                                </a>`;
+                                        }).join('')
+                                    : ''}
+
+                                    ${Array.isArray(topRefFiles) && topRefFiles.length > 0
+                                    ? topRefFiles.map((u) => {
+                                        // Ambil nama file dari URL
+                                        const fileName = u.split('/').pop();
+                                        return `<a href="${u}" class="feedback-reference-file bg-light rounded-2">
+                                                    <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}
+                                                </a>`;
+                                        }).join('')
+                                    : ''}
                                 </div>
                             `
                                     : ""
