@@ -7671,7 +7671,7 @@ function filterTaskTableRows(queryRaw) {
                 })();
 
                 const html = `
-                <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
+                <div class="custom-card-detail rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
                     <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
                         <div class="d-flex align-items-center">
                             ${avatarHtml}

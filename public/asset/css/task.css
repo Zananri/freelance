@@ -186,7 +186,8 @@
     width: 210px;
 }
 
-.custom-card {
+.custom-card,
+.custom-card-detail {
     height: auto !important;
     min-height: 100px;
     background-color: #f0f1f8;
