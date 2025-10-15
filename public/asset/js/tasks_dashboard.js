@@ -708,7 +708,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                                             <p class="mb-1" style="font-size:12px;">${repComment}</p>
                                             ${repUrlsHtml}${repFilesHtml}${repImgHtml}
                                             <div class="reply-actions mt-2 d-flex gap-3 align-items-center">
-                                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${fb.id}" data-task-id="${taskId}" style="cursor:pointer;color:#555;font-size:11px;">
+                                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${fb.id}" data-task-id="${taskId}" data-author-name="${encodeURIComponent(repName)}" data-author-photo="${encodeURIComponent(repPhoto)}" data-preview-text="${encodeURIComponent(repComment)}" style="cursor:pointer;color:#555;font-size:11px;">
                                                     <span class="material-symbols-outlined" style="font-size:16px;line-height:1;margin-right:3px;">reply</span>
                                                     <span>Reply</span>
                                                 </span>
@@ -757,7 +757,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                                     <p class="mb-2" style="font-size:13px;">${feedbackComment}</p>
                                     ${urlsHtml}${filesHtml}${imgHtml}
                                     <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
-                                        <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${fb.id}" data-task-id="${taskId}" style="cursor:pointer;color:#555;font-size:12px;">
+                                        <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${fb.id}" data-task-id="${taskId}" data-author-name="${encodeURIComponent(name)}" data-author-photo="${encodeURIComponent(photo)}" data-preview-text="${encodeURIComponent(feedbackComment)}" style="cursor:pointer;color:#555;font-size:12px;">
                                             <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">reply</span>
                                             <span>Reply</span>
                                         </span>
@@ -798,6 +798,14 @@ ${canEditTop ? `
             $('.feedback-reply-trigger', bodyEl).off('click').on('click', function() {
                 const feedbackId = $(this).data('feedbackId');
                 const tId = $(this).data('taskId');
+                const authorName = decodeURIComponent($(this).attr('data-author-name') || '');
+                const authorPhoto = decodeURIComponent($(this).attr('data-author-photo') || '');
+                const previewText = decodeURIComponent($(this).attr('data-preview-text') || '');
+
+                // Show preview above editor
+                removeDashboardReplyPreview();
+                renderDashboardReplyPreview(authorName || 'Unknown', authorPhoto || ((document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '') + '/asset/img/avatar.png'), previewText || '');
+
                 showDashboardReplyFeedbackForm(tId, feedbackId);
             });
             
@@ -1025,6 +1033,63 @@ function setupDashboardInlineFeedbackEditor(taskId) {
         this.value = "";
     });
     sendBtn.off('click').on('click', () => submitDashboardInlineFeedback(taskId));
+}
+
+// Render a selected reply preview above the inline editor
+function renderDashboardReplyPreview(authorName, authorPhoto, previewText) {
+    // Ensure preview container exists inside modal footer area
+    const modal = document.getElementById('taskFeedbackModal');
+    if (!modal) return null;
+    let footer = modal.querySelector('.modal-footer .feedback-form');
+    if (!footer) footer = modal.querySelector('.modal-footer');
+    if (!footer) return null;
+
+    // Remove existing preview if any
+    const existing = modal.querySelector('.selected-reply-preview');
+    if (existing) existing.remove();
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task selected-reply-preview';
+    wrapper.style.marginBottom = '8px';
+    wrapper.innerHTML = `
+        <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">
+            <img src="${authorPhoto}" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src='${(document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '')}/asset/img/avatar.png';">
+        </div>
+        <div class="flex-grow-1" style="font-size: 10px;">
+            <div style="font-weight:500;font-size:11px">${escapeHtml(authorName)}</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-remove-task remove-task" title="Remove reply preview" style="line-height: 1; font-size: 10px;">
+            <span class="material-symbols-outlined">close</span>
+        </button>`;
+
+    // Insert preview before the editor element
+    const editorEl = modal.querySelector('#inline_feedback_editor');
+    if (editorEl && editorEl.parentNode) {
+        editorEl.parentNode.insertBefore(wrapper, editorEl);
+    } else if (footer) {
+        footer.insertAdjacentElement('beforebegin', wrapper);
+    }
+
+    // wire remove
+    wrapper.querySelector('.remove-task').addEventListener('click', function() {
+        // clear reply state
+        window.__dashboardReplyingToFeedbackId = null;
+        // reset editor placeholder
+        try { const q = window.__quillDashboardInlineFeedback; if (q) { const pl = q.root.closest('.ql-container').querySelector('.ql-editor'); if (pl) pl.dataset.placeholder = 'Write feedback...'; } } catch(_) {}
+        wrapper.remove();
+        // reset send button icon
+        const sendBtn = document.getElementById('inlineFeedbackSendBtn'); if (sendBtn) sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+    });
+
+    return wrapper;
+}
+
+// Remove preview helper
+function removeDashboardReplyPreview() {
+    const modal = document.getElementById('taskFeedbackModal');
+    if (!modal) return;
+    const existing = modal.querySelector('.selected-reply-preview');
+    if (existing) existing.remove();
 }
 
 function initDashboardInlineFeedbackEditor(taskId) {
@@ -1268,6 +1333,9 @@ function submitDashboardInlineFeedback(taskId) {
             
             // Reload feedback list
             loadDashboardTaskFeedbackData(taskId);
+
+            // remove reply preview if any
+            removeDashboardReplyPreview();
             
             // Update feedback count
             $.ajax({ 
