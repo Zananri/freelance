@@ -587,39 +587,48 @@ function loadDashboardTaskFeedbackData(taskId) {
                 return;
             }
 
-            // helper functions to match Task page formatting
-            const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-            const isYesterday = (d1, d2) => {
-                const y = new Date(d2);
-                y.setDate(d2.getDate() - 1);
-                return isSameDay(d1, y);
+            // Helper: Format date like Task page (timeAgo)
+            const timeAgo = (dateStr) => {
+                if (!dateStr) return '';
+                const date = new Date(dateStr);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffSec = Math.floor(diffMs / 1000);
+                const diffMin = Math.floor(diffSec / 60);
+                const diffHr = Math.floor(diffMin / 60);
+                const diffDay = Math.floor(diffHr / 24);
+                
+                if (diffDay > 1) {
+                    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                } else if (diffDay === 1) {
+                    return '1 day ago';
+                } else if (diffHr > 0) {
+                    return diffHr + ' hour' + (diffHr > 1 ? 's' : '') + ' ago';
+                } else if (diffMin > 0) {
+                    return diffMin + ' minute' + (diffMin > 1 ? 's' : '') + ' ago';
+                } else {
+                    return 'just now';
+                }
             };
 
-            const html = data.map(fb => {
-                let formattedDate = '';
-                if (fb.created_at) {
-                    const created = new Date(fb.created_at);
-                    const now = new Date();
-                    if (isSameDay(created, now)) {
-                        formattedDate = created.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                    } else if (isYesterday(created, now)) {
-                        formattedDate = 'yesterday';
-                    } else {
-                        formattedDate = created.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                    }
-                }
+            const currentEmployeeId = document.getElementById('taskFeedbackModal')?.dataset?.employeeId || '';
 
+            const html = data.map(fb => {
+                const formattedDate = timeAgo(fb.created_at);
                 const name = fb.employee?.name || 'Unknown';
                 const photo = fb.employee?.photo || ((appUrl ? appUrl : '') + '/asset/img/avatar.png');
                 
-                // Render feedback comment as HTML (not escaped) to show formatted text
+                // Render feedback comment as HTML (not escaped)
                 const feedbackComment = fb.feedback_comment || '';
                 
-                // Handle image
-                const imgHtml = fb.image ? `<img src="${fb.image}" class="feedback-image img-fluid rounded mt-2" style="max-width: 200px; height: auto; border-radius: 8px; cursor: pointer;">` : '';
+                // Normalize image URL
+                let topImageUrl = fb.image || '';
+                if (topImageUrl && !topImageUrl.startsWith('http')) {
+                    topImageUrl = (appUrl ? appUrl : '') + '/file/task/' + topImageUrl;
+                }
                 
                 // Handle reference files - support multiple files
-                let filesHtml = '';
+                let topRefFiles = [];
                 try {
                     let refFiles = fb.reference_files_urls || fb.reference_files || [];
                     if (typeof refFiles === 'string') {
@@ -630,19 +639,16 @@ function loadDashboardTaskFeedbackData(taskId) {
                         }
                     }
                     if (Array.isArray(refFiles) && refFiles.length > 0) {
-                        const fileLinks = refFiles.map(fileUrl => {
-                            if (!fileUrl) return '';
-                            const fileName = fileUrl.split('/').pop() || 'File';
-                            return `<a href="${fileUrl}" target="_blank" class="feedback-reference-file"><span class="material-symbols-outlined">description</span>${escapeHtml(fileName)}</a>`;
-                        }).filter(Boolean).join('');
-                        if (fileLinks) {
-                            filesHtml = `<div class="feedback-reference-container mt-2">${fileLinks}</div>`;
-                        }
+                        topRefFiles = refFiles.map(f => {
+                            if (!f) return null;
+                            if (f.startsWith('http')) return f;
+                            return (appUrl ? appUrl : '') + '/file/task_reference_files/' + f;
+                        }).filter(Boolean);
                     }
                 } catch(e) {}
                 
                 // Handle reference URLs - support multiple URLs
-                let urlsHtml = '';
+                let topRefUrls = [];
                 try {
                     let refUrls = fb.reference_urls || [];
                     if (typeof refUrls === 'string') {
@@ -654,31 +660,81 @@ function loadDashboardTaskFeedbackData(taskId) {
                         }
                     }
                     if (Array.isArray(refUrls) && refUrls.length > 0) {
-                        const urlLinks = refUrls.map(url => {
-                            if (!url) return '';
-                            return `<a href="${url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span>${escapeHtml(url)}</a>`;
-                        }).filter(Boolean).join('');
-                        if (urlLinks) {
-                            urlsHtml = `<div class="feedback-reference-container mt-2">${urlLinks}</div>`;
-                        }
+                        topRefUrls = refUrls.filter(u => typeof u === 'string' && u.trim() !== '');
+                    } else if (fb.reference_url) {
+                        topRefUrls = [fb.reference_url];
                     }
                 } catch(e) {}
                 
+                // Check if current user can edit
+                const topAuthorId = fb.employee?.id || fb.employee_id || 0;
+                const canEditTop = String(topAuthorId) === String(currentEmployeeId);
+                
+                // Build reference files HTML
+                const filesHtml = (topRefFiles.length > 0) ? `
+                    <div class="feedback-reference-container mb-2">
+                        ${topRefFiles.map(fileUrl => {
+                            const fileName = fileUrl.split('/').pop() || 'File';
+                            return `<a href="${fileUrl}" class="feedback-reference-file bg-light rounded-2">
+                                <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${escapeHtml(fileName)}
+                            </a>`;
+                        }).join('')}
+                    </div>` : '';
+                
+                // Build reference URLs HTML
+                const urlsHtml = (topRefUrls.length > 0) ? `
+                    <div class="feedback-reference-container mb-2">
+                        ${topRefUrls.map(url => {
+                            const shortUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                            return `<a href="${url}" target="_blank" class="feedback-reference-url bg-light rounded-2">
+                                <span class="material-symbols-outlined" style="color: #444444;">link</span> ${escapeHtml(shortUrl)}
+                            </a>`;
+                        }).join('')}
+                    </div>` : '';
+                
+                // Build image HTML
+                const imgHtml = topImageUrl ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : '';
+                
+                // Build actions (Reply, Edit, Delete, View all)
+                const repliesCount = (Array.isArray(fb.replies) ? fb.replies.length : 0);
+                const viewAllBtn = repliesCount > 0 ? `<span style="font-size: 13px; color:#555;">View all (${repliesCount})</span>` : '';
+                
                 return `
-                    <div class="feedback-item" style="border-bottom: 1px solid #ddd; padding-bottom: 1rem; margin-bottom: 1rem;">
+                    <div class="feedback-item mb-3 p-3" data-feedback-id="${fb.id}">
                         <div class="d-flex align-items-start mb-2">
-                            <img src="${photo}" alt="${escapeHtml(name)}" class="feedback-employee-photo rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                            <img src="${photo}" alt="${escapeHtml(name)}" class="rounded-circle me-3" style="width: 32px; height: 32px; object-fit: cover;">
                             <div class="flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <strong style="font-size: 14px; color: #333;">${escapeHtml(name)}</strong>
-                                    <small class="text-muted" style="font-size: 11px;">${formattedDate}</small>
+                                <div>
+                                    <strong style="font-size:14px; font-weight:600;">${escapeHtml(name)}</strong>
+                                    <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
                                 </div>
-                                <div class="feedback-comment mt-2" style="font-size: 13px; color: #444;">
-                                    ${feedbackComment}
+
+                                <div class="feedback-comment mt-2">
+                                    <p class="mb-2" style="font-size:13px;">${feedbackComment}</p>
+                                    ${urlsHtml}
+                                    ${filesHtml}
+                                    ${imgHtml}
+
+                                    <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
+                                        <span class="d-flex align-items-center" style="cursor:pointer; color:#555; font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span>
+                                            <span>Reply</span>
+                                        </span>
+                                        ${canEditTop ? `
+                                        <span class="d-flex align-items-center" style="cursor:pointer; color:#555; font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span>
+                                            <span>Edit</span>
+                                        </span>
+                                        ` : ''}
+                                        ${canEditTop ? `
+                                        <span class="d-flex align-items-center" style="cursor:pointer; color:#555; font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span>
+                                            <span>Delete</span>
+                                        </span>
+                                        ` : ''}
+                                        ${viewAllBtn}
+                                    </div>
                                 </div>
-                                ${urlsHtml}
-                                ${filesHtml}
-                                ${imgHtml}
                             </div>
                         </div>
                     </div>`;
