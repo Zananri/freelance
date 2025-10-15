@@ -2985,20 +2985,16 @@ class ProjectController extends Controller
             $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
             $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-            // Set headers (pisahkan Waktu Mulai dan Deadline seperti semula)
+            // Set headers: remove Department, Division and Status; combine Waktu Mulai & Deadline into Durasi
             $headers = [
                 'A2' => 'No',
                 'B2' => 'Nama Project',
                 'C2' => 'Part of Project',
                 'D2' => 'Project Type',
-                'E2' => 'Department',
-                'F2' => 'Division',
-                'G2' => 'Status',
-                'H2' => 'Task',
-                'I2' => 'Status Task',
-                'J2' => 'Waktu Mulai',
-                'K2' => 'Deadline',
-                'L2' => 'Jumlah Task'
+                'E2' => 'Task',
+                'F2' => 'Status Task',
+                'G2' => 'Durasi',
+                'H2' => 'Jumlah Task'
             ];
 
             foreach ($headers as $cell => $value) {
@@ -3020,32 +3016,49 @@ class ProjectController extends Controller
                 ],
             ];
 
-            $activeWorksheet->getStyle('A2:L2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
-            $activeWorksheet->getStyle('A2:L2')
+            $activeWorksheet->getStyle('A2:H2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:H2')
                 ->getAlignment()
                 ->setWrapText(true)
                 ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                 ->setVertical(Alignment::VERTICAL_CENTER);
 
-            // Set column widths
+            // Set column widths (after removing Department/Division/Status)
             $columnWidths = [
                 'A' => 5,   // No
                 'B' => 30,  // Nama Project
                 'C' => 20,  // Part of Project
                 'D' => 12,  // Project Type
-                'E' => 15,  // Department
-                'F' => 15,  // Division
-                'G' => 12,  // Status
-                'H' => 25,  // Task
-                'I' => 15,  // Status Task
-                'J' => 12,  // Waktu Mulai
-                'K' => 12,  // Deadline
-                'L' => 12   // Jumlah Task
+                'E' => 35,  // Task
+                'F' => 15,  // Status Task
+                'G' => 20,  // Durasi
+                'H' => 12   // Jumlah Task
             ];
 
             foreach ($columnWidths as $column => $width) {
                 $activeWorksheet->getColumnDimension($column)->setWidth($width);
             }
+
+            // Helper to format duration similar to project detail
+            $formatDuration = function ($startRaw, $endRaw) {
+                if (empty($startRaw) && empty($endRaw)) return '-';
+                try { $start = $startRaw ? Carbon::parse($startRaw) : null; } catch (\Throwable $_) { $start = null; }
+                try { $end = $endRaw ? Carbon::parse($endRaw) : null; } catch (\Throwable $_) { $end = null; }
+                if ($start && !$end) return $start->format('j F Y');
+                if (!$start && $end) return $end->format('j F Y');
+                if (!$start && !$end) return '-';
+                $sY = $start->format('Y'); $eY = $end->format('Y');
+                $sM = $start->format('F'); $eM = $end->format('F');
+                $sD = $start->format('j'); $eD = $end->format('j');
+                if ($sY === $eY) {
+                    if ($sM === $eM) {
+                        if ($sD === $eD) return "{$sD} {$sM} {$sY}";
+                        return "{$sD}-{$eD} {$sM} {$sY}";
+                    }
+                    return "{$sD} {$sM} - {$eD} {$eM} {$sY}";
+                }
+                return "{$sD} {$sM} {$sY} - {$eD} {$eM} {$eY}";
+            };
 
             // Fill data
             $row = 3;
@@ -3073,11 +3086,7 @@ class ProjectController extends Controller
                     'B' => $project->title,
                     'C' => $partOfProjectDisplay,
                     'D' => ucfirst($project->project_type ?? 'public'),
-                    'E' => $project->department ? $project->department->name_department : '-',
-                    'F' => $project->division ? $project->division->name_division : '-',
-                    'G' => ucfirst($project->status),
-                    'J' => $project->start_date ? Carbon::parse($project->start_date)->format('d-M-Y') : '-',
-                    'L' => $project->total_tasks ?? 0,
+                    'L' => $project->total_tasks ?? 0, // temporary holder for total tasks
                 ];
 
                 // Determine the project's maximal (latest) deadline among its tasks.
@@ -3105,33 +3114,26 @@ class ProjectController extends Controller
                     // Remember start row for this project so we can merge project columns if multiple tasks
                     $projectStartRow = $row;
                     $projectNo = $no;
-
                     foreach ($project->tasks as $task) {
-                        // Project columns (project type moved to D) - written for each task row but will be merged later
+                        // Project columns (written per task row, will merge later)
                         $activeWorksheet->setCellValue('B'.$row, $baseProjectValues['B']);
                         $activeWorksheet->setCellValue('C'.$row, $baseProjectValues['C']);
                         $activeWorksheet->setCellValue('D'.$row, $baseProjectValues['D']);
-                        $activeWorksheet->setCellValue('E'.$row, $baseProjectValues['E']);
-                        $activeWorksheet->setCellValue('F'.$row, $baseProjectValues['F']);
-                        // Project status (written per task row so it shows before merge)
-                        $activeWorksheet->setCellValue('G'.$row, $baseProjectValues['G']);
 
-                        // Task columns (one task per row) - shifted right
-                        $activeWorksheet->setCellValue('H'.$row, $task->title ?? '-');
+                        // Task columns
+                        $activeWorksheet->setCellValue('E'.$row, $task->title ?? '-');
                         $s = (string) ($task->status ?? '');
                         $s = str_replace('_', ' ', $s);
                         $s = trim($s);
                         $s = $s === '' ? '-' : ucfirst($s);
-                        $activeWorksheet->setCellValue('I'.$row, $s);
+                        $activeWorksheet->setCellValue('F'.$row, $s);
 
-                        // Deadline: prefer task due date when available
-                        $rowDue = $task->due_date ?: $project->due_date;
+                        // Durasi: prefer task start/due, fallback to project
+                        $startRaw = $task->start_date ?: $project->start_date;
+                        $endRaw = $task->due_date ?: $project->due_date;
+                        $activeWorksheet->setCellValue('G'.$row, $formatDuration($startRaw, $endRaw));
 
-                        // Waktu Mulai (project-level) tetap sama per project (akan di-merge)
-                        $activeWorksheet->setCellValue('J'.$row, $baseProjectValues['J']);
-                        // Deadline per project: write the maximal deadline so K can be merged per project
-                        $activeWorksheet->setCellValue('K'.$row, $projectMaxDue ? $projectMaxDue->format('d-M-Y') : '-');
-                        $activeWorksheet->setCellValue('L'.$row, $baseProjectValues['L']);
+                        $activeWorksheet->setCellValue('H'.$row, $baseProjectValues['L']);
 
                         // Set a reasonable row height per single-line task
                         $activeWorksheet->getRowDimension($row)->setRowHeight(18);
@@ -3145,9 +3147,8 @@ class ProjectController extends Controller
                     // Write project number in column A at projectStartRow and merge A if multiple rows
                     $activeWorksheet->setCellValue('A'.$projectStartRow, $projectNo);
                     if ($projectEndRow > $projectStartRow) {
-                        // Merge project-related columns vertically across the task rows: A (No),
-                        // B (Nama Project), C (Part of Project), D (Project Type), E (Department), F (Division), G (Status), J (Waktu Mulai), K (Deadline), L (Jumlah Task)
-                        $colsToMerge = ['A','B','C','D','E','F','G','J','K','L'];
+                        // Merge project-related columns vertically across the task rows: A (No), B (Nama Project), C (Part of Project), D (Project Type), H (Jumlah Task)
+                        $colsToMerge = ['A','B','C','D','H'];
                         foreach ($colsToMerge as $col) {
                             $activeWorksheet->mergeCells($col.$projectStartRow.':'.$col.$projectEndRow);
                             // Align center both horizontally and vertically for merged cells
@@ -3162,28 +3163,22 @@ class ProjectController extends Controller
                 } else {
                     // Project with no tasks: single row
                     $activeWorksheet->setCellValue('A'.$row, $no);
-                    // center A and G for single-row projects
+                    // center A for single-row projects
                     $activeWorksheet->getStyle('A'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->setCellValue('B'.$row, $baseProjectValues['B']);
                     // Center project-related columns for single-row projects
                     $activeWorksheet->getStyle('B'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->getStyle('C'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->getStyle('D'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-                    $activeWorksheet->getStyle('E'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-                    $activeWorksheet->getStyle('F'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->setCellValue('C'.$row, $baseProjectValues['C']);
                     $activeWorksheet->setCellValue('D'.$row, $baseProjectValues['D']);
-                    $activeWorksheet->setCellValue('E'.$row, $baseProjectValues['E']);
-                    $activeWorksheet->setCellValue('F'.$row, $baseProjectValues['F']);
-                    $activeWorksheet->setCellValue('G'.$row, $baseProjectValues['G']);
+                    $activeWorksheet->setCellValue('E'.$row, 'No Tasks');
+                    $activeWorksheet->setCellValue('F'.$row, '-');
+                    // Untuk project tanpa task: tampilkan Durasi
+                    $durationSingle = $formatDuration($project->start_date, $projectMaxDue ? $projectMaxDue->toDateString() : $project->due_date);
+                    $activeWorksheet->setCellValue('G'.$row, $durationSingle);
                     $activeWorksheet->getStyle('G'.$row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-                    $activeWorksheet->setCellValue('H'.$row, 'No Tasks');
-                    $activeWorksheet->setCellValue('I'.$row, '-');
-                    // Untuk project tanpa task: tampilkan Waktu Mulai di J dan Deadline di K (gunakan project due_date)
-                    $activeWorksheet->setCellValue('J'.$row, $baseProjectValues['J']);
-                    $singleDue = $projectMaxDue ? $projectMaxDue->format('d-M-Y') : ($project->due_date ? Carbon::parse($project->due_date)->format('d-M-Y') : '-');
-                    $activeWorksheet->setCellValue('K'.$row, $singleDue);
-                    $activeWorksheet->setCellValue('L'.$row, $baseProjectValues['L']);
+                    $activeWorksheet->setCellValue('H'.$row, $baseProjectValues['L']);
                     $activeWorksheet->getRowDimension($row)->setRowHeight(18);
 
                     $row++;
@@ -3201,24 +3196,20 @@ class ProjectController extends Controller
             ];
 
             if ($row > 3) {
-                $activeWorksheet->getStyle('A3:L'.($row-1))->applyFromArray($dataStyle);
+                $activeWorksheet->getStyle('A3:H'.($row-1))->applyFromArray($dataStyle);
 
                 // Center align specific columns
                 $activeWorksheet->getStyle('A3:A'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                // Project status now at column G
-                $activeWorksheet->getStyle('G3:G'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 // Project type now at column D
                 $activeWorksheet->getStyle('D3:D'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                // Waktu Mulai center
-                $activeWorksheet->getStyle('J3:J'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                // Deadline center
-                $activeWorksheet->getStyle('K3:K'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                // Jumlah Task at column L center
-                $activeWorksheet->getStyle('L3:L'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Durasi center
+                $activeWorksheet->getStyle('G3:G'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Jumlah Task at column H center
+                $activeWorksheet->getStyle('H3:H'.($row-1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                // Enable text wrapping for Task and Status Task columns (H and I)
-                $activeWorksheet->getStyle('H3:I'.($row-1))->getAlignment()->setWrapText(true);
-                $activeWorksheet->getStyle('H3:I'.($row-1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                // Enable text wrapping for Task and Status Task columns (E and F)
+                $activeWorksheet->getStyle('E3:F'.($row-1))->getAlignment()->setWrapText(true);
+                $activeWorksheet->getStyle('E3:F'.($row-1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
             }
 
             // Set sheet name
