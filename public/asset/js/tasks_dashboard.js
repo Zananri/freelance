@@ -1443,7 +1443,7 @@ function startDashboardInlineEditFeedback(payload) {
     // Update send button text
     const sendBtn = document.getElementById('inlineFeedbackSendBtn');
     if (sendBtn) {
-        sendBtn.innerHTML = '<span class="material-symbols-outlined">save</span>';
+        sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
     }
 
     // Focus editor
