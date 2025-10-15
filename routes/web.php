@@ -249,6 +249,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/calendar', [EmployeeCalendarController::class, 'showCalendarPage'])->name('calendar');
     Route::get('/calendar/all-event-employee-calendar-by-month', [EmployeeCalendarController::class, 'allEventEmployeeCalendarByMonth'])->name('calendar.allEventEmployeeCalendarByMonth');
+    Route::get('/calendar/event-employee-detail', [EmployeeCalendarController::class, 'eventEmployeeDetail'])->name('calendar.eventEmployeeDetail');
     Route::post('/calendar/new-employee-event', [EmployeeCalendarController::class, 'newEmployeeEvent'])->name('calendar.newEmployeeEvent');
     Route::post('/calendar/edit-employee-event', [EmployeeCalendarController::class, 'editEmployeeEvent'])->name('calendar.editEmployeeEvent');
     Route::post('/calendar/delete-employee-event', [EmployeeCalendarController::class, 'deleteEmployeeEvent'])->name('calendar.deleteEmployeeEvent');

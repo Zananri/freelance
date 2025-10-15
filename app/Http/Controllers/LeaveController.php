@@ -84,13 +84,17 @@ class LeaveController extends Controller
         if($qrySearch <> ''){
 
             $employeeLeaveRequest = $employeeLeaveRequest->where('reason','like','%'.$qrySearch.'%')
-            ->orWhere(function($query) use ($qrySearch){
+            ->where(function($query) use ($qrySearch){
                 $query->where('reject_reason','like','%'.$qrySearch.'%');
                 $query->orWhere('day_amount','like','%'.$qrySearch.'%');
                 $query->orWhere('start_date','like','%'.$qrySearch.'%');
                 $query->orWhere('end_date','like','%'.$qrySearch.'%');
                 $query->orWhere('leave_type','like','%'.$qrySearch.'%');
+                $query->orWhere('employees.name','like','%'.$qrySearch.'%');
                 //->orWhere('category','like','%'.$searchText.'%');
+            })
+            ->whereHas('employee',function($query){
+                $query->where('name','like','%'.$qrySearch.'% ');
             });
 
         }

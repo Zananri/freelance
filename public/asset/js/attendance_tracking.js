@@ -204,6 +204,9 @@ $(document).on('click','tbody .col-day',function(){
     let dateAttendance = CURRENT_DATE.getFullYear()+'-'+(CURRENT_DATE.getMonth()+1)+'-'+dayCalendar;
 
 
+    $('#modalAttendance [name="employee_id"]').text(employeeId);
+    $('#modalAttendance [name="date"]').text(dateAttendance);
+    
     getAttendanceDetail(employeeId,dateAttendance)
     
     
@@ -246,7 +249,13 @@ function getAttendanceDetail(employeeId,dateAttendance)
             if(attendance.time_late != null && attendance.time_late != '00:00:00'){
                 $('#modalAttendance .attendance-late').addClass('text-danger');   
             }
+            
+            
+            $('#modalAttendance [name="employee_id"]').text(employee.id);
+            $('#modalAttendance [name="date"]').text(attendance.date_attendance);
+            $('#modalAttendance [name="attendance_id"]').text(attendance.id);
 
+            $('#modalAttendance .attendance-status').text(attendance.status);
             $('#modalAttendance .attendance-checkin').text(formatTimeShort(attendance.time_in));
             $('#modalAttendance .attendance-checkout').text(formatTimeShort(attendance.time_out));
             $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendance.total_work_duration));
@@ -348,3 +357,17 @@ const formatDateIDMonthYear = (date) => {
   
   return `${m} ${y}`;
 };
+
+
+$('#btn-togle-note-box, #btn-cancel-note-box').on('click',function(){
+    $('.box-note-input, .box-note').toggleClass('d-none');
+
+});
+
+$('#modalAttendance .btn-submit-note').on('click',function(){
+
+    let note = $('#note-attendance').val();
+
+    
+
+});

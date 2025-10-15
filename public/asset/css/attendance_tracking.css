@@ -22,6 +22,26 @@
     cursor: pointer;
 }
 
+
+.btn-default-sm {
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 6px;
+    padding: 6px 12px;
+    background-color: #E9EEF4;
+    color: #3C404B;
+    cursor: pointer;
+}
+.btn-default-dark-sm {
+    border: 0px;
+    white-space: nowrap;
+    border-radius: 6px;
+    padding: 6px 12px;
+    background-color: #444;
+    color: #E9EEF4 ;
+    cursor: pointer;
+}
+
 .btn-default-modal {
     background-color: #e3e4ee;
     color: #313238;
@@ -370,7 +390,13 @@
 .table-attendance .box-employee {
     padding: 8px 8px;
     width: 200px;
+    cursor: pointer;
+    transition: all 0.2s;;
 }
+.table-attendance .box-employee:hover {
+    background-color: #fcfcff;
+}
+
 .table-attendance .box-attendance{
     width: 100%;
     height: 100%;

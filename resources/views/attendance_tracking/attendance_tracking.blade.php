@@ -92,7 +92,7 @@
                                     @foreach ($employee as $itemEmployee)
                                             
                                         
-                                        <tr class="employee-row" data-employee-id="{{ $itemEmployee->id }}" data-weekday-off="{{ $itemEmployee->weekday_off }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
+                                        <tr class="employee-row" data-employee-name="{{ $itemEmployee->name }}" data-employee-photo="{{ asset($itemEmployee->photo) }}"  data-employee-id="{{ $itemEmployee->id }}" data-weekday-off="{{ $itemEmployee->weekday_off }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
                                             <td>
                                                 <div class="box-employee">
                                                     <div class="d-flex align-items-center">
@@ -152,104 +152,163 @@
                 <div class="modal-content">
 
                     <div class="modal-body p-4 position-relative">
-                        <div class="text-center">
-                                <span class="fw-light fs-24">Attendance</span>
-                        </div>
-                        <div class="mb-4 text-center">
-                            <span class="fw-normal fs-14 text-secondary attendance-date">8 September 2025</span>
-                        </div>
+                        <form action="" novalidate="" method="POST">
+                            @csrf
+                            <input type="hidden" name="employee_id" value="">
+                            <input type="hidden" name="date" value="">
+                            <input type="hidden" name="attendance_id" value="">
+                        
 
-                        <div class="mb-3 pb-2 border-bottom border-3">
-                            <div class="d-flex mb-2 justify-content-between align-items-center w-100">
-                                <div>
-                                    <div class="fs-14 text-secondary fw-normal">Employee</div>
-                                </div>
-                                <div>
-                                    <div class="employee-name fw-medium fs-14"></div>
-                                </div>
+                            <div class="text-center">
+                                    <span class="fw-light fs-24">Attendance</span>
                             </div>
-                            
+                            <div class="mb-4 text-center">
+                                <span class="fw-normal fs-14 text-secondary attendance-date"></span>
+                            </div>
+
+                            <div class="mb-3 pb-2 border-bottom border-3">
+                                <div class="d-flex mb-2 justify-content-between align-items-center w-100">
+                                    <div>
+                                        <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                    </div>
+                                    <div>
+                                        <div class="employee-name fw-medium fs-14"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Shift</div>
+                                        </div>
+                                        <div>
+                                            <div class="employee-shift fs-14 fw-normal"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Status</div>
+                                        </div>
+                                        <div>
+                                            <div class="attendance-status  fs-14 fw-normal"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+
+                            </div>
+
                             <div class="mb-2">
                                 <div class="d-flex justify-content-between align-items-center w-100">
                                     <div>
-                                        <div class="fs-14 text-secondary fw-normal">Shift</div>
+                                        <div class="fs-14 text-secondary fw-normal">Late</div>
                                     </div>
                                     <div>
-                                        <div class="employee-shift fs-14 fw-normal"></div>
+                                        <div class="attendance-late  fs-14 fw-normal"></div>
                                     </div>
                                 </div>
                             </div>
 
-
-                        </div>
-
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between align-items-center w-100">
-                                <div>
-                                    <div class="fs-14 text-secondary fw-normal">Late</div>
-                                </div>
-                                <div>
-                                    <div class="attendance-late  fs-14 fw-normal"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between align-items-center w-100">
-                                <div>
-                                    <div class="fs-14 text-secondary fw-normal">Check In</div>
-                                </div>
-                                <div>
-                                    <div class="attendance-checkin  fs-14 fw-normal"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-2">
-                            <div class="d-flex justify-content-between align-items-center w-100">
-                                <div>
-                                    <div class="fs-14 text-secondary fw-normal">Check Out</div>
-                                </div>
-                                <div>
-                                    <div class="attendance-checkout  fs-14 fw-normal"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <div class="d-flex justify-content-between align-items-center w-100">
-                                <div>
-                                    <div class="fs-14 text-secondary fw-normal">Work Duration</div>
-                                </div>
-                                <div>
-                                    <div class="attendance-work-duration  fs-14 fw-normal">00 : 00</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        
-
-                        
-
-                        
-                        
-                        <div class="config-footer">
-                            <div class="row">
-                                <div class="col-12">
-                                    <div class="btn btn-default-modal border-0 w-100 p-2" data-bs-dismiss="modal">Close</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="loader d-none" >
-                            <div class="box-loader rounded-20" >
-                                <div class="text-center">
-                                    <div class="spinner-border text-secondary" role="status">
-                                        <span class="visually-hidden">Loading...</span>
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <div>
+                                        <div class="fs-14 text-secondary fw-normal">Check In</div>
+                                    </div>
+                                    <div>
+                                        <div class="attendance-checkin  fs-14 fw-normal"></div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <div>
+                                        <div class="fs-14 text-secondary fw-normal">Check Out</div>
+                                    </div>
+                                    <div>
+                                        <div class="attendance-checkout  fs-14 fw-normal"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <div>
+                                        <div class="fs-14 text-secondary fw-normal">Work Duration</div>
+                                    </div>
+                                    <div>
+                                        <div class="attendance-work-duration  fs-14 fw-normal">00 : 00</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        
+
+                            <div class="mb-3 box-note">
+                                <div class="d-flex justify-content-between align-items-center w-100">
+                                    <div>
+                                        <div class="fs-14 text-secondary fw-normal">Note</div>
+                                    </div>
+                                    <div>
+                                        <div class="fw-normal">
+                                            <div class="btn-default-dark-sm fs-12 fw-medium border-0" id="btn-togle-note-box">Add Note</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                            <div class="mb-3 position-relative d-none box-note-input">
+                                <label for="note-attendance" class="form-label fs-14 text-body text-opacity-75">Note</label>
+                                <textarea class="form-control border-0 fs-14 pe-5 pb-5" id="note-attendance" rows="3"></textarea>
+                                <div class="position-absolute bottom-0 end-0 m-2 white-space-nowrap">
+                                    <div class="btn-default-sm fs-12 fw-medium border-0 d-inline-block me-2 " id="btn-cancel-note-box">Cancel</div>
+                                    <div class="btn-default-dark-sm fs-12 fw-medium border-0 d-inline-block btn-submit-note ">Submit</div>
+                                </div>
+                                
+                                <div class="position-absolute h-100 w-100 top-0 start-0 d-none box-loader-note ">
+                                    <div class="w-24px h-24px position-absolute bottom-0 start-0 opacity-50 mb-2 ms-2">
+                                        <div class="spinner-border spinner-border-sm opacity-50" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        
+
+                            
+
+                            
+
+                            
+                            
+                            <div class="config-footer mt-5">
+                                <div class="row">
+                                    <div class="col-12">
+                                        <div class="btn btn-default-modal border-0 w-100 p-2" data-bs-dismiss="modal">Close</div>
+                                    </div>
+                                    <div class="col-6">
+                                        {{-- <div class="btn btn-default-modal border-0 w-100 p-2" data-bs-dismiss="modal">Edit</div> --}}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="loader d-none" >
+                                <div class="box-loader rounded-20" >
+                                    <div class="text-center">
+                                        <div class="spinner-border text-secondary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </form>
 
                     </div> 
 
