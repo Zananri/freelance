@@ -1355,12 +1355,32 @@
     margin-bottom: 1rem;
 }
 
+.feedback-employee-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.feedback-comment,
+.feedback-comment * {
+    font-size: 13px;
+    color: #444;
+}
+
+.feedback-item img.feedback-image {
+    max-width: 200px;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    display: block;
+}
+
 .feedback-reference-container {
     display: flex;
     align-items: center;
     gap: 1rem;
     margin-top: 0.5rem;
-    font-size: 0.9rem;
 }
 
 .feedback-reference-url,
@@ -1368,20 +1388,37 @@
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    color: #007bff;
+    color: #444444;
     text-decoration: none;
+    white-space: nowrap;
+    max-width: 60%;
+    height: 28px;
+    overflow-x: auto;
+    font-size: 10px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 4px 8px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.feedback-reference-url::-webkit-scrollbar,
+.feedback-reference-file::-webkit-scrollbar {
+    display: none;
 }
 
 .feedback-reference-url:hover,
 .feedback-reference-file:hover {
     text-decoration: underline;
+    background: #e9ecef;
 }
 
 .feedback-reference-url .material-symbols-outlined,
 .feedback-reference-file .material-symbols-outlined {
     font-size: 18px;
     vertical-align: middle;
-    color: #007bff;
+    align-items: center;
+    color: #444444;
 }
 
 /* Image upload control parity for Add Feedback form */
@@ -1606,4 +1643,106 @@
     border: 0px !important;
     background: #6f7486 !important;
     color: #ffffff !important;
+}
+
+/* Inline Feedback Editor Styling - Match Task/Project */
+.feedback-form {
+    background: #ffffff;
+    padding: 0 10px 10px 10px;
+    border-radius: 20px;
+}
+
+#inlineFeedbackPhotoBtn,
+#inlineFeedbackFileBtn,
+.submit-feedback button,
+#inlineFeedbackSendBtn {
+    border-radius: 50%;
+    height: 40px;
+    width: 40px;
+    min-width: 40px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feedback-photo-icon,
+.feedback-file-icon,
+.submit-feedback button span,
+#inlineFeedbackSendBtn span {
+    font-size: 20px;
+}
+
+#inline_feedback_editor {
+    min-height: 40px;
+    max-height: 160px;
+    overflow: auto;
+    background: transparent;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 0;
+}
+
+#inline_feedback_editor .ql-editor {
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+#inline_feedback_editor .ql-editor.ql-blank::before {
+    font-style: normal;
+    color: #999;
+    content: attr(data-placeholder);
+}
+
+.btn-actions-feedback {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.btn-actions-feedback .d-flex-justify-content-start {
+    display: flex;
+    gap: 4px;
+}
+
+/* Selected files preview */
+.selected-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.selected-files-list .d-flex {
+    background: #f8f9fa;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+/* Feedback actions styling */
+.feedback-actions {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.feedback-actions > span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    color: #555;
+    font-size: 12px;
+    transition: color 0.2s;
+}
+
+.feedback-actions > span:hover {
+    color: #333;
+}
+
+.feedback-actions .material-symbols-outlined {
+    font-size: 18px;
+    line-height: 1;
 }

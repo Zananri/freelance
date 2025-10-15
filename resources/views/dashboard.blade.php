@@ -7,7 +7,7 @@
         <link href="{{ asset('asset/css/calendar-dashboard.css')}}?v={{time()}}" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
         <link rel="stylesheet" href=" {{ asset('asset/plugin/leaflet/leaflet.css') }}"/>
-
+        <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
 
     <div class="title-content mx-4">
@@ -1004,17 +1004,41 @@
                 <div class="modal fade" id="taskFeedbackModal" tabindex="-1" aria-labelledby="taskFeedbackModalLabel"
                     aria-hidden="true" data-task-id="" data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
                     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
-                        <div class="modal-content feedback-modal-content">
-                            <div class="modal-header feedback-modal-header d-flex align-items-center position-relative flex-nowrap">
-                                <h5 class="modal-title feedback-modal-title flex-grow-1 text-truncate" id="taskFeedbackModalLabel">
-                                    Task Feedback</h5>
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                                <h5 class="modal-title feedback-modal-title flex-grow-1 fs-5 fw-normal"
+                                    id="taskFeedbackModalLabel">Task Feedback</h5>
                                 <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
                                     aria-label="Close"></button>
                             </div>
-                            <div class="modal-body feedback-modal-body" id="taskFeedbackList"></div>
-                            <div class="modal-footer feedback-modal-footer">
-                                <button type="button" class="btn btn-submit-black btn-submit-custom" id="addFeedbackButton">Add
-                                    Feedback</button>
+
+                            <div class="modal-body feedback-modal-body" id="taskFeedbackList">
+                            </div>
+                            <div class="modal-footer modal-footer-custom">
+                                <div class="feedback-form w-100">
+                                    <div id="inline_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
+
+                                    <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+
+                                    <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                                        <div class="d-flex-justify-content-start">
+                                            <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                                <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                            </button>
+                                            <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                                <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                            </button>
+                                            <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                                            <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                                            <input type="text" id="inline_edit_feedback_input" name="edit_feedback" class="d-none">
+                                        </div>
+                                        <div class="d-flex justify-content-end submit-feedback">
+                                            <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
+                                                <span class="material-symbols-outlined">send</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="alert-container mt-2"></div>
@@ -1136,6 +1160,7 @@
                 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
                 <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
                 <script src="{{ asset('asset/plugin/leaflet/leaflet.js') }}" crossorigin=""></script>
+                <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
                 <script src="{{ asset('asset/js/dashboard.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/dashboard_announcement.js') }}?v={{ time() }}"></script>
                 <script src="{{ asset('asset/js/attendance_dashboard_new.js') }}?v={{ time() }}"></script>
