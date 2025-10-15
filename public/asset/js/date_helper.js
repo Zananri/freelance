@@ -233,7 +233,7 @@ function formatDatePHP(format, dateString) {
     const monthsFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     const monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    // Objek pemetaan token format PHP ke nilai JavaScript
+    // Objek pemetaan token format PHP ke nilai JavaScript D, j M Y
     const tokens = {
         // Hari
         'd': pad(day),                      // Hari dalam bulan, 2 digit dengan nol awal (01 sampai 31)

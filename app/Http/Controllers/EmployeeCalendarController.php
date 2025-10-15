@@ -44,7 +44,12 @@ class EmployeeCalendarController extends Controller
         ->where('employees.department_id',$currentEmployee->department_id)
         ->get();
         
-        return view('calendar.calendar',['employee' => $employee]);
+        return view('calendar.calendar',
+            [
+                'employee' => $employee,
+                'current_employee' => $currentEmployee
+            ]
+        );
     }
 
     public function allEventEmployeeCalendarByMonth(Request $request){
@@ -102,7 +107,8 @@ class EmployeeCalendarController extends Controller
         }
         
 
-        $employeeCalendar = EmployeeCalendar::whereIn('id',$allEvenId)
+        $employeeCalendar = EmployeeCalendar::with('employee')
+            ->whereIn('id',$allEvenId)
             ->where('status', '<>', 'DELETED')
             ->where('date_event', '>=', $firstDayOfMonth)
             ->where('date_event', '<=', $lastDayOfMonth)
@@ -159,7 +165,8 @@ class EmployeeCalendarController extends Controller
             
             }
 
-            $employeeCalendar = EmployeeCalendar::where('id',$eventId)
+            $employeeCalendar = EmployeeCalendar::with('employee')
+                ->where('id',$eventId)
                 ->where('employee_id',$employeeId)
                 ->where('status','<>','DELETED')
             ->first();

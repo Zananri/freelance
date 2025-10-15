@@ -13,6 +13,7 @@
         <div class="d-flex align-items-center gap-3">
             <div class="w-100">
                 <h2 class="text-title-content" >Calendar</h2>
+                <input type="hidden" name="current_employee" value="{{ $current_employee->id }}">
             </div>
             <div>
                 <button class="btn btn-default-dark fs-14" id="btn-new-event" type="button">
@@ -367,9 +368,18 @@
                         <div class="p-4 pt-3">
                             <div class="text-event-description fs-14 fw-normal"></div>
                         </div>
+
+                        <div class="p-4 pb-1">
+                            <div class="event-log">
+                                <div class="d-flex gap-3 align-items-center w-100">
+                                    <div class="event-by fs-10 fw-normal text-body text-opacity-50"></div>
+                                    <div class="event-at fs-10 fw-normal text-body text-opacity-50"></div>
+                                </div>
+                            </div>
+                        </div>
  
 
-                        <div class="p-4">
+                        <div class="p-4 pt-1">
                             <div class="row">
                                 
                                 <div class="col-6">

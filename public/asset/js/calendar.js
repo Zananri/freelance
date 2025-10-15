@@ -143,7 +143,7 @@ async function getAllEventEmployeeCalendarByMonth(year,month){
 
             for (let i = 0; i < ARR_DATA_CALENDAR.length; i++) {
                 const calendar = ARR_DATA_CALENDAR[i];
-                appendEventCalendar(calendar.date_event,calendar.color_event,calendar.title_event);
+                appendEventCalendar(calendar);
 
                 $('#calendarAllModal .box-data-event').append(htmlItemEventAll(calendar));
             }
@@ -197,6 +197,28 @@ function htmlItemEvent(dataRow){
                     </div>`;
     }
 
+    let photoProfile = '';
+    let currentEmployee = $('[name="current_employee"]').val();
+
+    
+    if(currentEmployee != dataRow.employee_id){
+
+        let imgSrc = 'asset/img/avatar.png';
+
+        if(dataRow.employee.profile_picture != null && dataRow.employee.profile_picture != '' && dataRow.employee.profile_picture != 'null'){
+            imgSrc = dataRow.employee.profile_picture;
+        }
+
+        let htmlTooltip = `<div>Created by <strong>${dataRow.employee.name}</strong></div>
+                            <small>Created at : ${formatDatePHP('D, j M Y',dataRow.created_at)}</small>`;
+    
+
+        photoProfile = `<img src="${appUrl}/${imgSrc}" alt="${dataRow.employee.name}" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${htmlTooltip}" class="rounded-circle" style="position:absolute; right:8px; top:10px; width: 24px; height: 24px; object-fit: cover; cursor: pointer;" >`;
+
+    }
+    
+    
+    
     //
     let htmlRow = `
         <div class="item-event mb-3" data-event-id="${dataRow.id}" data-employee="${dataRow.employee_id}" data-status="${dataRow.status}">
@@ -207,11 +229,12 @@ function htmlItemEvent(dataRow){
                     </div>
                 </div>
                 <div class="col-event-title w-100">
-                    <div class=" rounded-3 fs-14" style="background-color:${dataRow.color_event};">
-                        <div class="p-2 pb-3 bg-white bg-opacity-20  rounded-3">
+                    <div class="position-relative rounded-3 fs-14" style="background-color:${dataRow.color_event};">
+                        <div class="p-2 pb-3 pe-4 bg-white bg-opacity-20  rounded-3">
                             <span class="text-title-event text-body fw-medium">
                                 ${dataRow.title_event}
                             </span>
+                            ${photoProfile}
                             <div class="fs-12 text-body text-description-event">
                                 ${description}
                             </div>
@@ -221,6 +244,7 @@ function htmlItemEvent(dataRow){
             </div>
         </div>
     `;
+    
 
     return htmlRow;
 
@@ -298,19 +322,54 @@ $(document).on('click','.calendar-day',function(){
         
     }
 
+
     $('#calendarDayModal .box-data-event').html(itemEvent);
+    
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
 
     calendarDayModal.show();
 });
 
 
-function appendEventCalendar(dateCalendar,color,title){
+function appendEventCalendar(eventRow){
 
-    let boxEvent = `<div class="text-event" style="background-color:${color};">    
-    ${title}
+    //calendar.date_event,calendar.color_event,calendar.title_event
+    
+
+    let photoProfile = '';
+    let currentEmployee = $('[name="current_employee"]').val();
+
+    if(currentEmployee != eventRow.employee_id){
+
+        let imgSrc = 'asset/img/avatar.png';
+
+        if(eventRow.employee.profile_picture){
+            imgSrc = eventRow.employee.profile_picture;
+        }
+
+        let htmlTooltip = `<div>Created by <strong>${eventRow.employee.name}</strong></div>
+                            <small>Created at : ${formatDatePHP('D, j M Y',eventRow.created_at)}</small>`;
+    
+
+        photoProfile = `<img src="${appUrl}/${imgSrc}" alt="${eventRow.employee.name}" data-bs-toggle="tooltip" data-bs-html="true" data-bs-title="${htmlTooltip}" class="rounded-circle" style="position:absolute; right:4px; top:4px; width: 10px; height: 10px; object-fit: cover; cursor: pointer;" >`;
+
+    }
+    
+    let boxEvent = `<div class="text-event position-relative" style="background-color:${eventRow.color_event};">    
+        ${eventRow.title_event}
+        ${photoProfile}
     </div>`;
 
-    $(document).find('[data-calendar-date="'+dateCalendar+'"] .box-event').append(boxEvent);
+    $(document).find('[data-calendar-date="'+eventRow.date_event+'"] .box-event').append(boxEvent);
+
+    if(currentEmployee != eventRow.employee_id){
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    }
+    
+    
 
 }
 
@@ -526,6 +585,10 @@ function setEventDetail(employeeCalendar,employeeCalendarShare){
     $('#eventDetailModal .text-event-time, #deleteEventModal .text-event-time').text(formatTimeDisplay(employeeCalendar.start_time) + ' - ' + formatTimeDisplay(employeeCalendar.end_time));
     $('#eventDetailModal .text-event-description').text(employeeCalendar.description);
     $('#eventDetailModal .box-header-event, #deleteEventModal .box-header-event').css('background-color',employeeCalendar.color_event);
+
+    $('#eventDetailModal .event-log .event-by').html(`Created By ${employeeCalendar.employee.name}`);
+    $('#eventDetailModal .event-log .event-at').html(` at ${formatDatePHP('D, j M Y',employeeCalendar.created_at)}`);
+
 
     $(`#editEventModal .employee-checkbox`).prop("checked", false);
     
