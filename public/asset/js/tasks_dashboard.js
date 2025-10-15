@@ -634,11 +634,11 @@ function loadDashboardTaskFeedbackData(taskId) {
                         }).join('')}
                     </div>` : '';
                 const imgHtml = topImageUrl ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width:70px;height:auto;border-radius:8px;cursor:pointer;">` : '';
-                
+
                 // Process replies
                 const replies = Array.isArray(fb.replies) ? fb.replies : [];
                 const repliesCount = replies.length;
-                
+
                 let repliesHtml = '';
                 if (repliesCount > 0) {
                     repliesHtml = `<div class="replies-container d-none mt-3" id="replies-${fb.id}">`;
@@ -647,10 +647,10 @@ function loadDashboardTaskFeedbackData(taskId) {
                         const repName = rep.employee?.name || 'Unknown';
                         const repPhoto = rep.employee?.photo || `${appUrl}/asset/img/avatar.png`;
                         const repComment = rep.feedback_comment || '';
-                        
+
                         let repImageUrl = rep.image || '';
                         if (repImageUrl && !repImageUrl.startsWith('http')) repImageUrl = `${appUrl}/file/task/${repImageUrl}`;
-                        
+
                         let repRefFiles = [];
                         try {
                             let refFiles = rep.reference_files_urls || rep.reference_files || [];
@@ -661,7 +661,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                                 repRefFiles = refFiles.map(f => f.startsWith('http') ? f : `${appUrl}/file/task_reference_files/${f}`).filter(Boolean);
                             }
                         } catch {}
-                        
+
                         let repRefUrls = [];
                         try {
                             let refUrls = rep.reference_urls || [];
@@ -671,10 +671,10 @@ function loadDashboardTaskFeedbackData(taskId) {
                             if (Array.isArray(refUrls) && refUrls.length > 0) repRefUrls = refUrls.filter(u => typeof u === 'string' && u.trim() !== '');
                             else if (rep.reference_url) repRefUrls = [rep.reference_url];
                         } catch {}
-                        
+
                         const repAuthorId = rep.employee?.id || rep.employee_id || 0;
                         const canEditRep = String(repAuthorId) === String(currentEmployeeId);
-                        
+
                         const repFilesHtml = repRefFiles.length ? `
                             <div class="feedback-reference-container mb-2">
                                 ${repRefFiles.map(fileUrl => {
@@ -694,7 +694,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                                 }).join('')}
                             </div>` : '';
                         const repImgHtml = repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded mb-2 reply-image" style="width:70px;height:auto;border-radius:8px;cursor:pointer;">` : '';
-                        
+
                         repliesHtml += `
                             <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${fb.id}" style="background: rgb(240, 241, 248);">
                                 <div class="d-flex align-items-start">
@@ -713,16 +713,16 @@ function loadDashboardTaskFeedbackData(taskId) {
                                                     <span>Reply</span>
                                                 </span>
                                                 ${canEditRep ? `
-                                                <span class="d-flex align-items-center reply-edit-trigger" 
-                                                    data-task-id="${taskId}" 
-                                                    data-parent-id="${fb.id}" 
-                                                    data-reply-id="${rep.id}" 
-                                                    data-comment="${encodeURIComponent(repComment || '')}" 
-                                                    data-ref-url="${encodeURIComponent(rep.reference_url || '')}" 
-                                                    data-ref-urls='${encodeURIComponent(JSON.stringify(repRefUrls || []))}' 
-                                                    data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" 
-                                                    data-ref-files='${encodeURIComponent(JSON.stringify(repRefFiles || []))}' 
-                                                    data-image="${encodeURIComponent(repImageUrl || '')}" 
+                                                <span class="d-flex align-items-center reply-edit-trigger"
+                                                    data-task-id="${taskId}"
+                                                    data-parent-id="${fb.id}"
+                                                    data-reply-id="${rep.id}"
+                                                    data-comment="${encodeURIComponent(repComment || '')}"
+                                                    data-ref-url="${encodeURIComponent(rep.reference_url || '')}"
+                                                    data-ref-urls='${encodeURIComponent(JSON.stringify(repRefUrls || []))}'
+                                                    data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}"
+                                                    data-ref-files='${encodeURIComponent(JSON.stringify(repRefFiles || []))}'
+                                                    data-image="${encodeURIComponent(repImageUrl || '')}"
                                                     style="cursor:pointer;color:#555;font-size:11px;">
                                                     <span class="material-symbols-outlined" style="font-size:16px;line-height:1;margin-right:3px;">edit</span>
                                                     <span>Edit</span>
@@ -742,7 +742,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                     });
                     repliesHtml += '</div>';
                 }
-                
+
                 const viewAllBtn = repliesCount > 0 ? `<span class="view-replies-toggle" data-feedback-id="${fb.id}" data-replies-count="${repliesCount}" style="font-size:13px;color:#555;cursor:pointer;text-decoration:none;">View all (${repliesCount})</span>` : '';
                 return `
                     <div class="feedback-item mb-3 p-3" data-feedback-id="${fb.id}">
@@ -793,7 +793,7 @@ ${canEditTop ? `
                     </div>`;
             }).join('');
             bodyEl.html(html);
-            
+
             // Bind reply icon click
             $('.feedback-reply-trigger', bodyEl).off('click').on('click', function() {
                 const feedbackId = $(this).data('feedbackId');
@@ -804,11 +804,11 @@ ${canEditTop ? `
 
                 // Show preview above editor
                 removeDashboardReplyPreview();
-                renderDashboardReplyPreview(authorName || 'Unknown', authorPhoto || ((document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '') + '/asset/img/avatar.png'), previewText || '');
+                renderDashboardReplyPreview(previewText || '', authorName || 'Unknown', authorPhoto || ((document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '') + '/asset/img/avatar.png'), previewText || '');
 
                 showDashboardReplyFeedbackForm(tId, feedbackId);
             });
-            
+
             // Bind edit icon click (top-level feedback)
             $('.feedback-edit-trigger', bodyEl).off('click').on('click', function() {
                 const tId = $(this).data('taskId');
@@ -823,10 +823,10 @@ ${canEditTop ? `
                     reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent($(this).data('refFiles') || '[]')); } catch(e){ return []; } }).call(this),
                     image_url: decodeURIComponent($(this).data('image') || ''),
                 };
-                
+
                 startDashboardInlineEditFeedback(payload);
             });
-            
+
             // Bind edit icon click (reply)
             $('.reply-edit-trigger', bodyEl).off('click').on('click', function() {
                 const tId = $(this).data('taskId');
@@ -842,10 +842,10 @@ ${canEditTop ? `
                     reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent($(this).data('refFiles') || '[]')); } catch(e){ return []; } }).call(this),
                     image_url: decodeURIComponent($(this).data('image') || ''),
                 };
-                
+
                 startDashboardInlineEditFeedback(payload);
             });
-            
+
             // Bind delete icon click (top-level feedback)
             $('.feedback-delete-trigger', bodyEl).off('click').on('click', function() {
                 const fid = $(this).data('feedbackId');
@@ -853,12 +853,12 @@ ${canEditTop ? `
                 const authorName = $(this).closest('.feedback-item').find('strong').first().text() || '';
                 const content = $(this).closest('.feedback-item').find('.feedback-comment p').first().text() || '';
                 const avatarUrl = $(this).closest('.feedback-item').find('img').first().attr('src') || '';
-                showDashboardDeleteConfirmModal({ 
-                    type: 'feedback', 
-                    id: fid, 
-                    authorName: authorName, 
-                    content: content, 
-                    avatarUrl: avatarUrl, 
+                showDashboardDeleteConfirmModal({
+                    type: 'feedback',
+                    id: fid,
+                    authorName: authorName,
+                    content: content,
+                    avatarUrl: avatarUrl,
                     taskId: taskId,
                     onConfirm: function(done){
                         const appUrl = $('meta[name="app-url"]').attr('content') || '';
@@ -876,14 +876,14 @@ ${canEditTop ? `
                                 // Remove feedback DOM
                                 $(`.feedback-item[data-feedback-id="${fid}"]`).remove();
                                 // Refresh feedback count
-                                $.ajax({ 
-                                    url: appUrl + '/task-feedbacks/count/' + taskId, 
-                                    type: 'GET', 
-                                    success: function(c){ 
-                                        if (c && c.data && typeof c.data.count === 'number') { 
+                                $.ajax({
+                                    url: appUrl + '/task-feedbacks/count/' + taskId,
+                                    type: 'GET',
+                                    success: function(c){
+                                        if (c && c.data && typeof c.data.count === 'number') {
                                             setDashboardFeedbackCount(taskId, c.data.count);
-                                        } 
-                                    } 
+                                        }
+                                    }
                                 });
                                 done(true);
                             },
@@ -901,7 +901,7 @@ ${canEditTop ? `
                     }
                 });
             });
-            
+
             // Bind delete icon click (reply)
             $('.reply-delete-trigger', bodyEl).off('click').on('click', function() {
                 const rid = $(this).data('replyId');
@@ -910,13 +910,13 @@ ${canEditTop ? `
                 const authorName = $(this).closest('.feedback-reply').find('strong').text() || '';
                 const content = $(this).closest('.feedback-reply').find('.reply-comment p').first().text() || '';
                 const avatarUrl = $(this).closest('.feedback-reply').find('img').attr('src') || '';
-                showDashboardDeleteConfirmModal({ 
-                    type: 'reply', 
-                    id: rid, 
+                showDashboardDeleteConfirmModal({
+                    type: 'reply',
+                    id: rid,
                     parentId: pid,
-                    authorName: authorName, 
-                    content: content, 
-                    avatarUrl: avatarUrl, 
+                    authorName: authorName,
+                    content: content,
+                    avatarUrl: avatarUrl,
                     taskId: taskId,
                     onConfirm: function(done){
                         const appUrl = $('meta[name="app-url"]').attr('content') || '';
@@ -948,14 +948,14 @@ ${canEditTop ? `
                                     repliesContainer.remove();
                                 }
                                 // Refresh feedback count
-                                $.ajax({ 
-                                    url: appUrl + '/task-feedbacks/count/' + taskId, 
-                                    type: 'GET', 
-                                    success: function(c){ 
-                                        if (c && c.data && typeof c.data.count === 'number') { 
+                                $.ajax({
+                                    url: appUrl + '/task-feedbacks/count/' + taskId,
+                                    type: 'GET',
+                                    success: function(c){
+                                        if (c && c.data && typeof c.data.count === 'number') {
                                             setDashboardFeedbackCount(taskId, c.data.count);
-                                        } 
-                                    } 
+                                        }
+                                    }
                                 });
                                 done(true);
                             },
@@ -973,7 +973,7 @@ ${canEditTop ? `
                     }
                 });
             });
-            
+
             // Bind view replies toggle
             $('.view-replies-toggle', bodyEl).off('click').on('click', function() {
                 const fid = $(this).data('feedbackId');
@@ -994,7 +994,7 @@ ${canEditTop ? `
                     'color': '#555'
                 });
             });
-            
+
             // Open feedback/reply images in a new tab
             $('.feedback-image, .reply-image', bodyEl).off('click').on('click', function() {
                 const src = $(this).attr('src');
@@ -1036,7 +1036,7 @@ function setupDashboardInlineFeedbackEditor(taskId) {
 }
 
 // Render a selected reply preview above the inline editor
-function renderDashboardReplyPreview(authorName, authorPhoto, previewText) {
+function renderDashboardReplyPreview(previewText, authorName, authorPhoto, previewText) {
     // Ensure preview container exists inside modal footer area
     const modal = document.getElementById('taskFeedbackModal');
     if (!modal) return null;
@@ -1055,8 +1055,9 @@ function renderDashboardReplyPreview(authorName, authorPhoto, previewText) {
         <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">
             <img src="${authorPhoto}" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src='${(document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '')}/asset/img/avatar.png';">
         </div>
-        <div class="flex-grow-1" style="font-size: 10px;">
+        <div class="flex-grow-1">
             <div style="font-weight:500;font-size:11px">${escapeHtml(authorName)}</div>
+            <div style="font-size: 10px;">${previewText}</div>
         </div>
         <button type="button" class="btn btn-sm btn-remove-task remove-task" title="Remove reply preview" style="line-height: 1; font-size: 10px;">
             <span class="material-symbols-outlined">close</span>
@@ -1234,7 +1235,7 @@ function renderDashboardInlineFeedbackFilesPreview() {
 function submitDashboardInlineFeedback(taskId) {
     const editor = window.__quillDashboardInlineFeedback;
     if (!editor) return;
-    
+
     const content = editor.root.innerHTML.trim();
     if (!content || content === '<p><br></p>') {
         if (typeof showFloatingAlert === 'function') {
@@ -1242,12 +1243,12 @@ function submitDashboardInlineFeedback(taskId) {
         }
         return;
     }
-    
+
     const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
     const formData = new FormData();
     formData.append('feedback_comment', content);
     formData.append('task_id', taskId);
-    
+
     const sendBtn = document.getElementById('inlineFeedbackSendBtn');
     const originalHtml = sendBtn.innerHTML;
     sendBtn.disabled = true;
@@ -1256,10 +1257,10 @@ function submitDashboardInlineFeedback(taskId) {
     // Check if replying or editing
     const parentId = window.__dashboardReplyingToFeedbackId;
     const editId = window.__dashboardEditingFeedbackId;
-    
+
     let method = 'POST';
     let url = `${appUrl}/task-feedbacks`;
-    
+
     if (editId) {
         // Edit mode
         method = 'PUT';
@@ -1268,13 +1269,13 @@ function submitDashboardInlineFeedback(taskId) {
         // Reply mode
         formData.append('parent_id', parentId);
     }
-    
+
     // Add image if exists
     const imageFile = window.__dashboardInlineFeedbackImageFile;
     if (imageFile) {
         formData.append('image', imageFile);
     }
-    
+
     // Add files if exists
     const files = window.dashboardInlineFeedbackSelectedFiles || [];
     if (files.length > 0) {
@@ -1282,18 +1283,18 @@ function submitDashboardInlineFeedback(taskId) {
             formData.append('reference_files[]', file);
         });
     }
-    
+
     // Add CSRF token
     formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
-    
+
     // For PUT request, add method override
     if (method === 'PUT') {
         formData.append('_method', 'PUT');
         method = 'POST'; // Send as POST with _method override
     }
 
-    fetch(url, { 
-        method: method, 
+    fetch(url, {
+        method: method,
         body: formData,
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -1306,46 +1307,46 @@ function submitDashboardInlineFeedback(taskId) {
                 const msg = editId ? 'Feedback updated successfully' : (parentId ? 'Reply posted successfully' : 'Feedback posted successfully');
                 showFloatingAlert(res.message || msg, 'success');
             }
-            
+
             // Clear editor and reset state
             editor.root.innerHTML = '';
             window.__dashboardEditingFeedbackId = null;
             window.__dashboardReplyingToFeedbackId = null;
             window.__dashboardInlineFeedbackImageFile = null;
             window.dashboardInlineFeedbackSelectedFiles = [];
-            
+
             // Clear image preview
             const imagePreview = document.getElementById('inline_feedback_image_preview');
             if (imagePreview) imagePreview.remove();
-            
+
             // Clear files preview
             const filesPreview = document.getElementById('inline_feedback_files_preview');
             if (filesPreview) filesPreview.innerHTML = '';
-            
+
             // Reset placeholder
             const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
             if (placeholderEl) {
                 placeholderEl.dataset.placeholder = 'Write feedback...';
             }
-            
+
             // Reset send button
             sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
-            
+
             // Reload feedback list
             loadDashboardTaskFeedbackData(taskId);
 
             // remove reply preview if any
             removeDashboardReplyPreview();
-            
+
             // Update feedback count
-            $.ajax({ 
-                url: appUrl + '/task-feedbacks/count/' + taskId, 
-                type: 'GET', 
-                success: function(c){ 
-                    if (c && c.data && typeof c.data.count === 'number') { 
+            $.ajax({
+                url: appUrl + '/task-feedbacks/count/' + taskId,
+                type: 'GET',
+                success: function(c){
+                    if (c && c.data && typeof c.data.count === 'number') {
                         setDashboardFeedbackCount(taskId, c.data.count);
-                    } 
-                } 
+                    }
+                }
             });
         } else {
             throw new Error(res.message || 'Failed to post feedback');
@@ -1383,31 +1384,31 @@ if (typeof window.showFloatingAlert !== 'function') {
 function showDashboardReplyFeedbackForm(taskId, parentId) {
     const editor = window.__quillDashboardInlineFeedback;
     if (!editor) return;
-    
+
     // Clear editor and show placeholder
     editor.root.innerHTML = '';
     editor.root.dataset.replyTo = parentId;
     editor.root.dataset.taskId = taskId;
-    
+
     // Update placeholder
     const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
     if (placeholderEl) {
         placeholderEl.dataset.placeholder = 'Write reply...';
     }
-    
+
     // Store reply context
     window.__dashboardReplyingToFeedbackId = parentId;
     window.__dashboardEditingFeedbackId = null;
-    
+
     // Update send button text
     const sendBtn = document.getElementById('inlineFeedbackSendBtn');
     if (sendBtn) {
         sendBtn.innerHTML = '<span class="material-symbols-outlined">reply</span>';
     }
-    
+
     // Focus editor
     editor.focus();
-    
+
     // Scroll to editor
     try {
         const editorEl = document.getElementById('inline_feedback_editor');
@@ -1421,33 +1422,33 @@ function showDashboardReplyFeedbackForm(taskId, parentId) {
 function startDashboardInlineEditFeedback(payload) {
     const editor = window.__quillDashboardInlineFeedback;
     if (!editor) return;
-    
+
     // Clear reply mode
     window.__dashboardReplyingToFeedbackId = null;
     window.__dashboardEditingFeedbackId = payload.id;
-    
+
     // Set content
     editor.root.innerHTML = '';
     const content = payload.feedback_comment || '';
     if (content) {
         editor.root.innerHTML = content;
     }
-    
+
     // Update placeholder
     const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
     if (placeholderEl) {
         placeholderEl.dataset.placeholder = 'Edit feedback...';
     }
-    
+
     // Update send button text
     const sendBtn = document.getElementById('inlineFeedbackSendBtn');
     if (sendBtn) {
         sendBtn.innerHTML = '<span class="material-symbols-outlined">save</span>';
     }
-    
+
     // Focus editor
     editor.focus();
-    
+
     // Scroll to editor
     try {
         const editorEl = document.getElementById('inline_feedback_editor');
@@ -1555,8 +1556,8 @@ function showDashboardDeleteConfirmModal(opts) {
                 }
             });
         }
-    } catch (e) { 
-        console.warn('showDashboardDeleteConfirmModal error', e); 
+    } catch (e) {
+        console.warn('showDashboardDeleteConfirmModal error', e);
     }
 }
 
