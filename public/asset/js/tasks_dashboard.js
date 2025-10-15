@@ -556,18 +556,17 @@ function openDashboardTaskFeedback(taskId) {
     const modal = (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
         ? bootstrap.Modal.getOrCreateInstance(modalEl)
         : new bootstrap.Modal(modalEl);
-    // reset title and button
+    
+    // Reset title
     const titleEl = modalEl.querySelector('.feedback-modal-title');
-    const addBtn = document.getElementById('addFeedbackButton');
     const bodyEl = modalEl.querySelector('.feedback-modal-body');
-    titleEl.textContent = 'Task Feedback';
-    bodyEl.innerHTML = '';
-    addBtn.textContent = 'Add Feedback';
+    if (titleEl) titleEl.textContent = 'Task Feedback';
+    if (bodyEl) bodyEl.innerHTML = '';
 
-    // bind add feedback click
-    const newBtn = addBtn.cloneNode(true);
-    addBtn.parentNode.replaceChild(newBtn, addBtn);
-    newBtn.addEventListener('click', () => showDashboardAddFeedbackForm(taskId));
+    // Setup inline feedback editor in footer
+    try {
+        setupDashboardInlineFeedbackEditor(taskId);
+    } catch(_) {}
 
     loadDashboardTaskFeedbackData(taskId);
     modal.show();
@@ -612,193 +611,483 @@ function loadDashboardTaskFeedbackData(taskId) {
 
                 const name = fb.employee?.name || 'Unknown';
                 const photo = fb.employee?.photo || ((appUrl ? appUrl : '') + '/asset/img/avatar.png');
-                const imgHtml = fb.image ? `<img src="${fb.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : '';
-                const urlHtml = fb.reference_url ? `<a href="${fb.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : '';
-                const fileHtml = fb.reference_file ? `<a href="${fb.reference_file}" download class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_FILE</a>` : '';
-                const refs = (urlHtml || fileHtml) ? `<div class="feedback-reference-container">${urlHtml}${fileHtml}</div>` : '';
+                
+                // Render feedback comment as HTML (not escaped) to show formatted text
+                const feedbackComment = fb.feedback_comment || '';
+                
+                // Handle image
+                const imgHtml = fb.image ? `<img src="${fb.image}" class="feedback-image img-fluid rounded mt-2" style="max-width: 200px; height: auto; border-radius: 8px; cursor: pointer;">` : '';
+                
+                // Handle reference files - support multiple files
+                let filesHtml = '';
+                try {
+                    let refFiles = fb.reference_files_urls || fb.reference_files || [];
+                    if (typeof refFiles === 'string') {
+                        try {
+                            refFiles = JSON.parse(refFiles);
+                        } catch(e) {
+                            refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean);
+                        }
+                    }
+                    if (Array.isArray(refFiles) && refFiles.length > 0) {
+                        const fileLinks = refFiles.map(fileUrl => {
+                            if (!fileUrl) return '';
+                            const fileName = fileUrl.split('/').pop() || 'File';
+                            return `<a href="${fileUrl}" target="_blank" class="feedback-reference-file"><span class="material-symbols-outlined">description</span>${escapeHtml(fileName)}</a>`;
+                        }).filter(Boolean).join('');
+                        if (fileLinks) {
+                            filesHtml = `<div class="feedback-reference-container mt-2">${fileLinks}</div>`;
+                        }
+                    }
+                } catch(e) {}
+                
+                // Handle reference URLs - support multiple URLs
+                let urlsHtml = '';
+                try {
+                    let refUrls = fb.reference_urls || [];
+                    if (typeof refUrls === 'string') {
+                        try {
+                            refUrls = JSON.parse(refUrls);
+                        } catch(e) {
+                            if (refUrls.trim()) refUrls = [refUrls];
+                            else refUrls = [];
+                        }
+                    }
+                    if (Array.isArray(refUrls) && refUrls.length > 0) {
+                        const urlLinks = refUrls.map(url => {
+                            if (!url) return '';
+                            return `<a href="${url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span>${escapeHtml(url)}</a>`;
+                        }).filter(Boolean).join('');
+                        if (urlLinks) {
+                            urlsHtml = `<div class="feedback-reference-container mt-2">${urlLinks}</div>`;
+                        }
+                    }
+                } catch(e) {}
+                
                 return `
-                    <div class="feedback-item mb-3 p-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <img src="${photo}" alt="${escapeHtml(name)}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                            <div>
-                                <strong>${escapeHtml(name)}</strong>
-                                <small class="text-muted d-block">${formattedDate}</small>
+                    <div class="feedback-item" style="border-bottom: 1px solid #ddd; padding-bottom: 1rem; margin-bottom: 1rem;">
+                        <div class="d-flex align-items-start mb-2">
+                            <img src="${photo}" alt="${escapeHtml(name)}" class="feedback-employee-photo rounded-circle me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <strong style="font-size: 14px; color: #333;">${escapeHtml(name)}</strong>
+                                    <small class="text-muted" style="font-size: 11px;">${formattedDate}</small>
+                                </div>
+                                <div class="feedback-comment mt-2" style="font-size: 13px; color: #444;">
+                                    ${feedbackComment}
+                                </div>
+                                ${urlsHtml}
+                                ${filesHtml}
+                                ${imgHtml}
                             </div>
                         </div>
-                        <p class="mb-2">${escapeHtml(fb.feedback_comment || '')}</p>
-                        ${refs}
-                        ${imgHtml}
                     </div>`;
             }).join('');
             bodyEl.innerHTML = html;
+
+            // Setup inline feedback editor in footer after loading data
+            try {
+                setupDashboardInlineFeedbackEditor(taskId);
+            } catch(_) {}
         })
         .catch(() => {
             bodyEl.innerHTML = '<p class="text-center text-danger">Failed to load feedback.</p>';
         });
 }
 
-function showDashboardAddFeedbackForm(taskId) {
-    const modalEl = document.getElementById('taskFeedbackModal');
-    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
-    const titleEl = modalEl.querySelector('.feedback-modal-title');
-    const bodyEl = modalEl.querySelector('.feedback-modal-body');
-    const addBtn = document.getElementById('addFeedbackButton');
-    titleEl.textContent = 'Add Feedback';
+// Setup inline feedback editor in dashboard modal footer (matching task.js behavior)
+function setupDashboardInlineFeedbackEditor(taskId) {
+    try {
+        const modal = document.getElementById('taskFeedbackModal');
+        if (!modal) return;
 
-    // Use the exact Task page markup and IDs for parity
-    bodyEl.innerHTML = `
-        <form id="addFeedbackForm" enctype="multipart/form-data">
-            <input type="hidden" name="task_id" value="${taskId}">
-            <input type="hidden" name="employee_id" value="${modalEl.dataset.employeeId || ''}">
+        // The footer is already in the HTML with inline editor structure
+        // We just need to initialize the Quill editor
+        initDashboardInlineFeedbackEditor(taskId);
 
-            <div class="mb-3">
-                <div class="title-label-image">Upload Image</div>
-                <div class="image-upload-container">
-                    <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
-                        style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                        <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
-                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
-                    </label>
-                </div>
-            </div>
+        // Bind button handlers
+        const photoBtn = document.getElementById('inlineFeedbackPhotoBtn');
+        const fileBtn = document.getElementById('inlineFeedbackFileBtn');
+        const sendBtn = document.getElementById('inlineFeedbackSendBtn');
+        const imageInput = document.getElementById('inline_feedback_image_input');
+        const filesInput = document.getElementById('inline_feedback_files_input');
 
-            <div class="mb-3">
-                <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
-                <textarea class="form-control input-text" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
-            </div>
-
-            <div class="mb-3">
-                <label for="reference_url" class="form-label label-custom">Reference URL (Optional)</label>
-                <input type="url" class="form-control input-text" id="reference_url" name="reference_url" placeholder="https://example.com">
-            </div>
-
-            <div class="mb-3">
-                <label for="reference_file" class="form-label label-custom">Reference File (Optional)</label>
-                <input type="file" class="form-control input-text" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
-            </div>
-        </form>`;
-
-    // setup image preview/clear
-    const imgInput = bodyEl.querySelector('#feedback_image');
-    const imgLabel = bodyEl.querySelector('#feedbackImageLabel');
-    const imgClear = bodyEl.querySelector('#feedbackImageClearBtn');
-    imgInput.addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                imgLabel.style.backgroundImage = `url('${e.target.result}')`;
-                imgLabel.classList.add('has-image');
-                imgLabel.style.backgroundSize = 'cover';
-                imgLabel.style.opacity = '1';
-                imgClear.classList.remove('d-none');
-            };
-            reader.readAsDataURL(this.files[0]);
+        if (photoBtn && imageInput) {
+            // Remove existing listeners by cloning
+            const newPhotoBtn = photoBtn.cloneNode(true);
+            photoBtn.parentNode.replaceChild(newPhotoBtn, photoBtn);
+            newPhotoBtn.addEventListener('click', function() {
+                imageInput.click();
+            });
         }
-    });
-    imgClear.addEventListener('click', function(e) {
-        e.preventDefault();
-        imgInput.value = '';
-    imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-        imgLabel.classList.remove('has-image');
-        imgLabel.style.opacity = '0.5';
-        imgClear.classList.add('d-none');
-    });
 
-    // rebind Add Feedback button to submit
-    const newBtn = addBtn.cloneNode(true);
-    addBtn.parentNode.replaceChild(newBtn, addBtn);
-    newBtn.textContent = 'Submit';
-    newBtn.addEventListener('click', function() {
-    const form = document.getElementById('addFeedbackForm');
-        if (!form) return;
-        // show unified spinner on the button
-        const originalBtnHtml = newBtn.innerHTML;
-        newBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        newBtn.disabled = true;
+        if (fileBtn && filesInput) {
+            const newFileBtn = fileBtn.cloneNode(true);
+            fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
+            newFileBtn.addEventListener('click', function() {
+                filesInput.click();
+            });
+        }
 
-        const formData = new FormData(form);
+        // Handle image selection
+        if (imageInput) {
+            const newImageInput = imageInput.cloneNode(true);
+            imageInput.parentNode.replaceChild(newImageInput, imageInput);
+            newImageInput.addEventListener('change', function(ev) {
+                try {
+                    const f = (this.files && this.files[0]) || null;
+                    if (!f) return;
+                    if (!f.type || f.type.indexOf("image/") !== 0) return;
+                    
+                    const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
+                    if (f.size > MAX_IMAGE_BYTES) {
+                        alert('Image must be smaller than 10 MB.');
+                        this.value = '';
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        try {
+                            showDashboardInlineImagePreview(f, e.target.result);
+                        } catch(_) {}
+                    };
+                    reader.readAsDataURL(f);
+                } catch(_) {}
+            });
+        }
+
+        // Handle file attachments
+        if (filesInput) {
+            const newFilesInput = filesInput.cloneNode(true);
+            filesInput.parentNode.replaceChild(newFilesInput, filesInput);
+            window.dashboardInlineFeedbackSelectedFiles = window.dashboardInlineFeedbackSelectedFiles || [];
+            newFilesInput.addEventListener('change', function(ev) {
+                try {
+                    const files = Array.from(this.files || []);
+                    if (!files.length) return;
+                    window.dashboardInlineFeedbackSelectedFiles = (window.dashboardInlineFeedbackSelectedFiles || []).concat(files);
+                    renderDashboardInlineFeedbackFilesPreview();
+                    this.value = "";
+                } catch(_) {}
+            });
+        }
+
+        // Bind send button
+        if (sendBtn) {
+            const newSendBtn = sendBtn.cloneNode(true);
+            sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+            newSendBtn.addEventListener('click', function() {
+                submitDashboardInlineFeedback(taskId);
+            });
+        }
+
+    } catch(e) {
+        console.warn('Failed to setup dashboard inline feedback editor:', e);
+    }
+}
+
+// Initialize Quill editor for inline feedback
+function initDashboardInlineFeedbackEditor(taskId) {
+    try {
+        // Destroy existing instance if any
+        if (window.__quillDashboardInlineFeedback) {
+            try {
+                window.__quillDashboardInlineFeedback = null;
+            } catch(_) {}
+        }
+
+        const editorEl = document.getElementById('inline_feedback_editor');
+        if (!editorEl) return;
+
+        // Initialize Quill
+        window.__quillDashboardInlineFeedback = new Quill('#inline_feedback_editor', {
+            modules: {
+                toolbar: false,
+                clipboard: { matchVisual: false }
+            },
+            theme: 'snow',
+            placeholder: 'Write feedback...'
+        });
+
+        // Prevent image paste/drop
+        try {
+            const Delta = Quill.import && Quill.import('delta');
+            if (window.__quillDashboardInlineFeedback && window.__quillDashboardInlineFeedback.clipboard) {
+                window.__quillDashboardInlineFeedback.clipboard.addMatcher('IMG', function(node, delta) {
+                    try {
+                        return new Delta();
+                    } catch(_) {
+                        return delta;
+                    }
+                });
+            }
+        } catch(_) {}
+
+        // Remove images on text change
+        try {
+            window.__quillDashboardInlineFeedback.on('text-change', function() {
+                try {
+                    const imgs = window.__quillDashboardInlineFeedback.root.querySelectorAll('img');
+                    imgs.forEach(function(i) { i.remove(); });
+                } catch(_) {}
+            });
+        } catch(_) {}
+
+    } catch(e) {
+        console.warn('Failed to init dashboard inline feedback editor:', e);
+    }
+}
+
+// Show inline image preview
+function showDashboardInlineImagePreview(fileObj, dataUrl) {
+    try {
+        // Store the file for later submission
+        window.__dashboardInlineFeedbackImageFile = fileObj;
+
+        // Create or update preview
+        let previewContainer = document.getElementById('inline_feedback_image_preview');
+        if (!previewContainer) {
+            previewContainer = document.createElement('div');
+            previewContainer.id = 'inline_feedback_image_preview';
+            previewContainer.style.cssText = 'display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;';
+
+            const fileBtn = document.getElementById('inlineFeedbackFileBtn');
+            if (fileBtn && fileBtn.parentNode) {
+                fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+            }
+        }
+
+        previewContainer.innerHTML = '';
+
+        const imageLabel = document.createElement('div');
+        imageLabel.className = 'custom-image-upload position-relative';
+        imageLabel.style.cssText = 
+            'width: 32px; height: 32px; ' +
+            'background-image: url(\'' + dataUrl + '\'); ' +
+            'background-size: cover; background-position: center center; background-repeat: no-repeat; ' +
+            'border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; ' +
+            'opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12);';
+
+        const clearBtn = document.createElement('span');
+        clearBtn.className = 'image-clear-btn';
+        clearBtn.innerHTML = '&times;';
+        clearBtn.title = 'Remove image';
+        clearBtn.style.cssText = 
+            'position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; ' +
+            'border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; ' +
+            'text-align: center; cursor: pointer; font-weight: 700; border: none; ' +
+            'box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30;';
+
+        clearBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            try {
+                const inp = document.getElementById('inline_feedback_image_input');
+                if (inp) inp.value = '';
+                window.__dashboardInlineFeedbackImageFile = null;
+                if (previewContainer && previewContainer.parentNode) {
+                    previewContainer.parentNode.removeChild(previewContainer);
+                }
+            } catch(_) {}
+        });
+
+        imageLabel.appendChild(clearBtn);
+        previewContainer.appendChild(imageLabel);
+    } catch(e) {
+        console.warn('Failed to show inline image preview:', e);
+    }
+}
+
+// Render files preview
+function renderDashboardInlineFeedbackFilesPreview() {
+    try {
+        let preview = document.getElementById('inline_feedback_files_preview');
+        if (!preview) {
+            const editor = document.getElementById('inline_feedback_editor');
+            if (editor && editor.parentNode) {
+                preview = document.createElement('div');
+                preview.id = 'inline_feedback_files_preview';
+                preview.className = 'mb-2';
+                editor.parentNode.insertBefore(preview, editor);
+            }
+        }
+        if (!preview) return;
+
+        const sel = window.dashboardInlineFeedbackSelectedFiles || [];
+        preview.innerHTML = '';
+
+        if (!sel.length) return;
+
+        const listWrap = document.createElement('div');
+        listWrap.className = 'selected-files-list mt-2';
+
+        sel.forEach(function(f, idx) {
+            try {
+                const item = document.createElement('div');
+                item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light mb-2';
+
+                const iconWrap = document.createElement('div');
+                iconWrap.innerHTML = '<span class="material-symbols-outlined">description</span>';
+                iconWrap.style.fontSize = '18px';
+
+                const name = document.createElement('span');
+                name.className = 'flex-grow-1';
+                name.style.fontSize = '12px';
+                const sizeMb = (f.size || 0) / 1024 / 1024;
+                name.textContent = (f.name || '') + (isFinite(sizeMb) ? ' (' + sizeMb.toFixed(2) + ' MB)' : '');
+
+                const rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'btn btn-sm';
+                rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                rm.addEventListener('click', function() {
+                    try {
+                        window.dashboardInlineFeedbackSelectedFiles.splice(idx, 1);
+                        renderDashboardInlineFeedbackFilesPreview();
+                    } catch(_) {}
+                });
+
+                item.appendChild(iconWrap);
+                item.appendChild(name);
+                item.appendChild(rm);
+                listWrap.appendChild(item);
+            } catch(_) {}
+        });
+
+        preview.appendChild(listWrap);
+    } catch(e) {}
+}
+
+// Submit inline feedback
+function submitDashboardInlineFeedback(taskId) {
+    try {
+        const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+        const sendBtn = document.getElementById('inlineFeedbackSendBtn');
+        
+        // Get feedback content from Quill
+        let feedbackHtml = '';
+        try {
+            if (window.__quillDashboardInlineFeedback && window.__quillDashboardInlineFeedback.root) {
+                feedbackHtml = window.__quillDashboardInlineFeedback.root.innerHTML.trim();
+            }
+        } catch(_) {}
+
+        // Validate content
+        const textContent = feedbackHtml.replace(/<[^>]+>/g, '').trim();
+        if (!textContent && !window.__dashboardInlineFeedbackImageFile && !(window.dashboardInlineFeedbackSelectedFiles && window.dashboardInlineFeedbackSelectedFiles.length)) {
+            alert('Please enter feedback comment or attach files');
+            return;
+        }
+
+        // Show loading state
+        const originalBtnHtml = sendBtn ? sendBtn.innerHTML : '';
+        if (sendBtn) {
+            sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            sendBtn.disabled = true;
+        }
+
+        // Build FormData
+        const formData = new FormData();
+        formData.append('task_id', taskId);
+        formData.append('employee_id', document.getElementById('taskFeedbackModal')?.dataset?.employeeId || '');
+        formData.append('feedback_comment', feedbackHtml);
+
+        // Add image if selected
+        if (window.__dashboardInlineFeedbackImageFile) {
+            formData.append('feedback_image', window.__dashboardInlineFeedbackImageFile);
+        }
+
+        // Add files if selected
+        if (Array.isArray(window.dashboardInlineFeedbackSelectedFiles) && window.dashboardInlineFeedbackSelectedFiles.length > 0) {
+            window.dashboardInlineFeedbackSelectedFiles.forEach(file => {
+                formData.append('reference_files[]', file);
+            });
+        }
+
+        // Submit via fetch
         fetch((appUrl ? appUrl : '') + '/task-feedbacks', {
             method: 'POST',
             headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest'
             },
             body: formData
         })
         .then(r => r.json())
-    .then(res => {
-            // Show global floating alert using Settings style if available
+        .then(res => {
+            // Show success message
             const msg = res.message || 'Feedback submitted successfully!';
             if (typeof window.showAlertMsg === 'function') {
-                // Force light style
                 window.showAlertMsg(msg, 'light', 2000);
             } else if (typeof showFloatingAlert === 'function') {
                 showFloatingAlert(msg, 'success');
-            } else {
-                // lightweight fallback
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success d-flex align-items-center';
-                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '20000', opacity: '1', minWidth: '300px', margin: '0' });
-                alertDiv.textContent = msg;
-                document.body.appendChild(alertDiv);
-                setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1800);
             }
-            // Keep modal open and switch back to list view
-            try {
-                const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title');
-                if (titleEl) titleEl.textContent = 'Task Feedback';
-                const addBtnRef = document.getElementById('addFeedbackButton');
-                if (addBtnRef) {
-                    addBtnRef.textContent = 'Add Feedback';
-                    const freshBtn = addBtnRef.cloneNode(true);
-                    addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                    // ensure the new button is enabled and clickable
-                    freshBtn.disabled = false;
-                    freshBtn.removeAttribute('disabled');
-                    freshBtn.addEventListener('click', () => showDashboardAddFeedbackForm(taskId));
-                }
-                loadDashboardTaskFeedbackData(taskId);
 
-                // Also update the feedback count on the dashboard card immediately
-                try {
-                    const selector = `.feedback-comments-count[data-task-id="${taskId}"]`;
-                    let countEl = document.querySelector(selector);
-                    const cur = countEl ? parseInt(countEl.textContent || '0', 10) || 0 : 0;
-                    const newCount = cur + 1;
-                    setDashboardFeedbackCount(taskId, newCount);
-                } catch(_){}
-            } catch (e) { /* noop */ }
-    })
-    .catch(() => {
+            // Clear editor and files
+            try {
+                if (window.__quillDashboardInlineFeedback && window.__quillDashboardInlineFeedback.root) {
+                    window.__quillDashboardInlineFeedback.root.innerHTML = '';
+                }
+            } catch(_) {}
+
+            // Clear image preview
+            try {
+                const imagePreview = document.getElementById('inline_feedback_image_preview');
+                if (imagePreview && imagePreview.parentNode) {
+                    imagePreview.parentNode.removeChild(imagePreview);
+                }
+                window.__dashboardInlineFeedbackImageFile = null;
+                const imageInput = document.getElementById('inline_feedback_image_input');
+                if (imageInput) imageInput.value = '';
+            } catch(_) {}
+
+            // Clear files preview
+            try {
+                window.dashboardInlineFeedbackSelectedFiles = [];
+                renderDashboardInlineFeedbackFilesPreview();
+                const filesInput = document.getElementById('inline_feedback_files_input');
+                if (filesInput) filesInput.value = '';
+            } catch(_) {}
+
+            // Reload feedback list
+            loadDashboardTaskFeedbackData(taskId);
+
+            // Update feedback count on card
+            try {
+                const selector = `.feedback-comments-count[data-task-id="${taskId}"]`;
+                let countEl = document.querySelector(selector);
+                const cur = countEl ? parseInt(countEl.textContent || '0', 10) || 0 : 0;
+                const newCount = cur + 1;
+                setDashboardFeedbackCount(taskId, newCount);
+            } catch(_) {}
+        })
+        .catch(err => {
             const msg = 'Failed to submit feedback. Please try again.';
             if (typeof window.showAlertMsg === 'function') {
-                // Force light style
                 window.showAlertMsg(msg, 'light', 3000);
             } else if (typeof showFloatingAlert === 'function') {
-                // Fallback util will render light style
-                showFloatingAlert(msg, 'light');
+                showFloatingAlert(msg, 'danger');
             } else {
-                // Minimal DOM fallback in light style
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-light d-flex align-items-center';
-                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '9999', opacity: '1', minWidth: '300px', margin: '0' });
-                alertDiv.textContent = msg;
-                document.body.appendChild(alertDiv);
-                setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 2000);
+                alert(msg);
             }
-    })
-    .catch(() => {
-            newBtn.innerHTML = originalBtnHtml;
-            newBtn.disabled = false;
-    });
-    });
+        })
+        .finally(() => {
+            if (sendBtn) {
+                sendBtn.innerHTML = originalBtnHtml;
+                sendBtn.disabled = false;
+            }
+        });
+
+    } catch(e) {
+        console.error('Submit feedback error:', e);
+    }
 }
 
 // ensure floating alert util exists (fallback only). Prefer global one from attendance.js
 if (typeof window.showFloatingAlert !== 'function') {
     window.showFloatingAlert = function(message) {
         if (typeof window.showAlertMsg === 'function') {
-                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '20000', opacity: '1', minWidth: '300px', margin: '0' });
             window.showAlertMsg(String(message || ''), 'light', 2000);
             return;
         }
@@ -810,4 +1099,3 @@ if (typeof window.showFloatingAlert !== 'function') {
         setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1500);
     };
 }
-
