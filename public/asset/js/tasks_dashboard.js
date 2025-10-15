@@ -653,11 +653,24 @@ function loadDashboardTaskFeedbackData(taskId) {
                                             <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">reply</span>
                                             <span>Reply</span>
                                         </span>
-                                        ${canEditTop ? `
-                                        <span class="d-flex align-items-center feedback-edit-btn" style="cursor:pointer;color:#555;font-size:12px;">
-                                            <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">edit</span>
-                                            <span>Edit</span>
-                                        </span>` : ''}
+${canEditTop ? `
+    <span
+        class="d-flex align-items-center feedback-edit-trigger"
+        style="cursor:pointer;color:#555;font-size:12px;"
+        data-task-id="${fb.id}"
+        data-feedback-id="${fb.id}"
+        data-comment="${encodeURIComponent(fb.comment || '')}"
+        data-ref-url="${encodeURIComponent(fb.reference_url || '')}"
+        data-ref-urls='${encodeURIComponent(JSON.stringify(fb.reference_urls || []))}'
+        data-ref-file="${encodeURIComponent(fb.reference_file_url || '')}"
+        data-ref-files='${encodeURIComponent(JSON.stringify(fb.reference_files_urls || []))}'
+        data-image="${encodeURIComponent(fb.image_url || '')}"
+    >
+        <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">edit</span>
+        <span>Edit</span>
+    </span>
+` : ''}
+
                                         ${canEditTop ? `
                                         <span class="d-flex align-items-center" style="cursor:pointer;color:#555;font-size:12px;">
                                             <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">delete</span>
@@ -670,15 +683,27 @@ function loadDashboardTaskFeedbackData(taskId) {
                         </div>
                     </div>`;
             }).join('');
-            bodyEl.html(html);
-            $('.feedback-edit-btn', bodyEl).off('click').on('click', function() {
-                const item = $(this).closest('.feedback-item');
-                const id = item.data('feedbackId');
-                const content = item.find('.feedback-comment p').html() || '';
-                if (window.__quillDashboardInlineFeedback) window.__quillDashboardInlineFeedback.root.innerHTML = content;
-                window.__dashboardEditingFeedbackId = id;
-                $('#inlineFeedbackSendBtn').html('<span class="material-symbols-outlined">send</span>');
-            });
+            bodyEl.html(html)
+            $('.feedback-edit-trigger', bodyEl).off('click').on('click', function() {
+                const item = $(this).closest('.feedback-item')
+                const id = item.data('feedbackId')
+
+                let content = item.find('.feedback-comment').clone().children('.feedback-actions').remove().end().html()?.trim() || ''
+                content = content.replace(/^(<p><br><\/p>|<br>)+|(<p><br><\/p>|<br>)+$/gi, '').trim()
+
+                const quill = window.__quillDashboardInlineFeedback
+                if (quill) {
+                    quill.root.innerHTML = ''
+
+                    quill.root.innerHTML = content
+
+                    const editor = quill.root
+                    editor.querySelectorAll('p').forEach(p => {
+                        if (!p.textContent.trim() && !p.querySelector('img,video')) p.remove()
+                    })
+                    quill.focus()
+                }
+            })
         },
         error: () => bodyEl.html('<p class="text-center text-danger">Failed to load feedback.</p>')
     });
@@ -729,28 +754,6 @@ function initDashboardInlineFeedbackEditor(taskId) {
         });
     } catch {}
 }
-
-$(document).on('click', '.feedback-edit-btn', function () {
-    const item = $(this).closest('.feedback-item')
-    const feedbackId = item.data('feedbackId')
-    let htmlContent = item.find('.feedback-comment').clone().children('.feedback-actions').remove().end().html()?.trim() || ''
-    htmlContent = htmlContent.replace(/$/gi, '').trim()
-    const quill = window.__quillDashboardInlineFeedback
-
-    if (!quill) {
-        const wait = setInterval(() => {
-            if (window.__quillDashboardInlineFeedback) {
-                $('#inline_edit_feedback_input').val(feedbackId)
-                $('#inline_feedback_editor .ql-editor').focus()
-            }
-        }, 100)
-        return
-    }
-
-    quill.clipboard.dangerouslyPasteHTML(htmlContent)
-    $('#inline_edit_feedback_input').val(feedbackId)
-    $('#inline_feedback_editor .ql-editor').focus()
-})
 
 // Show inline image preview
 function showDashboardInlineImagePreview(fileObj, dataUrl) {
