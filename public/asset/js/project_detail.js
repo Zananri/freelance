@@ -3412,17 +3412,6 @@
                                             hasRefFiles = true;
                                     }
                                 } catch (_) {}
-                                var plainText = String(html || "")
-                                    .replace(/<[^>]+>/g, "")
-                                    .trim();
-                                if (!plainText && !hasImage && !hasRefFiles) {
-                                    window.showFloatingAlert &&
-                                        window.showFloatingAlert(
-                                            "Please write feedback or attach a file",
-                                            "warning"
-                                        );
-                                    return;
-                                }
 
                                 var fd = new FormData();
                                 fd.append("feedback_comment", html);
@@ -8064,7 +8053,339 @@
                     },
                 });
             });
-    }); // end $(function)
+    });
+
+    const EMP_CACHE_TTL_MS = 5 * 60 * 1000;
+    const __empCache = { map: new Map(), inFlight: new Map() };
+
+    function buildPhotoUrl(userPhoto, profilePicture, profilePictureUrl) {
+        try {
+            let candidate = profilePictureUrl || profilePicture || userPhoto;
+            if (!candidate) return appUrl + '/asset/img/avatar.png';
+            if (typeof candidate !== 'string') candidate = String(candidate || '');
+            const up = candidate.trim();
+            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+            if (up.startsWith('/')) return appUrl + up;
+            if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
+            return appUrl + '/file/profile_picture/' + up;
+        } catch (e) {
+            console.warn('buildPhotoUrl error:', e);
+            return appUrl + '/asset/img/avatar.png';
+        }
+    }
+
+    function fetchEmployeesForExecutorCached(query = "") {
+        try {
+            const key = String(query || "").trim().toLowerCase();
+            const now = Date.now();
+            const cached = __empCache.map.get(key);
+            if (cached && (now - cached.t) < EMP_CACHE_TTL_MS) {
+                const d = $.Deferred();
+                d.resolve(cached.v);
+                return d.promise();
+            }
+            const inflight = __empCache.inFlight.get(key);
+            if (inflight) return inflight;
+            const jqPromise = $.ajax({
+                url: appUrl + '/task/employees-for-executor',
+                type: 'GET',
+                data: { q: key },
+                dataType: 'json'
+            })
+            .then(function (res) {
+                __empCache.map.set(key, { v: res, t: Date.now() });
+                __empCache.inFlight.delete(key);
+                return res;
+            })
+            .catch(function (err) {
+                __empCache.inFlight.delete(key);
+                throw err;
+            });
+            __empCache.inFlight.set(key, jqPromise);
+            return jqPromise;
+        } catch (e) {
+            console.warn('fetchEmployeesForExecutorCached error:', e);
+            return $.ajax({
+                url: appUrl + '/task/employees-for-executor',
+                type: 'GET',
+                data: { q: query },
+                dataType: 'json'
+            });
+        }
+    }
+
+
+    function setupEditExecutorInput() {
+        const $input = $('#edit_executor_input');
+        const $dropdown = $('#edit_executor_dropdown');
+        const $selectedContainer = $('#edit_selected_executors');
+        const $hiddenInput = $('#edit_executors');
+
+        if (!$input.length || !$dropdown.length || !$selectedContainer.length || !$hiddenInput.length) return;
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        function fetchEmployees(query = "") {
+            return fetchEmployeesForExecutorCached(query)
+                .then((data) => {
+                    employees = (data && (data.data || data)) || [];
+                    employees = employees.filter(e => String(e.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filteredEmployees = employees;
+                    renderDropdown();
+                })
+                .catch(() => showFloatingAlert?.("Failed to load employees.", "warning", 3000));
+        }
+
+        function renderDropdown() {
+            if (!filteredEmployees.length) {
+                $dropdown.html('<div class="dropdown-item disabled">No employees found</div>').show();
+                return;
+            }
+
+            const html = filteredEmployees.map(emp => {
+                const checked = selectedEmployees.some(e => e.id === emp.id) ? "checked" : "";
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                return `
+                    <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor:pointer;">
+                        <div class="d-flex align-items-center">
+                            <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;">
+                            <div class="d-flex flex-column">
+                                <span class="executor-name">${emp.name}</span>
+                                <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                            </div>
+                        </div>
+                        <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${checked}>
+                    </label>
+                `;
+            }).join('');
+
+            $dropdown.html(html).show();
+
+            $dropdown.find('.executor-checkbox').on('change', function () {
+                const id = parseInt($(this).data('id'));
+                const name = $(this).data('name');
+                const empData = employees.find(e => e.id === id);
+
+                if ($(this).is(':checked')) {
+                    if (!selectedEmployees.some(e => e.id === id)) {
+                        selectedEmployees.push({
+                            id,
+                            name,
+                            user_photo: empData?.user_photo || null,
+                            division: empData?.division || empData?.division_name || ''
+                        });
+                    }
+                } else {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                }
+                renderSelected();
+                updateHiddenInput();
+            });
+        }
+
+        function renderSelected() {
+            $selectedContainer.empty();
+            selectedEmployees.forEach(emp => {
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                const $badge = $(`
+                    <span class="badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2">
+                        <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width:24px;height:24px;object-fit:cover;">
+                        <div class="d-flex flex-column">
+                            <span>${emp.name || ''}</span>
+                            <small class="text-muted executor-division">${emp.division || ''}</small>
+                        </div>
+                        <button type="button" class="btn-close btn-sm ms-2" aria-label="Remove"></button>
+                    </span>
+                `);
+
+                $badge.find('.btn-close').on('click', () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                });
+
+                $selectedContainer.append($badge);
+            });
+        }
+
+        function updateHiddenInput() {
+            $hiddenInput.val(JSON.stringify(selectedEmployees.map(e => e.id)));
+        }
+
+        function filterEmployees(value) {
+            const val = $.trim(value).toLowerCase();
+            filteredEmployees = val === "" ? employees : employees.filter(e => e.name.toLowerCase().includes(val));
+            renderDropdown();
+        }
+
+        $input.on('input focus', function () {
+            filterEmployees($(this).val());
+        });
+
+        $(document).on('click', function (e) {
+            if (!$input.is(e.target) && !$dropdown.is(e.target) && !$dropdown.has(e.target).length) {
+                $dropdown.hide();
+            }
+        });
+
+        fetchEmployees();
+
+        window.clearSelectedExecutorsEdit = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            $dropdown.hide();
+            $input.val('');
+        };
+
+        window.setSelectedExecutorsEdit = async function (executors) {
+            try {
+                const data = await fetchEmployeesForExecutorCached("");
+                employees = (data && (data.data || data)) || [];
+                employees = employees.filter(e => String(e.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+            } catch (e) {
+                console.warn("Gagal ambil data employee:", e);
+            }
+
+            selectedEmployees = executors.map(ex => {
+                let photoUrl = "";
+                const userPhoto = ex.user_photo;
+                if (userPhoto) {
+                    if (userPhoto.startsWith("http")) photoUrl = userPhoto;
+                    else if (userPhoto.startsWith("/file/")) photoUrl = appUrl + userPhoto;
+                    else if (userPhoto.startsWith("file/")) photoUrl = appUrl + "/" + userPhoto;
+                    else photoUrl = appUrl + "/file/profile_picture/" + userPhoto;
+                } else photoUrl = appUrl + "/asset/img/avatar.png";
+
+                const empData = employees.find(e => e.id === ex.id);
+                const divisionName = empData ? (empData.division || empData.division_name || "") : "";
+
+                return { id: ex.id, name: ex.name, user_photo: photoUrl, division: divisionName };
+            });
+
+            renderSelected();
+            updateHiddenInput();
+        };
+    }
+
+    setupEditExecutorInput();
+
+    try {
+        const $editDivisionSel = $('#edit_task_division_id');
+        if ($editDivisionSel.length) {
+            let empDeptIdEdit = $('#taskFeedbackModal').data('employeeDepartmentId') || null;
+
+            const populateEditDivisions = (d) => {
+                if (!d || !d.data) return;
+                let opts = '<option value="">Select Division</option>';
+                $.each(d.data, function (_, div) {
+                    const name = (div.name_division || div.name || '').trim();
+                    opts += `<option value="${div.id}" data-name="${name}">${name}</option>`;
+                });
+                $editDivisionSel.html(opts);
+            };
+
+            // Load divisions
+            const loadDivisions = (url) => {
+                $.getJSON(url, populateEditDivisions)
+                    .fail(() => console.warn('Failed to load divisions'));
+            };
+
+            if (empDeptIdEdit) {
+                $.getJSON(`${appUrl}/divisions-for-projects?department_id=${encodeURIComponent(empDeptIdEdit)}`)
+                    .done(populateEditDivisions)
+                    .fail(() => loadDivisions(`${appUrl}/divisions-for-projects`));
+            } else {
+                loadDivisions(`${appUrl}/divisions-for-projects`);
+            }
+
+            // On division change
+            $editDivisionSel.on('change', function () {
+                const val = $(this).val();
+                const selectedName = ($(this).find(':selected').data('name') || '').trim();
+
+                if (!val) {
+                    try { window.clearSelectedExecutors?.(); } catch (_) {}
+                    return;
+                }
+
+                $.getJSON(`${appUrl}/employees-for-projects`)
+                    .done((res) => {
+                        const arr = res?.data || [];
+                        const valStr = String(val).toLowerCase();
+                        const nameStr = String(selectedName).toLowerCase();
+
+                        let final = arr.filter(emp => String(emp.division_id || '').toLowerCase() === valStr);
+                        if (!final.length)
+                            final = arr.filter(emp => String(emp.division || '').toLowerCase() === nameStr);
+
+                        if (!final.length)
+                            return showFloatingAlert?.('No employees found for selected division.', 'warning', 2500);
+
+                        window.setSelectedExecutorsEdit?.(final);
+                    })
+                    .fail(() => {
+                        showFloatingAlert?.('Failed to load employees for division.', 'warning', 2500);
+                    });
+            });
+
+            // Custom dropdown
+            const $divisionDropdown = $('#edit_task_division_dropdown');
+            if ($divisionDropdown.length) {
+                const escapeHtml = (str) => String(str || '').replace(/[&<>"']/g, m => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                })[m]);
+
+                const renderDivisionDropup = () => {
+                    const opts = $editDivisionSel.find('option');
+                    if (!opts.length) {
+                        $divisionDropdown.html('<div class="division-item disabled">No divisions</div>').show();
+                        return;
+                    }
+
+                    const html = opts.map((_, o) =>
+                        `<div class="division-item" data-value="${$(o).val()}">${escapeHtml($(o).text())}</div>`
+                    ).get().join('');
+
+                    $divisionDropdown.html(html).show();
+
+                    $divisionDropdown.find('.division-item').on('click', function () {
+                        const v = $(this).data('value');
+                        $editDivisionSel.val(v).trigger('change');
+                        $divisionDropdown.hide();
+                    });
+                };
+
+                const $activator = $('#edit_task_division_activator');
+
+                $editDivisionSel.on('focus', renderDivisionDropup);
+                ($activator.length ? $activator : $editDivisionSel).on('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    renderDivisionDropup();
+                    $editDivisionSel.trigger('focus');
+                });
+
+                $editDivisionSel.on('keydown', (e) => {
+                    if ([' ', 'Spacebar', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+                        e.preventDefault();
+                        renderDivisionDropup();
+                    }
+                });
+
+                $(document).on('click', (e) => {
+                    if (!$editDivisionSel.is(e.target) && !$divisionDropdown.is(e.target) && !$divisionDropdown.has(e.target).length) {
+                        $divisionDropdown.hide();
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to wire edit division->executors (jQuery version)', e);
+    }
 })(jQuery);
 
 $("#fullscreen-feedback-btn").on("click", function () {
@@ -9183,339 +9504,3 @@ $(document).ready(function () {
         try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
     });
 });
-
-const EMP_CACHE_TTL_MS = 5 * 60 * 1000;
-const __empCache = { map: new Map(), inFlight: new Map() };
-var appUrl = (
-    document.querySelector('meta[name="app-url"]')?.getAttribute("content") || ""
-).replace(/\/$/, "");
-
-function buildPhotoUrl(userPhoto, profilePicture, profilePictureUrl) {
-    try {
-        let candidate = profilePictureUrl || profilePicture || userPhoto;
-        if (!candidate) return appUrl + '/asset/img/avatar.png';
-        if (typeof candidate !== 'string') candidate = String(candidate || '');
-        const up = candidate.trim();
-        if (up.startsWith('http://') || up.startsWith('https://')) return up;
-        if (up.startsWith('/')) return appUrl + up;
-        if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
-        return appUrl + '/file/profile_picture/' + up;
-    } catch (e) {
-        console.warn('buildPhotoUrl error:', e);
-        return appUrl + '/asset/img/avatar.png';
-    }
-}
-
-function fetchEmployeesForExecutorCached(query = "") {
-    try {
-        const key = String(query || "").trim().toLowerCase();
-        const now = Date.now();
-        const cached = __empCache.map.get(key);
-        if (cached && (now - cached.t) < EMP_CACHE_TTL_MS) {
-            const d = $.Deferred();
-            d.resolve(cached.v);
-            return d.promise();
-        }
-        const inflight = __empCache.inFlight.get(key);
-        if (inflight) return inflight;
-        const jqPromise = $.ajax({
-            url: appUrl + '/task/employees-for-executor',
-            type: 'GET',
-            data: { q: key },
-            dataType: 'json'
-        })
-        .then(function (res) {
-            __empCache.map.set(key, { v: res, t: Date.now() });
-            __empCache.inFlight.delete(key);
-            return res;
-        })
-        .catch(function (err) {
-            __empCache.inFlight.delete(key);
-            throw err;
-        });
-        __empCache.inFlight.set(key, jqPromise);
-        return jqPromise;
-    } catch (e) {
-        console.warn('fetchEmployeesForExecutorCached error:', e);
-        return $.ajax({
-            url: appUrl + '/task/employees-for-executor',
-            type: 'GET',
-            data: { q: query },
-            dataType: 'json'
-        });
-    }
-}
-
-
-function setupEditExecutorInput() {
-    const $input = $('#edit_executor_input');
-    const $dropdown = $('#edit_executor_dropdown');
-    const $selectedContainer = $('#edit_selected_executors');
-    const $hiddenInput = $('#edit_executors');
-
-    if (!$input.length || !$dropdown.length || !$selectedContainer.length || !$hiddenInput.length) return;
-
-    let employees = [];
-    let filteredEmployees = [];
-    let selectedEmployees = [];
-
-    function fetchEmployees(query = "") {
-        return fetchEmployeesForExecutorCached(query)
-            .then((data) => {
-                employees = (data && (data.data || data)) || [];
-                employees = employees.filter(e => String(e.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
-                filteredEmployees = employees;
-                renderDropdown();
-            })
-            .catch(() => showFloatingAlert?.("Failed to load employees.", "warning", 3000));
-    }
-
-    function renderDropdown() {
-        if (!filteredEmployees.length) {
-            $dropdown.html('<div class="dropdown-item disabled">No employees found</div>').show();
-            return;
-        }
-
-        const html = filteredEmployees.map(emp => {
-            const checked = selectedEmployees.some(e => e.id === emp.id) ? "checked" : "";
-            const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
-            return `
-                <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor:pointer;">
-                    <div class="d-flex align-items-center">
-                        <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width:30px;height:30px;object-fit:cover;">
-                        <div class="d-flex flex-column">
-                            <span class="executor-name">${emp.name}</span>
-                            <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
-                        </div>
-                    </div>
-                    <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${checked}>
-                </label>
-            `;
-        }).join('');
-
-        $dropdown.html(html).show();
-
-        $dropdown.find('.executor-checkbox').on('change', function () {
-            const id = parseInt($(this).data('id'));
-            const name = $(this).data('name');
-            const empData = employees.find(e => e.id === id);
-
-            if ($(this).is(':checked')) {
-                if (!selectedEmployees.some(e => e.id === id)) {
-                    selectedEmployees.push({
-                        id,
-                        name,
-                        user_photo: empData?.user_photo || null,
-                        division: empData?.division || empData?.division_name || ''
-                    });
-                }
-            } else {
-                selectedEmployees = selectedEmployees.filter(e => e.id !== id);
-            }
-            renderSelected();
-            updateHiddenInput();
-        });
-    }
-
-    function renderSelected() {
-        $selectedContainer.empty();
-        selectedEmployees.forEach(emp => {
-            const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
-            const $badge = $(`
-                <span class="badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2">
-                    <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width:24px;height:24px;object-fit:cover;">
-                    <div class="d-flex flex-column">
-                        <span>${emp.name || ''}</span>
-                        <small class="text-muted executor-division">${emp.division || ''}</small>
-                    </div>
-                    <button type="button" class="btn-close btn-sm ms-2" aria-label="Remove"></button>
-                </span>
-            `);
-
-            $badge.find('.btn-close').on('click', () => {
-                selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
-                renderSelected();
-                updateHiddenInput();
-                renderDropdown();
-            });
-
-            $selectedContainer.append($badge);
-        });
-    }
-
-    function updateHiddenInput() {
-        $hiddenInput.val(JSON.stringify(selectedEmployees.map(e => e.id)));
-    }
-
-    function filterEmployees(value) {
-        const val = $.trim(value).toLowerCase();
-        filteredEmployees = val === "" ? employees : employees.filter(e => e.name.toLowerCase().includes(val));
-        renderDropdown();
-    }
-
-    $input.on('input focus', function () {
-        filterEmployees($(this).val());
-    });
-
-    $(document).on('click', function (e) {
-        if (!$input.is(e.target) && !$dropdown.is(e.target) && !$dropdown.has(e.target).length) {
-            $dropdown.hide();
-        }
-    });
-
-    fetchEmployees();
-
-    window.clearSelectedExecutorsEdit = function () {
-        selectedEmployees = [];
-        renderSelected();
-        updateHiddenInput();
-        $dropdown.hide();
-        $input.val('');
-    };
-
-    window.setSelectedExecutorsEdit = async function (executors) {
-        try {
-            const data = await fetchEmployeesForExecutorCached("");
-            employees = (data && (data.data || data)) || [];
-            employees = employees.filter(e => String(e.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
-        } catch (e) {
-            console.warn("Gagal ambil data employee:", e);
-        }
-
-        selectedEmployees = executors.map(ex => {
-            let photoUrl = "";
-            const userPhoto = ex.user_photo;
-            if (userPhoto) {
-                if (userPhoto.startsWith("http")) photoUrl = userPhoto;
-                else if (userPhoto.startsWith("/file/")) photoUrl = appUrl + userPhoto;
-                else if (userPhoto.startsWith("file/")) photoUrl = appUrl + "/" + userPhoto;
-                else photoUrl = appUrl + "/file/profile_picture/" + userPhoto;
-            } else photoUrl = appUrl + "/asset/img/avatar.png";
-
-            const empData = employees.find(e => e.id === ex.id);
-            const divisionName = empData ? (empData.division || empData.division_name || "") : "";
-
-            return { id: ex.id, name: ex.name, user_photo: photoUrl, division: divisionName };
-        });
-
-        renderSelected();
-        updateHiddenInput();
-    };
-}
-
-setupEditExecutorInput();
-
-try {
-    const $editDivisionSel = $('#edit_task_division_id');
-    if ($editDivisionSel.length) {
-        let empDeptIdEdit = $('#taskFeedbackModal').data('employeeDepartmentId') || null;
-
-        const populateEditDivisions = (d) => {
-            if (!d || !d.data) return;
-            let opts = '<option value="">Select Division</option>';
-            $.each(d.data, function (_, div) {
-                const name = (div.name_division || div.name || '').trim();
-                opts += `<option value="${div.id}" data-name="${name}">${name}</option>`;
-            });
-            $editDivisionSel.html(opts);
-        };
-
-        // Load divisions
-        const loadDivisions = (url) => {
-            $.getJSON(url, populateEditDivisions)
-                .fail(() => console.warn('Failed to load divisions'));
-        };
-
-        if (empDeptIdEdit) {
-            $.getJSON(`${appUrl}/divisions-for-projects?department_id=${encodeURIComponent(empDeptIdEdit)}`)
-                .done(populateEditDivisions)
-                .fail(() => loadDivisions(`${appUrl}/divisions-for-projects`));
-        } else {
-            loadDivisions(`${appUrl}/divisions-for-projects`);
-        }
-
-        // On division change
-        $editDivisionSel.on('change', function () {
-            const val = $(this).val();
-            const selectedName = ($(this).find(':selected').data('name') || '').trim();
-
-            if (!val) {
-                try { window.clearSelectedExecutors?.(); } catch (_) {}
-                return;
-            }
-
-            $.getJSON(`${appUrl}/employees-for-projects`)
-                .done((res) => {
-                    const arr = res?.data || [];
-                    const valStr = String(val).toLowerCase();
-                    const nameStr = String(selectedName).toLowerCase();
-
-                    let final = arr.filter(emp => String(emp.division_id || '').toLowerCase() === valStr);
-                    if (!final.length)
-                        final = arr.filter(emp => String(emp.division || '').toLowerCase() === nameStr);
-
-                    if (!final.length)
-                        return showFloatingAlert?.('No employees found for selected division.', 'warning', 2500);
-
-                    window.setSelectedExecutorsEdit?.(final);
-                })
-                .fail(() => {
-                    showFloatingAlert?.('Failed to load employees for division.', 'warning', 2500);
-                });
-        });
-
-        // Custom dropdown
-        const $divisionDropdown = $('#edit_task_division_dropdown');
-        if ($divisionDropdown.length) {
-            const escapeHtml = (str) => String(str || '').replace(/[&<>"']/g, m => ({
-                '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-            })[m]);
-
-            const renderDivisionDropup = () => {
-                const opts = $editDivisionSel.find('option');
-                if (!opts.length) {
-                    $divisionDropdown.html('<div class="division-item disabled">No divisions</div>').show();
-                    return;
-                }
-
-                const html = opts.map((_, o) =>
-                    `<div class="division-item" data-value="${$(o).val()}">${escapeHtml($(o).text())}</div>`
-                ).get().join('');
-
-                $divisionDropdown.html(html).show();
-
-                $divisionDropdown.find('.division-item').on('click', function () {
-                    const v = $(this).data('value');
-                    $editDivisionSel.val(v).trigger('change');
-                    $divisionDropdown.hide();
-                });
-            };
-
-            const $activator = $('#edit_task_division_activator');
-
-            $editDivisionSel.on('focus', renderDivisionDropup);
-            ($activator.length ? $activator : $editDivisionSel).on('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                renderDivisionDropup();
-                $editDivisionSel.trigger('focus');
-            });
-
-            $editDivisionSel.on('keydown', (e) => {
-                if ([' ', 'Spacebar', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
-                    e.preventDefault();
-                    renderDivisionDropup();
-                }
-            });
-
-            $(document).on('click', (e) => {
-                if (!$editDivisionSel.is(e.target) && !$divisionDropdown.is(e.target) && !$divisionDropdown.has(e.target).length) {
-                    $divisionDropdown.hide();
-                }
-            });
-        }
-    }
-} catch (e) {
-    console.warn('Failed to wire edit division->executors (jQuery version)', e);
-}
-
