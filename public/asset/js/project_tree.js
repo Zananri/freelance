@@ -281,14 +281,21 @@
 			try { if (e.originalEvent && e.originalEvent.dataTransfer) dragData = e.originalEvent.dataTransfer.getData('text/plain'); } catch(_){}
 			var draggedId = dragData || window.__dragProjectId;
 			if (!draggedId) return;
-			$.ajax({ url: appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents', type:'DELETE', dataType:'json' })
+			$.ajax({ 
+				url: appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents', 
+				type:'DELETE', 
+				dataType:'json',
+				headers: {
+					'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
+					'X-Requested-With': 'XMLHttpRequest'
+				}
+			})
 				.done(function(){
 					try {
 						if (typeof window.refreshProjectTreePartial === 'function') {
 							window.refreshProjectTreePartial();
 						} else {
-							var map = projectMap(); var p = map[String(draggedId)]; if (p){ p.parent_ids = []; p.legacy_parent_id = null; }
-							renderTree(projectsRaw);
+							fetchTree();
 						}
 						if (typeof showFloatingAlert==='function') showFloatingAlert('Project dikeluarkan dari parent','success',2000);
 					} catch(_){ }
@@ -305,14 +312,22 @@
 			if (!draggedId || !targetId) return;
 			if (String(draggedId)===String(targetId) || isDescendant(draggedId, targetId)) return;
 			var url = appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents';
-			$.ajax({ url: url, type:'POST', dataType:'json', data: { parent_id: String(targetId) } })
+			$.ajax({ 
+				url: url, 
+				type:'POST', 
+				dataType:'json', 
+				data: { parent_id: String(targetId) },
+				headers: {
+					'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
+					'X-Requested-With': 'XMLHttpRequest'
+				}
+			})
 				.done(function(){
 					try {
 						if (typeof window.refreshProjectTreePartial === 'function') {
 							window.refreshProjectTreePartial();
 						} else {
-							var map = projectMap(); var p = map[String(draggedId)]; if (p){ p.parent_ids = [Number(targetId)]; p.legacy_parent_id = null; }
-							renderTree(projectsRaw);
+							fetchTree();
 						}
 						if (typeof showFloatingAlert === 'function') showFloatingAlert('Project berhasil menjadi sub dari parent', 'success', 2000);
 					} catch(_){ }

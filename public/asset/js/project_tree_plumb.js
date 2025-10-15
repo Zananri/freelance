@@ -50,6 +50,9 @@
                 }
             });
             
+            // Clear all connections and reset instance before re-rendering
+            clearAll();
+            
             // Fetch fresh data and re-render
             if (typeof window.fetchProjectTree === 'function') {
                 window.fetchProjectTree().done(function() {
@@ -162,19 +165,21 @@
         if (!inst) return;
         try {
             inst.deleteEveryConnection();
-            // Don't reset instance, just clear connections
-            // inst.reset();
+            // Clear all endpoints and connections
+            inst.deleteEveryEndpoint();
         } catch (_) {}
-        // Don't set instance = null here to avoid re-creating instance
-        // instance = null;
     }
 
     function attachEvents() {
         var inst = ensureInstance();
         if (!inst) return;
         
-        // Only attach events once to avoid duplicate handlers
-        if (eventsAttached) return;
+        // Unbind all previous events first to avoid duplicates
+        try {
+            inst.unbind("connection");
+            inst.unbind("click");
+        } catch(_) {}
+        
         eventsAttached = true;
         try {
             inst.bind("connection", function (info, originalEvent) {
@@ -223,12 +228,8 @@
                     } catch (_) {}
                     if (!parentId || !childId || parentId === childId) return;
                     
-                    // Delete the connection immediately to prevent visual duplication
-                    try {
-                        if (info && info.connection) {
-                            inst.deleteConnection(info.connection, { fireEvent: false });
-                        }
-                    } catch (_) {}
+                    // Store the connection temporarily
+                    var tempConnection = info.connection;
                     
                     $.ajax({
                         url:
@@ -251,6 +252,12 @@
                                 (res.status === "success" || res.code === 200)
                             );
                             if (!ok) {
+                                // If failed, remove the connection
+                                try {
+                                    if (tempConnection) {
+                                        inst.deleteConnection(tempConnection, { fireEvent: false });
+                                    }
+                                } catch (_) {}
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
@@ -274,6 +281,12 @@
                             }
                         })
                         .fail(function () {
+                            // If failed, remove the connection
+                            try {
+                                if (tempConnection) {
+                                    inst.deleteConnection(tempConnection, { fireEvent: false });
+                                }
+                            } catch (_) {}
                             try {
                                 window.showFloatingAlert &&
                                     window.showFloatingAlert(
@@ -318,6 +331,10 @@
                         }
                     } catch (_) {}
                     if (!parentId || !childId) return;
+                    
+                    // Store connection reference
+                    var connectionToDelete = conn;
+                    
                     $.ajax({
                         url: appUrl + "/project/" + encodeURIComponent(childId) + "/parents",
                         type: "DELETE",
@@ -331,9 +348,6 @@
                     })
                         .done(function (res) {
                             if (res && (res.status === "success" || res.code === 200)) {
-                                try {
-                                    inst.deleteConnection(conn);
-                                } catch (_) {}
                                 try {
                                     window.showFloatingAlert && window.showFloatingAlert("Parent dihapus", "success", 1200);
                                 } catch (_) {}
@@ -376,7 +390,10 @@
             });
         } catch (_) {}
         layConnections(projects);
-        attachEvents();
+        // Only attach events once, don't re-attach on every init
+        if (!eventsAttached) {
+            attachEvents();
+        }
         try {
             inst.repaintEverything && inst.repaintEverything();
         } catch (_) {}
