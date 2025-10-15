@@ -810,7 +810,7 @@
                             <button type="button" class="btn-custom-close" data-bs-dismiss="modal">
                                 Close
                             </button>
-                            <button type="submit" class="btn-submit-custom">
+                            <button type="submit" class="btn-submit-black">
                                 Submit
                             </button>
                         </div>
