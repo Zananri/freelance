@@ -34,7 +34,7 @@
                 </div>
                 <h2 class="m-0">Project Detail</h2>
             </div>
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center button-group">
                 <div class="task-tabs mb-3 position-relative me-2">
                     <ul class="custom-tab" id="taskTabMenu" role="tablist">
                         <li>

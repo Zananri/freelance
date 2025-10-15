@@ -9000,7 +9000,7 @@ function renderProjectTaskTable() {
                         <div class="d-flex align-items-center gap-3">
                             ${taskImgHtml}
                             <div>
-                                <div class="picname-wrapper fw-semibold" style="font-size: 14px; cursor: pointer;" onclick="handleTaskDetail(${t.id})">${taskTitle}</div>
+                                <div class="task-name-wrapper fw-semibold" style="font-size: 14px; cursor: pointer;" onclick="handleTaskDetail(${t.id})">${taskTitle}</div>
                             </div>
                         </div>
                     </td>
