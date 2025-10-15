@@ -1030,8 +1030,8 @@
 /* Task modal visual parity (copied from task.css) */
 .modal-content-custom {
     border-radius: 16px;
-    padding: 24px;
-    background: #f7f7f8;
+    padding: 12px 12px;
+    background: rgb(240, 241, 248);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: none;
 }
@@ -1041,10 +1041,12 @@
 }
 
 .modal-footer-custom {
-    border: 0;
+    position: sticky;
+    border: none;
     justify-content: center;
+    width: 100%;
+    padding: 0;
 }
-
 .date-time-display {
     font-size: 14px;
     color: #495057;
@@ -1184,13 +1186,18 @@
     }
 }
 
-/* Membuat button check in dan check out di modal lebih lebar */
-.modal-footer-custom .btn-submit-black,
-.modal-footer-custom #submitCheckOutBtn {
-    width: 100%;
-    padding: 12px 30px;
-    font-size: 16px;
-    font-weight: 400;
+.modal-footer-custom button {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 12px;
+    height: 45px;
+}
+
+.modal-footer-custom .btn-custom-close {
+    background-color: #e3e4ee !important;
+    color: #444444;
 }
 
 /* Untuk mobile, pastikan button tetap lebar */
@@ -1204,7 +1211,7 @@
 }
 
 .btn-submit-black {
-    background-color: #313131 !important;
+    background-color: #444444 !important;
     color: #f3f3f3 !important;
     font-size: 14px !important;
     font-weight: 300 !important;
@@ -1296,7 +1303,7 @@
 }
 
 .feedback-modal-content {
-    background-color: #f9f9f9;
+    background-color: #f7f7f8;
     border-radius: 12px;
     padding: 0;
     height: 100%;
@@ -1307,7 +1314,6 @@
 
 .feedback-modal-header {
     background-color: #ffffff;
-    border-bottom: 1px solid #ddd;
     padding: 1rem 1.5rem;
 }
 
@@ -1318,9 +1324,23 @@
 }
 
 .feedback-modal-body {
-    padding: 1rem 1.5rem;
-    max-height: 600px;
+    padding: 8px;
+    max-height: 100%;
     overflow-y: auto;
+    flex-grow: 1;
+}
+
+.feedback-modal-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.feedback-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.feedback-modal-body::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
 }
 
 .feedback-modal-footer {

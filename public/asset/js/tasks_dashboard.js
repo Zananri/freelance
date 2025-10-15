@@ -549,189 +549,120 @@ function openDashboardReferenceFiles(taskId) {
 }
 
 function openDashboardTaskFeedback(taskId) {
-    const modalEl = document.getElementById('taskFeedbackModal');
+    const modalEl = $('#taskFeedbackModal')[0];
     if (!modalEl) return;
-    modalEl.dataset.taskId = taskId;
-
-    const modal = (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
-        ? bootstrap.Modal.getOrCreateInstance(modalEl)
-        : new bootstrap.Modal(modalEl);
-    
-    // Reset title
-    const titleEl = modalEl.querySelector('.feedback-modal-title');
-    const bodyEl = modalEl.querySelector('.feedback-modal-body');
-    if (titleEl) titleEl.textContent = 'Task Feedback';
-    if (bodyEl) bodyEl.innerHTML = '';
-
-    // Setup inline feedback editor in footer
-    try {
-        setupDashboardInlineFeedbackEditor(taskId);
-    } catch(_) {}
-
-    loadDashboardTaskFeedbackData(taskId);
+    $(modalEl).data('taskId', taskId);
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    $('.feedback-modal-title', modalEl).text('Task Feedback');
+    $('.feedback-modal-body', modalEl).html('');
+    setupDashboardInlineFeedbackEditor(taskId);
     modal.show();
+    setTimeout(() => loadDashboardTaskFeedbackData(taskId), 100);
 }
 
 function loadDashboardTaskFeedbackData(taskId) {
-    const bodyEl = document.getElementById('taskFeedbackList');
-    if (!bodyEl) return;
-    bodyEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
-    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
-    fetch((appUrl ? appUrl : '') + '/task-feedbacks/' + taskId + '?_=' + Date.now(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' })
-        .then(r => r.json())
-        .then(res => {
+    const bodyEl = $('#taskFeedbackList');
+    if (!bodyEl.length) return;
+    bodyEl.html('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    const appUrl = $('meta[name="app-url"]').attr('content') || '';
+    $.ajax({
+        url: `${appUrl}/task-feedbacks/${taskId}?_=${Date.now()}`,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        cache: false,
+        success: res => {
             const data = res.data || [];
             if (!data.length) {
-                bodyEl.innerHTML = '<p class="text-center text-muted">No feedback available for this task.</p>';
+                bodyEl.html('<p class="text-center text-muted">No feedback available for this task.</p>');
                 return;
             }
-
-            // Helper: Format date like Task page (timeAgo)
-            const timeAgo = (dateStr) => {
-                if (!dateStr) return '';
-                const date = new Date(dateStr);
-                const now = new Date();
-                const diffMs = now - date;
-                const diffSec = Math.floor(diffMs / 1000);
-                const diffMin = Math.floor(diffSec / 60);
-                const diffHr = Math.floor(diffMin / 60);
-                const diffDay = Math.floor(diffHr / 24);
-                
-                if (diffDay > 1) {
-                    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-                } else if (diffDay === 1) {
-                    return '1 day ago';
-                } else if (diffHr > 0) {
-                    return diffHr + ' hour' + (diffHr > 1 ? 's' : '') + ' ago';
-                } else if (diffMin > 0) {
-                    return diffMin + ' minute' + (diffMin > 1 ? 's' : '') + ' ago';
-                } else {
-                    return 'just now';
-                }
+            const timeAgo = d => {
+                if (!d) return '';
+                const date = new Date(d);
+                const diff = Date.now() - date;
+                const min = Math.floor(diff / 60000), hr = Math.floor(min / 60), day = Math.floor(hr / 24);
+                if (day > 1) return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                if (day === 1) return '1 day ago';
+                if (hr > 0) return `${hr} hour${hr > 1 ? 's' : ''} ago`;
+                if (min > 0) return `${min} minute${min > 1 ? 's' : ''} ago`;
+                return 'just now';
             };
-
-            const currentEmployeeId = document.getElementById('taskFeedbackModal')?.dataset?.employeeId || '';
-
+            const currentEmployeeId = $('#taskFeedbackModal').data('employeeId') || '';
             const html = data.map(fb => {
                 const formattedDate = timeAgo(fb.created_at);
                 const name = fb.employee?.name || 'Unknown';
-                const photo = fb.employee?.photo || ((appUrl ? appUrl : '') + '/asset/img/avatar.png');
-                
-                // Render feedback comment as HTML (not escaped)
+                const photo = fb.employee?.photo || `${appUrl}/asset/img/avatar.png`;
                 const feedbackComment = fb.feedback_comment || '';
-                
-                // Normalize image URL
                 let topImageUrl = fb.image || '';
-                if (topImageUrl && !topImageUrl.startsWith('http')) {
-                    topImageUrl = (appUrl ? appUrl : '') + '/file/task/' + topImageUrl;
-                }
-                
-                // Handle reference files - support multiple files
+                if (topImageUrl && !topImageUrl.startsWith('http')) topImageUrl = `${appUrl}/file/task/${topImageUrl}`;
                 let topRefFiles = [];
                 try {
                     let refFiles = fb.reference_files_urls || fb.reference_files || [];
                     if (typeof refFiles === 'string') {
-                        try {
-                            refFiles = JSON.parse(refFiles);
-                        } catch(e) {
-                            refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean);
-                        }
+                        try { refFiles = JSON.parse(refFiles); } catch { refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean); }
                     }
                     if (Array.isArray(refFiles) && refFiles.length > 0) {
-                        topRefFiles = refFiles.map(f => {
-                            if (!f) return null;
-                            if (f.startsWith('http')) return f;
-                            return (appUrl ? appUrl : '') + '/file/task_reference_files/' + f;
-                        }).filter(Boolean);
+                        topRefFiles = refFiles.map(f => f.startsWith('http') ? f : `${appUrl}/file/task_reference_files/${f}`).filter(Boolean);
                     }
-                } catch(e) {}
-                
-                // Handle reference URLs - support multiple URLs
+                } catch {}
                 let topRefUrls = [];
                 try {
                     let refUrls = fb.reference_urls || [];
                     if (typeof refUrls === 'string') {
-                        try {
-                            refUrls = JSON.parse(refUrls);
-                        } catch(e) {
-                            if (refUrls.trim()) refUrls = [refUrls];
-                            else refUrls = [];
-                        }
+                        try { refUrls = JSON.parse(refUrls); } catch { if (refUrls.trim()) refUrls = [refUrls]; else refUrls = []; }
                     }
-                    if (Array.isArray(refUrls) && refUrls.length > 0) {
-                        topRefUrls = refUrls.filter(u => typeof u === 'string' && u.trim() !== '');
-                    } else if (fb.reference_url) {
-                        topRefUrls = [fb.reference_url];
-                    }
-                } catch(e) {}
-                
-                // Check if current user can edit
+                    if (Array.isArray(refUrls) && refUrls.length > 0) topRefUrls = refUrls.filter(u => typeof u === 'string' && u.trim() !== '');
+                    else if (fb.reference_url) topRefUrls = [fb.reference_url];
+                } catch {}
                 const topAuthorId = fb.employee?.id || fb.employee_id || 0;
                 const canEditTop = String(topAuthorId) === String(currentEmployeeId);
-                
-                // Build reference files HTML
-                const filesHtml = (topRefFiles.length > 0) ? `
+                const filesHtml = topRefFiles.length ? `
                     <div class="feedback-reference-container mb-2">
                         ${topRefFiles.map(fileUrl => {
                             const fileName = fileUrl.split('/').pop() || 'File';
                             return `<a href="${fileUrl}" class="feedback-reference-file bg-light rounded-2">
-                                <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${escapeHtml(fileName)}
+                                <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}
                             </a>`;
                         }).join('')}
                     </div>` : '';
-                
-                // Build reference URLs HTML
-                const urlsHtml = (topRefUrls.length > 0) ? `
+                const urlsHtml = topRefUrls.length ? `
                     <div class="feedback-reference-container mb-2">
                         ${topRefUrls.map(url => {
                             const shortUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
                             return `<a href="${url}" target="_blank" class="feedback-reference-url bg-light rounded-2">
-                                <span class="material-symbols-outlined" style="color: #444444;">link</span> ${escapeHtml(shortUrl)}
+                                <span class="material-symbols-outlined" style="color: #444444;">link</span> ${shortUrl}
                             </a>`;
                         }).join('')}
                     </div>` : '';
-                
-                // Build image HTML
-                const imgHtml = topImageUrl ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : '';
-                
-                // Build actions (Reply, Edit, Delete, View all)
-                const repliesCount = (Array.isArray(fb.replies) ? fb.replies.length : 0);
-                const viewAllBtn = repliesCount > 0 ? `<span style="font-size: 13px; color:#555;">View all (${repliesCount})</span>` : '';
-                
+                const imgHtml = topImageUrl ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width:70px;height:auto;border-radius:8px;cursor:pointer;">` : '';
+                const repliesCount = Array.isArray(fb.replies) ? fb.replies.length : 0;
+                const viewAllBtn = repliesCount > 0 ? `<span style="font-size:13px;color:#555;">View all (${repliesCount})</span>` : '';
                 return `
                     <div class="feedback-item mb-3 p-3" data-feedback-id="${fb.id}">
                         <div class="d-flex align-items-start mb-2">
-                            <img src="${photo}" alt="${escapeHtml(name)}" class="rounded-circle me-3" style="width: 32px; height: 32px; object-fit: cover;">
+                            <img src="${photo}" alt="${name}" class="rounded-circle me-3" style="width:32px;height:32px;object-fit:cover;">
                             <div class="flex-grow-1">
                                 <div>
-                                    <strong style="font-size:14px; font-weight:600;">${escapeHtml(name)}</strong>
-                                    <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
+                                    <strong style="font-size:14px;font-weight:600;">${name}</strong>
+                                    <div><small class="text-muted d-block" style="font-size:10px;">${formattedDate}</small></div>
                                 </div>
-
                                 <div class="feedback-comment mt-2">
                                     <p class="mb-2" style="font-size:13px;">${feedbackComment}</p>
-                                    ${urlsHtml}
-                                    ${filesHtml}
-                                    ${imgHtml}
-
+                                    ${urlsHtml}${filesHtml}${imgHtml}
                                     <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
-                                        <span class="d-flex align-items-center" style="cursor:pointer; color:#555; font-size:12px;">
-                                            <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span>
+                                        <span class="d-flex align-items-center" style="cursor:pointer;color:#555;font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">reply</span>
                                             <span>Reply</span>
                                         </span>
                                         ${canEditTop ? `
-                                        <span class="d-flex align-items-center" style="cursor:pointer; color:#555; font-size:12px;">
-                                            <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span>
+                                        <span class="d-flex align-items-center feedback-edit-btn" style="cursor:pointer;color:#555;font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">edit</span>
                                             <span>Edit</span>
-                                        </span>
-                                        ` : ''}
+                                        </span>` : ''}
                                         ${canEditTop ? `
-                                        <span class="d-flex align-items-center" style="cursor:pointer; color:#555; font-size:12px;">
-                                            <span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span>
+                                        <span class="d-flex align-items-center" style="cursor:pointer;color:#555;font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">delete</span>
                                             <span>Delete</span>
-                                        </span>
-                                        ` : ''}
+                                        </span>` : ''}
                                         ${viewAllBtn}
                                     </div>
                                 </div>
@@ -739,161 +670,87 @@ function loadDashboardTaskFeedbackData(taskId) {
                         </div>
                     </div>`;
             }).join('');
-            bodyEl.innerHTML = html;
-
-            // Setup inline feedback editor in footer after loading data
-            try {
-                setupDashboardInlineFeedbackEditor(taskId);
-            } catch(_) {}
-        })
-        .catch(() => {
-            bodyEl.innerHTML = '<p class="text-center text-danger">Failed to load feedback.</p>';
-        });
+            bodyEl.html(html);
+            $('.feedback-edit-btn', bodyEl).off('click').on('click', function() {
+                const item = $(this).closest('.feedback-item');
+                const id = item.data('feedbackId');
+                const content = item.find('.feedback-comment p').html() || '';
+                if (window.__quillDashboardInlineFeedback) window.__quillDashboardInlineFeedback.root.innerHTML = content;
+                window.__dashboardEditingFeedbackId = id;
+                $('#inlineFeedbackSendBtn').html('<span class="material-symbols-outlined">send</span>');
+            });
+        },
+        error: () => bodyEl.html('<p class="text-center text-danger">Failed to load feedback.</p>')
+    });
 }
 
-// Setup inline feedback editor in dashboard modal footer (matching task.js behavior)
 function setupDashboardInlineFeedbackEditor(taskId) {
-    try {
-        const modal = document.getElementById('taskFeedbackModal');
-        if (!modal) return;
-
-        // The footer is already in the HTML with inline editor structure
-        // We just need to initialize the Quill editor
-        initDashboardInlineFeedbackEditor(taskId);
-
-        // Bind button handlers
-        const photoBtn = document.getElementById('inlineFeedbackPhotoBtn');
-        const fileBtn = document.getElementById('inlineFeedbackFileBtn');
-        const sendBtn = document.getElementById('inlineFeedbackSendBtn');
-        const imageInput = document.getElementById('inline_feedback_image_input');
-        const filesInput = document.getElementById('inline_feedback_files_input');
-
-        if (photoBtn && imageInput) {
-            // Remove existing listeners by cloning
-            const newPhotoBtn = photoBtn.cloneNode(true);
-            photoBtn.parentNode.replaceChild(newPhotoBtn, photoBtn);
-            newPhotoBtn.addEventListener('click', function() {
-                imageInput.click();
-            });
-        }
-
-        if (fileBtn && filesInput) {
-            const newFileBtn = fileBtn.cloneNode(true);
-            fileBtn.parentNode.replaceChild(newFileBtn, fileBtn);
-            newFileBtn.addEventListener('click', function() {
-                filesInput.click();
-            });
-        }
-
-        // Handle image selection
-        if (imageInput) {
-            const newImageInput = imageInput.cloneNode(true);
-            imageInput.parentNode.replaceChild(newImageInput, imageInput);
-            newImageInput.addEventListener('change', function(ev) {
-                try {
-                    const f = (this.files && this.files[0]) || null;
-                    if (!f) return;
-                    if (!f.type || f.type.indexOf("image/") !== 0) return;
-                    
-                    const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
-                    if (f.size > MAX_IMAGE_BYTES) {
-                        alert('Image must be smaller than 10 MB.');
-                        this.value = '';
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        try {
-                            showDashboardInlineImagePreview(f, e.target.result);
-                        } catch(_) {}
-                    };
-                    reader.readAsDataURL(f);
-                } catch(_) {}
-            });
-        }
-
-        // Handle file attachments
-        if (filesInput) {
-            const newFilesInput = filesInput.cloneNode(true);
-            filesInput.parentNode.replaceChild(newFilesInput, filesInput);
-            window.dashboardInlineFeedbackSelectedFiles = window.dashboardInlineFeedbackSelectedFiles || [];
-            newFilesInput.addEventListener('change', function(ev) {
-                try {
-                    const files = Array.from(this.files || []);
-                    if (!files.length) return;
-                    window.dashboardInlineFeedbackSelectedFiles = (window.dashboardInlineFeedbackSelectedFiles || []).concat(files);
-                    renderDashboardInlineFeedbackFilesPreview();
-                    this.value = "";
-                } catch(_) {}
-            });
-        }
-
-        // Bind send button
-        if (sendBtn) {
-            const newSendBtn = sendBtn.cloneNode(true);
-            sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
-            newSendBtn.addEventListener('click', function() {
-                submitDashboardInlineFeedback(taskId);
-            });
-        }
-
-    } catch(e) {
-        console.warn('Failed to setup dashboard inline feedback editor:', e);
-    }
+    const modal = $('#taskFeedbackModal');
+    if (!modal.length) return;
+    initDashboardInlineFeedbackEditor(taskId);
+    const photoBtn = $('#inlineFeedbackPhotoBtn');
+    const fileBtn = $('#inlineFeedbackFileBtn');
+    const sendBtn = $('#inlineFeedbackSendBtn');
+    const imageInput = $('#inline_feedback_image_input');
+    const filesInput = $('#inline_feedback_files_input');
+    photoBtn.off('click').on('click', () => imageInput.trigger('click'));
+    fileBtn.off('click').on('click', () => filesInput.trigger('click'));
+    imageInput.off('change').on('change', function() {
+        const f = this.files[0];
+        if (!f || !f.type.startsWith('image/') || f.size > 10 * 1024 * 1024) return;
+        const reader = new FileReader();
+        reader.onload = e => showDashboardInlineImagePreview(f, e.target.result);
+        reader.readAsDataURL(f);
+    });
+    filesInput.off('change').on('change', function() {
+        const files = Array.from(this.files || []);
+        if (!files.length) return;
+        window.dashboardInlineFeedbackSelectedFiles = (window.dashboardInlineFeedbackSelectedFiles || []).concat(files);
+        renderDashboardInlineFeedbackFilesPreview();
+        this.value = "";
+    });
+    sendBtn.off('click').on('click', () => submitDashboardInlineFeedback(taskId));
 }
 
-// Initialize Quill editor for inline feedback
 function initDashboardInlineFeedbackEditor(taskId) {
+    if (window.__quillDashboardInlineFeedback) window.__quillDashboardInlineFeedback = null;
+    const editorEl = $('#inline_feedback_editor')[0];
+    if (!editorEl) return;
+    window.__quillDashboardInlineFeedback = new Quill('#inline_feedback_editor', {
+        modules: { toolbar: false, clipboard: { matchVisual: false } },
+        theme: 'snow',
+        placeholder: 'Write feedback...'
+    });
     try {
-        // Destroy existing instance if any
-        if (window.__quillDashboardInlineFeedback) {
-            try {
-                window.__quillDashboardInlineFeedback = null;
-            } catch(_) {}
-        }
-
-        const editorEl = document.getElementById('inline_feedback_editor');
-        if (!editorEl) return;
-
-        // Initialize Quill
-        window.__quillDashboardInlineFeedback = new Quill('#inline_feedback_editor', {
-            modules: {
-                toolbar: false,
-                clipboard: { matchVisual: false }
-            },
-            theme: 'snow',
-            placeholder: 'Write feedback...'
+        const Delta = Quill.import('delta');
+        window.__quillDashboardInlineFeedback.clipboard.addMatcher('IMG', (node, delta) => new Delta());
+        window.__quillDashboardInlineFeedback.on('text-change', () => {
+            $('#inline_feedback_editor img').remove();
         });
-
-        // Prevent image paste/drop
-        try {
-            const Delta = Quill.import && Quill.import('delta');
-            if (window.__quillDashboardInlineFeedback && window.__quillDashboardInlineFeedback.clipboard) {
-                window.__quillDashboardInlineFeedback.clipboard.addMatcher('IMG', function(node, delta) {
-                    try {
-                        return new Delta();
-                    } catch(_) {
-                        return delta;
-                    }
-                });
-            }
-        } catch(_) {}
-
-        // Remove images on text change
-        try {
-            window.__quillDashboardInlineFeedback.on('text-change', function() {
-                try {
-                    const imgs = window.__quillDashboardInlineFeedback.root.querySelectorAll('img');
-                    imgs.forEach(function(i) { i.remove(); });
-                } catch(_) {}
-            });
-        } catch(_) {}
-
-    } catch(e) {
-        console.warn('Failed to init dashboard inline feedback editor:', e);
-    }
+    } catch {}
 }
+
+$(document).on('click', '.feedback-edit-btn', function () {
+    const item = $(this).closest('.feedback-item')
+    const feedbackId = item.data('feedbackId')
+    let htmlContent = item.find('.feedback-comment').clone().children('.feedback-actions').remove().end().html()?.trim() || ''
+    htmlContent = htmlContent.replace(/$/gi, '').trim()
+    const quill = window.__quillDashboardInlineFeedback
+
+    if (!quill) {
+        const wait = setInterval(() => {
+            if (window.__quillDashboardInlineFeedback) {
+                $('#inline_edit_feedback_input').val(feedbackId)
+                $('#inline_feedback_editor .ql-editor').focus()
+            }
+        }, 100)
+        return
+    }
+
+    quill.clipboard.dangerouslyPasteHTML(htmlContent)
+    $('#inline_edit_feedback_input').val(feedbackId)
+    $('#inline_feedback_editor .ql-editor').focus()
+})
 
 // Show inline image preview
 function showDashboardInlineImagePreview(fileObj, dataUrl) {
@@ -918,7 +775,7 @@ function showDashboardInlineImagePreview(fileObj, dataUrl) {
 
         const imageLabel = document.createElement('div');
         imageLabel.className = 'custom-image-upload position-relative';
-        imageLabel.style.cssText = 
+        imageLabel.style.cssText =
             'width: 32px; height: 32px; ' +
             'background-image: url(\'' + dataUrl + '\'); ' +
             'background-size: cover; background-position: center center; background-repeat: no-repeat; ' +
@@ -929,7 +786,7 @@ function showDashboardInlineImagePreview(fileObj, dataUrl) {
         clearBtn.className = 'image-clear-btn';
         clearBtn.innerHTML = '&times;';
         clearBtn.title = 'Remove image';
-        clearBtn.style.cssText = 
+        clearBtn.style.cssText =
             'position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; ' +
             'border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; ' +
             'text-align: center; cursor: pointer; font-weight: 700; border: none; ' +
@@ -1017,127 +874,29 @@ function renderDashboardInlineFeedbackFilesPreview() {
 
 // Submit inline feedback
 function submitDashboardInlineFeedback(taskId) {
-    try {
-        const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
-        const sendBtn = document.getElementById('inlineFeedbackSendBtn');
-        
-        // Get feedback content from Quill
-        let feedbackHtml = '';
-        try {
-            if (window.__quillDashboardInlineFeedback && window.__quillDashboardInlineFeedback.root) {
-                feedbackHtml = window.__quillDashboardInlineFeedback.root.innerHTML.trim();
-            }
-        } catch(_) {}
+    const content = window.__quillDashboardInlineFeedback?.root?.innerHTML?.trim();
+    if (!content) return;
+    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+    const formData = new FormData();
+    formData.append('feedback_comment', content);
+    const sendBtn = document.getElementById('inlineFeedbackSendBtn');
+    sendBtn.disabled = true;
 
-        // Validate content
-        const textContent = feedbackHtml.replace(/<[^>]+>/g, '').trim();
-        if (!textContent && !window.__dashboardInlineFeedbackImageFile && !(window.dashboardInlineFeedbackSelectedFiles && window.dashboardInlineFeedbackSelectedFiles.length)) {
-            alert('Please enter feedback comment or attach files');
-            return;
-        }
+    const editId = window.__dashboardEditingFeedbackId;
+    const method = editId ? 'PUT' : 'POST';
+    const url = editId ? `${appUrl}/task-feedbacks/${editId}` : `${appUrl}/task-feedbacks`;
 
-        // Show loading state
-        const originalBtnHtml = sendBtn ? sendBtn.innerHTML : '';
-        if (sendBtn) {
-            sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-            sendBtn.disabled = true;
-        }
-
-        // Build FormData
-        const formData = new FormData();
-        formData.append('task_id', taskId);
-        formData.append('employee_id', document.getElementById('taskFeedbackModal')?.dataset?.employeeId || '');
-        formData.append('feedback_comment', feedbackHtml);
-
-        // Add image if selected
-        if (window.__dashboardInlineFeedbackImageFile) {
-            formData.append('feedback_image', window.__dashboardInlineFeedbackImageFile);
-        }
-
-        // Add files if selected
-        if (Array.isArray(window.dashboardInlineFeedbackSelectedFiles) && window.dashboardInlineFeedbackSelectedFiles.length > 0) {
-            window.dashboardInlineFeedbackSelectedFiles.forEach(file => {
-                formData.append('reference_files[]', file);
-            });
-        }
-
-        // Submit via fetch
-        fetch((appUrl ? appUrl : '') + '/task-feedbacks', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: formData
-        })
+    fetch(url, { method, body: formData })
         .then(r => r.json())
-        .then(res => {
-            // Show success message
-            const msg = res.message || 'Feedback submitted successfully!';
-            if (typeof window.showAlertMsg === 'function') {
-                window.showAlertMsg(msg, 'light', 2000);
-            } else if (typeof showFloatingAlert === 'function') {
-                showFloatingAlert(msg, 'success');
-            }
-
-            // Clear editor and files
-            try {
-                if (window.__quillDashboardInlineFeedback && window.__quillDashboardInlineFeedback.root) {
-                    window.__quillDashboardInlineFeedback.root.innerHTML = '';
-                }
-            } catch(_) {}
-
-            // Clear image preview
-            try {
-                const imagePreview = document.getElementById('inline_feedback_image_preview');
-                if (imagePreview && imagePreview.parentNode) {
-                    imagePreview.parentNode.removeChild(imagePreview);
-                }
-                window.__dashboardInlineFeedbackImageFile = null;
-                const imageInput = document.getElementById('inline_feedback_image_input');
-                if (imageInput) imageInput.value = '';
-            } catch(_) {}
-
-            // Clear files preview
-            try {
-                window.dashboardInlineFeedbackSelectedFiles = [];
-                renderDashboardInlineFeedbackFilesPreview();
-                const filesInput = document.getElementById('inline_feedback_files_input');
-                if (filesInput) filesInput.value = '';
-            } catch(_) {}
-
-            // Reload feedback list
+        .then(() => {
+            window.__dashboardEditingFeedbackId = null;
+            sendBtn.textContent = 'Send';
+            window.__quillDashboardInlineFeedback.root.innerHTML = '';
             loadDashboardTaskFeedbackData(taskId);
-
-            // Update feedback count on card
-            try {
-                const selector = `.feedback-comments-count[data-task-id="${taskId}"]`;
-                let countEl = document.querySelector(selector);
-                const cur = countEl ? parseInt(countEl.textContent || '0', 10) || 0 : 0;
-                const newCount = cur + 1;
-                setDashboardFeedbackCount(taskId, newCount);
-            } catch(_) {}
-        })
-        .catch(err => {
-            const msg = 'Failed to submit feedback. Please try again.';
-            if (typeof window.showAlertMsg === 'function') {
-                window.showAlertMsg(msg, 'light', 3000);
-            } else if (typeof showFloatingAlert === 'function') {
-                showFloatingAlert(msg, 'danger');
-            } else {
-                alert(msg);
-            }
         })
         .finally(() => {
-            if (sendBtn) {
-                sendBtn.innerHTML = originalBtnHtml;
-                sendBtn.disabled = false;
-            }
+            sendBtn.disabled = false;
         });
-
-    } catch(e) {
-        console.error('Submit feedback error:', e);
-    }
 }
 
 // ensure floating alert util exists (fallback only). Prefer global one from attendance.js
