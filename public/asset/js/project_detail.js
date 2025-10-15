@@ -1095,13 +1095,11 @@
                                             a.href = u;
                                             a.target = "_blank";
                                             a.className =
-                                                "feedback-reference-url bg-light rounded-2 ms-2";
-                                            a.style.width = "60%";
-                                            a.style.height = "28px";
-                                            a.style.color = "#444444";
+                                                "feedback-reference-url ref-link bg-light rounded-2 ms-2";
+                                            const urlObj = new URL(u);
+                                            const domain = urlObj.hostname.replace("wwww", "");
                                             a.innerHTML =
-                                                '<span class="material-symbols-outlined" style="color: #444444;">link</span> Link ' +
-                                                (idx + 1);
+                                                '<span class="material-symbols-outlined" style="color: #444444;">link</span>' + domain;
                                             refWrap.appendChild(a);
                                         } catch (_) {}
                                     });
@@ -1121,9 +1119,9 @@
                                             af.style.width = "60%";
                                             af.style.height = "28px";
                                             af.style.color = "#444444";
+                                            const fileName = f.split('/').pop();
                                             af.innerHTML =
-                                                '<span class="material-symbols-outlined" style="color: #444444;">draft</span> FILE ' +
-                                                (idx + 1);
+                                                '<span class="material-symbols-outlined" style="color: #444444;">draft</span> ' + fileName;
                                             refWrap.appendChild(af);
                                         } catch (_) {}
                                     });

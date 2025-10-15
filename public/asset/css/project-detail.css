@@ -792,6 +792,7 @@
 #totalTaskTimeline {
     font-size: 16px;
     font-weight: 500;
+    color: #444444;
 }
 
 #monthTitleTimeline {
@@ -1677,6 +1678,28 @@ input[type="file"]::file-selector-button {
     }
 }
 
+.ref-link {
+  width: 60%;
+  height: 28px;
+  color: #444;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+#monthTitleTimeline{
+    font-size: 14px;
+}
+
+#prevTimelineModal span,
+#nextTimelineModal span,
+#fullscreen-feedback-btn span,
+#fullscreen-tree-btn span,
+#fullscreen-btn span {
+    font-size: 18px;
+}
+
 #taskDetailModal .collab-name {
     font-size: 14px;
     color: #222;
@@ -1735,6 +1758,10 @@ input[type="file"]::file-selector-button {
     z-index: 2;
     transition: color 0.25s;
     height: 40px;
+}
+
+.tab-btn span {
+    font-size: 18px;
 }
 
 .tab-btn:hover {

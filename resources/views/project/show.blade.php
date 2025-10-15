@@ -50,11 +50,11 @@
                     </ul>
                 </div>
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
-                    <span class="material-symbols-outlined">grid_view</span>
+                    <span class="material-symbols-outlined icon">grid_view</span>
                 </button>
                 <button class="btn btn-export-custom" id="exportProjectReportBtn" title="Export Project"
                     data-project-id="{{ $project->id ?? '' }}">
-                    <span class="material-symbols-outlined">download</span>
+                    <span class="material-symbols-outlined icon">download</span>
                 </button>
             </div>
         </div>
