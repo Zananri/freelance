@@ -366,8 +366,11 @@
     font-weight: 600;
 }
 
+#timelineFullscreenIcon,
 #prevTimeline,
+#prevTimeline span,
 #nextTimeline,
+#nextTimeline span,
 #prevTimelineModal,
 #nextTimelineModal,
 #prevTimeline:focus,
@@ -379,6 +382,8 @@
 #nextTimelineModal:active,
 #prevTimelineModal:active {
     border: none;
+    font-size: 18px;
+    color: #444444;
 }
 
 @keyframes slideInTop {

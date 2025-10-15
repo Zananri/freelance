@@ -792,6 +792,7 @@
 #totalTaskTimeline {
     font-size: 16px;
     font-weight: 500;
+    color: #444444;
 }
 
 #monthTitleTimeline {
@@ -1677,6 +1678,28 @@ input[type="file"]::file-selector-button {
     }
 }
 
+.ref-link {
+  width: 60%;
+  height: 28px;
+  color: #444;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+}
+
+#monthTitleTimeline{
+    font-size: 14px;
+}
+
+#prevTimelineModal span,
+#nextTimelineModal span,
+#fullscreen-feedback-btn span,
+#fullscreen-tree-btn span,
+#fullscreen-btn span {
+    font-size: 18px;
+}
+
 #taskDetailModal .collab-name {
     font-size: 14px;
     color: #222;
@@ -1735,6 +1758,10 @@ input[type="file"]::file-selector-button {
     z-index: 2;
     transition: color 0.25s;
     height: 40px;
+}
+
+.tab-btn span {
+    font-size: 18px;
 }
 
 .tab-btn:hover {
@@ -1809,19 +1836,20 @@ input[type="file"]::file-selector-button {
         box-shadow: 0 2px 6px rgba(236, 237, 245, 1);
     }
 
-    .project-detail-header .d-flex.align-items-center {
+    .project-detail-header .button-group {
         width: 100%;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
         gap: 8px;
     }
 
     .project-detail-header .btn-contributor-custom {
-        flex: 1;
         padding: 8px 12px;
         font-size: 14px;
     }
 
     .project-detail-header .btn-submit-black {
-        flex: 2;
         padding: 8px 12px;
         font-size: 14px;
     }
@@ -1832,6 +1860,22 @@ input[type="file"]::file-selector-button {
 
     .table-transparent {
         width: 200%;
+    }
+
+    .table-transparent th:first-child,
+    .table-transparent td:first-child {
+        position: sticky;
+        left: -22px !important;
+        max-width: 150px !important;
+        width: 150px !important;
+    }
+
+    .executor-wrapper,
+    .task-name-wrapper {
+        max-width: 80px !important;
+        width: 80px !important;
+        padding: 2px !important;
+        gap: 2px !important;
     }
 }
 
@@ -2081,7 +2125,7 @@ input[type="file"]::file-selector-button {
 }
 
 .executor-wrapper,
-.picname-wrapper{
+.task-name-wrapper{
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -2094,6 +2138,6 @@ input[type="file"]::file-selector-button {
 }
 
 .executor-wrapper::-webkit-scrollbar,
-.picname-wrapper::-webkit-scrollbar {
+.task-name-wrapper::-webkit-scrollbar {
     display: none;
 }
