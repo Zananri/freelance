@@ -147,6 +147,12 @@ class Project extends Model
             ]);
         }
         
+        // Update legacy_parent_id field if exists (for tree structure positioning)
+        if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
+            $this->legacy_parent_id = $parentId;
+            $this->save();
+        }
+        
         return $this;
     }
 
@@ -192,6 +198,12 @@ class Project extends Model
         \DB::table('project_parents')
             ->where('project_id', $this->id)
             ->delete();
+        
+        // Clear legacy_parent_id field if exists
+        if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
+            $this->legacy_parent_id = null;
+            $this->save();
+        }
             
         return $this;
     }

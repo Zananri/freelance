@@ -4,6 +4,8 @@
 	var appUrl = (document.querySelector('meta[name="app-url"]')?.getAttribute('content')||'').replace(/\/$/, '');
 	var projectsRaw = [];
 	var isInitialized = false;
+	var currentProjectId = null;
+	var $globalMenu = null;
 
 	function normalizeStatus(v){
 		var s = String(v||'').toLowerCase();
@@ -60,12 +62,34 @@
 				});
 				$handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
 				$card.append($handle);
-
-				$card.hover(
-					function () { $(this).find('.plumb-handle').removeClass('d-none'); },
-					function () { $(this).find('.plumb-handle').addClass('d-none'); }
-				);
 			}
+			
+			// Add three-dot menu button (circular, half outside top-right corner) - smaller
+			if ($card.find('.more-menu-btn').length === 0) {
+				const $moreBtn = $('<div class="more-menu-btn d-none" title="More options"\
+					style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;background:#fff;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);z-index:9999;pointer-events:auto;user-select:none;-webkit-user-select:none;border:1px solid rgba(0,0,0,0.08);">\
+					<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style="color:#666;">\
+					<circle cx="2" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="14" cy="8" r="1.2"/>\
+					</svg></div>');
+				$moreBtn.attr('draggable', false);
+				$moreBtn.on('click', function(e){ 
+					try { 
+						e.stopPropagation(); 
+						e.preventDefault();
+						showMenu(e, p.id);
+					} catch(_){} 
+				});
+				$card.append($moreBtn);
+			}
+
+			$card.hover(
+				function () { 
+					$(this).find('.plumb-handle, .more-menu-btn').removeClass('d-none'); 
+				},
+				function () { 
+					$(this).find('.plumb-handle, .more-menu-btn').addClass('d-none'); 
+				}
+			);
 		} catch(_) {}
 
 		$tpl.find('.task-name').text(p.title||'Untitled');
@@ -119,8 +143,82 @@
 				try { if (typeof showFloatingAlert==='function') showFloatingAlert('Gagal memuat project tree','warning',3000); } catch(_){ }
 			});
 	}
+	
+	// Expose fetchTree globally
+	window.fetchProjectTree = fetchTree;
 
 	function projectMap(){ var m={}; (projectsRaw||[]).forEach(function(p){ m[String(p.id)] = p; }); return m; }
+
+	function showMenu(e, projectId) {
+		try {
+			hideMenu();
+			currentProjectId = projectId;
+			
+			if (!$globalMenu || !$globalMenu.length) {
+				$globalMenu = $('<div id="project-global-more-menu" class="d-none" style="position:fixed;min-width:140px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;overflow:hidden;pointer-events:auto;"><button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button></div>');
+				$('body').append($globalMenu);
+			}
+			
+			var x = e.clientX || (e.originalEvent && e.originalEvent.clientX) || 0;
+			var y = e.clientY || (e.originalEvent && e.originalEvent.clientY) || 0;
+			
+			$globalMenu.css({ left: x + 'px', top: y + 'px' }).removeClass('d-none');
+			
+			setTimeout(function() {
+				$(document).one('click', hideMenu);
+			}, 50);
+		} catch(_) {}
+	}
+	
+	function hideMenu() {
+		try {
+			if ($globalMenu && $globalMenu.length) {
+				$globalMenu.addClass('d-none');
+			}
+			currentProjectId = null;
+		} catch(_) {}
+	}
+	
+	// Clear Parent action
+	$(document).on('click', '#project-global-more-menu .clear-parent-action', function(e){
+		try {
+			e.preventDefault(); e.stopPropagation();
+			var projectId = currentProjectId;
+			if (!projectId) return;
+			hideMenu();
+			
+			// Clear all parents: set parent_ids to empty array
+			$.ajax({
+				url: appUrl + '/project/' + encodeURIComponent(String(projectId)) + '/parents',
+				type: 'DELETE',
+				dataType: 'json',
+				headers: {
+					'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
+					'X-Requested-With': 'XMLHttpRequest'
+				}
+			})
+			.done(function(res){
+				try {
+					if (typeof window.refreshProjectTreePartial === 'function') {
+						window.refreshProjectTreePartial();
+					} else {
+						fetchTree();
+					}
+					if (typeof window.showFloatingAlert === 'function') {
+						window.showFloatingAlert('Semua parent dibersihkan', 'success', 1400);
+					}
+				} catch(_){}
+			})
+			.fail(function(xhr){
+				try {
+					console.error('Gagal clear parent', xhr && xhr.responseText);
+					if (typeof window.showFloatingAlert === 'function') {
+						window.showFloatingAlert('Gagal menghapus parent', 'warning', 2400);
+					} else { alert('Gagal menghapus parent'); }
+				} catch(_){}
+			});
+		} catch(_){}
+	});
 
 	function isDescendant(sourceId, targetId){
 		try{
@@ -183,11 +281,24 @@
 			try { if (e.originalEvent && e.originalEvent.dataTransfer) dragData = e.originalEvent.dataTransfer.getData('text/plain'); } catch(_){}
 			var draggedId = dragData || window.__dragProjectId;
 			if (!draggedId) return;
-			$.ajax({ url: appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents', type:'DELETE', dataType:'json' })
+			$.ajax({ 
+				url: appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents', 
+				type:'DELETE', 
+				dataType:'json',
+				headers: {
+					'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
+					'X-Requested-With': 'XMLHttpRequest'
+				}
+			})
 				.done(function(){
-					var map = projectMap(); var p = map[String(draggedId)]; if (p){ p.parent_ids = []; p.legacy_parent_id = null; }
-					renderTree(projectsRaw);
-					try{ if (typeof showFloatingAlert==='function') showFloatingAlert('Project dikeluarkan dari parent','success',2000);}catch(_){ }
+					try {
+						if (typeof window.refreshProjectTreePartial === 'function') {
+							window.refreshProjectTreePartial();
+						} else {
+							fetchTree();
+						}
+						if (typeof showFloatingAlert==='function') showFloatingAlert('Project dikeluarkan dari parent','success',2000);
+					} catch(_){ }
 				})
 				.fail(function(xhr){ console.error('Failed to clear parents', xhr?.responseText); alert('Gagal memindahkan project. Coba lagi.'); });
 		});
@@ -201,11 +312,25 @@
 			if (!draggedId || !targetId) return;
 			if (String(draggedId)===String(targetId) || isDescendant(draggedId, targetId)) return;
 			var url = appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents';
-			$.ajax({ url: url, type:'POST', dataType:'json', data: { parent_id: String(targetId) } })
+			$.ajax({ 
+				url: url, 
+				type:'POST', 
+				dataType:'json', 
+				data: { parent_id: String(targetId) },
+				headers: {
+					'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
+					'X-Requested-With': 'XMLHttpRequest'
+				}
+			})
 				.done(function(){
-					var map = projectMap(); var p = map[String(draggedId)]; if (p){ p.parent_ids = [Number(targetId)]; p.legacy_parent_id = null; }
-					renderTree(projectsRaw);
-					try { showFloatingAlert('Project berhasil menjadi sub dari parent', 'success', 2000); } catch(_){ }
+					try {
+						if (typeof window.refreshProjectTreePartial === 'function') {
+							window.refreshProjectTreePartial();
+						} else {
+							fetchTree();
+						}
+						if (typeof showFloatingAlert === 'function') showFloatingAlert('Project berhasil menjadi sub dari parent', 'success', 2000);
+					} catch(_){ }
 				})
 				.fail(function(xhr){ console.error('Failed to set parent', xhr?.responseText); alert('Gagal mengatur parent project.'); });
 		});

@@ -3701,7 +3701,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         const refContainer =
                                             document.createElement("div");
                                         refContainer.className =
-                                            "feedback-reference-container mb-2";
+                                            "feedback-reference-container mb-2 row";
 
                                         // Render one or multiple reference URLs
                                         (function () {
@@ -3735,11 +3735,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     document.createElement("a");
                                                 a.href = u;
                                                 a.target = "_blank";
+                                            const urlObj = new URL(u);
+                                            const domain = urlObj.hostname.replace("wwww", "");
                                                 a.className =
-                                                    "feedback-reference-url me-2";
-                                                a.innerHTML = `<span class="material-symbols-outlined">link</span> Link ${
-                                                    idx + 1
-                                                }`;
+                                                    "feedback-reference-url ref-link bg-light rounded-2";
+                                                a.innerHTML = `<span class="material-symbols-outlined" style="color: #444444;">link</span> ${domain}`;
                                                 refContainer.appendChild(a);
                                             });
                                         })();
@@ -3799,10 +3799,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 a.href = fileHref;
                                                 a.download = "";
                                                 a.className =
-                                                    "feedback-reference-file ms-2";
-                                                a.innerHTML = `<span class=\"material-symbols-outlined\">draft</span> FILE ${
-                                                    idx + 1
-                                                }`;
+                                                    "feedback-reference-file bg-light rounded-2";
+                                                a.style.width = "60%";
+                                                a.style.height = "28px";
+                                                const fileName = fileHref.split("/").pop() || "";
+                                                a.innerHTML = `<span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}`;
                                                 refContainer.appendChild(a);
                                             });
                                         })();
