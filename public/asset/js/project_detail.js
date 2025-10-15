@@ -3412,17 +3412,6 @@
                                             hasRefFiles = true;
                                     }
                                 } catch (_) {}
-                                var plainText = String(html || "")
-                                    .replace(/<[^>]+>/g, "")
-                                    .trim();
-                                if (!plainText && !hasImage && !hasRefFiles) {
-                                    window.showFloatingAlert &&
-                                        window.showFloatingAlert(
-                                            "Please write feedback or attach a file",
-                                            "warning"
-                                        );
-                                    return;
-                                }
 
                                 var fd = new FormData();
                                 fd.append("feedback_comment", html);
