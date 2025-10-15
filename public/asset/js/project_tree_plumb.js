@@ -20,9 +20,55 @@
     var csrf = window.csrfToken || meta("csrf-token") || "";
 
     var instance = null;
+    var currentProjects = [];
+    var eventsAttached = false;
 
     function getElId(projectId) {
         return "proj-node-" + String(projectId);
+    }
+
+    // Partial refresh function to reload tree without full page reload
+    function refreshProjectTreePartial() {
+        try {
+            // Find element near viewport center for scroll preservation
+            var $tree = $("#task-tree");
+            var viewportTop = $tree.scrollTop();
+            var viewportHeight = $tree.height();
+            var viewportCenter = viewportTop + viewportHeight / 2;
+            
+            var $cards = $tree.find('.task-box[data-project-id]');
+            var anchorId = null;
+            var anchorOffset = 0;
+            
+            $cards.each(function() {
+                var $card = $(this);
+                var cardTop = $card.position().top;
+                if (cardTop >= viewportCenter - 100 && cardTop <= viewportCenter + 100) {
+                    anchorId = $card.attr('data-project-id');
+                    anchorOffset = viewportTop - cardTop;
+                    return false; // break
+                }
+            });
+            
+            // Clear all connections and reset instance before re-rendering
+            clearAll();
+            
+            // Fetch fresh data and re-render
+            if (typeof window.fetchProjectTree === 'function') {
+                window.fetchProjectTree().done(function() {
+                    // Restore scroll position
+                    if (anchorId) {
+                        setTimeout(function() {
+                            var $anchor = $tree.find('.task-box[data-project-id="' + anchorId + '"]');
+                            if ($anchor.length) {
+                                var newTop = $anchor.position().top + anchorOffset;
+                                $tree.scrollTop(newTop);
+                            }
+                        }, 100);
+                    }
+                });
+            }
+        } catch(_) {}
     }
 
     function ensureInstance() {
@@ -44,8 +90,8 @@
             }
             instance.importDefaults({
                 Connector: ["Flowchart", {
-                stub: [60, 60],
-                cornerRadius: 30,
+                stub: [10, 10],
+                cornerRadius: 8,
                 }],
                 Endpoint: ["Dot", { radius: 2 }],
                 PaintStyle: { stroke: "#D2D3E1", strokeWidth: 2 },
@@ -119,14 +165,22 @@
         if (!inst) return;
         try {
             inst.deleteEveryConnection();
-            inst.reset();
+            // Clear all endpoints and connections
+            inst.deleteEveryEndpoint();
         } catch (_) {}
-        instance = null;
     }
 
     function attachEvents() {
         var inst = ensureInstance();
         if (!inst) return;
+        
+        // Unbind all previous events first to avoid duplicates
+        try {
+            inst.unbind("connection");
+            inst.unbind("click");
+        } catch(_) {}
+        
+        eventsAttached = true;
         try {
             inst.bind("connection", function (info, originalEvent) {
                 try {
@@ -153,12 +207,30 @@
                     var parentId = source.replace("proj-node-", "");
                     var childId = target.replace("proj-node-", "");
                     try {
-                        if (sRect && tRect && tRect.left < sRect.left - 5) {
-                            parentId = target.replace("proj-node-", "");
-                            childId = source.replace("proj-node-", "");
+                        if (sRect && tRect) {
+                            // Check horizontal first (left card = parent, right card = child)
+                            var horizontalDiff = Math.abs(tRect.left - sRect.left);
+                            
+                            if (horizontalDiff > 10) {
+                                // Horizontal layout: left = parent, right = child
+                                if (tRect.left < sRect.left - 5) {
+                                    parentId = target.replace("proj-node-", "");
+                                    childId = source.replace("proj-node-", "");
+                                }
+                            } else {
+                                // Vertical layout: top = parent, bottom = child
+                                if (sRect.top > tRect.top + 5) {
+                                    parentId = target.replace("proj-node-", "");
+                                    childId = source.replace("proj-node-", "");
+                                }
+                            }
                         }
                     } catch (_) {}
                     if (!parentId || !childId || parentId === childId) return;
+                    
+                    // Store the connection temporarily
+                    var tempConnection = info.connection;
+                    
                     $.ajax({
                         url:
                             appUrl +
@@ -180,9 +252,11 @@
                                 (res.status === "success" || res.code === 200)
                             );
                             if (!ok) {
+                                // If failed, remove the connection
                                 try {
-                                    info.connection &&
-                                        inst.deleteConnection(info.connection);
+                                    if (tempConnection) {
+                                        inst.deleteConnection(tempConnection, { fireEvent: false });
+                                    }
                                 } catch (_) {}
                                 try {
                                     window.showFloatingAlert &&
@@ -202,16 +276,24 @@
                                             1400
                                         );
                                 } catch (_) {}
-                                try {
-                                    inst.repaintEverything &&
-                                        inst.repaintEverything();
-                                } catch (_) {}
+                                // Reload only the tree content to reflect new relationship
+                                refreshProjectTreePartial();
                             }
                         })
                         .fail(function () {
+                            // If failed, remove the connection
                             try {
-                                info.connection &&
-                                    inst.deleteConnection(info.connection);
+                                if (tempConnection) {
+                                    inst.deleteConnection(tempConnection, { fireEvent: false });
+                                }
+                            } catch (_) {}
+                            try {
+                                window.showFloatingAlert &&
+                                    window.showFloatingAlert(
+                                        "Gagal menambah parent",
+                                        "warning",
+                                        2800
+                                    );
                             } catch (_) {}
                         });
                 } catch (_) {}
@@ -229,12 +311,30 @@
                         var $sEl = $("#" + sId), $tEl = $("#" + tId);
                         var sRect = $sEl.length ? $sEl.get(0).getBoundingClientRect() : null;
                         var tRect = $tEl.length ? $tEl.get(0).getBoundingClientRect() : null;
-                        if (sRect && tRect && tRect.left < sRect.left - 5) {
-                            parentId = tId.replace("proj-node-", "");
-                            childId = sId.replace("proj-node-", "");
+                        if (sRect && tRect) {
+                            // Check horizontal first (left card = parent, right card = child)
+                            var horizontalDiff = Math.abs(tRect.left - sRect.left);
+                            
+                            if (horizontalDiff > 10) {
+                                // Horizontal layout: left = parent, right = child
+                                if (tRect.left < sRect.left - 5) {
+                                    parentId = tId.replace("proj-node-", "");
+                                    childId = sId.replace("proj-node-", "");
+                                }
+                            } else {
+                                // Vertical layout: top = parent, bottom = child
+                                if (sRect.top > tRect.top + 5) {
+                                    parentId = tId.replace("proj-node-", "");
+                                    childId = sId.replace("proj-node-", "");
+                                }
+                            }
                         }
                     } catch (_) {}
                     if (!parentId || !childId) return;
+                    
+                    // Store connection reference
+                    var connectionToDelete = conn;
+                    
                     $.ajax({
                         url: appUrl + "/project/" + encodeURIComponent(childId) + "/parents",
                         type: "DELETE",
@@ -249,14 +349,10 @@
                         .done(function (res) {
                             if (res && (res.status === "success" || res.code === 200)) {
                                 try {
-                                    inst.deleteConnection(conn);
-                                } catch (_) {}
-                                try {
                                     window.showFloatingAlert && window.showFloatingAlert("Parent dihapus", "success", 1200);
                                 } catch (_) {}
-                                try {
-                                    inst.repaintEverything && inst.repaintEverything();
-                                } catch (_) {}
+                                // Reload tree to reflect changes
+                                refreshProjectTreePartial();
                             } else {
                                 try {
                                     window.showFloatingAlert && window.showFloatingAlert((res && res.message) || "Gagal menghapus parent", "warning", 2800);
@@ -286,6 +382,7 @@
         } catch (_) {}
         var inst = ensureInstance();
         if (!inst) return;
+        try { currentProjects = Array.isArray(projects) ? projects.slice() : []; } catch(_) { currentProjects = []; }
         try {
             $.each(projects || [], function (_i, p) {
                 var $el = $("#" + getElId(p.id));
@@ -293,7 +390,10 @@
             });
         } catch (_) {}
         layConnections(projects);
-        attachEvents();
+        // Only attach events once, don't re-attach on every init
+        if (!eventsAttached) {
+            attachEvents();
+        }
         try {
             inst.repaintEverything && inst.repaintEverything();
         } catch (_) {}
@@ -305,6 +405,8 @@
             init(projects);
         }, 60);
     };
+    
+    window.refreshProjectTreePartial = refreshProjectTreePartial;
 
     try {
         $(window).on("resize", function () {
