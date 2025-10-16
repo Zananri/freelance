@@ -1008,12 +1008,41 @@
     height: 25px;
 }
 
-#fullscreen-tree-btn {
+/* Icon control buttons (fullscreen tree + add task) - keep identical sizing and alignment */
+#fullscreen-tree-btn,
+#add-task-btn {
     background: #f0f1f8;
+    border: none;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #898989; /* icon color */
+}
+
+#fullscreen-tree-btn {
+    /* keep existing sticky positioning for fullscreen control when needed */
     position: sticky;
     top: 0;
     right: 0;
     z-index: 10;
+}
+
+#fullscreen-tree-btn span,
+#add-task-btn span {
+    font-size: 18px; /* icon size */
+}
+
+@media (max-width: 480px) {
+    #fullscreen-tree-btn,
+    #add-task-btn {
+        width: 36px;
+        height: 36px;
+    }
 }
 
 .task-box {
