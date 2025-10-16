@@ -12,6 +12,8 @@ use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
 use App\Models\EmployeeShift;
+use App\Models\Project;
+use App\Models\ProjectAssignment;
 
 class DashboardController extends Controller
 {
@@ -23,6 +25,9 @@ class DashboardController extends Controller
         // 'user_role' => 'required|string|in:CEO,GENERAL_MANAGER,MANAGER,LEADER,HR_MANAGER,FINANCE_MANAGER,EMPLOYEE',
 
         if(in_array($user->user_type,['MANAGEMENT']) && in_array($user->user_role,['CEO'])){
+            return $this->dashboard_management();
+        }
+        elseif(in_array($user->user_type,['ADMINISTATOR']) && in_array($user->user_role,['ADMINISTATOR','HR_MANAGER'])){
             return $this->dashboard_management();
         }
         elseif(in_array($user->user_type,['MANAGEMENT']) && in_array($user->user_role,['GENERAL_MANAGER'])){
@@ -95,14 +100,32 @@ class DashboardController extends Controller
         ->whereNotIn('name_division',$arrOtheDivision)
         ->get();
 
+        $projectAssignEmployeeIds = ProjectAssignment::whereIn('employee_id',$employeeId)->pluck('project_id');
 
+        $project = Project::select('projects.*',
+            DB::raw('(SELECT COUNT(tasks.id) FROM tasks WHERE tasks.project_id = projects.id AND tasks.status NOT IN ("CANCELED","DELETED")) as total_task')
+            // ,
+            // DB::raw('
+            //         (SELECT JSON_PRETTY( JSON_OBJECT(
+            //             "employee_id",project_assignments.employee_id,
+            //             "role",project_assignments.role
+            //             )
+            //         ) as project_assignt_employee
+            //     FROM project_assignments WHERE project_assignments.project_id = projects.id) as project_assignment'),
+            
+            )
+            ->whereIn('id',$projectAssignEmployeeIds)
+            ->where('status',"ACTIVE")
+            ->orderBy('id','desc')
+        ->get();
 
         return view('dashboard_management',
             [
                 'employee' => $employee,
                 'current_employee' => $currentEmployee,
                 'total_employee' => $totalEmployee,
-                'division_total' => $divisionTotal
+                'division_total' => $divisionTotal,
+                'project' => $project
             ]
         );
 
