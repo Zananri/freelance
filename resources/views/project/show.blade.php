@@ -128,9 +128,14 @@
                         <div id="task-error" class="alert alert-danger d-none" role="alert">
                             Failed to load tasks. Please try again.
                         </div>
-                        <div class="d-flex justify-content-end">
-                            <button class="btn btn-sm border-0" id="fullscreen-tree-btn">
+                        <div class="d-flex justify-content-end align-items-center">
+                            <button class="btn btn-sm border-0" id="fullscreen-tree-btn" title="Toggle Fullscreen">
                                 <span class="material-symbols-outlined">fullscreen</span>
+                            </button>
+
+                            <!-- Add Task button: icon-only plus, same compact style as fullscreen -->
+                            <button class="btn btn-sm border-0 ms-2" id="add-task-btn" title="Add Task">
+                                <span class="material-symbols-outlined">add</span>
                             </button>
                         </div>
 
