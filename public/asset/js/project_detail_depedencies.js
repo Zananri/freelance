@@ -1667,3 +1667,4 @@ function initTaskDetailModal() {
     // Hide on scroll
     $(window).on('scroll', function(){ try { hideMenu(); } catch(_){} });
 })();
+
