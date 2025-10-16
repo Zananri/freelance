@@ -788,7 +788,135 @@
     const addTaskForm = document.getElementById("addTaskForm");
     const projectSelect = document.getElementById("task_project_id");
 
+    // Helper function to load tasks from a specific project for "Related to Task" dropdown
+    function loadProjectTasksForRelated(projectId) {
+        if (!projectId) return;
+        
+        const taskParentDropdown = document.getElementById('task_parent_dropdown');
+        if (!taskParentDropdown) return;
+        
+        // Show loading state
+        taskParentDropdown.innerHTML = '<div class="dropdown-item text-muted">Loading tasks...</div>';
+        taskParentDropdown.style.display = 'block';
+        
+        // Fetch tasks for this project
+        fetch(appUrl + '/projects/' + projectId + '/tasks/tree', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const tasks = data.data || data || [];
+            
+            if (tasks.length === 0) {
+                taskParentDropdown.innerHTML = '<div class="dropdown-item text-muted">No tasks available in this project</div>';
+            } else {
+                // Clear and populate with tasks
+                taskParentDropdown.innerHTML = '';
+                tasks.forEach(task => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.style.cursor = 'pointer';
+                    item.textContent = task.title || `Task #${task.id}`;
+                    item.dataset.taskId = task.id;
+                    item.dataset.taskTitle = task.title || '';
+                    
+                    item.addEventListener('click', function() {
+                        document.getElementById('task_parent_id').value = task.id;
+                        document.getElementById('task_parent_input').value = task.title || `Task #${task.id}`;
+                        
+                        const selectedParent = document.getElementById('task_selected_parent');
+                        if (selectedParent) {
+                            selectedParent.innerHTML = `
+                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                                    <span class="flex-grow-1">${task.title || `Task #${task.id}`}</span>
+                                    <button type="button" class="btn btn-sm btn-remove-task remove-task" onclick="this.closest('.selected-task').remove(); document.getElementById('task_parent_id').value=''; document.getElementById('task_parent_input').value='';">
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        taskParentDropdown.style.display = 'none';
+                    });
+                    
+                    taskParentDropdown.appendChild(item);
+                });
+            }
+            
+            // Hide dropdown initially
+            setTimeout(() => {
+                taskParentDropdown.style.display = 'none';
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Error loading project tasks:', error);
+            taskParentDropdown.innerHTML = '<div class="dropdown-item text-danger">Failed to load tasks</div>';
+        });
+    }
+
     function setupImageInput(input, label, clearBtn) {
+        // Setup paste event for screenshot
+        const setupPasteHandler = () => {
+            // Remove existing paste listeners to avoid duplicates
+            const modal = input.closest('.modal');
+            if (modal && !modal.dataset.pasteHandlerAdded) {
+                modal.dataset.pasteHandlerAdded = 'true';
+                
+                modal.addEventListener('paste', function(e) {
+                    try {
+                        const clipboardData = e.clipboardData || window.clipboardData;
+                        if (!clipboardData) return;
+                        
+                        const items = clipboardData.items || [];
+                        for (let i = 0; i < items.length; i++) {
+                            const item = items[i];
+                            if (item.type && item.type.indexOf('image') === 0) {
+                                e.preventDefault();
+                                const blob = item.getAsFile();
+                                if (!blob) continue;
+                                
+                                // Check size limit
+                                if (blob.size > MAX_IMAGE_BYTES) {
+                                    try { 
+                                        if (typeof showFloatingAlert === 'function') 
+                                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); 
+                                    } catch(_) { 
+                                        alert('Image must be smaller than 10 MB.'); 
+                                    }
+                                    return;
+                                }
+                                
+                                // Create a File object from blob
+                                const file = new File([blob], 'pasted-image-' + Date.now() + '.png', { type: blob.type });
+                                
+                                // Create a DataTransfer to set the files
+                                const dataTransfer = new DataTransfer();
+                                dataTransfer.items.add(file);
+                                input.files = dataTransfer.files;
+                                
+                                // Trigger change event
+                                const event = new Event('change', { bubbles: true });
+                                input.dispatchEvent(event);
+                                
+                                // Show floating alert
+                                try { 
+                                    if (typeof showFloatingAlert === 'function') 
+                                        showFloatingAlert('Screenshot pasted successfully!', 'success', 1500); 
+                                } catch(_) {}
+                                
+                                break;
+                            }
+                        }
+                    } catch(err) {
+                        console.error('Paste error:', err);
+                    }
+                }, true);
+            }
+        };
+        
         input.addEventListener("change", function () {
             if (input.files && input.files[0]) {
                 // Enforce image size limit
@@ -829,6 +957,9 @@
             label.classList.remove("is-invalid");
             clearBtn.classList.add("d-none");
         });
+        
+        // Setup paste handler after a short delay to ensure modal is ready
+        setTimeout(setupPasteHandler, 100);
     }
 
     function loadProjects() {
@@ -1123,10 +1254,125 @@
             if (window.clearSelectedExecutors) {
                 window.clearSelectedExecutors();
             }
+            
+            // Reset project input visibility for normal task page
+            const taskProjectInput = document.getElementById('task_project_input');
+            const taskSelectedProject = document.getElementById('task_selected_project');
+            const taskProjectDropdown = document.getElementById('task_project_dropdown');
+            const taskProjectId = document.getElementById('task_project_id');
+            const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
+            
+            // Show entire project container
+            if (taskProjectContainer) {
+                taskProjectContainer.style.display = 'block';
+            }
+            
+            if (taskProjectInput) {
+                taskProjectInput.style.display = 'block';
+                taskProjectInput.setAttribute('required', 'required');
+                taskProjectInput.disabled = false; // Re-enable
+                taskProjectInput.value = '';
+            }
+            
+            if (taskProjectDropdown) {
+                taskProjectDropdown.style.display = 'block';
+                taskProjectDropdown.innerHTML = '';
+            }
+            
+            if (taskSelectedProject) {
+                taskSelectedProject.innerHTML = '';
+                taskSelectedProject.style.display = 'none';
+            }
+            
+            if (taskProjectId) {
+                taskProjectId.value = '';
+            }
+            
+            // Reset parent task selection
+            const taskParentInput = document.getElementById('task_parent_input');
+            const taskParentId = document.getElementById('task_parent_id');
+            const taskSelectedParent = document.getElementById('task_selected_parent');
+            const taskParentDropdown = document.getElementById('task_parent_dropdown');
+            
+            if (taskParentInput) taskParentInput.value = '';
+            if (taskParentId) taskParentId.value = '';
+            if (taskSelectedParent) taskSelectedParent.innerHTML = '';
+            if (taskParentDropdown) {
+                taskParentDropdown.innerHTML = '';
+                taskParentDropdown.style.display = 'none';
+            }
         });
         // When Add Task modal is shown, set sensible defaults if fields are empty.
         addTaskModalEl.addEventListener('show.bs.modal', function () {
             try {
+                // Check if we're on project detail page
+                const projectIdMeta = document.querySelector('meta[name="project-id"]');
+                const currentProjectId = projectIdMeta ? projectIdMeta.getAttribute('content') : null;
+                
+                if (currentProjectId) {
+                    // Auto-fill project for project detail page
+                    const taskProjectIdInput = document.getElementById('task_project_id');
+                    const taskProjectInput = document.getElementById('task_project_input');
+                    const taskSelectedProject = document.getElementById('task_selected_project');
+                    const taskProjectDropdown = document.getElementById('task_project_dropdown');
+                    const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
+                    
+                    if (taskProjectIdInput) {
+                        taskProjectIdInput.value = currentProjectId;
+                    }
+                    
+                    // Hide entire project input container (including label)
+                    if (taskProjectContainer) {
+                        taskProjectContainer.style.display = 'none';
+                    } else {
+                        // Fallback: hide individual elements
+                        if (taskProjectInput) {
+                            taskProjectInput.style.display = 'none';
+                        }
+                        if (taskProjectDropdown) {
+                            taskProjectDropdown.style.display = 'none';
+                        }
+                        if (taskSelectedProject) {
+                            taskSelectedProject.style.display = 'none';
+                        }
+                    }
+                    
+                    // CRITICAL: Remove required attribute and disable to prevent validation error
+                    if (taskProjectInput) {
+                        taskProjectInput.removeAttribute('required');
+                        taskProjectInput.disabled = true;
+                    }
+                    
+                    // Load tasks from current project for "Related to Task" dropdown
+                    loadProjectTasksForRelated(currentProjectId);
+                } else {
+                    // Reset to normal behavior for task page
+                    const taskProjectInput = document.getElementById('task_project_input');
+                    const taskSelectedProject = document.getElementById('task_selected_project');
+                    const taskProjectDropdown = document.getElementById('task_project_dropdown');
+                    const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
+                    
+                    // Show entire project input container
+                    if (taskProjectContainer) {
+                        taskProjectContainer.style.display = 'block';
+                    }
+                    
+                    if (taskProjectInput) {
+                        taskProjectInput.style.display = 'block';
+                        taskProjectInput.setAttribute('required', 'required');
+                        taskProjectInput.disabled = false; // Re-enable
+                    }
+                    
+                    if (taskProjectDropdown) {
+                        taskProjectDropdown.style.display = 'block';
+                    }
+                    
+                    if (taskSelectedProject) {
+                        taskSelectedProject.innerHTML = '';
+                        taskSelectedProject.style.display = 'none';
+                    }
+                }
+                
                 // Priority default: MEDIUM if not selected
                 const prio = document.getElementById('task_priority');
                 if (prio && (!prio.value || String(prio.value).trim() === '')) {
@@ -1267,8 +1513,18 @@
                                 bootstrap.Modal.getInstance(addTaskModalEl);
                             if (addTaskModalInstance)
                                 addTaskModalInstance.hide();
-                            // Reload page after adding task
-                            window.location.href = appUrl + "/task";
+                            
+                            // Check if we're on project detail page
+                            const projectIdMeta = document.querySelector('meta[name="project-id"]');
+                            const currentProjectId = projectIdMeta ? projectIdMeta.getAttribute('content') : null;
+                            
+                            if (currentProjectId) {
+                                // Stay on project detail page and reload
+                                window.location.reload();
+                            } else {
+                                // Redirect to task page (default behavior)
+                                window.location.href = appUrl + "/task";
+                            }
                         }, 1500);
                     }, 800); // Show loading for 800ms before showing success alert
                 },

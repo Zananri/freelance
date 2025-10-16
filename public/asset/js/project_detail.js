@@ -6190,6 +6190,8 @@
         // Image input helper for edit modal
         function setupImageInput(inputEl, labelEl, clearBtnEl) {
             if (!inputEl || !labelEl) return;
+            
+            // Handle file selection
             inputEl.addEventListener("change", function () {
                 var file = this.files && this.files[0];
                 if (!file) return;
@@ -6211,6 +6213,35 @@
                 };
                 reader.readAsDataURL(file);
             });
+            
+            // Add paste event listener for screenshot
+            labelEl.addEventListener("paste", function (e) {
+                try {
+                    e.preventDefault();
+                    var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                    for (var i = 0; i < items.length; i++) {
+                        if (items[i].type.indexOf("image") !== -1) {
+                            var blob = items[i].getAsFile();
+                            
+                            // Create a DataTransfer object to simulate file input
+                            var dataTransfer = new DataTransfer();
+                            dataTransfer.items.add(blob);
+                            inputEl.files = dataTransfer.files;
+                            
+                            // Trigger change event to preview the image
+                            var event = new Event('change', { bubbles: true });
+                            inputEl.dispatchEvent(event);
+                            break;
+                        }
+                    }
+                } catch (err) {
+                    console.warn('Paste screenshot failed:', err);
+                }
+            });
+            
+            // Make label focusable for paste
+            labelEl.setAttribute("tabindex", "0");
+            labelEl.style.cursor = "pointer";
 
             // Helper: build initials from a title string (first+last char or first two chars)
             function buildInitials(title) {
