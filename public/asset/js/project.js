@@ -8424,6 +8424,97 @@ document.addEventListener("DOMContentLoaded", function () {
 
     setupImageInput(imageInput, imageLabel, imageClearBtn);
 
+    // Handle paste-to-upload: allow user to paste image from clipboard into Add/Edit Project modals
+    function extractImageFileFromClipboardEvent(e) {
+        try {
+            if (!e.clipboardData || !e.clipboardData.items) return null;
+            for (let i = 0; i < e.clipboardData.items.length; i++) {
+                const item = e.clipboardData.items[i];
+                if (item && item.type && item.type.indexOf('image') === 0) {
+                    return item.getAsFile();
+                }
+            }
+        } catch (_) {}
+        return null;
+    }
+
+    function applyPastedImageToInput(file, inputEl, labelEl, clearBtnEl) {
+        try {
+            if (!file || !inputEl) return false;
+
+            // Create a DataTransfer so we can set input.files (works in modern browsers)
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            inputEl.files = dt.files;
+
+            // Trigger change event so any listeners react (setupImageInput reacts to change)
+            const evt = new Event('change', { bubbles: true });
+            inputEl.dispatchEvent(evt);
+
+            // Ensure preview shows (in case input change listener wasn't attached yet)
+            try {
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    if (labelEl) {
+                        labelEl.style.backgroundImage = `url('${ev.target.result}')`;
+                        labelEl.classList.add('has-image');
+                        labelEl.style.backgroundSize = 'cover';
+                        labelEl.style.opacity = '1';
+                    }
+                    if (clearBtnEl) clearBtnEl.classList.remove('d-none');
+                };
+                reader.readAsDataURL(file);
+            } catch (_) {}
+
+            return true;
+        } catch (e) { console.warn('applyPastedImageToInput error', e); return false; }
+    }
+
+    // Attach paste listener when add/edit modals are shown
+    function attachModalPasteHandler(modalId, inputEl, labelEl, clearBtnEl) {
+        try {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+
+            // Use a namespaced handler so we can remove it if modal hides
+            function pasteHandler(e) {
+                try {
+                    // Only handle when focus is inside modal (avoid interfering with global clipboard)
+                    if (!modal.classList.contains('show')) return;
+                    const file = extractImageFileFromClipboardEvent(e);
+                    if (file) {
+                        e.preventDefault();
+                        applyPastedImageToInput(file, inputEl, labelEl, clearBtnEl);
+                    }
+                } catch (_) {}
+            }
+
+            modal.addEventListener('paste', pasteHandler);
+
+            // Also attach once to document while modal is open for cases where focus isn't on modal root
+            document.addEventListener('paste', pasteHandler);
+
+            // Clean up when modal hidden: remove the document paste listener to avoid leaks
+            modal.addEventListener('hidden.bs.modal', function cleanup() {
+                try { modal.removeEventListener('paste', pasteHandler); } catch(_){}
+                try { document.removeEventListener('paste', pasteHandler); } catch(_){}
+                try { modal.removeEventListener('hidden.bs.modal', cleanup); } catch(_){}
+            });
+        } catch (e) { /* noop */ }
+    }
+
+    // Wire paste handlers for add & edit modals (use elements already queried above)
+    try {
+        attachModalPasteHandler('addProjectModal', imageInput, imageLabel, imageClearBtn);
+        // edit modal elements are referenced elsewhere; query here lazily
+        const editImageInput = document.getElementById('edit_image') || document.getElementById('edit_image_input') || document.getElementById('edit_image');
+        const editImageLabel = document.getElementById('editImageLabel');
+        const editImageClearBtn = document.getElementById('editImageClearBtn');
+        if (editImageInput || editImageLabel || editImageClearBtn) {
+            attachModalPasteHandler('editProjectModal', editImageInput, editImageLabel, editImageClearBtn);
+        }
+    } catch (e) { console.warn('paste handler setup failed', e); }
+
     // Show loading overlay
     function showLoading() {
         document.getElementById("addModalLoader").classList.remove("d-none");
