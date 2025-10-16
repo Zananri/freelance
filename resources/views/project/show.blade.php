@@ -867,7 +867,7 @@
                                 <input type="text" class="form-control input-text" id="task_project_input"
                                     autocomplete="off" placeholder="Search project..." required>
                                 <div id="task_project_dropdown" class="dropdown-list mt-1"></div>
-                                <div id="task_selected_project" class="mt-2"></div>
+                                <div id="task_selected_project" class="mt-2" style="display: none;"></div>
                                 <input type="hidden" id="task_project_id" name="project_id" value="">
                             </div>
 
@@ -1424,6 +1424,28 @@
             <script src="{{ asset('asset/js/project_detail_plumb.js') }}?v={{ time() }}"></script>
             <script>
                 window.APP_URL = document.querySelector('meta[name="app-url"]').getAttribute('content');
+                
+                // Setup parent task input to show dropdown when user types
+                document.addEventListener('DOMContentLoaded', function() {
+                    const taskParentInput = document.getElementById('task_parent_input');
+                    const taskParentDropdown = document.getElementById('task_parent_dropdown');
+                    
+                    if (taskParentInput && taskParentDropdown) {
+                        // Show dropdown on focus/click if it has content
+                        taskParentInput.addEventListener('focus', function() {
+                            if (taskParentDropdown.children.length > 0 && taskParentDropdown.innerHTML.trim() !== '') {
+                                taskParentDropdown.style.display = 'block';
+                            }
+                        });
+                        
+                        // Hide dropdown when clicking outside
+                        document.addEventListener('click', function(e) {
+                            if (!taskParentInput.contains(e.target) && !taskParentDropdown.contains(e.target)) {
+                                taskParentDropdown.style.display = 'none';
+                            }
+                        });
+                    }
+                });
             </script>
             <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
         </x-slot>
