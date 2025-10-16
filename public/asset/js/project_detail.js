@@ -8807,37 +8807,94 @@ function statusLabel(statusRaw) {
         });
     }
 
-function handleTaskDetail(taskId) {
-    if (typeof window.handleTaskDetail === 'function') {
-        return window.handleTaskDetail(taskId);
+    function getTaskInitials(title) {
+        if (!title) return "NA";
+        const words = title.trim().split(/\s+/);
+        if (words.length === 1) {
+            return words[0].substring(0, 2).toUpperCase();
+        }
+        return (words[0][0] + words[words.length - 1][0]).toUpperCase();
     }
 
-    // Fallback implementation
-    $.getJSON(`${appUrl}/task/${taskId}`)
-        .done(function(response) {
-            const task = response?.data || response;
-            if (!task) return;
+    function getRandomColorFromText(text) {
+        const colors = [
+            "#6A5AE0", "#FF8A3C", "#00A881", "#D4526E", "#3E8EDE",
+            "#546E7A", "#8E44AD", "#2E7D32", "#AD1457", "#EF6C00"
+        ];
+        let hash = 0;
+        for (let i = 0; i < text.length; i++) {
+            hash = text.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    }
 
-            // Populate task detail modal
+function handleTaskDetailProject(taskId) {
+    if (!taskId) {
+        console.warn("Task ID kosong");
+        return;
+    }
+
+    $.ajax({
+        url: `${appUrl}/task/${taskId}`,
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            const task = response?.data || response;
+            if (!task) {
+                console.warn("Task data kosong");
+                return;
+            }
+
+            const $avatar = $("#taskProjectAvatar");
+            $avatar.empty();
+
+            if (task.project?.image) {
+                // Kalau ada gambar project
+                const img = document.createElement("img");
+                img.src = `${appUrl}/file/project/${task.project.image}`;
+                img.alt = task.project?.title || "Project";
+                img.className = "rounded-circle";
+                img.style.width = "48px";
+                img.style.height = "48px";
+                img.style.objectFit = "cover";
+                $avatar.append(img);
+            } else {
+                // Kalau ga ada gambar, pakai initials
+                const initials = getTaskInitials(task.title || task.project?.title || "NA");
+                const color = getRandomColorFromText(task.title || task.project?.title || "NA");
+                const div = document.createElement("div");
+                div.className = "rounded-circle d-flex align-items-center justify-content-center";
+                div.style.width = "48px";
+                div.style.height = "48px";
+                div.style.backgroundColor = color;
+                div.style.color = "#fff";
+                div.style.fontWeight = "600";
+                div.style.fontSize = "16px";
+                div.textContent = initials;
+                $avatar.append(div);
+            }
+
+            // Populate modal fields
             $("#taskProjectTitle").text(task.project?.title || "-");
             $("#taskTitle").text(task.title || "Untitled Task");
             $("#taskDescription").html(task.description || "No description");
             $("#taskPriority").html(task.priority || "-");
-            $("#taskDeadline").text((typeof formatDateENMedium === 'function') ? formatDateENMedium(task.due_date) : (task.due_date || "-"));
+            $("#taskDeadline").text(
+                (typeof formatDateENMedium === 'function') ? formatDateENMedium(task.due_date) : (task.due_date || "-")
+            );
             $("#taskDepartment").text(task.project?.department || "-");
             $("#taskDivision").text(task.project?.division || "-");
 
-            // Show modal
+            // Tampilkan modal
             const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
             modal.show();
-        })
-        .fail(function() {
-            try {
-                showFloatingAlert("Failed to load task details.", "danger", 3000);
-            } catch(_) {
-                alert("Failed to load task details.");
-            }
-        });
+        },
+        error: function(xhr, status, error) {
+            console.error("Failed to load task detail:", error);
+            try { showFloatingAlert("Failed to load task details.", "danger", 3000); } 
+            catch(_) { alert("Failed to load task details."); }
+        }
+    });
 }
 
 function handleTaskEdit(taskId) {
@@ -9310,7 +9367,7 @@ function handleTaskEdit(taskId) {
 // Function to render project task table with filtered data
 function renderProjectTaskTable() {
     try {
-        const section = document.getElementById('task-table-section');
+        const section = document.getElementById('task-table-section-detail');
         if (!section) return;
         const tbody = section.querySelector('tbody');
         if (!tbody) return;
@@ -9407,7 +9464,7 @@ function renderProjectTaskTable() {
                         <div class="d-flex align-items-center gap-3">
                             ${taskImgHtml}
                             <div>
-                                <div class="task-name-wrapper fw-semibold" style="font-size: 14px; cursor: pointer;" onclick="handleTaskDetail(${t.id})">${taskTitle}</div>
+                                <div class="task-name-wrapper fw-semibold" style="font-size: 14px; cursor: pointer;" onclick="handleTaskDetailProject(${t.id})">${taskTitle}</div>
                             </div>
                         </div>
                     </td>
@@ -9452,7 +9509,7 @@ function renderProjectTaskTable() {
 }
 
 function initTaskMoreDropdowns() {
-    document.querySelectorAll('#task-table-section .material-symbols-outlined').forEach(icon => {
+    document.querySelectorAll('#task-table-section-detail .material-symbols-outlined').forEach(icon => {
         icon.removeEventListener('click', icon._dropdownHandler || (()=>{}));
 
         icon._dropdownHandler = function (e) {
@@ -9483,7 +9540,7 @@ function initTaskMoreDropdowns() {
             // Event klik
             const items = dropdown.querySelectorAll('.dropdown-item');
             items[0].addEventListener('click', () => {
-                handleTaskDetail(taskId);
+                handleTaskDetailProject(taskId);
                 dropdown.remove();
             });
             items[1].addEventListener('click', () => {
@@ -9513,7 +9570,7 @@ function loadProjectTasks() {
     }
 
     // Show loading state
-    const section = document.getElementById('task-table-section');
+    const section = document.getElementById('task-table-section-detail');
     if (section) {
         const tbody = section.querySelector('tbody');
         if (tbody) {
@@ -9537,7 +9594,7 @@ function loadProjectTasks() {
         error: function(xhr, status, error) {
             console.error('Error loading project tasks:', error);
             window.projectTasksCache = [];
-            const section = document.getElementById('task-table-section');
+            const section = document.getElementById('task-table-section-detail');
             if (section) {
                 const tbody = section.querySelector('tbody');
                 if (tbody) {
@@ -9548,45 +9605,42 @@ function loadProjectTasks() {
     });
 }
 
-$(document).ready(function () {
-    const $listTab = $('#list-tab');
-    const $gridTab = $('#grid-tab');
-    const $detailProjectSection = $('.detail-project-container');
-    const $detailTableSection = $('#task-table-section');
+    $(document).on('click', '#listViewTaskDetail', function() {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const $btnList = $('#listViewTaskDetail');
+        const $btnGrid = $('#gridViewTaskDetail');
 
-    const savedView = (function(){ try { return localStorage.getItem('taskView') || 'grid'; } catch(_) { return 'grid'; }})();
-    const setView = (view) => {
-        if (view === 'list') {
-            $listTab.addClass('active');
-            $gridTab.removeClass('active');
-            $detailProjectSection.addClass('d-none');
-            $detailTableSection.removeClass('d-none');
-            // Load and render project-specific tasks
-            loadProjectTasks();
+        if (isMobile) {
+            $('#task-table-section-detail').addClass('d-none');
+            $('.detail-project-container').removeClass('d-none');
         } else {
-            $gridTab.addClass('active');
-            $listTab.removeClass('active');
-            $detailProjectSection.removeClass('d-none');
-            $detailTableSection.addClass('d-none');
+            $('#task-table-section-detail').removeClass('d-none');
+            $('.detail-project-container').addClass('d-none');
         }
-    };
-    setView(savedView === 'list' ? 'list' : 'grid');
 
-    $listTab.on('click', function () {
-        $listTab.addClass('active');
-        $gridTab.removeClass('active');
-        $detailProjectSection.addClass('d-none');
-        $detailTableSection.removeClass('d-none');
-        try { localStorage.setItem('taskView', 'list'); } catch(_) {}
-        // Load and render project-specific tasks
         loadProjectTasks();
+        $btnList.addClass('d-none');
+        $btnGrid.removeClass('d-none');
+        $btnGrid.find('span').text('grid_view');
+        $btnGrid.attr('title', 'Grid View').tooltip('dispose').tooltip();
     });
 
-    $gridTab.on('click', function () {
-        $gridTab.addClass('active');
-        $listTab.removeClass('active');
-        $detailProjectSection.removeClass('d-none');
-        $detailTableSection.addClass('d-none');
-        try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
+    $(document).on('click', '#gridViewTaskDetail', function() {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const $btnList = $('#listViewTaskDetail');
+        const $btnGrid = $('#gridViewTaskDetail');
+
+        if (isMobile) {
+            $('#task-table-section-detail').removeClass('d-none');
+            $('.detail-project-container').addClass('d-none');
+        } else {
+            $('#task-table-section-detail').addClass('d-none');
+            $('.detail-project-container').removeClass('d-none');
+        }
+
+        loadProjectTasks();
+        $btnGrid.addClass('d-none');
+        $btnList.removeClass('d-none');
+        $btnList.find('span').text('list');
+        $btnList.attr('title', 'List View').tooltip('dispose').tooltip();
     });
-});

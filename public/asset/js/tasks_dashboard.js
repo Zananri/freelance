@@ -2286,3 +2286,85 @@ $(document).ready(function () {
         getTaskToday()
     })
 })
+
+$(document).ready(function () {
+    const $filterDateRange = $("#filterDateRange")
+    const $startDateInput = $("#filterStartDate")
+    const $endDateInput = $("#filterEndDate")
+    const $prioritySelect = $(".form-select")
+    const $btnApply = $(".btn-submit-black")
+    const $btnClear = $(".btn-custom-close")
+    const $list = $(".task-list")
+    
+    // Get appUrl from meta tag
+    const appUrl = $('meta[name="app-url"]').attr('content') || '';
+
+    // Init Flatpickr
+    flatpickr("#filterDateRange", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        locale: { firstDayOfWeek: 1 },
+        onChange: function (selectedDates) {
+            if (selectedDates.length === 2) {
+                const [start, end] = selectedDates
+                $startDateInput.val(start.toISOString().split("T")[0])
+                $endDateInput.val(end.toISOString().split("T")[0])
+            }
+        }
+    })
+
+    // APPLY FILTER
+    $btnApply.on("click", function (e) {
+        e.preventDefault()
+        const start = $startDateInput.val()
+        const end = $endDateInput.val()
+        const priority = $prioritySelect.val()
+
+        $list.html(`<div class="text-center py-3 text-secondary small">Loading filtered tasks…</div>`)
+
+        $.ajax({
+            url: appUrl + "/task/dashboard/tomorrow",
+            type: "GET",
+            dataType: "json",
+            data: {
+                start_date: start,
+                end_date: end,
+                priority: priority
+            },
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            success: function (res) {
+                console.log(res);
+                
+                if (res.status !== "success") {
+                    $list.html(`<div class="text-center py-3 text-danger small">${res.message || "Failed to fetch tasks."}</div>`)
+                    return
+                }
+
+                const tasks = res.data || []
+                $list.empty()
+
+                if (!tasks.length) {
+                    $list.append(`<div class="text-center py-3 text-secondary small">No tasks found for selected filter.</div>`)
+                    return
+                }
+
+                tasks.forEach(t => renderTaskCard(t))
+            },
+            error: function (xhr) {
+                console.error(xhr)
+                $list.html(`<div class="text-center py-3 text-danger small">Failed to load filtered tasks.</div>`)
+            }
+        })
+    })
+
+    // CLEAR FILTER
+    $btnClear.on("click", function (e) {
+        e.preventDefault()
+        $filterDateRange.val("")
+        $startDateInput.val("")
+        $endDateInput.val("")
+        $prioritySelect.val("")
+
+        getTaskToday()
+    })
+})

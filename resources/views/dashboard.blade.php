@@ -374,7 +374,7 @@
                             <div class="p-3">
                                 <div class="mb-2 input-custom position-relative">
                                     <label class="form-label label-custom">Date</label>
-                                    <input type="text" class="form-control border-0" id="filterDateRange"
+                                    <input type="text" class="form-control input-text border-0" id="filterDateRange"
                                         placeholder="Select a date range">
                                     <div id="hiddenDateInputs" class="d-none">
                                         <input type="date" id="filterStartDate">
@@ -383,7 +383,7 @@
                                 </div>
                                 <div class="mb-2 input-custom">
                                     <label class="form-label label-custom">Priority</label>
-                                    <select class="form-select form-select-sm border-0">
+                                    <select class="form-select input-text border-0">
                                         <option value="">Semua</option>
                                         <option value="LOW">Low</option>
                                         <option value="MEDIUM">Medium</option>

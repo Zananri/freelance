@@ -36,16 +36,16 @@
                 <h2 class="m-0">Project Detail</h2>
             </div>
             <div class="d-flex align-items-center button-group">
-                <button class="btn btn-sm toggle-grid d-none" id="gridViewTask" data-bs-toggle="tooltip" title="Grid View">
+                <button class="btn btn-sm toggle-grid d-none me-2" id="gridViewTaskDetail" data-bs-toggle="tooltip" title="Grid View">
                     <span class="material-symbols-outlined">grid_view</span>
                 </button>
-                <button class="btn btn-sm toggle-list" id="listViewTask" data-bs-toggle="tooltip" title="List View">
+                <button class="btn btn-sm toggle-list me-2" id="listViewTaskDetail" data-bs-toggle="tooltip" title="List View">
                     <span class="material-symbols-outlined">list</span>
                 </button>
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
                     <span class="material-symbols-outlined icon">grid_view</span>
                 </button>
-                <button class="btn btn-export-custom" id="exportProjectReportBtn" title="Export Project"
+                <button class="btn btn-export-custom-detail" id="exportProjectReportBtn" title="Export Project"
                     data-project-id="{{ $project->id ?? '' }}">
                     <span class="material-symbols-outlined icon">download</span>
                 </button>
@@ -266,7 +266,7 @@
             </div>
         </div>
 
-        <div id="task-table-section" class="task-table-section d-none">
+        <div id="task-table-section-detail" class="task-table-section d-none">
             <div class="body-content scrollable-container table-container rounded-4 px-4 py-3">
                 <table class="table table-borderless align-middle table-transparent">
                     <thead>
@@ -817,7 +817,7 @@
             </div>
         </div>
 
-                <div class="modal fade" id="addTaskModal" data-bs-keyboard="false" tabindex="-1"
+        <div class="modal fade" id="addTaskModal" data-bs-keyboard="false" tabindex="-1"
             aria-labelledby="addTaskModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content modal-content-custom">
