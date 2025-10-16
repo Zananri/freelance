@@ -5862,10 +5862,14 @@ function filterTaskTableRows(queryRaw) {
                             if (document.getElementById('taskImagePreviewModal')) return;
                             const html = `
                                 <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                                    <div class="modal-dialog modal-dialog-centered" style="max-width:95vw;">
                                         <div class="modal-content modal-content-custom">
-                                            <div class="modal-body p-0 text-center bg-dark d-flex align-items-center justify-content-center" style="min-height:160px;">
-                                                <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="max-width:90vw; max-height:80vh; width:auto; height:auto; display:block; object-fit:contain;">
+                                            <div class="modal-body p-0 bg-dark d-flex align-items-center justify-content-center" style="min-height:160px; max-height:80vh; overflow:auto;">
+                                                <div style="box-sizing:border-box; padding:12px; width:100%; display:flex; align-items:center; justify-content:center;">
+                                                    <div style="max-width:100%; width:100%; max-height:calc(80vh - 72px); display:flex; align-items:center; justify-content:center;">
+                                                        <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="max-width:100%; max-height:100%; width:auto; height:auto; display:block; object-fit:contain;">
+                                                    </div>
+                                                </div>
                                             </div>
                                             <div class="modal-footer modal-footer-custom">
                                                 <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
