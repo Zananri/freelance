@@ -758,11 +758,11 @@
     background-color: #707070;
 }
 
-.task-card {
+.custom-card {
     border-radius: 15px;
 }
 
-.task-card img {
+.custom-card img {
     width: 30px;
     height: 30px;
 }
@@ -1037,7 +1037,23 @@
 }
 
 .modal-body-custom {
-    padding: 0;
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+}
+
+.modal-body-custom::-webkit-scrollbar {
+    width: 4px;
+}
+
+.modal-body-custom::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.modal-body-custom::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
 }
 
 .modal-footer-custom {
@@ -1505,23 +1521,6 @@
     font-weight: 400;
 }
 
-.form-control {
-    font-size: 14px;
-    border-radius: 8px;
-    padding: 6px 12px;
-    border: 1px solid #ccc;
-    transition: border-color 0.3s ease;
-}
-
-.form-control:not(textarea) {
-    height: 45px !important;
-}
-
-.form-control:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-}
-
 .form-select {
     font-size: 14px;
     border-radius: 8px;
@@ -1538,6 +1537,10 @@
 
 .input-text {
     width: 100%;
+}
+
+.input-text:not(textarea) {
+    height: 45px !important;
 }
 
 #referenceFilesModalLabel {
@@ -1765,4 +1768,12 @@
 .feedback-actions .material-symbols-outlined {
     font-size: 18px;
     line-height: 1;
+}
+
+input[type="file"]::-webkit-file-upload-button {
+    display: none;
+}
+
+input[type="file"]::file-selector-button {
+    display: none;
 }

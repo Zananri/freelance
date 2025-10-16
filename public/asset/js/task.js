@@ -735,6 +735,52 @@
         });
     }
 
+    $(document).ready(function() {
+        const modals = ['#addTaskModal', '#editTaskModal'];
+        modals.forEach(id => {
+            const $modal = $(id);
+            const formSelector = $modal.find('form');
+            let allowClose = false;
+
+            $modal.on('click', '.btn-custom-close, [data-bs-dismiss="modal"]', function() {
+                allowClose = true;
+            });
+
+            $modal.on('hide.bs.modal', function(e) {
+                const triggerElement = $(document.activeElement);
+                const clickedOutside = triggerElement.length === 0 || !$.contains($modal[0], triggerElement[0]);
+                const partiallyFilled = isFormPartiallyFilled(formSelector);
+
+                if (clickedOutside && partiallyFilled && !allowClose) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (typeof showFloatingAlert === 'function') {
+                        showFloatingAlert("Please complete the form first", "warning", 3000);
+                    } else {
+                        alert("Please complete the form first");
+                    }
+                    return false;
+                }
+
+                allowClose = false;
+            });
+
+            function isFormPartiallyFilled(form) {
+                let filled = false;
+                form.find('input, textarea, select').each(function() {
+                    const type = $(this).attr('type');
+                    if (type === 'hidden' || type === 'file') return;
+                    const val = $(this).val();
+                    if (val && val.trim() !== '') {
+                        filled = true;
+                        return false;
+                    }
+                });
+                return filled;
+            }
+        });
+    });
+
     const imageInput = document.getElementById("task_image");
     const imageLabel = document.getElementById("taskImageLabel");
     const imageClearBtn = document.getElementById("taskImageClearBtn");
@@ -7843,7 +7889,7 @@ function filterTaskTableRows(queryRaw) {
                 })();
 
                 const html = `
-                <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
+                <div class="custom-card-detail rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
                     <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
                         <div class="d-flex align-items-center">
                             ${avatarHtml}

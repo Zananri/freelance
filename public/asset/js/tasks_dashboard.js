@@ -202,7 +202,7 @@ function getTaskToday() {
                     </div>`;
 
                 const card = `
-                    <div class="task-card p-3 mb-3" style="background:${bg};position:relative;">
+                    <div class="custom-card p-3 mb-3" style="background:${bg};position:relative;" data-task-id={${t.id}}>
                         ${rejectedBadge}
                         ${topTitle}
                         ${descHtml}
@@ -390,7 +390,7 @@ function getTaskTomorrow() {
                     </div>`;
 
                 const card = `
-                    <div class="task-card p-3 mb-3" style="background:${bg};position:relative;">
+                    <div class="custom-card p-3 mb-3" style="background:${bg};position:relative;" data-task-id={${t.id}}>
                         ${rejectedBadge}
                         ${topTitle}
                         ${descHtml}
@@ -470,83 +470,579 @@ document.addEventListener('click', function(e) {
     openDashboardTaskFeedback(taskId);
 });
 
-// Handle attach_file click and open Reference Files modal (parity with Task page)
 document.addEventListener('click', function(e) {
-    const attach = e.target.closest('.task-attach-trigger');
-    if (!attach) return;
-    const taskId = attach.getAttribute('data-task-id');
-    openDashboardReferenceFiles(taskId);
+    const referenceFileBtn = e.target.closest(".task-attach-trigger");
+    if (referenceFileBtn) {
+        const taskId = referenceFileBtn.getAttribute("data-task-id");
+        if (!taskId) return;
+        addAttachFileIconListeners(taskId);
+    }
 });
 
-function ensureReferenceFilesModal() {
-    let modalEl = document.getElementById('referenceFilesModal');
-    if (modalEl) return modalEl;
+function AddFilesModal() {
+    let modalEl = $("#addFilesModal");
+    if(modalEl) return modalEl;
     const wrapper = document.createElement('div');
-    wrapper.innerHTML = `
-        <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="referenceFilesModalLabel">Reference Files</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <hr>
-                    <div class="modal-body modal-body-custom">
-                        <div id="referenceFilesList" class="d-flex flex-column gap-2"></div>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    document.body.appendChild(wrapper.firstElementChild);
-    return document.getElementById('referenceFilesModal');
+    wrapper.innerHtml = `
+        <div class="">
+    `;
 }
 
-function openDashboardReferenceFiles(taskId) {
-    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
-    const modalEl = ensureReferenceFilesModal();
-    const listEl = modalEl.querySelector('#referenceFilesList');
-    listEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+function showDeleteConfirmModal({ id, content, parentModalId, onConfirm }) {
+    try {
+        const modalId = 'deleteConfirmModal_ref_' + id + '_' + Date.now();
 
-    fetch((appUrl ? appUrl : '') + '/task/' + taskId, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(r => r.json())
-        .then(res => {
-            // Support {data:{...}} or direct payload
+        const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content modal-content-custom">
+                        <div class="modal-body modal-body-custom">
+                            <div class="text-center mb-2">
+                                <p class="fw-bold fs-6 mb-1">${escapeHtml(content || '')}</p>
+                            </div>
+                            <hr class="my-2">
+                            <p class="fw-normal fs-6 text-center mb-4">
+                                Are you sure want to delete this reference file?
+                            </p>
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // Hide parent modal if provided
+        let parentModalInstance = null;
+        const parentEl = parentModalId ? document.getElementById(parentModalId) : null;
+        const wasParentOpen = parentEl && parentEl.classList.contains('show');
+        if (wasParentOpen) {
+            parentModalInstance = bootstrap.Modal.getInstance(parentEl);
+            parentModalInstance?.hide();
+        }
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalEl = document.getElementById(modalId);
+        const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+        modalInstance.show();
+
+        // Cancel handler
+        modalEl.querySelector('[data-bs-dismiss="modal"]').addEventListener('click', () => {
+            modalInstance.hide();
+            modalEl.remove();
+            if (wasParentOpen && parentModalInstance) {
+                setTimeout(() => parentModalInstance.show(), 180);
+            }
+        });
+
+        // Confirm handler
+        const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+        confirmBtn.addEventListener('click', function () {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...';
+            if (typeof onConfirm === 'function') {
+                onConfirm(function done(shouldClose = true) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = 'Delete';
+                    if (shouldClose) {
+                        modalInstance.hide();
+                        modalEl.remove();
+                        if (wasParentOpen && parentModalInstance) {
+                            setTimeout(() => parentModalInstance.show(), 180);
+                        }
+                    }
+                });
+            } else {
+                modalInstance.hide();
+                modalEl.remove();
+            }
+        });
+    } catch (e) {
+        console.error('showDeleteConfirmModal error:', e);
+    }
+}
+
+let attachFileIconListenerBound = false;
+
+function addAttachFileIconListeners(taskId) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId,
+        type: "GET",
+        dataType: "json",
+        success: function (res) {
             const payload = res && (res.data || res);
             let referenceFiles = payload && payload.reference_files;
 
-            if (typeof referenceFiles === 'string') {
+            if (typeof referenceFiles === "string") {
                 try {
                     referenceFiles = JSON.parse(referenceFiles);
-                } catch (e) {
-                    referenceFiles = referenceFiles.includes('[') ? [] : referenceFiles.split(',').map(s => s.trim()).filter(Boolean);
+                } catch {
+                    referenceFiles = referenceFiles.includes("[")
+                        ? []
+                        : referenceFiles.split(",").map(s => s.trim()).filter(Boolean);
                 }
             }
 
-            listEl.innerHTML = '';
-            if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
-                referenceFiles.forEach(fileName => {
-                    if (!fileName) return;
-                    const a = document.createElement('a');
-                    a.href = (appUrl ? appUrl : '') + '/file/task_reference_files/' + fileName;
-                    a.target = '_blank';
-                    a.className = 'd-block text-decoration-none mb-1';
-                    a.innerHTML = '<span class="material-symbols-outlined me-1" style="font-size:16px;vertical-align:middle;">description</span> ' + fileName;
-                    listEl.appendChild(a);
-                });
-            } else {
-                listEl.textContent = 'No reference files available.';
+            const referenceFilesList = document.getElementById("referenceFilesList");
+            if (!referenceFilesList) return;
+            referenceFilesList.innerHTML = "";
+            referenceFilesList.dataset.taskId = String(taskId || '');
+
+                    if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
+                        referenceFiles.forEach((fileName) => {
+                            if (!fileName) return;
+
+                                let fileUrl = String(fileName || '');
+                                const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+                                const isRefPath = fileUrl.startsWith('/file/task_reference_files/') || fileUrl.startsWith('file/task_reference_files/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
+                                if (!isAbs && !isRefPath) {
+                                    fileUrl = appUrl + '/file/task_reference_files/' + fileUrl;
+                                } else if (!isAbs && fileUrl.startsWith('/')) {
+                                    fileUrl = appUrl + fileUrl;
+                                }
+
+                                const item = document.createElement('div');
+                                item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                                const lower = String(fileName || '').toLowerCase();
+                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+
+                                if (isImage) {
+                                    const img = document.createElement('img');
+                                    img.src = fileUrl;
+                                    img.width = 28; img.height = 28;
+                                    img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                                    img.alt = fileName;
+                                    item.appendChild(img);
+                                } else {
+                                    const badge = document.createElement('div');
+                                    item.appendChild(badge);
+                                }
+
+                                const title = document.createElement('a');
+                                title.className = 'flex-grow-1 text-decoration-none text-truncate';
+                                title.href = fileUrl;
+                                title.target = '_blank';
+                                title.textContent = fileName;
+                                title.style.color = "#444444"
+                                item.appendChild(title);
+
+                                const dlBtn = document.createElement('button');
+                                dlBtn.type = 'button';
+                                dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                                dlBtn.title = 'Download';
+                                dlBtn.style.color = "#444444"
+                                dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                                dlBtn.addEventListener('click', function (ev) {
+                                    try {
+                                        ev.preventDefault(); ev.stopPropagation();
+                                        const a = document.createElement('a');
+                                        a.style.display = 'none';
+                                        a.href = fileUrl;
+                                        try { a.download = String(fileName || '').split('/').pop(); } catch(_) {}
+                                        a.target = '_blank';
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        setTimeout(() => { try { document.body.removeChild(a); } catch(_) {} }, 100);
+                                    } catch (e) {
+                                        window.open(fileUrl, '_blank');
+                                    }
+                                });
+
+                                item.appendChild(dlBtn);
+
+                                const delBtn = document.createElement('button');
+                                delBtn.type = 'button';
+                                delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                                delBtn.title = 'Delete';
+                                delBtn.style.color = '#444444';
+                                delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                                delBtn.addEventListener('click', function (ev) {
+                                ev.preventDefault(); ev.stopPropagation();
+                                try {
+                                    showDeleteConfirmModal({
+                                        id: fileName,
+                                        content: fileName,
+                                        parentModalId: 'referenceFilesModal',
+                                        onConfirm: function (done) {
+                                            try {
+                                                const remaining = (Array.isArray(referenceFiles) ? referenceFiles.slice() : [])
+                                                    .filter(f => String(f) !== String(fileName));
+
+                                                $.ajax({
+                                                    url: appUrl + '/task/' + taskId + '/reference-file',
+                                                    type: 'DELETE',
+                                                    data: { filename: fileName },
+                                                    headers: {
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                                    },
+                                                    success: function (res) {
+                                                        try {
+                                                            if (typeof showFloatingAlert === 'function')
+                                                                showFloatingAlert(res.message || 'Reference file deleted', 'success');
+                                                        } catch (_) {}
+
+                                                        if (item && item.parentNode) item.parentNode.removeChild(item);
+
+                                                        try {
+                                                            const idx = referenceFiles.indexOf(fileName);
+                                                            if (idx !== -1) referenceFiles.splice(idx, 1);
+                                                        } catch (_) {}
+
+                                                        try {
+                                                            const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                                                            if (card) {
+                                                                const span = card.querySelector('.reference-files-count');
+                                                                let newCount = 0;
+                                                                try {
+                                                                    newCount = Math.max(
+                                                                        (parseInt(span ? span.textContent : '0', 10) || 0) - 1,
+                                                                        0
+                                                                    );
+                                                                } catch (_) {
+                                                                    newCount = 0;
+                                                                }
+                                                                if (span) {
+                                                                    if (newCount <= 0) {
+                                                                        try {
+                                                                            span.remove();
+                                                                        } catch (_) {
+                                                                            span.style.display = 'none';
+                                                                        }
+                                                                    } else {
+                                                                        span.textContent = String(newCount);
+                                                                    }
+                                                                }
+                                                            }
+                                                        } catch (_) {}
+
+                                                        try {
+                                                            const rList = document.getElementById('referenceFilesList');
+                                                            if (rList) {
+                                                                if (!(Array.isArray(referenceFiles) && referenceFiles.length > 0)) {
+                                                                    rList.innerHTML = '';
+                                                                    rList.textContent = 'No reference files available.';
+                                                                }
+                                                            }
+                                                        } catch (_) {}
+
+                                                        done(true);
+                                                    },
+                                                    error: function (xhr) {
+                                                        let msg = 'Failed to delete reference file';
+                                                        if (xhr.responseJSON && xhr.responseJSON.message)
+                                                            msg = xhr.responseJSON.message;
+                                                        try {
+                                                            if (typeof showFloatingAlert === 'function')
+                                                                showFloatingAlert(msg, 'danger');
+                                                        } catch (_) {
+                                                            alert(msg);
+                                                        }
+                                                        done(false);
+                                                    }
+                                                });
+                                            } catch (e) {
+                                                try {
+                                                    if (typeof showFloatingAlert === 'function')
+                                                        showFloatingAlert('Failed to delete reference file', 'danger');
+                                                } catch (_) {}
+                                                done(false);
+                                            }
+                                        }
+                                    });
+
+                                } catch (e) {}
+                            });
+
+                            item.appendChild(delBtn);
+                            referenceFilesList.appendChild(item);
+                        });
+                    } else {
+                        referenceFilesList.textContent = "No reference files available.";
+                    }
+
+            const modalEl = document.getElementById("referenceFilesModal");
+            if (modalEl) {
+                modalEl.dataset.taskId = String(taskId || '');
+                const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                referenceFilesModal.show();
             }
-        })
-        .catch(() => {
-            listEl.innerHTML = '<div class="alert alert-danger">Failed to load reference files.</div>';
-        })
-        .finally(() => {
-            const modal = (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
-                ? bootstrap.Modal.getOrCreateInstance(modalEl)
-                : new bootstrap.Modal(modalEl);
-            modal.show();
-        });
+        },
+        error: function () {
+            showFloatingAlert("Failed to load reference files.", "danger", 3000);
+        },
+    });
 }
+
+function displaySelectedFiles() {
+    function findVisiblePreview(ids) {
+        let fallback = null;
+        for (const id of ids) {
+            const el = document.getElementById(id);
+            if (el && !fallback) fallback = el;
+            if (el && el.offsetParent !== null) return el;
+        }
+        return fallback;
+    }
+    const preview = findVisiblePreview([
+        'schedule_reference_files_preview',
+        'feedback_reference_files_preview',
+        'reference_files_preview',
+    ]);
+    if (!preview) return;
+    preview.innerHTML = '';
+
+    if (selectedFiles.length > 0) {
+        const fileList = document.createElement('div');
+        fileList.className = 'selected-files-list mt-2';
+
+        selectedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+            // Thumbnail or placeholder
+            if (file && file.type && file.type.indexOf('image') === 0) {
+                const img = document.createElement('img');
+                const url = URL.createObjectURL(file);
+                img.src = url;
+                img.width = 28;
+                img.height = 28;
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '50%';
+                img.alt = file.name;
+                // revoke object URL after load
+                img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
+                fileItem.appendChild(img);
+                } else {
+                const badge = document.createElement('div');
+                fileItem.appendChild(badge);
+            }
+
+            const title = document.createElement('span');
+            title.className = 'flex-grow-1';
+            title.textContent = file.name;
+            fileItem.appendChild(title);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+            removeBtn.style.lineHeight = '1';
+            removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+            removeBtn.addEventListener('click', function () {
+                selectedFiles.splice(index, 1);
+                displaySelectedFiles();
+            });
+
+            fileItem.appendChild(removeBtn);
+            fileList.appendChild(fileItem);
+        });
+
+        preview.appendChild(fileList);
+    }
+}
+
+selectedFiles = [];
+
+function setupReferenceFilesInput() {
+    const input = document.getElementById("task_reference_files");
+    const preview = document.getElementById("reference_files_preview");
+
+    if (!input || !preview) return;
+
+    input.addEventListener("change", function () {
+        const files = Array.from(this.files);
+        selectedFiles = [...selectedFiles, ...files];
+        displaySelectedFiles();
+
+        this.value = "";
+    });
+}
+
+function initAddReferenceFilesModal() {
+    const openBtn = $('#openAddReferenceFilesBtn');
+    const refModalEl = $('#addFilesModal');
+    const refModal = refModalEl.length ? new bootstrap.Modal(refModalEl[0]) : null;
+    const refForm = $('#referenceFilesForm');
+    const fileInput = $('#task_reference_files');
+    const preview = $('#reference_files_preview');
+    const submitBtn = $('#submitAddReferenceFiles');
+
+    if (!openBtn.length || !refModalEl.length || !refForm.length || !fileInput.length || !preview.length || !submitBtn.length) return;
+
+    openBtn.on('click', function () {
+        try {
+            const refFilesModalEl = $('#referenceFilesModal');
+            if (refFilesModalEl.length) {
+                const cm = bootstrap.Modal.getInstance(refFilesModalEl[0]) || new bootstrap.Modal(refFilesModalEl[0]);
+                cm.hide();
+            }
+        } catch (_) {}
+        const taskId = $('#referenceFilesModal').data('taskId')
+            || $('#referenceFilesList').data('taskId')
+            || $(this).data('taskId')
+        if (!taskId) {
+            if (typeof showFloatingAlert === 'function') showFloatingAlert('Task ID not found. Cannot add files.', 'danger');
+            return;
+        }
+        $('#refTaskId').val(taskId || '');
+        fileInput.val('');
+        fileInput.css('border', 'none');
+        preview.empty();
+        window.addRefSelectedFiles = [];
+        refModal.show();
+    });
+
+    fileInput.on('change', function () {
+        const files = Array.from(this.files || []);
+        window.addRefSelectedFiles = window.addRefSelectedFiles || [];
+        window.addRefSelectedFiles = window.addRefSelectedFiles.concat(files);
+        renderAddRefSelectedFiles();
+        this.value = '';
+    });
+
+    function renderAddRefSelectedFiles() {
+        preview.empty();
+        const list = $('<div class="selected-files-list mt-2"></div>');
+        (window.addRefSelectedFiles || []).forEach((file, idx) => {
+            const item = $('<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2"></div>');
+            if (file && file.type && file.type.indexOf('image') === 0) {
+                const url = URL.createObjectURL(file);
+                const img = $('<img width="28" height="28" style="object-fit:cover;border-radius:50%;">').attr('src', url).attr('alt', file.name);
+                img.on('load', () => { try { URL.revokeObjectURL(url); } catch (_) {} });
+                item.append(img);
+            } else {
+                item.append($('<div></div>'));
+            }
+            const title = $('<span class="flex-grow-1"></span>').text(file.name);
+            item.append(title);
+            const removeBtn = $('<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1;"><span class="material-symbols-outlined">close</span></button>');
+            removeBtn.on('click', function () {
+                window.addRefSelectedFiles.splice(idx, 1);
+                renderAddRefSelectedFiles();
+            });
+            item.append(removeBtn);
+            list.append(item);
+        });
+        preview.append(list);
+    }
+
+    submitBtn.on('click', function (e) {
+        e.preventDefault();
+        const taskId = $('#refTaskId').val();
+        if (!taskId) {
+            if (typeof showFloatingAlert === 'function') showFloatingAlert('Task ID not found.', 'danger');
+            return;
+        }
+        const files = window.addRefSelectedFiles || [];
+        if (!files.length) {
+            if (typeof showFloatingAlert === 'function') showFloatingAlert('Please select at least one file to upload.', 'warning');
+            return;
+        }
+        const fd = new FormData();
+        files.forEach(f => fd.append('reference_files[]', f));
+        fd.append('task_id', taskId);
+        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+        fetch(appUrl + '/task/' + encodeURIComponent(taskId) + '/reference-file', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            body: fd
+        }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
+            .then(payload => {
+                const newCount = (() => {
+                    try {
+                        if (!payload) return undefined;
+                        if (Array.isArray(payload.reference_files)) return payload.reference_files.length;
+                        if (typeof payload.reference_files_count === 'number') return payload.reference_files_count;
+                        if (typeof payload.reference_files === 'string') {
+                            try {
+                                const parsed = JSON.parse(payload.reference_files);
+                                if (Array.isArray(parsed)) return parsed.length;
+                            } catch (_) {
+                                return payload.reference_files.split(',').filter(Boolean).length;
+                            }
+                        }
+                        return undefined;
+                    } catch (_) { return undefined; }
+                })();
+                if (typeof showFloatingAlert === 'function') showFloatingAlert(payload.message || 'Files uploaded', 'success', 2000);
+                refModal.hide();
+                window.addRefSelectedFiles = [];
+                renderAddRefSelectedFiles();
+                try {
+                    const card = $('.custom-card[data-task-id="' + taskId + '"]');
+                    if (card.length && typeof newCount !== 'undefined') {
+                        let span = card.find('.reference-files-count');
+                        if (newCount > 0) {
+                            if (span.length) span.text(String(newCount));
+                            else {
+                                const s = $('<span class="reference-files-count ms-1" style="color:#454545;font-size:12px;"></span>').text(String(newCount));
+                                let attachWrapper = card.find('.btn-attach-file-wrapper').filter(function () {
+                                    const icon = $(this).find('.material-symbols-outlined');
+                                    return icon.text().trim() === 'attach_file';
+                                }).first();
+                                if (!attachWrapper.length) attachWrapper = card.find('.btn-attach-file-wrapper.d-flex.align-items-center').first();
+                                if (attachWrapper.length) attachWrapper.append(s);
+                            }
+                        } else if (span.length) span.remove();
+                    }
+                } catch (_) {}
+                const cardForClick = $('.custom-card[data-task-id="' + taskId + '"]');
+                let attachBtn = null;
+                if (cardForClick.length) {
+                    const icons = cardForClick.find('.task-icon');
+                    attachBtn = icons.filter(function () { return $(this).text().trim() === 'attach_file'; }).first();
+                }
+                if (attachBtn && typeof attachBtn[0].click === 'function') {
+                    setTimeout(function () { try { attachBtn[0].click(); } catch (_) {} }, 200);
+                } else {
+                    $.ajax({
+                        url: appUrl + '/task/' + encodeURIComponent(taskId),
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function (res) {
+                            const t = res && (res.data || res);
+                            const card = $('.custom-card[data-task-id="' + taskId + '"]');
+                            if (card.length) {
+                                let span = card.find('.reference-files-count');
+                                const count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0)) || 0;
+                                if (count > 0) {
+                                    if (span.length) span.text(String(count));
+                                    else {
+                                        const s = $('<span class="reference-files-count ms-1" style="color:#454545;font-size:12px;"></span>').text(String(count));
+                                        let attachWrapper = card.find('.btn-attach-file-wrapper').filter(function () {
+                                            const icon = $(this).find('.material-symbols-outlined');
+                                            return icon.text().trim() === 'attach_file';
+                                        }).first();
+                                        if (!attachWrapper.length) attachWrapper = card.find('.btn-attach-file-wrapper.d-flex.align-items-center').first();
+                                        if (attachWrapper.length) attachWrapper.append(s);
+                                    }
+                                } else if (span.length) span.remove();
+                            }
+                        }
+                    });
+                }
+            }).catch(err => {
+                console.error('Upload failed', err);
+                const msg = (err && (err.message || err.error || (err.errors && err.errors[0]))) || 'Upload failed';
+                if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
+            }).finally(() => {
+                submitBtn.prop('disabled', false).html('Upload');
+            });
+    });
+}
+
+(function(){
+    try {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAddReferenceFilesModal);
+        } else {
+            initAddReferenceFilesModal();
+        }
+    } catch (e) {}
+})();
 
 function openDashboardTaskFeedback(taskId) {
     const modalEl = $('#taskFeedbackModal')[0];
@@ -634,11 +1130,11 @@ function loadDashboardTaskFeedbackData(taskId) {
                         }).join('')}
                     </div>` : '';
                 const imgHtml = topImageUrl ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width:70px;height:auto;border-radius:8px;cursor:pointer;">` : '';
-                
+
                 // Process replies
                 const replies = Array.isArray(fb.replies) ? fb.replies : [];
                 const repliesCount = replies.length;
-                
+
                 let repliesHtml = '';
                 if (repliesCount > 0) {
                     repliesHtml = `<div class="replies-container d-none mt-3" id="replies-${fb.id}">`;
@@ -647,10 +1143,10 @@ function loadDashboardTaskFeedbackData(taskId) {
                         const repName = rep.employee?.name || 'Unknown';
                         const repPhoto = rep.employee?.photo || `${appUrl}/asset/img/avatar.png`;
                         const repComment = rep.feedback_comment || '';
-                        
+
                         let repImageUrl = rep.image || '';
                         if (repImageUrl && !repImageUrl.startsWith('http')) repImageUrl = `${appUrl}/file/task/${repImageUrl}`;
-                        
+
                         let repRefFiles = [];
                         try {
                             let refFiles = rep.reference_files_urls || rep.reference_files || [];
@@ -661,7 +1157,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                                 repRefFiles = refFiles.map(f => f.startsWith('http') ? f : `${appUrl}/file/task_reference_files/${f}`).filter(Boolean);
                             }
                         } catch {}
-                        
+
                         let repRefUrls = [];
                         try {
                             let refUrls = rep.reference_urls || [];
@@ -671,10 +1167,10 @@ function loadDashboardTaskFeedbackData(taskId) {
                             if (Array.isArray(refUrls) && refUrls.length > 0) repRefUrls = refUrls.filter(u => typeof u === 'string' && u.trim() !== '');
                             else if (rep.reference_url) repRefUrls = [rep.reference_url];
                         } catch {}
-                        
+
                         const repAuthorId = rep.employee?.id || rep.employee_id || 0;
                         const canEditRep = String(repAuthorId) === String(currentEmployeeId);
-                        
+
                         const repFilesHtml = repRefFiles.length ? `
                             <div class="feedback-reference-container mb-2">
                                 ${repRefFiles.map(fileUrl => {
@@ -694,7 +1190,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                                 }).join('')}
                             </div>` : '';
                         const repImgHtml = repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded mb-2 reply-image" style="width:70px;height:auto;border-radius:8px;cursor:pointer;">` : '';
-                        
+
                         repliesHtml += `
                             <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${fb.id}" style="background: rgb(240, 241, 248);">
                                 <div class="d-flex align-items-start">
@@ -713,16 +1209,16 @@ function loadDashboardTaskFeedbackData(taskId) {
                                                     <span>Reply</span>
                                                 </span>
                                                 ${canEditRep ? `
-                                                <span class="d-flex align-items-center reply-edit-trigger" 
-                                                    data-task-id="${taskId}" 
-                                                    data-parent-id="${fb.id}" 
-                                                    data-reply-id="${rep.id}" 
-                                                    data-comment="${encodeURIComponent(repComment || '')}" 
-                                                    data-ref-url="${encodeURIComponent(rep.reference_url || '')}" 
-                                                    data-ref-urls='${encodeURIComponent(JSON.stringify(repRefUrls || []))}' 
-                                                    data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" 
-                                                    data-ref-files='${encodeURIComponent(JSON.stringify(repRefFiles || []))}' 
-                                                    data-image="${encodeURIComponent(repImageUrl || '')}" 
+                                                <span class="d-flex align-items-center reply-edit-trigger"
+                                                    data-task-id="${taskId}"
+                                                    data-parent-id="${fb.id}"
+                                                    data-reply-id="${rep.id}"
+                                                    data-comment="${encodeURIComponent(repComment || '')}"
+                                                    data-ref-url="${encodeURIComponent(rep.reference_url || '')}"
+                                                    data-ref-urls='${encodeURIComponent(JSON.stringify(repRefUrls || []))}'
+                                                    data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}"
+                                                    data-ref-files='${encodeURIComponent(JSON.stringify(repRefFiles || []))}'
+                                                    data-image="${encodeURIComponent(repImageUrl || '')}"
                                                     style="cursor:pointer;color:#555;font-size:11px;">
                                                     <span class="material-symbols-outlined" style="font-size:16px;line-height:1;margin-right:3px;">edit</span>
                                                     <span>Edit</span>
@@ -742,7 +1238,7 @@ function loadDashboardTaskFeedbackData(taskId) {
                     });
                     repliesHtml += '</div>';
                 }
-                
+
                 const viewAllBtn = repliesCount > 0 ? `<span class="view-replies-toggle" data-feedback-id="${fb.id}" data-replies-count="${repliesCount}" style="font-size:13px;color:#555;cursor:pointer;text-decoration:none;">View all (${repliesCount})</span>` : '';
                 return `
                     <div class="feedback-item mb-3 p-3" data-feedback-id="${fb.id}">
@@ -793,7 +1289,7 @@ ${canEditTop ? `
                     </div>`;
             }).join('');
             bodyEl.html(html);
-            
+
             // Bind reply icon click
             $('.feedback-reply-trigger', bodyEl).off('click').on('click', function() {
                 const feedbackId = $(this).data('feedbackId');
@@ -804,11 +1300,11 @@ ${canEditTop ? `
 
                 // Show preview above editor
                 removeDashboardReplyPreview();
-                renderDashboardReplyPreview(authorName || 'Unknown', authorPhoto || ((document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '') + '/asset/img/avatar.png'), previewText || '');
+                renderDashboardReplyPreview(previewText || '', authorName || 'Unknown', authorPhoto || ((document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '') + '/asset/img/avatar.png'), previewText || '');
 
                 showDashboardReplyFeedbackForm(tId, feedbackId);
             });
-            
+
             // Bind edit icon click (top-level feedback)
             $('.feedback-edit-trigger', bodyEl).off('click').on('click', function() {
                 const tId = $(this).data('taskId');
@@ -823,10 +1319,10 @@ ${canEditTop ? `
                     reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent($(this).data('refFiles') || '[]')); } catch(e){ return []; } }).call(this),
                     image_url: decodeURIComponent($(this).data('image') || ''),
                 };
-                
+
                 startDashboardInlineEditFeedback(payload);
             });
-            
+
             // Bind edit icon click (reply)
             $('.reply-edit-trigger', bodyEl).off('click').on('click', function() {
                 const tId = $(this).data('taskId');
@@ -842,10 +1338,10 @@ ${canEditTop ? `
                     reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent($(this).data('refFiles') || '[]')); } catch(e){ return []; } }).call(this),
                     image_url: decodeURIComponent($(this).data('image') || ''),
                 };
-                
+
                 startDashboardInlineEditFeedback(payload);
             });
-            
+
             // Bind delete icon click (top-level feedback)
             $('.feedback-delete-trigger', bodyEl).off('click').on('click', function() {
                 const fid = $(this).data('feedbackId');
@@ -853,12 +1349,12 @@ ${canEditTop ? `
                 const authorName = $(this).closest('.feedback-item').find('strong').first().text() || '';
                 const content = $(this).closest('.feedback-item').find('.feedback-comment p').first().text() || '';
                 const avatarUrl = $(this).closest('.feedback-item').find('img').first().attr('src') || '';
-                showDashboardDeleteConfirmModal({ 
-                    type: 'feedback', 
-                    id: fid, 
-                    authorName: authorName, 
-                    content: content, 
-                    avatarUrl: avatarUrl, 
+                showDashboardDeleteConfirmModal({
+                    type: 'feedback',
+                    id: fid,
+                    authorName: authorName,
+                    content: content,
+                    avatarUrl: avatarUrl,
                     taskId: taskId,
                     onConfirm: function(done){
                         const appUrl = $('meta[name="app-url"]').attr('content') || '';
@@ -876,14 +1372,14 @@ ${canEditTop ? `
                                 // Remove feedback DOM
                                 $(`.feedback-item[data-feedback-id="${fid}"]`).remove();
                                 // Refresh feedback count
-                                $.ajax({ 
-                                    url: appUrl + '/task-feedbacks/count/' + taskId, 
-                                    type: 'GET', 
-                                    success: function(c){ 
-                                        if (c && c.data && typeof c.data.count === 'number') { 
+                                $.ajax({
+                                    url: appUrl + '/task-feedbacks/count/' + taskId,
+                                    type: 'GET',
+                                    success: function(c){
+                                        if (c && c.data && typeof c.data.count === 'number') {
                                             setDashboardFeedbackCount(taskId, c.data.count);
-                                        } 
-                                    } 
+                                        }
+                                    }
                                 });
                                 done(true);
                             },
@@ -901,7 +1397,7 @@ ${canEditTop ? `
                     }
                 });
             });
-            
+
             // Bind delete icon click (reply)
             $('.reply-delete-trigger', bodyEl).off('click').on('click', function() {
                 const rid = $(this).data('replyId');
@@ -910,13 +1406,13 @@ ${canEditTop ? `
                 const authorName = $(this).closest('.feedback-reply').find('strong').text() || '';
                 const content = $(this).closest('.feedback-reply').find('.reply-comment p').first().text() || '';
                 const avatarUrl = $(this).closest('.feedback-reply').find('img').attr('src') || '';
-                showDashboardDeleteConfirmModal({ 
-                    type: 'reply', 
-                    id: rid, 
+                showDashboardDeleteConfirmModal({
+                    type: 'reply',
+                    id: rid,
                     parentId: pid,
-                    authorName: authorName, 
-                    content: content, 
-                    avatarUrl: avatarUrl, 
+                    authorName: authorName,
+                    content: content,
+                    avatarUrl: avatarUrl,
                     taskId: taskId,
                     onConfirm: function(done){
                         const appUrl = $('meta[name="app-url"]').attr('content') || '';
@@ -948,14 +1444,14 @@ ${canEditTop ? `
                                     repliesContainer.remove();
                                 }
                                 // Refresh feedback count
-                                $.ajax({ 
-                                    url: appUrl + '/task-feedbacks/count/' + taskId, 
-                                    type: 'GET', 
-                                    success: function(c){ 
-                                        if (c && c.data && typeof c.data.count === 'number') { 
+                                $.ajax({
+                                    url: appUrl + '/task-feedbacks/count/' + taskId,
+                                    type: 'GET',
+                                    success: function(c){
+                                        if (c && c.data && typeof c.data.count === 'number') {
                                             setDashboardFeedbackCount(taskId, c.data.count);
-                                        } 
-                                    } 
+                                        }
+                                    }
                                 });
                                 done(true);
                             },
@@ -973,7 +1469,7 @@ ${canEditTop ? `
                     }
                 });
             });
-            
+
             // Bind view replies toggle
             $('.view-replies-toggle', bodyEl).off('click').on('click', function() {
                 const fid = $(this).data('feedbackId');
@@ -994,7 +1490,7 @@ ${canEditTop ? `
                     'color': '#555'
                 });
             });
-            
+
             // Open feedback/reply images in a new tab
             $('.feedback-image, .reply-image', bodyEl).off('click').on('click', function() {
                 const src = $(this).attr('src');
@@ -1036,7 +1532,7 @@ function setupDashboardInlineFeedbackEditor(taskId) {
 }
 
 // Render a selected reply preview above the inline editor
-function renderDashboardReplyPreview(authorName, authorPhoto, previewText) {
+function renderDashboardReplyPreview(previewText, authorName, authorPhoto, previewText) {
     // Ensure preview container exists inside modal footer area
     const modal = document.getElementById('taskFeedbackModal');
     if (!modal) return null;
@@ -1055,8 +1551,9 @@ function renderDashboardReplyPreview(authorName, authorPhoto, previewText) {
         <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">
             <img src="${authorPhoto}" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src='${(document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '')}/asset/img/avatar.png';">
         </div>
-        <div class="flex-grow-1" style="font-size: 10px;">
+        <div class="flex-grow-1">
             <div style="font-weight:500;font-size:11px">${escapeHtml(authorName)}</div>
+            <div style="font-size: 10px;">${previewText}</div>
         </div>
         <button type="button" class="btn btn-sm btn-remove-task remove-task" title="Remove reply preview" style="line-height: 1; font-size: 10px;">
             <span class="material-symbols-outlined">close</span>
@@ -1234,7 +1731,7 @@ function renderDashboardInlineFeedbackFilesPreview() {
 function submitDashboardInlineFeedback(taskId) {
     const editor = window.__quillDashboardInlineFeedback;
     if (!editor) return;
-    
+
     const content = editor.root.innerHTML.trim();
     if (!content || content === '<p><br></p>') {
         if (typeof showFloatingAlert === 'function') {
@@ -1242,12 +1739,12 @@ function submitDashboardInlineFeedback(taskId) {
         }
         return;
     }
-    
+
     const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
     const formData = new FormData();
     formData.append('feedback_comment', content);
     formData.append('task_id', taskId);
-    
+
     const sendBtn = document.getElementById('inlineFeedbackSendBtn');
     const originalHtml = sendBtn.innerHTML;
     sendBtn.disabled = true;
@@ -1256,10 +1753,10 @@ function submitDashboardInlineFeedback(taskId) {
     // Check if replying or editing
     const parentId = window.__dashboardReplyingToFeedbackId;
     const editId = window.__dashboardEditingFeedbackId;
-    
+
     let method = 'POST';
     let url = `${appUrl}/task-feedbacks`;
-    
+
     if (editId) {
         // Edit mode
         method = 'PUT';
@@ -1268,13 +1765,13 @@ function submitDashboardInlineFeedback(taskId) {
         // Reply mode
         formData.append('parent_id', parentId);
     }
-    
+
     // Add image if exists
     const imageFile = window.__dashboardInlineFeedbackImageFile;
     if (imageFile) {
         formData.append('image', imageFile);
     }
-    
+
     // Add files if exists
     const files = window.dashboardInlineFeedbackSelectedFiles || [];
     if (files.length > 0) {
@@ -1282,18 +1779,18 @@ function submitDashboardInlineFeedback(taskId) {
             formData.append('reference_files[]', file);
         });
     }
-    
+
     // Add CSRF token
     formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
-    
+
     // For PUT request, add method override
     if (method === 'PUT') {
         formData.append('_method', 'PUT');
         method = 'POST'; // Send as POST with _method override
     }
 
-    fetch(url, { 
-        method: method, 
+    fetch(url, {
+        method: method,
         body: formData,
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
@@ -1306,46 +1803,46 @@ function submitDashboardInlineFeedback(taskId) {
                 const msg = editId ? 'Feedback updated successfully' : (parentId ? 'Reply posted successfully' : 'Feedback posted successfully');
                 showFloatingAlert(res.message || msg, 'success');
             }
-            
+
             // Clear editor and reset state
             editor.root.innerHTML = '';
             window.__dashboardEditingFeedbackId = null;
             window.__dashboardReplyingToFeedbackId = null;
             window.__dashboardInlineFeedbackImageFile = null;
             window.dashboardInlineFeedbackSelectedFiles = [];
-            
+
             // Clear image preview
             const imagePreview = document.getElementById('inline_feedback_image_preview');
             if (imagePreview) imagePreview.remove();
-            
+
             // Clear files preview
             const filesPreview = document.getElementById('inline_feedback_files_preview');
             if (filesPreview) filesPreview.innerHTML = '';
-            
+
             // Reset placeholder
             const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
             if (placeholderEl) {
                 placeholderEl.dataset.placeholder = 'Write feedback...';
             }
-            
+
             // Reset send button
             sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
-            
+
             // Reload feedback list
             loadDashboardTaskFeedbackData(taskId);
 
             // remove reply preview if any
             removeDashboardReplyPreview();
-            
+
             // Update feedback count
-            $.ajax({ 
-                url: appUrl + '/task-feedbacks/count/' + taskId, 
-                type: 'GET', 
-                success: function(c){ 
-                    if (c && c.data && typeof c.data.count === 'number') { 
+            $.ajax({
+                url: appUrl + '/task-feedbacks/count/' + taskId,
+                type: 'GET',
+                success: function(c){
+                    if (c && c.data && typeof c.data.count === 'number') {
                         setDashboardFeedbackCount(taskId, c.data.count);
-                    } 
-                } 
+                    }
+                }
             });
         } else {
             throw new Error(res.message || 'Failed to post feedback');
@@ -1383,31 +1880,31 @@ if (typeof window.showFloatingAlert !== 'function') {
 function showDashboardReplyFeedbackForm(taskId, parentId) {
     const editor = window.__quillDashboardInlineFeedback;
     if (!editor) return;
-    
+
     // Clear editor and show placeholder
     editor.root.innerHTML = '';
     editor.root.dataset.replyTo = parentId;
     editor.root.dataset.taskId = taskId;
-    
+
     // Update placeholder
     const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
     if (placeholderEl) {
         placeholderEl.dataset.placeholder = 'Write reply...';
     }
-    
+
     // Store reply context
     window.__dashboardReplyingToFeedbackId = parentId;
     window.__dashboardEditingFeedbackId = null;
-    
+
     // Update send button text
     const sendBtn = document.getElementById('inlineFeedbackSendBtn');
     if (sendBtn) {
         sendBtn.innerHTML = '<span class="material-symbols-outlined">reply</span>';
     }
-    
+
     // Focus editor
     editor.focus();
-    
+
     // Scroll to editor
     try {
         const editorEl = document.getElementById('inline_feedback_editor');
@@ -1421,33 +1918,33 @@ function showDashboardReplyFeedbackForm(taskId, parentId) {
 function startDashboardInlineEditFeedback(payload) {
     const editor = window.__quillDashboardInlineFeedback;
     if (!editor) return;
-    
+
     // Clear reply mode
     window.__dashboardReplyingToFeedbackId = null;
     window.__dashboardEditingFeedbackId = payload.id;
-    
+
     // Set content
     editor.root.innerHTML = '';
     const content = payload.feedback_comment || '';
     if (content) {
         editor.root.innerHTML = content;
     }
-    
+
     // Update placeholder
     const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
     if (placeholderEl) {
         placeholderEl.dataset.placeholder = 'Edit feedback...';
     }
-    
+
     // Update send button text
     const sendBtn = document.getElementById('inlineFeedbackSendBtn');
     if (sendBtn) {
-        sendBtn.innerHTML = '<span class="material-symbols-outlined">save</span>';
+        sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
     }
-    
+
     // Focus editor
     editor.focus();
-    
+
     // Scroll to editor
     try {
         const editorEl = document.getElementById('inline_feedback_editor');
@@ -1555,8 +2052,8 @@ function showDashboardDeleteConfirmModal(opts) {
                 }
             });
         }
-    } catch (e) { 
-        console.warn('showDashboardDeleteConfirmModal error', e); 
+    } catch (e) {
+        console.warn('showDashboardDeleteConfirmModal error', e);
     }
 }
 
