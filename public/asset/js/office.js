@@ -1238,6 +1238,20 @@ $(document).ready(function() {
                 const initials = getTaskInitials(response.data.title || taskTitle || 'NA');
                 const initialColor = getRandomColorFromText(response.data.title || taskTitle || initials);
 
+                // Build status rows only when data present
+                const statusRows = (function(){
+                    try {
+                        const rows = [];
+                        const ip = (response.data && response.data.in_progress_by_name) ? String(response.data.in_progress_by_name).trim() : '';
+                        const cb = (response.data && response.data.completed_by_name) ? String(response.data.completed_by_name).trim() : '';
+                        const rb = (response.data && response.data.rejected_by_name) ? String(response.data.rejected_by_name).trim() : '';
+                        if (ip) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">In Progress by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(ip)}</span></div>`);
+                        if (cb) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Completed by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(cb)}</span></div>`);
+                        if (rb) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Rejected by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(rb)}</span></div>`);
+                        return rows.join('');
+                    } catch (e) { return ''; }
+                })();
+
                 const modalHtml = `
                     <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:720px;">
@@ -1288,9 +1302,7 @@ $(document).ready(function() {
                                                     <div class="collab-list">
                                                         ${buildCollabHtml(response.data)}
                                                     </div>
-                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">In Progress by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.in_progress_by_name || '-')}</span></div>
-                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Completed by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.completed_by_name || '-')}</span></div>
-                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Rejected by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.rejected_by_name || '-')}</span></div>
+                                                    ${statusRows}
                                                 </div>
                                                 <div class="d-flex align-items-start">
                                                     <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
@@ -1359,9 +1371,7 @@ $(document).ready(function() {
                                                     <div class="collab-list">
                                                         ${buildCollabHtml(response.data)}
                                                     </div>
-                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">In Progress by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.in_progress_by_name || '-')}</span></div>
-                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Completed by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.completed_by_name || '-')}</span></div>
-                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Rejected by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.rejected_by_name || '-')}</span></div>
+                                                    ${statusRows}
                                                 </div>
                                                 <div class="d-flex align-items-start">
                                                     <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
