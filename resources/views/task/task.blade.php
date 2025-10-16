@@ -30,27 +30,26 @@
         </div>
 
         <div class="d-flex align-items-center gap-2">
-            <div class="task-tabs mb-3 me-2">
-                <ul class="custom-tab" id="taskTabMenu" role="tablist">
-                    <li>
-                        <button class="tab-btn active" id="grid-tab">
-                            <span class="material-symbols-outlined">grid_view</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button class="tab-btn" id="list-tab">
-                            <span class="material-symbols-outlined">list</span>
-                        </button>
-                    </li>
-                </ul>
-            </div>
             <div class="dropdown-filter-container">
                 <div class="search-input-container">
                     <span class="material-symbols-outlined search-icon">search</span>
                     <input class="form-control custom-form-filter" type="text" name="search_filter"
-                        id="search_filter">
+                    id="search_filter">
                 </div>
-
+                <div class="task-tabs mb-3 me-2">
+                    <ul class="custom-tab" id="taskTabMenu" role="tablist">
+                        <li>
+                            <button class="tab-btn active" id="grid-tab">
+                                <span class="material-symbols-outlined">grid_view</span>
+                            </button>
+                        </li>
+                        <li>
+                            <button class="tab-btn" id="list-tab">
+                                <span class="material-symbols-outlined">list</span>
+                            </button>
+                        </li>
+                    </ul>
+                </div>
                 <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal"
                     data-bs-target="#timelineModal">
                     <span class="material-symbols-outlined">calendar_month</span>
@@ -227,21 +226,6 @@
                         </div>
                         <div class="mb-3 custom-input">
                             <label for="edit_task_description" class="form-label label-custom">Description</label>
-                            <!-- Quill editor container for Edit Task -->
-                            {{-- <div id="edit_task_description_toolbar">
-                                <span class="ql-formats">
-                                    <button class="ql-bold"></button>
-                                    <button class="ql-italic"></button>
-                                    <button class="ql-underline"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-list" value="ordered"></button>
-                                    <button class="ql-list" value="bullet"></button>
-                                </span>
-                                <span class="ql-formats">
-                                    <button class="ql-link"></button>
-                                </span>
-                            </div> --}}
                             <div id="edit_task_description_editor"
                                 style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                             </div>
@@ -395,7 +379,7 @@
     </div>
 
     <!-- Add Task Modal -->
-    <div class="modal fade" id="addTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+    <div class="modal fade" id="addTaskModal" data-bs-keyboard="false" tabindex="-1"
         aria-labelledby="addTaskModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content modal-content-custom">

@@ -202,7 +202,7 @@ function getTaskToday() {
                     </div>`;
 
                 const card = `
-                    <div class="task-card p-3 mb-3" style="background:${bg};position:relative;">
+                    <div class="custom-card p-3 mb-3" style="background:${bg};position:relative;" data-task-id={${t.id}}>
                         ${rejectedBadge}
                         ${topTitle}
                         ${descHtml}
@@ -390,7 +390,7 @@ function getTaskTomorrow() {
                     </div>`;
 
                 const card = `
-                    <div class="task-card p-3 mb-3" style="background:${bg};position:relative;">
+                    <div class="custom-card p-3 mb-3" style="background:${bg};position:relative;" data-task-id={${t.id}}>
                         ${rejectedBadge}
                         ${topTitle}
                         ${descHtml}
@@ -470,327 +470,1393 @@ document.addEventListener('click', function(e) {
     openDashboardTaskFeedback(taskId);
 });
 
-// Handle attach_file click and open Reference Files modal (parity with Task page)
 document.addEventListener('click', function(e) {
-    const attach = e.target.closest('.task-attach-trigger');
-    if (!attach) return;
-    const taskId = attach.getAttribute('data-task-id');
-    openDashboardReferenceFiles(taskId);
+    const referenceFileBtn = e.target.closest(".task-attach-trigger");
+    if (referenceFileBtn) {
+        const taskId = referenceFileBtn.getAttribute("data-task-id");
+        if (!taskId) return;
+        addAttachFileIconListeners(taskId);
+    }
 });
 
-function ensureReferenceFilesModal() {
-    let modalEl = document.getElementById('referenceFilesModal');
-    if (modalEl) return modalEl;
+function AddFilesModal() {
+    let modalEl = $("#addFilesModal");
+    if(modalEl) return modalEl;
     const wrapper = document.createElement('div');
-    wrapper.innerHTML = `
-        <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="referenceFilesModalLabel">Reference Files</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <hr>
-                    <div class="modal-body modal-body-custom">
-                        <div id="referenceFilesList" class="d-flex flex-column gap-2"></div>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    document.body.appendChild(wrapper.firstElementChild);
-    return document.getElementById('referenceFilesModal');
+    wrapper.innerHtml = `
+        <div class="">
+    `;
 }
 
-function openDashboardReferenceFiles(taskId) {
-    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
-    const modalEl = ensureReferenceFilesModal();
-    const listEl = modalEl.querySelector('#referenceFilesList');
-    listEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+function showDeleteConfirmModal({ id, content, parentModalId, onConfirm }) {
+    try {
+        const modalId = 'deleteConfirmModal_ref_' + id + '_' + Date.now();
 
-    fetch((appUrl ? appUrl : '') + '/task/' + taskId, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(r => r.json())
-        .then(res => {
-            // Support {data:{...}} or direct payload
+        const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content modal-content-custom">
+                        <div class="modal-body modal-body-custom">
+                            <div class="text-center mb-2">
+                                <p class="fw-bold fs-6 mb-1">${escapeHtml(content || '')}</p>
+                            </div>
+                            <hr class="my-2">
+                            <p class="fw-normal fs-6 text-center mb-4">
+                                Are you sure want to delete this reference file?
+                            </p>
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // Hide parent modal if provided
+        let parentModalInstance = null;
+        const parentEl = parentModalId ? document.getElementById(parentModalId) : null;
+        const wasParentOpen = parentEl && parentEl.classList.contains('show');
+        if (wasParentOpen) {
+            parentModalInstance = bootstrap.Modal.getInstance(parentEl);
+            parentModalInstance?.hide();
+        }
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalEl = document.getElementById(modalId);
+        const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+        modalInstance.show();
+
+        // Cancel handler
+        modalEl.querySelector('[data-bs-dismiss="modal"]').addEventListener('click', () => {
+            modalInstance.hide();
+            modalEl.remove();
+            if (wasParentOpen && parentModalInstance) {
+                setTimeout(() => parentModalInstance.show(), 180);
+            }
+        });
+
+        // Confirm handler
+        const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+        confirmBtn.addEventListener('click', function () {
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...';
+            if (typeof onConfirm === 'function') {
+                onConfirm(function done(shouldClose = true) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = 'Delete';
+                    if (shouldClose) {
+                        modalInstance.hide();
+                        modalEl.remove();
+                        if (wasParentOpen && parentModalInstance) {
+                            setTimeout(() => parentModalInstance.show(), 180);
+                        }
+                    }
+                });
+            } else {
+                modalInstance.hide();
+                modalEl.remove();
+            }
+        });
+    } catch (e) {
+        console.error('showDeleteConfirmModal error:', e);
+    }
+}
+
+let attachFileIconListenerBound = false;
+
+function addAttachFileIconListeners(taskId) {
+    $.ajax({
+        url: appUrl + "/task/" + taskId,
+        type: "GET",
+        dataType: "json",
+        success: function (res) {
             const payload = res && (res.data || res);
             let referenceFiles = payload && payload.reference_files;
 
-            if (typeof referenceFiles === 'string') {
+            if (typeof referenceFiles === "string") {
                 try {
                     referenceFiles = JSON.parse(referenceFiles);
-                } catch (e) {
-                    referenceFiles = referenceFiles.includes('[') ? [] : referenceFiles.split(',').map(s => s.trim()).filter(Boolean);
+                } catch {
+                    referenceFiles = referenceFiles.includes("[")
+                        ? []
+                        : referenceFiles.split(",").map(s => s.trim()).filter(Boolean);
                 }
             }
 
-            listEl.innerHTML = '';
-            if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
-                referenceFiles.forEach(fileName => {
-                    if (!fileName) return;
-                    const a = document.createElement('a');
-                    a.href = (appUrl ? appUrl : '') + '/file/task_reference_files/' + fileName;
-                    a.target = '_blank';
-                    a.className = 'd-block text-decoration-none mb-1';
-                    a.innerHTML = '<span class="material-symbols-outlined me-1" style="font-size:16px;vertical-align:middle;">description</span> ' + fileName;
-                    listEl.appendChild(a);
-                });
-            } else {
-                listEl.textContent = 'No reference files available.';
+            const referenceFilesList = document.getElementById("referenceFilesList");
+            if (!referenceFilesList) return;
+            referenceFilesList.innerHTML = "";
+            referenceFilesList.dataset.taskId = String(taskId || '');
+
+                    if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
+                        referenceFiles.forEach((fileName) => {
+                            if (!fileName) return;
+
+                                let fileUrl = String(fileName || '');
+                                const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+                                const isRefPath = fileUrl.startsWith('/file/task_reference_files/') || fileUrl.startsWith('file/task_reference_files/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
+                                if (!isAbs && !isRefPath) {
+                                    fileUrl = appUrl + '/file/task_reference_files/' + fileUrl;
+                                } else if (!isAbs && fileUrl.startsWith('/')) {
+                                    fileUrl = appUrl + fileUrl;
+                                }
+
+                                const item = document.createElement('div');
+                                item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                                const lower = String(fileName || '').toLowerCase();
+                                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+
+                                if (isImage) {
+                                    const img = document.createElement('img');
+                                    img.src = fileUrl;
+                                    img.width = 28; img.height = 28;
+                                    img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                                    img.alt = fileName;
+                                    item.appendChild(img);
+                                } else {
+                                    const badge = document.createElement('div');
+                                    item.appendChild(badge);
+                                }
+
+                                const title = document.createElement('a');
+                                title.className = 'flex-grow-1 text-decoration-none text-truncate';
+                                title.href = fileUrl;
+                                title.target = '_blank';
+                                title.textContent = fileName;
+                                title.style.color = "#444444"
+                                item.appendChild(title);
+
+                                const dlBtn = document.createElement('button');
+                                dlBtn.type = 'button';
+                                dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                                dlBtn.title = 'Download';
+                                dlBtn.style.color = "#444444"
+                                dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                                dlBtn.addEventListener('click', function (ev) {
+                                    try {
+                                        ev.preventDefault(); ev.stopPropagation();
+                                        const a = document.createElement('a');
+                                        a.style.display = 'none';
+                                        a.href = fileUrl;
+                                        try { a.download = String(fileName || '').split('/').pop(); } catch(_) {}
+                                        a.target = '_blank';
+                                        document.body.appendChild(a);
+                                        a.click();
+                                        setTimeout(() => { try { document.body.removeChild(a); } catch(_) {} }, 100);
+                                    } catch (e) {
+                                        window.open(fileUrl, '_blank');
+                                    }
+                                });
+
+                                item.appendChild(dlBtn);
+
+                                const delBtn = document.createElement('button');
+                                delBtn.type = 'button';
+                                delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                                delBtn.title = 'Delete';
+                                delBtn.style.color = '#444444';
+                                delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                                delBtn.addEventListener('click', function (ev) {
+                                ev.preventDefault(); ev.stopPropagation();
+                                try {
+                                    showDeleteConfirmModal({
+                                        id: fileName,
+                                        content: fileName,
+                                        parentModalId: 'referenceFilesModal',
+                                        onConfirm: function (done) {
+                                            try {
+                                                const remaining = (Array.isArray(referenceFiles) ? referenceFiles.slice() : [])
+                                                    .filter(f => String(f) !== String(fileName));
+
+                                                $.ajax({
+                                                    url: appUrl + '/task/' + taskId + '/reference-file',
+                                                    type: 'DELETE',
+                                                    data: { filename: fileName },
+                                                    headers: {
+                                                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                                    },
+                                                    success: function (res) {
+                                                        try {
+                                                            if (typeof showFloatingAlert === 'function')
+                                                                showFloatingAlert(res.message || 'Reference file deleted', 'success');
+                                                        } catch (_) {}
+
+                                                        if (item && item.parentNode) item.parentNode.removeChild(item);
+
+                                                        try {
+                                                            const idx = referenceFiles.indexOf(fileName);
+                                                            if (idx !== -1) referenceFiles.splice(idx, 1);
+                                                        } catch (_) {}
+
+                                                        try {
+                                                            const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                                                            if (card) {
+                                                                const span = card.querySelector('.reference-files-count');
+                                                                let newCount = 0;
+                                                                try {
+                                                                    newCount = Math.max(
+                                                                        (parseInt(span ? span.textContent : '0', 10) || 0) - 1,
+                                                                        0
+                                                                    );
+                                                                } catch (_) {
+                                                                    newCount = 0;
+                                                                }
+                                                                if (span) {
+                                                                    if (newCount <= 0) {
+                                                                        try {
+                                                                            span.remove();
+                                                                        } catch (_) {
+                                                                            span.style.display = 'none';
+                                                                        }
+                                                                    } else {
+                                                                        span.textContent = String(newCount);
+                                                                    }
+                                                                }
+                                                            }
+                                                        } catch (_) {}
+
+                                                        try {
+                                                            const rList = document.getElementById('referenceFilesList');
+                                                            if (rList) {
+                                                                if (!(Array.isArray(referenceFiles) && referenceFiles.length > 0)) {
+                                                                    rList.innerHTML = '';
+                                                                    rList.textContent = 'No reference files available.';
+                                                                }
+                                                            }
+                                                        } catch (_) {}
+
+                                                        done(true);
+                                                    },
+                                                    error: function (xhr) {
+                                                        let msg = 'Failed to delete reference file';
+                                                        if (xhr.responseJSON && xhr.responseJSON.message)
+                                                            msg = xhr.responseJSON.message;
+                                                        try {
+                                                            if (typeof showFloatingAlert === 'function')
+                                                                showFloatingAlert(msg, 'danger');
+                                                        } catch (_) {
+                                                            alert(msg);
+                                                        }
+                                                        done(false);
+                                                    }
+                                                });
+                                            } catch (e) {
+                                                try {
+                                                    if (typeof showFloatingAlert === 'function')
+                                                        showFloatingAlert('Failed to delete reference file', 'danger');
+                                                } catch (_) {}
+                                                done(false);
+                                            }
+                                        }
+                                    });
+
+                                } catch (e) {}
+                            });
+
+                            item.appendChild(delBtn);
+                            referenceFilesList.appendChild(item);
+                        });
+                    } else {
+                        referenceFilesList.textContent = "No reference files available.";
+                    }
+
+            const modalEl = document.getElementById("referenceFilesModal");
+            if (modalEl) {
+                modalEl.dataset.taskId = String(taskId || '');
+                const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                referenceFilesModal.show();
             }
-        })
-        .catch(() => {
-            listEl.innerHTML = '<div class="alert alert-danger">Failed to load reference files.</div>';
-        })
-        .finally(() => {
-            const modal = (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
-                ? bootstrap.Modal.getOrCreateInstance(modalEl)
-                : new bootstrap.Modal(modalEl);
-            modal.show();
-        });
+        },
+        error: function () {
+            showFloatingAlert("Failed to load reference files.", "danger", 3000);
+        },
+    });
 }
 
+function displaySelectedFiles() {
+    function findVisiblePreview(ids) {
+        let fallback = null;
+        for (const id of ids) {
+            const el = document.getElementById(id);
+            if (el && !fallback) fallback = el;
+            if (el && el.offsetParent !== null) return el;
+        }
+        return fallback;
+    }
+    const preview = findVisiblePreview([
+        'schedule_reference_files_preview',
+        'feedback_reference_files_preview',
+        'reference_files_preview',
+    ]);
+    if (!preview) return;
+    preview.innerHTML = '';
+
+    if (selectedFiles.length > 0) {
+        const fileList = document.createElement('div');
+        fileList.className = 'selected-files-list mt-2';
+
+        selectedFiles.forEach((file, index) => {
+            const fileItem = document.createElement('div');
+            fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+            // Thumbnail or placeholder
+            if (file && file.type && file.type.indexOf('image') === 0) {
+                const img = document.createElement('img');
+                const url = URL.createObjectURL(file);
+                img.src = url;
+                img.width = 28;
+                img.height = 28;
+                img.style.objectFit = 'cover';
+                img.style.borderRadius = '50%';
+                img.alt = file.name;
+                // revoke object URL after load
+                img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
+                fileItem.appendChild(img);
+                } else {
+                const badge = document.createElement('div');
+                fileItem.appendChild(badge);
+            }
+
+            const title = document.createElement('span');
+            title.className = 'flex-grow-1';
+            title.textContent = file.name;
+            fileItem.appendChild(title);
+
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+            removeBtn.style.lineHeight = '1';
+            removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+            removeBtn.addEventListener('click', function () {
+                selectedFiles.splice(index, 1);
+                displaySelectedFiles();
+            });
+
+            fileItem.appendChild(removeBtn);
+            fileList.appendChild(fileItem);
+        });
+
+        preview.appendChild(fileList);
+    }
+}
+
+selectedFiles = [];
+
+function setupReferenceFilesInput() {
+    const input = document.getElementById("task_reference_files");
+    const preview = document.getElementById("reference_files_preview");
+
+    if (!input || !preview) return;
+
+    input.addEventListener("change", function () {
+        const files = Array.from(this.files);
+        selectedFiles = [...selectedFiles, ...files];
+        displaySelectedFiles();
+
+        this.value = "";
+    });
+}
+
+function initAddReferenceFilesModal() {
+    const openBtn = $('#openAddReferenceFilesBtn');
+    const refModalEl = $('#addFilesModal');
+    const refModal = refModalEl.length ? new bootstrap.Modal(refModalEl[0]) : null;
+    const refForm = $('#referenceFilesForm');
+    const fileInput = $('#task_reference_files');
+    const preview = $('#reference_files_preview');
+    const submitBtn = $('#submitAddReferenceFiles');
+
+    if (!openBtn.length || !refModalEl.length || !refForm.length || !fileInput.length || !preview.length || !submitBtn.length) return;
+
+    openBtn.on('click', function () {
+        try {
+            const refFilesModalEl = $('#referenceFilesModal');
+            if (refFilesModalEl.length) {
+                const cm = bootstrap.Modal.getInstance(refFilesModalEl[0]) || new bootstrap.Modal(refFilesModalEl[0]);
+                cm.hide();
+            }
+        } catch (_) {}
+        const taskId = $('#referenceFilesModal').data('taskId')
+            || $('#referenceFilesList').data('taskId')
+            || $(this).data('taskId')
+        if (!taskId) {
+            if (typeof showFloatingAlert === 'function') showFloatingAlert('Task ID not found. Cannot add files.', 'danger');
+            return;
+        }
+        $('#refTaskId').val(taskId || '');
+        fileInput.val('');
+        fileInput.css('border', 'none');
+        preview.empty();
+        window.addRefSelectedFiles = [];
+        refModal.show();
+    });
+
+    fileInput.on('change', function () {
+        const files = Array.from(this.files || []);
+        window.addRefSelectedFiles = window.addRefSelectedFiles || [];
+        window.addRefSelectedFiles = window.addRefSelectedFiles.concat(files);
+        renderAddRefSelectedFiles();
+        this.value = '';
+    });
+
+    function renderAddRefSelectedFiles() {
+        preview.empty();
+        const list = $('<div class="selected-files-list mt-2"></div>');
+        (window.addRefSelectedFiles || []).forEach((file, idx) => {
+            const item = $('<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2"></div>');
+            if (file && file.type && file.type.indexOf('image') === 0) {
+                const url = URL.createObjectURL(file);
+                const img = $('<img width="28" height="28" style="object-fit:cover;border-radius:50%;">').attr('src', url).attr('alt', file.name);
+                img.on('load', () => { try { URL.revokeObjectURL(url); } catch (_) {} });
+                item.append(img);
+            } else {
+                item.append($('<div></div>'));
+            }
+            const title = $('<span class="flex-grow-1"></span>').text(file.name);
+            item.append(title);
+            const removeBtn = $('<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1;"><span class="material-symbols-outlined">close</span></button>');
+            removeBtn.on('click', function () {
+                window.addRefSelectedFiles.splice(idx, 1);
+                renderAddRefSelectedFiles();
+            });
+            item.append(removeBtn);
+            list.append(item);
+        });
+        preview.append(list);
+    }
+
+    submitBtn.on('click', function (e) {
+        e.preventDefault();
+        const taskId = $('#refTaskId').val();
+        if (!taskId) {
+            if (typeof showFloatingAlert === 'function') showFloatingAlert('Task ID not found.', 'danger');
+            return;
+        }
+        const files = window.addRefSelectedFiles || [];
+        if (!files.length) {
+            if (typeof showFloatingAlert === 'function') showFloatingAlert('Please select at least one file to upload.', 'warning');
+            return;
+        }
+        const fd = new FormData();
+        files.forEach(f => fd.append('reference_files[]', f));
+        fd.append('task_id', taskId);
+        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+        fetch(appUrl + '/task/' + encodeURIComponent(taskId) + '/reference-file', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            body: fd
+        }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
+            .then(payload => {
+                const newCount = (() => {
+                    try {
+                        if (!payload) return undefined;
+                        if (Array.isArray(payload.reference_files)) return payload.reference_files.length;
+                        if (typeof payload.reference_files_count === 'number') return payload.reference_files_count;
+                        if (typeof payload.reference_files === 'string') {
+                            try {
+                                const parsed = JSON.parse(payload.reference_files);
+                                if (Array.isArray(parsed)) return parsed.length;
+                            } catch (_) {
+                                return payload.reference_files.split(',').filter(Boolean).length;
+                            }
+                        }
+                        return undefined;
+                    } catch (_) { return undefined; }
+                })();
+                if (typeof showFloatingAlert === 'function') showFloatingAlert(payload.message || 'Files uploaded', 'success', 2000);
+                refModal.hide();
+                window.addRefSelectedFiles = [];
+                renderAddRefSelectedFiles();
+                try {
+                    const card = $('.custom-card[data-task-id="' + taskId + '"]');
+                    if (card.length && typeof newCount !== 'undefined') {
+                        let span = card.find('.reference-files-count');
+                        if (newCount > 0) {
+                            if (span.length) span.text(String(newCount));
+                            else {
+                                const s = $('<span class="reference-files-count ms-1" style="color:#454545;font-size:12px;"></span>').text(String(newCount));
+                                let attachWrapper = card.find('.btn-attach-file-wrapper').filter(function () {
+                                    const icon = $(this).find('.material-symbols-outlined');
+                                    return icon.text().trim() === 'attach_file';
+                                }).first();
+                                if (!attachWrapper.length) attachWrapper = card.find('.btn-attach-file-wrapper.d-flex.align-items-center').first();
+                                if (attachWrapper.length) attachWrapper.append(s);
+                            }
+                        } else if (span.length) span.remove();
+                    }
+                } catch (_) {}
+                const cardForClick = $('.custom-card[data-task-id="' + taskId + '"]');
+                let attachBtn = null;
+                if (cardForClick.length) {
+                    const icons = cardForClick.find('.task-icon');
+                    attachBtn = icons.filter(function () { return $(this).text().trim() === 'attach_file'; }).first();
+                }
+                if (attachBtn && typeof attachBtn[0].click === 'function') {
+                    setTimeout(function () { try { attachBtn[0].click(); } catch (_) {} }, 200);
+                } else {
+                    $.ajax({
+                        url: appUrl + '/task/' + encodeURIComponent(taskId),
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function (res) {
+                            const t = res && (res.data || res);
+                            const card = $('.custom-card[data-task-id="' + taskId + '"]');
+                            if (card.length) {
+                                let span = card.find('.reference-files-count');
+                                const count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0)) || 0;
+                                if (count > 0) {
+                                    if (span.length) span.text(String(count));
+                                    else {
+                                        const s = $('<span class="reference-files-count ms-1" style="color:#454545;font-size:12px;"></span>').text(String(count));
+                                        let attachWrapper = card.find('.btn-attach-file-wrapper').filter(function () {
+                                            const icon = $(this).find('.material-symbols-outlined');
+                                            return icon.text().trim() === 'attach_file';
+                                        }).first();
+                                        if (!attachWrapper.length) attachWrapper = card.find('.btn-attach-file-wrapper.d-flex.align-items-center').first();
+                                        if (attachWrapper.length) attachWrapper.append(s);
+                                    }
+                                } else if (span.length) span.remove();
+                            }
+                        }
+                    });
+                }
+            }).catch(err => {
+                console.error('Upload failed', err);
+                const msg = (err && (err.message || err.error || (err.errors && err.errors[0]))) || 'Upload failed';
+                if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
+            }).finally(() => {
+                submitBtn.prop('disabled', false).html('Upload');
+            });
+    });
+}
+
+(function(){
+    try {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAddReferenceFilesModal);
+        } else {
+            initAddReferenceFilesModal();
+        }
+    } catch (e) {}
+})();
+
 function openDashboardTaskFeedback(taskId) {
-    const modalEl = document.getElementById('taskFeedbackModal');
+    const modalEl = $('#taskFeedbackModal')[0];
     if (!modalEl) return;
-    modalEl.dataset.taskId = taskId;
-
-    const modal = (bootstrap && bootstrap.Modal && bootstrap.Modal.getOrCreateInstance)
-        ? bootstrap.Modal.getOrCreateInstance(modalEl)
-        : new bootstrap.Modal(modalEl);
-    // reset title and button
-    const titleEl = modalEl.querySelector('.feedback-modal-title');
-    const addBtn = document.getElementById('addFeedbackButton');
-    const bodyEl = modalEl.querySelector('.feedback-modal-body');
-    titleEl.textContent = 'Task Feedback';
-    bodyEl.innerHTML = '';
-    addBtn.textContent = 'Add Feedback';
-
-    // bind add feedback click
-    const newBtn = addBtn.cloneNode(true);
-    addBtn.parentNode.replaceChild(newBtn, addBtn);
-    newBtn.addEventListener('click', () => showDashboardAddFeedbackForm(taskId));
-
-    loadDashboardTaskFeedbackData(taskId);
+    $(modalEl).data('taskId', taskId);
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    $('.feedback-modal-title', modalEl).text('Task Feedback');
+    $('.feedback-modal-body', modalEl).html('');
+    setupDashboardInlineFeedbackEditor(taskId);
     modal.show();
+    setTimeout(() => loadDashboardTaskFeedbackData(taskId), 100);
 }
 
 function loadDashboardTaskFeedbackData(taskId) {
-    const bodyEl = document.getElementById('taskFeedbackList');
-    if (!bodyEl) return;
-    bodyEl.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
-    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
-    fetch((appUrl ? appUrl : '') + '/task-feedbacks/' + taskId + '?_=' + Date.now(), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, cache: 'no-store' })
-        .then(r => r.json())
-        .then(res => {
+    const bodyEl = $('#taskFeedbackList');
+    if (!bodyEl.length) return;
+    bodyEl.html('<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+    const appUrl = $('meta[name="app-url"]').attr('content') || '';
+    $.ajax({
+        url: `${appUrl}/task-feedbacks/${taskId}?_=${Date.now()}`,
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        cache: false,
+        success: res => {
             const data = res.data || [];
             if (!data.length) {
-                bodyEl.innerHTML = '<p class="text-center text-muted">No feedback available for this task.</p>';
+                bodyEl.html('<p class="text-center text-muted">No feedback available for this task.</p>');
                 return;
             }
-
-            // helper functions to match Task page formatting
-            const isSameDay = (d1, d2) => d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
-            const isYesterday = (d1, d2) => {
-                const y = new Date(d2);
-                y.setDate(d2.getDate() - 1);
-                return isSameDay(d1, y);
+            const timeAgo = d => {
+                if (!d) return '';
+                const date = new Date(d);
+                const diff = Date.now() - date;
+                const min = Math.floor(diff / 60000), hr = Math.floor(min / 60), day = Math.floor(hr / 24);
+                if (day > 1) return date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                if (day === 1) return '1 day ago';
+                if (hr > 0) return `${hr} hour${hr > 1 ? 's' : ''} ago`;
+                if (min > 0) return `${min} minute${min > 1 ? 's' : ''} ago`;
+                return 'just now';
             };
-
+            const currentEmployeeId = $('#taskFeedbackModal').data('employeeId') || '';
             const html = data.map(fb => {
-                let formattedDate = '';
-                if (fb.created_at) {
-                    const created = new Date(fb.created_at);
-                    const now = new Date();
-                    if (isSameDay(created, now)) {
-                        formattedDate = created.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                    } else if (isYesterday(created, now)) {
-                        formattedDate = 'yesterday';
-                    } else {
-                        formattedDate = created.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+                const formattedDate = timeAgo(fb.created_at);
+                const name = fb.employee?.name || 'Unknown';
+                const photo = fb.employee?.photo || `${appUrl}/asset/img/avatar.png`;
+                const feedbackComment = fb.feedback_comment || '';
+                let topImageUrl = fb.image || '';
+                if (topImageUrl && !topImageUrl.startsWith('http')) topImageUrl = `${appUrl}/file/task/${topImageUrl}`;
+                let topRefFiles = [];
+                try {
+                    let refFiles = fb.reference_files_urls || fb.reference_files || [];
+                    if (typeof refFiles === 'string') {
+                        try { refFiles = JSON.parse(refFiles); } catch { refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean); }
                     }
+                    if (Array.isArray(refFiles) && refFiles.length > 0) {
+                        topRefFiles = refFiles.map(f => f.startsWith('http') ? f : `${appUrl}/file/task_reference_files/${f}`).filter(Boolean);
+                    }
+                } catch {}
+                let topRefUrls = [];
+                try {
+                    let refUrls = fb.reference_urls || [];
+                    if (typeof refUrls === 'string') {
+                        try { refUrls = JSON.parse(refUrls); } catch { if (refUrls.trim()) refUrls = [refUrls]; else refUrls = []; }
+                    }
+                    if (Array.isArray(refUrls) && refUrls.length > 0) topRefUrls = refUrls.filter(u => typeof u === 'string' && u.trim() !== '');
+                    else if (fb.reference_url) topRefUrls = [fb.reference_url];
+                } catch {}
+                const topAuthorId = fb.employee?.id || fb.employee_id || 0;
+                const canEditTop = String(topAuthorId) === String(currentEmployeeId);
+                const filesHtml = topRefFiles.length ? `
+                    <div class="feedback-reference-container mb-2">
+                        ${topRefFiles.map(fileUrl => {
+                            const fileName = fileUrl.split('/').pop() || 'File';
+                            return `<a href="${fileUrl}" class="feedback-reference-file bg-light rounded-2">
+                                <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}
+                            </a>`;
+                        }).join('')}
+                    </div>` : '';
+                const urlsHtml = topRefUrls.length ? `
+                    <div class="feedback-reference-container mb-2">
+                        ${topRefUrls.map(url => {
+                            const shortUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                            return `<a href="${url}" target="_blank" class="feedback-reference-url bg-light rounded-2">
+                                <span class="material-symbols-outlined" style="color: #444444;">link</span> ${shortUrl}
+                            </a>`;
+                        }).join('')}
+                    </div>` : '';
+                const imgHtml = topImageUrl ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width:70px;height:auto;border-radius:8px;cursor:pointer;">` : '';
+
+                // Process replies
+                const replies = Array.isArray(fb.replies) ? fb.replies : [];
+                const repliesCount = replies.length;
+
+                let repliesHtml = '';
+                if (repliesCount > 0) {
+                    repliesHtml = `<div class="replies-container d-none mt-3" id="replies-${fb.id}">`;
+                    replies.forEach(rep => {
+                        const repDate = timeAgo(rep.created_at);
+                        const repName = rep.employee?.name || 'Unknown';
+                        const repPhoto = rep.employee?.photo || `${appUrl}/asset/img/avatar.png`;
+                        const repComment = rep.feedback_comment || '';
+
+                        let repImageUrl = rep.image || '';
+                        if (repImageUrl && !repImageUrl.startsWith('http')) repImageUrl = `${appUrl}/file/task/${repImageUrl}`;
+
+                        let repRefFiles = [];
+                        try {
+                            let refFiles = rep.reference_files_urls || rep.reference_files || [];
+                            if (typeof refFiles === 'string') {
+                                try { refFiles = JSON.parse(refFiles); } catch { refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean); }
+                            }
+                            if (Array.isArray(refFiles) && refFiles.length > 0) {
+                                repRefFiles = refFiles.map(f => f.startsWith('http') ? f : `${appUrl}/file/task_reference_files/${f}`).filter(Boolean);
+                            }
+                        } catch {}
+
+                        let repRefUrls = [];
+                        try {
+                            let refUrls = rep.reference_urls || [];
+                            if (typeof refUrls === 'string') {
+                                try { refUrls = JSON.parse(refUrls); } catch { if (refUrls.trim()) refUrls = [refUrls]; else refUrls = []; }
+                            }
+                            if (Array.isArray(refUrls) && refUrls.length > 0) repRefUrls = refUrls.filter(u => typeof u === 'string' && u.trim() !== '');
+                            else if (rep.reference_url) repRefUrls = [rep.reference_url];
+                        } catch {}
+
+                        const repAuthorId = rep.employee?.id || rep.employee_id || 0;
+                        const canEditRep = String(repAuthorId) === String(currentEmployeeId);
+
+                        const repFilesHtml = repRefFiles.length ? `
+                            <div class="feedback-reference-container mb-2">
+                                ${repRefFiles.map(fileUrl => {
+                                    const fileName = fileUrl.split('/').pop() || 'File';
+                                    return `<a href="${fileUrl}" class="feedback-reference-file bg-light rounded-2">
+                                        <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}
+                                    </a>`;
+                                }).join('')}
+                            </div>` : '';
+                        const repUrlsHtml = repRefUrls.length ? `
+                            <div class="feedback-reference-container mb-2">
+                                ${repRefUrls.map(url => {
+                                    const shortUrl = url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                    return `<a href="${url}" target="_blank" class="feedback-reference-url bg-light rounded-2">
+                                        <span class="material-symbols-outlined" style="color: #444444;">link</span> ${shortUrl}
+                                    </a>`;
+                                }).join('')}
+                            </div>` : '';
+                        const repImgHtml = repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded mb-2 reply-image" style="width:70px;height:auto;border-radius:8px;cursor:pointer;">` : '';
+
+                        repliesHtml += `
+                            <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${fb.id}" style="background: rgb(240, 241, 248);">
+                                <div class="d-flex align-items-start">
+                                    <img src="${repPhoto}" alt="${repName}" class="rounded-circle me-2" style="width:28px;height:28px;object-fit:cover;">
+                                    <div class="flex-grow-1">
+                                        <div>
+                                            <strong style="font-size:13px;font-weight:600;">${repName}</strong>
+                                            <div><small class="text-muted d-block" style="font-size:10px;">${repDate}</small></div>
+                                        </div>
+                                        <div class="reply-comment mt-1">
+                                            <p class="mb-1" style="font-size:12px;">${repComment}</p>
+                                            ${repUrlsHtml}${repFilesHtml}${repImgHtml}
+                                            <div class="reply-actions mt-2 d-flex gap-3 align-items-center">
+                                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${fb.id}" data-task-id="${taskId}" data-author-name="${encodeURIComponent(repName)}" data-author-photo="${encodeURIComponent(repPhoto)}" data-preview-text="${encodeURIComponent(repComment)}" style="cursor:pointer;color:#555;font-size:11px;">
+                                                    <span class="material-symbols-outlined" style="font-size:16px;line-height:1;margin-right:3px;">reply</span>
+                                                    <span>Reply</span>
+                                                </span>
+                                                ${canEditRep ? `
+                                                <span class="d-flex align-items-center reply-edit-trigger"
+                                                    data-task-id="${taskId}"
+                                                    data-parent-id="${fb.id}"
+                                                    data-reply-id="${rep.id}"
+                                                    data-comment="${encodeURIComponent(repComment || '')}"
+                                                    data-ref-url="${encodeURIComponent(rep.reference_url || '')}"
+                                                    data-ref-urls='${encodeURIComponent(JSON.stringify(repRefUrls || []))}'
+                                                    data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}"
+                                                    data-ref-files='${encodeURIComponent(JSON.stringify(repRefFiles || []))}'
+                                                    data-image="${encodeURIComponent(repImageUrl || '')}"
+                                                    style="cursor:pointer;color:#555;font-size:11px;">
+                                                    <span class="material-symbols-outlined" style="font-size:16px;line-height:1;margin-right:3px;">edit</span>
+                                                    <span>Edit</span>
+                                                </span>
+                                                ` : ''}
+                                                ${canEditRep ? `
+                                                <span class="d-flex align-items-center reply-delete-trigger" data-reply-id="${rep.id}" data-parent-id="${fb.id}" style="cursor:pointer;color:#555;font-size:11px;">
+                                                    <span class="material-symbols-outlined" style="font-size:16px;line-height:1;margin-right:3px;">delete</span>
+                                                    <span>Delete</span>
+                                                </span>
+                                                ` : ''}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                    });
+                    repliesHtml += '</div>';
                 }
 
-                const name = fb.employee?.name || 'Unknown';
-                const photo = fb.employee?.photo || ((appUrl ? appUrl : '') + '/asset/img/avatar.png');
-                const imgHtml = fb.image ? `<img src="${fb.image}" class="img-fluid rounded mb-2" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : '';
-                const urlHtml = fb.reference_url ? `<a href="${fb.reference_url}" target="_blank" class="feedback-reference-url"><span class="material-symbols-outlined">link</span> Reference Link</a>` : '';
-                const fileHtml = fb.reference_file ? `<a href="${fb.reference_file}" download class="feedback-reference-file"><span class="material-symbols-outlined">draft</span> FEEDBACK_FILE</a>` : '';
-                const refs = (urlHtml || fileHtml) ? `<div class="feedback-reference-container">${urlHtml}${fileHtml}</div>` : '';
+                const viewAllBtn = repliesCount > 0 ? `<span class="view-replies-toggle" data-feedback-id="${fb.id}" data-replies-count="${repliesCount}" style="font-size:13px;color:#555;cursor:pointer;text-decoration:none;">View all (${repliesCount})</span>` : '';
                 return `
-                    <div class="feedback-item mb-3 p-3">
-                        <div class="d-flex align-items-center mb-2">
-                            <img src="${photo}" alt="${escapeHtml(name)}" class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">
-                            <div>
-                                <strong>${escapeHtml(name)}</strong>
-                                <small class="text-muted d-block">${formattedDate}</small>
+                    <div class="feedback-item mb-3 p-3" data-feedback-id="${fb.id}">
+                        <div class="d-flex align-items-start mb-2">
+                            <img src="${photo}" alt="${name}" class="rounded-circle me-3" style="width:32px;height:32px;object-fit:cover;">
+                            <div class="flex-grow-1">
+                                <div>
+                                    <strong style="font-size:14px;font-weight:600;">${name}</strong>
+                                    <div><small class="text-muted d-block" style="font-size:10px;">${formattedDate}</small></div>
+                                </div>
+                                <div class="feedback-comment mt-2">
+                                    <p class="mb-2" style="font-size:13px;">${feedbackComment}</p>
+                                    ${urlsHtml}${filesHtml}${imgHtml}
+                                    <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
+                                        <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${fb.id}" data-task-id="${taskId}" data-author-name="${encodeURIComponent(name)}" data-author-photo="${encodeURIComponent(photo)}" data-preview-text="${encodeURIComponent(feedbackComment)}" style="cursor:pointer;color:#555;font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">reply</span>
+                                            <span>Reply</span>
+                                        </span>
+${canEditTop ? `
+    <span
+        class="d-flex align-items-center feedback-edit-trigger"
+        style="cursor:pointer;color:#555;font-size:12px;"
+        data-task-id="${taskId}"
+        data-feedback-id="${fb.id}"
+        data-comment="${encodeURIComponent(feedbackComment || '')}"
+        data-ref-url="${encodeURIComponent(fb.reference_url || '')}"
+        data-ref-urls='${encodeURIComponent(JSON.stringify(topRefUrls || []))}'
+        data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}"
+        data-ref-files='${encodeURIComponent(JSON.stringify(topRefFiles || []))}'
+        data-image="${encodeURIComponent(topImageUrl || '')}"
+    >
+        <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">edit</span>
+        <span>Edit</span>
+    </span>
+` : ''}
+
+                                        ${canEditTop ? `
+                                        <span class="d-flex align-items-center feedback-delete-trigger" data-feedback-id="${fb.id}" style="cursor:pointer;color:#555;font-size:12px;">
+                                            <span class="material-symbols-outlined" style="font-size:18px;line-height:1;margin-right:5px;">delete</span>
+                                            <span>Delete</span>
+                                        </span>` : ''}
+                                        ${viewAllBtn}
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <p class="mb-2">${escapeHtml(fb.feedback_comment || '')}</p>
-                        ${refs}
-                        ${imgHtml}
+                        ${repliesHtml}
                     </div>`;
             }).join('');
-            bodyEl.innerHTML = html;
-        })
-        .catch(() => {
-            bodyEl.innerHTML = '<p class="text-center text-danger">Failed to load feedback.</p>';
-        });
+            bodyEl.html(html);
+
+            // Bind reply icon click
+            $('.feedback-reply-trigger', bodyEl).off('click').on('click', function() {
+                const feedbackId = $(this).data('feedbackId');
+                const tId = $(this).data('taskId');
+                const authorName = decodeURIComponent($(this).attr('data-author-name') || '');
+                const authorPhoto = decodeURIComponent($(this).attr('data-author-photo') || '');
+                const previewText = decodeURIComponent($(this).attr('data-preview-text') || '');
+
+                // Show preview above editor
+                removeDashboardReplyPreview();
+                renderDashboardReplyPreview(previewText || '', authorName || 'Unknown', authorPhoto || ((document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '') + '/asset/img/avatar.png'), previewText || '');
+
+                showDashboardReplyFeedbackForm(tId, feedbackId);
+            });
+
+            // Bind edit icon click (top-level feedback)
+            $('.feedback-edit-trigger', bodyEl).off('click').on('click', function() {
+                const tId = $(this).data('taskId');
+                const fid = $(this).data('feedbackId');
+                const payload = {
+                    id: fid,
+                    parent_id: null,
+                    feedback_comment: decodeURIComponent($(this).data('comment') || ''),
+                    reference_url: decodeURIComponent($(this).data('refUrl') || ''),
+                    reference_urls: (function(){ try { return JSON.parse(decodeURIComponent($(this).data('refUrls') || '[]')); } catch(e){ return []; } }).call(this),
+                    reference_file_url: decodeURIComponent($(this).data('refFile') || ''),
+                    reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent($(this).data('refFiles') || '[]')); } catch(e){ return []; } }).call(this),
+                    image_url: decodeURIComponent($(this).data('image') || ''),
+                };
+
+                startDashboardInlineEditFeedback(payload);
+            });
+
+            // Bind edit icon click (reply)
+            $('.reply-edit-trigger', bodyEl).off('click').on('click', function() {
+                const tId = $(this).data('taskId');
+                const rid = $(this).data('replyId');
+                const pid = $(this).data('parentId');
+                const payload = {
+                    id: rid,
+                    parent_id: pid,
+                    feedback_comment: decodeURIComponent($(this).data('comment') || ''),
+                    reference_url: decodeURIComponent($(this).data('refUrl') || ''),
+                    reference_urls: (function(){ try { return JSON.parse(decodeURIComponent($(this).data('refUrls') || '[]')); } catch(e){ return []; } }).call(this),
+                    reference_file_url: decodeURIComponent($(this).data('refFile') || ''),
+                    reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent($(this).data('refFiles') || '[]')); } catch(e){ return []; } }).call(this),
+                    image_url: decodeURIComponent($(this).data('image') || ''),
+                };
+
+                startDashboardInlineEditFeedback(payload);
+            });
+
+            // Bind delete icon click (top-level feedback)
+            $('.feedback-delete-trigger', bodyEl).off('click').on('click', function() {
+                const fid = $(this).data('feedbackId');
+                if (!fid) return;
+                const authorName = $(this).closest('.feedback-item').find('strong').first().text() || '';
+                const content = $(this).closest('.feedback-item').find('.feedback-comment p').first().text() || '';
+                const avatarUrl = $(this).closest('.feedback-item').find('img').first().attr('src') || '';
+                showDashboardDeleteConfirmModal({
+                    type: 'feedback',
+                    id: fid,
+                    authorName: authorName,
+                    content: content,
+                    avatarUrl: avatarUrl,
+                    taskId: taskId,
+                    onConfirm: function(done){
+                        const appUrl = $('meta[name="app-url"]').attr('content') || '';
+                        const url = appUrl + '/task-feedbacks/' + fid;
+                        $.ajax({
+                            url: url,
+                            type: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                            },
+                            success: function (res) {
+                                if (typeof showFloatingAlert === 'function') {
+                                    showFloatingAlert(res.message || 'Feedback deleted', 'success');
+                                }
+                                // Remove feedback DOM
+                                $(`.feedback-item[data-feedback-id="${fid}"]`).remove();
+                                // Refresh feedback count
+                                $.ajax({
+                                    url: appUrl + '/task-feedbacks/count/' + taskId,
+                                    type: 'GET',
+                                    success: function(c){
+                                        if (c && c.data && typeof c.data.count === 'number') {
+                                            setDashboardFeedbackCount(taskId, c.data.count);
+                                        }
+                                    }
+                                });
+                                done(true);
+                            },
+                            error: function (xhr) {
+                                let msg = 'Failed to delete feedback';
+                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                if (typeof showFloatingAlert === 'function') {
+                                    showFloatingAlert(msg, 'danger');
+                                } else {
+                                    alert(msg);
+                                }
+                                done(false);
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Bind delete icon click (reply)
+            $('.reply-delete-trigger', bodyEl).off('click').on('click', function() {
+                const rid = $(this).data('replyId');
+                const pid = $(this).data('parentId');
+                if (!rid) return;
+                const authorName = $(this).closest('.feedback-reply').find('strong').text() || '';
+                const content = $(this).closest('.feedback-reply').find('.reply-comment p').first().text() || '';
+                const avatarUrl = $(this).closest('.feedback-reply').find('img').attr('src') || '';
+                showDashboardDeleteConfirmModal({
+                    type: 'reply',
+                    id: rid,
+                    parentId: pid,
+                    authorName: authorName,
+                    content: content,
+                    avatarUrl: avatarUrl,
+                    taskId: taskId,
+                    onConfirm: function(done){
+                        const appUrl = $('meta[name="app-url"]').attr('content') || '';
+                        const url = appUrl + '/task-feedbacks/' + rid;
+                        $.ajax({
+                            url: url,
+                            type: 'DELETE',
+                            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                            success: function (res) {
+                                if (typeof showFloatingAlert === 'function') {
+                                    showFloatingAlert(res.message || 'Reply deleted', 'success');
+                                }
+                                // Remove reply DOM
+                                $(`.feedback-reply[data-reply-id="${rid}"]`).remove();
+                                // Update view all count
+                                const parentItem = $(`.feedback-item[data-feedback-id="${pid}"]`);
+                                const repliesContainer = parentItem.find(`#replies-${pid}`);
+                                const remainingCount = repliesContainer.find('.feedback-reply').length;
+                                const viewBtn = parentItem.find(`.view-replies-toggle[data-feedback-id="${pid}"]`);
+                                if (remainingCount > 0) {
+                                    viewBtn.attr('data-replies-count', remainingCount);
+                                    if (!repliesContainer.hasClass('d-none')) {
+                                        viewBtn.text('Hide');
+                                    } else {
+                                        viewBtn.text(`View all (${remainingCount})`);
+                                    }
+                                } else {
+                                    viewBtn.remove();
+                                    repliesContainer.remove();
+                                }
+                                // Refresh feedback count
+                                $.ajax({
+                                    url: appUrl + '/task-feedbacks/count/' + taskId,
+                                    type: 'GET',
+                                    success: function(c){
+                                        if (c && c.data && typeof c.data.count === 'number') {
+                                            setDashboardFeedbackCount(taskId, c.data.count);
+                                        }
+                                    }
+                                });
+                                done(true);
+                            },
+                            error: function (xhr) {
+                                let msg = 'Failed to delete reply';
+                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                if (typeof showFloatingAlert === 'function') {
+                                    showFloatingAlert(msg, 'danger');
+                                } else {
+                                    alert(msg);
+                                }
+                                done(false);
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Bind view replies toggle
+            $('.view-replies-toggle', bodyEl).off('click').on('click', function() {
+                const fid = $(this).data('feedbackId');
+                const count = $(this).data('repliesCount');
+                const container = $(`#replies-${fid}`);
+                if (!container.length) return;
+                const hidden = container.hasClass('d-none');
+                if (hidden) {
+                    container.removeClass('d-none');
+                    $(this).text('Hide');
+                } else {
+                    container.addClass('d-none');
+                    $(this).text(`View all (${count})`);
+                }
+                // Enforce style: no underline and #555 color
+                $(this).css({
+                    'text-decoration': 'none',
+                    'color': '#555'
+                });
+            });
+
+            // Open feedback/reply images in a new tab
+            $('.feedback-image, .reply-image', bodyEl).off('click').on('click', function() {
+                const src = $(this).attr('src');
+                if (src) {
+                    window.open(src, '_blank');
+                }
+            });
+        },
+        error: () => bodyEl.html('<p class="text-center text-danger">Failed to load feedback.</p>')
+    });
 }
 
-function showDashboardAddFeedbackForm(taskId) {
-    const modalEl = document.getElementById('taskFeedbackModal');
-    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
-    const titleEl = modalEl.querySelector('.feedback-modal-title');
-    const bodyEl = modalEl.querySelector('.feedback-modal-body');
-    const addBtn = document.getElementById('addFeedbackButton');
-    titleEl.textContent = 'Add Feedback';
+function setupDashboardInlineFeedbackEditor(taskId) {
+    const modal = $('#taskFeedbackModal');
+    if (!modal.length) return;
+    initDashboardInlineFeedbackEditor(taskId);
+    const photoBtn = $('#inlineFeedbackPhotoBtn');
+    const fileBtn = $('#inlineFeedbackFileBtn');
+    const sendBtn = $('#inlineFeedbackSendBtn');
+    const imageInput = $('#inline_feedback_image_input');
+    const filesInput = $('#inline_feedback_files_input');
+    photoBtn.off('click').on('click', () => imageInput.trigger('click'));
+    fileBtn.off('click').on('click', () => filesInput.trigger('click'));
+    imageInput.off('change').on('change', function() {
+        const f = this.files[0];
+        if (!f || !f.type.startsWith('image/') || f.size > 10 * 1024 * 1024) return;
+        const reader = new FileReader();
+        reader.onload = e => showDashboardInlineImagePreview(f, e.target.result);
+        reader.readAsDataURL(f);
+    });
+    filesInput.off('change').on('change', function() {
+        const files = Array.from(this.files || []);
+        if (!files.length) return;
+        window.dashboardInlineFeedbackSelectedFiles = (window.dashboardInlineFeedbackSelectedFiles || []).concat(files);
+        renderDashboardInlineFeedbackFilesPreview();
+        this.value = "";
+    });
+    sendBtn.off('click').on('click', () => submitDashboardInlineFeedback(taskId));
+}
 
-    // Use the exact Task page markup and IDs for parity
-    bodyEl.innerHTML = `
-        <form id="addFeedbackForm" enctype="multipart/form-data">
-            <input type="hidden" name="task_id" value="${taskId}">
-            <input type="hidden" name="employee_id" value="${modalEl.dataset.employeeId || ''}">
+// Render a selected reply preview above the inline editor
+function renderDashboardReplyPreview(previewText, authorName, authorPhoto, previewText) {
+    // Ensure preview container exists inside modal footer area
+    const modal = document.getElementById('taskFeedbackModal');
+    if (!modal) return null;
+    let footer = modal.querySelector('.modal-footer .feedback-form');
+    if (!footer) footer = modal.querySelector('.modal-footer');
+    if (!footer) return null;
 
-            <div class="mb-3">
-                <div class="title-label-image">Upload Image</div>
-                <div class="image-upload-container">
-                    <label for="feedback_image" class="custom-image-upload position-relative" id="feedbackImageLabel"
-                        style="background-position: center center; background-repeat: no-repeat; background-size: 50%; background-image: url('${appUrl}/asset/img/background/add-image.png'); cursor: pointer;">
-                        <input type="file" id="feedback_image" name="image" accept="image/*" class="d-none">
-                        <span class="image-clear-btn d-none" id="feedbackImageClearBtn" title="Remove image">&times;</span>
-                    </label>
-                </div>
-            </div>
+    // Remove existing preview if any
+    const existing = modal.querySelector('.selected-reply-preview');
+    if (existing) existing.remove();
 
-            <div class="mb-3">
-                <label for="feedback_comment" class="form-label label-custom">Feedback Comment</label>
-                <textarea class="form-control input-text" id="feedback_comment" name="feedback_comment" rows="3" required></textarea>
-            </div>
+    const wrapper = document.createElement('div');
+    wrapper.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task selected-reply-preview';
+    wrapper.style.marginBottom = '8px';
+    wrapper.innerHTML = `
+        <div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">
+            <img src="${authorPhoto}" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src='${(document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '')}/asset/img/avatar.png';">
+        </div>
+        <div class="flex-grow-1">
+            <div style="font-weight:500;font-size:11px">${escapeHtml(authorName)}</div>
+            <div style="font-size: 10px;">${previewText}</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-remove-task remove-task" title="Remove reply preview" style="line-height: 1; font-size: 10px;">
+            <span class="material-symbols-outlined">close</span>
+        </button>`;
 
-            <div class="mb-3">
-                <label for="reference_url" class="form-label label-custom">Reference URL (Optional)</label>
-                <input type="url" class="form-control input-text" id="reference_url" name="reference_url" placeholder="https://example.com">
-            </div>
+    // Insert preview before the editor element
+    const editorEl = modal.querySelector('#inline_feedback_editor');
+    if (editorEl && editorEl.parentNode) {
+        editorEl.parentNode.insertBefore(wrapper, editorEl);
+    } else if (footer) {
+        footer.insertAdjacentElement('beforebegin', wrapper);
+    }
 
-            <div class="mb-3">
-                <label for="reference_file" class="form-label label-custom">Reference File (Optional)</label>
-                <input type="file" class="form-control input-text" id="reference_file" name="reference_file" accept=".pdf,.doc,.docx" multiple>
-            </div>
-        </form>`;
+    // wire remove
+    wrapper.querySelector('.remove-task').addEventListener('click', function() {
+        // clear reply state
+        window.__dashboardReplyingToFeedbackId = null;
+        // reset editor placeholder
+        try { const q = window.__quillDashboardInlineFeedback; if (q) { const pl = q.root.closest('.ql-container').querySelector('.ql-editor'); if (pl) pl.dataset.placeholder = 'Write feedback...'; } } catch(_) {}
+        wrapper.remove();
+        // reset send button icon
+        const sendBtn = document.getElementById('inlineFeedbackSendBtn'); if (sendBtn) sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+    });
 
-    // setup image preview/clear
-    const imgInput = bodyEl.querySelector('#feedback_image');
-    const imgLabel = bodyEl.querySelector('#feedbackImageLabel');
-    const imgClear = bodyEl.querySelector('#feedbackImageClearBtn');
-    imgInput.addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                imgLabel.style.backgroundImage = `url('${e.target.result}')`;
-                imgLabel.classList.add('has-image');
-                imgLabel.style.backgroundSize = 'cover';
-                imgLabel.style.opacity = '1';
-                imgClear.classList.remove('d-none');
-            };
-            reader.readAsDataURL(this.files[0]);
+    return wrapper;
+}
+
+// Remove preview helper
+function removeDashboardReplyPreview() {
+    const modal = document.getElementById('taskFeedbackModal');
+    if (!modal) return;
+    const existing = modal.querySelector('.selected-reply-preview');
+    if (existing) existing.remove();
+}
+
+function initDashboardInlineFeedbackEditor(taskId) {
+    if (window.__quillDashboardInlineFeedback) window.__quillDashboardInlineFeedback = null;
+    const editorEl = $('#inline_feedback_editor')[0];
+    if (!editorEl) return;
+    window.__quillDashboardInlineFeedback = new Quill('#inline_feedback_editor', {
+        modules: { toolbar: false, clipboard: { matchVisual: false } },
+        theme: 'snow',
+        placeholder: 'Write feedback...'
+    });
+    try {
+        const Delta = Quill.import('delta');
+        window.__quillDashboardInlineFeedback.clipboard.addMatcher('IMG', (node, delta) => new Delta());
+        window.__quillDashboardInlineFeedback.on('text-change', () => {
+            $('#inline_feedback_editor img').remove();
+        });
+    } catch {}
+}
+
+// Show inline image preview
+function showDashboardInlineImagePreview(fileObj, dataUrl) {
+    try {
+        // Store the file for later submission
+        window.__dashboardInlineFeedbackImageFile = fileObj;
+
+        // Create or update preview
+        let previewContainer = document.getElementById('inline_feedback_image_preview');
+        if (!previewContainer) {
+            previewContainer = document.createElement('div');
+            previewContainer.id = 'inline_feedback_image_preview';
+            previewContainer.style.cssText = 'display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;';
+
+            const fileBtn = document.getElementById('inlineFeedbackFileBtn');
+            if (fileBtn && fileBtn.parentNode) {
+                fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+            }
         }
-    });
-    imgClear.addEventListener('click', function(e) {
-        e.preventDefault();
-        imgInput.value = '';
-    imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-        imgLabel.classList.remove('has-image');
-        imgLabel.style.opacity = '0.5';
-        imgClear.classList.add('d-none');
-    });
 
-    // rebind Add Feedback button to submit
-    const newBtn = addBtn.cloneNode(true);
-    addBtn.parentNode.replaceChild(newBtn, addBtn);
-    newBtn.textContent = 'Submit';
-    newBtn.addEventListener('click', function() {
-    const form = document.getElementById('addFeedbackForm');
-        if (!form) return;
-        // show unified spinner on the button
-        const originalBtnHtml = newBtn.innerHTML;
-        newBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-        newBtn.disabled = true;
+        previewContainer.innerHTML = '';
 
-        const formData = new FormData(form);
-        fetch((appUrl ? appUrl : '') + '/task-feedbacks', {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: formData
-        })
-        .then(r => r.json())
-    .then(res => {
-            // Show global floating alert using Settings style if available
-            const msg = res.message || 'Feedback submitted successfully!';
-            if (typeof window.showAlertMsg === 'function') {
-                // Force light style
-                window.showAlertMsg(msg, 'light', 2000);
-            } else if (typeof showFloatingAlert === 'function') {
-                showFloatingAlert(msg, 'success');
-            } else {
-                // lightweight fallback
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-success d-flex align-items-center';
-                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '20000', opacity: '1', minWidth: '300px', margin: '0' });
-                alertDiv.textContent = msg;
-                document.body.appendChild(alertDiv);
-                setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1800);
-            }
-            // Keep modal open and switch back to list view
+        const imageLabel = document.createElement('div');
+        imageLabel.className = 'custom-image-upload position-relative';
+        imageLabel.style.cssText =
+            'width: 32px; height: 32px; ' +
+            'background-image: url(\'' + dataUrl + '\'); ' +
+            'background-size: cover; background-position: center center; background-repeat: no-repeat; ' +
+            'border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; ' +
+            'opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12);';
+
+        const clearBtn = document.createElement('span');
+        clearBtn.className = 'image-clear-btn';
+        clearBtn.innerHTML = '&times;';
+        clearBtn.title = 'Remove image';
+        clearBtn.style.cssText =
+            'position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; ' +
+            'border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; ' +
+            'text-align: center; cursor: pointer; font-weight: 700; border: none; ' +
+            'box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30;';
+
+        clearBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
             try {
-                const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title');
-                if (titleEl) titleEl.textContent = 'Task Feedback';
-                const addBtnRef = document.getElementById('addFeedbackButton');
-                if (addBtnRef) {
-                    addBtnRef.textContent = 'Add Feedback';
-                    const freshBtn = addBtnRef.cloneNode(true);
-                    addBtnRef.parentNode.replaceChild(freshBtn, addBtnRef);
-                    // ensure the new button is enabled and clickable
-                    freshBtn.disabled = false;
-                    freshBtn.removeAttribute('disabled');
-                    freshBtn.addEventListener('click', () => showDashboardAddFeedbackForm(taskId));
+                const inp = document.getElementById('inline_feedback_image_input');
+                if (inp) inp.value = '';
+                window.__dashboardInlineFeedbackImageFile = null;
+                if (previewContainer && previewContainer.parentNode) {
+                    previewContainer.parentNode.removeChild(previewContainer);
                 }
-                loadDashboardTaskFeedbackData(taskId);
+            } catch(_) {}
+        });
 
-                // Also update the feedback count on the dashboard card immediately
-                try {
-                    const selector = `.feedback-comments-count[data-task-id="${taskId}"]`;
-                    let countEl = document.querySelector(selector);
-                    const cur = countEl ? parseInt(countEl.textContent || '0', 10) || 0 : 0;
-                    const newCount = cur + 1;
-                    setDashboardFeedbackCount(taskId, newCount);
-                } catch(_){}
-            } catch (e) { /* noop */ }
-    })
-    .catch(() => {
-            const msg = 'Failed to submit feedback. Please try again.';
-            if (typeof window.showAlertMsg === 'function') {
-                // Force light style
-                window.showAlertMsg(msg, 'light', 3000);
-            } else if (typeof showFloatingAlert === 'function') {
-                // Fallback util will render light style
-                showFloatingAlert(msg, 'light');
-            } else {
-                // Minimal DOM fallback in light style
-                const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-light d-flex align-items-center';
-                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '9999', opacity: '1', minWidth: '300px', margin: '0' });
-                alertDiv.textContent = msg;
-                document.body.appendChild(alertDiv);
-                setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 2000);
+        imageLabel.appendChild(clearBtn);
+        previewContainer.appendChild(imageLabel);
+    } catch(e) {
+        console.warn('Failed to show inline image preview:', e);
+    }
+}
+
+// Render files preview
+function renderDashboardInlineFeedbackFilesPreview() {
+    try {
+        let preview = document.getElementById('inline_feedback_files_preview');
+        if (!preview) {
+            const editor = document.getElementById('inline_feedback_editor');
+            if (editor && editor.parentNode) {
+                preview = document.createElement('div');
+                preview.id = 'inline_feedback_files_preview';
+                preview.className = 'mb-2';
+                editor.parentNode.insertBefore(preview, editor);
             }
+        }
+        if (!preview) return;
+
+        const sel = window.dashboardInlineFeedbackSelectedFiles || [];
+        preview.innerHTML = '';
+
+        if (!sel.length) return;
+
+        const listWrap = document.createElement('div');
+        listWrap.className = 'selected-files-list mt-2';
+
+        sel.forEach(function(f, idx) {
+            try {
+                const item = document.createElement('div');
+                item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light mb-2';
+
+                const iconWrap = document.createElement('div');
+                iconWrap.innerHTML = '<span class="material-symbols-outlined">description</span>';
+                iconWrap.style.fontSize = '18px';
+
+                const name = document.createElement('span');
+                name.className = 'flex-grow-1';
+                name.style.fontSize = '12px';
+                const sizeMb = (f.size || 0) / 1024 / 1024;
+                name.textContent = (f.name || '') + (isFinite(sizeMb) ? ' (' + sizeMb.toFixed(2) + ' MB)' : '');
+
+                const rm = document.createElement('button');
+                rm.type = 'button';
+                rm.className = 'btn btn-sm';
+                rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                rm.addEventListener('click', function() {
+                    try {
+                        window.dashboardInlineFeedbackSelectedFiles.splice(idx, 1);
+                        renderDashboardInlineFeedbackFilesPreview();
+                    } catch(_) {}
+                });
+
+                item.appendChild(iconWrap);
+                item.appendChild(name);
+                item.appendChild(rm);
+                listWrap.appendChild(item);
+            } catch(_) {}
+        });
+
+        preview.appendChild(listWrap);
+    } catch(e) {}
+}
+
+// Submit inline feedback
+function submitDashboardInlineFeedback(taskId) {
+    const editor = window.__quillDashboardInlineFeedback;
+    if (!editor) return;
+
+    const content = editor.root.innerHTML.trim();
+    if (!content || content === '<p><br></p>') {
+        if (typeof showFloatingAlert === 'function') {
+            showFloatingAlert('Please write some feedback', 'warning');
+        }
+        return;
+    }
+
+    const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+    const formData = new FormData();
+    formData.append('feedback_comment', content);
+    formData.append('task_id', taskId);
+
+    const sendBtn = document.getElementById('inlineFeedbackSendBtn');
+    const originalHtml = sendBtn.innerHTML;
+    sendBtn.disabled = true;
+    sendBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    // Check if replying or editing
+    const parentId = window.__dashboardReplyingToFeedbackId;
+    const editId = window.__dashboardEditingFeedbackId;
+
+    let method = 'POST';
+    let url = `${appUrl}/task-feedbacks`;
+
+    if (editId) {
+        // Edit mode
+        method = 'PUT';
+        url = `${appUrl}/task-feedbacks/${editId}`;
+    } else if (parentId) {
+        // Reply mode
+        formData.append('parent_id', parentId);
+    }
+
+    // Add image if exists
+    const imageFile = window.__dashboardInlineFeedbackImageFile;
+    if (imageFile) {
+        formData.append('image', imageFile);
+    }
+
+    // Add files if exists
+    const files = window.dashboardInlineFeedbackSelectedFiles || [];
+    if (files.length > 0) {
+        files.forEach(function(file) {
+            formData.append('reference_files[]', file);
+        });
+    }
+
+    // Add CSRF token
+    formData.append('_token', document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '');
+
+    // For PUT request, add method override
+    if (method === 'PUT') {
+        formData.append('_method', 'PUT');
+        method = 'POST'; // Send as POST with _method override
+    }
+
+    fetch(url, {
+        method: method,
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
     })
-    .catch(() => {
-            newBtn.innerHTML = originalBtnHtml;
-            newBtn.disabled = false;
-    });
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success' || res.message) {
+            if (typeof showFloatingAlert === 'function') {
+                const msg = editId ? 'Feedback updated successfully' : (parentId ? 'Reply posted successfully' : 'Feedback posted successfully');
+                showFloatingAlert(res.message || msg, 'success');
+            }
+
+            // Clear editor and reset state
+            editor.root.innerHTML = '';
+            window.__dashboardEditingFeedbackId = null;
+            window.__dashboardReplyingToFeedbackId = null;
+            window.__dashboardInlineFeedbackImageFile = null;
+            window.dashboardInlineFeedbackSelectedFiles = [];
+
+            // Clear image preview
+            const imagePreview = document.getElementById('inline_feedback_image_preview');
+            if (imagePreview) imagePreview.remove();
+
+            // Clear files preview
+            const filesPreview = document.getElementById('inline_feedback_files_preview');
+            if (filesPreview) filesPreview.innerHTML = '';
+
+            // Reset placeholder
+            const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
+            if (placeholderEl) {
+                placeholderEl.dataset.placeholder = 'Write feedback...';
+            }
+
+            // Reset send button
+            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+
+            // Reload feedback list
+            loadDashboardTaskFeedbackData(taskId);
+
+            // remove reply preview if any
+            removeDashboardReplyPreview();
+
+            // Update feedback count
+            $.ajax({
+                url: appUrl + '/task-feedbacks/count/' + taskId,
+                type: 'GET',
+                success: function(c){
+                    if (c && c.data && typeof c.data.count === 'number') {
+                        setDashboardFeedbackCount(taskId, c.data.count);
+                    }
+                }
+            });
+        } else {
+            throw new Error(res.message || 'Failed to post feedback');
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        if (typeof showFloatingAlert === 'function') {
+            showFloatingAlert(err.message || 'Failed to post feedback', 'danger');
+        }
+        sendBtn.innerHTML = originalHtml;
+    })
+    .finally(() => {
+        sendBtn.disabled = false;
     });
 }
 
@@ -798,7 +1864,6 @@ function showDashboardAddFeedbackForm(taskId) {
 if (typeof window.showFloatingAlert !== 'function') {
     window.showFloatingAlert = function(message) {
         if (typeof window.showAlertMsg === 'function') {
-                Object.assign(alertDiv.style, { position: 'fixed', right: '20px', bottom: '20px', zIndex: '20000', opacity: '1', minWidth: '300px', margin: '0' });
             window.showAlertMsg(String(message || ''), 'light', 2000);
             return;
         }
@@ -809,5 +1874,186 @@ if (typeof window.showFloatingAlert !== 'function') {
         document.body.appendChild(alertDiv);
         setTimeout(() => { alertDiv.style.opacity = '0'; setTimeout(() => alertDiv.remove(), 500); }, 1500);
     };
+}
+
+// Show reply feedback form
+function showDashboardReplyFeedbackForm(taskId, parentId) {
+    const editor = window.__quillDashboardInlineFeedback;
+    if (!editor) return;
+
+    // Clear editor and show placeholder
+    editor.root.innerHTML = '';
+    editor.root.dataset.replyTo = parentId;
+    editor.root.dataset.taskId = taskId;
+
+    // Update placeholder
+    const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
+    if (placeholderEl) {
+        placeholderEl.dataset.placeholder = 'Write reply...';
+    }
+
+    // Store reply context
+    window.__dashboardReplyingToFeedbackId = parentId;
+    window.__dashboardEditingFeedbackId = null;
+
+    // Update send button text
+    const sendBtn = document.getElementById('inlineFeedbackSendBtn');
+    if (sendBtn) {
+        sendBtn.innerHTML = '<span class="material-symbols-outlined">reply</span>';
+    }
+
+    // Focus editor
+    editor.focus();
+
+    // Scroll to editor
+    try {
+        const editorEl = document.getElementById('inline_feedback_editor');
+        if (editorEl) {
+            editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } catch(_) {}
+}
+
+// Start inline edit feedback
+function startDashboardInlineEditFeedback(payload) {
+    const editor = window.__quillDashboardInlineFeedback;
+    if (!editor) return;
+
+    // Clear reply mode
+    window.__dashboardReplyingToFeedbackId = null;
+    window.__dashboardEditingFeedbackId = payload.id;
+
+    // Set content
+    editor.root.innerHTML = '';
+    const content = payload.feedback_comment || '';
+    if (content) {
+        editor.root.innerHTML = content;
+    }
+
+    // Update placeholder
+    const placeholderEl = editor.root.closest('.ql-container').querySelector('.ql-editor');
+    if (placeholderEl) {
+        placeholderEl.dataset.placeholder = 'Edit feedback...';
+    }
+
+    // Update send button text
+    const sendBtn = document.getElementById('inlineFeedbackSendBtn');
+    if (sendBtn) {
+        sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+    }
+
+    // Focus editor
+    editor.focus();
+
+    // Scroll to editor
+    try {
+        const editorEl = document.getElementById('inline_feedback_editor');
+        if (editorEl) {
+            editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    } catch(_) {}
+}
+
+// Delete confirmation modal
+function showDashboardDeleteConfirmModal(opts) {
+    try {
+        const appUrl = document.querySelector('meta[name="app-url"]')?.getAttribute('content') || '';
+        const id = opts.id;
+        const type = opts.type || 'feedback';
+        const avatarUrl = opts.avatarUrl || '';
+        const authorName = opts.authorName || '';
+        const content = opts.content || '';
+        const modalId = 'deleteConfirmModal_dash_' + (type || 'f') + '_' + id + '_' + Date.now();
+
+        const title = type === 'reply' ? 'Delete reply' : 'Delete feedback';
+        let confirmText = '';
+        if (type === 'reply') {
+            confirmText = 'Are you sure you want to delete this reply?';
+        } else {
+            confirmText = 'Are you sure you want to delete this feedback?';
+        }
+
+        const modalHtml = `
+            <div class="modal fade" id="${modalId}" tabindex="-1" aria-modal="true" role="dialog">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content modal-content-custom">
+                        <div class="modal-body modal-body-custom">
+                            <div class="text-center mb-2">
+                                <div class="task-description-container">
+                                    <p class="task-description mb-0" id="${modalId}_desc">${escapeHtml(content)}</p>
+                                </div>
+                            </div>
+                            <hr class="my-2">
+                            <p class="fw-normal fs-6 text-center mb-4" id="${modalId}_confirm">${confirmText}</p>
+
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal" id="${modalId}_cancel">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="${modalId}_confirmBtn">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // Hide parent modal temporarily
+        const parentModalEl = document.getElementById('taskFeedbackModal');
+        let _parentWasOpen = false;
+        let _parentModalInstance = null;
+        try {
+            if (parentModalEl && parentModalEl.classList.contains('show')) {
+                _parentWasOpen = true;
+                _parentModalInstance = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                try { _parentModalInstance.hide(); } catch(_) {}
+            }
+        } catch(_) {}
+
+        // Insert modal
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalEl = document.getElementById(modalId);
+        const modalInstance = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+        modalInstance.show();
+
+        // Close & cleanup helper
+        function cleanup() {
+            try { modalInstance.hide(); } catch(_) {}
+            try { modalEl.remove(); } catch(_) {}
+            try {
+                if (_parentWasOpen && _parentModalInstance) {
+                    try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                    setTimeout(function(){ try { _parentModalInstance.show(); } catch(_) {} }, 180);
+                }
+            } catch(_) {}
+        }
+
+        // Wire cancel to cleanup
+        const cancelBtn = document.getElementById(`${modalId}_cancel`);
+        if (cancelBtn) cancelBtn.addEventListener('click', cleanup);
+
+        // Confirm button
+        const confirmBtn = document.getElementById(`${modalId}_confirmBtn`);
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function () {
+                try { confirmBtn.disabled = true; confirmBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Deleting...'; } catch(_) {}
+                if (typeof opts.onConfirm === 'function') {
+                    try {
+                        opts.onConfirm(function doneFn(shouldClose){
+                            if (shouldClose === false) {
+                                confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                                return;
+                            }
+                            cleanup();
+                        });
+                    } catch (e) {
+                        confirmBtn.disabled = false; confirmBtn.innerHTML = 'Delete';
+                    }
+                } else {
+                    cleanup();
+                }
+            });
+        }
+    } catch (e) {
+        console.warn('showDashboardDeleteConfirmModal error', e);
+    }
 }
 

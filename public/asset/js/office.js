@@ -1174,8 +1174,305 @@ $(document).ready(function() {
                             </div>`;
                 }
 
-                // Create modal HTML
+                try {
+                // Build richer task-detail modal HTML (preserve confirmAcceptTaskBtn id)
+                // Helper to format due date using the project's canonical formatter (day first)
+                function formatDueDate(d) {
+                    try {
+                        if (!d) return '-';
+                        if (typeof formatDateENMedium === 'function') return formatDateENMedium(d);
+                        // Fallback: parse and return day month year
+                        const dt = new Date(d);
+                        if (isNaN(dt.getTime())) return d;
+                        const day = dt.getDate();
+                        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        const m = monthNames[dt.getMonth()];
+                        const y = dt.getFullYear();
+                        return `${day} ${m} ${y}`;
+                    } catch (e) { return String(d || '-'); }
+                }
+
+                // Local HTML escaper (office.js didn't have a global escapeHtml)
+                function escapeHtml(str) {
+                    try {
+                        return String(str || '').replace(/[&<>"'']/g, function(m) {
+                            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m] || m;
+                        });
+                    } catch (e) { return String(str || ''); }
+                }
+
+                // Build description paragraphs (preserve basic line breaks)
+                const descHtml = (function(desc){
+                    if (!desc) return '';
+                    // If contains HTML block tags, keep as-is; otherwise split by newlines
+                    if (/<\/[a-z]+>/i.test(desc)) return desc;
+                    return desc.split(/\r?\n/).filter(Boolean).map(s => `<p>${s}</p>`).join('');
+                })(taskDescription);
+
+                // Build collaborators (pic + executors)
+                function buildCollabHtml(data) {
+                    const appUrlMeta = document.querySelector('meta[name="app-url"]');
+                    const APP_URL = appUrlMeta ? appUrlMeta.getAttribute('content').replace(/\/$/, '') : '';
+                    const people = [];
+                    try {
+                        // Keep explicit roles so we can mark PIC properly
+                        if (data.pic) people.push({ person: data.pic, role: 'pic' });
+                        if (Array.isArray(data.executors)) data.executors.forEach(e => people.push({ person: e, role: 'executor' }));
+                    } catch(_) {}
+                    if (!people.length) return '<div class="text-muted">No collaborators</div>';
+                    return people.map(entry => {
+                        const p = entry.person || {};
+                        const roleFlag = entry.role || (p.role ? String(p.role).toLowerCase() : 'executor');
+                        const photo = p.photo || p.profile_picture || p.user_photo || p.user_photo_url || '';
+                        const url = photo && /^https?:\/\//.test(photo) ? photo : (photo ? (APP_URL + '/file/profile_picture/' + photo) : APP_URL + '/asset/img/avatar.png');
+                        const name = p.name || p.full_name || p.employee_name || p.username || 'Member';
+                        // Prefer explicit PIC label when this entry represents the pic
+                        const roleLabel = (function(){
+                            try {
+                                if (roleFlag === 'pic') return 'PIC';
+                                if (p && p.role) return String(p.role).replace(/_/g,' ');
+                                if (p && p.designation) return String(p.designation);
+                                // Fall back to division or executor label
+                                if (p && (p.division || p.division_name)) return String(p.division || p.division_name);
+                                return roleFlag === 'executor' ? 'Executor' : '';
+                            } catch(_) { return ''; }
+                        })();
+                        return `
+                            <div class="collab-item d-flex align-items-center mb-2">
+                                <div class="flex-shrink-0">
+                                    <img src="${url}" alt="${escapeHtml(name)}" data-bs-toggle="tooltip" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" onerror="this.onerror=null;this.src='${APP_URL}/asset/img/avatar.png';" aria-label="${escapeHtml(name)}" data-bs-original-title="${escapeHtml(name)}">
+                                </div>
+                                <div class="ms-2">
+                                    <div class="collab-name">${escapeHtml(name)}</div>
+                                    <div class="collab-division text-muted">${escapeHtml(roleLabel)}</div>
+                                </div>
+                            </div>`;
+                    }).join('');
+                }
+
+                // Determine status for data attribute
+                const taskStatus = (response.data && response.data.status) ? response.data.status : 'new';
+                const dueText = formatDueDate(due_date);
+                const priorityColor = priority === 'HIGH' ? 'red' : (priority === 'MEDIUM' ? '#E6A15A' : '#4fc97a');
+                const initials = getTaskInitials(response.data.title || taskTitle || 'NA');
+                const initialColor = getRandomColorFromText(response.data.title || taskTitle || initials);
+                // Project and department/division fallbacks
+                const projectTitleText = (response.data && response.data.project && (response.data.project.title || response.data.project.project_title)) ? (response.data.project.title || response.data.project.project_title) : '';
+                const deptName = (response.data && response.data.project && (response.data.project.department || response.data.project.department_name)) ? (response.data.project.department || response.data.project.department_name) : (response.data.department_name || 'No Department');
+                const divName = (response.data && response.data.project && (response.data.project.division || response.data.project.division_name)) ? (response.data.project.division || response.data.project.division_name) : (response.data.division_name || 'No Division');
+
+                // Build status rows only when data present
+                const statusRows = (function(){
+                    try {
+                        const rows = [];
+                        const ip = (response.data && response.data.in_progress_by_name) ? String(response.data.in_progress_by_name).trim() : '';
+                        const cb = (response.data && response.data.completed_by_name) ? String(response.data.completed_by_name).trim() : '';
+                        const rb = (response.data && response.data.rejected_by_name) ? String(response.data.rejected_by_name).trim() : '';
+                        if (ip) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">In Progress by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(ip)}</span></div>`);
+                        if (cb) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Completed by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(cb)}</span></div>`);
+                        if (rb) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Rejected by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(rb)}</span></div>`);
+                        return rows.join('');
+                    } catch (e) { return ''; }
+                })();
+
                 const modalHtml = `
+                    <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:720px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
+                                    <div id="taskDetailContent">
+                                        <div class="custom-card rounded-4 p-3 border-0" data-task-id="${response.data.id || taskId}" data-task-status="${escapeHtml(taskStatus)}">
+                                            <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialColor};">${escapeHtml(initials)}</div>
+                                                    <div class="d-flex flex-column">
+                                                        ${projectTitleText ? `<small class="text-muted" style="font-size:11px;">${escapeHtml(projectTitleText)}</small>` : ''}
+                                                        <h5 class="mb-0 task-title">${escapeHtml(taskTitle)}</h5>
+                                                    </div>
+                                                </div>
+                                                <!-- dropdown removed for accept modal -->
+                                            </div>
+                                            <div class="task-detail-description-container">
+                                                <div class="task-description">
+                                                    ${descHtml}
+                                                </div>
+                                            </div>
+                                            <hr class="task-separator rounded-4">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Priority: </span>
+                                                    <span style="color:${priorityColor}">${escapeHtml(priority || '-')}</span>
+                                                </div>
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Deadline: </span>
+                                                    <span style="color:#4B4F5E;">${escapeHtml(dueText)}</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                                <span class="text-muted">Department:</span>
+                                                <span>${escapeHtml(deptName)}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                                <span class="text-muted">Division:</span>
+                                                <span>${escapeHtml(divName)}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                                                <div class="flex-grow-1">
+                                                    <div class="collab-list">
+                                                        ${buildCollabHtml(response.data)}
+                                                    </div>
+                                                    ${statusRows}
+                                                </div>
+                                                <!-- comment/attach icons removed for accept modal -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom mt-3">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                // Prepare inner card HTML only (so it can be injected into existing task modal or a new one)
+                const cardHtml = `
+                                        <div class="custom-card rounded-4 p-3 border-0" data-task-id="${response.data.id || taskId}" data-task-status="${escapeHtml(taskStatus)}">
+                                            <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialColor};">${escapeHtml(initials)}</div>
+                                                    <div class="d-flex flex-column">
+                                                        ${projectTitleText ? `<small class="text-muted" style="font-size:11px;">${escapeHtml(projectTitleText)}</small>` : ''}
+                                                        <h5 class="mb-0 task-title">${escapeHtml(taskTitle)}</h5>
+                                                    </div>
+                                                </div>
+                                                <!-- dropdown removed for accept modal -->
+                                            </div>
+                                            <div class="task-detail-description-container">
+                                                <div class="task-description">
+                                                    ${descHtml}
+                                                </div>
+                                            </div>
+                                            <hr class="task-separator rounded-4">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Priority: </span>
+                                                    <span style="color:${priorityColor}">${escapeHtml(priority || '-')}</span>
+                                                </div>
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Deadline: </span>
+                                                    <span style="color:#4B4F5E;">${escapeHtml(dueText)}</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                                <span class="text-muted">Department:</span>
+                                                <span>${escapeHtml(deptName)}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                                <span class="text-muted">Division:</span>
+                                                <span>${escapeHtml(divName)}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                                                <div class="flex-grow-1">
+                                                    <div class="collab-list">
+                                                        ${buildCollabHtml(response.data)}
+                                                    </div>
+                                                    ${statusRows}
+                                                </div>
+                                                <!-- comment/attach icons removed for accept modal -->
+                                            </div>
+                                        </div>`;
+
+                // If a taskDetailModal already exists on the page (task page), reuse it so all CSS rules (which often target #taskDetailModal) apply exactly.
+                const existingDetail = document.getElementById('taskDetailModal');
+                if (existingDetail) {
+                    try {
+                        const contentEl = existingDetail.querySelector('#taskDetailContent');
+                        if (contentEl) contentEl.innerHTML = cardHtml;
+
+                        // Replace footer with Accept/Cancel for this flow, but save original to restore later
+                        const footerEl = existingDetail.querySelector('.modal-footer') || existingDetail.querySelector('.modal-footer-custom');
+                        if (footerEl) {
+                            if (!footerEl.dataset._originalHtml) footerEl.dataset._originalHtml = footerEl.innerHTML;
+                            footerEl.innerHTML = '<button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>';
+                        }
+
+                        const modalInst = bootstrap.Modal.getOrCreateInstance(existingDetail) || new bootstrap.Modal(existingDetail);
+                        modalInst.show();
+
+                        // Wire confirm button
+                        const confirmBtn = existingDetail.querySelector('#confirmAcceptTaskBtn');
+                        if (confirmBtn) {
+                            confirmBtn.addEventListener('click', function onConfirm() {
+                                try { modalInst.hide(); } catch(_) {}
+                                actuallyAcceptTask(taskId, notificationId);
+                            }, { once: true });
+                        }
+
+                        // When modal is hidden, restore original footer if it was changed
+                        existingDetail.addEventListener('hidden.bs.modal', function restoreFooter() {
+                            try {
+                                const f = existingDetail.querySelector('.modal-footer') || existingDetail.querySelector('.modal-footer-custom');
+                                if (f && f.dataset && f.dataset._originalHtml) {
+                                    f.innerHTML = f.dataset._originalHtml;
+                                    delete f.dataset._originalHtml;
+                                }
+                            } catch(_) {}
+                            try { existingDetail.removeEventListener('hidden.bs.modal', restoreFooter); } catch(_) {}
+                        }, { once: true });
+                    } catch (e) {
+                        console.error('Failed to reuse existing taskDetailModal, falling back to creating a new one', e);
+                        // fallback to creating a new modal below
+                        const newModalHtml = `
+                    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:720px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
+                                    <div id="taskDetailContent">${cardHtml}</div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom mt-3">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                        $('body').append(newModalHtml);
+                        const modalEl = document.getElementById('taskDetailModal');
+                        const modal2 = new bootstrap.Modal(modalEl);
+                        modal2.show();
+                        document.getElementById('confirmAcceptTaskBtn').addEventListener('click', function(){ modal2.hide(); actuallyAcceptTask(taskId, notificationId); });
+                        $(modalEl).on('hidden.bs.modal', function(){ $(this).remove(); });
+                    }
+                } else {
+                    // No existing detail modal on page; create one that uses the same ID so CSS from task.css applies
+                    const newModalHtml = `
+                    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:720px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
+                                    <div id="taskDetailContent">${cardHtml}</div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom mt-3">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                    $('body').append(newModalHtml);
+                    const modalEl = document.getElementById('taskDetailModal');
+                    const modal2 = new bootstrap.Modal(modalEl);
+                    modal2.show();
+                    document.getElementById('confirmAcceptTaskBtn').addEventListener('click', function(){ modal2.hide(); actuallyAcceptTask(taskId, notificationId); });
+                    $(modalEl).on('hidden.bs.modal', function(){ $(this).remove(); });
+                }
+                } catch (e) {
+                    console.error('Failed to render rich accept modal, falling back to simple modal', e);
+                    // Fallback: original simple modal HTML (smaller, guaranteed to work)
+                    const simpleHtml = `
                     <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
                             <div class="modal-content modal-content-custom">
@@ -1211,29 +1508,18 @@ $(document).ready(function() {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
 
-                // Add modal to body
-                $('body').append(modalHtml);
-
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('acceptTaskModal'));
-                modal.show();
-
-                // Handle confirm button click
-                $('#confirmAcceptTaskBtn').on('click', function() {
-                    // Close modal
-                    modal.hide();
-
-                    // Actually accept the task
-                    actuallyAcceptTask(taskId, notificationId);
-                });
-
-                // Remove modal from DOM when closed
-                $('#acceptTaskModal').on('hidden.bs.modal', function () {
-                    $(this).remove();
-                });
+                    // Append and show fallback modal
+                    $('body').append(simpleHtml);
+                    const modal2 = new bootstrap.Modal(document.getElementById('acceptTaskModal'));
+                    modal2.show();
+                    $('#confirmAcceptTaskBtn').on('click', function() {
+                        modal2.hide();
+                        actuallyAcceptTask(taskId, notificationId);
+                    });
+                    $('#acceptTaskModal').on('hidden.bs.modal', function () { $(this).remove(); });
+                }
             },
             error: function(xhr, status, error) {
                 console.error('Failed to fetch task details:', error, xhr.responseText);
