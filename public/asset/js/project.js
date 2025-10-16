@@ -2256,6 +2256,25 @@ document.addEventListener("DOMContentLoaded", function () {
                             );
                             submitBtn.prop("disabled", true);
 
+                            // DEBUG: log FormData contents (temporary) to help trace 500 errors
+                            try {
+                                console.group && console.group('EditProjectForm FormData');
+                                for (const pair of formData.entries()) {
+                                    try {
+                                        const key = pair[0];
+                                        const val = pair[1];
+                                        if (val instanceof File) {
+                                            console.log(key + ':', 'File -> name=' + (val.name||'<noname>') + ', type=' + (val.type||'<no-type>') + ', size=' + val.size);
+                                        } else {
+                                            // Truncate long values for readability
+                                            const out = String(val);
+                                            console.log(key + ':', out.length > 200 ? out.slice(0,200) + '...(' + out.length + ' chars)' : out);
+                                        }
+                                    } catch (e) { console.log('FormData entry error', e); }
+                                }
+                                console.groupEnd && console.groupEnd();
+                            } catch (_) {}
+
                             $.ajax({
                                 url: appUrl + "/project/" + projectId,
                                 type: "POST", // Laravel expects POST with _method=PUT for PUT requests
@@ -8443,8 +8462,33 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!file || !inputEl) return false;
 
             // Create a DataTransfer so we can set input.files (works in modern browsers)
+            // Some browsers (or clipboard payloads) produce a File/Blob without a name.
+            // Backend code may assume a filename; create a named File fallback when needed.
+            let fileToUse = file;
+            try {
+                const hasName = file && typeof file.name === 'string' && file.name.trim() !== '';
+                if (!hasName) {
+                    // derive extension from mime type
+                    let ext = 'png';
+                    try {
+                        const t = (file && file.type) || '';
+                        if (/jpeg/i.test(t)) ext = 'jpg';
+                        else if (/png/i.test(t)) ext = 'png';
+                        else if (/gif/i.test(t)) ext = 'gif';
+                        else if (/webp/i.test(t)) ext = 'webp';
+                    } catch (_) {}
+                    const filename = 'pasted-image.' + ext;
+                    try {
+                        fileToUse = new File([file], filename, { type: file.type || 'image/' + ext });
+                    } catch (_) {
+                        // Some environments may not support File ctor; fall back to Blob with name property
+                        try { fileToUse = file; fileToUse.name = filename; } catch(_) {}
+                    }
+                }
+            } catch (_) {}
+
             const dt = new DataTransfer();
-            dt.items.add(file);
+            dt.items.add(fileToUse);
             inputEl.files = dt.files;
 
             // Trigger change event so any listeners react (setupImageInput reacts to change)
@@ -8463,7 +8507,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                     if (clearBtnEl) clearBtnEl.classList.remove('d-none');
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(fileToUse);
             } catch (_) {}
 
             return true;
