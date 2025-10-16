@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
+use App\Models\Division;
 use App\Models\Office;
 use App\Models\Employee;
 use App\Models\Attendance;
@@ -15,6 +17,98 @@ class DashboardController extends Controller
 {
     public function dashboard()
     {
+        $user = auth()->user();
+
+        // 'user_type' => 'required|string|in:ADMINISTRATOR,REGULAR,MANAGEMENT',
+        // 'user_role' => 'required|string|in:CEO,GENERAL_MANAGER,MANAGER,LEADER,HR_MANAGER,FINANCE_MANAGER,EMPLOYEE',
+
+        if(in_array($user->user_type,['MANAGEMENT']) && in_array($user->user_role,['CEO'])){
+            return $this->dashboard_management();
+        }
+        elseif(in_array($user->user_type,['MANAGEMENT']) && in_array($user->user_role,['GENERAL_MANAGER'])){
+            return $this->dashboard_management();
+        }
+        elseif(in_array($user->user_type,['MANAGEMENT']) && in_array($user->user_role,['HR_MANAGER'])){
+            return $this->dashboard_management();
+        }elseif(in_array($user->user_type,['REGULAR']) && in_array($user->user_role,['EMPLOYEE'])){
+            return $this->dashboard_employee();
+        }else{
+            return $this->dashboard_employee();
+        }
+    }
+
+    public function dashboard_management(){
+        $userId = auth()->user()->id;
+
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+
+        $employeeId = Employee::select(
+            'employees.id',
+        )
+        ->join('users','employees.user_id','=','users.id')
+        ->where('employees.status',"ACTIVE")
+        ->where('users.user_type','<>',"ADMINISTRATOR")
+        ->where('employees.department_id',$currentEmployee->department_id)
+        ->pluck('id');
+        
+
+        $employee = Employee::select(
+            'employees.id',
+            'employees.department_id',
+            'employees.division_id',
+            'employees.name',
+            'employees.status',
+            'employees.user_id',
+            'employees.photo',
+            'employees.profile_picture', // new unified avatar field
+            'users.photo as user_photo', // fallback legacy user photo
+            'job_list.job_name',
+            'divisions.name_division'
+        )
+        ->join('job_list','employees.job_id','=','job_list.id')
+        ->join('users','employees.user_id','=','users.id')
+        ->join('divisions','employees.division_id','=','divisions.id')
+        ->where('employees.status',"ACTIVE")
+        ->where('users.user_type','<>',"ADMINISTRATOR")
+        ->where('employees.department_id',$currentEmployee->department_id)
+        ->get();
+        
+        
+        $arrOtheDivision = ["Management","Personal Assistant","Cleaning Service","Security"];
+
+        $totalEmployee = Employee::select('employees.id')
+        ->join('users','employees.user_id','=','users.id')
+        ->join('divisions','employees.division_id','=','divisions.id')
+        ->where('employees.status',"ACTIVE")
+        ->where('users.user_type','<>',"ADMINISTRATOR")
+        ->whereNotIn('divisions.name_division',$arrOtheDivision)
+        ->where('employees.department_id',$currentEmployee->department_id)
+        ->count();
+
+
+        $divisionTotal = Division::select('id','name_division',
+            DB::raw('(SELECT COUNT(employees.id) FROM employees 
+                    WHERE employees.id IN ('.$employeeId->implode(',').') AND employees.department_id = divisions.department_id AND employees.division_id = divisions.id) as total_employee')
+        )
+        ->where('department_id',$currentEmployee->department_id)
+        ->where('status',"ACTIVE")
+        ->whereNotIn('name_division',$arrOtheDivision)
+        ->get();
+
+
+
+        return view('dashboard_management',
+            [
+                'employee' => $employee,
+                'current_employee' => $currentEmployee,
+                'total_employee' => $totalEmployee,
+                'division_total' => $divisionTotal
+            ]
+        );
+
+    }
+
+    public function dashboard_employee(){
         $user = auth()->user();
 
         $now = Carbon::now();
@@ -159,7 +253,9 @@ class DashboardController extends Controller
 
 
         return view('dashboard', compact('employee','office', 'attendance','employeeShift','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
+    
     }
+
 
     // 'Present'
 

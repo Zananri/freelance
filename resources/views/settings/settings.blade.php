@@ -146,6 +146,8 @@
                                 <div class="select-user-role mb-4">
                                     <label for="user-role" class="form-label">User Role</label>
                                     <select id="user-role" name="user_role" class="form-select">
+                                        <option value="ADMINISTRATOR">ADMINISTRATOR</option>
+                                        <option value="CEO">CEO</option>
                                         <option value="GENERAL_MANAGER">GENERAL MANAGER</option>
                                         <option value="MANAGER">MANAGER</option>
                                         <option value="LEADER">LEADER</option>

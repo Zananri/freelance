@@ -225,6 +225,9 @@
                             <span class="text-menu">Dashboard</span>
                         </a>
                     </li>
+
+                    @if (in_array(Auth::user()->user_type,['REGULAR','EMPLOYEE']))
+
                     <li>
                         <a href="{{ url('attendance') }}"
                             class="{{ $menu_active == 'attendance' ? 'active' : '' }}">
@@ -238,12 +241,16 @@
                             <span class="text-menu">Task</span>
                         </a>
                     </li>
-                    <li>
+                   
+                    @endif
+
+                     <li>
                         <a href="{{ url('project') }}" class="{{ $menu_active == 'project' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">rocket_launch</span>
                             <span class="text-menu">Project</span>
                         </a>
                     </li>
+
                     <li>
                         <a href="{{ route('teams') }}" class="{{ $menu_active == 'teams' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">group</span>
@@ -268,32 +275,24 @@
                             <li><a href="#"><span class="status-indicator project-on-hold"></span> Grade</a></li>
                         </ul>
                     </li> --}}
-                    <li>
-                        <a href="{{ route('profile') }}" class="{{ $menu_active == 'profile' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">account_circle</span>
-                            <span class="text-menu">Profile</span>
-                        </a>
-                    </li>
-
-                    @if (in_array(Auth::user()->user_type,['REGULAR','EMPLOYEE']))
-
+                    
                     <li>
                         <a href="{{ route('calendar') }}" class="{{ $menu_active == 'calendar' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">calendar_month</span>
                             <span class="text-menu">Calendar</span>
                         </a>
                     </li>
-                    
-                    @endif
-
-                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
 
                     <li>
-                        <a href="{{ route('calendar_management') }}" class="{{ $menu_active == 'calendar' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">calendar_month</span>
-                            <span class="text-menu">Calendar</span>
+                        <a href="{{ route('profile') }}" class="{{ $menu_active == 'profile' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">account_circle</span>
+                            <span class="text-menu">Profile</span>
                         </a>
                     </li>
+                    
+
+                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
+
 
                     <li>
                         <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
@@ -319,9 +318,7 @@
                             <span class="text-menu">Attendance Tracking</span>
                         </a>
                     </li>
-                    <style>
-                        
-                    </style>
+                    
                     <li>
                         <a href="{{ route('leave') }}" class="{{ $menu_active == 'leave' ? 'active' : '' }} menu-leave">
                             <span class="material-symbols-outlined">free_cancellation</span>
@@ -358,6 +355,20 @@
                     </li>
 
                     @endif
+
+                    <li>
+                        <form method="POST" action="{{ route('logout') }}" class="d-none"  >
+                            @csrf
+                            
+                            <button type="submit" class="" id="btn-sidebar-logout">SUBMIT</button>
+                            
+                        </form>
+                        <a href="#" class="" onclick="$('#btn-sidebar-logout').click();">
+                            <span class="material-symbols-outlined">logout</span>
+                            <span class="text-menu">Logout</span>
+                        </a>
+                    </li>
+
                 </ul>
             </div>
 
