@@ -1176,14 +1176,20 @@ $(document).ready(function() {
 
                 try {
                 // Build richer task-detail modal HTML (preserve confirmAcceptTaskBtn id)
-                // Helper to format due date into "9 Oct 2025" style
+                // Helper to format due date using the project's canonical formatter (day first)
                 function formatDueDate(d) {
-                    if (!d) return '-';
                     try {
+                        if (!d) return '-';
+                        if (typeof formatDateENMedium === 'function') return formatDateENMedium(d);
+                        // Fallback: parse and return day month year
                         const dt = new Date(d);
                         if (isNaN(dt.getTime())) return d;
-                        return dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
-                    } catch (e) { return d; }
+                        const day = dt.getDate();
+                        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        const m = monthNames[dt.getMonth()];
+                        const y = dt.getFullYear();
+                        return `${day} ${m} ${y}`;
+                    } catch (e) { return String(d || '-'); }
                 }
 
                 // Local HTML escaper (office.js didn't have a global escapeHtml)
@@ -1206,18 +1212,31 @@ $(document).ready(function() {
                 // Build collaborators (pic + executors)
                 function buildCollabHtml(data) {
                     const appUrlMeta = document.querySelector('meta[name="app-url"]');
-                    const APP_URL = appUrlMeta ? appUrlMeta.getAttribute('content').replace(/\/$/,'') : '';
+                    const APP_URL = appUrlMeta ? appUrlMeta.getAttribute('content').replace(/\/$/, '') : '';
                     const people = [];
                     try {
-                        if (data.pic) people.push(data.pic);
-                        if (Array.isArray(data.executors)) data.executors.forEach(e => people.push(e));
+                        // Keep explicit roles so we can mark PIC properly
+                        if (data.pic) people.push({ person: data.pic, role: 'pic' });
+                        if (Array.isArray(data.executors)) data.executors.forEach(e => people.push({ person: e, role: 'executor' }));
                     } catch(_) {}
                     if (!people.length) return '<div class="text-muted">No collaborators</div>';
-                    return people.map(p => {
-                        const photo = p.photo || p.profile_picture || p.user_photo || '';
+                    return people.map(entry => {
+                        const p = entry.person || {};
+                        const roleFlag = entry.role || (p.role ? String(p.role).toLowerCase() : 'executor');
+                        const photo = p.photo || p.profile_picture || p.user_photo || p.user_photo_url || '';
                         const url = photo && /^https?:\/\//.test(photo) ? photo : (photo ? (APP_URL + '/file/profile_picture/' + photo) : APP_URL + '/asset/img/avatar.png');
-                        const name = p.name || p.full_name || p.employee_name || 'Member';
-                        const role = (p.role || p.division || p.designation || '').toUpperCase() || '';
+                        const name = p.name || p.full_name || p.employee_name || p.username || 'Member';
+                        // Prefer explicit PIC label when this entry represents the pic
+                        const roleLabel = (function(){
+                            try {
+                                if (roleFlag === 'pic') return 'PIC';
+                                if (p && p.role) return String(p.role).replace(/_/g,' ');
+                                if (p && p.designation) return String(p.designation);
+                                // Fall back to division or executor label
+                                if (p && (p.division || p.division_name)) return String(p.division || p.division_name);
+                                return roleFlag === 'executor' ? 'Executor' : '';
+                            } catch(_) { return ''; }
+                        })();
                         return `
                             <div class="collab-item d-flex align-items-center mb-2">
                                 <div class="flex-shrink-0">
@@ -1225,7 +1244,7 @@ $(document).ready(function() {
                                 </div>
                                 <div class="ms-2">
                                     <div class="collab-name">${escapeHtml(name)}</div>
-                                    <div class="collab-division text-muted">${escapeHtml(role)}</div>
+                                    <div class="collab-division text-muted">${escapeHtml(roleLabel)}</div>
                                 </div>
                             </div>`;
                     }).join('');
@@ -1237,6 +1256,10 @@ $(document).ready(function() {
                 const priorityColor = priority === 'HIGH' ? 'red' : (priority === 'MEDIUM' ? '#E6A15A' : '#4fc97a');
                 const initials = getTaskInitials(response.data.title || taskTitle || 'NA');
                 const initialColor = getRandomColorFromText(response.data.title || taskTitle || initials);
+                // Project and department/division fallbacks
+                const projectTitleText = (response.data && response.data.project && (response.data.project.title || response.data.project.project_title)) ? (response.data.project.title || response.data.project.project_title) : '';
+                const deptName = (response.data && response.data.project && (response.data.project.department || response.data.project.department_name)) ? (response.data.project.department || response.data.project.department_name) : (response.data.department_name || 'No Department');
+                const divName = (response.data && response.data.project && (response.data.project.division || response.data.project.division_name)) ? (response.data.project.division || response.data.project.division_name) : (response.data.division_name || 'No Division');
 
                 // Build status rows only when data present
                 const statusRows = (function(){
@@ -1263,6 +1286,7 @@ $(document).ready(function() {
                                                 <div class="d-flex align-items-center">
                                                     <div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialColor};">${escapeHtml(initials)}</div>
                                                     <div class="d-flex flex-column">
+                                                        ${projectTitleText ? `<small class="text-muted" style="font-size:11px;">${escapeHtml(projectTitleText)}</small>` : ''}
                                                         <h5 class="mb-0 task-title">${escapeHtml(taskTitle)}</h5>
                                                     </div>
                                                 </div>
@@ -1291,11 +1315,11 @@ $(document).ready(function() {
                                             </div>
                                             <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
                                                 <span class="text-muted">Department:</span>
-                                                <span>${escapeHtml(response.data.department_name || 'No Department')}</span>
+                                                <span>${escapeHtml(deptName)}</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
                                                 <span class="text-muted">Division:</span>
-                                                <span>${escapeHtml(response.data.division_name || 'No Division')}</span>
+                                                <span>${escapeHtml(divName)}</span>
                                             </div>
                                             <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
                                                 <div class="flex-grow-1">
@@ -1332,6 +1356,7 @@ $(document).ready(function() {
                                                 <div class="d-flex align-items-center">
                                                     <div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialColor};">${escapeHtml(initials)}</div>
                                                     <div class="d-flex flex-column">
+                                                        ${projectTitleText ? `<small class="text-muted" style="font-size:11px;">${escapeHtml(projectTitleText)}</small>` : ''}
                                                         <h5 class="mb-0 task-title">${escapeHtml(taskTitle)}</h5>
                                                     </div>
                                                 </div>
@@ -1360,11 +1385,11 @@ $(document).ready(function() {
                                             </div>
                                             <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
                                                 <span class="text-muted">Department:</span>
-                                                <span>${escapeHtml(response.data.department_name || 'No Department')}</span>
+                                                <span>${escapeHtml(deptName)}</span>
                                             </div>
                                             <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
                                                 <span class="text-muted">Division:</span>
-                                                <span>${escapeHtml(response.data.division_name || 'No Division')}</span>
+                                                <span>${escapeHtml(divName)}</span>
                                             </div>
                                             <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
                                                 <div class="flex-grow-1">
