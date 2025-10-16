@@ -1290,12 +1290,7 @@ $(document).ready(function() {
                                                         <h5 class="mb-0 task-title">${escapeHtml(taskTitle)}</h5>
                                                     </div>
                                                 </div>
-                                                <div class="dropdown-icon-container">
-                                                    <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
-                                                    <div class="dropdown-menu d-none">
-                                                        <div class="dropdown-item edit-task">Edit</div>
-                                                    </div>
-                                                </div>
+                                                <!-- dropdown removed for accept modal -->
                                             </div>
                                             <div class="task-detail-description-container">
                                                 <div class="task-description">
@@ -1328,15 +1323,7 @@ $(document).ready(function() {
                                                     </div>
                                                     ${statusRows}
                                                 </div>
-                                                <div class="d-flex align-items-start">
-                                                    <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
-                                                        <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${response.data.id || taskId}">mode_comment</span>
-                                                        <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${response.data.id || taskId}"></span>
-                                                    </div>
-                                                    <div class="btn-attach-file-wrapper d-flex align-items-center">
-                                                        <span class="material-symbols-outlined task-icon">attach_file</span>
-                                                    </div>
-                                                </div>
+                                                <!-- comment/attach icons removed for accept modal -->
                                             </div>
                                         </div>
                                     </div>
@@ -1360,12 +1347,7 @@ $(document).ready(function() {
                                                         <h5 class="mb-0 task-title">${escapeHtml(taskTitle)}</h5>
                                                     </div>
                                                 </div>
-                                                <div class="dropdown-icon-container">
-                                                    <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
-                                                    <div class="dropdown-menu d-none">
-                                                        <div class="dropdown-item edit-task">Edit</div>
-                                                    </div>
-                                                </div>
+                                                <!-- dropdown removed for accept modal -->
                                             </div>
                                             <div class="task-detail-description-container">
                                                 <div class="task-description">
@@ -1398,15 +1380,7 @@ $(document).ready(function() {
                                                     </div>
                                                     ${statusRows}
                                                 </div>
-                                                <div class="d-flex align-items-start">
-                                                    <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
-                                                        <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${response.data.id || taskId}">mode_comment</span>
-                                                        <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${response.data.id || taskId}"></span>
-                                                    </div>
-                                                    <div class="btn-attach-file-wrapper d-flex align-items-center">
-                                                        <span class="material-symbols-outlined task-icon">attach_file</span>
-                                                    </div>
-                                                </div>
+                                                <!-- comment/attach icons removed for accept modal -->
                                             </div>
                                         </div>`;
 
