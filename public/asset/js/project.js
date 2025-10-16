@@ -1483,7 +1483,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function(img){
                                         if (img.dataset.bound === '1') return; img.dataset.bound = '1';
                                         img.addEventListener('click', function(){
-                                            const src = this.getAttribute('src'); if (src) window.open(src, '_blank');
+                                            const src = this.getAttribute('src'); if (src) { try { showImageModal(src); } catch(_) { window.open(src, '_blank'); } }
                                         });
                                     });
                                 } catch(_) {}
@@ -5862,8 +5862,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     projectFeedbackModalEl.addEventListener(
                         "hidden.bs.modal",
                         function () {
-                            // If suppression flag is set (we temporarily hid this modal to show delete modal),
-                            // skip clearing body/backdrop and reset the flag in the delete modal cleanup instead.
+                            // If suppression flag is set (we temporarily hid this modal to show preview/delete modal),
+                            // skip clearing body/backdrop and reset the flag when preview/delete modal cleanup runs instead.
                             try {
                                 if (window.__suppressFeedbackBackdropRemoval) return;
                             } catch (_) {}
@@ -6033,9 +6033,66 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     });
 
-                    // Helper function to show image in modal (for lightbox effect)
+                    // Helper functions to show image in modal (for lightbox effect)
+                    // Uses an in-page Bootstrap modal so images preview inside the app (same UX as task page).
+                    function ensureProjectImagePreviewModalExists() {
+                        if (document.getElementById('projectImagePreviewModal')) return;
+                        const html = `
+                            <div class="modal fade" id="projectImagePreviewModal" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog modal-dialog-centered" style="max-width:95vw;">
+                                    <div class="modal-content modal-content-custom">
+                                        <div class="modal-body p-0 bg-dark d-flex align-items-center justify-content-center" style="min-height:160px; max-height:80vh; overflow:auto;">
+                                            <div style="box-sizing:border-box; padding:12px; width:100%; display:flex; align-items:center; justify-content:center;">
+                                                <div style="max-width:100%; width:100%; max-height:calc(80vh - 72px); display:flex; align-items:center; justify-content:center;">
+                                                    <img id="projectImagePreviewModalImg" src="" alt="Preview image" style="max-width:100%; max-height:100%; width:auto; height:auto; display:block; object-fit:contain;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer modal-footer-custom">
+                                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>`;
+                        try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){}
+                    }
+
                     function showImageModal(imageSrc) {
-                        window.open(imageSrc, "_blank");
+                        try {
+                            ensureProjectImagePreviewModalExists();
+                            const modalEl = document.getElementById('projectImagePreviewModal');
+                            const imgEl = document.getElementById('projectImagePreviewModalImg');
+                            if (imgEl) imgEl.src = imageSrc;
+
+                            // If project feedback modal is open, hide it first and remember to restore later
+                            const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                            let feedbackWasOpen = false;
+                            try {
+                                if (projectFeedbackModalEl && projectFeedbackModalEl.classList.contains('show')) {
+                                    feedbackWasOpen = true;
+                                    try { window.__suppressFeedbackBackdropRemoval = true; } catch(_){}
+                                    const fbInst = bootstrap.Modal.getOrCreateInstance(projectFeedbackModalEl) || new bootstrap.Modal(projectFeedbackModalEl);
+                                    try { fbInst.hide(); } catch(_){}
+                                }
+                            } catch(_){}
+
+                            const inst = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+                            const onPreviewHidden = function() {
+                                try { modalEl.removeEventListener('hidden.bs.modal', onPreviewHidden); } catch(_){}
+                                try {
+                                    if (feedbackWasOpen) {
+                                        try { window.__suppressFeedbackBackdropRemoval = false; } catch(_){}
+                                        const fbInst2 = bootstrap.Modal.getOrCreateInstance(projectFeedbackModalEl) || new bootstrap.Modal(projectFeedbackModalEl);
+                                        try { fbInst2.show(); } catch(_){}
+                                    }
+                                } catch(_){}
+                            };
+                            try { modalEl.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_){}
+                            inst.show();
+                        } catch (e) {
+                            try { window.open(imageSrc, '_blank'); } catch(_){}
+                        }
                     }
 
                     // Mark project feedbacks as read helper

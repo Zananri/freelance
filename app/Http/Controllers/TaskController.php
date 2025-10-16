@@ -850,6 +850,17 @@ class TaskController extends Controller
                     });
             });
 
+            // 💡 Tambahan filter custom dari user
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $start = $request->input('start_date');
+                $end = $request->input('end_date');
+                $base->whereBetween('due_date', [$start, $end]);
+            }
+
+            if ($request->filled('priority')) {
+                $base->where('priority', strtoupper($request->priority));
+            }
+
             $tasks = $base->orderByDesc('created_at')->get();
 
             // Final safety filter: only include completed if completed today
@@ -891,6 +902,7 @@ class TaskController extends Controller
                     'description' => $task->description,
                     'priority' => $task->priority,
                     'status' => $task->status,
+                    '' => $task->due_date,
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
                     'project_title' => $task->project?->title, // added for dashboard avatar initials
@@ -974,7 +986,6 @@ class TaskController extends Controller
             }
 
             $employeeId = $user->employee->id;
-
             $tomorrow = now()->addDay()->toDateString();
 
             // Base: tasks where current employee is PIC or accepted EXECUTOR
@@ -983,21 +994,34 @@ class TaskController extends Controller
                 ->withCount(['feedback_comments'])
                 ->whereHas('assignments', function ($q) use ($employeeId) {
                     $q->where('employee_id', $employeeId)
-                        ->where(function ($roleQ) {
-                            $roleQ->where('role', 'PIC')
+                    ->where(function ($roleQ) {
+                        $roleQ->where('role', 'PIC')
                                 ->orWhere(function ($execQ) {
                                     $execQ->where('role', 'EXECUTOR')
                                         ->where('is_receive', true);
                                 });
-                        });
+                    });
                 })
-                // Exclude soft-deleted tasks (canceled, deleted)
-                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted'])
-                ->whereDate('start_date', $tomorrow);
+                ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled','deleted']);
+
+            // Jika ada filter tanggal dari user, gunakan range itu
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $start = $request->input('start_date');
+                $end = $request->input('end_date');
+                $base->whereBetween('due_date', [$start, $end]);
+            } else {
+                // Default Tomorrow logic
+                $base->whereDate('start_date', $tomorrow);
+            }
+
+            // Filter priority kalau ada
+            if ($request->filled('priority')) {
+                $base->where('priority', strtoupper($request->priority));
+            }
 
             $tasks = $base->orderByDesc('created_at')->get();
 
-            // Map response minimal fields needed for dashboard (same shape as Today)
+            // Map response minimal fields needed for dashboard (sama shape seperti Today)
             $data = $tasks->map(function ($task) {
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $executors = $task->assignments->where('role', 'EXECUTOR');
@@ -1022,7 +1046,7 @@ class TaskController extends Controller
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
                     'start_date' => $task->start_date,
-                    'project_title' => $task->project?->title, // added for dashboard avatar initials
+                    'project_title' => $task->project?->title,
                     'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
                     'reference_files_count' => is_array($task->reference_files) ? count($task->reference_files) : 0,
                     'project_image' => $projectImageUrl,

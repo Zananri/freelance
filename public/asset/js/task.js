@@ -788,7 +788,135 @@
     const addTaskForm = document.getElementById("addTaskForm");
     const projectSelect = document.getElementById("task_project_id");
 
+    // Helper function to load tasks from a specific project for "Related to Task" dropdown
+    function loadProjectTasksForRelated(projectId) {
+        if (!projectId) return;
+        
+        const taskParentDropdown = document.getElementById('task_parent_dropdown');
+        if (!taskParentDropdown) return;
+        
+        // Show loading state
+        taskParentDropdown.innerHTML = '<div class="dropdown-item text-muted">Loading tasks...</div>';
+        taskParentDropdown.style.display = 'block';
+        
+        // Fetch tasks for this project
+        fetch(appUrl + '/projects/' + projectId + '/tasks/tree', {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const tasks = data.data || data || [];
+            
+            if (tasks.length === 0) {
+                taskParentDropdown.innerHTML = '<div class="dropdown-item text-muted">No tasks available in this project</div>';
+            } else {
+                // Clear and populate with tasks
+                taskParentDropdown.innerHTML = '';
+                tasks.forEach(task => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.style.cursor = 'pointer';
+                    item.textContent = task.title || `Task #${task.id}`;
+                    item.dataset.taskId = task.id;
+                    item.dataset.taskTitle = task.title || '';
+                    
+                    item.addEventListener('click', function() {
+                        document.getElementById('task_parent_id').value = task.id;
+                        document.getElementById('task_parent_input').value = task.title || `Task #${task.id}`;
+                        
+                        const selectedParent = document.getElementById('task_selected_parent');
+                        if (selectedParent) {
+                            selectedParent.innerHTML = `
+                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                                    <span class="flex-grow-1">${task.title || `Task #${task.id}`}</span>
+                                    <button type="button" class="btn btn-sm btn-remove-task remove-task" onclick="this.closest('.selected-task').remove(); document.getElementById('task_parent_id').value=''; document.getElementById('task_parent_input').value='';">
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                            `;
+                        }
+                        taskParentDropdown.style.display = 'none';
+                    });
+                    
+                    taskParentDropdown.appendChild(item);
+                });
+            }
+            
+            // Hide dropdown initially
+            setTimeout(() => {
+                taskParentDropdown.style.display = 'none';
+            }, 100);
+        })
+        .catch(error => {
+            console.error('Error loading project tasks:', error);
+            taskParentDropdown.innerHTML = '<div class="dropdown-item text-danger">Failed to load tasks</div>';
+        });
+    }
+
     function setupImageInput(input, label, clearBtn) {
+        // Setup paste event for screenshot
+        const setupPasteHandler = () => {
+            // Remove existing paste listeners to avoid duplicates
+            const modal = input.closest('.modal');
+            if (modal && !modal.dataset.pasteHandlerAdded) {
+                modal.dataset.pasteHandlerAdded = 'true';
+                
+                modal.addEventListener('paste', function(e) {
+                    try {
+                        const clipboardData = e.clipboardData || window.clipboardData;
+                        if (!clipboardData) return;
+                        
+                        const items = clipboardData.items || [];
+                        for (let i = 0; i < items.length; i++) {
+                            const item = items[i];
+                            if (item.type && item.type.indexOf('image') === 0) {
+                                e.preventDefault();
+                                const blob = item.getAsFile();
+                                if (!blob) continue;
+                                
+                                // Check size limit
+                                if (blob.size > MAX_IMAGE_BYTES) {
+                                    try { 
+                                        if (typeof showFloatingAlert === 'function') 
+                                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); 
+                                    } catch(_) { 
+                                        alert('Image must be smaller than 10 MB.'); 
+                                    }
+                                    return;
+                                }
+                                
+                                // Create a File object from blob
+                                const file = new File([blob], 'pasted-image-' + Date.now() + '.png', { type: blob.type });
+                                
+                                // Create a DataTransfer to set the files
+                                const dataTransfer = new DataTransfer();
+                                dataTransfer.items.add(file);
+                                input.files = dataTransfer.files;
+                                
+                                // Trigger change event
+                                const event = new Event('change', { bubbles: true });
+                                input.dispatchEvent(event);
+                                
+                                // Show floating alert
+                                try { 
+                                    if (typeof showFloatingAlert === 'function') 
+                                        showFloatingAlert('Screenshot pasted successfully!', 'success', 1500); 
+                                } catch(_) {}
+                                
+                                break;
+                            }
+                        }
+                    } catch(err) {
+                        console.error('Paste error:', err);
+                    }
+                }, true);
+            }
+        };
+        
         input.addEventListener("change", function () {
             if (input.files && input.files[0]) {
                 // Enforce image size limit
@@ -829,6 +957,9 @@
             label.classList.remove("is-invalid");
             clearBtn.classList.add("d-none");
         });
+        
+        // Setup paste handler after a short delay to ensure modal is ready
+        setTimeout(setupPasteHandler, 100);
     }
 
     function loadProjects() {
@@ -1123,10 +1254,125 @@
             if (window.clearSelectedExecutors) {
                 window.clearSelectedExecutors();
             }
+            
+            // Reset project input visibility for normal task page
+            const taskProjectInput = document.getElementById('task_project_input');
+            const taskSelectedProject = document.getElementById('task_selected_project');
+            const taskProjectDropdown = document.getElementById('task_project_dropdown');
+            const taskProjectId = document.getElementById('task_project_id');
+            const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
+            
+            // Show entire project container
+            if (taskProjectContainer) {
+                taskProjectContainer.style.display = 'block';
+            }
+            
+            if (taskProjectInput) {
+                taskProjectInput.style.display = 'block';
+                taskProjectInput.setAttribute('required', 'required');
+                taskProjectInput.disabled = false; // Re-enable
+                taskProjectInput.value = '';
+            }
+            
+            if (taskProjectDropdown) {
+                taskProjectDropdown.style.display = 'block';
+                taskProjectDropdown.innerHTML = '';
+            }
+            
+            if (taskSelectedProject) {
+                taskSelectedProject.innerHTML = '';
+                taskSelectedProject.style.display = 'none';
+            }
+            
+            if (taskProjectId) {
+                taskProjectId.value = '';
+            }
+            
+            // Reset parent task selection
+            const taskParentInput = document.getElementById('task_parent_input');
+            const taskParentId = document.getElementById('task_parent_id');
+            const taskSelectedParent = document.getElementById('task_selected_parent');
+            const taskParentDropdown = document.getElementById('task_parent_dropdown');
+            
+            if (taskParentInput) taskParentInput.value = '';
+            if (taskParentId) taskParentId.value = '';
+            if (taskSelectedParent) taskSelectedParent.innerHTML = '';
+            if (taskParentDropdown) {
+                taskParentDropdown.innerHTML = '';
+                taskParentDropdown.style.display = 'none';
+            }
         });
         // When Add Task modal is shown, set sensible defaults if fields are empty.
         addTaskModalEl.addEventListener('show.bs.modal', function () {
             try {
+                // Check if we're on project detail page
+                const projectIdMeta = document.querySelector('meta[name="project-id"]');
+                const currentProjectId = projectIdMeta ? projectIdMeta.getAttribute('content') : null;
+                
+                if (currentProjectId) {
+                    // Auto-fill project for project detail page
+                    const taskProjectIdInput = document.getElementById('task_project_id');
+                    const taskProjectInput = document.getElementById('task_project_input');
+                    const taskSelectedProject = document.getElementById('task_selected_project');
+                    const taskProjectDropdown = document.getElementById('task_project_dropdown');
+                    const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
+                    
+                    if (taskProjectIdInput) {
+                        taskProjectIdInput.value = currentProjectId;
+                    }
+                    
+                    // Hide entire project input container (including label)
+                    if (taskProjectContainer) {
+                        taskProjectContainer.style.display = 'none';
+                    } else {
+                        // Fallback: hide individual elements
+                        if (taskProjectInput) {
+                            taskProjectInput.style.display = 'none';
+                        }
+                        if (taskProjectDropdown) {
+                            taskProjectDropdown.style.display = 'none';
+                        }
+                        if (taskSelectedProject) {
+                            taskSelectedProject.style.display = 'none';
+                        }
+                    }
+                    
+                    // CRITICAL: Remove required attribute and disable to prevent validation error
+                    if (taskProjectInput) {
+                        taskProjectInput.removeAttribute('required');
+                        taskProjectInput.disabled = true;
+                    }
+                    
+                    // Load tasks from current project for "Related to Task" dropdown
+                    loadProjectTasksForRelated(currentProjectId);
+                } else {
+                    // Reset to normal behavior for task page
+                    const taskProjectInput = document.getElementById('task_project_input');
+                    const taskSelectedProject = document.getElementById('task_selected_project');
+                    const taskProjectDropdown = document.getElementById('task_project_dropdown');
+                    const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
+                    
+                    // Show entire project input container
+                    if (taskProjectContainer) {
+                        taskProjectContainer.style.display = 'block';
+                    }
+                    
+                    if (taskProjectInput) {
+                        taskProjectInput.style.display = 'block';
+                        taskProjectInput.setAttribute('required', 'required');
+                        taskProjectInput.disabled = false; // Re-enable
+                    }
+                    
+                    if (taskProjectDropdown) {
+                        taskProjectDropdown.style.display = 'block';
+                    }
+                    
+                    if (taskSelectedProject) {
+                        taskSelectedProject.innerHTML = '';
+                        taskSelectedProject.style.display = 'none';
+                    }
+                }
+                
                 // Priority default: MEDIUM if not selected
                 const prio = document.getElementById('task_priority');
                 if (prio && (!prio.value || String(prio.value).trim() === '')) {
@@ -1267,8 +1513,18 @@
                                 bootstrap.Modal.getInstance(addTaskModalEl);
                             if (addTaskModalInstance)
                                 addTaskModalInstance.hide();
-                            // Reload page after adding task
-                            window.location.href = appUrl + "/task";
+                            
+                            // Check if we're on project detail page
+                            const projectIdMeta = document.querySelector('meta[name="project-id"]');
+                            const currentProjectId = projectIdMeta ? projectIdMeta.getAttribute('content') : null;
+                            
+                            if (currentProjectId) {
+                                // Stay on project detail page and reload
+                                window.location.reload();
+                            } else {
+                                // Redirect to task page (default behavior)
+                                window.location.href = appUrl + "/task";
+                            }
                         }, 1500);
                     }, 800); // Show loading for 800ms before showing success alert
                 },
@@ -3091,7 +3347,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         `;
 
         return `
-        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;">
+        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;" id="custom-card">
                 ${statusBadge}
                 ${dropdownHtml}
                 ${iconHtml}
@@ -4903,7 +5159,7 @@ function filterTaskTableRows(queryRaw) {
 
         function clearDropHighlights() {
             $('.kanban-droppable').removeClass('kanban-allowed kanban-denied kanban-over');
-            $('.custom-card').removeClass('dragging');
+            $('#custom-card').removeClass('dragging');
         }
 
         function refreshDropHighlights() {
@@ -4917,18 +5173,23 @@ function filterTaskTableRows(queryRaw) {
             });
         }
 
-        $(document).on('mousedown', '.custom-card', function(e) {
-            if (e.which !== 1) return;
+        // === MOUSE EVENTS ===
+        $(document).on('mousedown', '#custom-card', function(e) {
+            if (e.which !== 1) return; // kiri mouse
             e.preventDefault();
+
             const $card = $(this);
             const id = $card.data('task-id');
             const fromStatus = normStatus($card.data('task-status'));
             const rect = $card[0].getBoundingClientRect();
+
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
+
             kanbanDrag = { id: id, fromStatus: fromStatus, $card: $card, startX: e.clientX, startY: e.clientY };
             isDragging = false;
             lastX = e.clientX;
+
             $card.addClass('dragging');
             $('body').addClass('no-select');
         });
@@ -4936,9 +5197,7 @@ function filterTaskTableRows(queryRaw) {
         $(document).on('mousemove', function(e) {
             if (!kanbanDrag) return;
 
-            if (!isDragging && Math.abs(e.clientX - kanbanDrag.startX) + Math.abs(e.clientY - kanbanDrag.startY) < 5) {
-                return;
-            }
+            if (!isDragging && Math.abs(e.clientX - kanbanDrag.startX) + Math.abs(e.clientY - kanbanDrag.startY) < 5) return;
 
             if (!isDragging) {
                 isDragging = true;
@@ -4949,6 +5208,7 @@ function filterTaskTableRows(queryRaw) {
                 const scaledOffsetY = offsetY * SCALE;
                 const initialTop = e.clientY - scaledOffsetY;
                 const initialLeft = e.clientX - scaledOffsetX;
+
                 $clone.css({
                     position: 'fixed',
                     top: initialTop + 'px',
@@ -4960,6 +5220,7 @@ function filterTaskTableRows(queryRaw) {
                     zIndex: 99999,
                     pointerEvents: 'none'
                 });
+
                 kanbanDrag.$card.css('opacity', 0.5);
             } else {
                 const scaledOffsetX = offsetX * SCALE;
@@ -4968,9 +5229,9 @@ function filterTaskTableRows(queryRaw) {
                     top: (e.clientY - scaledOffsetY) + 'px',
                     left: (e.clientX - scaledOffsetX) + 'px'
                 });
-                const currentX = e.clientX;
-                const dx = currentX - lastX;
-                lastX = currentX;
+
+                const dx = e.clientX - lastX;
+                lastX = e.clientX;
                 const rotation = Math.max(-6, Math.min(6, dx / 4));
                 $clone.css('transform', `scale(${SCALE}) rotate(${rotation}deg)`);
             }
@@ -4987,26 +5248,31 @@ function filterTaskTableRows(queryRaw) {
 
         $(document).on('mouseup', function(e) {
             if (!kanbanDrag) return;
+
             $('body').removeClass('no-select');
+
             if (!isDragging) {
                 kanbanDrag = null;
                 return;
             }
+
             const $targetCol = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.kanban-droppable');
             const toStatus = $targetCol.length ? colToStatus[$targetCol.attr('id')] : null;
             const m = mapTransition(kanbanDrag.fromStatus, toStatus);
             const taskId = kanbanDrag.id;
-            const taskCard = kanbanDrag.$card[0];
+
             if ($targetCol.length && m.allowed) {
                 if (m.newStatus === 'completed') {
-                    try { showConfirmationToCompleteModal(taskId, taskCard); }
-                    catch (err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch (_) {} }
+                    try { showConfirmationToCompleteModal(taskId, kanbanDrag.$card[0]); }
+                    catch (err) { try { updateTaskStatus(taskId, 'completed', kanbanDrag.$card[0]); } catch (_) {} }
                 } else {
-                    try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch (_) {}
+                    try { updateTaskStatus(taskId, m.newStatus, kanbanDrag.$card[0]); } catch (_) {}
                 }
             }
+
             kanbanDrag.$card.removeClass('dragging').css({ opacity: 1, transform: 'scale(1) rotate(0deg)' });
             if ($clone) { $clone.remove(); $clone = null; }
+
             kanbanDrag = null;
             isDragging = false;
             lastX = 0;
@@ -5855,15 +6121,89 @@ function filterTaskTableRows(queryRaw) {
                         });
                     });
 
-                    // Open feedback/reply images in a new tab
-                    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
-                        img.addEventListener('click', function () {
-                            const src = this.getAttribute('src');
-                            if (src) {
-                                window.open(src, '_blank');
-                            }
+                    // Open feedback/reply images in an in-page modal preview (do not open new tab)
+                    (function(){
+                        // Ensure modal exists only once
+                        function ensureImagePreviewModalExists() {
+                            if (document.getElementById('taskImagePreviewModal')) return;
+                            const html = `
+                                <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" style="max-width:95vw;">
+                                        <div class="modal-content modal-content-custom">
+                                            <div class="modal-body p-0 bg-dark d-flex align-items-center justify-content-center" style="min-height:160px; max-height:80vh; overflow:auto;">
+                                                <div style="box-sizing:border-box; padding:12px; width:100%; display:flex; align-items:center; justify-content:center;">
+                                                    <div style="max-width:100%; width:100%; max-height:calc(80vh - 72px); display:flex; align-items:center; justify-content:center;">
+                                                        <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="max-width:100%; max-height:100%; width:auto; height:auto; display:block; object-fit:contain;">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer modal-footer-custom">
+                                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){}
+                        }
+
+                        function showImageInModal(src, filename) {
+                            try {
+                                ensureImagePreviewModalExists();
+                                const modalEl = document.getElementById('taskImagePreviewModal');
+                                const imgEl = document.getElementById('taskImagePreviewModalImg');
+                                const dlEl = document.getElementById('taskImagePreviewDownload');
+                                if (imgEl) imgEl.src = src;
+                                // No download button per UX request; preview only
+
+                                // If feedback modal is open, hide it first and remember to restore later
+                                const feedbackModalEl = document.getElementById('taskFeedbackModal');
+                                let feedbackWasOpen = false;
+                                try {
+                                    if (feedbackModalEl && feedbackModalEl.classList.contains('show')) {
+                                        feedbackWasOpen = true;
+                                        // Suppress backdrop removal in feedback modal hidden handlers (used elsewhere)
+                                        try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                                        const fbInst = bootstrap.Modal.getInstance(feedbackModalEl) || new bootstrap.Modal(feedbackModalEl);
+                                        try { fbInst.hide(); } catch(_) {}
+                                    }
+                                } catch(_) {}
+
+                                const inst = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+                                // When preview modal hides, restore feedback modal if it was previously open
+                                const onPreviewHidden = function() {
+                                    try {
+                                        inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden);
+                                    } catch(_) {}
+                                    try { if (feedbackWasOpen) {
+                                        // Clear suppression and re-show feedback modal
+                                        try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                                        const fbInst2 = bootstrap.Modal.getOrCreateInstance(feedbackModalEl) || new bootstrap.Modal(feedbackModalEl);
+                                        try { fbInst2.show(); } catch(_) {}
+                                    } } catch(_) {}
+                                };
+                                try { inst._element.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                inst.show();
+                            } catch (e) { try { window.open(src, '_blank'); } catch(_) {} }
+                        }
+
+                        modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                            // Remove any previous click handlers to avoid duplicates
+                            try { img.replaceWith(img.cloneNode(true)); } catch(_) {}
                         });
-                    });
+                        // Re-query after clone
+                        modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                            img.addEventListener('click', function (ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const src = this.getAttribute('src') || this.dataset.src;
+                                if (!src) return;
+                                // Derive filename fallback
+                                let filename = (src.split('/').pop() || '').split('?')[0];
+                                showImageInModal(src, filename);
+                            });
+                        });
+                    })();
 
                         // Bind delete triggers for feedback and replies
                         modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function (btn) {
@@ -6386,7 +6726,7 @@ function filterTaskTableRows(queryRaw) {
                     }
                 });
                 // Refresh task cards so counts and other data reflect the latest changes
-                try { fetchAndRenderTasks(); } catch(_) {}
+                // try { fetchAndRenderTasks(); } catch(_) {}
                 // Avoid page reload when closing modal
                 try { feedbackSubmitted = false; } catch(_) {}
             },
@@ -7889,7 +8229,7 @@ function filterTaskTableRows(queryRaw) {
                 })();
 
                 const html = `
-                <div class="custom-card-detail rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
+                <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
                     <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
                         <div class="d-flex align-items-center">
                             ${avatarHtml}
@@ -9718,176 +10058,167 @@ function filterTaskTableRows(queryRaw) {
 
 
     $(document).ready(function () {
-    const mobileCardHtml = `
-        <div class="mobile-task-container p-3 rounded-4">
-        <div class="task-mobile-status mb-2">
-            <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
-            <option value="new_request">New</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            </select>
-        </div>
-        <div class="task-mobile-actions d-flex justify-content-between align-items-center">
-            <div class="search-input-container flex-grow-1 me-2">
-                <span class="material-symbols-outlined search-icon">search</span>
-                <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
+        const mobileCardHtml = `
+            <div class="mobile-task-container p-3 rounded-4">
+            <div class="task-mobile-status mb-2">
+                <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
+                <option value="new_request">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                </select>
             </div>
-            <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
-                <span class="material-symbols-outlined">calendar_month</span>
-            </button>
-            <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
-                <span class="material-symbols-outlined">box</span>
-            </button>
-            <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
-                <span class="material-symbols-outlined">filter_list</span>
-            </button>
-        </div>
-        <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-2" style="display:none;">
-            <button type="button" id="taskNewBulkActionMobile" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
-                <span class="material-symbols-outlined">done_all</span>
-            </button>
-            <button type="button" id="taskNewBulkProgressMobile" class="task-bulk-icon" aria-label="Move selected tasks to In Progress">
-                <span class="material-symbols-outlined">arrow_right_alt</span>
-            </button>
-            <label for="taskNewAcceptAllMobile" class="task-selectall-toggle">
-                <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAllMobile" aria-label="Select all pending new tasks" />
-            </label>
-        </div>
-        <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
-            <div class="dropdown-filter-body">
-                <div class="mb-3">
-                    <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                    <select id="filterTaskProjectMobile" class="form-select">
-                        <option value="">All Projects</option>
-                    </select>
+            <div class="task-mobile-actions d-flex justify-content-between align-items-center">
+                <div class="search-input-container flex-grow-1 me-2">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
                 </div>
-                <div class="mb-3">
-                    <label for="filterTaskPriorityMobile" class="form-label label-custom">Priority</label>
-                    <select id="filterTaskPriorityMobile" class="form-select">
-                        <option value="">All Priority</option>
-                        <option value="LOW">Low</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="HIGH">High</option>
-                    </select>
+                <button class="btn btn-sm toggle-grid d-none me-2" id="gridViewMobileTask" data-bs-toggle="tooltip" title="Grid View">
+                    <span class="material-symbols-outlined">grid_view</span>
+                </button>
+                <button class="btn btn-sm toggle-list me-2" id="listViewMobileTask" data-bs-toggle="tooltip" title="List View">
+                    <span class="material-symbols-outlined">list</span>
+                </button>
+                <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
+                    <span class="material-symbols-outlined">calendar_month</span>
+                </button>
+                <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
+                    <span class="material-symbols-outlined">box</span>
+                </button>
+                <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+                    <span class="material-symbols-outlined">filter_list</span>
+                </button>
+            </div>
+            <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-2" style="display:none;">
+                <button type="button" id="taskNewBulkActionMobile" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
+                    <span class="material-symbols-outlined">done_all</span>
+                </button>
+                <button type="button" id="taskNewBulkProgressMobile" class="task-bulk-icon" aria-label="Move selected tasks to In Progress">
+                    <span class="material-symbols-outlined">arrow_right_alt</span>
+                </button>
+                <label for="taskNewAcceptAllMobile" class="task-selectall-toggle">
+                    <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAllMobile" aria-label="Select all pending new tasks" />
+                </label>
+            </div>
+            <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
+                <div class="dropdown-filter-body">
+                    <div class="mb-3">
+                        <label for="filterTaskProjectMobile" class="form-label">Project</label>
+                        <select id="filterTaskProjectMobile" class="form-select">
+                            <option value="">All Projects</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filterTaskPriorityMobile" class="form-label label-custom">Priority</label>
+                        <select id="filterTaskPriorityMobile" class="form-select">
+                            <option value="">All Priority</option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filterByDateMobile" class="form-label label-custom">By Date</label>
+                        <input class="form-select border-0" type="date" name="filter_by_date"
+                            id="filterByDateMobile">
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="filterByDateMobile" class="form-label label-custom">By Date</label>
-                    <input class="form-select border-0" type="date" name="filter_by_date"
-                        id="filterByDateMobile">
+                <div class="dropdown-filter-footer">
+                    <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Apply</button>
+                    <button type="button" class="btn btn-submit-filter" id="resetTaskFilterBtnMobile">Reset</button>
                 </div>
             </div>
-            <div class="dropdown-filter-footer">
-                <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Apply</button>
-                <button type="button" class="btn btn-submit-filter" id="resetTaskFilterBtnMobile">Reset</button>
-            </div>
-        </div>
-    <div id="mobile-task-list" style="max-height: calc(100vh - 120px); overflow-y: auto;"></div>
-        </div>`;
+        <div id="mobile-task-list" style="max-height: calc(100vh - 120px); overflow-y: auto;"></div>
+            </div>`;
 
-    $("#task-cards-container").before(mobileCardHtml);
+        $("#task-cards-container").before(mobileCardHtml);
 
-        $(document).ready(function () {
-        const $listTab = $('#list-tab');
-        const $gridTab = $('#grid-tab');
-        const $statusMobileSection = $('.mobile-task-container');
-        const $tableSection = $('#task-table-section');
+        $(document).on('click', '#listViewMobileTask', function() {
+            const $btnList = $('#listViewMobileTask');
+            const $btnGrid = $('#gridViewMobileTask');
 
-        // Apply persisted view (default to grid)
-        const savedView = (function(){ try { return localStorage.getItem('taskView') || 'grid'; } catch(_) { return 'grid'; }})();
-        const setView = (view) => {
-            if (view === 'list') {
-                $listTab.addClass('active');
-                $gridTab.removeClass('active');
-                $statusMobileSection.addClass('d-none');
-                $tableSection.removeClass('d-none');
-                try { renderTaskTableFromCache(); } catch(_) {}
+            $('.mobile-task-container').addClass('d-none');
+            $('#task-cards-container, #task-table-section').removeClass('d-none');
+
+            $btnList.addClass('d-none');
+            $btnGrid.removeClass('d-none');
+            $btnGrid.find('span').text('grid_view');
+            $btnGrid.attr('title', 'Grid View').tooltip('dispose').tooltip();
+        });
+
+        $(document).on('click', '#gridViewMobileTask', function() {
+            const $btnList = $('#listViewMobileTask');
+            const $btnGrid = $('#gridViewMobileTask');
+            const dropdown = $('.dropdown-filter-container');
+
+            $('.mobile-task-container').removeClass('d-none');
+            $('#task-table-section').addClass('d-none');
+
+            $btnGrid.addClass('d-none');
+            $btnList.removeClass('d-none');
+            $btnList.find('span').text('list');
+            $btnList.attr('title', 'List View').tooltip('dispose').tooltip();
+        });
+
+        function toggleDropdownFilter() {
+            let dropdown = $(".dropdown-filter-container");
+            let mobileContainer = $(".mobile-task-container");
+            let desktopContainer = $("#task-cards-container");
+
+            if ($(window).width() <= 1024) {
+                mobileContainer.show();
+                desktopContainer.hide();
             } else {
-                $gridTab.addClass('active');
-                $listTab.removeClass('active');
-                $statusMobileSection.removeClass('d-none');
-                $tableSection.addClass('d-none');
+                mobileContainer.hide();
+                desktopContainer.show();
             }
-        };
-        setView(savedView === 'list' ? 'list' : 'grid');
+            if ($(window).width() <= 1024) dropdown.hide();
+            else dropdown.show();
+        }
+        toggleDropdownFilter();
+            $(window).on("resize", toggleDropdownFilter);
 
-        $listTab.on('click', function () {
-            $listTab.addClass('active');
-            $gridTab.removeClass('active');
-            $statusMobileSection.addClass('d-none');
-            $tableSection.removeClass('d-none');
-            try { localStorage.setItem('taskView', 'list'); } catch(_) {}
-            try { renderTaskTableFromCache(); } catch(_) {}
+        function updateMobileBulkControlsVisibility(){
+            // Show container only when status = new_request AND there is at least one selection.
+            const statusIsNew = $("#taskStatusSelect").val() === 'new_request';
+            if(!statusIsNew){ $("#mobileBulkControls").hide(); return; }
+            // Selection will toggle via updateBulkHeaderButtons; here we keep it hidden by default.
+            if($("#mobileBulkControls").data('forced-show') !== '1') {
+                $("#mobileBulkControls").hide();
+            }
+        }
+
+        // Dynamic height adjust for mobile task list to ensure scroll triggers after first 10 items
+        function adjustMobileListHeight(){
+            const list = document.getElementById('mobile-task-list');
+            if(!list) return;
+            const rect = list.getBoundingClientRect();
+            const vh = window.innerHeight || document.documentElement.clientHeight;
+            const desired = Math.max(200, vh - rect.top - 16); // leave small bottom space
+            list.style.maxHeight = desired + 'px';
+        }
+        window.addEventListener('resize', adjustMobileListHeight);
+        setTimeout(adjustMobileListHeight, 50);
+        setTimeout(adjustMobileListHeight, 350); // second pass after fonts/images load
+
+        initMobileInfiniteScroll();
+        fetchMobileTasks(mobileState.status, 1, false);
+
+        $("#taskStatusSelect").on("change", function () {
+            fetchMobileTasks($(this).val(), 1);
+            updateMobileBulkControlsVisibility();
         });
 
-        $gridTab.on('click', function () {
-            $gridTab.addClass('active');
-            $listTab.removeClass('active');
-            $statusMobileSection.removeClass('d-none');
-            $tableSection.addClass('d-none');
-            try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
-        });
-    });
-
-    function toggleDropdownFilter() {
-        let dropdown = $(".dropdown-filter-container");
-        let mobileContainer = $(".mobile-task-container");
-        let desktopContainer = $("#task-cards-container");
-
-        if ($(window).width() <= 1024) {
-            mobileContainer.show();
-            desktopContainer.hide();
-        } else {
-            mobileContainer.hide();
-            desktopContainer.show();
-        }
-        if ($(window).width() <= 1024) dropdown.hide();
-        else dropdown.show();
-    }
-    toggleDropdownFilter();
-        $(window).on("resize", toggleDropdownFilter);
-
-    function updateMobileBulkControlsVisibility(){
-        // Show container only when status = new_request AND there is at least one selection.
-        const statusIsNew = $("#taskStatusSelect").val() === 'new_request';
-        if(!statusIsNew){ $("#mobileBulkControls").hide(); return; }
-        // Selection will toggle via updateBulkHeaderButtons; here we keep it hidden by default.
-        if($("#mobileBulkControls").data('forced-show') !== '1') {
-            $("#mobileBulkControls").hide();
-        }
-    }
-
-    // Dynamic height adjust for mobile task list to ensure scroll triggers after first 10 items
-    function adjustMobileListHeight(){
-        const list = document.getElementById('mobile-task-list');
-        if(!list) return;
-        const rect = list.getBoundingClientRect();
-        const vh = window.innerHeight || document.documentElement.clientHeight;
-        const desired = Math.max(200, vh - rect.top - 16); // leave small bottom space
-        list.style.maxHeight = desired + 'px';
-    }
-    window.addEventListener('resize', adjustMobileListHeight);
-    setTimeout(adjustMobileListHeight, 50);
-    setTimeout(adjustMobileListHeight, 350); // second pass after fonts/images load
-
-    initMobileInfiniteScroll();
-    fetchMobileTasks(mobileState.status, 1, false);
-
-    $("#taskStatusSelect").on("change", function () {
-        fetchMobileTasks($(this).val(), 1);
+        $("#taskStatusSelect").val("new_request").trigger("change");
+        // Initialize newly injected mobile bulk elements hidden (same logic desktop)
+        (function initMobileBulkHidden(){
+            const ids=['taskNewBulkActionMobile','taskNewBulkProgressMobile'];
+            ids.forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='inline-flex'; el.style.visibility='hidden'; el.style.opacity='0'; el.disabled=true; } });
+            const lab=document.getElementById('taskNewAcceptAllMobile');
+            if(lab){ const wrap=lab.closest('.task-selectall-toggle'); if(wrap){ wrap.style.visibility='hidden'; wrap.style.opacity='0'; } }
+            // container hidden until first selection
+            const cont=document.getElementById('mobileBulkControls'); if(cont) cont.style.display='none';
+        })();
         updateMobileBulkControlsVisibility();
-    });
-
-    $("#taskStatusSelect").val("new_request").trigger("change");
-    // Initialize newly injected mobile bulk elements hidden (same logic desktop)
-    (function initMobileBulkHidden(){
-        const ids=['taskNewBulkActionMobile','taskNewBulkProgressMobile'];
-        ids.forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='inline-flex'; el.style.visibility='hidden'; el.style.opacity='0'; el.disabled=true; } });
-        const lab=document.getElementById('taskNewAcceptAllMobile');
-        if(lab){ const wrap=lab.closest('.task-selectall-toggle'); if(wrap){ wrap.style.visibility='hidden'; wrap.style.opacity='0'; } }
-        // container hidden until first selection
-        const cont=document.getElementById('mobileBulkControls'); if(cont) cont.style.display='none';
-    })();
-    updateMobileBulkControlsVisibility();
     });
 
     let archivePage = 1
@@ -10608,51 +10939,42 @@ function filterTaskTableRows(queryRaw) {
         }
     });
 
-    $(document).ready(function () {
-        const $listTab = $('#list-tab');
-        const $gridTab = $('#grid-tab');
-        const $statusSection = $('#task-cards-container');
-        const $statusMobileSection = $('.mobile-task-container');
-        const $tableSection = $('#task-table-section');
+    $(document).on('click', '#listViewTask', function() {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const $btnList = $('#listViewTask');
+        const $btnGrid = $('#gridViewTask');
 
-        // Apply persisted view (default to grid)
-        const savedView = (function(){ try { return localStorage.getItem('taskView') || 'grid'; } catch(_) { return 'grid'; }})();
-        const setView = (view) => {
-            if (view === 'list') {
-                $listTab.addClass('active');
-                $gridTab.removeClass('active');
-                $statusSection.addClass('d-none');
-                $statusMobileSection.addClass('d-none');
-                $tableSection.removeClass('d-none');
-                try { renderTaskTableFromCache(); } catch(_) {}
-            } else {
-                $gridTab.addClass('active');
-                $listTab.removeClass('active');
-                $statusSection.removeClass('d-none');
-                $statusMobileSection.removeClass('d-none');
-                $tableSection.addClass('d-none');
-            }
-        };
-        setView(savedView === 'list' ? 'list' : 'grid');
+        if (isMobile) {
+            $('#mobile-task-container').removeClass('d-none');
+            $('#task-cards-container, #task-table-section').addClass('d-none');
+        } else {
+            $('#task-table-section').removeClass('d-none');
+            $('#task-cards-container').addClass('d-none');
+        }
 
-        $listTab.on('click', function () {
-            $listTab.addClass('active');
-            $gridTab.removeClass('active');
-            $statusSection.addClass('d-none');
-            $statusMobileSection.addClass('d-none');
-            $tableSection.removeClass('d-none');
-            try { localStorage.setItem('taskView', 'list'); } catch(_) {}
-            try { renderTaskTableFromCache(); } catch(_) {}
-        });
+        $btnList.addClass('d-none');
+        $btnGrid.removeClass('d-none');
+        $btnGrid.find('span').text('grid_view');
+        $btnGrid.attr('title', 'Grid View').tooltip('dispose').tooltip();
+    });
 
-        $gridTab.on('click', function () {
-            $gridTab.addClass('active');
-            $listTab.removeClass('active');
-            $statusSection.removeClass('d-none');
-            $statusMobileSection.removeClass('d-none');
-            $tableSection.addClass('d-none');
-            try { localStorage.setItem('taskView', 'grid'); } catch(_) {}
-        });
+    $(document).on('click', '#gridViewTask', function() {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const $btnList = $('#listViewTask');
+        const $btnGrid = $('#gridViewTask');
+
+        if (isMobile) {
+            $('#mobile-task-container').addClass('d-none');
+            $('#task-cards-container').removeClass('d-none');
+        } else {
+            $('#task-table-section').addClass('d-none');
+            $('#task-cards-container').removeClass('d-none');
+        }
+
+        $btnGrid.addClass('d-none');
+        $btnList.removeClass('d-none');
+        $btnList.find('span').text('list');
+        $btnList.attr('title', 'List View').tooltip('dispose').tooltip();
     });
 
     // Helper functions for task feedback image and file preview (similar to project feedback)

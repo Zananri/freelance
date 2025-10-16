@@ -36,20 +36,12 @@
                     <input class="form-control custom-form-filter" type="text" name="search_filter"
                     id="search_filter">
                 </div>
-                <div class="task-tabs mb-3 me-2">
-                    <ul class="custom-tab" id="taskTabMenu" role="tablist">
-                        <li>
-                            <button class="tab-btn active" id="grid-tab">
-                                <span class="material-symbols-outlined">grid_view</span>
-                            </button>
-                        </li>
-                        <li>
-                            <button class="tab-btn" id="list-tab">
-                                <span class="material-symbols-outlined">list</span>
-                            </button>
-                        </li>
-                    </ul>
-                </div>
+                <button class="btn btn-sm toggle-grid d-none" id="gridViewTask" data-bs-toggle="tooltip" title="Grid View">
+                    <span class="material-symbols-outlined">grid_view</span>
+                </button>
+                <button class="btn btn-sm toggle-list" id="listViewTask" data-bs-toggle="tooltip" title="List View">
+                    <span class="material-symbols-outlined">list</span>
+                </button>
                 <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal"
                     data-bs-target="#timelineModal">
                     <span class="material-symbols-outlined">calendar_month</span>

@@ -2057,3 +2057,314 @@ function showDashboardDeleteConfirmModal(opts) {
     }
 }
 
+$(document).on('click', '#toggleFilterTask', function(e) {
+    e.stopPropagation();
+    $('#customFilterDropdown').toggleClass('show');
+});
+
+$(document).on('click', function(e) {
+    if (!$(e.target).closest('.filter-dropdown-wrapper').length) {
+        $('#customFilterDropdown').removeClass('show');
+    }
+});
+
+// Helper function to render task card
+function renderTaskCard(t) {
+    const appUrl = $('meta[name="app-url"]').attr('content') || '';
+    const priorityColor = t.priority === 'HIGH' ? '#E14F4F' : (t.priority === 'MEDIUM' ? '#E6A15A' : '#4fc97a');
+    const rawDue = t.due_date || '';
+    const dueText = /^\d{4}-\d{2}-\d{2}/.test(rawDue) ? rawDue : (rawDue ? new Date(rawDue).toLocaleDateString() : '-');
+    const statusNorm = (t.status || '').toLowerCase();
+    const bg = getStatusBackground(statusNorm);
+
+    const rejectedBadge = statusNorm === 'rejected'
+        ? '<span style="position:absolute;top:8px;right:10px;font-size:10px;font-weight:700;color:#B00020;background:#FFD6D6;padding:2px 6px;border-radius:8px;letter-spacing:.3px;">REJECTED</span>'
+        : '';
+
+    const getPhoto = (obj) => obj?.photo || obj?.image || obj?.user_photo || obj || '';
+    const getId = (obj) => obj?.id || obj?.employee_id || null;
+    const getName = (obj) => obj?.name || obj?.full_name || obj?.employee_name || 'Member';
+
+    const people = [];
+    if (t.pic || t.pic_photo) {
+        people.push(t.pic || { id: t.pic_id || null, photo: t.pic_photo, name: t.pic_name || 'PIC' });
+    }
+    if (Array.isArray(t.executors)) {
+        t.executors.forEach(e => people.push(e));
+    }
+
+    const seen = new Set();
+    const avatars = [];
+    people.forEach(p => {
+        const photo = getPhoto(p);
+        const pid = getId(p) ? 'id:' + getId(p) : 'ph:' + photo;
+        if (pid && !seen.has(pid)) {
+            seen.add(pid);
+            avatars.push({ url: photo, name: getName(p) });
+        }
+    });
+    let borderColor = bg;
+
+    const avatarHtml = avatars.slice(0, 5).map((av, idx) => {
+        const size = idx === 0 ? 22 : 20;
+        const overlap = idx > 0 ? '-10px' : '0';
+        const z = idx + 1;
+        const safeUrl = av.url || '/asset/img/avatar.png';
+        const safeName = escapeHtml(av.name || '');
+        return `
+            <span class="avatar-overlap" style="position: relative; display:inline-block; margin-left:${overlap}; z-index:${z};">
+                <img src="${safeUrl}" alt="${safeName}" data-bs-toggle="tooltip" data-bs-placement="bottom" title="${safeName}" style="width:${size}px;height:${size}px;object-fit:cover;border:2px solid ${borderColor};border-radius:50%;">
+            </span>
+        `;
+    }).join('');
+
+    const commentsCount = (
+        t.feedback_comments_count || t.comments_count || t.feedbacks_count ||
+        (Array.isArray(t.feedbacks) ? t.feedbacks.length : 0) || 0
+    );
+
+    let filesCount = t.reference_files_count || t.attachments_count || 0;
+    if (!filesCount) {
+        let rf = t.reference_files;
+        if (typeof rf === 'string') {
+            try { rf = JSON.parse(rf); }
+            catch { rf = rf.includes('[') ? [] : rf.split(',').map(s => s.trim()).filter(Boolean); }
+        }
+        if (Array.isArray(rf)) filesCount = rf.length;
+    }
+
+    const topTitle = `
+        <div class="d-flex align-items-center mb-1">
+                ${(function(){
+                    const img = (t.project_image||'').toString();
+                    const isDefault = /asset\/img\/profile_picture\/default\.png$/i.test(img);
+                    const titleSource = t.project_title || t.title || '';
+                    function buildInitials(txt){
+                        const parts = (txt||'').trim().split(/\s+/).filter(Boolean);
+                        if (!parts.length) return 'NA';
+                        if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+                        return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+                    }
+                    function pickColor(key){
+                        const colors=['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
+                        let h=0; for(let i=0;i<key.length;i++){h=(h*31+key.charCodeAt(i))>>>0;} return colors[h%colors.length];
+                    }
+                    if (isDefault) {
+                        const initials = buildInitials(titleSource);
+                        const color = pickColor(titleSource||initials);
+                        return `<div class=\"rounded-circle me-3 d-flex justify-content-center align-items-center\" style=\"width:28px;height:28px;font-size:11px;font-weight:600;color:#fff;background:${color};\">${initials}</div>`;
+                    }
+                    return `<img src=\"${img}\" class=\"rounded-circle me-3\" style=\"width:28px;height:28px;object-fit:cover;\" onerror=\"this.onerror=null;this.style.display='none';\">`;
+                })()}
+            <h6 class="mb-0" style="font-size: 14px">${escapeHtml(t.title || '-')}</h6>
+        </div>`;
+
+    const descText = t.description ? htmlToText(t.description) : '';
+    const descPreview = descText ? (descText.length > 140 ? descText.slice(0, 140) + '…' : descText) : '';
+    const descHtml = descPreview
+        ? `<div class="task-desc-scroll mb-2">
+                <p class="mb-0 small">${escapeHtml(descPreview).replace(/\n/g, '<br>')}</p>
+           </div>`
+        : '';
+
+    const priorityRow = `
+        <div class="d-flex justify-content-between align-items-center small" style="font-size:10px;">
+            <div><span style="color:#828282;">Priority:</span><span class="mx-2" style="color:${priorityColor}">${t.priority || '-'}</span></div>
+            <div><span style="color:#828282;">Deadline:</span><span class="mx-2" style="color:#454545">${dueText}</span></div>
+        </div>`;
+
+    const actionsRow = `
+        <div class="d-flex justify-content-between align-items-center mt-2">
+            <div class="d-flex align-items-center">${avatarHtml}</div>
+            <div class="d-flex align-items-center">
+                <span class="material-symbols-outlined task-feedback-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">mode_comment</span>
+                ${commentsCount>0?`<span class="ms-1 small feedback-comments-count" data-task-id="${t.id}" style="color:#555;">${commentsCount}</span>`:''}
+                <span class="material-symbols-outlined ms-3 task-attach-trigger" data-task-id="${t.id}" style="font-size:18px;color:#828282;cursor:pointer;">attach_file</span>
+                ${filesCount>0?`<span class="ms-1 small reference-files-count" data-task-id="${t.id}" style="color:#555;">${filesCount}</span>`:''}
+            </div>
+        </div>`;
+
+    const card = `
+        <div class="custom-card p-3 mb-3" style="background:${bg};position:relative;" data-task-id={${t.id}}>
+            ${rejectedBadge}
+            ${topTitle}
+            ${descHtml}
+            <hr class="my-2" style="opacity:.25;">
+            ${priorityRow}
+            ${actionsRow}
+        </div>`;
+    
+    $('.task-list').append(card);
+    
+    // Reinitialize tooltips
+    setTimeout(() => {
+        if (window.bootstrap && typeof window.bootstrap.Tooltip === 'function') {
+            const triggers = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            triggers.forEach(el => { try { new bootstrap.Tooltip(el); } catch(e) {} });
+        }
+    }, 50);
+}
+
+$(document).ready(function () {
+    const $filterDateRange = $("#filterDateRange")
+    const $startDateInput = $("#filterStartDate")
+    const $endDateInput = $("#filterEndDate")
+    const $prioritySelect = $(".form-select")
+    const $btnApply = $(".btn-submit-black")
+    const $btnClear = $(".btn-custom-close")
+    const $list = $(".task-list")
+    
+    // Get appUrl from meta tag
+    const appUrl = $('meta[name="app-url"]').attr('content') || '';
+
+    // Init Flatpickr
+    flatpickr("#filterDateRange", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        locale: { firstDayOfWeek: 1 },
+        onChange: function (selectedDates) {
+            if (selectedDates.length === 2) {
+                const [start, end] = selectedDates
+                $startDateInput.val(start.toISOString().split("T")[0])
+                $endDateInput.val(end.toISOString().split("T")[0])
+            }
+        }
+    })
+
+    // APPLY FILTER
+    $btnApply.on("click", function (e) {
+        e.preventDefault()
+        const start = $startDateInput.val()
+        const end = $endDateInput.val()
+        const priority = $prioritySelect.val()
+
+        $list.html(`<div class="text-center py-3 text-secondary small">Loading filtered tasks…</div>`)
+
+        $.ajax({
+            url: appUrl + "/task/dashboard/today",
+            type: "GET",
+            dataType: "json",
+            data: {
+                start_date: start,
+                end_date: end,
+                priority: priority
+            },
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            success: function (res) {
+                console.log(res);
+                
+                if (res.status !== "success") {
+                    $list.html(`<div class="text-center py-3 text-danger small">${res.message || "Failed to fetch tasks."}</div>`)
+                    return
+                }
+
+                const tasks = res.data || []
+                $list.empty()
+
+                if (!tasks.length) {
+                    $list.append(`<div class="text-center py-3 text-secondary small">No tasks found for selected filter.</div>`)
+                    return
+                }
+
+                tasks.forEach(t => renderTaskCard(t))
+            },
+            error: function (xhr) {
+                console.error(xhr)
+                $list.html(`<div class="text-center py-3 text-danger small">Failed to load filtered tasks.</div>`)
+            }
+        })
+    })
+
+    // CLEAR FILTER
+    $btnClear.on("click", function (e) {
+        e.preventDefault()
+        $filterDateRange.val("")
+        $startDateInput.val("")
+        $endDateInput.val("")
+        $prioritySelect.val("")
+
+        getTaskToday()
+    })
+})
+
+$(document).ready(function () {
+    const $filterDateRange = $("#filterDateRange")
+    const $startDateInput = $("#filterStartDate")
+    const $endDateInput = $("#filterEndDate")
+    const $prioritySelect = $(".form-select")
+    const $btnApply = $(".btn-submit-black")
+    const $btnClear = $(".btn-custom-close")
+    const $list = $(".task-list")
+    
+    // Get appUrl from meta tag
+    const appUrl = $('meta[name="app-url"]').attr('content') || '';
+
+    // Init Flatpickr
+    flatpickr("#filterDateRange", {
+        mode: "range",
+        dateFormat: "Y-m-d",
+        locale: { firstDayOfWeek: 1 },
+        onChange: function (selectedDates) {
+            if (selectedDates.length === 2) {
+                const [start, end] = selectedDates
+                $startDateInput.val(start.toISOString().split("T")[0])
+                $endDateInput.val(end.toISOString().split("T")[0])
+            }
+        }
+    })
+
+    // APPLY FILTER
+    $btnApply.on("click", function (e) {
+        e.preventDefault()
+        const start = $startDateInput.val()
+        const end = $endDateInput.val()
+        const priority = $prioritySelect.val()
+
+        $list.html(`<div class="text-center py-3 text-secondary small">Loading filtered tasks…</div>`)
+
+        $.ajax({
+            url: appUrl + "/task/dashboard/tomorrow",
+            type: "GET",
+            dataType: "json",
+            data: {
+                start_date: start,
+                end_date: end,
+                priority: priority
+            },
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            success: function (res) {
+                console.log(res);
+                
+                if (res.status !== "success") {
+                    $list.html(`<div class="text-center py-3 text-danger small">${res.message || "Failed to fetch tasks."}</div>`)
+                    return
+                }
+
+                const tasks = res.data || []
+                $list.empty()
+
+                if (!tasks.length) {
+                    $list.append(`<div class="text-center py-3 text-secondary small">No tasks found for selected filter.</div>`)
+                    return
+                }
+
+                tasks.forEach(t => renderTaskCard(t))
+            },
+            error: function (xhr) {
+                console.error(xhr)
+                $list.html(`<div class="text-center py-3 text-danger small">Failed to load filtered tasks.</div>`)
+            }
+        })
+    })
+
+    // CLEAR FILTER
+    $btnClear.on("click", function (e) {
+        e.preventDefault()
+        $filterDateRange.val("")
+        $startDateInput.val("")
+        $endDateInput.val("")
+        $prioritySelect.val("")
+
+        getTaskToday()
+    })
+})
