@@ -1174,8 +1174,169 @@ $(document).ready(function() {
                             </div>`;
                 }
 
-                // Create modal HTML
+                try {
+                // Build richer task-detail modal HTML (preserve confirmAcceptTaskBtn id)
+                // Helper to format due date into "9 Oct 2025" style
+                function formatDueDate(d) {
+                    if (!d) return '-';
+                    try {
+                        const dt = new Date(d);
+                        if (isNaN(dt.getTime())) return d;
+                        return dt.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+                    } catch (e) { return d; }
+                }
+
+                // Local HTML escaper (office.js didn't have a global escapeHtml)
+                function escapeHtml(str) {
+                    try {
+                        return String(str || '').replace(/[&<>"'']/g, function(m) {
+                            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m] || m;
+                        });
+                    } catch (e) { return String(str || ''); }
+                }
+
+                // Build description paragraphs (preserve basic line breaks)
+                const descHtml = (function(desc){
+                    if (!desc) return '';
+                    // If contains HTML block tags, keep as-is; otherwise split by newlines
+                    if (/<\/[a-z]+>/i.test(desc)) return desc;
+                    return desc.split(/\r?\n/).filter(Boolean).map(s => `<p>${s}</p>`).join('');
+                })(taskDescription);
+
+                // Build collaborators (pic + executors)
+                function buildCollabHtml(data) {
+                    const appUrlMeta = document.querySelector('meta[name="app-url"]');
+                    const APP_URL = appUrlMeta ? appUrlMeta.getAttribute('content').replace(/\/$/,'') : '';
+                    const people = [];
+                    try {
+                        if (data.pic) people.push(data.pic);
+                        if (Array.isArray(data.executors)) data.executors.forEach(e => people.push(e));
+                    } catch(_) {}
+                    if (!people.length) return '<div class="text-muted">No collaborators</div>';
+                    return people.map(p => {
+                        const photo = p.photo || p.profile_picture || p.user_photo || '';
+                        const url = photo && /^https?:\/\//.test(photo) ? photo : (photo ? (APP_URL + '/file/profile_picture/' + photo) : APP_URL + '/asset/img/avatar.png');
+                        const name = p.name || p.full_name || p.employee_name || 'Member';
+                        const role = (p.role || p.division || p.designation || '').toUpperCase() || '';
+                        return `
+                            <div class="collab-item d-flex align-items-center mb-2">
+                                <div class="flex-shrink-0">
+                                    <img src="${url}" alt="${escapeHtml(name)}" data-bs-toggle="tooltip" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" onerror="this.onerror=null;this.src='${APP_URL}/asset/img/avatar.png';" aria-label="${escapeHtml(name)}" data-bs-original-title="${escapeHtml(name)}">
+                                </div>
+                                <div class="ms-2">
+                                    <div class="collab-name">${escapeHtml(name)}</div>
+                                    <div class="collab-division text-muted">${escapeHtml(role)}</div>
+                                </div>
+                            </div>`;
+                    }).join('');
+                }
+
+                // Determine status for data attribute
+                const taskStatus = (response.data && response.data.status) ? response.data.status : 'new';
+                const dueText = formatDueDate(due_date);
+                const priorityColor = priority === 'HIGH' ? 'red' : (priority === 'MEDIUM' ? '#E6A15A' : '#4fc97a');
+                const initials = getTaskInitials(response.data.title || taskTitle || 'NA');
+                const initialColor = getRandomColorFromText(response.data.title || taskTitle || initials);
+
                 const modalHtml = `
+                    <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:720px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
+                                    <div id="taskDetailContent">
+                                        <div class="custom-card rounded-4 p-3 border-0" data-task-id="${response.data.id || taskId}" data-task-status="${escapeHtml(taskStatus)}">
+                                            <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialColor};">${escapeHtml(initials)}</div>
+                                                    <div class="d-flex flex-column">
+                                                        <h5 class="mb-0 task-title">${escapeHtml(taskTitle)}</h5>
+                                                    </div>
+                                                </div>
+                                                <div class="dropdown-icon-container">
+                                                    <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
+                                                    <div class="dropdown-menu d-none">
+                                                        <div class="dropdown-item edit-task">Edit</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="task-detail-description-container">
+                                                <div class="task-description">
+                                                    ${descHtml}
+                                                </div>
+                                            </div>
+                                            <hr class="task-separator rounded-4">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Priority: </span>
+                                                    <span style="color:${priorityColor}">${escapeHtml(priority || '-')}</span>
+                                                </div>
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Deadline: </span>
+                                                    <span style="color:#4B4F5E;">${escapeHtml(dueText)}</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                                <span class="text-muted">Department:</span>
+                                                <span>${escapeHtml(response.data.department_name || 'No Department')}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                                <span class="text-muted">Division:</span>
+                                                <span>${escapeHtml(response.data.division_name || 'No Division')}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                                                <div class="flex-grow-1">
+                                                    <div class="collab-list">
+                                                        ${buildCollabHtml(response.data)}
+                                                    </div>
+                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">In Progress by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.in_progress_by_name || '-')}</span></div>
+                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Completed by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.completed_by_name || '-')}</span></div>
+                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Rejected by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.rejected_by_name || '-')}</span></div>
+                                                </div>
+                                                <div class="d-flex align-items-start">
+                                                    <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
+                                                        <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${response.data.id || taskId}">mode_comment</span>
+                                                        <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${response.data.id || taskId}"></span>
+                                                    </div>
+                                                    <div class="btn-attach-file-wrapper d-flex align-items-center">
+                                                        <span class="material-symbols-outlined task-icon">attach_file</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom mt-3">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                // Add modal to body
+                $('body').append(modalHtml);
+
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('acceptTaskModal'));
+                modal.show();
+
+                // Handle confirm button click
+                $('#confirmAcceptTaskBtn').on('click', function() {
+                    // Close modal
+                    modal.hide();
+
+                    // Actually accept the task
+                    actuallyAcceptTask(taskId, notificationId);
+                });
+
+                // Remove modal from DOM when closed
+                $('#acceptTaskModal').on('hidden.bs.modal', function () {
+                    $(this).remove();
+                });
+                } catch (e) {
+                    console.error('Failed to render rich accept modal, falling back to simple modal', e);
+                    // Fallback: original simple modal HTML (smaller, guaranteed to work)
+                    const simpleHtml = `
                     <div class="modal fade" id="acceptTaskModal" tabindex="-1" aria-labelledby="acceptTaskModalLabel" aria-hidden="true">
                         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
                             <div class="modal-content modal-content-custom">
@@ -1211,29 +1372,18 @@ $(document).ready(function() {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
 
-                // Add modal to body
-                $('body').append(modalHtml);
-
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('acceptTaskModal'));
-                modal.show();
-
-                // Handle confirm button click
-                $('#confirmAcceptTaskBtn').on('click', function() {
-                    // Close modal
-                    modal.hide();
-
-                    // Actually accept the task
-                    actuallyAcceptTask(taskId, notificationId);
-                });
-
-                // Remove modal from DOM when closed
-                $('#acceptTaskModal').on('hidden.bs.modal', function () {
-                    $(this).remove();
-                });
+                    // Append and show fallback modal
+                    $('body').append(simpleHtml);
+                    const modal2 = new bootstrap.Modal(document.getElementById('acceptTaskModal'));
+                    modal2.show();
+                    $('#confirmAcceptTaskBtn').on('click', function() {
+                        modal2.hide();
+                        actuallyAcceptTask(taskId, notificationId);
+                    });
+                    $('#acceptTaskModal').on('hidden.bs.modal', function () { $(this).remove(); });
+                }
             },
             error: function(xhr, status, error) {
                 console.error('Failed to fetch task details:', error, xhr.responseText);
