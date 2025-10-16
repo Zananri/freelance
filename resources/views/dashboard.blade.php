@@ -391,8 +391,8 @@
                                     </select>
                                 </div>
                                 <div class="modal-footer modal-footer-custom">
-                                    <button class="btn btn-submit-black">Apply</button>
-                                    <button class="btn btn-custom-close">Clear</button>
+                                    <button class="btn btn-submit-black" id="btnApplyFilter">Apply</button>
+                                    <button class="btn btn-custom-close" id="btnClearFilter">Clear</button>
                                 </div>
                             </div>
                         </div>

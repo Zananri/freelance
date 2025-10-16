@@ -850,6 +850,17 @@ class TaskController extends Controller
                     });
             });
 
+            // 💡 Tambahan filter custom dari user
+            if ($request->filled('start_date') && $request->filled('end_date')) {
+                $start = $request->input('start_date');
+                $end = $request->input('end_date');
+                $base->whereBetween('due_date', [$start, $end]);
+            }
+
+            if ($request->filled('priority')) {
+                $base->where('priority', strtoupper($request->priority));
+            }
+
             $tasks = $base->orderByDesc('created_at')->get();
 
             // Final safety filter: only include completed if completed today
@@ -891,6 +902,7 @@ class TaskController extends Controller
                     'description' => $task->description,
                     'priority' => $task->priority,
                     'status' => $task->status,
+                    'start_date' => $task->start_date,
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
                     'project_title' => $task->project?->title, // added for dashboard avatar initials
