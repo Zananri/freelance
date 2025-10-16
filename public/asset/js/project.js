@@ -2256,6 +2256,25 @@ document.addEventListener("DOMContentLoaded", function () {
                             );
                             submitBtn.prop("disabled", true);
 
+                            // DEBUG: log FormData contents (temporary) to help trace 500 errors
+                            try {
+                                console.group && console.group('EditProjectForm FormData');
+                                for (const pair of formData.entries()) {
+                                    try {
+                                        const key = pair[0];
+                                        const val = pair[1];
+                                        if (val instanceof File) {
+                                            console.log(key + ':', 'File -> name=' + (val.name||'<noname>') + ', type=' + (val.type||'<no-type>') + ', size=' + val.size);
+                                        } else {
+                                            // Truncate long values for readability
+                                            const out = String(val);
+                                            console.log(key + ':', out.length > 200 ? out.slice(0,200) + '...(' + out.length + ' chars)' : out);
+                                        }
+                                    } catch (e) { console.log('FormData entry error', e); }
+                                }
+                                console.groupEnd && console.groupEnd();
+                            } catch (_) {}
+
                             $.ajax({
                                 url: appUrl + "/project/" + projectId,
                                 type: "POST", // Laravel expects POST with _method=PUT for PUT requests
@@ -8423,6 +8442,122 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     setupImageInput(imageInput, imageLabel, imageClearBtn);
+
+    // Handle paste-to-upload: allow user to paste image from clipboard into Add/Edit Project modals
+    function extractImageFileFromClipboardEvent(e) {
+        try {
+            if (!e.clipboardData || !e.clipboardData.items) return null;
+            for (let i = 0; i < e.clipboardData.items.length; i++) {
+                const item = e.clipboardData.items[i];
+                if (item && item.type && item.type.indexOf('image') === 0) {
+                    return item.getAsFile();
+                }
+            }
+        } catch (_) {}
+        return null;
+    }
+
+    function applyPastedImageToInput(file, inputEl, labelEl, clearBtnEl) {
+        try {
+            if (!file || !inputEl) return false;
+
+            // Create a DataTransfer so we can set input.files (works in modern browsers)
+            // Some browsers (or clipboard payloads) produce a File/Blob without a name.
+            // Backend code may assume a filename; create a named File fallback when needed.
+            let fileToUse = file;
+            try {
+                const hasName = file && typeof file.name === 'string' && file.name.trim() !== '';
+                if (!hasName) {
+                    // derive extension from mime type
+                    let ext = 'png';
+                    try {
+                        const t = (file && file.type) || '';
+                        if (/jpeg/i.test(t)) ext = 'jpg';
+                        else if (/png/i.test(t)) ext = 'png';
+                        else if (/gif/i.test(t)) ext = 'gif';
+                        else if (/webp/i.test(t)) ext = 'webp';
+                    } catch (_) {}
+                    const filename = 'pasted-image.' + ext;
+                    try {
+                        fileToUse = new File([file], filename, { type: file.type || 'image/' + ext });
+                    } catch (_) {
+                        // Some environments may not support File ctor; fall back to Blob with name property
+                        try { fileToUse = file; fileToUse.name = filename; } catch(_) {}
+                    }
+                }
+            } catch (_) {}
+
+            const dt = new DataTransfer();
+            dt.items.add(fileToUse);
+            inputEl.files = dt.files;
+
+            // Trigger change event so any listeners react (setupImageInput reacts to change)
+            const evt = new Event('change', { bubbles: true });
+            inputEl.dispatchEvent(evt);
+
+            // Ensure preview shows (in case input change listener wasn't attached yet)
+            try {
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    if (labelEl) {
+                        labelEl.style.backgroundImage = `url('${ev.target.result}')`;
+                        labelEl.classList.add('has-image');
+                        labelEl.style.backgroundSize = 'cover';
+                        labelEl.style.opacity = '1';
+                    }
+                    if (clearBtnEl) clearBtnEl.classList.remove('d-none');
+                };
+                reader.readAsDataURL(fileToUse);
+            } catch (_) {}
+
+            return true;
+        } catch (e) { console.warn('applyPastedImageToInput error', e); return false; }
+    }
+
+    // Attach paste listener when add/edit modals are shown
+    function attachModalPasteHandler(modalId, inputEl, labelEl, clearBtnEl) {
+        try {
+            const modal = document.getElementById(modalId);
+            if (!modal) return;
+
+            // Use a namespaced handler so we can remove it if modal hides
+            function pasteHandler(e) {
+                try {
+                    // Only handle when focus is inside modal (avoid interfering with global clipboard)
+                    if (!modal.classList.contains('show')) return;
+                    const file = extractImageFileFromClipboardEvent(e);
+                    if (file) {
+                        e.preventDefault();
+                        applyPastedImageToInput(file, inputEl, labelEl, clearBtnEl);
+                    }
+                } catch (_) {}
+            }
+
+            modal.addEventListener('paste', pasteHandler);
+
+            // Also attach once to document while modal is open for cases where focus isn't on modal root
+            document.addEventListener('paste', pasteHandler);
+
+            // Clean up when modal hidden: remove the document paste listener to avoid leaks
+            modal.addEventListener('hidden.bs.modal', function cleanup() {
+                try { modal.removeEventListener('paste', pasteHandler); } catch(_){}
+                try { document.removeEventListener('paste', pasteHandler); } catch(_){}
+                try { modal.removeEventListener('hidden.bs.modal', cleanup); } catch(_){}
+            });
+        } catch (e) { /* noop */ }
+    }
+
+    // Wire paste handlers for add & edit modals (use elements already queried above)
+    try {
+        attachModalPasteHandler('addProjectModal', imageInput, imageLabel, imageClearBtn);
+        // edit modal elements are referenced elsewhere; query here lazily
+        const editImageInput = document.getElementById('edit_image') || document.getElementById('edit_image_input') || document.getElementById('edit_image');
+        const editImageLabel = document.getElementById('editImageLabel');
+        const editImageClearBtn = document.getElementById('editImageClearBtn');
+        if (editImageInput || editImageLabel || editImageClearBtn) {
+            attachModalPasteHandler('editProjectModal', editImageInput, editImageLabel, editImageClearBtn);
+        }
+    } catch (e) { console.warn('paste handler setup failed', e); }
 
     // Show loading overlay
     function showLoading() {
