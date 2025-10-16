@@ -3347,7 +3347,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         `;
 
         return `
-        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;">
+        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;" id="custom-card">
                 ${statusBadge}
                 ${dropdownHtml}
                 ${iconHtml}
@@ -5159,7 +5159,7 @@ function filterTaskTableRows(queryRaw) {
 
         function clearDropHighlights() {
             $('.kanban-droppable').removeClass('kanban-allowed kanban-denied kanban-over');
-            $('.custom-card').removeClass('dragging');
+            $('#custom-card').removeClass('dragging');
         }
 
         function refreshDropHighlights() {
@@ -5173,18 +5173,23 @@ function filterTaskTableRows(queryRaw) {
             });
         }
 
-        $(document).on('mousedown', '.custom-card', function(e) {
-            if (e.which !== 1) return;
+        // === MOUSE EVENTS ===
+        $(document).on('mousedown', '#custom-card', function(e) {
+            if (e.which !== 1) return; // kiri mouse
             e.preventDefault();
+
             const $card = $(this);
             const id = $card.data('task-id');
             const fromStatus = normStatus($card.data('task-status'));
             const rect = $card[0].getBoundingClientRect();
+
             offsetX = e.clientX - rect.left;
             offsetY = e.clientY - rect.top;
+
             kanbanDrag = { id: id, fromStatus: fromStatus, $card: $card, startX: e.clientX, startY: e.clientY };
             isDragging = false;
             lastX = e.clientX;
+
             $card.addClass('dragging');
             $('body').addClass('no-select');
         });
@@ -5192,9 +5197,7 @@ function filterTaskTableRows(queryRaw) {
         $(document).on('mousemove', function(e) {
             if (!kanbanDrag) return;
 
-            if (!isDragging && Math.abs(e.clientX - kanbanDrag.startX) + Math.abs(e.clientY - kanbanDrag.startY) < 5) {
-                return;
-            }
+            if (!isDragging && Math.abs(e.clientX - kanbanDrag.startX) + Math.abs(e.clientY - kanbanDrag.startY) < 5) return;
 
             if (!isDragging) {
                 isDragging = true;
@@ -5205,6 +5208,7 @@ function filterTaskTableRows(queryRaw) {
                 const scaledOffsetY = offsetY * SCALE;
                 const initialTop = e.clientY - scaledOffsetY;
                 const initialLeft = e.clientX - scaledOffsetX;
+
                 $clone.css({
                     position: 'fixed',
                     top: initialTop + 'px',
@@ -5216,6 +5220,7 @@ function filterTaskTableRows(queryRaw) {
                     zIndex: 99999,
                     pointerEvents: 'none'
                 });
+
                 kanbanDrag.$card.css('opacity', 0.5);
             } else {
                 const scaledOffsetX = offsetX * SCALE;
@@ -5224,9 +5229,9 @@ function filterTaskTableRows(queryRaw) {
                     top: (e.clientY - scaledOffsetY) + 'px',
                     left: (e.clientX - scaledOffsetX) + 'px'
                 });
-                const currentX = e.clientX;
-                const dx = currentX - lastX;
-                lastX = currentX;
+
+                const dx = e.clientX - lastX;
+                lastX = e.clientX;
                 const rotation = Math.max(-6, Math.min(6, dx / 4));
                 $clone.css('transform', `scale(${SCALE}) rotate(${rotation}deg)`);
             }
@@ -5243,26 +5248,31 @@ function filterTaskTableRows(queryRaw) {
 
         $(document).on('mouseup', function(e) {
             if (!kanbanDrag) return;
+
             $('body').removeClass('no-select');
+
             if (!isDragging) {
                 kanbanDrag = null;
                 return;
             }
+
             const $targetCol = $(document.elementFromPoint(e.clientX, e.clientY)).closest('.kanban-droppable');
             const toStatus = $targetCol.length ? colToStatus[$targetCol.attr('id')] : null;
             const m = mapTransition(kanbanDrag.fromStatus, toStatus);
             const taskId = kanbanDrag.id;
-            const taskCard = kanbanDrag.$card[0];
+
             if ($targetCol.length && m.allowed) {
                 if (m.newStatus === 'completed') {
-                    try { showConfirmationToCompleteModal(taskId, taskCard); }
-                    catch (err) { try { updateTaskStatus(taskId, 'completed', taskCard); } catch (_) {} }
+                    try { showConfirmationToCompleteModal(taskId, kanbanDrag.$card[0]); }
+                    catch (err) { try { updateTaskStatus(taskId, 'completed', kanbanDrag.$card[0]); } catch (_) {} }
                 } else {
-                    try { updateTaskStatus(taskId, m.newStatus, taskCard); } catch (_) {}
+                    try { updateTaskStatus(taskId, m.newStatus, kanbanDrag.$card[0]); } catch (_) {}
                 }
             }
+
             kanbanDrag.$card.removeClass('dragging').css({ opacity: 1, transform: 'scale(1) rotate(0deg)' });
             if ($clone) { $clone.remove(); $clone = null; }
+
             kanbanDrag = null;
             isDragging = false;
             lastX = 0;
@@ -8219,7 +8229,7 @@ function filterTaskTableRows(queryRaw) {
                 })();
 
                 const html = `
-                <div class="custom-card-detail rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
+                <div class="custom-card rounded-4 p-3 border-0" data-task-id="${task.id}" data-task-status="${task.status}">
                     <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
                         <div class="d-flex align-items-center">
                             ${avatarHtml}
