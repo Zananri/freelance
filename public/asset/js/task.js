@@ -418,12 +418,8 @@
                     } catch (e) { return ''; }
                 })();
 
-                const modalHtml = `
-                    <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:720px;">
-                            <div class="modal-content modal-content-custom">
-                                <div class="modal-body modal-body-custom">
-                                    <div id="taskDetailContent">
+                // Prepare inner card HTML so it can be injected into the taskDetailModal (ensures identical styling)
+                const cardHtml = `
                                         <div class="custom-card rounded-4 p-3 border-0" data-task-id="${t.id || taskId}" data-task-status="${escapeHtml(taskStatus)}">
                                             <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
                                                 <div class="d-flex align-items-center">
@@ -468,8 +464,74 @@
                                                 </div>
                                                 <!-- comment/attach icons removed for accept modal -->
                                             </div>
-                                        </div>
-                                    </div>
+                                        </div>`;
+
+                // If a taskDetailModal already exists on the page (task page), reuse it so all CSS rules (which often target #taskDetailModal) apply exactly.
+                const existingDetail = document.getElementById('taskDetailModal');
+                if (existingDetail) {
+                    try {
+                        const contentEl = existingDetail.querySelector('#taskDetailContent');
+                        if (contentEl) contentEl.innerHTML = cardHtml;
+
+                        // Replace footer with Accept/Cancel for this flow, but save original to restore later
+                        const footerEl = existingDetail.querySelector('.modal-footer') || existingDetail.querySelector('.modal-footer-custom');
+                        if (footerEl) {
+                            if (!footerEl.dataset._originalHtml) footerEl.dataset._originalHtml = footerEl.innerHTML;
+                            footerEl.innerHTML = '<button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-submit-black" id="confirmAcceptInviteBtn">Accept Task</button>';
+                        }
+
+                        const modalInst = bootstrap.Modal.getOrCreateInstance(existingDetail) || new bootstrap.Modal(existingDetail);
+                        modalInst.show();
+
+                        // Wire confirm button
+                        const confirmBtn = existingDetail.querySelector('#confirmAcceptInviteBtn');
+                        if (confirmBtn) {
+                            confirmBtn.addEventListener('click', function onConfirm() {
+                                try { modalInst.hide(); } catch(_) {}
+                                // perform accept
+                                const btn = this;
+                                btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...';
+                                $.ajax({
+                                    url: appUrl + '/task/' + taskId + '/accept',
+                                    method: 'POST',
+                                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                    success: function(){
+                                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){ }
+                                        markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                                        window.location.reload();
+                                    },
+                                    error: function(xhr){
+                                        let msg = 'Failed to accept task';
+                                        try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ }
+                                        if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
+                                    },
+                                    complete: function(){
+                                        try { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; } catch(_){}
+                                    }
+                                });
+                            }, { once: true });
+                        }
+
+                        // When modal is hidden, restore original footer if it was changed
+                        existingDetail.addEventListener('hidden.bs.modal', function restoreFooter() {
+                            try {
+                                const f = existingDetail.querySelector('.modal-footer') || existingDetail.querySelector('.modal-footer-custom');
+                                if (f && f.dataset && f.dataset._originalHtml) {
+                                    f.innerHTML = f.dataset._originalHtml;
+                                    delete f.dataset._originalHtml;
+                                }
+                            } catch(_) {}
+                            try { existingDetail.removeEventListener('hidden.bs.modal', restoreFooter); } catch(_) {}
+                        }, { once: true });
+                    } catch (e) {
+                        console.error('Failed to reuse existing taskDetailModal, falling back to creating a new one', e);
+                        // fallback to create new modal below
+                        const newModalHtml = `
+                    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:720px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
+                                    <div id="taskDetailContent">${cardHtml}</div>
                                 </div>
                                 <div class="modal-footer modal-footer-custom mt-3">
                                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
@@ -478,34 +540,47 @@
                             </div>
                         </div>
                     </div>`;
-                // Append & show
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-                const mEl = document.getElementById(id);
-                const modal = new bootstrap.Modal(mEl);
-                modal.show();
-                mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); mEl.remove(); });
-                mEl.querySelector('#confirmAcceptInviteBtn').addEventListener('click', function(){
-                    this.disabled = true; this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...';
-                    $.ajax({
-                        url: appUrl + '/task/' + taskId + '/accept',
-                        method: 'POST',
-                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                        success: function(){
-                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){ }
-                            modal.hide();
-                            markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
-                            window.location.reload();
-                        },
-                        error: function(xhr){
-                            let msg = 'Failed to accept task';
-                            try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ }
-                            if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
-                        },
-                        complete: function(){
-                            const btn = mEl.querySelector('#confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; }
-                        }
-                    });
-                });
+                        document.body.insertAdjacentHTML('beforeend', newModalHtml);
+                        const modalEl = document.getElementById('taskDetailModal');
+                        const modal2 = new bootstrap.Modal(modalEl);
+                        modal2.show();
+                        document.getElementById('confirmAcceptInviteBtn').addEventListener('click', function(){
+                            this.disabled = true; this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...';
+                            $.ajax({
+                                url: appUrl + '/task/' + taskId + '/accept',
+                                method: 'POST',
+                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                success: function(){ try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){} modal2.hide(); markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); window.location.reload(); },
+                                error: function(xhr){ let msg = 'Failed to accept task'; try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ } if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); },
+                                complete: function(){ const btn = document.getElementById('confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; } }
+                            });
+                        });
+                        $(modalEl).on('hidden.bs.modal', function(){ $(this).remove(); });
+                    }
+                } else {
+                    // No existing detail modal on page; create one that uses the same ID so CSS from task.css applies
+                    const newModalHtml = `
+                    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:720px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
+                                    <div id="taskDetailContent">${cardHtml}</div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom mt-3">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptInviteBtn">Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                    document.body.insertAdjacentHTML('beforeend', newModalHtml);
+                    const modalEl = document.getElementById('taskDetailModal');
+                    const modal2 = new bootstrap.Modal(modalEl);
+                    modal2.show();
+                    document.getElementById('confirmAcceptInviteBtn').addEventListener('click', function(){ this.disabled = true; this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...'; $.ajax({ url: appUrl + '/task/' + taskId + '/accept', method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, success: function(){ try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){} modal2.hide(); markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); window.location.reload(); }, error: function(xhr){ let msg = 'Failed to accept task'; try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ } if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); }, complete: function(){ const btn = document.getElementById('confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; } } }); });
+                    $(modalEl).on('hidden.bs.modal', function(){ $(this).remove(); });
+                }
             },
             error: function(){
                 // Fallback simpler confirm
