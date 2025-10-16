@@ -777,8 +777,63 @@
                 }
             } catch (_) {}
 
+            function ensureProjectDetailImagePreviewModalExists() {
+                if (document.getElementById('projectDetailImagePreviewModal')) return;
+                var html = `
+                    <div class="modal fade" id="projectDetailImagePreviewModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:95vw;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body p-0 bg-dark d-flex align-items-center justify-content-center" style="min-height:160px; max-height:80vh; overflow:auto;">
+                                    <div style="box-sizing:border-box; padding:12px; width:100%; display:flex; align-items:center; justify-content:center;">
+                                        <div style="max-width:100%; width:100%; max-height:calc(80vh - 72px); display:flex; align-items:center; justify-content:center;">
+                                            <img id="projectDetailImagePreviewModalImg" src="" alt="Preview image" style="max-width:100%; max-height:100%; width:auto; height:auto; display:block; object-fit:contain;">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){}
+            }
+
             function showImageModal(imageSrc) {
-                window.open(imageSrc, "_blank");
+                try {
+                    ensureProjectDetailImagePreviewModalExists();
+                    var modalEl = document.getElementById('projectDetailImagePreviewModal');
+                    var imgEl = document.getElementById('projectDetailImagePreviewModalImg');
+                    if (imgEl) imgEl.src = imageSrc;
+
+                    // If project feedback modal is open, hide it first and remember to restore later
+                    var projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                    var feedbackWasOpen = false;
+                    try {
+                        if (projectFeedbackModalEl && projectFeedbackModalEl.classList.contains('show')) {
+                            feedbackWasOpen = true;
+                            try { projectFeedbackModalEl._suppressFeedbackClear = true; } catch(_){}
+                            var fbInst = bootstrap.Modal.getOrCreateInstance(projectFeedbackModalEl) || new bootstrap.Modal(projectFeedbackModalEl);
+                            try { fbInst.hide(); } catch(_){ }
+                        }
+                    } catch(_){ }
+
+                    var inst = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
+                    var onPreviewHidden = function() {
+                        try { modalEl.removeEventListener('hidden.bs.modal', onPreviewHidden); } catch(_){}
+                        try {
+                            if (feedbackWasOpen) {
+                                try { projectFeedbackModalEl._suppressFeedbackClear = false; } catch(_){}
+                                var fbInst2 = bootstrap.Modal.getOrCreateInstance(projectFeedbackModalEl) || new bootstrap.Modal(projectFeedbackModalEl);
+                                try { fbInst2.show(); } catch(_){ }
+                            }
+                        } catch(_){ }
+                    };
+                    try { modalEl.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_){}
+                    inst.show();
+                } catch (e) {
+                    try { window.open(imageSrc, '_blank'); } catch(_){}
+                }
             }
 
             function loadFeedbackData(projectId) {
