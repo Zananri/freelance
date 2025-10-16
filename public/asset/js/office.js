@@ -1313,26 +1313,153 @@ $(document).ready(function() {
                         </div>
                     </div>`;
 
-                // Add modal to body
-                $('body').append(modalHtml);
+                // Prepare inner card HTML only (so it can be injected into existing task modal or a new one)
+                const cardHtml = `
+                                        <div class="custom-card rounded-4 p-3 border-0" data-task-id="${response.data.id || taskId}" data-task-status="${escapeHtml(taskStatus)}">
+                                            <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialColor};">${escapeHtml(initials)}</div>
+                                                    <div class="d-flex flex-column">
+                                                        <h5 class="mb-0 task-title">${escapeHtml(taskTitle)}</h5>
+                                                    </div>
+                                                </div>
+                                                <div class="dropdown-icon-container">
+                                                    <span class="material-symbols-outlined dropdown-icon mt-2 mx-2" tabindex="0">more_vert</span>
+                                                    <div class="dropdown-menu d-none">
+                                                        <div class="dropdown-item edit-task">Edit</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="task-detail-description-container">
+                                                <div class="task-description">
+                                                    ${descHtml}
+                                                </div>
+                                            </div>
+                                            <hr class="task-separator rounded-4">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Priority: </span>
+                                                    <span style="color:${priorityColor}">${escapeHtml(priority || '-')}</span>
+                                                </div>
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Deadline: </span>
+                                                    <span style="color:#4B4F5E;">${escapeHtml(dueText)}</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                                <span class="text-muted">Department:</span>
+                                                <span>${escapeHtml(response.data.department_name || 'No Department')}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                                <span class="text-muted">Division:</span>
+                                                <span>${escapeHtml(response.data.division_name || 'No Division')}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                                                <div class="flex-grow-1">
+                                                    <div class="collab-list">
+                                                        ${buildCollabHtml(response.data)}
+                                                    </div>
+                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">In Progress by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.in_progress_by_name || '-')}</span></div>
+                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Completed by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.completed_by_name || '-')}</span></div>
+                                                    <div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Rejected by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(response.data.rejected_by_name || '-')}</span></div>
+                                                </div>
+                                                <div class="d-flex align-items-start">
+                                                    <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative">
+                                                        <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${response.data.id || taskId}">mode_comment</span>
+                                                        <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${response.data.id || taskId}"></span>
+                                                    </div>
+                                                    <div class="btn-attach-file-wrapper d-flex align-items-center">
+                                                        <span class="material-symbols-outlined task-icon">attach_file</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>`;
 
-                // Show modal
-                const modal = new bootstrap.Modal(document.getElementById('acceptTaskModal'));
-                modal.show();
+                // If a taskDetailModal already exists on the page (task page), reuse it so all CSS rules (which often target #taskDetailModal) apply exactly.
+                const existingDetail = document.getElementById('taskDetailModal');
+                if (existingDetail) {
+                    try {
+                        const contentEl = existingDetail.querySelector('#taskDetailContent');
+                        if (contentEl) contentEl.innerHTML = cardHtml;
 
-                // Handle confirm button click
-                $('#confirmAcceptTaskBtn').on('click', function() {
-                    // Close modal
-                    modal.hide();
+                        // Replace footer with Accept/Cancel for this flow, but save original to restore later
+                        const footerEl = existingDetail.querySelector('.modal-footer') || existingDetail.querySelector('.modal-footer-custom');
+                        if (footerEl) {
+                            if (!footerEl.dataset._originalHtml) footerEl.dataset._originalHtml = footerEl.innerHTML;
+                            footerEl.innerHTML = '<button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>';
+                        }
 
-                    // Actually accept the task
-                    actuallyAcceptTask(taskId, notificationId);
-                });
+                        const modalInst = bootstrap.Modal.getOrCreateInstance(existingDetail) || new bootstrap.Modal(existingDetail);
+                        modalInst.show();
 
-                // Remove modal from DOM when closed
-                $('#acceptTaskModal').on('hidden.bs.modal', function () {
-                    $(this).remove();
-                });
+                        // Wire confirm button
+                        const confirmBtn = existingDetail.querySelector('#confirmAcceptTaskBtn');
+                        if (confirmBtn) {
+                            confirmBtn.addEventListener('click', function onConfirm() {
+                                try { modalInst.hide(); } catch(_) {}
+                                actuallyAcceptTask(taskId, notificationId);
+                            }, { once: true });
+                        }
+
+                        // When modal is hidden, restore original footer if it was changed
+                        existingDetail.addEventListener('hidden.bs.modal', function restoreFooter() {
+                            try {
+                                const f = existingDetail.querySelector('.modal-footer') || existingDetail.querySelector('.modal-footer-custom');
+                                if (f && f.dataset && f.dataset._originalHtml) {
+                                    f.innerHTML = f.dataset._originalHtml;
+                                    delete f.dataset._originalHtml;
+                                }
+                            } catch(_) {}
+                            try { existingDetail.removeEventListener('hidden.bs.modal', restoreFooter); } catch(_) {}
+                        }, { once: true });
+                    } catch (e) {
+                        console.error('Failed to reuse existing taskDetailModal, falling back to creating a new one', e);
+                        // fallback to creating a new modal below
+                        const newModalHtml = `
+                    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:720px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
+                                    <div id="taskDetailContent">${cardHtml}</div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom mt-3">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                        $('body').append(newModalHtml);
+                        const modalEl = document.getElementById('taskDetailModal');
+                        const modal2 = new bootstrap.Modal(modalEl);
+                        modal2.show();
+                        document.getElementById('confirmAcceptTaskBtn').addEventListener('click', function(){ modal2.hide(); actuallyAcceptTask(taskId, notificationId); });
+                        $(modalEl).on('hidden.bs.modal', function(){ $(this).remove(); });
+                    }
+                } else {
+                    // No existing detail modal on page; create one that uses the same ID so CSS from task.css applies
+                    const newModalHtml = `
+                    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" style="max-width:720px;">
+                            <div class="modal-content modal-content-custom">
+                                <div class="modal-body modal-body-custom">
+                                    <div id="taskDetailContent">${cardHtml}</div>
+                                </div>
+                                <div class="modal-footer modal-footer-custom mt-3">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="confirmAcceptTaskBtn">Accept Task</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+
+                    $('body').append(newModalHtml);
+                    const modalEl = document.getElementById('taskDetailModal');
+                    const modal2 = new bootstrap.Modal(modalEl);
+                    modal2.show();
+                    document.getElementById('confirmAcceptTaskBtn').addEventListener('click', function(){ modal2.hide(); actuallyAcceptTask(taskId, notificationId); });
+                    $(modalEl).on('hidden.bs.modal', function(){ $(this).remove(); });
+                }
                 } catch (e) {
                     console.error('Failed to render rich accept modal, falling back to simple modal', e);
                     // Fallback: original simple modal HTML (smaller, guaranteed to work)
