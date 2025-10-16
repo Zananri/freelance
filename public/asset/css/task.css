@@ -131,11 +131,14 @@
 
 .table-transparent {
     width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 .table-transparent td {
     padding: 10px;
     text-align: left;
+    border: 1px solid #dae3ed;
     white-space: nowrap;
     font-weight: 400;
     font-size: 12px;
@@ -145,6 +148,7 @@
 
 .table-transparent thead th {
     padding: 8px 16px;
+    border: 1px solid #dae3ed;
     font-weight: 400;
     font-size: 12px;
     vertical-align: top;
@@ -182,7 +186,7 @@
 
 .table-transparent td:first-child {
     z-index: 1;
-    padding: 0;
+    padding: 10px;
     width: 210px;
 }
 
@@ -1864,7 +1868,7 @@ p {
     width: 40px;
     height: 40px;
     font-size: 24px;
-    color: #3C404B;
+    color: #3c404b;
     border: none;
 }
 
@@ -1872,7 +1876,7 @@ p {
 .toggle-archieve span,
 .toggle-grid span,
 .toggle-list span,
-.toggle-filter .icon{
+.toggle-filter .icon {
     font-size: 18px;
 }
 
@@ -1880,7 +1884,7 @@ p {
     background: #ecedf5;
     border: none;
     border-radius: 10px;
-    color: #3C404B;
+    color: #3c404b;
     height: 40px;
 }
 
@@ -1891,7 +1895,7 @@ p {
 .toggle-filter:hover {
     background: #ecedf5;
     border: none;
-    color: #3C404B;
+    color: #3c404b;
 }
 
 .btn-add-custom {
@@ -2337,22 +2341,4 @@ input[type="file"]::file-selector-button {
 .feedback-file-icon,
 .submit-feedback button span {
     font-size: 20px;
-}
-
-.executor-wrapper,
-.task-name-wrapper {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    max-width: 150px;
-    overflow-x: auto;
-    white-space: nowrap;
-    padding: 4px;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-.executor-wrapper::-webkit-scrollbar,
-.task-name-wrapper::-webkit-scrollbar {
-    display: none;
 }
