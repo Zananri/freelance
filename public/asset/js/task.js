@@ -6460,7 +6460,7 @@ function filterTaskTableRows(queryRaw) {
                     }
                 });
                 // Refresh task cards so counts and other data reflect the latest changes
-                try { fetchAndRenderTasks(); } catch(_) {}
+                // try { fetchAndRenderTasks(); } catch(_) {}
                 // Avoid page reload when closing modal
                 try { feedbackSubmitted = false; } catch(_) {}
             },

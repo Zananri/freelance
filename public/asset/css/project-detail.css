@@ -2264,3 +2264,7 @@ input[type="file"]::file-selector-button {
 .task-name-wrapper::-webkit-scrollbar {
     display: none;
 }
+
+.date-form {
+    width: 48%;
+}

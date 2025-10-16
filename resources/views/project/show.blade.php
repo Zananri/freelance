@@ -17,6 +17,7 @@
             @endphp
             <meta name="project-image" content="{{ $imgUrl }}">
             <meta name="project-total-tasks" content="{{ $totalTasks }}">
+            <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
             <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
             <link rel="stylesheet" href="{{ asset('asset/css/project-detail.css?v=') . time() }}">
         </x-slot>
@@ -35,20 +36,12 @@
                 <h2 class="m-0">Project Detail</h2>
             </div>
             <div class="d-flex align-items-center button-group">
-                <div class="task-tabs mb-3 position-relative me-2">
-                    <ul class="custom-tab" id="taskTabMenu" role="tablist">
-                        <li>
-                            <button class="tab-btn active" id="grid-tab">
-                                <span class="material-symbols-outlined">grid_view</span>
-                            </button>
-                        </li>
-                        <li>
-                            <button class="tab-btn" id="list-tab">
-                                <span class="material-symbols-outlined">list</span>
-                            </button>
-                        </li>
-                    </ul>
-                </div>
+                <button class="btn btn-sm toggle-grid d-none" id="gridViewTask" data-bs-toggle="tooltip" title="Grid View">
+                    <span class="material-symbols-outlined">grid_view</span>
+                </button>
+                <button class="btn btn-sm toggle-list" id="listViewTask" data-bs-toggle="tooltip" title="List View">
+                    <span class="material-symbols-outlined">list</span>
+                </button>
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
                     <span class="material-symbols-outlined icon">grid_view</span>
                 </button>
@@ -133,8 +126,7 @@
                                 <span class="material-symbols-outlined">fullscreen</span>
                             </button>
 
-                            <!-- Add Task button: icon-only plus, same compact style as fullscreen -->
-                            <button class="btn btn-sm border-0 ms-2" id="add-task-btn" title="Add Task">
+                            <button class="btn btn-sm border-0 ms-2" id="add-task-btn" data-bs-target="#addTaskModal" data-bs-toggle="modal" title="Add Task">
                                 <span class="material-symbols-outlined">add</span>
                             </button>
                         </div>
@@ -825,6 +817,154 @@
             </div>
         </div>
 
+                <div class="modal fade" id="addTaskModal" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="addTaskModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-loading-overlay d-none" id="addTaskModalLoader">
+                        <div class="loader-spinner"></div>
+                    </div>
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom" id="addTaskModalLabel">Add Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="addTaskForm" enctype="multipart/form-data">
+                        <div class="modal-body modal-body-custom">
+                            <div id="addTaskAlert" class="alert alert-success d-none" role="alert"
+                                style="display:none;">
+                                Task added successfully!
+                            </div>
+                            <div class="mb-3">
+                                <div class="title-label-image">
+                                    <span>Upload image</span>
+                                </div>
+                                <label for="task_image" class="custom-image-upload position-relative" id="taskImageLabel"
+                                    style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
+                                    <input type="file" class="input-image" id="task_image" name="image"
+                                        accept="image/*" hidden>
+                                    <span class="image-clear-btn d-none" id="taskImageClearBtn"
+                                        title="Remove image">&times;</span>
+                                </label>
+                                <div class="invalid-feedback">
+                                    Please select an image file.
+                                </div>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="task_title" class="form-label label-custom">Title</label>
+                                <input type="text" class="form-control input-text" id="task_title" name="title"
+                                    required>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="task_description" class="form-label label-custom">Description</label>
+                                <div id="task_description_editor"
+                                    style="min-height:120px; background:#fff; border: none; border-radius:6px;">
+                                </div>
+                                <textarea class="form-control input-text d-none" id="task_description" name="description" rows="6"
+                                    style="display:none;"></textarea>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Project</label>
+                                <input type="text" class="form-control input-text" id="task_project_input"
+                                    autocomplete="off" placeholder="Search project..." required>
+                                <div id="task_project_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="task_selected_project" class="mt-2"></div>
+                                <input type="hidden" id="task_project_id" name="project_id" value="">
+                            </div>
+
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Related to Task (optional)</label>
+                                <input type="text" class="form-control input-text" id="task_parent_input"
+                                    autocomplete="off" placeholder="Search task...">
+                                <div id="task_parent_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="task_selected_parent" class="mt-2"></div>
+                                <input type="hidden" id="task_parent_id" name="parent_id" value="">
+                            </div>
+
+
+                            <div class="mb-3 custom-input">
+                                <label for="task_point" class="form-label label-custom">Point</label>
+                                <input type="number" class="form-control input-text" id="task_point" name="point"
+                                    value="1" min="1" required>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="task_priority" class="form-label label-custom">Priority</label>
+                                <select class="form-select input-select" id="task_priority" name="priority" required>
+                                    <option value="">Select Priority</option>
+                                    <option value="HIGH">HIGH</option>
+                                    <option value="MEDIUM">MEDIUM</option>
+                                    <option value="LOW">LOW</option>
+                                </select>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Reference URLs</label>
+                                <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="input-group">
+                                        <input type="url" class="form-control input-text" name="reference_urls[]"
+                                            placeholder="https://example.com">
+                                        <button type="button" class="btn btn-submit-black add-ref-url"
+                                            aria-label="Add URL">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
+                                <input type="file" class="form-control input-text" id="task_reference_files"
+                                    name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
+                                    multiple>
+                                <div class="form-text">Multiple files supported.</div>
+                                <div id="reference_files_preview" class="mt-2"></div>
+                            </div>
+                            <div class="mb-3 custom-input d-flex justify-content-between">
+                                <div class="date-form">
+                                    <label for="task_start_date" class="form-label label-custom">Start Date</label>
+                                    <input type="date" class="form-control input-text" id="task_start_date"
+                                        name="start_date" required>
+                                </div>
+                                <div class="date-form">
+                                    <label for="task_due_date" class="form-label label-custom">Due Date</label>
+                                    <input type="date" class="form-control input-text" id="task_due_date"
+                                        name="due_date" required>
+                                </div>
+                            </div>
+                            <div class="mb-1 custom-input position-relative">
+                                <label for="executor_input" class="form-label label-custom">Executor</label>
+
+                                <select aria-label="Division (optional)"
+                                    class="form-select input-select position-absolute" id="task_division_id"
+                                    name="division_id">
+                                    <option value="">Select Division</option>
+                                </select>
+                                <div id="task_division_activator" class="division-activator position-absolute"
+                                    aria-hidden="true"></div>
+                                <div id="task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
+                                <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
+                                </div>
+                            </div>
+                            <div class="mb-3 custom-input position-relative">
+                                <input type="text" class="form-control input-text" id="executor_input"
+                                    name="executor_input" autocomplete="off" placeholder="Search employees...">
+
+                                <div id="selected_executors" class="mt-2 d-flex flex-wrap gap-2">
+                                </div>
+                                <input type="hidden" id="executors" name="executors" value="">
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn-custom-close" data-bs-dismiss="modal">
+                                Close
+                            </button>
+                            <button type="submit" class="btn-submit-black">
+                                Submit
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="alert-container mt-2"></div>
+            </div>
+        </div>
+
         {{-- Modal Detail Task --}}
         <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
             aria-hidden="true">
@@ -1275,6 +1415,7 @@
 
         <x-slot name="script_slot">
             <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
+            <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
             <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_timeline.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/task.js') }}?v={{ time() }}"></script>
