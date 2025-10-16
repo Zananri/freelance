@@ -317,64 +317,161 @@
             success: function(res) {
                 const t = res && (res.data || res) || {};
                 const title = t.title || 'Accept Task';
-                const project_title = t.project.title || '';
                 const desc = t.description || '';
                 const priority = t.priority || '';
                 const due_date = t.due_date || '';
-                let img = "";
-                if (t.image) {
-                    // Kalau ada gambar
-                    img = `<img src="${appUrl}/file/task/${t.image}"
-                                    alt="Task Image"
-                                    class="rounded-circle"
-                                    style="width:34px; height:34px; object-fit:cover;"
-                                    onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
-                } else {
-                    const initials = getTaskInitials(t.title);
-                    const bgColor = getRandomColorFromText(t.title);
 
-                    img = `<div class="rounded-circle d-flex align-items-center justify-content-center"
-                                    style="width:34px;height:34px;background:${bgColor};color:#fff;
-                                            font-size:13px;font-weight:600;">
-                                    ${initials}
+                // Helper to format due date using the project's canonical formatter (day first)
+                function formatDueDate(d) {
+                    try {
+                        if (!d) return '-';
+                        if (typeof formatDateENMedium === 'function') return formatDateENMedium(d);
+                        // Fallback: parse and return day month year
+                        const dt = new Date(d);
+                        if (isNaN(dt.getTime())) return d;
+                        const day = dt.getDate();
+                        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                        const m = monthNames[dt.getMonth()];
+                        const y = dt.getFullYear();
+                        return `${day} ${m} ${y}`;
+                    } catch (e) { return String(d || '-'); }
+                }
+
+                // Local HTML escaper
+                function escapeHtml(str) {
+                    try {
+                        return String(str || '').replace(/[&<>"'']/g, function(m) {
+                            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m] || m;
+                        });
+                    } catch (e) { return String(str || ''); }
+                }
+
+                // Build description paragraphs (preserve basic line breaks)
+                const descHtml = (function(desc){
+                    if (!desc) return '';
+                    // If contains HTML block tags, keep as-is; otherwise split by newlines
+                    if (/<\/[a-z]+>/i.test(desc)) return desc;
+                    return desc.split(/\r?\n/).filter(Boolean).map(s => `<p>${s}</p>`).join('');
+                })(desc);
+
+                // Build collaborators (pic + executors)
+                function buildCollabHtml(data) {
+                    const people = [];
+                    try {
+                        // Keep explicit roles so we can mark PIC properly
+                        if (data.pic) people.push({ person: data.pic, role: 'pic' });
+                        if (Array.isArray(data.executors)) data.executors.forEach(e => people.push({ person: e, role: 'executor' }));
+                    } catch(_) {}
+                    if (!people.length) return '<div class="text-muted">No collaborators</div>';
+                    return people.map(entry => {
+                        const p = entry.person || {};
+                        const roleFlag = entry.role || (p.role ? String(p.role).toLowerCase() : 'executor');
+                        const photo = p.photo || p.profile_picture || p.user_photo || p.user_photo_url || '';
+                        const url = photo && /^https?:\/\//.test(photo) ? photo : (photo ? (appUrl + '/file/profile_picture/' + photo) : appUrl + '/asset/img/avatar.png');
+                        const name = p.name || p.full_name || p.employee_name || p.username || 'Member';
+                        // Prefer explicit PIC label when this entry represents the pic
+                        const roleLabel = (function(){
+                            try {
+                                if (roleFlag === 'pic') return 'PIC';
+                                if (p && p.role) return String(p.role).replace(/_/g,' ');
+                                if (p && p.designation) return String(p.designation);
+                                // Fall back to division or executor label
+                                if (p && (p.division || p.division_name)) return String(p.division || p.division_name);
+                                return roleFlag === 'executor' ? 'Executor' : '';
+                            } catch(_) { return ''; }
+                        })();
+                        return `
+                            <div class="collab-item d-flex align-items-center mb-2">
+                                <div class="flex-shrink-0">
+                                    <img src="${url}" alt="${escapeHtml(name)}" data-bs-toggle="tooltip" class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';" aria-label="${escapeHtml(name)}" data-bs-original-title="${escapeHtml(name)}">
+                                </div>
+                                <div class="ms-2">
+                                    <div class="collab-name">${escapeHtml(name)}</div>
+                                    <div class="collab-division text-muted">${escapeHtml(roleLabel)}</div>
+                                </div>
                             </div>`;
+                    }).join('');
                 }
 
                 const id = 'acceptInviteModal';
+                const taskStatus = (t && t.status) ? t.status : 'new';
+                const dueText = formatDueDate(due_date);
+                const priorityColor = priority === 'HIGH' ? 'red' : (priority === 'MEDIUM' ? '#E6A15A' : '#4fc97a');
+                const initials = getTaskInitials(t.title || title || 'NA');
+                const initialColor = getRandomColorFromText(t.title || title || initials);
+                // Project and department/division fallbacks
+                const projectTitleText = (t && t.project && (t.project.title || t.project.project_title)) ? (t.project.title || t.project.project_title) : '';
+                const deptName = (t && t.project && (t.project.department || t.project.department_name)) ? (t.project.department || t.project.department_name) : (t.department_name || 'No Department');
+                const divName = (t && t.project && (t.project.division || t.project.division_name)) ? (t.project.division || t.project.division_name) : (t.division_name || 'No Division');
+
+                // Build status rows only when data present
+                const statusRows = (function(){
+                    try {
+                        const rows = [];
+                        const ip = (t && t.in_progress_by_name) ? String(t.in_progress_by_name).trim() : '';
+                        const cb = (t && t.completed_by_name) ? String(t.completed_by_name).trim() : '';
+                        const rb = (t && t.rejected_by_name) ? String(t.rejected_by_name).trim() : '';
+                        if (ip) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">In Progress by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(ip)}</span></div>`);
+                        if (cb) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Completed by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(cb)}</span></div>`);
+                        if (rb) rows.push(`<div style="font-size:12px;margin-top:6px;color:#454545"><span style="color:#797E91;">Rejected by:</span><span style="margin-left:6px;color:#454545">${escapeHtml(rb)}</span></div>`);
+                        return rows.join('');
+                    } catch (e) { return ''; }
+                })();
+
                 const modalHtml = `
                     <div class="modal fade" id="${id}" tabindex="-1" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" style="max-width:720px;">
                             <div class="modal-content modal-content-custom">
                                 <div class="modal-body modal-body-custom">
-                                    <div class="d-flex">
-                                        <div class="me-3">
-                                        ${img}
-                                        </div>
-                                        <div class="custom-card p-0 m-0 border-0">
-                                            ${id ? `<small class="text-muted" style="line-height:1; font-size: 10px;"> ${project_title || '-'}</small>` : ''}
-                                            <h6 style="font-size:16px; font-weight:600; margin:0;">${title}</h6>
-                                            <div class="task-description-container">
-                                                <div class="task-description">${desc ? desc : ''}</div>
+                                    <div id="taskDetailContent">
+                                        <div class="custom-card rounded-4 p-3 border-0" data-task-id="${t.id || taskId}" data-task-status="${escapeHtml(taskStatus)}">
+                                            <div class="d-flex justify-content-between align-items-start mb-2 task-card-header">
+                                                <div class="d-flex align-items-center">
+                                                    <div class="project-initial-avatar me-3" style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:14px;color:#fff;background:${initialColor};">${escapeHtml(initials)}</div>
+                                                    <div class="d-flex flex-column">
+                                                        ${projectTitleText ? `<small class="text-muted" style="font-size:11px;">${escapeHtml(projectTitleText)}</small>` : ''}
+                                                        <h5 class="mb-0 task-title">${escapeHtml(title)}</h5>
+                                                    </div>
+                                                </div>
+                                                <!-- dropdown removed for accept modal -->
+                                            </div>
+                                            <div class="task-detail-description-container">
+                                                <div class="task-description">
+                                                    ${descHtml}
+                                                </div>
+                                            </div>
+                                            <hr class="task-separator rounded-4">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Priority: </span>
+                                                    <span style="color:${priorityColor}">${escapeHtml(priority || '-')}</span>
+                                                </div>
+                                                <div style="font-size:12px;">
+                                                    <span style="color:#797E91;">Deadline: </span>
+                                                    <span style="color:#4B4F5E;">${escapeHtml(dueText)}</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                                <span class="text-muted">Department:</span>
+                                                <span>${escapeHtml(deptName)}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                                <span class="text-muted">Division:</span>
+                                                <span>${escapeHtml(divName)}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
+                                                <div class="flex-grow-1">
+                                                    <div class="collab-list">
+                                                        ${buildCollabHtml(t)}
+                                                    </div>
+                                                    ${statusRows}
+                                                </div>
+                                                <!-- comment/attach icons removed for accept modal -->
                                             </div>
                                         </div>
                                     </div>
-
-                                    <hr class="text-seperator rounded-md">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div style="font-size: 10px; font-weight: 400;">
-                                            <span style="color: #797E91;">Priority: </span>
-                                            <span style="color: ${priority === 'HIGH' ? 'red' : '#4B4F5E'}">
-                                                ${priority}
-                                            </span>
-                                        </div>
-                                        <div style="font-size: 10px; font-weight: 400;">
-                                            <span style="color: #797E91;">Deadline: </span>
-                                            <span style="#color: #4B4F5E">${due_date }</span>
-                                        </div>
-                                    </div>
-
                                 </div>
-                                <div class="modal-footer modal-footer-custom">
+                                <div class="modal-footer modal-footer-custom mt-3">
                                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
                                     <button type="button" class="btn btn-submit-black" id="confirmAcceptInviteBtn">Accept Task</button>
                                 </div>
