@@ -5855,15 +5855,85 @@ function filterTaskTableRows(queryRaw) {
                         });
                     });
 
-                    // Open feedback/reply images in a new tab
-                    modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
-                        img.addEventListener('click', function () {
-                            const src = this.getAttribute('src');
-                            if (src) {
-                                window.open(src, '_blank');
-                            }
+                    // Open feedback/reply images in an in-page modal preview (do not open new tab)
+                    (function(){
+                        // Ensure modal exists only once
+                        function ensureImagePreviewModalExists() {
+                            if (document.getElementById('taskImagePreviewModal')) return;
+                            const html = `
+                                <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered modal-lg">
+                                        <div class="modal-content modal-content-custom">
+                                            <div class="modal-body p-0 text-center bg-dark d-flex align-items-center justify-content-center" style="min-height:160px;">
+                                                <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="max-width:90vw; max-height:80vh; width:auto; height:auto; display:block; object-fit:contain;">
+                                            </div>
+                                            <div class="modal-footer modal-footer-custom">
+                                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){}
+                        }
+
+                        function showImageInModal(src, filename) {
+                            try {
+                                ensureImagePreviewModalExists();
+                                const modalEl = document.getElementById('taskImagePreviewModal');
+                                const imgEl = document.getElementById('taskImagePreviewModalImg');
+                                const dlEl = document.getElementById('taskImagePreviewDownload');
+                                if (imgEl) imgEl.src = src;
+                                // No download button per UX request; preview only
+
+                                // If feedback modal is open, hide it first and remember to restore later
+                                const feedbackModalEl = document.getElementById('taskFeedbackModal');
+                                let feedbackWasOpen = false;
+                                try {
+                                    if (feedbackModalEl && feedbackModalEl.classList.contains('show')) {
+                                        feedbackWasOpen = true;
+                                        // Suppress backdrop removal in feedback modal hidden handlers (used elsewhere)
+                                        try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                                        const fbInst = bootstrap.Modal.getInstance(feedbackModalEl) || new bootstrap.Modal(feedbackModalEl);
+                                        try { fbInst.hide(); } catch(_) {}
+                                    }
+                                } catch(_) {}
+
+                                const inst = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+                                // When preview modal hides, restore feedback modal if it was previously open
+                                const onPreviewHidden = function() {
+                                    try {
+                                        inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden);
+                                    } catch(_) {}
+                                    try { if (feedbackWasOpen) {
+                                        // Clear suppression and re-show feedback modal
+                                        try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                                        const fbInst2 = bootstrap.Modal.getOrCreateInstance(feedbackModalEl) || new bootstrap.Modal(feedbackModalEl);
+                                        try { fbInst2.show(); } catch(_) {}
+                                    } } catch(_) {}
+                                };
+                                try { inst._element.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                inst.show();
+                            } catch (e) { try { window.open(src, '_blank'); } catch(_) {} }
+                        }
+
+                        modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                            // Remove any previous click handlers to avoid duplicates
+                            try { img.replaceWith(img.cloneNode(true)); } catch(_) {}
                         });
-                    });
+                        // Re-query after clone
+                        modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                            img.addEventListener('click', function (ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const src = this.getAttribute('src') || this.dataset.src;
+                                if (!src) return;
+                                // Derive filename fallback
+                                let filename = (src.split('/').pop() || '').split('?')[0];
+                                showImageInModal(src, filename);
+                            });
+                        });
+                    })();
 
                         // Bind delete triggers for feedback and replies
                         modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function (btn) {
