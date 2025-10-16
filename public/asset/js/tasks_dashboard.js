@@ -2057,3 +2057,33 @@ function showDashboardDeleteConfirmModal(opts) {
     }
 }
 
+$(document).on('click', '#toggleFilterTask', function(e) {
+    e.stopPropagation();
+    $('#customFilterDropdown').toggleClass('show');
+});
+
+$(document).on('click', function(e) {
+    if (!$(e.target).closest('.filter-dropdown-wrapper').length) {
+        $('#customFilterDropdown').removeClass('show');
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+  const startDateInput = document.getElementById('filterStartDate')
+  const endDateInput = document.getElementById('filterEndDate')
+
+  flatpickr("#filterDateRange", {
+    mode: "range",
+    dateFormat: "d/m/Y",
+    locale: {
+      firstDayOfWeek: 1
+    },
+    onChange: function(selectedDates) {
+      if (selectedDates.length === 2) {
+        const [start, end] = selectedDates
+        startDateInput.value = start.toISOString().split('T')[0]
+        endDateInput.value = end.toISOString().split('T')[0]
+      }
+    }
+  })
+})

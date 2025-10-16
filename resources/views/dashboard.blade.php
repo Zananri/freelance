@@ -8,6 +8,8 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
         <link rel="stylesheet" href=" {{ asset('asset/plugin/leaflet/leaflet.css') }}" />
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        {{-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_blue.css"> --}}
     </x-slot>
 
     <div class="title-content mx-4">
@@ -346,6 +348,54 @@
                             data-tab-active="today">Today</button>
                         <button class="btn-tab-task btn btn-tab-custom flex-fill rounded-md-4"
                             data-tab-active="tomorrow">Tomorrow</button>
+                    </div>
+
+                    {{-- Legend --}}
+                    <div class="legend-task d-flex justify-content-between align-items-center mb-3 gap-3">
+                        <div class="legend-new" data-bs-toggle="tooltip" title="New Request">
+                            <span>New Request</span>
+                        </div>
+                        <div class="legend-progress" data-bs-toggle="tooltip" title="In Progress">
+                            <span>In Progress</span>
+                        </div>
+                        <div class="legend-completed" data-bs-toggle="tooltip" title="Completed">
+                            <span>Completed</span>
+                        </div>
+                    </div>
+
+                    {{-- Filter --}}
+                    <div class="filter-dropdown-wrapper position-relative mb-3">
+                        <button class="btn btn-toggle-filter w-100" id="toggleFilterTask">
+                            <span class="material-symbols-outlined icon me-2">filter_list</span>
+                            <span class="text-icon">Filter</span>
+                        </button>
+
+                        <div class="custom-filter-dropdown shadow-sm" id="customFilterDropdown">
+                            <div class="p-3">
+                                <div class="mb-2 input-custom position-relative">
+                                    <label class="form-label label-custom">Date</label>
+                                    <input type="text" class="form-control border-0" id="filterDateRange"
+                                        placeholder="Select a date range">
+                                    <div id="hiddenDateInputs" class="d-none">
+                                        <input type="date" id="filterStartDate">
+                                        <input type="date" id="filterEndDate">
+                                    </div>
+                                </div>
+                                <div class="mb-2 input-custom">
+                                    <label class="form-label label-custom">Priority</label>
+                                    <select class="form-select form-select-sm border-0">
+                                        <option value="">Semua</option>
+                                        <option value="LOW">Low</option>
+                                        <option value="MEDIUM">Medium</option>
+                                        <option value="HIGH">High</option>
+                                    </select>
+                                </div>
+                                <div class="modal-footer modal-footer-custom">
+                                    <button class="btn btn-submit-black">Apply</button>
+                                    <button class="btn btn-custom-close">Clear</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Task List -->
@@ -1194,14 +1244,12 @@
                                             </thead>
                                             <tbody>
                                                 @for ($i = 0; $i < 7; $i++)
-
                                                     <tr>
                                                         @for ($j = 0; $j < 7; $j++)
                                                             <td class="text-center">
                                                             </td>
                                                         @endfor
                                                     </tr>
-
                                                 @endfor
                                             </tbody>
                                         </table>
@@ -1284,8 +1332,8 @@
                         <div id="referenceFilesList" class="d-flex flex-column gap-2"></div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-submit-black" id="openAddReferenceFilesBtn" data-bs-target="#addFilesModal"
-                            data-bs-toggle="modal">Add Files</button>
+                        <button type="button" class="btn btn-submit-black" id="openAddReferenceFilesBtn"
+                            data-bs-target="#addFilesModal" data-bs-toggle="modal">Add Files</button>
                     </div>
                 </div>
             </div>
@@ -1307,9 +1355,9 @@
                             <div class="mb-3 input-custom">
                                 <label for="task_reference_files" class="form-label label-custom">Select
                                     Files</label>
-                                <input type="file" class="form-control input-text border-0" id="task_reference_files"
-                                    name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-                                    multiple>
+                                <input type="file" class="form-control input-text border-0"
+                                    id="task_reference_files" name="reference_files[]"
+                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="reference_files_preview" class="mt-2"></div>
                             </div>
@@ -1317,7 +1365,8 @@
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                        <button type="button" id="submitAddReferenceFiles" class="btn btn-submit-black">Upload</button>
+                        <button type="button" id="submitAddReferenceFiles"
+                            class="btn btn-submit-black">Upload</button>
                     </div>
                 </div>
             </div>
@@ -1328,6 +1377,7 @@
     <x-slot name="script_slot">
         <script src="https://code.jquery.com/jquery-3.7.1.min.js"
             integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
         <script src="{{ asset('asset/plugin/leaflet/leaflet.js') }}" crossorigin=""></script>
