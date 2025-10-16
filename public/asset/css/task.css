@@ -1302,6 +1302,8 @@ p {
 
     .toggle-filter,
     .toggle-archieve,
+    .toggle-list,
+    .toggle-grid,
     .toggle-timeline {
         min-width: 40px;
         min-height: 40px;

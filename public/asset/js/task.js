@@ -9718,159 +9718,167 @@ function filterTaskTableRows(queryRaw) {
 
 
     $(document).ready(function () {
-    const mobileCardHtml = `
-        <div class="mobile-task-container p-3 rounded-4">
-        <div class="task-mobile-status mb-2">
-            <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
-            <option value="new_request">New</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            </select>
-        </div>
-        <div class="task-mobile-actions d-flex justify-content-between align-items-center">
-            <div class="search-input-container flex-grow-1 me-2">
-                <span class="material-symbols-outlined search-icon">search</span>
-                <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
+        const mobileCardHtml = `
+            <div class="mobile-task-container p-3 rounded-4">
+            <div class="task-mobile-status mb-2">
+                <select id="taskStatusSelect" class="form-select border-0 bg-transparent w-100">
+                <option value="new_request">New</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                </select>
             </div>
-            <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
-                <span class="material-symbols-outlined">calendar_month</span>
-            </button>
-            <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
-                <span class="material-symbols-outlined">box</span>
-            </button>
-            <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
-                <span class="material-symbols-outlined">filter_list</span>
-            </button>
-        </div>
-        <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-2" style="display:none;">
-            <button type="button" id="taskNewBulkActionMobile" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
-                <span class="material-symbols-outlined">done_all</span>
-            </button>
-            <button type="button" id="taskNewBulkProgressMobile" class="task-bulk-icon" aria-label="Move selected tasks to In Progress">
-                <span class="material-symbols-outlined">arrow_right_alt</span>
-            </button>
-            <label for="taskNewAcceptAllMobile" class="task-selectall-toggle">
-                <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAllMobile" aria-label="Select all pending new tasks" />
-            </label>
-        </div>
-        <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
-            <div class="dropdown-filter-body">
-                <div class="mb-3">
-                    <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                    <select id="filterTaskProjectMobile" class="form-select">
-                        <option value="">All Projects</option>
-                    </select>
+            <div class="task-mobile-actions d-flex justify-content-between align-items-center">
+                <div class="search-input-container flex-grow-1 me-2">
+                    <span class="material-symbols-outlined search-icon">search</span>
+                    <input class="form-control custom-form-filter" type="text" name="search_filter_mobile" id="search_filter_mobile">
                 </div>
-                <div class="mb-3">
-                    <label for="filterTaskPriorityMobile" class="form-label label-custom">Priority</label>
-                    <select id="filterTaskPriorityMobile" class="form-select">
-                        <option value="">All Priority</option>
-                        <option value="LOW">Low</option>
-                        <option value="MEDIUM">Medium</option>
-                        <option value="HIGH">High</option>
-                    </select>
+                <button class="btn btn-sm toggle-grid d-none me-2" id="gridViewMobileTask" data-bs-toggle="tooltip" title="Grid View">
+                    <span class="material-symbols-outlined">grid_view</span>
+                </button>
+                <button class="btn btn-sm toggle-list me-2" id="listViewMobileTask" data-bs-toggle="tooltip" title="List View">
+                    <span class="material-symbols-outlined">list</span>
+                </button>
+                <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
+                    <span class="material-symbols-outlined">calendar_month</span>
+                </button>
+                <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
+                    <span class="material-symbols-outlined">box</span>
+                </button>
+                <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+                    <span class="material-symbols-outlined">filter_list</span>
+                </button>
+            </div>
+            <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-2" style="display:none;">
+                <button type="button" id="taskNewBulkActionMobile" class="task-bulk-icon" aria-label="Confirm accept selected tasks">
+                    <span class="material-symbols-outlined">done_all</span>
+                </button>
+                <button type="button" id="taskNewBulkProgressMobile" class="task-bulk-icon" aria-label="Move selected tasks to In Progress">
+                    <span class="material-symbols-outlined">arrow_right_alt</span>
+                </button>
+                <label for="taskNewAcceptAllMobile" class="task-selectall-toggle">
+                    <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAllMobile" aria-label="Select all pending new tasks" />
+                </label>
+            </div>
+            <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
+                <div class="dropdown-filter-body">
+                    <div class="mb-3">
+                        <label for="filterTaskProjectMobile" class="form-label">Project</label>
+                        <select id="filterTaskProjectMobile" class="form-select">
+                            <option value="">All Projects</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filterTaskPriorityMobile" class="form-label label-custom">Priority</label>
+                        <select id="filterTaskPriorityMobile" class="form-select">
+                            <option value="">All Priority</option>
+                            <option value="LOW">Low</option>
+                            <option value="MEDIUM">Medium</option>
+                            <option value="HIGH">High</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="filterByDateMobile" class="form-label label-custom">By Date</label>
+                        <input class="form-select border-0" type="date" name="filter_by_date"
+                            id="filterByDateMobile">
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="filterByDateMobile" class="form-label label-custom">By Date</label>
-                    <input class="form-select border-0" type="date" name="filter_by_date"
-                        id="filterByDateMobile">
+                <div class="dropdown-filter-footer">
+                    <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Apply</button>
+                    <button type="button" class="btn btn-submit-filter" id="resetTaskFilterBtnMobile">Reset</button>
                 </div>
             </div>
-            <div class="dropdown-filter-footer">
-                <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Apply</button>
-                <button type="button" class="btn btn-submit-filter" id="resetTaskFilterBtnMobile">Reset</button>
-            </div>
-        </div>
-    <div id="mobile-task-list" style="max-height: calc(100vh - 120px); overflow-y: auto;"></div>
-        </div>`;
+        <div id="mobile-task-list" style="max-height: calc(100vh - 120px); overflow-y: auto;"></div>
+            </div>`;
 
-    $("#task-cards-container").before(mobileCardHtml);
+        $("#task-cards-container").before(mobileCardHtml);
 
-    $(document).ready(function() {
-        const $btnList = $('#listViewTask');
-        const $btnGrid = $('#gridViewTask');
-        const $taskTable = $('#task-table-section');
-        const $taskCards = $('#task-cards-container');
+        $(document).on('click', '#listViewMobileTask', function() {
+            const $btnList = $('#listViewMobileTask');
+            const $btnGrid = $('#gridViewMobileTask');
 
-        $btnList.on('click', function() {
-            $taskTable.removeClass('d-none');
-            $taskCards.addClass('d-none');
+            $('.mobile-task-container').addClass('d-none');
+            $('#task-cards-container, #task-table-section').removeClass('d-none');
+
             $btnList.addClass('d-none');
             $btnGrid.removeClass('d-none');
             $btnGrid.find('span').text('grid_view');
             $btnGrid.attr('title', 'Grid View').tooltip('dispose').tooltip();
         });
 
-        $btnGrid.on('click', function() {
-            $taskTable.addClass('d-none');
-            $taskCards.removeClass('d-none');
+        $(document).on('click', '#gridViewMobileTask', function() {
+            const $btnList = $('#listViewMobileTask');
+            const $btnGrid = $('#gridViewMobileTask');
+            const dropdown = $('.dropdown-filter-container');
+
+            $('.mobile-task-container').removeClass('d-none');
+            $('#task-table-section').addClass('d-none');
+
             $btnGrid.addClass('d-none');
             $btnList.removeClass('d-none');
             $btnList.find('span').text('list');
             $btnList.attr('title', 'List View').tooltip('dispose').tooltip();
         });
-    });
 
-    function toggleDropdownFilter() {
-        let dropdown = $(".dropdown-filter-container");
-        let mobileContainer = $(".mobile-task-container");
-        let desktopContainer = $("#task-cards-container");
+        function toggleDropdownFilter() {
+            let dropdown = $(".dropdown-filter-container");
+            let mobileContainer = $(".mobile-task-container");
+            let desktopContainer = $("#task-cards-container");
 
-        if ($(window).width() <= 1024) {
-            mobileContainer.show();
-            desktopContainer.hide();
-        } else {
-            mobileContainer.hide();
-            desktopContainer.show();
+            if ($(window).width() <= 1024) {
+                mobileContainer.show();
+                desktopContainer.hide();
+            } else {
+                mobileContainer.hide();
+                desktopContainer.show();
+            }
+            if ($(window).width() <= 1024) dropdown.hide();
+            else dropdown.show();
         }
-        if ($(window).width() <= 1024) dropdown.hide();
-        else dropdown.show();
-    }
-    toggleDropdownFilter();
-        $(window).on("resize", toggleDropdownFilter);
+        toggleDropdownFilter();
+            $(window).on("resize", toggleDropdownFilter);
 
-    function updateMobileBulkControlsVisibility(){
-        // Show container only when status = new_request AND there is at least one selection.
-        const statusIsNew = $("#taskStatusSelect").val() === 'new_request';
-        if(!statusIsNew){ $("#mobileBulkControls").hide(); return; }
-        // Selection will toggle via updateBulkHeaderButtons; here we keep it hidden by default.
-        if($("#mobileBulkControls").data('forced-show') !== '1') {
-            $("#mobileBulkControls").hide();
+        function updateMobileBulkControlsVisibility(){
+            // Show container only when status = new_request AND there is at least one selection.
+            const statusIsNew = $("#taskStatusSelect").val() === 'new_request';
+            if(!statusIsNew){ $("#mobileBulkControls").hide(); return; }
+            // Selection will toggle via updateBulkHeaderButtons; here we keep it hidden by default.
+            if($("#mobileBulkControls").data('forced-show') !== '1') {
+                $("#mobileBulkControls").hide();
+            }
         }
-    }
 
-    // Dynamic height adjust for mobile task list to ensure scroll triggers after first 10 items
-    function adjustMobileListHeight(){
-        const list = document.getElementById('mobile-task-list');
-        if(!list) return;
-        const rect = list.getBoundingClientRect();
-        const vh = window.innerHeight || document.documentElement.clientHeight;
-        const desired = Math.max(200, vh - rect.top - 16); // leave small bottom space
-        list.style.maxHeight = desired + 'px';
-    }
-    window.addEventListener('resize', adjustMobileListHeight);
-    setTimeout(adjustMobileListHeight, 50);
-    setTimeout(adjustMobileListHeight, 350); // second pass after fonts/images load
+        // Dynamic height adjust for mobile task list to ensure scroll triggers after first 10 items
+        function adjustMobileListHeight(){
+            const list = document.getElementById('mobile-task-list');
+            if(!list) return;
+            const rect = list.getBoundingClientRect();
+            const vh = window.innerHeight || document.documentElement.clientHeight;
+            const desired = Math.max(200, vh - rect.top - 16); // leave small bottom space
+            list.style.maxHeight = desired + 'px';
+        }
+        window.addEventListener('resize', adjustMobileListHeight);
+        setTimeout(adjustMobileListHeight, 50);
+        setTimeout(adjustMobileListHeight, 350); // second pass after fonts/images load
 
-    initMobileInfiniteScroll();
-    fetchMobileTasks(mobileState.status, 1, false);
+        initMobileInfiniteScroll();
+        fetchMobileTasks(mobileState.status, 1, false);
 
-    $("#taskStatusSelect").on("change", function () {
-        fetchMobileTasks($(this).val(), 1);
+        $("#taskStatusSelect").on("change", function () {
+            fetchMobileTasks($(this).val(), 1);
+            updateMobileBulkControlsVisibility();
+        });
+
+        $("#taskStatusSelect").val("new_request").trigger("change");
+        // Initialize newly injected mobile bulk elements hidden (same logic desktop)
+        (function initMobileBulkHidden(){
+            const ids=['taskNewBulkActionMobile','taskNewBulkProgressMobile'];
+            ids.forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='inline-flex'; el.style.visibility='hidden'; el.style.opacity='0'; el.disabled=true; } });
+            const lab=document.getElementById('taskNewAcceptAllMobile');
+            if(lab){ const wrap=lab.closest('.task-selectall-toggle'); if(wrap){ wrap.style.visibility='hidden'; wrap.style.opacity='0'; } }
+            // container hidden until first selection
+            const cont=document.getElementById('mobileBulkControls'); if(cont) cont.style.display='none';
+        })();
         updateMobileBulkControlsVisibility();
-    });
-
-    $("#taskStatusSelect").val("new_request").trigger("change");
-    // Initialize newly injected mobile bulk elements hidden (same logic desktop)
-    (function initMobileBulkHidden(){
-        const ids=['taskNewBulkActionMobile','taskNewBulkProgressMobile'];
-        ids.forEach(id=>{ const el=document.getElementById(id); if(el){ el.style.display='inline-flex'; el.style.visibility='hidden'; el.style.opacity='0'; el.disabled=true; } });
-        const lab=document.getElementById('taskNewAcceptAllMobile');
-        if(lab){ const wrap=lab.closest('.task-selectall-toggle'); if(wrap){ wrap.style.visibility='hidden'; wrap.style.opacity='0'; } }
-        // container hidden until first selection
-        const cont=document.getElementById('mobileBulkControls'); if(cont) cont.style.display='none';
-    })();
-    updateMobileBulkControlsVisibility();
     });
 
     let archivePage = 1
@@ -10591,29 +10599,42 @@ function filterTaskTableRows(queryRaw) {
         }
     });
 
-    $(document).ready(function() {
+    $(document).on('click', '#listViewTask', function() {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
         const $btnList = $('#listViewTask');
         const $btnGrid = $('#gridViewTask');
-        const $taskTable = $('#task-table-section');
-        const $taskCards = $('#task-cards-container');
 
-        $btnList.on('click', function() {
-            $taskTable.removeClass('d-none');
-            $taskCards.addClass('d-none');
-            $btnList.addClass('d-none');
-            $btnGrid.removeClass('d-none');
-            $btnGrid.find('span').text('grid_view');
-            $btnGrid.attr('title', 'Grid View').tooltip('dispose').tooltip();
-        });
+        if (isMobile) {
+            $('#mobile-task-container').removeClass('d-none');
+            $('#task-cards-container, #task-table-section').addClass('d-none');
+        } else {
+            $('#task-table-section').removeClass('d-none');
+            $('#task-cards-container').addClass('d-none');
+        }
 
-        $btnGrid.on('click', function() {
-            $taskTable.addClass('d-none');
-            $taskCards.removeClass('d-none');
-            $btnGrid.addClass('d-none');
-            $btnList.removeClass('d-none');
-            $btnList.find('span').text('list');
-            $btnList.attr('title', 'List View').tooltip('dispose').tooltip();
-        });
+        $btnList.addClass('d-none');
+        $btnGrid.removeClass('d-none');
+        $btnGrid.find('span').text('grid_view');
+        $btnGrid.attr('title', 'Grid View').tooltip('dispose').tooltip();
+    });
+
+    $(document).on('click', '#gridViewTask', function() {
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const $btnList = $('#listViewTask');
+        const $btnGrid = $('#gridViewTask');
+
+        if (isMobile) {
+            $('#mobile-task-container').addClass('d-none');
+            $('#task-cards-container').removeClass('d-none');
+        } else {
+            $('#task-table-section').addClass('d-none');
+            $('#task-cards-container').removeClass('d-none');
+        }
+
+        $btnGrid.addClass('d-none');
+        $btnList.removeClass('d-none');
+        $btnList.find('span').text('list');
+        $btnList.attr('title', 'List View').tooltip('dispose').tooltip();
     });
 
     // Helper functions for task feedback image and file preview (similar to project feedback)
