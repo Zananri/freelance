@@ -1177,8 +1177,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 $(".loader").fadeIn("fast");
             },
             success: function (data) {
-                let container = document.getElementById("all-cards-container");
-                container.innerHTML = ""; // Clear existing cards
+                // Select per-status containers (new / in progress / completed)
+                const newContainer = document.getElementById("new-cards-container");
+                const inprogressContainer = document.getElementById("inprogress-cards-container");
+                const completedContainer = document.getElementById("completed-cards-container");
+                // Clear existing cards
+                if (newContainer) newContainer.innerHTML = "";
+                if (inprogressContainer) inprogressContainer.innerHTML = "";
+                if (completedContainer) completedContainer.innerHTML = "";
 
                 // support API returning either array or { data: [...] }
                 const projects = Array.isArray(data)
@@ -1252,7 +1258,38 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     });
 
-                    let rowHtml = '<div class="col">';
+                    // We'll build HTML per column and then insert
+                    let newHtml = '';
+                    let inprogressHtml = '';
+                    let completedHtml = '';
+
+                    // Helper: normalize project status based on task_counts (matching backend filter logic)
+                    function normalizeProjectStatus(p) {
+                        try {
+                            // Backend logic: menggunakan task counts untuk menentukan status project
+                            const taskCounts = p.task_counts || {};
+                            const total = taskCounts.total || 0;
+                            const completed = taskCounts.completed || 0;
+                            const inProgress = taskCounts.in_progress || 0;
+
+                            // Completed: semua task completed (dan ada task)
+                            if (total > 0 && completed === total) {
+                                return 'completed';
+                            }
+
+                            // Not Started: tidak ada task ATAU semua task berstatus new_request
+                            // (jika total > 0 tapi tidak ada completed dan tidak ada in_progress, berarti semua new_request)
+                            if (total === 0 || (total > 0 && completed === 0 && inProgress === 0)) {
+                                return 'new';
+                            }
+
+                            // In Progress: ada campuran status (tidak semua completed, tidak semua new_request)
+                            return 'in_progress';
+                        } catch (e) { 
+                            console.warn('normalizeProjectStatus error', e);
+                            return 'new'; 
+                        }
+                    }
 
                     visibleProjects.forEach((project) => {
                         let imageUrl = project.image
@@ -1266,7 +1303,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         const pid = project.id || projectId;
                         const projectSlug = project.slug || slugify(project.title || "unknown-project");
                         const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
-                        rowHtml += `
+                        const cardHtml = `
                             <div class="col-md-12 project-bottom-cards mb-3 d-flex position-relative" data-project-id="${
                                 project.id
                             }" data-project-title="${dataTitle}">
@@ -1404,14 +1441,29 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </div>
                             </div>
                         `;
+
+                        // Decide which column HTML to append to
+                        const dest = normalizeProjectStatus(project);
+                        if (dest === 'completed') {
+                            completedHtml += cardHtml;
+                        } else if (dest === 'in_progress') {
+                            inprogressHtml += cardHtml;
+                        } else {
+                            newHtml += cardHtml;
+                        }
                     });
 
-                    rowHtml += "</div>";
-                    container.innerHTML = rowHtml;
+                    // Insert into respective containers if present
+                    if (newContainer) newContainer.innerHTML = newHtml || '<div class="text-muted">No projects</div>';
+                    if (inprogressContainer) inprogressContainer.innerHTML = inprogressHtml || '<div class="text-muted">No projects</div>';
+                    if (completedContainer) completedContainer.innerHTML = completedHtml || '<div class="text-muted">No projects</div>';
 
                     // Initialize Bootstrap tooltips for newly injected collaborator images and +N badges
                     try {
-                        initResponsiveTooltips(container);
+                        // Initialize tooltips on each container
+                        initResponsiveTooltips(newContainer || document);
+                        initResponsiveTooltips(inprogressContainer || document);
+                        initResponsiveTooltips(completedContainer || document);
                     } catch (e) {
                         // ignore
                     }
@@ -1419,29 +1471,29 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Delegated click: clicking on a project title opens Project Detail modal
                     try {
                         // Ensure we don't bind multiple times by removing any previous listener
-                        if (container.__titleClickBound !== true) {
-                            container.addEventListener("click", function (ev) {
-                                const titleEl =
-                                    ev.target.closest(".title-project");
-                                if (!titleEl) return;
-                                ev.preventDefault();
-                                ev.stopPropagation();
-                                const card = titleEl.closest(".col-md-12");
-                                const pid =
-                                    card &&
-                                    card.getAttribute("data-project-id");
-                                if (pid) {
-                                    try {
-                                        fetchAndShowProjectDetail(pid);
-                                    } catch (_) {
-                                        console.warn(
-                                            "fetchAndShowProjectDetail not available"
-                                        );
+                        // Attach title click handler to each container once
+                        [newContainer, inprogressContainer, completedContainer].forEach(function (c) {
+                            try {
+                                if (!c) return;
+                                if (c.__titleClickBound === true) return;
+                                c.addEventListener("click", function (ev) {
+                                    const titleEl = ev.target.closest(".title-project");
+                                    if (!titleEl) return;
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    const card = titleEl.closest(".col-md-12");
+                                    const pid = card && card.getAttribute("data-project-id");
+                                    if (pid) {
+                                        try {
+                                            fetchAndShowProjectDetail(pid);
+                                        } catch (_) {
+                                            console.warn("fetchAndShowProjectDetail not available");
+                                        }
                                     }
-                                }
-                            });
-                            container.__titleClickBound = true;
-                        }
+                                });
+                                c.__titleClickBound = true;
+                            } catch (_) {}
+                        });
                     } catch (_) {
                         /* noop */
                     }
@@ -1489,45 +1541,25 @@ document.addEventListener("DOMContentLoaded", function () {
                                 } catch(_) {}
 
                     // Add robust delegated listener for card action menu toggle
-                    if (container && container.__cardMenuDelegated !== true) {
-                        container.addEventListener("click", function (e) {
+                    // Delegate card menu handling across all three containers via document (simpler and robust)
+                    if (!window.__projectCardMenuDelegated) {
+                        window.__projectCardMenuDelegated = true;
+                        document.addEventListener("click", function (e) {
                             const btn = e.target.closest(".dropdown-icon");
                             if (!btn) return;
-                            if (!container.contains(btn)) return;
                             e.preventDefault();
                             e.stopPropagation();
-
                             const dropdownMenu = btn.nextElementSibling;
-                            const isVisible =
-                                dropdownMenu &&
-                                !dropdownMenu.classList.contains("d-none");
-
-                            // Close all card action menus within this container only
-                            container
-                                .querySelectorAll(".dropdown-action")
-                                .forEach((menu) => {
-                                    menu.classList.add("d-none");
-                                });
-
-                            // Open the requested one if it wasn't visible
-                            if (dropdownMenu && !isVisible) {
-                                dropdownMenu.classList.remove("d-none");
-                            }
+                            const isVisible = dropdownMenu && !dropdownMenu.classList.contains("d-none");
+                            document.querySelectorAll('.dropdown-action').forEach(menu => menu.classList.add('d-none'));
+                            if (dropdownMenu && !isVisible) dropdownMenu.classList.remove('d-none');
                         });
-                        // Close any open card menus when clicking outside the cards
-                        if (!window.__globalCardMenuCloserBound) {
-                            window.__globalCardMenuCloserBound = true;
-                            document.addEventListener("click", function () {
-                                try {
-                                    document
-                                        .querySelectorAll(".dropdown-action")
-                                        .forEach((menu) =>
-                                            menu.classList.add("d-none")
-                                        );
-                                } catch (_) {}
-                            });
-                        }
-                        container.__cardMenuDelegated = true;
+                        // global closer
+                        document.addEventListener("click", function () {
+                            try {
+                                document.querySelectorAll('.dropdown-action').forEach(menu => menu.classList.add('d-none'));
+                            } catch (_) {}
+                        });
                     }
 
                     // Bind latest-feedback-snippet clicks to open modal and mark read
@@ -1590,8 +1622,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     } catch (_) {}
                     // Only refresh feedback snippets if search is empty
                     try {
-                        const searchInput =
-                            document.getElementById("search_filter");
+                        const searchInput = document.getElementById("search_filter");
                         if (!searchInput || searchInput.value.trim() === "") {
                             refreshAllProjectLatestFeedbackSnippets();
                         }
@@ -9510,13 +9541,22 @@ document.addEventListener("DOMContentLoaded", function () {
     (function populateCounts(retry = 0) {
         const MAX_RETRIES = 12;
         const RETRY_DELAY = 250;
-        const containerEl = document.getElementById("all-cards-container");
-        if (!containerEl) {
+        function getAllProjectCardContainers() {
+            return [
+                document.getElementById('new-cards-container'),
+                document.getElementById('inprogress-cards-container'),
+                document.getElementById('completed-cards-container')
+            ].filter(Boolean);
+        }
+
+        const containers = getAllProjectCardContainers();
+        if (!containers || containers.length === 0) {
             if (retry < MAX_RETRIES)
                 return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
             return;
         }
-        const cards = containerEl.querySelectorAll("[data-project-id]");
+        // collect all cards from all containers
+        const cards = Array.from(containers).reduce((acc, c) => acc.concat(Array.from(c.querySelectorAll('[data-project-id]'))), []);
         if (!cards || cards.length === 0) {
             if (retry < MAX_RETRIES)
                 return setTimeout(() => populateCounts(retry + 1), RETRY_DELAY);
@@ -9599,11 +9639,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
     window.updateProjectBadges = function (pid, attempt = 0) {
         try {
-            const containerEl = document.getElementById("all-cards-container");
-            if (!containerEl) return;
-            const card = containerEl.querySelector(
-                '[data-project-id="' + pid + '"]'
-            );
+            // Search across all three containers for the project card
+            const containers = getAllProjectCardContainers();
+            let card = null;
+            for (let i = 0; i < containers.length; i++) {
+                const c = containers[i];
+                const found = c.querySelector('[data-project-id="' + pid + '"]');
+                if (found) {
+                    card = found;
+                    break;
+                }
+            }
             if (!card) {
                 if (attempt < 5)
                     return setTimeout(
@@ -9710,11 +9756,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
     window.refreshSingleProjectCard = function (pid, attempt = 0) {
         try {
-            const containerEl = document.getElementById("all-cards-container");
-            if (!containerEl) return;
-            const col = containerEl.querySelector(
-                '[data-project-id="' + pid + '"]'
-            );
+            const containers = getAllProjectCardContainers();
+            let col = null;
+            for (let i = 0; i < containers.length; i++) {
+                const c = containers[i];
+                const found = c.querySelector('[data-project-id="' + pid + '"]');
+                if (found) {
+                    col = found; break;
+                }
+            }
             if (!col) {
                 if (attempt < 10)
                     return setTimeout(
