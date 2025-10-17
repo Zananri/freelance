@@ -495,8 +495,17 @@
                                     url: appUrl + '/task/' + taskId + '/accept',
                                     method: 'POST',
                                     headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                    success: function(){
-                                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){ }
+                                    success: function(response){
+                                        // Check if task was moved to rejected status
+                                        var message = 'Task accepted successfully!';
+                                        var alertType = 'success';
+                                        try {
+                                            if (response && response.task_status === 'rejected') {
+                                                message = response.message || 'Task was already completed. Status changed to rejected.';
+                                                alertType = 'warning';
+                                            }
+                                        } catch(_) {}
+                                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert(message, alertType); } catch(_){ }
                                         markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
                                         window.location.reload();
                                     },
@@ -550,7 +559,20 @@
                                 url: appUrl + '/task/' + taskId + '/accept',
                                 method: 'POST',
                                 headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                success: function(){ try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){} modal2.hide(); markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); window.location.reload(); },
+                                success: function(response){ 
+                                    var message = 'Task accepted successfully!';
+                                    var alertType = 'success';
+                                    try {
+                                        if (response && response.task_status === 'rejected') {
+                                            message = response.message || 'Task was already completed. Status changed to rejected.';
+                                            alertType = 'warning';
+                                        }
+                                    } catch(_) {}
+                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert(message, alertType); } catch(_){} 
+                                    modal2.hide(); 
+                                    markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); 
+                                    window.location.reload(); 
+                                },
                                 error: function(xhr){ let msg = 'Failed to accept task'; try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ } if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); },
                                 complete: function(){ const btn = document.getElementById('confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; } }
                             });
@@ -578,7 +600,38 @@
                     const modalEl = document.getElementById('taskDetailModal');
                     const modal2 = new bootstrap.Modal(modalEl);
                     modal2.show();
-                    document.getElementById('confirmAcceptInviteBtn').addEventListener('click', function(){ this.disabled = true; this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...'; $.ajax({ url: appUrl + '/task/' + taskId + '/accept', method: 'POST', headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, success: function(){ try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task accepted successfully!', 'success'); } catch(_){} modal2.hide(); markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); window.location.reload(); }, error: function(xhr){ let msg = 'Failed to accept task'; try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ } if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); }, complete: function(){ const btn = document.getElementById('confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; } } }); });
+                    document.getElementById('confirmAcceptInviteBtn').addEventListener('click', function(){ 
+                        this.disabled = true; 
+                        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...'; 
+                        $.ajax({ 
+                            url: appUrl + '/task/' + taskId + '/accept', 
+                            method: 'POST', 
+                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, 
+                            success: function(response){ 
+                                var message = 'Task accepted successfully!';
+                                var alertType = 'success';
+                                try {
+                                    if (response && response.task_status === 'rejected') {
+                                        message = response.message || 'Task was already completed. Status changed to rejected.';
+                                        alertType = 'warning';
+                                    }
+                                } catch(_) {}
+                                try { if (typeof showFloatingAlert === 'function') showFloatingAlert(message, alertType); } catch(_){} 
+                                modal2.hide(); 
+                                markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); 
+                                window.location.reload(); 
+                            }, 
+                            error: function(xhr){ 
+                                let msg = 'Failed to accept task'; 
+                                try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ } 
+                                if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); 
+                            }, 
+                            complete: function(){ 
+                                const btn = document.getElementById('confirmAcceptInviteBtn'); 
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; } 
+                            } 
+                        }); 
+                    });
                     $(modalEl).on('hidden.bs.modal', function(){ $(this).remove(); });
                 }
             },

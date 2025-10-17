@@ -349,7 +349,7 @@ class ProjectController extends Controller
             try {
                 $userType = strtoupper((string) ($user->user_type ?? ''));
                 $userRole = strtoupper((string) ($user->user_role ?? ''));
-                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL MANAGER', 'CEO'])) {
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
                     $canSeeAll = true;
                 }
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {

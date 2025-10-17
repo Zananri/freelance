@@ -3810,6 +3810,97 @@ class TaskController extends Controller
                 throw new \Exception('Task already accepted', 400);
             }
 
+            // Load task untuk cek status dan executor lain
+            $task = Task::find($taskId);
+            if (!$task) {
+                throw new \Exception('Task not found', 404);
+            }
+
+            // Cek apakah task sudah completed
+            $isTaskCompleted = (strtolower($task->status) === 'completed');
+            
+            // Cek apakah ada executor lain yang sudah accept
+            $otherAcceptedExecutors = TaskAssignment::where('task_id', $taskId)
+                ->where('employee_id', '!=', $user->employee->id)
+                ->where('role', 'EXECUTOR')
+                ->where('is_receive', true)
+                ->count();
+
+            // LOGIKA BARU: Jika task completed DAN ada executor lain yang sudah accept,
+            // maka accept ini akan mengubah task menjadi REJECTED
+            $shouldRejectTask = ($isTaskCompleted && $otherAcceptedExecutors > 0);
+
+            if ($shouldRejectTask) {
+                // Tetap update assignment (mark sebagai received tapi task akan di-reject)
+                $assignment->update([
+                    'is_receive' => true,
+                    'date_receive' => now(),
+                ]);
+
+                // Update task status menjadi REJECTED
+                $oldStatus = $task->status;
+                $task->status = 'rejected';
+                $task->save();
+
+                // Log status change ke TaskStatusLog
+                try {
+                    TaskStatusLog::create([
+                        'task_id' => $taskId,
+                        'employee_id' => $user->employee->id,
+                        'old_status' => $oldStatus,
+                        'new_status' => 'rejected',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                } catch (\Throwable $_) {
+                    // Jangan block kalau log gagal
+                }
+
+                // Record acceptance in TaskAssignmentLog (tetap catat sebagai ACCEPTED)
+                try {
+                    $creatorEmployeeId = null;
+                    $creatorUserId = $task->created_by ?? null;
+                    if ($creatorUserId) {
+                        $creator = Employee::where('user_id', $creatorUserId)->first();
+                        if ($creator)
+                            $creatorEmployeeId = $creator->id;
+                    }
+
+                    $existing = TaskAssignmentLog::where('task_id', $taskId)
+                        ->where('employee_id', $user->employee->id)
+                        ->where('action', TaskAssignmentLog::ACTION_PENDING)
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+
+                    if ($existing) {
+                        $existing->action = TaskAssignmentLog::ACTION_ACCEPTED;
+                        $existing->status = TaskAssignmentLog::STATUS_ACTIVE;
+                        $existing->updated_by = $user->employee->id;
+                        $existing->save();
+                    } else {
+                        TaskAssignmentLogService::record([
+                            'task_id' => $taskId,
+                            'employee_id' => $user->employee->id,
+                            'creator_task' => $creatorEmployeeId,
+                            'action' => TaskAssignmentLog::ACTION_ACCEPTED,
+                            'created_by' => $user->employee->id,
+                        ]);
+                    }
+                } catch (\Throwable $_) {
+                    // don't block acceptance if logging fails
+                }
+
+                DB::commit();
+
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'message' => 'Task was already completed by another executor. This task has been moved to rejected status.',
+                    'task_status' => 'rejected'
+                ]);
+            }
+
+            // LOGIKA NORMAL: Accept biasa
             $assignment->update([
                 'is_receive' => true,
                 'date_receive' => now(),
@@ -3818,14 +3909,11 @@ class TaskController extends Controller
             // Record acceptance in TaskAssignmentLog
             try {
                 $creatorEmployeeId = null;
-                if ($task = Task::find($taskId)) {
-                    // Try to map task.created_by (user id) to an employee id if available
-                    $creatorUserId = $task->created_by ?? null;
-                    if ($creatorUserId) {
-                        $creator = Employee::where('user_id', $creatorUserId)->first();
-                        if ($creator)
-                            $creatorEmployeeId = $creator->id;
-                    }
+                $creatorUserId = $task->created_by ?? null;
+                if ($creatorUserId) {
+                    $creator = Employee::where('user_id', $creatorUserId)->first();
+                    if ($creator)
+                        $creatorEmployeeId = $creator->id;
                 }
 
                 // Prefer updating an existing PENDING log to ACCEPTED
@@ -3854,8 +3942,7 @@ class TaskController extends Controller
             }
 
             try {
-                $task = Task::find($taskId);
-                if ($task && $task->project_id) {
+                if ($task->project_id) {
                     $projectId = $task->project_id;
                     $exists = ProjectAssignment::where('project_id', $projectId)
                         ->where('employee_id', $user->employee->id)

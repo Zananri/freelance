@@ -1202,7 +1202,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     const isPrivilegedUser = (function(){
                         try {
-                            if (currentUserType === 'MANAGEMENT' && (currentUserRole === 'GENERAL MANAGER' || currentUserRole === 'CEO')) return true;
+                            if (currentUserType === 'MANAGEMENT' && (currentUserRole === 'GENERAL_MANAGER' || currentUserRole === 'CEO')) return true;
                             if (currentUserType === 'ADMINISTRATOR' && currentUserRole === 'ADMINISTRATOR') return true;
                         } catch (e) {}
                         return false;
