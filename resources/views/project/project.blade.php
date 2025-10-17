@@ -221,15 +221,15 @@
                     <div class="row">
                         <div class="col-md-4 new-request-container">
                             <h4 class="project-section-title mb-3">New</h4>
-                            <div id="all-cards-container"></div>
+                            <div id="new-cards-container"></div>
                         </div>
                         <div class="col-md-4 in-progress-container">
                             <h4 class="project-section-title mb-3">In Progress</h4>
-                            <div id="all-cards-container"></div>
+                            <div id="inprogress-cards-container"></div>
                         </div>
                         <div class="col-md-4 completed-container">
                             <h4 class="project-section-title mb-3">Completed</h4>
-                            <div id="all-cards-container"></div>
+                            <div id="completed-cards-container"></div>
                         </div>
                     </div>
                 </div>
