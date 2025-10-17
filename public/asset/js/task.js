@@ -496,12 +496,15 @@
                                     method: 'POST',
                                     headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                                     success: function(response){
-                                        // Check if task was moved to rejected status
+                                        // Check if executor was rejected (late acceptance)
                                         var message = 'Task accepted successfully!';
                                         var alertType = 'success';
                                         try {
-                                            if (response && response.task_status === 'rejected') {
-                                                message = response.message || 'Task was already completed. Status changed to rejected.';
+                                            if (response && response.executor_removed === true) {
+                                                message = response.message || 'Task was already completed by another executor. You have been removed from this task.';
+                                                alertType = 'warning';
+                                            } else if (response && response.task_status === 'rejected') {
+                                                message = response.message || 'Task moved to In Progress with rejected status.';
                                                 alertType = 'warning';
                                             }
                                         } catch(_) {}
@@ -563,8 +566,11 @@
                                     var message = 'Task accepted successfully!';
                                     var alertType = 'success';
                                     try {
-                                        if (response && response.task_status === 'rejected') {
-                                            message = response.message || 'Task was already completed. Status changed to rejected.';
+                                        if (response && response.executor_removed === true) {
+                                            message = response.message || 'Task was already completed by another executor. You have been removed from this task.';
+                                            alertType = 'warning';
+                                        } else if (response && response.task_status === 'rejected') {
+                                            message = response.message || 'Task moved to In Progress with rejected status.';
                                             alertType = 'warning';
                                         }
                                     } catch(_) {}
@@ -611,8 +617,11 @@
                                 var message = 'Task accepted successfully!';
                                 var alertType = 'success';
                                 try {
-                                    if (response && response.task_status === 'rejected') {
-                                        message = response.message || 'Task was already completed. Status changed to rejected.';
+                                    if (response && response.executor_removed === true) {
+                                        message = response.message || 'Task was already completed by another executor. You have been removed from this task.';
+                                        alertType = 'warning';
+                                    } else if (response && response.task_status === 'rejected') {
+                                        message = response.message || 'Task moved to In Progress with rejected status.';
                                         alertType = 'warning';
                                     }
                                 } catch(_) {}
