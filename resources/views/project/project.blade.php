@@ -39,10 +39,13 @@
         </div>
     </div>
 
-    {{-- Hidden fields for Contributions modal JS --}}
     <input type="hidden" name="employee_id" value="{{ auth()->user()->employee->id ?? '' }}">
     <input type="hidden" id="contrib-endpoint"
         value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
+    <input type="hidden" id="currentEmployee"
+        data-employee-id="{{ auth()->user()->employee->id ?? '' }}"
+        data-user-type="{{ strtoupper(auth()->user()->user_type ?? '') }}"
+        data-user-role="{{ strtoupper(auth()->user()->user_role ?? '') }}">
 
     <div class="project-card-container">
         <div class="row">

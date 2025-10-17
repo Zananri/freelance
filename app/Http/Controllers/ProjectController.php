@@ -345,21 +345,39 @@ class ProjectController extends Controller
             $user = $request->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
 
-            $projectsQuery = Project::where('status', '!=', 'DELETED')
-                ->where(function ($q) use ($employeeId) {
-                    $q->whereNull('project_type')
-                      ->orWhere('project_type', 'public');
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
 
-                    if ($employeeId) {
-                        $q->orWhere(function ($qq) use ($employeeId) {
-                            $qq->where('project_type', 'private')
-                               ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
-                                    $q2->where('employee_id', $employeeId)
-                                       ->where('role', 'author');
-                               });
-                        });
-                    }
-                });
+            if ($canSeeAll) {
+                $projectsQuery = Project::where('status', '!=', 'DELETED');
+            } else {
+                $projectsQuery = Project::where('status', '!=', 'DELETED')
+                    ->where(function ($q) use ($employeeId) {
+                        $q->whereNull('project_type')
+                          ->orWhere('project_type', 'public');
+
+                        if ($employeeId) {
+                            $q->orWhere(function ($qq) use ($employeeId) {
+                                $qq->where('project_type', 'private')
+                                   ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                        $q2->where('employee_id', $employeeId)
+                                           ->where('role', 'author');
+                                   });
+                            });
+                        }
+                    });
+            }
 
             $projects = $projectsQuery->get(['id', 'title', 'image']);
             $projectIds = $projects->pluck('id')->toArray();
