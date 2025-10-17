@@ -746,10 +746,57 @@
                 allowClose = true;
             });
 
+            // When modal is shown, mark form as pristine (no user edits yet).
+            // Attach input/change listeners to mark it dirty when the user edits
+            // any input except the ignored auto-filled fields for the Add modal.
+            $modal.on('show.bs.modal', function() {
+                try {
+                    if ($modal[0] && $modal[0].dataset) {
+                        $modal[0].dataset.formPristine = '1';
+                    }
+                } catch(_) {}
+
+                // Prevent attaching multiple handlers
+                try {
+                    if ($modal[0] && $modal[0].dataset && $modal[0].dataset.pristineHandlerAdded === '1') return;
+                    const ignoredForAdd = new Set(['task_priority', 'task_point', 'task_start_date', 'task_due_date']);
+                    $modal.on('input change', 'input, textarea, select', function(e) {
+                        try {
+                            const modalId = $modal && $modal.attr ? $modal.attr('id') : null;
+                            const elId = this.id || '';
+                            // If this is add modal and the changed field is one of the ignored, do not mark dirty
+                            if (modalId === 'addTaskModal' && ignoredForAdd.has(elId)) return;
+                            if ($modal[0] && $modal[0].dataset) $modal[0].dataset.formPristine = '0';
+                        } catch(_) {}
+                    });
+                    if ($modal[0] && $modal[0].dataset) $modal[0].dataset.pristineHandlerAdded = '1';
+                } catch(_) {}
+            });
+
             $modal.on('hide.bs.modal', function(e) {
+                // If a programmatic close was intended, allow it and clear the flag.
+                try {
+                    if ($modal[0] && $modal[0].dataset && $modal[0].dataset.allowProgrammaticClose === '1') {
+                        allowClose = true;
+                        delete $modal[0].dataset.allowProgrammaticClose;
+                    }
+                } catch(_) {}
+
                 const triggerElement = $(document.activeElement);
                 const clickedOutside = triggerElement.length === 0 || !$.contains($modal[0], triggerElement[0]);
-                const partiallyFilled = isFormPartiallyFilled(formSelector);
+                // If the form is still pristine (user hasn't changed anything),
+                // treat it as not partially filled. This avoids false positives when
+                // only auto-filled defaults exist (priority/point/start/due).
+                let partiallyFilled = false;
+                try {
+                    if ($modal[0] && $modal[0].dataset && $modal[0].dataset.formPristine === '1') {
+                        partiallyFilled = false;
+                    } else {
+                        partiallyFilled = isFormPartiallyFilled(formSelector);
+                    }
+                } catch(_) {
+                    partiallyFilled = isFormPartiallyFilled(formSelector);
+                }
 
                 if (clickedOutside && partiallyFilled && !allowClose) {
                     e.preventDefault();
@@ -767,9 +814,21 @@
 
             function isFormPartiallyFilled(form) {
                 let filled = false;
+                // Fields that are auto-populated on Add Task modal and should not
+                // count as "partially filled" for the purpose of blocking outside-close.
+                const ignoredForAdd = new Set(['task_priority', 'task_point', 'task_start_date', 'task_due_date']);
+
                 form.find('input, textarea, select').each(function() {
                     const type = $(this).attr('type');
                     if (type === 'hidden' || type === 'file') return;
+
+                    // If this is the Add Task modal, ignore certain auto-filled fields
+                    try {
+                        const modalId = $modal && $modal.attr ? $modal.attr('id') : null;
+                        const elId = $(this).attr('id') || '';
+                        if (modalId === 'addTaskModal' && ignoredForAdd.has(elId)) return;
+                    } catch(_) {}
+
                     const val = $(this).val();
                     if (val && val.trim() !== '') {
                         filled = true;
@@ -1511,6 +1570,9 @@
                         setTimeout(() => {
                             var addTaskModalInstance =
                                 bootstrap.Modal.getInstance(addTaskModalEl);
+                            try {
+                                if (addTaskModalEl && addTaskModalEl.dataset) addTaskModalEl.dataset.allowProgrammaticClose = '1';
+                            } catch(_) {}
                             if (addTaskModalInstance)
                                 addTaskModalInstance.hide();
                             
@@ -2503,6 +2565,9 @@
                         setTimeout(() => {
                             var editTaskModalInstance =
                                 bootstrap.Modal.getInstance(editTaskModalEl);
+                            try {
+                                if (editTaskModalEl && editTaskModalEl.dataset) editTaskModalEl.dataset.allowProgrammaticClose = '1';
+                            } catch(_) {}
                             if (editTaskModalInstance)
                                 editTaskModalInstance.hide();
                             // Insert/refresh single updated task so client-archived tasks get restored immediately
@@ -3135,9 +3200,11 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
     function createTaskCard(task) {
         // Early-safety: if this task is completed and older than threshold, register into
         // client archive buffer and return an empty string so no card is rendered.
+        // Determine upfront whether we're rendering the archive modal so the
+        // template (later) can safely reference the flag without a ReferenceError.
+        let inArchiveRender = !!(window.__renderingArchiveModal);
         try {
             // If we're currently rendering the archive modal, allow cards to be created
-            const inArchiveRender = !!(window.__renderingArchiveModal);
             if (!inArchiveRender && __isCompletedOlderThanDaysGlobal(task, 90)) {
                 const idKey = String(task.id || task.task_id || '');
                 if (idKey) {
@@ -3346,8 +3413,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             </div>
         `;
 
-        return `
-        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;" id="custom-card">
+    return `
+    <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
                 ${statusBadge}
                 ${dropdownHtml}
                 ${iconHtml}
@@ -5176,6 +5243,13 @@ function filterTaskTableRows(queryRaw) {
         // === MOUSE EVENTS ===
         $(document).on('mousedown', '#custom-card', function(e) {
             if (e.which !== 1) return; // kiri mouse
+
+            // Do not initialize kanban drag when the card is inside a modal (e.g. archive modal)
+            // Cards rendered inside modals should be non-interactive for dragging.
+            try {
+                if ($(this).closest('.modal').length) return;
+            } catch (_) {}
+
             e.preventDefault();
 
             const $card = $(this);
