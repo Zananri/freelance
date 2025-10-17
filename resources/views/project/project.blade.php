@@ -27,10 +27,12 @@
             <h2>Project</h2>
         </div>
         <div class="d-flex justify-content-end">
-            <button class="btn btn-contributor-custom me-2" data-bs-target="#projectTreeModal" data-bs-toggle="modal" title="Flowchart">
+            <button class="btn btn-contributor-custom me-2" data-bs-target="#projectTreeModal" data-bs-toggle="modal"
+                title="Flowchart">
                 <span class="material-symbols-outlined">flowchart</span>
             </button>
-            <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" data-bs-toggle="tooltip" data-bs-title="Job Tracking" data-bs-placement="top">
+            <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" data-bs-toggle="tooltip"
+                data-bs-title="Job Tracking" data-bs-placement="top">
                 <span class="material-symbols-outlined">grid_view</span>
             </button>
             <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
@@ -42,8 +44,7 @@
     <input type="hidden" name="employee_id" value="{{ auth()->user()->employee->id ?? '' }}">
     <input type="hidden" id="contrib-endpoint"
         value="{{ route('employees.contributions', ['id' => auth()->user()->employee->id ?? 0]) }}">
-    <input type="hidden" id="currentEmployee"
-        data-employee-id="{{ auth()->user()->employee->id ?? '' }}"
+    <input type="hidden" id="currentEmployee" data-employee-id="{{ auth()->user()->employee->id ?? '' }}"
         data-user-type="{{ strtoupper(auth()->user()->user_type ?? '') }}"
         data-user-role="{{ strtoupper(auth()->user()->user_role ?? '') }}">
 
@@ -84,38 +85,36 @@
             </div>
             <div class="col-md-8">
                 {{-- timeline project --}}
-                <div class="timeline-card">
-                    <div class="body-content timeline-section p-4">
-                        <div class="project-timeline-card">
-                            <div class="timeline-card h-100">
-                                <div class="d-flex justify-content-between align-items-center mb-3">
-                                    <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">
-                                        Aug week 1
-                                    </h5>
-                                    <div>
-                                        <button class="btn btn-sm me-2" id="prevTimeline">
-                                            <span class="material-symbols-outlined">chevron_left</span>
-                                        </button>
-                                        <button class="btn btn-sm me-2" id="nextTimeline">
-                                            <span class="material-symbols-outlined">chevron_right</span>
-                                        </button>
-                                        <button data-bs-toggle="modal" data-bs-target="#timelineModal"
-                                            class="btn btn-sm border-0 bg-transparent">
-                                            <span id="timelineFullscreenIcon"
-                                                class="material-symbols-outlined">fullscreen</span>
-                                        </button>
-                                    </div>
+                <div class="body-content timeline-section p-4">
+                    <div class="project-timeline-card">
+                        <div class="timeline-card h-100">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">
+                                    Aug week 1
+                                </h5>
+                                <div>
+                                    <button class="btn btn-sm me-2" id="prevTimeline">
+                                        <span class="material-symbols-outlined">chevron_left</span>
+                                    </button>
+                                    <button class="btn btn-sm me-2" id="nextTimeline">
+                                        <span class="material-symbols-outlined">chevron_right</span>
+                                    </button>
+                                    <button data-bs-toggle="modal" data-bs-target="#timelineModal"
+                                        class="btn btn-sm border-0 bg-transparent">
+                                        <span id="timelineFullscreenIcon"
+                                            class="material-symbols-outlined">fullscreen</span>
+                                    </button>
                                 </div>
+                            </div>
 
-                                <!-- Timeline pakai table -->
-                                <div class="timeline-wrapper">
-                                    <table class="timeline-table">
-                                        <thead>
-                                            <tr id="timelineHeader"></tr>
-                                        </thead>
-                                        <tbody id="timelineRows"></tbody>
-                                    </table>
-                                </div>
+                            <!-- Timeline pakai table -->
+                            <div class="timeline-wrapper">
+                                <table class="timeline-table">
+                                    <thead>
+                                        <tr id="timelineHeader"></tr>
+                                    </thead>
+                                    <tbody id="timelineRows"></tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -331,7 +330,8 @@
                         <div class="mb-3 input-custom">
                             <label for="reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="reference_file"
-                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                name="reference_file[]"
+                                accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                 multiple>
                             <div class="form-text">Multiple files supported.
                             </div>
@@ -483,7 +483,8 @@
                         <div class="mb-3 input-custom">
                             <label for="edit_reference_file" class="form-label label-custom">Reference Files</label>
                             <input type="file" class="form-control input-text" id="edit_reference_file"
-                                name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                name="reference_file[]"
+                                accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                 multiple>
                             <div id="edit_reference_files_preview" class="mt-2"></div>
                             <div id="existing_reference_files" class="mt-2"></div>
@@ -608,7 +609,8 @@
                                 files</label>
                             <input type="file" class="form-control border-0 input-text"
                                 id="add_project_reference_files" name="reference_files[]"
-                                accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple>
+                                accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                multiple>
                         </div>
 
                         <div id="add_project_reference_files_preview" class="mt-2"></div>
@@ -641,21 +643,34 @@
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <div class="feedback-form w-100">
-                        <div id="inline_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
+                        <div id="inline_feedback_editor" class="border-0 ql-container ql-snow"
+                            style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
+                            <div class="ql-editor ql-blank" contenteditable="true"
+                                data-placeholder="Write feedback...">
+                                <p><br></p>
+                            </div>
+                        </div>
 
                         <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
 
                         <div class="d-flex justify-content-between btn-actions-feedback mt-2">
                             <div class="d-flex-justify-content-start">
-                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn"
+                                    title="Upload photo">
                                     <span class="material-symbols-outlined feedback-photo-icon">photo</span>
                                 </button>
-                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn"
+                                    title="Attach file">
                                     <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
                                 </button>
-                                <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
-                                <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
-                                <input type="text" id="inline_edit_feedback_input" name="edit_feedback" class="d-none">
+                                <input type="file" id="inline_feedback_image_input" name="feedback_image"
+                                    accept="image/*" class="d-none">
+                                <input type="file" id="inline_feedback_files_input" name="reference_files[]"
+                                    multiple
+                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                    class="d-none">
+                                <input type="text" id="inline_edit_feedback_input" name="edit_feedback"
+                                    class="d-none">
                             </div>
                             <div class="d-flex justify-content-end submit-feedback">
                                 <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
@@ -746,7 +761,8 @@
     </div>
 
     {{-- Project Tree Modal --}}
-    <div class="modal fade" id="projectTreeModal" tabindex="-1" aria-labelledby="projectTreeModal" aria-hidden="true">
+    <div class="modal fade" id="projectTreeModal" tabindex="-1" aria-labelledby="projectTreeModal"
+        aria-hidden="true">
         <div class="modal-dialog modal-fullscreen">
             <div class="modal-content modal-content-custom">
                 <div class="modal-header modal-header-custom mb-2 border-bottom">
