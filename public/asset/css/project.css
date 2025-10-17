@@ -1479,6 +1479,10 @@
         justify-content: center;
     }
 
+    .timeline-section {
+        display: none;
+    }
+
     .timeline-wrapper::-webkit-scrollbar {
         width: 4px;
     }

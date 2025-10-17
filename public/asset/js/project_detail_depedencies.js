@@ -1560,16 +1560,34 @@ function initProjectTaskDetailModal() {
     modal.show();
 }
 
-// Task more-menu global handlers (bind once)
 (function setupTaskMoreMenu(){
-    if (window.__taskMoreMenuBound) return; window.__taskMoreMenuBound = true;
+    if (window.__taskMoreMenuBound) return;
+    window.__taskMoreMenuBound = true;
 
     var $globalMenu = null;
     var currentTaskId = null;
 
     function createOrGetMenu() {
         if (!$globalMenu || !$globalMenu.parent().length) {
-            $globalMenu = $('<div id="task-global-more-menu" class="d-none" style="position:fixed;min-width:140px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;overflow:hidden;pointer-events:auto;"><button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button></div>');
+            $globalMenu = $(`
+                <div id="task-global-more-menu" class="d-none"
+                    style="position:fixed;min-width:140px;background:#fff;border:1px solid #e5e7eb;
+                    box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;
+                    overflow:hidden;pointer-events:auto;">
+                    <button type="button" class="clear-parent-action"
+                    style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                    text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent
+                    </button>
+                    <button type="button" class="edit-task-action"
+                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                        text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit
+                    </button>
+                    <button type="button" class="delete-task-action"
+                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                        text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete
+                    </button>
+                </div>
+            `);
             $('body').append($globalMenu);
         }
         return $globalMenu;
@@ -1595,7 +1613,6 @@ function initProjectTaskDetailModal() {
         } catch(_){}
     }
 
-    // Toggle menu
     $(document).on('click', '.task-more-btn', function(e){
         try {
             e.preventDefault(); e.stopPropagation();
@@ -1612,7 +1629,26 @@ function initProjectTaskDetailModal() {
         } catch(_){}
     });
 
-    // Clear Parent action
+    // Action Edit
+    $(document).on('click', '#task-global-more-menu .edit-task-action', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var taskId = currentTaskId;
+        hideMenu();
+        if (!taskId) return;
+
+        try {
+            const modal = new bootstrap.Modal('#editProjectTaskModal');
+            $('#editProjectTaskModal').attr('data-task-id', taskId);
+            modal.show();
+
+            if (typeof window.handleProjectTaskEdit === 'function') {
+                window.handleProjectTaskEdit(taskId);
+            }
+        } catch(err) {
+        }
+    });
+
+    // Action Clear Parent
     $(document).on('click', '#task-global-more-menu .clear-parent-action', function(e){
         try {
             e.preventDefault(); e.stopPropagation();
@@ -1620,15 +1656,10 @@ function initProjectTaskDetailModal() {
             if (!taskId) return;
             hideMenu();
 
-            // Clear all parents: set parent_id to null AND clear parent_ids array
-            // Send as JSON to ensure proper array handling
             $.ajax({
                 url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
                 type: 'PUT',
-                data: JSON.stringify({
-                    parent_id: null,
-                    parent_ids: []
-                }),
+                data: JSON.stringify({ parent_id: null, parent_ids: [] }),
                 contentType: 'application/json',
                 dataType: 'json',
                 headers: {
@@ -1637,46 +1668,50 @@ function initProjectTaskDetailModal() {
                     'Accept': 'application/json'
                 }
             })
-            .done(function(res){
-                try {
-                    if (typeof window.refreshTaskTreePartial === 'function') {
-                        window.refreshTaskTreePartial();
-                    } else {
-                        var idStr = String(taskId);
-                        (allTasks || []).forEach(function(t){
-                            if (String(t.id) === idStr) {
-                                t.parent_id = null;
-                                t.parent_ids = [];
-                            }
-                        });
-                        renderTaskList(allTasks);
-                    }
-                    if (typeof window.showFloatingAlert === 'function') {
-                        window.showFloatingAlert('Semua parent dibersihkan', 'success', 1400);
-                    }
-                } catch(_){}
+            .done(function(){
+                if (typeof window.refreshTaskTreePartial === 'function') {
+                    window.refreshTaskTreePartial();
+                } else {
+                    var idStr = String(taskId);
+                    (allTasks || []).forEach(function(t){
+                        if (String(t.id) === idStr) {
+                            t.parent_id = null;
+                            t.parent_ids = [];
+                        }
+                    });
+                    renderTaskList(allTasks);
+                }
+                window.showFloatingAlert?.('Parent clear succesfully', 'success', 1400);
             })
             .fail(function(xhr){
-                try {
-                    console.error('Gagal clear parent', xhr && xhr.responseText);
-                    if (typeof window.showFloatingAlert === 'function') {
-                        window.showFloatingAlert('Gagal menghapus parent', 'warning', 2400);
-                    } else { alert('Gagal menghapus parent'); }
-                } catch(_){}
+                console.error('Gagal clear parent', xhr?.responseText);
+                window.showFloatingAlert?.('Failed to delete parent', 'warning', 2400);
             });
         } catch(_){}
     });
 
-    // Click outside to close
-    $(document).on('click', function(e){
+    // Action Delete
+    $(document).on('click', '#task-global-more-menu .delete-task-action', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var taskId = currentTaskId;
+        hideMenu();
+        if (!taskId) return;
+
         try {
-            if (!$(e.target).closest('#task-global-more-menu, .task-more-btn').length) {
-                hideMenu();
+            const modal = new bootstrap.Modal('#deleteProjectTaskModal');
+            $('#deleteProjectTaskModal').attr('data-task-id', taskId);
+            modal.show();
+
+            if (typeof window.handleProjectTaskDelete === 'function') {
+                window.handleProjectTaskDelete(taskId);
             }
-        } catch(_){}
+        } catch(err) {}
     });
 
-    // Hide on scroll
-    $(window).on('scroll', function(){ try { hideMenu(); } catch(_){} });
+    $(document).on('click', function(e){
+        if (!$(e.target).closest('#task-global-more-menu, .task-more-btn').length) hideMenu();
+    });
+
+    $(window).on('scroll', function(){ hideMenu(); });
 })();
 
