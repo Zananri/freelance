@@ -5427,12 +5427,12 @@
     function createActionButtons(projectId, actionsContainer) {
         actionsContainer.empty();
         var appUrl = getMeta("app-url") || "";
-        var editUrl =
-            appUrl.replace(/\/$/, "") + "/project/" + projectId + "/edit";
-        var $edit = $("<a>")
+        
+        // Edit button - open modal instead of navigation
+        var $edit = $("<button>")
             .addClass("detail-icon")
             .attr("title", "Edit")
-            .attr("href", editUrl)
+            .attr("type", "button")
             .append(
                 $("<span>")
                     .addClass("material-symbols-outlined icon-fill me-3")
@@ -5450,6 +5450,51 @@
             );
 
         actionsContainer.append($edit).append($delete);
+
+        // Edit handler: open edit modal
+        $edit.on("click", function (e) {
+            e.preventDefault();
+            var editUrl = appUrl.replace(/\/$/, "") + "/project/" + projectId + "/edit";
+            
+            // Fetch project data for edit modal
+            $.ajax({
+                url: editUrl,
+                method: "GET",
+                headers: { Accept: "application/json" },
+                success: function (res) {
+                    if (res) {
+                        // Populate edit modal with project data
+                        try {
+                            if (window.populateEditProjectModal && typeof window.populateEditProjectModal === 'function') {
+                                window.populateEditProjectModal(res);
+                            }
+                        } catch (err) {
+                            console.error("Error populating edit modal:", err);
+                        }
+                        
+                        // Show edit modal
+                        var editModalEl = document.getElementById("editProjectModal");
+                        if (editModalEl) {
+                            var bsModal = new bootstrap.Modal(editModalEl, {
+                                backdrop: "static",
+                                keyboard: false,
+                            });
+                            bsModal.show();
+                        }
+                    }
+                },
+                error: function (xhr) {
+                    console.error("Error fetching project for edit", xhr);
+                    if (typeof window.showFloatingAlert === "function")
+                        window.showFloatingAlert(
+                            "Failed to load project data for editing",
+                            "warning",
+                            3500
+                        );
+                    else alert("Failed to load project data for editing");
+                },
+            });
+        });
 
         // Delete handler: open modal (modal already contains server-rendered project details)
         $delete.on("click", function (e) {
@@ -5652,6 +5697,187 @@
             },
         });
     }
+
+    // Helper function to load divisions for edit modal
+    function loadEditDivisions(departmentId, callback) {
+        var divisionSelect = document.getElementById("edit_division");
+        if (!divisionSelect) {
+            if (callback) callback();
+            return;
+        }
+        
+        divisionSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
+        var appUrl = getMeta("app-url") || "";
+        
+        $.ajax({
+            url: appUrl.replace(/\/$/, "") + "/divisions-for-projects",
+            type: "GET",
+            data: { department_id: departmentId },
+            dataType: "json",
+            success: function (response) {
+                var options = '<option value="" disabled selected>Select Division</option>';
+                var divisions = response.data || [];
+                divisions.forEach(function(div) {
+                    options += '<option value="' + div.id + '">' + (div.name_division || div.name) + '</option>';
+                });
+                divisionSelect.innerHTML = options;
+                divisionSelect.disabled = false;
+                if (callback) callback();
+            },
+            error: function () {
+                divisionSelect.innerHTML = '<option value="" disabled selected>Failed to load divisions</option>';
+                if (typeof window.showFloatingAlert === "function") {
+                    window.showFloatingAlert("Failed to load divisions", "warning", 3500);
+                }
+                if (callback) callback();
+            },
+        });
+    }
+
+    // Populate edit project modal with project data
+    window.populateEditProjectModal = function(data) {
+        try {
+            // Set project ID
+            $("#edit_project_id").val(data.id);
+            
+            // Set title
+            $("#edit_title").val(data.title || "");
+            
+            // Set description (check if Quill editor exists)
+            if (window.__quillProjectEdit && window.__quillProjectEdit.root) {
+                window.__quillProjectEdit.root.innerHTML = data.description || "";
+            }
+            $("#edit_description").val(data.description || "");
+            
+            // Set image
+            var editImageLabel = document.getElementById("editImageLabel");
+            var editImageClearBtn = document.getElementById("editImageClearBtn");
+            if (data.image && editImageLabel) {
+                var appUrl = getMeta("app-url") || "";
+                var imgUrl = data.image;
+                if (!imgUrl.match(/^(https?:)?\/\//)) {
+                    imgUrl = appUrl.replace(/\/$/, "") + "/file/project/" + imgUrl.replace(/^\//, "");
+                }
+                editImageLabel.style.backgroundImage = "url('" + imgUrl + "')";
+                editImageLabel.style.backgroundSize = "cover";
+                if (editImageClearBtn) editImageClearBtn.classList.remove("d-none");
+            }
+            
+            // Get department from modal data attribute (employee's department)
+            var modalEl = document.getElementById("editProjectModal");
+            var employeeDeptId = null;
+            if (modalEl) {
+                // Try to get from hidden department select
+                var deptSelect = document.getElementById("edit_department");
+                if (deptSelect && deptSelect.options.length > 0) {
+                    employeeDeptId = deptSelect.options[0].value;
+                }
+            }
+            
+            // Load divisions first, then set the selected division
+            if (employeeDeptId) {
+                loadEditDivisions(employeeDeptId, function() {
+                    // After divisions loaded, set the selected division if data has it
+                    if (data.division && data.division.id) {
+                        $("#edit_division").val(data.division.id);
+                    }
+                });
+            } else {
+                // Fallback: just try to set division if available
+                if (data.division && data.division.id) {
+                    $("#edit_division").val(data.division.id);
+                }
+            }
+            
+            // Set dates
+            $("#edit_start_date").val(data.start_date || "");
+            $("#edit_due_date").val(data.due_date || "");
+            
+            // Set reference URLs
+            var urlsContainer = $("#edit_project_reference_urls_container");
+            if (urlsContainer.length) {
+                urlsContainer.empty();
+                var urls = data.reference_urls || [];
+                if (!Array.isArray(urls) && data.reference_url) {
+                    urls = [data.reference_url];
+                }
+                if (urls.length === 0) urls = [""];
+                
+                urls.forEach(function(url, idx) {
+                    var inputGroup = $('<div class="input-group mb-2"></div>');
+                    var input = $('<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">').val(url);
+                    var addBtn = $('<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>');
+                    var removeBtn = $('<button type="button" class="btn btn-outline-secondary remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">remove</span></button>');
+                    
+                    inputGroup.append(input);
+                    if (idx === 0) {
+                        inputGroup.append(addBtn);
+                    } else {
+                        inputGroup.append(removeBtn);
+                    }
+                    urlsContainer.append(inputGroup);
+                });
+            }
+            
+            // Set reference files
+            var existingFilesContainer = $("#existing_reference_files");
+            if (existingFilesContainer.length) {
+                existingFilesContainer.empty();
+                var files = data.reference_files || [];
+                if (files && files.length > 0) {
+                    files.forEach(function(fileName) {
+                        if (!fileName) return;
+                        var badge = $('<span class="badge bg-secondary me-2 mb-2"></span>').text(fileName);
+                        var removeBtn = $('<button type="button" class="btn-close btn-sm ms-2"></button>');
+                        removeBtn.on("click", function() {
+                            badge.remove();
+                            // Update hidden input
+                            var remaining = [];
+                            existingFilesContainer.find(".badge").each(function() {
+                                var txt = $(this).text().trim();
+                                if (txt) remaining.push(txt);
+                            });
+                            $("#existing_reference_files_input").val(JSON.stringify(remaining));
+                        });
+                        badge.append(removeBtn);
+                        existingFilesContainer.append(badge);
+                    });
+                    $("#existing_reference_files_input").val(JSON.stringify(files));
+                }
+            }
+            
+            // Set co-authors and contributors
+            if (window.clearSelectedCoAuthorsEdit) window.clearSelectedCoAuthorsEdit();
+            if (window.clearSelectedContributorsEdit) window.clearSelectedContributorsEdit();
+            
+            if (data.co_authors && Array.isArray(data.co_authors)) {
+                var coAuthors = data.co_authors.map(function(a) {
+                    return {
+                        id: a.id,
+                        name: a.name || a.employee_name || "",
+                        user_photo: a.user_photo || a.profile_picture || a.profile_picture_url || null,
+                        division: a.division || a.division_name || ""
+                    };
+                });
+                if (window.setSelectedCoAuthorsEdit) window.setSelectedCoAuthorsEdit(coAuthors);
+            }
+            
+            if (data.contributors && Array.isArray(data.contributors)) {
+                var contributors = data.contributors.map(function(c) {
+                    return {
+                        id: c.id,
+                        name: c.name || c.employee_name || "",
+                        user_photo: c.user_photo || c.profile_picture || c.profile_picture_url || null,
+                        division: c.division || c.division_name || ""
+                    };
+                });
+                if (window.setSelectedContributorsEdit) window.setSelectedContributorsEdit(contributors);
+            }
+            
+        } catch (err) {
+            console.error("Error populating edit project modal:", err);
+        }
+    };
 
     // Setup global AJAX CSRF for forms if token present
     $(function () {

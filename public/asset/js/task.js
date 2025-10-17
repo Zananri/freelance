@@ -9896,10 +9896,12 @@ function filterTaskTableRows(queryRaw) {
 
     // Add reset filter button functionality
     const resetFilterBtn = document.getElementById('resetTaskFilterBtn');
-    resetFilterBtn.addEventListener('click', resetTaskFilters);
-
-    if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
-        applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
+    if (resetFilterBtn) {
+        resetFilterBtn.addEventListener('click', resetTaskFilters);
+        
+        if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
+            applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
+        }
     }
 
     let mobileState = {
