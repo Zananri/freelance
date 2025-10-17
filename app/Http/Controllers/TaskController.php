@@ -100,6 +100,87 @@ class TaskController extends Controller
         }
         return asset($relative);
     }
+
+    /**
+     * Auto-cleanup: Remove assignments for executors who haven't accepted yet
+     * when the task is already completed by another executor.
+     * This prevents late executors from seeing completed tasks in their "New" list.
+     */
+    private function cleanupLateExecutorAssignments($currentEmployeeId)
+    {
+        if (!$currentEmployeeId) return;
+
+        try {
+            // Find tasks that are completed and have unaccepted executor assignments
+            $completedTasksWithPendingExecutors = Task::where('status', 'completed')
+                ->whereHas('assignments', function($q) {
+                    // Has at least one accepted executor
+                    $q->where('role', 'EXECUTOR')
+                      ->where('is_receive', true);
+                })
+                ->whereHas('assignments', function($q) use ($currentEmployeeId) {
+                    // Current employee is an unaccepted executor
+                    $q->where('employee_id', $currentEmployeeId)
+                      ->where('role', 'EXECUTOR')
+                      ->where(function($r) {
+                          $r->whereNull('is_receive')->orWhere('is_receive', false);
+                      });
+                })
+                ->get();
+
+            foreach ($completedTasksWithPendingExecutors as $task) {
+                // Delete the late executor's assignment
+                $lateAssignment = TaskAssignment::where('task_id', $task->id)
+                    ->where('employee_id', $currentEmployeeId)
+                    ->where('role', 'EXECUTOR')
+                    ->where(function($q) {
+                        $q->whereNull('is_receive')->orWhere('is_receive', false);
+                    })
+                    ->first();
+
+                if ($lateAssignment) {
+                    // Log the rejection before deleting
+                    try {
+                        $creatorEmployeeId = null;
+                        if ($task->created_by) {
+                            $creator = Employee::where('user_id', $task->created_by)->first();
+                            if ($creator) $creatorEmployeeId = $creator->id;
+                        }
+
+                        // Update or create rejection log
+                        $existing = TaskAssignmentLog::where('task_id', $task->id)
+                            ->where('employee_id', $currentEmployeeId)
+                            ->where('action', TaskAssignmentLog::ACTION_PENDING)
+                            ->orderBy('created_at', 'desc')
+                            ->first();
+
+                        if ($existing) {
+                            $existing->action = TaskAssignmentLog::ACTION_REJECTED;
+                            $existing->status = TaskAssignmentLog::STATUS_INACTIVE;
+                            $existing->updated_by = $currentEmployeeId;
+                            $existing->save();
+                        } else {
+                            TaskAssignmentLogService::record([
+                                'task_id' => $task->id,
+                                'employee_id' => $currentEmployeeId,
+                                'creator_task' => $creatorEmployeeId,
+                                'action' => TaskAssignmentLog::ACTION_REJECTED,
+                                'created_by' => $currentEmployeeId,
+                            ]);
+                        }
+                    } catch (\Throwable $_) {
+                        // Don't block cleanup if logging fails
+                    }
+
+                    // Delete the assignment
+                    $lateAssignment->delete();
+                }
+            }
+        } catch (\Throwable $_) {
+            // Don't block the main request if cleanup fails
+        }
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -135,6 +216,11 @@ class TaskController extends Controller
             $page = (int) $request->input('page', 1);
 
             $currentUserId = $currentUser?->id;
+            
+            // AUTO-CLEANUP: Remove late executor assignments
+            // Jika task sudah completed dan ada executor yang belum accept, hapus assignment-nya
+            $this->cleanupLateExecutorAssignments($currentEmployeeId);
+            
             $baseQuery = Task::with(['project', 'assignments.employee', 'feedback_comments'])
                 ->where(function ($outer) use ($currentEmployeeId, $currentUserId) {
                     $outer->whereHas('assignments', function ($query) use ($currentEmployeeId) {
@@ -3827,36 +3913,14 @@ class TaskController extends Controller
                 ->count();
 
             // LOGIKA BARU: Jika task completed DAN ada executor lain yang sudah accept,
-            // maka accept ini akan mengubah task menjadi REJECTED
-            $shouldRejectTask = ($isTaskCompleted && $otherAcceptedExecutors > 0);
+            // maka executor yang accept sekarang (terlambat) akan dihapus dari task
+            $shouldRemoveLateExecutor = ($isTaskCompleted && $otherAcceptedExecutors > 0);
 
-            if ($shouldRejectTask) {
-                // Tetap update assignment (mark sebagai received tapi task akan di-reject)
-                $assignment->update([
-                    'is_receive' => true,
-                    'date_receive' => now(),
-                ]);
+            if ($shouldRemoveLateExecutor) {
+                // Hapus assignment executor yang terlambat
+                $assignment->delete();
 
-                // Update task status menjadi REJECTED
-                $oldStatus = $task->status;
-                $task->status = 'rejected';
-                $task->save();
-
-                // Log status change ke TaskStatusLog
-                try {
-                    TaskStatusLog::create([
-                        'task_id' => $taskId,
-                        'employee_id' => $user->employee->id,
-                        'old_status' => $oldStatus,
-                        'new_status' => 'rejected',
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                } catch (\Throwable $_) {
-                    // Jangan block kalau log gagal
-                }
-
-                // Record acceptance in TaskAssignmentLog (tetap catat sebagai ACCEPTED)
+                // Record REJECTION/REMOVAL in TaskAssignmentLog
                 try {
                     $creatorEmployeeId = null;
                     $creatorUserId = $task->created_by ?? null;
@@ -3866,6 +3930,7 @@ class TaskController extends Controller
                             $creatorEmployeeId = $creator->id;
                     }
 
+                    // Cari existing PENDING log dan update ke REJECTED
                     $existing = TaskAssignmentLog::where('task_id', $taskId)
                         ->where('employee_id', $user->employee->id)
                         ->where('action', TaskAssignmentLog::ACTION_PENDING)
@@ -3873,21 +3938,22 @@ class TaskController extends Controller
                         ->first();
 
                     if ($existing) {
-                        $existing->action = TaskAssignmentLog::ACTION_ACCEPTED;
-                        $existing->status = TaskAssignmentLog::STATUS_ACTIVE;
+                        $existing->action = TaskAssignmentLog::ACTION_REJECTED;
+                        $existing->status = TaskAssignmentLog::STATUS_INACTIVE;
                         $existing->updated_by = $user->employee->id;
                         $existing->save();
                     } else {
+                        // Buat log baru dengan action REJECTED
                         TaskAssignmentLogService::record([
                             'task_id' => $taskId,
                             'employee_id' => $user->employee->id,
                             'creator_task' => $creatorEmployeeId,
-                            'action' => TaskAssignmentLog::ACTION_ACCEPTED,
+                            'action' => TaskAssignmentLog::ACTION_REJECTED,
                             'created_by' => $user->employee->id,
                         ]);
                     }
                 } catch (\Throwable $_) {
-                    // don't block acceptance if logging fails
+                    // don't block if logging fails
                 }
 
                 DB::commit();
@@ -3895,8 +3961,9 @@ class TaskController extends Controller
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
-                    'message' => 'Task was already completed by another executor. This task has been moved to rejected status.',
-                    'task_status' => 'rejected'
+                    'message' => 'Task was already completed by another executor. You have been removed from this task.',
+                    'executor_removed' => true,
+                    'task_hidden' => true
                 ]);
             }
 
