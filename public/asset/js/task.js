@@ -5176,6 +5176,13 @@ function filterTaskTableRows(queryRaw) {
         // === MOUSE EVENTS ===
         $(document).on('mousedown', '#custom-card', function(e) {
             if (e.which !== 1) return; // kiri mouse
+
+            // Do not initialize kanban drag when the card is inside a modal (e.g. archive modal)
+            // Cards rendered inside modals should be non-interactive for dragging.
+            try {
+                if ($(this).closest('.modal').length) return;
+            } catch (_) {}
+
             e.preventDefault();
 
             const $card = $(this);
