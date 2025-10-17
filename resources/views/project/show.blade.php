@@ -966,7 +966,7 @@
         </div>
 
         {{-- Modal Detail Task --}}
-        <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
+        <div class="modal fade" id="projectTaskDetailModal" tabindex="-1" aria-labelledby="projectTaskDetailModalLabel"
             aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal-content-custom">
@@ -977,11 +977,11 @@
                             <div
                                 class="task-header d-flex justify-content-between align-items-start mb-2 task-card-header">
                                 <div class="d-flex align-items-center">
-                                    <div id="taskProjectAvatar" class="me-3"></div>
+                                    <div id="projectTaskProjectAvatar" class="me-3"></div>
                                     <div>
                                         <small class="text-muted" style="font-size: 11px;"
-                                            id="taskProjectTitle"></small>
-                                        <h5 class="mb-0" id="taskTitle" style="font-size:16px;font-weight:600;">-
+                                            id="projectTaskProjectTitle"></small>
+                                        <h5 class="mb-0" id="projectTaskTitle" style="font-size:16px;font-weight:600;">-
                                         </h5>
                                     </div>
                                 </div>
@@ -989,34 +989,34 @@
 
                             <!-- Description -->
                             <div class="description-container">
-                                <div id="taskDescription" class="description-detail text-muted">No description</div>
+                                <div id="projectTaskDescription" class="description-detail text-muted">No description</div>
                             </div>
 
                             <hr>
 
                             <!-- Meta Info -->
                             <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                                <div><span class="text-muted">Priority:</span> <span id="taskPriority">-</span></div>
-                                <div><span class="text-muted">Deadline:</span> <span id="taskDeadline">-</span></div>
+                                <div><span class="text-muted">Priority:</span> <span font id="projectTaskPriority">-</span></div>
+                                <div><span class="text-muted">Deadline:</span> <span id="projectTaskDeadline">-</span></div>
                             </div>
 
                             <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
                                 <span class="text-muted">Department:</span>
-                                <span id="taskDepartment">-</span>
+                                <span id="projectTaskDepartment">-</span>
                             </div>
 
                             <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
                                 <span class="text-muted">Division:</span>
-                                <span id="taskDivision">-</span>
+                                <span id="projectTaskDivision">-</span>
                             </div>
 
                             <!-- Collaborators -->
-                            <div class="collab-section mt-3">
-                                <div id="taskCollaborators"></div>
+                            <div class="collab-section mt-3" style="font-size: 12px;">
+                                <div id="projectTaskCollaborators"></div>
                             </div>
 
                             <!-- Status Changes -->
-                            <div id="taskStatusChanges" class="mt-3"></div>
+                            <div id="projectTaskStatusChanges" class="mt-3"></div>
 
                         </div>
                     </div>
@@ -1424,12 +1424,12 @@
             <script src="{{ asset('asset/js/project_detail_plumb.js') }}?v={{ time() }}"></script>
             <script>
                 window.APP_URL = document.querySelector('meta[name="app-url"]').getAttribute('content');
-                
+
                 // Setup parent task input to show dropdown when user types
                 document.addEventListener('DOMContentLoaded', function() {
                     const taskParentInput = document.getElementById('task_parent_input');
                     const taskParentDropdown = document.getElementById('task_parent_dropdown');
-                    
+
                     if (taskParentInput && taskParentDropdown) {
                         // Show dropdown on focus/click if it has content
                         taskParentInput.addEventListener('focus', function() {
@@ -1437,7 +1437,7 @@
                                 taskParentDropdown.style.display = 'block';
                             }
                         });
-                        
+
                         // Hide dropdown when clicking outside
                         document.addEventListener('click', function(e) {
                             if (!taskParentInput.contains(e.target) && !taskParentDropdown.contains(e.target)) {
