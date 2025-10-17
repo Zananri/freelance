@@ -1031,6 +1031,12 @@ class ProjectController extends Controller
                     $q->orWhereHas('division', function ($qv) use ($like) {
                         $qv->where('name_division', 'like', $like);
                     });
+                    // Search by employee names (author, co_author, contributor)
+                    $q->orWhereHas('projectAssignments', function ($qa) use ($like) {
+                        $qa->whereHas('employee', function ($qe) use ($like) {
+                            $qe->where('name', 'like', $like);
+                        });
+                    });
                 });
             }
 
