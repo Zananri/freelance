@@ -471,12 +471,12 @@ function getTaskByProject(projectId, bustCache) {
     $("#task-loading").removeClass("d-none");
     $("#task-error").addClass("d-none");
     $("#task-tree").empty();
-    
+
     var ajaxData = { pageTab: currentMaxLevel };
     if (bustCache) {
         ajaxData._t = Date.now(); // Add timestamp to prevent caching
     }
-    
+
     return $.ajax({
         url: `${appUrl}/projects/${projectId}/tasks/tree`,
         type: "GET",
@@ -1280,17 +1280,29 @@ $(document).on("click", ".task-box, .timeline-bar", function (e) {
     if ($(e.target).closest('.plumb-handle').length) { e.preventDefault(); e.stopPropagation(); return; }
     if ($(e.target).closest('.task-more-btn, .task-more-menu').length) { e.preventDefault(); e.stopPropagation(); return; }
     const taskId = $(this).data("task-id");
-    if (taskId) handleTaskDetail(taskId);
+    if (taskId) handleProjectTaskDetail(taskId);
 });
 
 $(function () {
     $('[data-bs-toggle="tooltip"]').tooltip();
 });
 
-function handleTaskDetail(taskId) {
-    $.getJSON(`${appUrl}/task/${taskId}`)
-        .done(renderTaskDetail)
-        .fail(() => showAlert("Failed to load task details.", "danger"));
+function handleProjectTaskDetail(taskId) {
+    if (!taskId) return showAlert("Task ID is missing.", "danger");
+
+    $.ajax({
+        url: `${appUrl}/task/${taskId}`,
+        type: "GET",
+        dataType: "json",
+        success: function(res) {
+            console.log("Task detail response:", res);
+            renderProjectTaskDetail(res);
+        },
+        error: function(xhr, status, error) {
+            console.error("Failed to load task detail:", status, error, xhr.responseText);
+            showAlert("Failed to load task details.", "danger");
+        },
+    });
 }
 
 function showAlert(msg, type) {
@@ -1301,27 +1313,27 @@ function showAlert(msg, type) {
     }
 }
 
-function renderTaskDetail(res) {
+function renderProjectTaskDetail(res) {
     const task = res?.data || res;
     if (!task || typeof task !== "object")
         return showAlert("Invalid task data.", "danger");
 
-    $("#taskProjectAvatar").html(getAvatarHTML(task));
-    $("#taskProjectTitle").text(task.project?.title || "-");
-    $("#taskTitle").text(task.title || "Untitled Task");
-    $("#taskDescription").html(task.description || "No description");
-    $("#taskPriority").html(formatPriority(task.priority));
-    $("#taskDeadline").text(formatDateENMedium(task.due_date) || "-");
-    $("#taskDepartment").text(task.project?.department || "-");
-    $("#taskDivision").text(task.project?.division || "-");
-    $("#taskCollaborators").html(buildCollaboratorsList(task));
+    $("#projectTaskProjectAvatar").html(getAvatarHTML(task));
+    $("#projectTaskProjectTitle").text(task.project?.title || "-");
+    $("#projectTaskTitle").text(task.title || "Untitled Task");
+    $("#projectTaskDescription").html(task.description || "No description");
+    $("#projectTaskPriority").html(formatPriority(task.priority));
+    $("#projectTaskDeadline").text(formatDateENMedium(task.due_date) || "-");
+    $("#projectTaskDepartment").text(task.project?.department || "-");
+    $("#projectTaskDivision").text(task.project?.division || "-");
+    $("#projectTaskCollaborators").html(buildCollaboratorsList(task));
 
     const scHTML = buildStatusChangesHTML(
         task.status_changes || task.status_change
     );
     $("#taskStatusChanges").html(scHTML);
 
-    initTaskDetailModal();
+    initProjectTaskDetailModal();
 }
 
 function buildStatusChangesHTML(statusChanges) {
@@ -1531,9 +1543,9 @@ function initBootstrapTooltips(root = document) {
     }
 }
 
-function initTaskDetailModal() {
-    const modal = new bootstrap.Modal("#taskDetailModal");
-    const $modal = $("#taskDetailModal");
+function initProjectTaskDetailModal() {
+    const modal = new bootstrap.Modal("#projectTaskDetailModal");
+    const $modal = $("#projectTaskDetailModal");
 
     $modal.on("shown.bs.modal", () =>
         setTimeout(() => initBootstrapTooltips($modal[0]), 100)
@@ -1551,7 +1563,7 @@ function initTaskDetailModal() {
 // Task more-menu global handlers (bind once)
 (function setupTaskMoreMenu(){
     if (window.__taskMoreMenuBound) return; window.__taskMoreMenuBound = true;
-    
+
     var $globalMenu = null;
     var currentTaskId = null;
 
@@ -1607,13 +1619,13 @@ function initTaskDetailModal() {
             var taskId = currentTaskId;
             if (!taskId) return;
             hideMenu();
-            
+
             // Clear all parents: set parent_id to null AND clear parent_ids array
             // Send as JSON to ensure proper array handling
             $.ajax({
                 url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
                 type: 'PUT',
-                data: JSON.stringify({ 
+                data: JSON.stringify({
                     parent_id: null,
                     parent_ids: []
                 }),
@@ -1631,7 +1643,7 @@ function initTaskDetailModal() {
                         window.refreshTaskTreePartial();
                     } else {
                         var idStr = String(taskId);
-                        (allTasks || []).forEach(function(t){ 
+                        (allTasks || []).forEach(function(t){
                             if (String(t.id) === idStr) {
                                 t.parent_id = null;
                                 t.parent_ids = [];
@@ -1656,12 +1668,12 @@ function initTaskDetailModal() {
     });
 
     // Click outside to close
-    $(document).on('click', function(e){ 
-        try { 
+    $(document).on('click', function(e){
+        try {
             if (!$(e.target).closest('#task-global-more-menu, .task-more-btn').length) {
                 hideMenu();
             }
-        } catch(_){} 
+        } catch(_){}
     });
 
     // Hide on scroll
