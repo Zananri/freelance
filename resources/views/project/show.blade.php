@@ -436,7 +436,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"
                             aria-label="Close"></button>
                     </div>
-                    <form id="editProjectForm" enctype="multipart/form-data">
+                    <form id="editProjectTaskForm" enctype="multipart/form-data">
                         <input type="hidden" id="edit_project_id" name="id" value="">
                         <div class="modal-body modal-body-custom">
                             <div id="editProjectAlert" class="alert alert-success d-none" role="alert"
@@ -664,18 +664,18 @@
             </div>
         </div>
 
-        <div class="modal fade" id="editTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-            aria-labelledby="editTaskModalLabel" aria-hidden="true">
+        <div class="modal fade" id="editProjectTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
+            aria-labelledby="editProjectTaskModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content modal-content-custom">
-                    <div class="modal-loading-overlay d-none" id="editTaskModalLoader">
+                    <div class="modal-loading-overlay d-none" id="editProjectTaskModalLoader">
                         <div class="loader-spinner"></div>
                     </div>
                     <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom" id="editTaskModalLabel">Edit Task</h5>
+                        <h5 class="modal-title modal-title-custom" id="editProjectTaskModalLabel">Edit Task</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                    <form id="editTaskForm" enctype="multipart/form-data">
+                    <form id="editProjectTaskForm" enctype="multipart/form-data">
                         <input type="hidden" id="edit_task_id" name="task_id" value="">
                         <div class="modal-body modal-body-custom">
                             <div id="editTaskAlert" class="alert alert-success d-none" role="alert"
@@ -965,6 +965,22 @@
             </div>
         </div>
 
+        <!-- Delete Task Confirmation Modal -->
+        <div class="modal fade" id="deleteProjectTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-body modal-body-custom">
+                        <div id="deleteProjectTaskContent"></div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-submit-black" id="confirmDeleteProjectTaskBtn">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         {{-- Modal Detail Task --}}
         <div class="modal fade" id="projectTaskDetailModal" tabindex="-1" aria-labelledby="projectTaskDetailModalLabel"
             aria-hidden="true">
@@ -1169,161 +1185,264 @@
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
         <script>
-            (function() {
-                // guard: only initialize if editor container exists
-                if (!document.getElementById('edit_description_editor')) return;
-
-                // helper to block image drag/drop and paste at capture phase (prevents transient insertions)
-                function preventImageDropAndPaste(quill, editorSelector) {
-                    try {
-                        var editor = document.querySelector(editorSelector);
-                        if (!editor || !quill) return;
-                        // capture-phase listeners to stop native insertions before Quill handlers run
-                        editor.addEventListener('dragover', function(e) {
-                            try {
-                                e.preventDefault();
-                            } catch (_) {}
-                        }, true);
-                        editor.addEventListener('drop', function(e) {
-                            try {
-                                if (!e.dataTransfer) return;
-                                var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
-                                var html = '';
-                                try {
-                                    html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || '';
-                                } catch (_) {}
-                                if (hasFiles || /<img\s*/i.test(html)) {
-                                    e.preventDefault();
-                                    e.stopImmediatePropagation();
-                                    return;
-                                }
-                            } catch (_) {}
-                        }, true);
-                        editor.addEventListener('paste', function(e) {
-                            try {
-                                var clipboard = (e.clipboardData || window.clipboardData);
-                                if (!clipboard) return;
-                                var items = clipboard.items || [];
-                                for (var i = 0; i < items.length; i++) {
-                                    var t = items[i].type || '';
-                                    if (t.indexOf && t.indexOf('image') === 0) {
-                                        e.preventDefault();
-                                        e.stopImmediatePropagation();
-                                        return;
-                                    }
-                                }
-                                var html = '';
-                                try {
-                                    html = clipboard.getData && clipboard.getData('text/html') || '';
-                                } catch (_) {}
-                                if (/<img\s*/i.test(html)) {
-                                    e.preventDefault();
-                                    e.stopImmediatePropagation();
-                                    return;
-                                }
-                            } catch (_) {}
-                        }, true);
-                    } catch (_) {}
-                }
-
-                function syncQuillToTextarea(quill, textareaId) {
-                    try {
-                        var ta = document.getElementById(textareaId);
-                        if (!ta) return;
-                        ta.value = quill.root.innerHTML || '';
-                    } catch (e) {}
-                }
-
-                // create Quill instance for edit modal
+            document.addEventListener('DOMContentLoaded', function() {
                 try {
-                    window.__quillProjectDetailEdit = new Quill('#edit_description_editor', {
-                        modules: {
-                            toolbar: '#edit_description_toolbar',
-                            clipboard: {
-                                matchVisual: false
-                            }
-                        },
-                        theme: 'snow'
-                    });
+                    // Initialize Quill instances for Add and Edit task modals
+                    if (document.getElementById('task_description_editor')) {
 
-                    // Add clipboard matcher to drop IMG nodes early in Quill pipeline
-                    try {
-                        var Delta = Quill.import && Quill.import('delta');
-                        if (window.__quillProjectDetailEdit && window.__quillProjectDetailEdit.clipboard && typeof window
-                            .__quillProjectDetailEdit.clipboard.addMatcher === 'function') {
-                            try {
-                                window.__quillProjectDetailEdit.clipboard.addMatcher('IMG', function(node, delta) {
+                        var addToolbarEl = document.getElementById('task_description_toolbar');
+                        var addToolbarConfig = addToolbarEl ? '#task_description_toolbar' : false;
+                        window.__quillTaskAdd = new Quill('#task_description_editor', {
+                            modules: {
+                                toolbar: addToolbarConfig
+                            },
+                            theme: 'snow'
+                        });
+                        // Ensure pasted <img> nodes are stripped by Quill's clipboard before insertion
+                        try {
+                            var Delta = Quill.import && Quill.import('delta');
+                            if (window.__quillTaskAdd && window.__quillTaskAdd.clipboard && typeof window.__quillTaskAdd
+                                .clipboard.addMatcher === 'function') {
+                                window.__quillTaskAdd.clipboard.addMatcher('IMG', function(node, delta) {
                                     try {
                                         return new Delta();
                                     } catch (_) {
                                         return delta;
                                     }
                                 });
-                            } catch (_) {}
-                        }
-                    } catch (_) {}
-
-                    // safety-net: remove any img elements if they somehow appear
-                    try {
-                        if (window.__quillProjectDetailEdit && typeof window.__quillProjectDetailEdit.on === 'function') {
-                            window.__quillProjectDetailEdit.on('text-change', function() {
-                                try {
-                                    var imgs = window.__quillProjectDetailEdit.root.querySelectorAll('img');
-                                    imgs.forEach(function(i) {
-                                        i.remove();
-                                    });
-                                } catch (_) {}
-                            });
-                        }
-                    } catch (_) {}
-
-                    try {
-                        preventImageDropAndPaste(window.__quillProjectDetailEdit, '#edit_description_editor');
-                    } catch (_) {}
-                } catch (e) {
-                    console.error('Quill init failed', e);
-                }
-
-                // ensure we sync before any normal submit handlers run
-                document.getElementById('editProjectForm').addEventListener('submit', function(ev) {
-                    if (window.__quillProjectDetailEdit) syncQuillToTextarea(window.__quillProjectDetailEdit,
-                        'edit_description');
-                    // basic required validation if needed
-                    try {
-                        var text = window.__quillProjectDetailEdit.getText().trim();
-                        if (!text) {
-                            ev.preventDefault();
-                            alert('Description is required');
-                            return false;
-                        }
-                    } catch (e) {}
-                }, true); // capture phase
-
-                // When project_detail JS fills #edit_description textarea, copy into Quill on modal show
-                var editModalEl = document.getElementById('editProjectModal');
-                if (editModalEl) {
-                    editModalEl.addEventListener('shown.bs.modal', function() {
-                        try {
-                            var ta = document.getElementById('edit_description');
-                            if (ta && window.__quillProjectDetailEdit) {
-                                window.__quillProjectDetailEdit.root.innerHTML = ta.value || '';
                             }
-                        } catch (e) {
-                            /* no-op */
-                        }
-                    });
-
-                    editModalEl.addEventListener('hidden.bs.modal', function() {
+                            // Safety: remove any <img> elements after any text-change (Edge may still insert blobs)
+                            try {
+                                window.__quillTaskAdd.on && window.__quillTaskAdd.on('text-change', function(delta,
+                                    oldDelta, source) {
+                                    try {
+                                        setTimeout(function() {
+                                            try {
+                                                var imgs = window.__quillTaskAdd.root.querySelectorAll(
+                                                    'img');
+                                                imgs.forEach(function(i) {
+                                                    i.remove();
+                                                });
+                                            } catch (_) {}
+                                        }, 0);
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        } catch (_) {}
+                        // prevent images via drop/paste
                         try {
-                            if (window.__quillProjectDetailEdit) window.__quillProjectDetailEdit.root.innerHTML =
-                                '';
+                            preventImageDropAndPaste(window.__quillTaskAdd, '#task_description_editor');
+                        } catch (_) {}
+                    }
+                    if (document.getElementById('edit_task_description_editor')) {
+                        // Only attach a toolbar if the toolbar element exists in the DOM.
+                        var editToolbarEl = document.getElementById('edit_task_description_toolbar');
+                        var editToolbarConfig = editToolbarEl ? '#edit_task_description_toolbar' : false;
+                        window.__quillTaskEdit = new Quill('#edit_task_description_editor', {
+                            modules: {
+                                toolbar: editToolbarConfig
+                            },
+                            theme: 'snow'
+                        });
+                        try {
+                            var Delta = Quill.import && Quill.import('delta');
+                            if (window.__quillTaskEdit && window.__quillTaskEdit.clipboard && typeof window
+                                .__quillTaskEdit.clipboard.addMatcher === 'function') {
+                                window.__quillTaskEdit.clipboard.addMatcher('IMG', function(node, delta) {
+                                    try {
+                                        return new Delta();
+                                    } catch (_) {
+                                        return delta;
+                                    }
+                                });
+                            }
+                            try {
+                                window.__quillTaskEdit.on && window.__quillTaskEdit.on('text-change', function(delta,
+                                    oldDelta, source) {
+                                    try {
+                                        setTimeout(function() {
+                                            try {
+                                                var imgs = window.__quillTaskEdit.root.querySelectorAll(
+                                                    'img');
+                                                imgs.forEach(function(i) {
+                                                    i.remove();
+                                                });
+                                            } catch (_) {}
+                                        }, 0);
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
                         } catch (_) {}
                         try {
-                            document.getElementById('edit_description').value = '';
+                            preventImageDropAndPaste(window.__quillTaskEdit, '#edit_task_description_editor');
                         } catch (_) {}
-                    });
+                    }
+                } catch (_) {
+                    /* noop if Quill not available */
                 }
-            })();
+
+                // Prevent images from being inserted via drag/drop or paste
+                function preventImageDropAndPaste(quill, editorSelector) {
+                    try {
+                        var editor = document.querySelector(editorSelector);
+                        if (!editor || !quill) return;
+
+                        // Use capture-phase listeners to intercept before Quill's handlers run
+                        try {
+                            editor.addEventListener('dragover', function(e) {
+                                try {
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+
+                        // drop: block files (including images) and HTML that contains <img>
+                        try {
+                            editor.addEventListener('drop', function(e) {
+                                try {
+                                    if (!e.dataTransfer) return;
+                                    var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                    var html = '';
+                                    try {
+                                        html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') ||
+                                            '';
+                                    } catch (_) {}
+                                    if (hasFiles || /<img\s*/i.test(html)) {
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return; // do nothing
+                                    }
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+
+                        // paste: if clipboard contains image items or HTML with <img>, prevent entirely (no insert)
+                        try {
+                            editor.addEventListener('paste', function(e) {
+                                try {
+                                    var clipboard = (e.clipboardData || window.clipboardData);
+                                    if (!clipboard) return;
+
+                                    var items = clipboard.items || [];
+                                    var hasImage = false;
+                                    for (var i = 0; i < items.length; i++) {
+                                        var t = items[i].type || '';
+                                        if (t.indexOf && t.indexOf('image') === 0) {
+                                            hasImage = true;
+                                            break;
+                                        }
+                                    }
+
+                                    var html = '';
+                                    try {
+                                        html = clipboard.getData && clipboard.getData('text/html') || '';
+                                    } catch (_) {}
+
+                                    if (hasImage || /<img\s*/i.test(html)) {
+                                        // block default paste which would insert the image or any html containing images
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return; // do not insert anything (no blink)
+                                    }
+                                    // Otherwise allow normal paste (text or non-image html)
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+                    } catch (_) {}
+                }
+
+                function syncQuillToTextarea(quill, textareaId) {
+                    try {
+                        const ta = document.getElementById(textareaId);
+                        if (!ta) return;
+                        const html = (quill && quill.root && typeof quill.root.innerHTML === 'string') ? quill.root
+                            .innerHTML : '';
+                        ta.value = html;
+                    } catch (_) {}
+                }
+
+                // Use capture-phase submit listener to ensure sync runs before any other submit handlers
+                const addForm = document.getElementById('addTaskForm');
+                if (addForm) {
+                    addForm.addEventListener('submit', function(e) {
+                        try {
+                            if (window.__quillTaskAdd) syncQuillToTextarea(window.__quillTaskAdd,
+                                'task_description');
+                            // Basic non-empty validation (strip whitespace)
+                            const plain = (window.__quillTaskAdd && typeof window.__quillTaskAdd.getText ===
+                                'function') ? window.__quillTaskAdd.getText().trim() : '';
+                            if (!plain) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                try {
+                                    window.__quillTaskAdd.focus();
+                                } catch (_) {}
+                                return false;
+                            }
+                        } catch (_) {}
+                    }, true);
+                }
+
+                const editForm = document.getElementById('editTaskForm');
+                if (editForm) {
+                    editForm.addEventListener('submit', function(e) {
+                        try {
+                            if (window.__quillTaskEdit) syncQuillToTextarea(window.__quillTaskEdit,
+                                'edit_task_description');
+                            const plain = (window.__quillTaskEdit && typeof window.__quillTaskEdit.getText ===
+                                'function') ? window.__quillTaskEdit.getText().trim() : '';
+                            if (!plain) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                try {
+                                    window.__quillTaskEdit.focus();
+                                } catch (_) {}
+                                return false;
+                            }
+                        } catch (_) {}
+                    }, true);
+                }
+
+                // Clear editors when modals hide (keep canonical textareas in sync)
+                try {
+                    $('#addTaskModal').on('hidden.bs.modal', function() {
+                        try {
+                            if (window.__quillTaskAdd && window.__quillTaskAdd.root) window.__quillTaskAdd.root
+                                .innerHTML = '';
+                        } catch (_) {}
+                        try {
+                            const ta = document.getElementById('task_description');
+                            if (ta) ta.value = '';
+                        } catch (_) {}
+                    });
+                    $('#editTaskModal').on('hidden.bs.modal', function() {
+                        try {
+                            if (window.__quillTaskEdit && window.__quillTaskEdit.root) window.__quillTaskEdit
+                                .root.innerHTML = '';
+                        } catch (_) {}
+                        try {
+                            const ta = document.getElementById('edit_task_description');
+                            if (ta) ta.value = '';
+                        } catch (_) {}
+                    });
+                } catch (_) {}
+
+                // Polling fallback: if edit textarea is updated programmatically (task.js), mirror into Quill
+                try {
+                    let lastEditTa = document.getElementById('edit_task_description')?.value || '';
+                    setInterval(function() {
+                        try {
+                            const ta = document.getElementById('edit_task_description');
+                            if (!ta || !window.__quillTaskEdit || !window.__quillTaskEdit.root) return;
+                            if (ta.value !== lastEditTa) {
+                                lastEditTa = ta.value;
+                                window.__quillTaskEdit.root.innerHTML = ta.value || '';
+                            }
+                        } catch (_) {}
+                    }, 300);
+                } catch (_) {}
+            });
         </script>
 
         <template id="template-edit-feedback">

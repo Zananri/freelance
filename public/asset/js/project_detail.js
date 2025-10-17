@@ -6190,7 +6190,7 @@
         // Image input helper for edit modal
         function setupImageInput(inputEl, labelEl, clearBtnEl) {
             if (!inputEl || !labelEl) return;
-            
+
             // Handle file selection
             inputEl.addEventListener("change", function () {
                 var file = this.files && this.files[0];
@@ -6213,7 +6213,7 @@
                 };
                 reader.readAsDataURL(file);
             });
-            
+
             // Add paste event listener for screenshot
             labelEl.addEventListener("paste", function (e) {
                 try {
@@ -6222,12 +6222,12 @@
                     for (var i = 0; i < items.length; i++) {
                         if (items[i].type.indexOf("image") !== -1) {
                             var blob = items[i].getAsFile();
-                            
+
                             // Create a DataTransfer object to simulate file input
                             var dataTransfer = new DataTransfer();
                             dataTransfer.items.add(blob);
                             inputEl.files = dataTransfer.files;
-                            
+
                             // Trigger change event to preview the image
                             var event = new Event('change', { bubbles: true });
                             inputEl.dispatchEvent(event);
@@ -6238,7 +6238,7 @@
                     console.warn('Paste screenshot failed:', err);
                 }
             });
-            
+
             // Make label focusable for paste
             labelEl.setAttribute("tabindex", "0");
             labelEl.style.cursor = "pointer";
@@ -8828,77 +8828,8 @@ function statusLabel(statusRaw) {
         return colors[Math.abs(hash) % colors.length];
     }
 
-function handleTaskDetailProject(taskId) {
-    if (!taskId) {
-        console.warn("Task ID kosong");
-        return;
-    }
-
-    $.ajax({
-        url: `${appUrl}/task/${taskId}`,
-        type: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            const task = response?.data || response;
-            if (!task) {
-                console.warn("Task data kosong");
-                return;
-            }
-
-            const $avatar = $("#taskProjectAvatar");
-            $avatar.empty();
-
-            if (task.project?.image) {
-                // Kalau ada gambar project
-                const img = document.createElement("img");
-                img.src = `${appUrl}/file/project/${task.project.image}`;
-                img.alt = task.project?.title || "Project";
-                img.className = "rounded-circle";
-                img.style.width = "48px";
-                img.style.height = "48px";
-                img.style.objectFit = "cover";
-                $avatar.append(img);
-            } else {
-                // Kalau ga ada gambar, pakai initials
-                const initials = getTaskInitials(task.title || task.project?.title || "NA");
-                const color = getRandomColorFromText(task.title || task.project?.title || "NA");
-                const div = document.createElement("div");
-                div.className = "rounded-circle d-flex align-items-center justify-content-center";
-                div.style.width = "48px";
-                div.style.height = "48px";
-                div.style.backgroundColor = color;
-                div.style.color = "#fff";
-                div.style.fontWeight = "600";
-                div.style.fontSize = "16px";
-                div.textContent = initials;
-                $avatar.append(div);
-            }
-
-            // Populate modal fields
-            $("#taskProjectTitle").text(task.project?.title || "-");
-            $("#taskTitle").text(task.title || "Untitled Task");
-            $("#taskDescription").html(task.description || "No description");
-            $("#taskPriority").html(task.priority || "-");
-            $("#taskDeadline").text(
-                (typeof formatDateENMedium === 'function') ? formatDateENMedium(task.due_date) : (task.due_date || "-")
-            );
-            $("#taskDepartment").text(task.project?.department || "-");
-            $("#taskDivision").text(task.project?.division || "-");
-
-            // Tampilkan modal
-            const modal = new bootstrap.Modal(document.getElementById('taskDetailModal'));
-            modal.show();
-        },
-        error: function(xhr, status, error) {
-            console.error("Failed to load task detail:", error);
-            try { showFloatingAlert("Failed to load task details.", "danger", 3000); } 
-            catch(_) { alert("Failed to load task details."); }
-        }
-    });
-}
-
-function handleTaskEdit(taskId) {
-    const modalEl = document.getElementById("editTaskModal");
+function handleProjectTaskEdit(taskId) {
+    const modalEl = document.getElementById("editProjectTaskModal");
     if (!modalEl) {
         if (typeof showFloatingAlert === 'function') showFloatingAlert('Edit modal not found.', 'danger');
         return;
@@ -8915,12 +8846,12 @@ function handleTaskEdit(taskId) {
         }
     }
 
-    const form = document.getElementById("editTaskForm");
+    const form = document.getElementById("editProjectTaskForm");
     form && form.reset();
     const idInput = document.getElementById("edit_task_id");
     if (idInput) idInput.value = taskId;
 
-    const loader = document.getElementById("editTaskModalLoader");
+    const loader = document.getElementById("editProjectTaskModalLoader");
     if (loader) loader.classList.remove("d-none");
 
     const modal = new bootstrap.Modal(modalEl);
@@ -9065,6 +8996,127 @@ function handleTaskEdit(taskId) {
             if (loader) loader.classList.add('d-none');
         }
     });
+}
+
+function handleProjectTaskDelete(taskId) {
+    const $modal = $("#deleteProjectTaskModal");
+    const modal = bootstrap.Modal.getOrCreateInstance($modal[0]);
+    if (!$modal.length) return;
+
+    $modal.data("taskId", taskId);
+    $modal.find(".btn.btn-custom-close[data-bs-dismiss='modal']").text("Cancel");
+    $modal.find("#confirmDeleteTaskBtn").text("Delete");
+
+    // Placeholder loader
+    const $body = $modal.find("#deleteProjectTaskContent");
+    $body.html(`
+        <div class="text-center p-3">
+            <div class="spinner-border spinner-border-sm"></div>
+        </div>
+    `);
+
+    modal.show();
+
+    // Load task data
+    $.getJSON(`${appUrl}/task/${taskId}`)
+        .done(({ data: task = {} }) => {
+            const imgUrl = formatTaskImage(task.image, task.title);
+            const project = task.project || {};
+
+            $body.html(`
+                <div class="d-flex align-items-center mb-2">
+                    ${imgUrl}
+                    <div class="d-flex flex-column">
+                        ${project.id ? `<p class="text-muted mb-1" style="font-size:10px;">${project.title || '-'}</p>` : ""}
+                        <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title || 'Untitled Task'}</h5>
+                   </div>
+                </div>
+                <p class="task-description mb-2" style="font-size:14px;">${task.description || ''}</p>
+                <hr class="task-separator rounded-4">
+                <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                    <span><span style="color:#797E91;">Priority:</span>
+                        <span style="color:${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${task.priority || '-'}</span>
+                    </span>
+                    <span><span style="color:#797E91;">Deadline:</span>
+                        <span style="color:#4B4F5E;">${task.due_date || '-'}</span>
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:12px;">
+                    <span class="text-muted">Department:</span>
+                    <span>${project.department || '-'}</span>
+                </div>
+                <div class="d-flex justify-content-between" style="font-size:12px;">
+                    <span class="text-muted">Division:</span>
+                    <span>${project.division || '-'}</span>
+                </div>
+            `);
+        })
+        .fail(() => {
+            $body.html(`<p class="text-danger text-center mb-0 p-3">Failed to load task info.</p>`);
+        });
+
+    // Confirm delete
+    $("#confirmDeleteProjectTaskBtn")
+        .off("click")
+        .on("click", function () {
+            $.ajax({
+                url: `${appUrl}/task/${taskId}/soft-delete`,
+                type: "PUT",
+                headers: {
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+                    "Accept": "application/json",
+                },
+            })
+                .done((res) => {
+                    if (typeof window.refreshTaskTreePartial === 'function') {
+                        window.refreshTaskTreePartial();
+                        $(`[data-task-id="${taskId}"]`).remove();
+                        modal.hide();
+                    } else {
+                        var idStr = String(taskId);
+                        (allTasks || []).forEach(function(t){
+                            if (String(t.id) === idStr) {
+                                t.parent_id = null;
+                                t.parent_ids = [];
+                            }
+                        });
+                        renderTaskList(allTasks);
+                    }
+
+                    showFloatingAlert?.(res.message || "Task deleted", "success", 1500);
+                })
+                .fail((xhr) => {
+                    const msg = xhr?.responseJSON?.message || "Failed to delete task";
+                    showFloatingAlert?.(msg, "danger", 3000);
+                });
+        });
+}
+
+function formatTaskImage(image, title = "") {
+    if (!image) {
+        const initials = getTaskInitials(title);
+        const bg = getRandomColorFromText(title);
+        return `
+            <div class="rounded-circle d-flex align-items-center justify-content-center me-3"
+                style="width:34px;height:34px;background:${bg};color:#fff;font-weight:600;font-size:11px;">
+                ${initials}
+            </div>
+        `;
+    }
+
+    let imgUrl = image;
+    const isAbs = /^https?:\/\//i.test(imgUrl);
+    const isTask = /^\/?file\/task\//i.test(imgUrl);
+    const isPublic = /^\/?storage\//i.test(imgUrl);
+    if (!isAbs && !isTask && !isPublic) imgUrl = `${appUrl}/file/task/${imgUrl}`;
+    else if (!isAbs && (isTask || isPublic)) imgUrl = `${appUrl}/${imgUrl.replace(/^\/?/, "")}`;
+
+    return `
+        <img src="${imgUrl}" alt="Task Image"
+            class="rounded-circle me-3"
+            style="width:34px;height:34px;object-fit:cover;"
+            onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getRandomColorFromText(title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getTaskInitials(title)}</div>')">
+    `;
 }
 
 // Wire up Edit Task form behaviors on project detail page (image preview, files preview, submit)
@@ -9264,7 +9316,7 @@ function handleTaskEdit(taskId) {
         }
 
         // Submit handler for edit task (works on project detail page)
-        const editForm = document.getElementById('editTaskForm');
+        const editForm = document.getElementById('editProjectTaskForm');
         if (editForm && !editForm._boundSubmitHandler) {
             editForm.addEventListener('submit', function(e){
                 e.preventDefault();
@@ -9303,7 +9355,7 @@ function handleTaskEdit(taskId) {
                     }
                 } catch(_) {}
 
-                const loader = document.getElementById('editTaskModalLoader');
+                const loader = document.getElementById('editProjectTaskModalLoader');
                 loader && loader.classList.remove('d-none');
                 const submitBtn = editForm.querySelector("button[type='submit']");
                 if (submitBtn) submitBtn.disabled = true;
@@ -9333,13 +9385,25 @@ function handleTaskEdit(taskId) {
                         try { showFloatingAlert(res && (res.message || res.status) ? (res.message || 'Task updated successfully.') : 'Task updated successfully.', 'success', 2500); } catch(_) {}
                         // Close edit modal
                         try {
-                            const modalEl = document.getElementById('editTaskModal');
+                            const modalEl = document.getElementById('editProjectTaskModal');
                             const instance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
                             instance.hide();
                         } catch(_) {}
 
-                        // Refresh tasks list for this project if list view visible
-                        try { loadProjectTasks(); } catch(_) {}
+                        if (typeof window.refreshTaskTreePartial === 'function') {
+                            window.refreshTaskTreePartial();
+                            $(`[data-task-id="${taskId}"]`).remove();
+                            modal.hide();
+                        } else {
+                            var idStr = String(taskId);
+                            (allTasks || []).forEach(function(t){
+                                if (String(t.id) === idStr) {
+                                    t.parent_id = null;
+                                    t.parent_ids = [];
+                                }
+                            });
+                            renderTaskList(allTasks);
+                        }
                     },
                     error: function(xhr){
                         let msg = 'Failed to update task.';
@@ -9464,7 +9528,7 @@ function renderProjectTaskTable() {
                         <div class="d-flex align-items-center gap-3">
                             ${taskImgHtml}
                             <div>
-                                <div class="task-name-wrapper fw-semibold" style="font-size: 14px; cursor: pointer;" onclick="handleTaskDetailProject(${t.id})">${taskTitle}</div>
+                                <div class="task-name-wrapper fw-semibold" style="font-size: 14px; cursor: pointer;" onclick="handleProjectTaskDetail(${t.id})">${taskTitle}</div>
                             </div>
                         </div>
                     </td>
@@ -9540,11 +9604,11 @@ function initTaskMoreDropdowns() {
             // Event klik
             const items = dropdown.querySelectorAll('.dropdown-item');
             items[0].addEventListener('click', () => {
-                handleTaskDetailProject(taskId);
+                handleProjectTaskDetail(taskId);
                 dropdown.remove();
             });
             items[1].addEventListener('click', () => {
-                handleTaskEdit(taskId);
+                handleProjectTaskEdit(taskId);
                 dropdown.remove();
             });
 
