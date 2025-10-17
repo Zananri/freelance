@@ -226,7 +226,8 @@
                         </a>
                     </li>
 
-                    @if (in_array(Auth::user()->user_type,['REGULAR','EMPLOYEE','ADMINISTRATOR','MANAGEMENT']))
+                    @if (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE']))
+
 
                     <li>
                         <a href="{{ url('attendance') }}"

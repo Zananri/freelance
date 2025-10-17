@@ -24,21 +24,10 @@ class DashboardController extends Controller
         // 'user_type' => 'required|string|in:ADMINISTRATOR,REGULAR,MANAGEMENT',
         // 'user_role' => 'required|string|in:CEO,GENERAL_MANAGER,MANAGER,LEADER,HR_MANAGER,FINANCE_MANAGER,EMPLOYEE',
 
-        if(in_array($user->user_type,['MANAGEMENT']) && in_array($user->user_role,['CEO'])){
-            return $this->dashboard_management();
-        }
-        elseif(in_array($user->user_type,['ADMINISTATOR']) && in_array($user->user_role,['ADMINISTATOR','HR_MANAGER'])){
-            return $this->dashboard_management();
-        }
-        elseif(in_array($user->user_type,['MANAGEMENT']) && in_array($user->user_role,['GENERAL_MANAGER'])){
-            return $this->dashboard_management();
-        }
-        elseif(in_array($user->user_type,['MANAGEMENT']) && in_array($user->user_role,['HR_MANAGER'])){
-            return $this->dashboard_management();
-        }elseif(in_array($user->user_type,['REGULAR']) && in_array($user->user_role,['EMPLOYEE'])){
+        if(in_array($user->user_type,['REGULAR']) && in_array($user->user_role,['EMPLOYEE'])){
             return $this->dashboard_employee();
         }else{
-            return $this->dashboard_employee();
+            return $this->dashboard_management();
         }
     }
 

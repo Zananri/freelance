@@ -106,9 +106,12 @@
                                             <div class="card-content p-3 pb-2 item-project">
                                                 <div class="item-header mb-2">
                                                     <div class="d-flex align-items-start gap-2">
-                                                        <div>
-                                                            <img class="image-project rounded-circle object-fit-cover me-1" src="{{ asset('file/project/'.$itemProject->image) }}" alt="">
-                                                        </div>
+                                                        @if ($itemProject->image)
+                                                            <div>
+                                                                <img class="image-project rounded-circle object-fit-cover me-1" src="{{ asset('file/project/'.$itemProject->image) }}" alt="">
+                                                            </div>
+                                                        @endif
+                                                        
                                                         <div>
                                                             <h2 class="title-project fs-14 fw-normal text-body">
                                                                 {{ $itemProject->title }}
