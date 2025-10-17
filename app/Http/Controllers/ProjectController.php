@@ -434,7 +434,7 @@ class ProjectController extends Controller
             }
 
             if ($taskScope === 'all' || $canSeeAll) {
-              
+
                 $projects = Project::where('status', '!=', 'DELETED')
                     ->where(function ($q) use ($user, $canSeeAll) {
                         if ($canSeeAll) {
@@ -685,7 +685,7 @@ class ProjectController extends Controller
         try {
             $user = $request->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
-            
+
             // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
             $canSeeAll = false;
             try {
@@ -700,7 +700,7 @@ class ProjectController extends Controller
             } catch (\Throwable $_) {
                 $canSeeAll = false;
             }
-            
+
             if (!$employeeId && !$canSeeAll) {
                 return response()->json(['code' => 200, 'status' => 'success', 'data' => []]);
             }
@@ -708,14 +708,14 @@ class ProjectController extends Controller
             // Fetch projects visible to this employee (assigned author/co_author/contributor), exclude DELETED
             // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) can see ALL projects
             $projects = Project::where('status', '!=', 'DELETED');
-            
+
             if (!$canSeeAll) {
                 $projects->whereHas('projectAssignments', function ($q) use ($employeeId) {
                     $q->where('employee_id', $employeeId)
                       ->whereIn('role', ['author', 'co_author', 'contributor']);
                 });
             }
-            
+
             $projects = $projects
                 ->withCount([
                     // Total active tasks (exclude canceled/deleted)
@@ -742,10 +742,10 @@ class ProjectController extends Controller
                 $completed = (int) ($p->completed_tasks ?? 0);
                 $newReq = (int) ($p->new_request_tasks ?? 0);
                 $lateCnt = (int) ($p->late_tasks ?? 0);
-                
+
                 // Default to not-started
                 $visual = 'not-started';
-                
+
                 // Logic untuk menentukan visual status
                 if ($total === 0) {
                     // Tidak ada task -> not-started
@@ -763,7 +763,7 @@ class ProjectController extends Controller
                         $visual = 'in-progress';
                     }
                 }
-                
+
                 // Override dengan late jika ada task yang terlambat atau project sudah lewat due date
                 try {
                     if ($visual !== 'complete') {
@@ -780,7 +780,7 @@ class ProjectController extends Controller
                 $parentRecord = DB::table('project_parents')
                     ->where('project_id', $p->id)
                     ->first();
-                    
+
                 $parentIds = [];
                 if ($parentRecord && $parentRecord->project_parent_ids) {
                     $parentIds = json_decode($parentRecord->project_parent_ids, true) ?: [];
@@ -885,14 +885,14 @@ class ProjectController extends Controller
         if (in_array($projectId, $visited)) {
             return true; // Cycle detected
         }
-        
+
         $visited[] = $projectId;
-        
+
         // Get all projects that have $projectId as parent from project_parents table
         $children = collect(DB::table('project_parents')
             ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [$projectId])
             ->pluck('project_id'));
-        
+
         foreach ($children as $childId) {
             if ($childId == $potentialAncestorId) {
                 return true; // Found descendant
@@ -901,7 +901,7 @@ class ProjectController extends Controller
                 return true;
             }
         }
-        
+
         return false;
     }
 
@@ -1498,15 +1498,14 @@ class ProjectController extends Controller
     public function show(Request $request, string $id, $slug = null)
     {
         try {
-            // If the request expects JSON (AJAX / API), return the JSON payload as before.
-            // For normal browser navigation, render the Blade view so the user sees the page.
-            $expectsJson = $request->wantsJson() || $request->ajax() || str_contains($request->header('Accept', ''), '/json') || str_contains($request->header('Accept', ''), 'application/json');
+            $expectsJson = $request->wantsJson()
+                || $request->ajax()
+                || str_contains($request->header('Accept', ''), '/json')
+                || str_contains($request->header('Accept', ''), 'application/json');
 
-            // Get current user and employee for authorization
             $user = auth()->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
-            
-            // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
+
             $canSeeAll = false;
             try {
                 $userType = strtoupper((string) ($user->user_type ?? ''));
@@ -1521,102 +1520,68 @@ class ProjectController extends Controller
                 $canSeeAll = false;
             }
 
-            if (!$expectsJson) {
-                // Render server-side view with full project model so Blade can display data
-                $project = Project::with(['department', 'division', 'projectAssignments.employee.user', 'tasks'])->find($id);
+            $project = Project::with([
+                'department',
+                'division',
+                'projectAssignments.employee.user',
+                'tasks'
+            ])->find($id);
 
-                if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
-                    abort(404);
-                }
-
-                if (!$employeeId && !$canSeeAll) {
-                    return redirect('/project')->with('error', 'You do not have permission to access the project.');
-                }
-
-                // Special roles can access all projects without assignment check
-                if (!$canSeeAll) {
-                    $isAssigned = ProjectAssignment::where('project_id', $project->id)
-                        ->where('employee_id', $employeeId)
-                        ->whereIn('role', ['author', 'co_author', 'contributor'])
-                        ->exists();
-                    if (!$isAssigned) {
-                        return redirect('/project')->with('error', 'You do not have permission to access the project.');
-                    }
-                }
-
-                return view('project.show', ['project' => $project]);
+            if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
+                $msg = 'Project not found';
+                return $expectsJson
+                    ? response()->json(['code' => 404, 'status' => 'error', 'message' => $msg], 404)
+                    : abort(404);
             }
 
-            // Eager-load employee.user to safely resolve avatars and reduce N+1
-            $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])->find($id);
-
-            if (!$project) {
-                return response()->json([
-                    'code' => 404,
-                    'status' => 'error',
-                    'message' => 'Project not found'
-                ], 404);
-            }
-
-            // If project was soft-deleted, pretend it doesn't exist for the frontend
-            if (isset($project->status) && $project->status === 'DELETED') {
-                return response()->json([
-                    'code' => 404,
-                    'status' => 'error',
-                    'message' => 'Project not found'
-                ], 404);
-            }
-
-            // Authorization check for JSON requests: only assigned users can access project details
-            // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) can access all projects
-            if (!$employeeId && !$canSeeAll) {
-                return response()->json([
-                    'code' => 403,
-                    'status' => 'error',
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
-
+            // === Akses check (non-JSON vs JSON sama-sama konsisten) ===
             if (!$canSeeAll) {
+                if (!$employeeId) {
+                    return $expectsJson
+                        ? response()->json(['code' => 403, 'status' => 'error', 'message' => 'Unauthorized'], 403)
+                        : redirect('/project')->with('error', 'You do not have permission to access the project.');
+                }
+
                 $isAssigned = ProjectAssignment::where('project_id', $project->id)
                     ->where('employee_id', $employeeId)
                     ->whereIn('role', ['author', 'co_author', 'contributor'])
                     ->exists();
+
                 if (!$isAssigned) {
-                    return response()->json([
-                        'code' => 403,
-                        'status' => 'error',
-                        'message' => 'Access denied'
-                    ], 403);
+                    $msg = 'Access denied';
+                    return $expectsJson
+                        ? response()->json(['code' => 403, 'status' => 'error', 'message' => $msg], 403)
+                        : redirect('/project')->with('error', 'You do not have permission to access the project.');
                 }
             }
 
-            // Extract author and co_authors
+            // === Kalau bukan JSON → render Blade ===
+            if (!$expectsJson) {
+                return view('project.show', ['project' => $project]);
+            }
+
+            // === Siapkan response JSON ===
             $author = null;
             $coAuthors = [];
             $contributors = [];
 
             foreach ($project->projectAssignments as $assignment) {
                 $emp = $assignment->employee;
-                if (!$emp)
-                    continue;
+                if (!$emp) continue;
+
                 $avatar = $this->resolveEmployeeAvatar($emp);
-                $empDivision = null;
-                try {
-                    $empDivision = $emp->division ? ($emp->division->name_division ?? $emp->division->name ?? null) : null;
-                } catch (\Throwable $t) {
-                    $empDivision = null;
-                }
+                $empDivision = $emp->division->name_division ?? $emp->division->name ?? null;
+
                 $wrapped = [
                     'id' => $emp->id,
                     'name' => $emp->name,
                     'user_photo' => $avatar,
                     'profile_picture' => $avatar,
                     'profile_picture_url' => $avatar,
-                    // expose division name for UI collaborator list
                     'division' => $empDivision,
                     'division_name' => $empDivision,
                 ];
+
                 if ($assignment->role === 'author') {
                     $author = $wrapped;
                 } elseif ($assignment->role === 'co_author') {
@@ -1626,28 +1591,20 @@ class ProjectController extends Controller
                 }
             }
 
-            // Normalize reference files (prefer JSON column reference_files)
             $files = $project->reference_files ?? $project->reference_file;
-            if (is_string($files) && $files !== '') {
-                $files = [$files];
-            }
-            if (!is_array($files)) {
-                $files = [];
-            }
+            if (is_string($files) && $files !== '') $files = [$files];
+            if (!is_array($files)) $files = [];
 
             $response = [
                 'id' => $project->id,
                 'title' => $project->title,
                 'description' => $project->description,
                 'image' => $project->image,
-                'department' => $project->department ? $project->department->name_department ?? $project->department->name : null,
-                'division' => $project->division ? $project->division->name_division ?? $project->division->name : null,
+                'department' => $project->department->name_department ?? $project->department->name ?? null,
+                'division' => $project->division->name_division ?? $project->division->name ?? null,
                 'reference_url' => $project->reference_url,
-                // Preferred multi-URL field; fallback to single if needed
                 'reference_urls' => $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []),
-                // Backward-compat alias for frontend
                 'reference_file' => $files,
-                // Preferred field
                 'reference_files' => $files,
                 'start_date' => $project->start_date,
                 'due_date' => $project->due_date,
@@ -1666,7 +1623,7 @@ class ProjectController extends Controller
             $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
                 'code' => $status,
-                'status' => "error",
+                'status' => 'error',
                 'message' => $e->getMessage()
             ], $status);
         }
@@ -1693,7 +1650,7 @@ class ProjectController extends Controller
 
         $user = $request->user();
         $employeeId = $user && $user->employee ? $user->employee->id : null;
-        
+
         // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
         $canSeeAll = false;
         try {
@@ -2492,7 +2449,7 @@ class ProjectController extends Controller
                 'reference_url' => 'nullable|url',
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url',
-                // Multiple reference files support (match Task mimes & 5MB limit) 
+                // Multiple reference files support (match Task mimes & 5MB limit)
                 'reference_files' => 'nullable|array',
                 'reference_files.*' => 'file|max:5120',
             ]);
@@ -2529,7 +2486,7 @@ class ProjectController extends Controller
                 foreach ((array) $request->file('reference_files') as $file) {
                     if (!$file)
                         continue;
-                    
+
                     // Debug: log file info
                     \Log::info('Uploading reference file:', [
                         'original_name' => $file->getClientOriginalName(),
@@ -2537,7 +2494,7 @@ class ProjectController extends Controller
                         'extension' => $file->getClientOriginalExtension(),
                         'size' => $file->getSize()
                     ]);
-                    
+
                     $fileName = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $file->getClientOriginalExtension();
                     $file->move(public_path('file/project_reference_files'), $fileName);
                     $uploaded[] = $fileName;
@@ -2655,7 +2612,7 @@ class ProjectController extends Controller
                 foreach ((array) $request->file('reference_files') as $rf) {
                     if (!$rf)
                         continue;
-                    
+
                     // Debug: log file info for update
                     \Log::info('Updating reference file:', [
                         'original_name' => $rf->getClientOriginalName(),
@@ -2663,7 +2620,7 @@ class ProjectController extends Controller
                         'extension' => $rf->getClientOriginalExtension(),
                         'size' => $rf->getSize()
                     ]);
-                    
+
                     $name = 'FEEDBACK_' . time() . '_' . Str::random(5) . '.' . $rf->getClientOriginalExtension();
                     $rf->move(public_path('file/project_reference_files'), $name);
                     $finalFiles[] = $name;
@@ -3336,7 +3293,7 @@ class ProjectController extends Controller
 
             // Create writer and download
             $writer = new Xlsx($spreadsheet);
-            
+
             $tempFile = tempnam(sys_get_temp_dir(), 'project_export');
             $writer->save($tempFile);
 
