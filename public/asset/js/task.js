@@ -3135,9 +3135,11 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
     function createTaskCard(task) {
         // Early-safety: if this task is completed and older than threshold, register into
         // client archive buffer and return an empty string so no card is rendered.
+        // Determine upfront whether we're rendering the archive modal so the
+        // template (later) can safely reference the flag without a ReferenceError.
+        let inArchiveRender = !!(window.__renderingArchiveModal);
         try {
             // If we're currently rendering the archive modal, allow cards to be created
-            const inArchiveRender = !!(window.__renderingArchiveModal);
             if (!inArchiveRender && __isCompletedOlderThanDaysGlobal(task, 90)) {
                 const idKey = String(task.id || task.task_id || '');
                 if (idKey) {
@@ -3346,8 +3348,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             </div>
         `;
 
-        return `
-        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;" id="custom-card">
+    return `
+    <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
                 ${statusBadge}
                 ${dropdownHtml}
                 ${iconHtml}
