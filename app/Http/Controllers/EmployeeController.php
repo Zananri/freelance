@@ -91,7 +91,7 @@ class EmployeeController extends Controller
                 })
                 ->whereHas('user', function ($q) {
                     $q->where('user_type', '!=', 'ADMINISTRATOR')
-                    ->whereNotIn('user_role', ['GENERAL_MANAGER', 'CEO']);
+                    ->whereNotIn('user_role', ['ADMINISTRATOR']);
                 })
                 ->get();
 
@@ -117,7 +117,7 @@ class EmployeeController extends Controller
             ->where('status', '!=', 'DELETED')
             ->whereHas('user', function ($q) {
                 $q->where('user_type', '!=', 'ADMINISTRATOR')
-                ->whereNotIn('user_role', ['GENERAL_MANAGER', 'CEO']);
+                ->whereNotIn('user_role', ['ADMINISTRATOR']);
             })
             ->get();
     }
@@ -590,8 +590,8 @@ class EmployeeController extends Controller
                         return;
                     }
                     // Back-compat behaviour: exclude top-level managers and administrators when not explicitly requesting executor-only list
-                    $q->whereNotIn('user_role', ["GENERAL_MANAGER","CEO"]);
-                    if (auth()->user() && in_array(auth()->user()->user_role, ['GENERAL_MANAGER', 'CEO'])) {
+                    $q->whereNotIn('user_role', ["ADMINISTRATOR"]);
+                    if (auth()->user() && in_array(auth()->user()->user_role, ['ADMINISTRATOR'])) {
                         $q->whereNotIn('user_type', ["ADMINISTRATOR"]);
                     }
                 })
