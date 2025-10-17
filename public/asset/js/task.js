@@ -746,6 +746,33 @@
                 allowClose = true;
             });
 
+            // When modal is shown, mark form as pristine (no user edits yet).
+            // Attach input/change listeners to mark it dirty when the user edits
+            // any input except the ignored auto-filled fields for the Add modal.
+            $modal.on('show.bs.modal', function() {
+                try {
+                    if ($modal[0] && $modal[0].dataset) {
+                        $modal[0].dataset.formPristine = '1';
+                    }
+                } catch(_) {}
+
+                // Prevent attaching multiple handlers
+                try {
+                    if ($modal[0] && $modal[0].dataset && $modal[0].dataset.pristineHandlerAdded === '1') return;
+                    const ignoredForAdd = new Set(['task_priority', 'task_point', 'task_start_date', 'task_due_date']);
+                    $modal.on('input change', 'input, textarea, select', function(e) {
+                        try {
+                            const modalId = $modal && $modal.attr ? $modal.attr('id') : null;
+                            const elId = this.id || '';
+                            // If this is add modal and the changed field is one of the ignored, do not mark dirty
+                            if (modalId === 'addTaskModal' && ignoredForAdd.has(elId)) return;
+                            if ($modal[0] && $modal[0].dataset) $modal[0].dataset.formPristine = '0';
+                        } catch(_) {}
+                    });
+                    if ($modal[0] && $modal[0].dataset) $modal[0].dataset.pristineHandlerAdded = '1';
+                } catch(_) {}
+            });
+
             $modal.on('hide.bs.modal', function(e) {
                 // If a programmatic close was intended, allow it and clear the flag.
                 try {
@@ -757,7 +784,19 @@
 
                 const triggerElement = $(document.activeElement);
                 const clickedOutside = triggerElement.length === 0 || !$.contains($modal[0], triggerElement[0]);
-                const partiallyFilled = isFormPartiallyFilled(formSelector);
+                // If the form is still pristine (user hasn't changed anything),
+                // treat it as not partially filled. This avoids false positives when
+                // only auto-filled defaults exist (priority/point/start/due).
+                let partiallyFilled = false;
+                try {
+                    if ($modal[0] && $modal[0].dataset && $modal[0].dataset.formPristine === '1') {
+                        partiallyFilled = false;
+                    } else {
+                        partiallyFilled = isFormPartiallyFilled(formSelector);
+                    }
+                } catch(_) {
+                    partiallyFilled = isFormPartiallyFilled(formSelector);
+                }
 
                 if (clickedOutside && partiallyFilled && !allowClose) {
                     e.preventDefault();
@@ -775,9 +814,21 @@
 
             function isFormPartiallyFilled(form) {
                 let filled = false;
+                // Fields that are auto-populated on Add Task modal and should not
+                // count as "partially filled" for the purpose of blocking outside-close.
+                const ignoredForAdd = new Set(['task_priority', 'task_point', 'task_start_date', 'task_due_date']);
+
                 form.find('input, textarea, select').each(function() {
                     const type = $(this).attr('type');
                     if (type === 'hidden' || type === 'file') return;
+
+                    // If this is the Add Task modal, ignore certain auto-filled fields
+                    try {
+                        const modalId = $modal && $modal.attr ? $modal.attr('id') : null;
+                        const elId = $(this).attr('id') || '';
+                        if (modalId === 'addTaskModal' && ignoredForAdd.has(elId)) return;
+                    } catch(_) {}
+
                     const val = $(this).val();
                     if (val && val.trim() !== '') {
                         filled = true;
