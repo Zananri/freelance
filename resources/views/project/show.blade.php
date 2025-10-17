@@ -436,7 +436,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"
                             aria-label="Close"></button>
                     </div>
-                    <form id="editProjectTaskForm" enctype="multipart/form-data">
+                    <form id="editProjectForm" enctype="multipart/form-data">
                         <input type="hidden" id="edit_project_id" name="id" value="">
                         <div class="modal-body modal-body-custom">
                             <div id="editProjectAlert" class="alert alert-success d-none" role="alert"
