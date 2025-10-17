@@ -1498,14 +1498,15 @@ class ProjectController extends Controller
     public function show(Request $request, string $id, $slug = null)
     {
         try {
-            $expectsJson = $request->wantsJson()
-                || $request->ajax()
-                || str_contains($request->header('Accept', ''), '/json')
-                || str_contains($request->header('Accept', ''), 'application/json');
+            // If the request expects JSON (AJAX / API), return the JSON payload as before.
+            // For normal browser navigation, render the Blade view so the user sees the page.
+            $expectsJson = $request->wantsJson() || $request->ajax() || str_contains($request->header('Accept', ''), '/json') || str_contains($request->header('Accept', ''), 'application/json');
 
+            // Get current user and employee for authorization
             $user = auth()->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
 
+            // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
             $canSeeAll = false;
             try {
                 $userType = strtoupper((string) ($user->user_type ?? ''));
@@ -1520,68 +1521,102 @@ class ProjectController extends Controller
                 $canSeeAll = false;
             }
 
-            $project = Project::with([
-                'department',
-                'division',
-                'projectAssignments.employee.user',
-                'tasks'
-            ])->find($id);
+            if (!$expectsJson) {
+                // Render server-side view with full project model so Blade can display data
+                $project = Project::with(['department', 'division', 'projectAssignments.employee.user', 'tasks'])->find($id);
 
-            if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
-                $msg = 'Project not found';
-                return $expectsJson
-                    ? response()->json(['code' => 404, 'status' => 'error', 'message' => $msg], 404)
-                    : abort(404);
-            }
-
-            // === Akses check (non-JSON vs JSON sama-sama konsisten) ===
-            if (!$canSeeAll) {
-                if (!$employeeId) {
-                    return $expectsJson
-                        ? response()->json(['code' => 403, 'status' => 'error', 'message' => 'Unauthorized'], 403)
-                        : redirect('/project')->with('error', 'You do not have permission to access the project.');
+                if (!$project || (isset($project->status) && $project->status === 'DELETED')) {
+                    abort(404);
                 }
 
+                if (!$employeeId && !$canSeeAll) {
+                    return redirect('/project')->with('error', 'You do not have permission to access the project.');
+                }
+
+                // Special roles can access all projects without assignment check
+                if (!$canSeeAll) {
+                    $isAssigned = ProjectAssignment::where('project_id', $project->id)
+                        ->where('employee_id', $employeeId)
+                        ->whereIn('role', ['author', 'co_author', 'contributor'])
+                        ->exists();
+                    if (!$isAssigned) {
+                        return redirect('/project')->with('error', 'You do not have permission to access the project.');
+                    }
+                }
+
+                return view('project.show', ['project' => $project]);
+            }
+
+            // Eager-load employee.user to safely resolve avatars and reduce N+1
+            $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])->find($id);
+
+            if (!$project) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Project not found'
+                ], 404);
+            }
+
+            // If project was soft-deleted, pretend it doesn't exist for the frontend
+            if (isset($project->status) && $project->status === 'DELETED') {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Project not found'
+                ], 404);
+            }
+
+            // Authorization check for JSON requests: only assigned users can access project details
+            // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) can access all projects
+            if (!$employeeId && !$canSeeAll) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'Unauthorized'
+                ], 403);
+            }
+
+            if (!$canSeeAll) {
                 $isAssigned = ProjectAssignment::where('project_id', $project->id)
                     ->where('employee_id', $employeeId)
                     ->whereIn('role', ['author', 'co_author', 'contributor'])
                     ->exists();
-
                 if (!$isAssigned) {
-                    $msg = 'Access denied';
-                    return $expectsJson
-                        ? response()->json(['code' => 403, 'status' => 'error', 'message' => $msg], 403)
-                        : redirect('/project')->with('error', 'You do not have permission to access the project.');
+                    return response()->json([
+                        'code' => 403,
+                        'status' => 'error',
+                        'message' => 'Access denied'
+                    ], 403);
                 }
             }
 
-            // === Kalau bukan JSON → render Blade ===
-            if (!$expectsJson) {
-                return view('project.show', ['project' => $project]);
-            }
-
-            // === Siapkan response JSON ===
+            // Extract author and co_authors
             $author = null;
             $coAuthors = [];
             $contributors = [];
 
             foreach ($project->projectAssignments as $assignment) {
                 $emp = $assignment->employee;
-                if (!$emp) continue;
-
+                if (!$emp)
+                    continue;
                 $avatar = $this->resolveEmployeeAvatar($emp);
-                $empDivision = $emp->division->name_division ?? $emp->division->name ?? null;
-
+                $empDivision = null;
+                try {
+                    $empDivision = $emp->division ? ($emp->division->name_division ?? $emp->division->name ?? null) : null;
+                } catch (\Throwable $t) {
+                    $empDivision = null;
+                }
                 $wrapped = [
                     'id' => $emp->id,
                     'name' => $emp->name,
                     'user_photo' => $avatar,
                     'profile_picture' => $avatar,
                     'profile_picture_url' => $avatar,
+                    // expose division name for UI collaborator list
                     'division' => $empDivision,
                     'division_name' => $empDivision,
                 ];
-
                 if ($assignment->role === 'author') {
                     $author = $wrapped;
                 } elseif ($assignment->role === 'co_author') {
@@ -1591,20 +1626,28 @@ class ProjectController extends Controller
                 }
             }
 
+            // Normalize reference files (prefer JSON column reference_files)
             $files = $project->reference_files ?? $project->reference_file;
-            if (is_string($files) && $files !== '') $files = [$files];
-            if (!is_array($files)) $files = [];
+            if (is_string($files) && $files !== '') {
+                $files = [$files];
+            }
+            if (!is_array($files)) {
+                $files = [];
+            }
 
             $response = [
                 'id' => $project->id,
                 'title' => $project->title,
                 'description' => $project->description,
                 'image' => $project->image,
-                'department' => $project->department->name_department ?? $project->department->name ?? null,
-                'division' => $project->division->name_division ?? $project->division->name ?? null,
+                'department' => $project->department ? $project->department->name_department ?? $project->department->name : null,
+                'division' => $project->division ? $project->division->name_division ?? $project->division->name : null,
                 'reference_url' => $project->reference_url,
+                // Preferred multi-URL field; fallback to single if needed
                 'reference_urls' => $project->reference_urls ?: ($project->reference_url ? [$project->reference_url] : []),
+                // Backward-compat alias for frontend
                 'reference_file' => $files,
+                // Preferred field
                 'reference_files' => $files,
                 'start_date' => $project->start_date,
                 'due_date' => $project->due_date,
@@ -1623,7 +1666,7 @@ class ProjectController extends Controller
             $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
                 'code' => $status,
-                'status' => 'error',
+                'status' => "error",
                 'message' => $e->getMessage()
             ], $status);
         }

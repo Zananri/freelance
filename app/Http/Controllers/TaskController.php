@@ -3579,55 +3579,6 @@ class TaskController extends Controller
     public function getTasksByProjectForTree($projectId, $pageTab = 6)
     {
         try {
-            $user = auth()->user();
-            $employeeId = $user && $user->employee ? $user->employee->id : null;
-
-            $canSeeAll = false;
-            try {
-                $userType = strtoupper((string) ($user->user_type ?? ''));
-                $userRole = strtoupper((string) ($user->user_role ?? ''));
-                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
-                    $canSeeAll = true;
-                }
-                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
-                    $canSeeAll = true;
-                }
-            } catch (\Throwable $_) {
-                $canSeeAll = false;
-            }
-
-            $project = Project::find($projectId);
-            if (!$project || (isset($project->status) && strtolower($project->status) === 'deleted')) {
-                return response()->json([
-                    'code' => 404,
-                    'status' => 'error',
-                    'message' => 'Project not found'
-                ], 404);
-            }
-
-            if (!$canSeeAll) {
-                if (!$employeeId) {
-                    return response()->json([
-                        'code' => 403,
-                        'status' => 'error',
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-
-                $isAssigned = ProjectAssignment::where('project_id', $projectId)
-                    ->where('employee_id', $employeeId)
-                    ->whereIn('role', ['author', 'co_author', 'contributor'])
-                    ->exists();
-
-                if (!$isAssigned) {
-                    return response()->json([
-                        'code' => 403,
-                        'status' => 'error',
-                        'message' => 'Access denied'
-                    ], 403);
-                }
-            }
-
             $qpDepth = null;
             if (isset($_GET['depth']))
                 $qpDepth = (int) $_GET['depth'];
@@ -3643,16 +3594,19 @@ class TaskController extends Controller
             $allIds = $this->taskParentRelation($projectId, $pageTab, [], 0);
 
             $tasks = Task::with([
-                    'assignments.employee.user',
-                    'project',
-                    'parent'
-                ])
+                'assignments.employee.user',
+                'project',
+                'parent'
+            ])
+                //->whereIn('id', $allIds)
                 ->where('project_id', $projectId)
+                // Exclude both canceled and deleted tasks from the project tree
                 ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
                 ->orderBy('start_date', 'asc')
                 ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
+                // Ambil PIC
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $picData = null;
                 if ($pic && $pic->employee) {
@@ -3664,18 +3618,17 @@ class TaskController extends Controller
                     ];
                 }
 
-                $executorsData = $task->assignments
-                    ->where('role', 'EXECUTOR')
-                    ->map(function ($executor) {
-                        return [
-                            'id' => $executor->employee->id,
-                            'name' => $executor->employee->name ?? 'Unknown',
-                            'user_photo' => $this->resolveEmployeeAvatar($executor->employee),
-                            'profile_picture' => $this->resolveEmployeeAvatar($executor->employee),
-                        ];
-                    })->values();
+                $executors = $task->assignments->where('role', 'EXECUTOR');
+                $executorsData = $executors->map(function ($executor) {
+                    return [
+                        'id' => $executor->employee->id,
+                        'name' => $executor->employee->name ?? 'Unknown',
+                        'user_photo' => $this->resolveEmployeeAvatar($executor->employee),
+                        'profile_picture' => $this->resolveEmployeeAvatar($executor->employee),
+                    ];
+                })->values();
 
-                return [
+                $payload = [
                     'id' => $task->id,
                     'title' => $task->title,
                     'parent_id' => $task->parent_id ?? null,
@@ -3700,10 +3653,13 @@ class TaskController extends Controller
                     'deadline' => $task->due_date,
                     'children' => [],
                 ];
+                return $payload;
             });
 
+            // Check if there are more levels beyond the current pageTab
             $hasMore = Task::where('project_id', $projectId)
                 ->whereIn('parent_id', $allIds)
+                // Ensure we don't count canceled or deleted tasks as "more"
                 ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
                 ->whereNotIn('id', $allIds)
                 ->exists();
@@ -3714,17 +3670,14 @@ class TaskController extends Controller
                 'data' => $formattedTasks,
                 'has_more' => $hasMore
             ]);
-
         } catch (\Exception $e) {
-            $status = $this->deriveHttpStatusFromException($e);
             return response()->json([
-                'code' => $status,
+                'code' => $this->deriveHttpStatusFromException($e),
                 'status' => 'error',
                 'message' => $e->getMessage()
-            ], $status);
+            ], $this->deriveHttpStatusFromException($e));
         }
     }
-
 
     /**
      * Add an additional parent to a task (multi-parent support). Prevent cycles and cross-project links.
