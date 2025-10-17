@@ -419,23 +419,38 @@ class ProjectController extends Controller
             $taskScopeRaw = strtolower($request->input('task_scope', 'project'));
             $taskScope = in_array($taskScopeRaw, ['project', 'me', 'all']) ? $taskScopeRaw : 'project';
 
-            if ($taskScope === 'all') {
-                // For 'all' scope (used by global listings and task dropdowns), expose public projects
-                // and also allow the authenticated creator to see their own private projects.
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
+
+            if ($taskScope === 'all' || $canSeeAll) {
+              
                 $projects = Project::where('status', '!=', 'DELETED')
-                    ->where(function ($q) use ($user) {
-                        $q->whereNull('project_type')
-                          ->orWhere('project_type', 'public');
-                        // Include private projects authored/created by current authenticated user
-                        try {
-                            if ($user && $user->id) {
-                                $q->orWhere(function ($qq) use ($user) {
-                                    $qq->where('project_type', 'private')
-                                       ->where('created_by', $user->id);
-                                });
+                    ->where(function ($q) use ($user, $canSeeAll) {
+                        if ($canSeeAll) {
+                            $q->whereRaw('1=1');
+                        } else {
+                            $q->whereNull('project_type')
+                              ->orWhere('project_type', 'public');
+                            try {
+                                if ($user && $user->id) {
+                                    $q->orWhere(function ($qq) use ($user) {
+                                        $qq->where('project_type', 'private')
+                                           ->where('created_by', $user->id);
+                                    });
+                                }
+                            } catch (\Throwable $_) {
                             }
-                        } catch (\Throwable $_) {
-                            // ignore and continue with public-only fallback
                         }
                     })
                     ->with([
@@ -670,16 +685,38 @@ class ProjectController extends Controller
         try {
             $user = $request->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
-            if (!$employeeId) {
+            
+            // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
+            
+            if (!$employeeId && !$canSeeAll) {
                 return response()->json(['code' => 200, 'status' => 'success', 'data' => []]);
             }
 
-            // Fetch only projects visible to this employee (assigned author/co_author/contributor), exclude DELETED
-            $projects = Project::where('status', '!=', 'DELETED')
-                ->whereHas('projectAssignments', function ($q) use ($employeeId) {
+            // Fetch projects visible to this employee (assigned author/co_author/contributor), exclude DELETED
+            // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) can see ALL projects
+            $projects = Project::where('status', '!=', 'DELETED');
+            
+            if (!$canSeeAll) {
+                $projects->whereHas('projectAssignments', function ($q) use ($employeeId) {
                     $q->where('employee_id', $employeeId)
                       ->whereIn('role', ['author', 'co_author', 'contributor']);
-                })
+                });
+            }
+            
+            $projects = $projects
                 ->withCount([
                     // Total active tasks (exclude canceled/deleted)
                     'tasks as total_tasks' => function ($q) {
@@ -883,7 +920,22 @@ class ProjectController extends Controller
             $taskScope = strtolower($request->input('task_scope', 'project'));
             $taskScope = in_array($taskScope, ['project', 'me', 'all']) ? $taskScope : 'project';
 
-            if (!$employeeId && $taskScope !== 'all') {
+            // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
+
+            if (!$employeeId && $taskScope !== 'all' && !$canSeeAll) {
                 return response()->json([
                     'code' => 200,
                     'status' => 'success',
@@ -899,20 +951,26 @@ class ProjectController extends Controller
 
             // Only public projects should be visible in general listing used by dropdowns unless task_scope=all
             // For private projects, only the author (creator) may see them in the general listing.
+            // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) can see ALL projects
             $query = Project::where('status', '!=', 'DELETED')
-                ->where(function ($q) use ($employeeId) {
-                    $q->whereNull('project_type')
-                      ->orWhere('project_type', 'public');
+                ->where(function ($q) use ($employeeId, $canSeeAll) {
+                    if ($canSeeAll) {
+                        // Special roles can see ALL projects without restriction
+                        $q->whereRaw('1=1');
+                    } else {
+                        $q->whereNull('project_type')
+                          ->orWhere('project_type', 'public');
 
-                    if ($employeeId) {
-                        // include private projects only when the current employee is the author
-                        $q->orWhere(function ($qq) use ($employeeId) {
-                            $qq->where('project_type', 'private')
-                               ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
-                                    $q2->where('employee_id', $employeeId)
-                                       ->where('role', 'author');
-                               });
-                        });
+                        if ($employeeId) {
+                            // include private projects only when the current employee is the author
+                            $q->orWhere(function ($qq) use ($employeeId) {
+                                $qq->where('project_type', 'private')
+                                   ->whereHas('projectAssignments', function ($q2) use ($employeeId) {
+                                        $q2->where('employee_id', $employeeId)
+                                           ->where('role', 'author');
+                                   });
+                            });
+                        }
                     }
                 });
 
@@ -938,10 +996,11 @@ class ProjectController extends Controller
                     $query = $query->orderBy('projects.title', 'asc');
             }
 
-            if ($taskScope !== 'all') {
+            if ($taskScope !== 'all' && !$canSeeAll) {
                 // Only include projects where current employee is assigned.
                 // Authors should always see their projects (even if is_receive not set).
                 // Co-authors and contributors should only see projects they've accepted (is_receive = true)
+                // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) skip this check
                 $query->whereHas('projectAssignments', function ($q) use ($employeeId, $includeUnaccepted) {
                     $q->where('employee_id', $employeeId)
                         ->whereIn('role', ['author', 'co_author', 'contributor']);
@@ -1446,6 +1505,21 @@ class ProjectController extends Controller
             // Get current user and employee for authorization
             $user = auth()->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
+            
+            // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
 
             if (!$expectsJson) {
                 // Render server-side view with full project model so Blade can display data
@@ -1455,16 +1529,19 @@ class ProjectController extends Controller
                     abort(404);
                 }
 
-                if (!$employeeId) {
+                if (!$employeeId && !$canSeeAll) {
                     return redirect('/project')->with('error', 'You do not have permission to access the project.');
                 }
 
-                $isAssigned = ProjectAssignment::where('project_id', $project->id)
-                    ->where('employee_id', $employeeId)
-                    ->whereIn('role', ['author', 'co_author', 'contributor'])
-                    ->exists();
-                if (!$isAssigned) {
-                    return redirect('/project')->with('error', 'You do not have permission to access the project.');
+                // Special roles can access all projects without assignment check
+                if (!$canSeeAll) {
+                    $isAssigned = ProjectAssignment::where('project_id', $project->id)
+                        ->where('employee_id', $employeeId)
+                        ->whereIn('role', ['author', 'co_author', 'contributor'])
+                        ->exists();
+                    if (!$isAssigned) {
+                        return redirect('/project')->with('error', 'You do not have permission to access the project.');
+                    }
                 }
 
                 return view('project.show', ['project' => $project]);
@@ -1491,7 +1568,8 @@ class ProjectController extends Controller
             }
 
             // Authorization check for JSON requests: only assigned users can access project details
-            if (!$employeeId) {
+            // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) can access all projects
+            if (!$employeeId && !$canSeeAll) {
                 return response()->json([
                     'code' => 403,
                     'status' => 'error',
@@ -1499,16 +1577,18 @@ class ProjectController extends Controller
                 ], 403);
             }
 
-            $isAssigned = ProjectAssignment::where('project_id', $project->id)
-                ->where('employee_id', $employeeId)
-                ->whereIn('role', ['author', 'co_author', 'contributor'])
-                ->exists();
-            if (!$isAssigned) {
-                return response()->json([
-                    'code' => 403,
-                    'status' => 'error',
-                    'message' => 'Access denied'
-                ], 403);
+            if (!$canSeeAll) {
+                $isAssigned = ProjectAssignment::where('project_id', $project->id)
+                    ->where('employee_id', $employeeId)
+                    ->whereIn('role', ['author', 'co_author', 'contributor'])
+                    ->exists();
+                if (!$isAssigned) {
+                    return response()->json([
+                        'code' => 403,
+                        'status' => 'error',
+                        'message' => 'Access denied'
+                    ], 403);
+                }
             }
 
             // Extract author and co_authors
@@ -1613,6 +1693,21 @@ class ProjectController extends Controller
 
         $user = $request->user();
         $employeeId = $user && $user->employee ? $user->employee->id : null;
+        
+        // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
+        $canSeeAll = false;
+        try {
+            $userType = strtoupper((string) ($user->user_type ?? ''));
+            $userRole = strtoupper((string) ($user->user_role ?? ''));
+            if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                $canSeeAll = true;
+            }
+            if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                $canSeeAll = true;
+            }
+        } catch (\Throwable $_) {
+            $canSeeAll = false;
+        }
 
         foreach ($ids as $id) {
             $project = $projects->firstWhere('id', $id);
@@ -1623,17 +1718,20 @@ class ProjectController extends Controller
             }
 
             // Enforce visibility: if project is private, only the author may see it
-            $pt = $project->project_type ?? null;
-            if (strtolower((string) $pt) === 'private') {
-                $isAuthor = false;
-                if ($employeeId) {
-                    $isAuthor = $project->projectAssignments->contains(function ($a) use ($employeeId) {
-                        return isset($a->employee_id) && (int)$a->employee_id === (int)$employeeId && ($a->role === 'author');
-                    });
-                }
-                if (!$isAuthor) {
-                    $result[] = null; // hide private project
-                    continue;
+            // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) can see ALL projects
+            if (!$canSeeAll) {
+                $pt = $project->project_type ?? null;
+                if (strtolower((string) $pt) === 'private') {
+                    $isAuthor = false;
+                    if ($employeeId) {
+                        $isAuthor = $project->projectAssignments->contains(function ($a) use ($employeeId) {
+                            return isset($a->employee_id) && (int)$a->employee_id === (int)$employeeId && ($a->role === 'author');
+                        });
+                    }
+                    if (!$isAuthor) {
+                        $result[] = null; // hide private project
+                        continue;
+                    }
                 }
             }
 
