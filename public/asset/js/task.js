@@ -747,6 +747,14 @@
             });
 
             $modal.on('hide.bs.modal', function(e) {
+                // If a programmatic close was intended, allow it and clear the flag.
+                try {
+                    if ($modal[0] && $modal[0].dataset && $modal[0].dataset.allowProgrammaticClose === '1') {
+                        allowClose = true;
+                        delete $modal[0].dataset.allowProgrammaticClose;
+                    }
+                } catch(_) {}
+
                 const triggerElement = $(document.activeElement);
                 const clickedOutside = triggerElement.length === 0 || !$.contains($modal[0], triggerElement[0]);
                 const partiallyFilled = isFormPartiallyFilled(formSelector);
@@ -1511,6 +1519,9 @@
                         setTimeout(() => {
                             var addTaskModalInstance =
                                 bootstrap.Modal.getInstance(addTaskModalEl);
+                            try {
+                                if (addTaskModalEl && addTaskModalEl.dataset) addTaskModalEl.dataset.allowProgrammaticClose = '1';
+                            } catch(_) {}
                             if (addTaskModalInstance)
                                 addTaskModalInstance.hide();
                             
@@ -2503,6 +2514,9 @@
                         setTimeout(() => {
                             var editTaskModalInstance =
                                 bootstrap.Modal.getInstance(editTaskModalEl);
+                            try {
+                                if (editTaskModalEl && editTaskModalEl.dataset) editTaskModalEl.dataset.allowProgrammaticClose = '1';
+                            } catch(_) {}
                             if (editTaskModalInstance)
                                 editTaskModalInstance.hide();
                             // Insert/refresh single updated task so client-archived tasks get restored immediately
