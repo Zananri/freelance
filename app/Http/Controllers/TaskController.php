@@ -1362,44 +1362,45 @@ class TaskController extends Controller
 
 
                 foreach ($executorIds as $executorId) {
-                    // Skip if executor is same as PIC
-                    if ($executorId == $employee->id)
-                        continue;
+                    // Allow creator/self to be added as EXECUTOR as well (mark as accepted).
+                    $isSelf = ($executorId == $employee->id);
 
                     TaskAssignment::create([
                         'task_id' => $task->id,
                         'employee_id' => $executorId,
                         'role' => 'EXECUTOR',
-                        'is_receive' => false,
-                        'date_receive' => null,
+                        'is_receive' => $isSelf ? true : false,
+                        'date_receive' => $isSelf ? now() : null,
                         'created_by' => auth()->id(),
                         'updated_by' => auth()->id(),
                         'deleted_by' => null
                     ]);
 
-                    // Log executor pending
+                    // Log executor pending or accepted for self
                     try {
                         TaskAssignmentLogService::record([
                             'task_id' => $task->id,
                             'employee_id' => $executorId,
                             'creator_task' => $user->employee->id ?? null,
-                            'action' => TaskAssignmentLog::ACTION_PENDING,
+                            'action' => $isSelf ? TaskAssignmentLog::ACTION_ACCEPTED : TaskAssignmentLog::ACTION_PENDING,
                             'created_by' => $user->employee->id ?? null,
                         ]);
                     } catch (\Throwable $_) {
                     }
 
-                    // Send notification to executor
-                    $executor = Employee::find($executorId);
-                    if ($executor) {
-                        NotificationController::createUserNotification(
-                            $executorId,
-                            'task_assignment',
-                            'You have been assigned as executor for task: ' . $task->title,
-                            'You have been assigned as executor for task: ' . $task->title,
-                            $employee->id,
-                            $task->id
-                        );
+                    // Send notification to executor (skip notifying self)
+                    if (!$isSelf) {
+                        $executor = Employee::find($executorId);
+                        if ($executor) {
+                            NotificationController::createUserNotification(
+                                $executorId,
+                                'task_assignment',
+                                'You have been assigned as executor for task: ' . $task->title,
+                                'You have been assigned as executor for task: ' . $task->title,
+                                $employee->id,
+                                $task->id
+                            );
+                        }
                     }
                 }
             }
@@ -2091,9 +2092,7 @@ class TaskController extends Controller
 
                 // Add new executors
                 foreach ($newExecutorIds as $executorId) {
-                    if ($executorId == $employee->id) {
-                        continue;
-                    }
+                    $isSelf = ($executorId == $employee->id);
 
                     // Only create assignment if not already exists
                     if (!in_array($executorId, $existingExecutors)) {
@@ -2101,25 +2100,25 @@ class TaskController extends Controller
                             'task_id' => $task->id,
                             'employee_id' => $executorId,
                             'role' => 'EXECUTOR',
-                            'is_receive' => false,
-                            'date_receive' => null,
+                            'is_receive' => $isSelf ? true : false,
+                            'date_receive' => $isSelf ? now() : null,
                         ]);
 
-                        // Log new executor pending (added via edit)
+                        // Log new executor pending (or accepted if self)
                         try {
                             TaskAssignmentLogService::record([
                                 'task_id' => $task->id,
                                 'employee_id' => $executorId,
                                 'creator_task' => ($employee->id ?? null),
-                                'action' => TaskAssignmentLog::ACTION_PENDING,
+                                'action' => $isSelf ? TaskAssignmentLog::ACTION_ACCEPTED : TaskAssignmentLog::ACTION_PENDING,
                                 'created_by' => $employee->id ?? null,
                             ]);
                         } catch (\Throwable $_) {
                         }
                     }
 
-                    // Send notification only for newly added executors
-                    if (in_array($executorId, $addedExecutors)) {
+                    // Send notification only for newly added executors and not for self
+                    if (in_array($executorId, $addedExecutors) && !$isSelf) {
                         $executor = Employee::find($executorId);
                         if ($executor) {
                             NotificationController::createUserNotification(
