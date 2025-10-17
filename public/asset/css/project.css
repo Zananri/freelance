@@ -444,12 +444,6 @@
     background-color: #e8e9f2;
 }
 
-/* Dropdown icon container positioned at top right of card */
-.dropdown-icon-container {
-    position: absolute;
-    margin-right: 15px;
-}
-
 .dropdown-action {
     position: absolute;
     top: 32px;
@@ -1366,10 +1360,10 @@
         flex-direction: column;
     }
 
-    #all-cards-container {
+    #cards-container {
         max-height: 100vh;
         overflow-y: auto;
-        padding-right: 8px;
+        padding: 10px;
         overflow-x: hidden;
     }
 
@@ -1378,15 +1372,15 @@
         height: 200px;
     }
 
-    #all-cards-container::-webkit-scrollbar {
+    #cards-container::-webkit-scrollbar {
         width: 4px;
     }
 
-    #all-cards-container::-webkit-scrollbar-track {
+    #cards-container::-webkit-scrollbar-track {
         background-color: transparent;
     }
 
-    #all-cards-container::-webkit-scrollbar-thumb {
+    #cards-container::-webkit-scrollbar-thumb {
         background-color: #cccccc;
         border-radius: 4px;
     }
@@ -1534,22 +1528,22 @@
         flex-direction: column;
     }
 
-    #all-cards-container {
+    #cards-container {
         max-height: 100vh;
         overflow-y: auto;
-        padding-right: 8px;
+        padding: 10px;
         overflow-x: hidden;
     }
 
-    #all-cards-container::-webkit-scrollbar {
+    #cards-container::-webkit-scrollbar {
         width: 4px;
     }
 
-    #all-cards-container::-webkit-scrollbar-track {
+    #cards-container::-webkit-scrollbar-track {
         background-color: transparent;
     }
 
-    #all-cards-container::-webkit-scrollbar-thumb {
+    #cards-container::-webkit-scrollbar-thumb {
         background-color: #cccccc;
         border-radius: 4px;
     }
@@ -1729,13 +1723,13 @@
 }
 
 .ref-link {
-  width: 60%;
-  height: 28px;
-  color: #444;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
+    width: 60%;
+    height: 28px;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
 }
 
 /* Override Bootstrap modal backdrop opacity for lighter background */
@@ -2087,7 +2081,7 @@
     padding: 15px;
     font-size: 14px;
     display: flex;
-    color: #3C404B;
+    color: #3c404b;
     justify-content: center;
     align-items: center;
     gap: 4px;
@@ -2098,7 +2092,7 @@
     border: none;
     border-radius: 10px;
     background: #e9eef4;
-    color: #3C404B;
+    color: #3c404b;
     padding: 15px;
     font-size: 14px;
     display: flex;
@@ -2120,7 +2114,7 @@
 .btn-contributor-custom:hover,
 .btn-timeline-filter-custom:hover {
     background: #e9eef4;
-    color: #3C404B;
+    color: #3c404b;
 }
 
 .dropdown-filter-menu {
@@ -2346,4 +2340,68 @@ input[type="file"]::file-selector-button {
 .feedback-file-icon,
 .submit-feedback button span {
     font-size: 20px;
+}
+
+.title-filter-container {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #dee7f0;
+}
+
+.new-request-container {
+    background: #a1a3a60d;
+    padding: 20px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.in-progress-container {
+    background: #edebdf5c;
+    padding: 20px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.completed-container {
+    background: #baeed340;
+    padding: 20px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.new-request-container #all-cards-container,
+.in-progress-container #all-cards-container,
+.completed-container #all-cards-container {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+    margin-bottom: 20px;
+}
+
+#all-cards-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+#all-cards-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#all-cards-container::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.project-section-title {
+    font-size: 18px;
+    font-weight: 300;
+    color: #444444;
+    display: flex;
+    align-items: center;
+}
+
+#cards-container {
+    padding: 10px;
 }

@@ -1252,7 +1252,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     });
 
-                    let rowHtml = '<div class="row">';
+                    let rowHtml = '<div class="col">';
 
                     visibleProjects.forEach((project) => {
                         let imageUrl = project.image
@@ -1267,7 +1267,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         const projectSlug = project.slug || slugify(project.title || "unknown-project");
                         const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
                         rowHtml += `
-                            <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
+                            <div class="col-md-12 project-bottom-cards mb-3 d-flex position-relative" data-project-id="${
                                 project.id
                             }" data-project-title="${dataTitle}">
                                 <div class="project-card p-4 w-100" style="background:#F0F1F8; border-radius:20px; display:flex; flex-direction:column; justify-content:space-between;">
@@ -1375,17 +1375,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                                 <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                                             </div>
-                              <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative"
-        title="Comment" data-project-id="${project.id}">
-    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-    <span class="project-feedback-count ms-1" data-project-id="${
-        project.id
-    }" style="font-size:12px; color:#454545;"></span>
-    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none"
-          data-project-id="${
-              project.id
-          }" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
-</button>
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative"
+                                                title="Comment" data-project-id="${project.id}">
+                                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
+                                                <span class="project-feedback-count ms-1" data-project-id="${
+                                                    project.id
+                                                }" style="font-size:12px; color:#454545;"></span>
+                                                <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none"
+                                                    data-project-id="${
+                                                    project.id
+                                                }" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
+                                            </button>
 
                                             <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${
                                                 project.id
@@ -1426,7 +1426,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 if (!titleEl) return;
                                 ev.preventDefault();
                                 ev.stopPropagation();
-                                const card = titleEl.closest(".col-md-4");
+                                const card = titleEl.closest(".col-md-12");
                                 const pid =
                                     card &&
                                     card.getAttribute("data-project-id");
@@ -1618,7 +1618,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     e.stopPropagation();
 
                                     // Find the project card container from the clicked dropdown item
-                                    const card = e.target.closest(".col-md-4");
+                                    const card = e.target.closest(".col-md-12");
                                     if (!card) {
                                         showFloatingAlert(
                                             "Project card not found.",
@@ -5898,10 +5898,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Helper to safely resolve project ID from various possible DOM contexts
                         function resolveProjectId(el) {
                             if (!el) return null;
-                            // 1. Direct ancestor card .col-md-4
+                            // 1. Direct ancestor card .col-md-12
                             const cardEl =
                                 el.closest &&
-                                el.closest(".col-md-4[data-project-id]");
+                                el.closest(".col-md-12[data-project-id]");
                             if (
                                 cardEl &&
                                 cardEl.getAttribute("data-project-id")
@@ -7139,7 +7139,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             item.addEventListener("click", function (e) {
                                 e.stopPropagation();
 
-                                const card = this.closest(".col-md-4");
+                                const card = this.closest(".col-md-12");
                                 const projectId =
                                     card.getAttribute("data-project-id");
                                 if (!projectId) {
@@ -7325,7 +7325,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             e.target.classList.contains("dropdown-item")
                         ) {
                             const text = e.target.textContent.trim();
-                            const card = e.target.closest(".col-md-4");
+                            const card = e.target.closest(".col-md-12");
                             if (!card) return;
                             const projectId =
                                 card.getAttribute("data-project-id");
