@@ -4059,6 +4059,7 @@ class TaskController extends Controller
                 ->where('employees.status', "ACTIVE")
                 // Only include regular employees (explicit allow-list)
                 ->whereNotIn('users.user_role', ['ADMINISTRATOR'])
+                ->whereNotIn('users.user_type', ['ADMINISTRATOR'])
                 ->get();
 
             $mapped = $employee->map(function ($emp) {
