@@ -55,6 +55,19 @@
     color: #1c1d21;
 }
 
+.btn-default-dark-modal {
+    background-color: #313131;
+    color: #e3e4ee;
+    font-weight: 300;
+}
+
+.btn-default-dark-modal:hover,
+.btn-default-dark-modal:active,
+.btn-default-dark-modal:focus{
+    background-color: #222222;
+    color: #e3e4ee;
+}
+
 .input-search-query{
     
     

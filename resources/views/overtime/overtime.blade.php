@@ -170,7 +170,7 @@
                 <div class="modal-content rounded-4 border-0">
                     
                     <div class="modal-header border-0 py-4 pt-3">
-                        <h5 class="modal-title fs-18 fw-light">Approve Leave Request</h5>
+                        <h5 class="modal-title fs-18 fw-light">Approve Overtime</h5>
                     </div>
 
                     <div class="modal-body p-0 border-0 ">
@@ -316,7 +316,7 @@
                 <div class="modal-content rounded-4 border-0">
                     
                     <div class="modal-header border-0 py-4 pt-3">
-                        <h5 class="modal-title fs-18 fw-light">Reject Leave Request</h5>
+                        <h5 class="modal-title fs-18 fw-light">Reject Overtime</h5>
                     </div>
 
                     <div class="modal-body p-0 border-0 ">
