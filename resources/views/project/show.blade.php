@@ -468,7 +468,7 @@
                             <div class="mb-3 input-custom">
                                 <label for="edit_description" class="form-label label-custom">Description</label>
 
-                                <div id="edit_description_editor"
+                                <div id="project_description_editor"
                                     style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                                 </div>
 
@@ -1438,6 +1438,189 @@
                             if (ta.value !== lastEditTa) {
                                 lastEditTa = ta.value;
                                 window.__quillTaskEdit.root.innerHTML = ta.value || '';
+                            }
+                        } catch (_) {}
+                    }, 300);
+                } catch (_) {}
+            });
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                try {
+                    if (document.getElementById('project_description_editor')) {
+
+                        var addToolbarEl = document.getElementById('task_description_toolbar');
+                        var addToolbarConfig = addToolbarEl ? '#task_description_toolbar' : false;
+                        window.__quillTaskAdd = new Quill('#project_description_editor', {
+                            modules: {
+                                toolbar: addToolbarConfig
+                            },
+                            theme: 'snow'
+                        });
+                        try {
+                            var Delta = Quill.import && Quill.import('delta');
+                            if (window.__quillTaskAdd && window.__quillTaskAdd.clipboard && typeof window.__quillTaskAdd
+                                .clipboard.addMatcher === 'function') {
+                                window.__quillTaskAdd.clipboard.addMatcher('IMG', function(node, delta) {
+                                    try {
+                                        return new Delta();
+                                    } catch (_) {
+                                        return delta;
+                                    }
+                                });
+                            }
+                            // Safety: remove any <img> elements after any text-change (Edge may still insert blobs)
+                            try {
+                                window.__quillTaskAdd.on && window.__quillTaskAdd.on('text-change', function(delta,
+                                    oldDelta, source) {
+                                    try {
+                                        setTimeout(function() {
+                                            try {
+                                                var imgs = window.__quillTaskAdd.root.querySelectorAll(
+                                                    'img');
+                                                imgs.forEach(function(i) {
+                                                    i.remove();
+                                                });
+                                            } catch (_) {}
+                                        }, 0);
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        } catch (_) {}
+                        // prevent images via drop/paste
+                        try {
+                            preventImageDropAndPaste(window.__quillTaskAdd, '#project_description_editor');
+                        } catch (_) {}
+                    }
+                } catch (_) {
+                    /* noop if Quill not available */
+                }
+
+                // Prevent images from being inserted via drag/drop or paste
+                function preventImageDropAndPaste(quill, editorSelector) {
+                    try {
+                        var editor = document.querySelector(editorSelector);
+                        if (!editor || !quill) return;
+
+                        // Use capture-phase listeners to intercept before Quill's handlers run
+                        try {
+                            editor.addEventListener('dragover', function(e) {
+                                try {
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+
+                        // drop: block files (including images) and HTML that contains <img>
+                        try {
+                            editor.addEventListener('drop', function(e) {
+                                try {
+                                    if (!e.dataTransfer) return;
+                                    var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                    var html = '';
+                                    try {
+                                        html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') ||
+                                            '';
+                                    } catch (_) {}
+                                    if (hasFiles || /<img\s*/i.test(html)) {
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return; // do nothing
+                                    }
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+
+                        // paste: if clipboard contains image items or HTML with <img>, prevent entirely (no insert)
+                        try {
+                            editor.addEventListener('paste', function(e) {
+                                try {
+                                    var clipboard = (e.clipboardData || window.clipboardData);
+                                    if (!clipboard) return;
+
+                                    var items = clipboard.items || [];
+                                    var hasImage = false;
+                                    for (var i = 0; i < items.length; i++) {
+                                        var t = items[i].type || '';
+                                        if (t.indexOf && t.indexOf('image') === 0) {
+                                            hasImage = true;
+                                            break;
+                                        }
+                                    }
+
+                                    var html = '';
+                                    try {
+                                        html = clipboard.getData && clipboard.getData('text/html') || '';
+                                    } catch (_) {}
+
+                                    if (hasImage || /<img\s*/i.test(html)) {
+                                        // block default paste which would insert the image or any html containing images
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return; // do not insert anything (no blink)
+                                    }
+                                    // Otherwise allow normal paste (text or non-image html)
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+                    } catch (_) {}
+                }
+
+                function syncQuillToTextarea(quill, textareaId) {
+                    try {
+                        const ta = document.getElementById(textareaId);
+                        if (!ta) return;
+                        const html = (quill && quill.root && typeof quill.root.innerHTML === 'string') ? quill.root
+                            .innerHTML : '';
+                        ta.value = html;
+                    } catch (_) {}
+                }
+
+                const editProjectForm = document.getElementById('editProjectForm');
+                if (editProjectForm) {
+                    editProjectForm.addEventListener('submit', function(e) {
+                        try {
+                            if (window.__quillProjectEdit) syncQuillToTextarea(window.__quillProjectEdit,
+                                'edit_description');
+                            const plain = (window.__quillProjectEdit && typeof window.__quillProjectEdit.getText ===
+                                'function') ? window.__quillProjectEdit.getText().trim() : '';
+                            if (!plain) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                try {
+                                    window.__quillProjectEdit.focus();
+                                } catch (_) {}
+                                return false;
+                            }
+                        } catch (_) {}
+                    }, true);
+                }
+
+                // Clear editors when modals hide (keep canonical textareas in sync)
+                try {
+                    $('#editProjectModal').on('hidden.bs.modal', function() {
+                        try {
+                            if (window.__quillProjectEdit && window.__quillProjectEdit.root) window.__quillProjectEdit
+                                .root.innerHTML = '';
+                        } catch (_) {}
+                        try {
+                            const ta = document.getElementById('edit_description');
+                            if (ta) ta.value = '';
+                        } catch (_) {}
+                    });
+                } catch (_) {}
+
+                // Polling fallback: if edit textarea is updated programmatically (task.js), mirror into Quill
+                try {
+                    let lastEditProj = document.getElementById('edit_description')?.value || '';
+                    setInterval(function() {
+                        try {
+                            const ta = document.getElementById('edit_description');
+                            if (!ta || !window.__quillProjectEdit || !window.__quillProjectEdit.root) return;
+                            if (ta.value !== lastEditProj) {
+                                lastEditProj = ta.value;
+                                window.__quillProjectEdit.root.innerHTML = ta.value || '';
                             }
                         } catch (_) {}
                     }, 300);
