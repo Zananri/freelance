@@ -1192,7 +1192,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Build timeline from actual projects and render. If list items lack start/due, fetch details.
 
                 if (projects && projects.length > 0) {
-                    
+
                     // However, privileged users (MANAGEMENT:GENERAL MANAGER or CEO, ADMINISTRATOR:ADMINISTRATOR)
                     // should see private projects as well — honor the backend behavior.
                     const currentEmployeeEl = document.getElementById('currentEmployee');
@@ -1279,6 +1279,35 @@ document.addEventListener("DOMContentLoaded", function () {
                         const pid = project.id || projectId;
                         const projectSlug = project.slug || slugify(project.title || "unknown-project");
                         const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
+
+                        function deriveProjectStatusFromTasks(project) {
+                            const counts = project.task_counts || {};
+                            const total = counts.total || 0;
+                            const notStarted = counts.not_started || 0;
+                            const completed = counts.completed || 0;
+                            const inProgress = counts.in_progress || 0;
+                            const late = counts.late || 0;
+
+                            if (total === 0) return "No Task";
+                            if (notStarted === total) return "not_started";
+                            if (inProgress > 0) return "in_progress";
+                            if (completed === total) return "completed";
+                            if (late > 0) return "late";
+                            return "in_progress";
+                        }
+
+                        function renderProjectStatus(status) {
+                            const map = {
+                                completed: { text: "Completed", color: "#28a745" },
+                                in_progress: { text: "In Progress", color: "#ffc107" },
+                                not_started: { text: "Not Started", color: "#6c757d" },
+                                late: { text: "Late", color: "#dc3545" },
+                                "No Task": { text: "No Task", color: "#4B4F5E" },
+                            };
+                            const s = map[status] || map["No Task"];
+                            return `<span class="ms-1 fs-8 fw-semibold" style="color:${s.color};">${s.text}</span>`;
+                        }
+
                         rowHtml += `
                             <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
@@ -1388,17 +1417,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
                                                 <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
                                             </div>
-                              <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative"
-        title="Comment" data-project-id="${project.id}">
-    <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
-    <span class="project-feedback-count ms-1" data-project-id="${
-        project.id
-    }" style="font-size:12px; color:#454545;"></span>
-    <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none"
-          data-project-id="${
-              project.id
-          }" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
-</button>
+                                            <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative"
+                                                    title="Comment" data-project-id="${project.id}">
+                                                <span class="material-symbols-outlined" style="font-size:16px; color:#828282;">mode_comment</span>
+                                                <span class="project-feedback-count ms-1" data-project-id="${
+                                                    project.id
+                                                }" style="font-size:12px; color:#454545;"></span>
+                                                <span class="unread-badge position-absolute top-0 start-75 translate-middle d-none"
+                                                    data-project-id="${
+                                                        project.id
+                                                    }" style="background: red; color: white; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold;"></span>
+                                            </button>
 
                                             <button class="btn btn-sm p-0 border-0 bg-transparent project-attach-file d-flex align-items-center" title="Attach File" data-project-id="${
                                                 project.id
@@ -1413,7 +1442,10 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </button>
                                         </div>
                                     </div>
-
+                                    <div class="d-flex justify-content-end align-items-center mt-1">
+                                        <span class="fs-8">Status :</span>
+                                        ${renderProjectStatus(deriveProjectStatusFromTasks(project))}
+                                    </div>
                                 </div>
                             </div>
                         `;
