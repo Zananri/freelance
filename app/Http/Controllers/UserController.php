@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\EmployeeShift;
-use App\Models\ActivityTracking;
+// ActivityTracking removed per request; rely on UserAuthLog only
 use App\Helpers\DeviceHelper;
 use App\Models\UserAuthLog;
 use App\Helpers\RequestHelper;
@@ -78,24 +78,7 @@ class UserController extends Controller
                 $user = auth()->user();
                 $employee = Employee::where('user_id', $user->id)->first();
                 if ($employee) {
-                    $latitude = $request->input('latitude') ?? $request->input('latitudeCheckIn') ?? $request->input('latitudeLogin');
-                    $longitude = $request->input('longitude') ?? $request->input('longitudeCheckIn') ?? $request->input('longitudeLogin');
-                    $location = null;
-                    if ($latitude && $longitude) {
-                        $location = $latitude . ',' . $longitude;
-                    }
-
-                    ActivityTracking::create([
-                        'employee_id' => $employee->id,
-                        'department_id' => $employee->department_id ?? null,
-                        'division_id' => $employee->division_id ?? null,
-                        'time_login' => now(),
-                        'location_in' => $location,
-                        'created_by' => $user->id,
-                        'updated_by' => $user->id,
-                    ]);
-
-                    // Record user auth log (LOGIN SUCCESS)
+                    // Record user auth log (LOGIN SUCCESS) only. ActivityTracking table removed.
                     try {
                         UserAuthLog::create([
                             'user_id' => $user->id,
@@ -297,27 +280,7 @@ class UserController extends Controller
             $user = auth()->user();
             if ($user) {
                 $employee = Employee::where('user_id', $user->id)->first();
-                if ($employee) {
-                    $latitude = $request->input('latitude') ?? $request->input('latitudeCheckOut') ?? $request->input('latitudeLogout');
-                    $longitude = $request->input('longitude') ?? $request->input('longitudeCheckOut') ?? $request->input('longitudeLogout');
-                    $location = null;
-                    if ($latitude && $longitude) {
-                        $location = $latitude . ',' . $longitude;
-                    }
-
-                    $activity = ActivityTracking::where('employee_id', $employee->id)
-                        ->whereNull('time_logout')
-                        ->orderBy('time_login', 'desc')
-                        ->first();
-
-                    if ($activity) {
-                        $activity->update([
-                            'time_logout' => now(),
-                            'location_out' => $location,
-                            'updated_by' => $user->id,
-                        ]);
-                    }
-                }
+                // ActivityTracking is removed. We no longer update activity tracking on logout.
             }
         } catch (\Exception $e) {
             \Log::error('Failed to update activity tracking on logout: ' . $e->getMessage());
