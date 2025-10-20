@@ -43,7 +43,7 @@
                     <span class="material-symbols-outlined">list</span>
                 </button>
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
-                    <span class="material-symbols-outlined icon">grid_view</span>
+                    <span class="material-symbols-outlined icon">mist</span>
                 </button>
                 <button class="btn btn-export-custom-detail" id="exportProjectReportBtn" title="Export Project"
                     data-project-id="{{ $project->id ?? '' }}">
