@@ -13,8 +13,10 @@
                     <p class="fs-14 text-black text-opacity-75">Please enter log in details below</p>
                 </div>
 
-                <form method="POST" action="{{ route('login') }}" autocomplete="off">
+                <form method="POST" action="{{ route('login') }}" autocomplete="off" id="form-login">
                     @csrf
+                    <input type="hidden" name="latitudeLogin" id="latitudeLogin">
+                    <input type="hidden" name="longitudeLogin" id="longitudeLogin">
                     <div class="mb-3">
                         <input type="text" name="email" class="form-control form-input bg-white bg-opacity-75"
                             placeholder="Email" autocomplete="false" value="{{ old('email') }}">
@@ -67,4 +69,27 @@
     </div>
 
     <script src="{{ asset('asset/js/guest-alert.js') }}"></script>
+    <script>
+        (function(){
+            var form = document.getElementById('form-login');
+            if(!form) return;
+
+            form.addEventListener('submit', function(e){
+                var lat = document.getElementById('latitudeLogin').value;
+                var lng = document.getElementById('longitudeLogin').value;
+                if(lat && lng) return; 
+
+                if(navigator.geolocation){
+                    e.preventDefault();
+                    navigator.geolocation.getCurrentPosition(function(pos){
+                        document.getElementById('latitudeLogin').value = pos.coords.latitude;
+                        document.getElementById('longitudeLogin').value = pos.coords.longitude;
+                        form.submit();
+                    }, function(err){
+                        form.submit();
+                    }, {timeout:5000});
+                }
+            });
+        })();
+    </script>
 </x-guest-layout>

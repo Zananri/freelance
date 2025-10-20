@@ -152,9 +152,13 @@
                         </div>
 
                         <div class="w-100 p-3">
-                            <form method="POST" action="{{ route('logout') }}"  >
-                                 @csrf
-                                 <div class="d-flex justify-content-center   align-items-center w-100" >
+                       <form method="POST" action="{{ route('logout') }}" id="form-logout-avatar">
+                           @csrf
+                           <input type="hidden" name="latitudeLogout" id="latitudeLogout">
+                           <input type="hidden" name="longitudeLogout" id="longitudeLogout">
+                           <input type="hidden" name="latitudeCheckOut" id="latitudeCheckOut_avatar">
+                           <input type="hidden" name="longitudeCheckOut" id="longitudeCheckOut_avatar">
+                           <div class="d-flex justify-content-center   align-items-center w-100" >
                                         <a  class="btn btn-profile-left w-100" href="{{ route('profile') }}">
                                             <span class="material-symbols-outlined">account_circle</span>
                                             Profile
@@ -358,11 +362,13 @@
                     @endif
 
                     <li>
-                        <form method="POST" action="{{ route('logout') }}" class="d-none"  >
+                        <form method="POST" action="{{ route('logout') }}" class="d-none" id="form-logout-sidebar"  >
                             @csrf
-                            
+                            <input type="hidden" name="latitudeLogout" id="latitudeLogout_sidebar">
+                            <input type="hidden" name="longitudeLogout" id="longitudeLogout_sidebar">
+                            <input type="hidden" name="latitudeCheckOut" id="latitudeCheckOut_sidebar">
+                            <input type="hidden" name="longitudeCheckOut" id="longitudeCheckOut_sidebar">
                             <button type="submit" class="" id="btn-sidebar-logout">SUBMIT</button>
-                            
                         </form>
                         <a href="#" class="" onclick="$('#btn-sidebar-logout').click();">
                             <span class="material-symbols-outlined">logout</span>
@@ -456,6 +462,55 @@
 
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
+
+    <script>
+        function populateLogoutLocationAndSubmit(form, latFieldId, lngFieldId, altLatId, altLngId){
+            var latField = document.getElementById(latFieldId);
+            var lngField = document.getElementById(lngFieldId);
+            var altLat = document.getElementById(altLatId);
+            var altLng = document.getElementById(altLngId);
+
+            function submitNow(){
+                if(altLat) altLat.value = latField ? latField.value : '';
+                if(altLng) altLng.value = lngField ? lngField.value : '';
+                form.submit();
+            }
+
+            if(navigator.geolocation){
+                navigator.geolocation.getCurrentPosition(function(pos){
+                    if(latField) latField.value = pos.coords.latitude;
+                    if(lngField) lngField.value = pos.coords.longitude;
+                    submitNow();
+                }, function(err){
+                    submitNow();
+                }, {timeout:5000});
+            }else{
+                submitNow();
+            }
+        }
+
+        (function(){
+            var form = document.getElementById('form-logout-avatar');
+            if(!form) return;
+            form.addEventListener('submit', function(e){
+                var latField = document.getElementById('latitudeLogout');
+                var lngField = document.getElementById('longitudeLogout');
+                if(latField && latField.value && lngField && lngField.value) return; 
+                e.preventDefault();
+                populateLogoutLocationAndSubmit(form, 'latitudeLogout', 'longitudeLogout', 'latitudeCheckOut_avatar', 'longitudeCheckOut_avatar');
+            });
+        })();
+
+        (function(){
+            var form = document.getElementById('form-logout-sidebar');
+            var trigger = document.getElementById('btn-sidebar-logout');
+            if(!form || !trigger) return;
+            trigger.addEventListener('click', function(e){
+                e.preventDefault();
+                populateLogoutLocationAndSubmit(form, 'latitudeLogout_sidebar', 'longitudeLogout_sidebar', 'latitudeCheckOut_sidebar', 'longitudeCheckOut_sidebar');
+            });
+        })();
+    </script>
 
     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
     <script src="{{ asset('asset/js/hr_info.js')}}?v={{time() }}"></script>
