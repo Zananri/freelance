@@ -282,8 +282,61 @@
 												fallback.textContent = initials;
 												insertedImg.replaceWith(fallback);
 											} catch(_){ }
-										}, { once: true });
+											}, { once: true });
+										}
+									} catch(_){}
+
+								// If setDeleteProjectModalPreview is not present (we're in fallback), compute deadline using tasks like the main preview does
+								try {
+									function formatTaskDate(date) {
+										if (!date) return '-';
+										var d = new Date(date);
+										if (isNaN(d.getTime())) return String(date || '-');
+										var yyyy = d.getFullYear();
+										var mm = String(d.getMonth() + 1).padStart(2, '0');
+										var dd = String(d.getDate()).padStart(2, '0');
+										return yyyy + '-' + mm + '-' + dd;
 									}
+
+									function getTaskByDueDate(projectId, callback) {
+										$.ajax({
+											url: appUrl + '/projects/' + encodeURIComponent(String(projectId)) + '/tasks',
+											type: 'GET',
+											dataType: 'json'
+										})
+										.done(function(response){
+											if (response && response.data && response.data.length > 0) {
+												var tasksWithDue = response.data.filter(function(t){ return t && t.due_date; });
+												if (tasksWithDue.length === 0) return callback(null);
+												var maxTask = tasksWithDue.reduce(function(latest, t){
+													return new Date(t.due_date) > new Date(latest.due_date) ? t : latest;
+												}, tasksWithDue[0]);
+												callback(maxTask);
+											} else {
+												callback(null);
+											}
+										})
+										.fail(function(){ callback(null); });
+									}
+
+									var pidSelector = '#deadline-' + pid;
+									getTaskByDueDate(pid, function(maxTask){
+										try {
+											var deadlineEl = contentEl.querySelector(pidSelector);
+											if (!deadlineEl) return;
+											var projectDue = projectData && projectData.due_date ? new Date(projectData.due_date) : null;
+											if (maxTask && maxTask.due_date) {
+												var taskDue = new Date(maxTask.due_date);
+												if (!projectDue || taskDue > projectDue) {
+													deadlineEl.textContent = formatTaskDate(taskDue);
+												} else {
+												deadlineEl.textContent = formatTaskDate(projectDue);
+												}
+											} else {
+												deadlineEl.textContent = projectData && projectData.due_date ? formatTaskDate(projectData.due_date) : '-';
+											}
+										} catch(_){ }
+									});
 								} catch(_){}
 							} catch(e) {
 								contentEl.innerHTML = '<div class="p-3">'+((projectData && projectData.title) ? '<strong>'+projectData.title+'</strong>' : 'Project')+'</div>';
