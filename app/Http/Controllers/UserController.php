@@ -12,6 +12,7 @@ use App\Models\EmployeeShift;
 use App\Models\ActivityTracking;
 use App\Helpers\DeviceHelper;
 use App\Models\UserAuthLog;
+use App\Helpers\RequestHelper;
 
 class UserController extends Controller
 {
@@ -102,7 +103,7 @@ class UserController extends Controller
                             'auth_type' => 'LOGIN',
                             'date_time_auth' => now(),
                             'device_info' => DeviceHelper::getDeviceFromRequest($request),
-                            'ip_address' => $request->ip(),
+                            'ip_address' => RequestHelper::getClientIp($request),
                             'status' => 'SUCCESS',
                         ]);
                     } catch (\Exception $e) {
@@ -123,7 +124,7 @@ class UserController extends Controller
                 'auth_type' => 'LOGIN',
                 'date_time_auth' => now(),
                 'device_info' => DeviceHelper::getDeviceFromRequest($request),
-                'ip_address' => $request->ip(),
+                'ip_address' => RequestHelper::getClientIp($request),
                 'status' => 'FAILED',
             ]);
         } catch (\Exception $e) {
@@ -331,7 +332,7 @@ class UserController extends Controller
                     'auth_type' => 'LOGOUT',
                     'date_time_auth' => now(),
                     'device_info' => DeviceHelper::getDeviceFromRequest($request),
-                    'ip_address' => $request->ip(),
+                    'ip_address' => RequestHelper::getClientIp($request),
                     'status' => 'SUCCESS',
                 ]);
             }
