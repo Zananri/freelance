@@ -265,6 +265,11 @@ class EmployeeController extends Controller
                 'email_work' => $emailWork,
                 'phone' => $request->phone,
                 'status' => 'ACTIVE',
+                'basic_salary' => $request->basic_salary,
+                'positional_allowance' => $request->positional_allowance,
+                'transportation_allowance' => $request->transportation_allowance,
+                'meal_allowance' => $request->meal_allowance,
+                'internet_phone_allowance' => $request->internet_phone_allowance,
                 'address' => $request->address,
                 'photo' => $photoPath,
                 'ktp' => $ktpPath,
@@ -410,6 +415,12 @@ class EmployeeController extends Controller
                 $file->move($destination, $filename);
                 $updateData['ktp'] = 'file/ktp/' . $filename;
             }
+            
+            $updateData['basic_salary'] = $request->basic_salary;
+            $updateData['positional_allowance'] = $request->positional_allowance;
+            $updateData['transportation_allowance'] = $request->transportation_allowance;
+            $updateData['meal_allowance'] = $request->meal_allowance;
+            $updateData['internet_phone_allowance'] = $request->internet_phone_allowance;
 
             $updateData['updated_by'] = auth()->id();
 
