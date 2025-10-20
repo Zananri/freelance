@@ -11,6 +11,7 @@ use App\Models\Attendance;
 use App\Models\EmployeeShift;
 use App\Models\ActivityTracking;
 use App\Helpers\DeviceHelper;
+use App\Models\UserAuthLog;
 
 class UserController extends Controller
 {
@@ -92,13 +93,42 @@ class UserController extends Controller
                         'created_by' => $user->id,
                         'updated_by' => $user->id,
                     ]);
+
+                    // Record user auth log (LOGIN SUCCESS)
+                    try {
+                        UserAuthLog::create([
+                            'user_id' => $user->id,
+                            'employee_id' => $employee->id ?? null,
+                            'auth_type' => 'LOGIN',
+                            'date_time_auth' => now(),
+                            'device_info' => DeviceHelper::getDeviceFromRequest($request),
+                            'ip_address' => $request->ip(),
+                            'status' => 'SUCCESS',
+                        ]);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to write UserAuthLog on login: ' . $e->getMessage());
+                    }
                 }
             } catch (\Exception $e) {
                 \Log::error('Failed to record activity tracking on login: ' . $e->getMessage());
             }
             return redirect('/dashboard')->with('success', 'Login successful!');
         }
-
+        // Log failed login attempt (record attempt even when credentials incorrect)
+        try {
+            $maybeUser = User::where('email', $email)->with('employee')->first();
+            UserAuthLog::create([
+                'user_id' => $maybeUser->id ?? null,
+                'employee_id' => $maybeUser && $maybeUser->employee ? $maybeUser->employee->id : null,
+                'auth_type' => 'LOGIN',
+                'date_time_auth' => now(),
+                'device_info' => DeviceHelper::getDeviceFromRequest($request),
+                'ip_address' => $request->ip(),
+                'status' => 'FAILED',
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to write UserAuthLog on failed login: ' . $e->getMessage());
+        }
         return back()->withErrors(['email' => 'The provided credentials do not match our records.'])->withInput();
     }
 
@@ -290,6 +320,23 @@ class UserController extends Controller
             }
         } catch (\Exception $e) {
             \Log::error('Failed to update activity tracking on logout: ' . $e->getMessage());
+        }
+
+        // Record user auth log (LOGOUT)
+        try {
+            if (isset($user)) {
+                UserAuthLog::create([
+                    'user_id' => $user->id,
+                    'employee_id' => $employee->id ?? null,
+                    'auth_type' => 'LOGOUT',
+                    'date_time_auth' => now(),
+                    'device_info' => DeviceHelper::getDeviceFromRequest($request),
+                    'ip_address' => $request->ip(),
+                    'status' => 'SUCCESS',
+                ]);
+            }
+        } catch (\Exception $e) {
+            \Log::error('Failed to write UserAuthLog on logout: ' . $e->getMessage());
         }
 
         auth()->logout();
