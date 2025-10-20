@@ -541,8 +541,7 @@
                                     autocomplete="off" placeholder="Search project...">
                                 <div id="edit_part_of_project_dropdown" class="dropdown-list mt-1"></div>
                                 <div id="edit_selected_project" class="mt-2"></div>
-                                <input type="hidden" id="edit_part_of_project" name="part_of_project"
-                                    value="">
+                                <input type="hidden" id="edit_part_of_project" name="part_of_project" value="">
                             </div>
                             <div class="mb-3 input-custom">
                                 <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
@@ -699,12 +698,12 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_title" class="form-label label-custom">Title</label>
                                 <input type="text" class="form-control input-text" id="edit_task_title"
                                     name="title" required>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_description" class="form-label label-custom">Description</label>
                                 <div id="edit_task_description_editor"
                                     style="min-height:120px; background:#fff; border: none; border-radius:6px;">
@@ -712,7 +711,7 @@
                                 <textarea class="form-control input-text d-none" id="edit_task_description" name="description" rows="6"
                                     style="display:none;"></textarea>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_project_input" class="form-label label-custom">Project</label>
                                 <input type="text" class="form-control input-text" id="edit_task_project_input"
                                     autocomplete="off" placeholder="Search project..." required>
@@ -721,7 +720,7 @@
                                 <input type="hidden" id="edit_task_project_id" name="project_id" value="">
                             </div>
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_parent_input" class="form-label label-custom">Related to Task
                                     (optional)</label>
                                 <input type="text" class="form-control input-text" id="edit_task_parent_input"
@@ -731,12 +730,12 @@
                                 <input type="hidden" id="edit_task_parent_id" name="parent_id" value="">
                             </div>
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_point" class="form-label label-custom">Point</label>
                                 <input type="number" class="form-control input-text" id="edit_task_point"
                                     name="point" value="1" min="1" required>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_priority" class="form-label label-custom">Priority</label>
                                 <select class="form-select input-select" id="edit_task_priority" name="priority"
                                     required>
@@ -746,7 +745,7 @@
                                     <option value="LOW">LOW</option>
                                 </select>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Reference URLs</label>
                                 <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
                                     <div class="input-group">
@@ -759,7 +758,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_reference_files" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" class="form-control input-text" id="edit_task_reference_files"
@@ -769,7 +768,7 @@
                                 <div id="existing_reference_files" class="mt-2"></div>
                                 <div id="edit_reference_files_preview" class="mt-2"></div>
                             </div>
-                            <div class="mb-3 custom-input d-flex justify-content-between">
+                            <div class="mb-3 input-custom d-flex justify-content-between">
                                 <div class="date-form">
                                     <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
                                     <input type="date" class="form-control input-text" id="edit_task_start_date"
@@ -781,7 +780,7 @@
                                         name="due_date" required>
                                 </div>
                             </div>
-                            <div class="mb-1 custom-input position-relative">
+                            <div class="mb-1 input-custom position-relative">
                                 <label for="edit_executor_input" class="form-label label-custom">Executor</label>
 
                                 <select aria-label="Division (optional)"
@@ -795,7 +794,7 @@
                                 <div id="edit_task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
                                 <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
                             </div>
-                            <div class="mb-3 custom-input position-relative">
+                            <div class="mb-3 input-custom position-relative">
                                 <input type="text" class="form-control input-text" id="edit_executor_input"
                                     name="executor_input" autocomplete="off" placeholder="Search employees...">
 
@@ -849,12 +848,12 @@
                                     Please select an image file.
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_title" class="form-label label-custom">Title</label>
                                 <input type="text" class="form-control input-text" id="task_title" name="title"
                                     required>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_description" class="form-label label-custom">Description</label>
                                 <div id="task_description_editor"
                                     style="min-height:120px; background:#fff; border: none; border-radius:6px;">
@@ -862,7 +861,7 @@
                                 <textarea class="form-control input-text d-none" id="task_description" name="description" rows="6"
                                     style="display:none;"></textarea>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Project</label>
                                 <input type="text" class="form-control input-text" id="task_project_input"
                                     autocomplete="off" placeholder="Search project..." required>
@@ -871,7 +870,7 @@
                                 <input type="hidden" id="task_project_id" name="project_id" value="">
                             </div>
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Related to Task (optional)</label>
                                 <input type="text" class="form-control input-text" id="task_parent_input"
                                     autocomplete="off" placeholder="Search task...">
@@ -881,12 +880,12 @@
                             </div>
 
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_point" class="form-label label-custom">Point</label>
                                 <input type="number" class="form-control input-text" id="task_point" name="point"
                                     value="1" min="1" required>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_priority" class="form-label label-custom">Priority</label>
                                 <select class="form-select input-select" id="task_priority" name="priority" required>
                                     <option value="">Select Priority</option>
@@ -895,7 +894,7 @@
                                     <option value="LOW">LOW</option>
                                 </select>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Reference URLs</label>
                                 <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
                                     <div class="input-group">
@@ -908,7 +907,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
                                 <input type="file" class="form-control input-text" id="task_reference_files"
                                     name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
@@ -916,7 +915,7 @@
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="reference_files_preview" class="mt-2"></div>
                             </div>
-                            <div class="mb-3 custom-input d-flex justify-content-between">
+                            <div class="mb-3 input-custom d-flex justify-content-between">
                                 <div class="date-form">
                                     <label for="task_start_date" class="form-label label-custom">Start Date</label>
                                     <input type="date" class="form-control input-text" id="task_start_date"
@@ -928,7 +927,7 @@
                                         name="due_date" required>
                                 </div>
                             </div>
-                            <div class="mb-1 custom-input position-relative">
+                            <div class="mb-1 input-custom position-relative">
                                 <label for="executor_input" class="form-label label-custom">Executor</label>
 
                                 <select aria-label="Division (optional)"
@@ -942,7 +941,7 @@
                                 <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input position-relative">
+                            <div class="mb-3 input-custom position-relative">
                                 <input type="text" class="form-control input-text" id="executor_input"
                                     name="executor_input" autocomplete="off" placeholder="Search employees...">
 
