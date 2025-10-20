@@ -183,6 +183,188 @@
 		} catch(_) {}
 	}
 	
+	// Expose a global deleteProject(projectId) used by tree menu to delete a project
+	window.deleteProject = function(projectId){
+		try {
+			if (!projectId) return;
+			var modalEl = document.getElementById('deleteProjectModal');
+			var csrf = window.csrfToken || (document.querySelector('meta[name="csrf-token"]') && document.querySelector('meta[name="csrf-token"]').getAttribute('content')) || '';
+
+			var showModalAndBind = function(projectData){
+				if (!modalEl) {
+					// Fallback to simple confirm
+					if (!confirm('Delete project?')) return;
+					$.ajax({ url: appUrl + '/project/' + encodeURIComponent(String(projectId)), type: 'DELETE', headers: { 'X-CSRF-TOKEN': csrf } })
+						.done(function(res){ try{ if (typeof fetchTree === 'function') fetchTree(); if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Project deleted', 'success', 2000); }catch(_){} })
+						.fail(function(xhr){ try{ if (typeof showFloatingAlert === 'function') showFloatingAlert('Failed to delete project: ' + (xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Unknown'), 'warning', 4000); }catch(_){} });
+					return;
+				}
+
+				// store project id on modal dataset
+				modalEl.dataset.projectId = String(projectId);
+				// populate preview if helper available
+				try {
+					if (typeof setDeleteProjectModalPreview === 'function') {
+						setDeleteProjectModalPreview(projectData || {});
+					} else {
+						var contentEl = modalEl.querySelector('#deleteProjectContent');
+						if (contentEl) {
+							// Build full card HTML (match structure provided)
+							try {
+								var title = projectData && projectData.title ? projectData.title : '';
+								var desc = projectData && projectData.description ? projectData.description : '';
+								var dept = projectData && (projectData.department || projectData.department_name) ? (projectData.department || projectData.department_name) : '-';
+								var divn = projectData && (projectData.division || projectData.division_name) ? (projectData.division || projectData.division_name) : '-';
+								var due = projectData && projectData.due_date ? projectData.due_date : '-';
+								var pid = projectData && projectData.id ? projectData.id : projectId;
+								var img = projectData && projectData.image ? projectData.image : null;
+
+								function escapeHtml(str) {
+									return String(str || '').replace(/[&<>\"]/g, function (s) {
+										return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[s];
+									});
+								}
+
+								function buildImgTag(imgSrc, titleText) {
+									if (!imgSrc) return '';
+									// Normalize to absolute URL when likely a filename
+									var src = imgSrc;
+									if (!/^https?:\/\//i.test(src) && !/^\//.test(src)) {
+										src = appUrl.replace(/\/$/, '') + '/file/project/' + src;
+									} else if (!/^https?:\/\//i.test(src) && /^\//.test(src)) {
+										src = appUrl.replace(/\/$/, '') + src;
+									}
+									// Return a plain img tag; error handling will be attached after insertion
+									return '<img src="'+escapeHtml(src)+'" alt="Project Image" class="rounded-circle me-3 project-preview-img" style="width:34px;height:34px;object-fit:cover;">';
+								}
+
+								var imgHtml = buildImgTag(img, title);
+
+								var card = '';
+								card += '<div class="custom-card-delete rounded-4 position-relative p-3 border-0">';
+								card += '<div class="d-flex align-items-center mb-2">';
+								card += imgHtml || '<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:#2E7D32;color:#fff;font-weight:600;font-size:11px;">'+(title? (title.substring(0,2).toUpperCase()):'NA')+'</div>';
+								card += '<div class="d-flex flex-column">';
+								card += '<h5 class="mb-0 task-title" style="line-height:1.2;">'+(title||'Untitled Project')+'</h5>';
+								card += '</div></div>';
+								if (desc) card += '<div class="task-description-container mb-2"><p class="task-description mb-0" style="font-size:14px;">'+desc+'</p></div>';
+								card += '<hr class="task-separator rounded-4">';
+								card += '<div class="d-flex justify-content-between mb-2" id="project-'+pid+'" style="font-size:12px;">';
+								card += '<span style="color:#797E91;">Deadline: </span>';
+								card += '<span id="deadline-'+pid+'" style="color:#4B4F5E;">'+due+'</span>';
+								card += '</div>';
+								card += '<div class="d-flex justify-content-between mb-1" style="font-size:12px;">';
+								card += '<span class="text-muted">Department:</span><span>'+(dept||'-')+'</span>';
+								card += '</div>';
+								card += '<div class="d-flex justify-content-between mb-2" style="font-size:12px;">';
+								card += '<span class="text-muted">Division:</span><span>'+(divn||'-')+'</span>';
+								card += '</div>';
+								card += '</div>';
+
+								contentEl.innerHTML = card;
+								// Attach a safe error handler to the inserted image so it is replaced by an initials fallback
+								try {
+									var insertedImg = contentEl.querySelector('img.project-preview-img');
+									if (insertedImg) {
+										insertedImg.addEventListener('error', function onImgError() {
+											try {
+												var t = (title||'').trim();
+												var parts = t.split(/\s+/).filter(Boolean);
+												var initials = 'NA';
+												if (parts.length === 0) initials = 'NA';
+												else if (parts.length === 1) initials = parts[0].substring(0,2).toUpperCase();
+												else initials = (parts[0].charAt(0) + parts[parts.length-1].charAt(0)).toUpperCase();
+												var fallback = document.createElement('div');
+												fallback.className = 'rounded-circle d-flex align-items-center justify-content-center me-3';
+												fallback.style.width = '34px'; fallback.style.height = '34px';
+												fallback.style.background = '#2E7D32'; fallback.style.color = '#fff';
+												fallback.style.fontWeight = '600'; fallback.style.fontSize = '11px';
+												fallback.textContent = initials;
+												insertedImg.replaceWith(fallback);
+											} catch(_){ }
+										}, { once: true });
+									}
+								} catch(_){}
+							} catch(e) {
+								contentEl.innerHTML = '<div class="p-3">'+((projectData && projectData.title) ? '<strong>'+projectData.title+'</strong>' : 'Project')+'</div>';
+							}
+						}
+					}
+				} catch(_){}
+
+				// Ensure this delete modal appears above any existing open modal (projectTreeModal)
+				var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
+				try {
+					// Count currently open modals to calculate stacking offset
+					var openModals = document.querySelectorAll('.modal.show').length;
+					var zOffset = (openModals || 0) * 20; // 20px per stacked modal step
+
+					// Pre-set modal z-index so it will appear above existing ones
+					try { modalEl.style.zIndex = (1050 + zOffset).toString(); } catch(_) {}
+
+					// When shown, adjust the most-recent backdrop z-index to sit behind this modal
+					var onShownAdjust = function() {
+						try {
+							var backdrops = document.querySelectorAll('.modal-backdrop');
+							if (backdrops && backdrops.length) {
+								var lastBackdrop = backdrops[backdrops.length - 1];
+								if (lastBackdrop) lastBackdrop.style.zIndex = (1040 + zOffset).toString();
+							}
+							// Re-apply modal z-index in case Bootstrap changed it
+							try { modalEl.style.zIndex = (1050 + zOffset).toString(); } catch(_) {}
+						} catch(_) {}
+						try { modalEl.removeEventListener('shown.bs.modal', onShownAdjust); } catch(_){}
+					};
+					modalEl.addEventListener('shown.bs.modal', onShownAdjust);
+				} catch(_) {}
+				modalInstance.show();
+				// Remove extra backdrops so the newest modal's backdrop is on top of older ones
+				try {
+					setTimeout(function(){
+						var backdrops = document.querySelectorAll('.modal-backdrop');
+						if (backdrops && backdrops.length > 1) {
+							// Keep only the last backdrop (the top-most), remove others to avoid overlaying issues
+							for (var i = 0; i < backdrops.length - 1; i++) {
+								try { backdrops[i].parentNode && backdrops[i].parentNode.removeChild(backdrops[i]); } catch(_){}
+							}
+						}
+					}, 50);
+				} catch(_){}
+
+				var btn = document.getElementById('confirmDeleteProjectBtn');
+				if (!btn) return;
+
+				var handler = function(){
+					$.ajax({
+						url: appUrl + '/project/' + encodeURIComponent(String(projectId)),
+						type: 'DELETE',
+						headers: { 'X-CSRF-TOKEN': csrf },
+					})
+					.done(function(res){
+						try { modalInstance.hide(); } catch(_){}
+						try { if (typeof fetchTree === 'function') fetchTree(); } catch(_){}
+						try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Project deleted', 'success', 2000); } catch(_){}
+					})
+					.fail(function(xhr){
+						try { var msg = (xhr && xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to delete project'; if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'warning', 4000); } catch(_){}
+					})
+					.always(function(){
+						try { btn.removeEventListener('click', handler); } catch(_){}
+					});
+				};
+
+				// ensure no duplicate handlers
+				try { btn.removeEventListener('click', handler); } catch(_){}
+				btn.addEventListener('click', handler);
+			};
+
+			// Try to fetch full project data to display preview; if fails, still show modal with minimal info
+			$.ajax({ url: appUrl + '/project/' + encodeURIComponent(String(projectId)), type: 'GET', dataType: 'json' })
+				.done(function(resp){ var project = (resp && resp.data) ? resp.data : {}; showModalAndBind(project); })
+				.fail(function(){ showModalAndBind({ id: projectId, title: '' }); });
+		} catch(_){}
+	};
+
 	// Clear Parent action
 	$(document).on('click', '#project-global-more-menu .clear-parent-action', function(e){
 		try {
