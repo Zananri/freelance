@@ -10382,7 +10382,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const ctx = document.getElementById("projectChart");
     let projectChartInstance = null;
 
-    const createDoughnut = (el, data = []) => {
+    const createDoughnut = (el, data = [], projectNames = {}) => {
         let chartData, colors, labels;
 
         if (!data || data.length === 0 || data.every((v) => v === 0)) {
@@ -10391,12 +10391,7 @@ document.addEventListener("DOMContentLoaded", function () {
             labels = ["No Data"];
         } else {
             chartData = data;
-            colors = [
-                "#E8E9F2", // not started
-                "#4fc97a", // complete
-                "#5a9be6", // on progress
-                "#ff6b6b", // late
-            ];
+            colors = ["#E8E9F2", "#4fc97a", "#5a9be6", "#ff6b6b"];
             labels = ["Not Started", "Complete", "On Progress", "Late"];
         }
 
@@ -10404,20 +10399,51 @@ document.addEventListener("DOMContentLoaded", function () {
             type: "doughnut",
             data: {
                 labels,
-                datasets: [
-                    {
-                        data: chartData,
-                        backgroundColor: colors,
-                        borderWidth: 0,
-                    },
-                ],
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: colors,
+                    borderWidth: 0,
+                }],
             },
             options: {
                 cutout: "60%",
                 plugins: {
                     legend: { display: false },
-                },
-            },
+                    tooltip: {
+                        callbacks: {
+                            title: function(context) {
+                                return context[0].label;
+                            },
+                            label: function(context) {
+                                const chart = context.chart;
+                                const projectNames = chart.options.plugins.tooltip._projectNames || {};
+                                const label = context.label;
+                                let key = '';
+
+                                switch (label) {
+                                    case "Not Started": key = "not_started"; break;
+                                    case "Complete": key = "completed"; break;
+                                    case "On Progress": key = "in_progress"; break;
+                                    case "Late": key = "late"; break;
+                                    default: key = "";
+                                }
+
+                                if (key && projectNames[key] && projectNames[key].length > 0) {
+                                    const names = projectNames[key];
+                                    const list = names.slice(0, 10).map(name => `- ${name}`);
+                                    const remaining = names.length;
+
+                                    if (remaining > 0) list.push(`(+${remaining} more...)`);
+
+                                    return list;
+                                }
+
+                                return ["No projects"];
+                            }
+                        }
+                    }
+                }
+            }
         });
     };
 
@@ -10425,8 +10451,7 @@ document.addEventListener("DOMContentLoaded", function () {
         projectChartInstance = createDoughnut(ctx, []);
     }
 
-    function updateProjectChartFromData(projects, chartCounts) {
-        // Use the same total as the filter API (pagination.total) when provided
+    function updateProjectChartFromData(projects, chartCounts, projectNames = {}) {
         const numberOfProjects = (chartCounts && typeof chartCounts.total !== 'undefined')
             ? Number(chartCounts.total)
             : (Array.isArray(projects) ? projects.length : 0);
@@ -10458,15 +10483,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 "#ff6b6b",
             ];
         }
+
+        // update project name reference biar tooltip tau isinya
+        projectChartInstance.options.plugins.tooltip._projectNames = projectNames;
+
         try {
             projectChartInstance.update();
         } catch (_) {}
 
-        const spans = document.querySelectorAll(
-            ".chart-labels .text-center span:first-child"
-        );
+        const spans = document.querySelectorAll(".chart-labels .text-center span:first-child");
         if (spans && spans.length >= 4) {
-            // Order under chart: Total, Complete, On Progress, Late
             spans[0].textContent = numberOfProjects;
             spans[1].textContent = completed;
             spans[2].textContent = inProgress;
@@ -10475,21 +10501,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function loadProjectAndTaskData() {
-        // Helper to normalize API payloads into arrays
         function normalizeArray(res) {
             if (!res) return [];
             if (Array.isArray(res)) return res;
             if (res.data && Array.isArray(res.data)) return res.data;
             return [];
         }
-        // Helper to extract total count from the same API used by filter (pagination.total)
+
         function extractTotal(res) {
             try {
                 if (!res) return 0;
                 if (res.pagination && typeof res.pagination.total !== 'undefined') {
                     return Number(res.pagination.total || 0);
                 }
-                // Fallback to data length if pagination isn't present
                 const arr = normalizeArray(res);
                 return Array.isArray(arr) ? arr.length : 0;
             } catch (_) {
@@ -10500,35 +10524,23 @@ document.addEventListener("DOMContentLoaded", function () {
         $(".loader").fadeIn("fast");
 
         const cacheBuster = Date.now();
-        // Build base params to mirror filter panel (scope/search/sort/date/project)
         const filterStatusSelect = document.getElementById("filterProjectStatus");
         const sortBySelect = document.getElementById("filterSortBy");
         let sortBy = "asc";
         if (sortBySelect && sortBySelect.value) sortBy = sortBySelect.value;
 
-        // Reuse the same state used by the cards
         const baseParams = {
             task_scope: "me",
             sort_by: sortBy,
             _cb: cacheBuster,
         };
+
         try {
             if (typeof window.currentSearch === 'string' && window.currentSearch.trim() !== '') {
                 baseParams.search = window.currentSearch.trim();
             }
         } catch(_) {}
-        try {
-            if (typeof window.currentProjectId !== 'undefined' && window.currentProjectId) {
-                baseParams.project_id = window.currentProjectId;
-            }
-        } catch(_) {}
-        try {
-            if (typeof window.currentFilterDate === 'string' && window.currentFilterDate.trim() !== '') {
-                baseParams.date = window.currentFilterDate.trim();
-            }
-        } catch(_) {}
 
-        // Always use the same endpoint as the filter panel
         const endpoint = appUrl + "/project/get-all-projects";
         const totalReq = $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams } });
         const completedReq = $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams, filter: "completed" } });
@@ -10539,12 +10551,18 @@ document.addEventListener("DOMContentLoaded", function () {
         $.when(totalReq, completedReq, inProgressReq, notStartedReq, lateReq)
             .done(function (totalRes, compRes, progRes, notRes, lateRes) {
                 try {
-                    // Use pagination.total to match exactly what filter shows
                     const totalCount = extractTotal(totalRes[0]);
                     const countCompleted = extractTotal(compRes[0]);
                     const countOnProgress = extractTotal(progRes[0]);
                     const countNotStarted = extractTotal(notRes[0]);
                     const countLate = extractTotal(lateRes[0]);
+
+                    const projectNames = {
+                        completed: normalizeArray(compRes[0]).map(p => p.title || 'Unnamed'),
+                        in_progress: normalizeArray(progRes[0]).map(p => p.title || 'Unnamed'),
+                        not_started: normalizeArray(notRes[0]).map(p => p.title || 'Unnamed'),
+                        late: normalizeArray(lateRes[0]).map(p => p.title || 'Unnamed'),
+                    };
 
                     const derivedCounts = {
                         total: totalCount,
@@ -10553,8 +10571,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         late: countLate,
                         not_started: countNotStarted,
                     };
-                    // We no longer need the full array for chart; pass empty list and rely on totals
-                    updateProjectChartFromData([], derivedCounts);
+
+                    updateProjectChartFromData([], derivedCounts, projectNames);
                 } catch (e) {
                     console.warn("Failed to derive project chart counts", e);
                 } finally {
@@ -10562,26 +10580,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
             })
             .fail(function () {
-                try {
-                    // As a fallback, try to at least fetch total count from the same endpoint
-                    $.ajax({ url: endpoint, type: "GET", dataType: "json", data: { ...baseParams } })
-                        .done(function (res) {
-                            const totalCount = extractTotal(res);
-                            const derivedCounts = {
-                                total: totalCount,
-                                completed: 0,
-                                in_progress: 0,
-                                late: 0,
-                                not_started: totalCount,
-                            };
-                            updateProjectChartFromData([], derivedCounts);
-                        })
-                        .always(function () { $(".loader").fadeOut("fast"); });
-                } catch (_) {
-                    $(".loader").fadeOut("fast");
-                }
+                $(".loader").fadeOut("fast");
             });
     }
+
     loadProjectAndTaskData();
 });
 

@@ -62,6 +62,7 @@
                     </div>
                     <div class="chart-container">
                         <canvas id="projectChart"></canvas>
+
                     </div>
                     <div class="chart-labels d-flex justify-content-evenly align-items-center mt-3">
                         <div class="text-center">
