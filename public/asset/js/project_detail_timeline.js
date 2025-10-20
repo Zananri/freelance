@@ -18,7 +18,7 @@ function fetchProjectDueDate(projectId) {
         dataType: "json",
     }).done(function (response) {
         console.log(response);
-        
+
         if (response.status === "success") {
             projectDueDate = new Date(response.data.due_date);
         }
@@ -28,19 +28,15 @@ function fetchProjectDueDate(projectId) {
 function getTaskStatus(task) {
     const due = new Date(task.due_date);
     const today = new Date();
-
     due.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
 
     if (task.status === "completed") return "completed";
-    if (task.status === "in_progress") return "in_progress";
-
-    if (task.status === "new_request") {
-        if (due < today) return "late";
-        return "new_request";
-    }
 
     if (due < today) return "late";
+
+    if (task.status === "new_request") return "new_request";
+    if (task.status === "in_progress") return "in_progress";
 
     return "in_progress";
 }

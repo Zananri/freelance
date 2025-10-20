@@ -43,7 +43,7 @@
                     <span class="material-symbols-outlined">list</span>
                 </button>
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
-                    <span class="material-symbols-outlined icon">grid_view</span>
+                    <span class="material-symbols-outlined icon">mist</span>
                 </button>
                 <button class="btn btn-export-custom-detail" id="exportProjectReportBtn" title="Export Project"
                     data-project-id="{{ $project->id ?? '' }}">
@@ -468,7 +468,7 @@
                             <div class="mb-3 input-custom">
                                 <label for="edit_description" class="form-label label-custom">Description</label>
 
-                                <div id="edit_description_editor"
+                                <div id="project_description_editor"
                                     style="min-height:120px; background:#fff; border: none; border-radius:6px;">
                                 </div>
 
@@ -541,8 +541,7 @@
                                     autocomplete="off" placeholder="Search project...">
                                 <div id="edit_part_of_project_dropdown" class="dropdown-list mt-1"></div>
                                 <div id="edit_selected_project" class="mt-2"></div>
-                                <input type="hidden" id="edit_part_of_project" name="part_of_project"
-                                    value="">
+                                <input type="hidden" id="edit_part_of_project" name="part_of_project" value="">
                             </div>
                             <div class="mb-3 input-custom">
                                 <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
@@ -699,12 +698,12 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_title" class="form-label label-custom">Title</label>
                                 <input type="text" class="form-control input-text" id="edit_task_title"
                                     name="title" required>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_description" class="form-label label-custom">Description</label>
                                 <div id="edit_task_description_editor"
                                     style="min-height:120px; background:#fff; border: none; border-radius:6px;">
@@ -712,7 +711,7 @@
                                 <textarea class="form-control input-text d-none" id="edit_task_description" name="description" rows="6"
                                     style="display:none;"></textarea>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_project_input" class="form-label label-custom">Project</label>
                                 <input type="text" class="form-control input-text" id="edit_task_project_input"
                                     autocomplete="off" placeholder="Search project..." required>
@@ -721,7 +720,7 @@
                                 <input type="hidden" id="edit_task_project_id" name="project_id" value="">
                             </div>
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_parent_input" class="form-label label-custom">Related to Task
                                     (optional)</label>
                                 <input type="text" class="form-control input-text" id="edit_task_parent_input"
@@ -731,12 +730,12 @@
                                 <input type="hidden" id="edit_task_parent_id" name="parent_id" value="">
                             </div>
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_point" class="form-label label-custom">Point</label>
                                 <input type="number" class="form-control input-text" id="edit_task_point"
                                     name="point" value="1" min="1" required>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_priority" class="form-label label-custom">Priority</label>
                                 <select class="form-select input-select" id="edit_task_priority" name="priority"
                                     required>
@@ -746,7 +745,7 @@
                                     <option value="LOW">LOW</option>
                                 </select>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Reference URLs</label>
                                 <div id="edit_task_reference_urls_container" class="d-flex flex-column gap-2">
                                     <div class="input-group">
@@ -759,7 +758,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="edit_task_reference_files" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" class="form-control input-text" id="edit_task_reference_files"
@@ -769,7 +768,7 @@
                                 <div id="existing_reference_files" class="mt-2"></div>
                                 <div id="edit_reference_files_preview" class="mt-2"></div>
                             </div>
-                            <div class="mb-3 custom-input d-flex justify-content-between">
+                            <div class="mb-3 input-custom d-flex justify-content-between">
                                 <div class="date-form">
                                     <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
                                     <input type="date" class="form-control input-text" id="edit_task_start_date"
@@ -781,7 +780,7 @@
                                         name="due_date" required>
                                 </div>
                             </div>
-                            <div class="mb-1 custom-input position-relative">
+                            <div class="mb-1 input-custom position-relative">
                                 <label for="edit_executor_input" class="form-label label-custom">Executor</label>
 
                                 <select aria-label="Division (optional)"
@@ -795,7 +794,7 @@
                                 <div id="edit_task_division_dropdown" class="dropdown-list mt-1 division-list"></div>
                                 <div id="edit_executor_dropdown" class="dropdown-list mt-1 executor-list"></div>
                             </div>
-                            <div class="mb-3 custom-input position-relative">
+                            <div class="mb-3 input-custom position-relative">
                                 <input type="text" class="form-control input-text" id="edit_executor_input"
                                     name="executor_input" autocomplete="off" placeholder="Search employees...">
 
@@ -849,12 +848,12 @@
                                     Please select an image file.
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_title" class="form-label label-custom">Title</label>
                                 <input type="text" class="form-control input-text" id="task_title" name="title"
                                     required>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_description" class="form-label label-custom">Description</label>
                                 <div id="task_description_editor"
                                     style="min-height:120px; background:#fff; border: none; border-radius:6px;">
@@ -862,7 +861,7 @@
                                 <textarea class="form-control input-text d-none" id="task_description" name="description" rows="6"
                                     style="display:none;"></textarea>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Project</label>
                                 <input type="text" class="form-control input-text" id="task_project_input"
                                     autocomplete="off" placeholder="Search project..." required>
@@ -871,7 +870,7 @@
                                 <input type="hidden" id="task_project_id" name="project_id" value="">
                             </div>
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Related to Task (optional)</label>
                                 <input type="text" class="form-control input-text" id="task_parent_input"
                                     autocomplete="off" placeholder="Search task...">
@@ -881,12 +880,12 @@
                             </div>
 
 
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_point" class="form-label label-custom">Point</label>
                                 <input type="number" class="form-control input-text" id="task_point" name="point"
                                     value="1" min="1" required>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_priority" class="form-label label-custom">Priority</label>
                                 <select class="form-select input-select" id="task_priority" name="priority" required>
                                     <option value="">Select Priority</option>
@@ -895,7 +894,7 @@
                                     <option value="LOW">LOW</option>
                                 </select>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Reference URLs</label>
                                 <div id="task_reference_urls_container" class="d-flex flex-column gap-2">
                                     <div class="input-group">
@@ -908,7 +907,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
                                 <input type="file" class="form-control input-text" id="task_reference_files"
                                     name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
@@ -916,7 +915,7 @@
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="reference_files_preview" class="mt-2"></div>
                             </div>
-                            <div class="mb-3 custom-input d-flex justify-content-between">
+                            <div class="mb-3 input-custom d-flex justify-content-between">
                                 <div class="date-form">
                                     <label for="task_start_date" class="form-label label-custom">Start Date</label>
                                     <input type="date" class="form-control input-text" id="task_start_date"
@@ -928,7 +927,7 @@
                                         name="due_date" required>
                                 </div>
                             </div>
-                            <div class="mb-1 custom-input position-relative">
+                            <div class="mb-1 input-custom position-relative">
                                 <label for="executor_input" class="form-label label-custom">Executor</label>
 
                                 <select aria-label="Division (optional)"
@@ -942,7 +941,7 @@
                                 <div id="executor_dropdown" class="dropdown-list mt-1 executor-list">
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input position-relative">
+                            <div class="mb-3 input-custom position-relative">
                                 <input type="text" class="form-control input-text" id="executor_input"
                                     name="executor_input" autocomplete="off" placeholder="Search employees...">
 
@@ -1438,6 +1437,189 @@
                             if (ta.value !== lastEditTa) {
                                 lastEditTa = ta.value;
                                 window.__quillTaskEdit.root.innerHTML = ta.value || '';
+                            }
+                        } catch (_) {}
+                    }, 300);
+                } catch (_) {}
+            });
+        </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                try {
+                    if (document.getElementById('project_description_editor')) {
+
+                        var addToolbarEl = document.getElementById('task_description_toolbar');
+                        var addToolbarConfig = addToolbarEl ? '#task_description_toolbar' : false;
+                        window.__quillTaskAdd = new Quill('#project_description_editor', {
+                            modules: {
+                                toolbar: addToolbarConfig
+                            },
+                            theme: 'snow'
+                        });
+                        try {
+                            var Delta = Quill.import && Quill.import('delta');
+                            if (window.__quillTaskAdd && window.__quillTaskAdd.clipboard && typeof window.__quillTaskAdd
+                                .clipboard.addMatcher === 'function') {
+                                window.__quillTaskAdd.clipboard.addMatcher('IMG', function(node, delta) {
+                                    try {
+                                        return new Delta();
+                                    } catch (_) {
+                                        return delta;
+                                    }
+                                });
+                            }
+                            // Safety: remove any <img> elements after any text-change (Edge may still insert blobs)
+                            try {
+                                window.__quillTaskAdd.on && window.__quillTaskAdd.on('text-change', function(delta,
+                                    oldDelta, source) {
+                                    try {
+                                        setTimeout(function() {
+                                            try {
+                                                var imgs = window.__quillTaskAdd.root.querySelectorAll(
+                                                    'img');
+                                                imgs.forEach(function(i) {
+                                                    i.remove();
+                                                });
+                                            } catch (_) {}
+                                        }, 0);
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        } catch (_) {}
+                        // prevent images via drop/paste
+                        try {
+                            preventImageDropAndPaste(window.__quillTaskAdd, '#project_description_editor');
+                        } catch (_) {}
+                    }
+                } catch (_) {
+                    /* noop if Quill not available */
+                }
+
+                // Prevent images from being inserted via drag/drop or paste
+                function preventImageDropAndPaste(quill, editorSelector) {
+                    try {
+                        var editor = document.querySelector(editorSelector);
+                        if (!editor || !quill) return;
+
+                        // Use capture-phase listeners to intercept before Quill's handlers run
+                        try {
+                            editor.addEventListener('dragover', function(e) {
+                                try {
+                                    e.preventDefault();
+                                    e.stopImmediatePropagation();
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+
+                        // drop: block files (including images) and HTML that contains <img>
+                        try {
+                            editor.addEventListener('drop', function(e) {
+                                try {
+                                    if (!e.dataTransfer) return;
+                                    var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
+                                    var html = '';
+                                    try {
+                                        html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') ||
+                                            '';
+                                    } catch (_) {}
+                                    if (hasFiles || /<img\s*/i.test(html)) {
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return; // do nothing
+                                    }
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+
+                        // paste: if clipboard contains image items or HTML with <img>, prevent entirely (no insert)
+                        try {
+                            editor.addEventListener('paste', function(e) {
+                                try {
+                                    var clipboard = (e.clipboardData || window.clipboardData);
+                                    if (!clipboard) return;
+
+                                    var items = clipboard.items || [];
+                                    var hasImage = false;
+                                    for (var i = 0; i < items.length; i++) {
+                                        var t = items[i].type || '';
+                                        if (t.indexOf && t.indexOf('image') === 0) {
+                                            hasImage = true;
+                                            break;
+                                        }
+                                    }
+
+                                    var html = '';
+                                    try {
+                                        html = clipboard.getData && clipboard.getData('text/html') || '';
+                                    } catch (_) {}
+
+                                    if (hasImage || /<img\s*/i.test(html)) {
+                                        // block default paste which would insert the image or any html containing images
+                                        e.preventDefault();
+                                        e.stopImmediatePropagation();
+                                        return; // do not insert anything (no blink)
+                                    }
+                                    // Otherwise allow normal paste (text or non-image html)
+                                } catch (_) {}
+                            }, true);
+                        } catch (_) {}
+                    } catch (_) {}
+                }
+
+                function syncQuillToTextarea(quill, textareaId) {
+                    try {
+                        const ta = document.getElementById(textareaId);
+                        if (!ta) return;
+                        const html = (quill && quill.root && typeof quill.root.innerHTML === 'string') ? quill.root
+                            .innerHTML : '';
+                        ta.value = html;
+                    } catch (_) {}
+                }
+
+                const editProjectForm = document.getElementById('editProjectForm');
+                if (editProjectForm) {
+                    editProjectForm.addEventListener('submit', function(e) {
+                        try {
+                            if (window.__quillProjectEdit) syncQuillToTextarea(window.__quillProjectEdit,
+                                'edit_description');
+                            const plain = (window.__quillProjectEdit && typeof window.__quillProjectEdit.getText ===
+                                'function') ? window.__quillProjectEdit.getText().trim() : '';
+                            if (!plain) {
+                                e.preventDefault();
+                                e.stopImmediatePropagation();
+                                try {
+                                    window.__quillProjectEdit.focus();
+                                } catch (_) {}
+                                return false;
+                            }
+                        } catch (_) {}
+                    }, true);
+                }
+
+                // Clear editors when modals hide (keep canonical textareas in sync)
+                try {
+                    $('#editProjectModal').on('hidden.bs.modal', function() {
+                        try {
+                            if (window.__quillProjectEdit && window.__quillProjectEdit.root) window.__quillProjectEdit
+                                .root.innerHTML = '';
+                        } catch (_) {}
+                        try {
+                            const ta = document.getElementById('edit_description');
+                            if (ta) ta.value = '';
+                        } catch (_) {}
+                    });
+                } catch (_) {}
+
+                // Polling fallback: if edit textarea is updated programmatically (task.js), mirror into Quill
+                try {
+                    let lastEditProj = document.getElementById('edit_description')?.value || '';
+                    setInterval(function() {
+                        try {
+                            const ta = document.getElementById('edit_description');
+                            if (!ta || !window.__quillProjectEdit || !window.__quillProjectEdit.root) return;
+                            if (ta.value !== lastEditProj) {
+                                lastEditProj = ta.value;
+                                window.__quillProjectEdit.root.innerHTML = ta.value || '';
                             }
                         } catch (_) {}
                     }, 300);
