@@ -4042,26 +4042,31 @@ class TaskController extends Controller
                 // don't block acceptance if logging fails
             }
 
+            // Optionally add the accepting employee as a project contributor.
+            // Default: disabled. Set AUTO_ADD_PROJECT_CONTRIBUTOR_ON_TASK_ACCEPT=true in .env to enable.
             try {
-                if ($task->project_id) {
-                    $projectId = $task->project_id;
-                    $exists = ProjectAssignment::where('project_id', $projectId)
-                        ->where('employee_id', $user->employee->id)
-                        ->exists();
-                    if (!$exists) {
-                        ProjectAssignment::create([
-                            'project_id' => $projectId,
-                            'employee_id' => $user->employee->id,
-                            'role' => 'contributor',
-                            'is_receive' => true,
-                            'created_by' => $user->id ?? null,
-                            'updated_by' => $user->id ?? null,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
+                if (env('AUTO_ADD_PROJECT_CONTRIBUTOR_ON_TASK_ACCEPT', false)) {
+                    if ($task->project_id) {
+                        $projectId = $task->project_id;
+                        $exists = ProjectAssignment::where('project_id', $projectId)
+                            ->where('employee_id', $user->employee->id)
+                            ->exists();
+                        if (!$exists) {
+                            ProjectAssignment::create([
+                                'project_id' => $projectId,
+                                'employee_id' => $user->employee->id,
+                                'role' => 'contributor',
+                                'is_receive' => true,
+                                'created_by' => $user->id ?? null,
+                                'updated_by' => $user->id ?? null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
                     }
                 }
             } catch (\Throwable $_) {
+                // intentionally ignore failures when updating project assignments
             }
 
 
