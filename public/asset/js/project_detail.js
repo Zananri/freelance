@@ -5427,7 +5427,7 @@
     function createActionButtons(projectId, actionsContainer) {
         actionsContainer.empty();
         var appUrl = getMeta("app-url") || "";
-        
+
         // Edit button - open modal instead of navigation
         var $edit = $("<button>")
             .addClass("detail-icon")
@@ -5455,7 +5455,7 @@
         $edit.on("click", function (e) {
             e.preventDefault();
             var editUrl = appUrl.replace(/\/$/, "") + "/project/" + projectId + "/edit";
-            
+
             // Fetch project data for edit modal
             $.ajax({
                 url: editUrl,
@@ -5471,7 +5471,7 @@
                         } catch (err) {
                             console.error("Error populating edit modal:", err);
                         }
-                        
+
                         // Show edit modal
                         var editModalEl = document.getElementById("editProjectModal");
                         if (editModalEl) {
@@ -5705,10 +5705,10 @@
             if (callback) callback();
             return;
         }
-        
+
         divisionSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
         var appUrl = getMeta("app-url") || "";
-        
+
         $.ajax({
             url: appUrl.replace(/\/$/, "") + "/divisions-for-projects",
             type: "GET",
@@ -5739,16 +5739,16 @@
         try {
             // Set project ID
             $("#edit_project_id").val(data.id);
-            
+
             // Set title
             $("#edit_title").val(data.title || "");
-            
+
             // Set description (check if Quill editor exists)
             if (window.__quillProjectEdit && window.__quillProjectEdit.root) {
                 window.__quillProjectEdit.root.innerHTML = data.description || "";
             }
             $("#edit_description").val(data.description || "");
-            
+
             // Set image
             var editImageLabel = document.getElementById("editImageLabel");
             var editImageClearBtn = document.getElementById("editImageClearBtn");
@@ -5762,7 +5762,7 @@
                 editImageLabel.style.backgroundSize = "cover";
                 if (editImageClearBtn) editImageClearBtn.classList.remove("d-none");
             }
-            
+
             // Get department from modal data attribute (employee's department)
             var modalEl = document.getElementById("editProjectModal");
             var employeeDeptId = null;
@@ -5773,7 +5773,7 @@
                     employeeDeptId = deptSelect.options[0].value;
                 }
             }
-            
+
             // Load divisions first, then set the selected division
             if (employeeDeptId) {
                 loadEditDivisions(employeeDeptId, function() {
@@ -5788,11 +5788,11 @@
                     $("#edit_division").val(data.division.id);
                 }
             }
-            
+
             // Set dates
             $("#edit_start_date").val(data.start_date || "");
             $("#edit_due_date").val(data.due_date || "");
-            
+
             // Set reference URLs
             var urlsContainer = $("#edit_project_reference_urls_container");
             if (urlsContainer.length) {
@@ -5802,13 +5802,13 @@
                     urls = [data.reference_url];
                 }
                 if (urls.length === 0) urls = [""];
-                
+
                 urls.forEach(function(url, idx) {
                     var inputGroup = $('<div class="input-group mb-2"></div>');
                     var input = $('<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">').val(url);
                     var addBtn = $('<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>');
                     var removeBtn = $('<button type="button" class="btn btn-outline-secondary remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">remove</span></button>');
-                    
+
                     inputGroup.append(input);
                     if (idx === 0) {
                         inputGroup.append(addBtn);
@@ -5818,38 +5818,62 @@
                     urlsContainer.append(inputGroup);
                 });
             }
-            
-            // Set reference files
+
             var existingFilesContainer = $("#existing_reference_files");
             if (existingFilesContainer.length) {
                 existingFilesContainer.empty();
                 var files = data.reference_files || [];
+
                 if (files && files.length > 0) {
                     files.forEach(function(fileName) {
                         if (!fileName) return;
-                        var badge = $('<span class="badge bg-secondary me-2 mb-2"></span>').text(fileName);
-                        var removeBtn = $('<button type="button" class="btn-close btn-sm ms-2"></button>');
+
+                        var isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+                        var fileDisplay = $('<div class="d-flex align-items-center justify-content-between bg-light rounded-2 px-3 py-2 mb-2"></div>')
+                            .css({ color: '#444', fontSize: '0.9rem' });
+
+                        var leftSection = $('<div class="d-flex align-items-center"></div>');
+
+                        if (isImage) {
+                            var imgPreview = $('<img>')
+                                .attr('src', fileName)
+                                .addClass('me-2')
+                                .css({
+                                    width: '24px',
+                                    height: '24px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: 'none'
+                                });
+                            leftSection.append(imgPreview);
+                        }
+
+                        leftSection.append($('<span class="fw-normal text-truncate" style="font-size="16px""></span>').text(fileName));
+
+                        var removeBtn = $('<button type="button" class="btn-close btn-sm ms-2 flex-shrink-0"></button>');
                         removeBtn.on("click", function() {
-                            badge.remove();
-                            // Update hidden input
+                            fileDisplay.remove();
                             var remaining = [];
-                            existingFilesContainer.find(".badge").each(function() {
+                            existingFilesContainer.find("span.fw-normal").each(function() {
                                 var txt = $(this).text().trim();
                                 if (txt) remaining.push(txt);
                             });
                             $("#existing_reference_files_input").val(JSON.stringify(remaining));
                         });
-                        badge.append(removeBtn);
-                        existingFilesContainer.append(badge);
+
+                        fileDisplay.append(leftSection);
+                        fileDisplay.append(removeBtn);
+                        existingFilesContainer.append(fileDisplay);
                     });
+
                     $("#existing_reference_files_input").val(JSON.stringify(files));
                 }
             }
-            
+
             // Set co-authors and contributors
             if (window.clearSelectedCoAuthorsEdit) window.clearSelectedCoAuthorsEdit();
             if (window.clearSelectedContributorsEdit) window.clearSelectedContributorsEdit();
-            
+
             if (data.co_authors && Array.isArray(data.co_authors)) {
                 var coAuthors = data.co_authors.map(function(a) {
                     return {
@@ -5861,7 +5885,7 @@
                 });
                 if (window.setSelectedCoAuthorsEdit) window.setSelectedCoAuthorsEdit(coAuthors);
             }
-            
+
             if (data.contributors && Array.isArray(data.contributors)) {
                 var contributors = data.contributors.map(function(c) {
                     return {
@@ -5873,7 +5897,7 @@
                 });
                 if (window.setSelectedContributorsEdit) window.setSelectedContributorsEdit(contributors);
             }
-            
+
         } catch (err) {
             console.error("Error populating edit project modal:", err);
         }
@@ -6246,172 +6270,142 @@
             });
         }
 
-        function populatePartOfProjectSelects(
-            currentProjectId = null,
-            currentProjectTitle = "",
-            currentPartOfProjectId = null,
-            currentPartOfProjectTitle = ""
-        ) {
-            const input = document.getElementById("edit_part_of_project_input");
-            const dropdown = document.getElementById(
-                "edit_part_of_project_dropdown"
-            );
-            const hiddenInput = document.getElementById("edit_part_of_project");
-            const selectedContainer = document.getElementById(
-                "edit_selected_project"
-            );
+        $(document).ready(function () {
 
-            if (!input || !dropdown || !hiddenInput || !selectedContainer) {
-                console.warn(
-                    "[populatePartOfProjectSelects] Elements not found for edit"
-                );
-                return;
-            }
+            function populatePartOfProjectSelects(
+                currentProjectId = null,
+                currentProjectTitle = "",
+                currentPartOfProjectId = null,
+                currentPartOfProjectTitle = ""
+            ) {
+                const input = document.getElementById("edit_part_of_project_input");
+                const dropdown = document.getElementById("edit_part_of_project_dropdown");
+                const hiddenInput = document.getElementById("edit_part_of_project");
+                const selectedContainer = document.getElementById("edit_selected_project");
 
-            let projects = [];
-
-            function getInitialAvatar(name) {
-                const colors = [
-                    "#F44336",
-                    "#E91E63",
-                    "#9C27B0",
-                    "#673AB7",
-                    "#3F51B5",
-                    "#2196F3",
-                    "#03A9F4",
-                    "#00BCD4",
-                    "#009688",
-                    "#4CAF50",
-                    "#8BC34A",
-                    "#FFC107",
-                    "#FF9800",
-                    "#FF5722",
-                    "#795548",
-                ];
-                const color = colors[Math.floor(Math.random() * colors.length)];
-                const initial = (name || "?").charAt(0).toUpperCase();
-                return `<div style="
-                    width:28px;height:28px;
-                    border-radius:50%;
-                    background:${color};
-                    color:#fff;
-                    font-size:13px;
-                    font-weight:bold;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                ">${initial}</div>`;
-            }
-
-            function showSelectedProject(p) {
-                let avatarHtml;
-                if (p.image && p.image.trim() !== "") {
-                    avatarHtml = `<img src="${appUrl}/file/project/${p.image}"
-                                    width="28" height="28" style="object-fit:cover;border-radius:50%;">`;
-                } else {
-                    avatarHtml = getInitialAvatar(p.title);
+                if (!input || !dropdown || !hiddenInput || !selectedContainer) {
+                    console.warn("[populatePartOfProjectSelects] Elements not found for edit");
+                    return;
                 }
 
-                selectedContainer.innerHTML = `
-                    <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
-                        ${avatarHtml}
-                        <span class="flex-grow-1">${p.title}</span>
-                        <button type="button" class="btn btn-sm btn-remove-project remove-project" style="line-height:1">
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
-                    </div>
-                `;
+                let projects = [];
 
-                const removeBtn =
-                    selectedContainer.querySelector(".remove-project");
-                removeBtn.addEventListener("click", () => {
-                    hiddenInput.value = "";
-                    input.value = "";
-                    selectedContainer.innerHTML = "";
-                });
-            }
+                function getInitialAvatar(name) {
+                    const colors = [
+                        "#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#2196F3",
+                        "#03A9F4","#00BCD4","#009688","#4CAF50","#8BC34A","#FFC107",
+                        "#FF9800","#FF5722","#795548"
+                    ];
+                    const color = colors[Math.floor(Math.random() * colors.length)];
+                    const initial = (name || "?").charAt(0).toUpperCase();
+                    return `<div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;">${initial}</div>`;
+                }
 
-            function renderDropdown(filter = "") {
-                dropdown.innerHTML = "";
-                let filtered = projects.filter((p) =>
-                    p.title.toLowerCase().includes(filter.toLowerCase())
-                );
+                function showSelectedProject(p) {
+                    const avatarHtml = p.image
+                        ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                        : getInitialAvatar(p.title);
+                    selectedContainer.innerHTML = `
+                        <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                            ${avatarHtml}
+                            <span class="flex-grow-1">${p.title}</span>
+                            <button type="button" class="btn btn-sm btn-remove-project remove-project" style="line-height:1">
+                                <span class="material-symbols-outlined">close</span>
+                            </button>
+                        </div>
+                    `;
+                    selectedContainer.querySelector(".remove-project").addEventListener("click", () => {
+                        hiddenInput.value = "";
+                        input.value = "";
+                        selectedContainer.innerHTML = "";
+                    });
+                }
 
-                // Exclude current project
-                if (currentProjectId) {
-                    filtered = filtered.filter(
-                        (p) => String(p.id) !== String(currentProjectId)
+                function renderDropdown(filter = "") {
+                    dropdown.innerHTML = "";
+                    let filtered = projects.filter((p) =>
+                        p.title.toLowerCase().includes(filter.toLowerCase())
                     );
-                }
 
-                filtered.forEach((p) => {
-                    let avatarHtml;
-                    if (p.image && p.image.trim() !== "") {
-                        avatarHtml = `<img src="${appUrl}/file/project/${p.image}"
-                                        width="24" height="24" style="object-fit:cover;border-radius:50%;">`;
-                    } else {
-                        avatarHtml = getInitialAvatar(p.title);
+                    if (currentProjectId) {
+                        filtered = filtered.filter(
+                            (p) => String(p.id) !== String(currentProjectId)
+                        );
                     }
 
-                    const item = document.createElement("div");
-                    item.className =
-                        "dropdown-item d-flex align-items-center gap-2";
-                    item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
-                    item.addEventListener("click", () => {
-                        hiddenInput.value = p.id;
-                        input.value = p.title;
-                        dropdown.style.display = "none";
-                        showSelectedProject(p);
-                    });
-                    dropdown.appendChild(item);
-                });
+                    if (filtered.length === 0) {
+                        dropdown.innerHTML = '<div class="dropdown-item disabled">No projects found</div>';
+                    } else {
+                        filtered.forEach((p) => {
+                            const avatarHtml = p.image
+                                ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`
+                                : getInitialAvatar(p.title);
+                            const item = document.createElement("div");
+                            item.className = "dropdown-item d-flex align-items-center gap-2";
+                            item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                            item.addEventListener("click", () => {
+                                hiddenInput.value = p.id;
+                                input.value = p.title;
+                                dropdown.style.display = "none";
+                                showSelectedProject(p);
+                            });
+                            dropdown.appendChild(item);
+                        });
+                    }
 
-                dropdown.style.display = filtered.length ? "block" : "none";
-            }
+                    dropdown.style.display = "block";
+                }
 
-            // Fetch projects
-            fetch(appUrl + "/project/index?task_scope=all")
-                .then((res) => res.json())
+                // Fetch projects list
+                fetch(appUrl + "/project/index?task_scope=all")
+                    .then((res) => res.json())
                     .then((payload) => {
                         projects = (Array.isArray(payload) ? payload : payload.data) || [];
-                        projects = (projects || []).map(p => ({
-                                id: p.id,
-                                title: p.title || p.name || "Project " + p.id,
-                                image: p.image || "",
-                                project_type: p.project_type || 'public'
-                            }));
+                        projects = projects.map((p) => ({
+                            id: p.id,
+                            title: p.title || p.name || "Project " + p.id,
+                            image: p.image || "",
+                            project_type: p.project_type || "public",
+                        }));
 
-                    // Preselect part_of_project kalau ada
-                    if (currentPartOfProjectId) {
-                        const found = projects.find(
-                            (p) =>
-                                String(p.id) === String(currentPartOfProjectId)
-                        );
-                        if (found) {
-                            hiddenInput.value = found.id;
-                            input.value = found.title;
-                            showSelectedProject(found);
-                        } else if (currentPartOfProjectTitle) {
-                            hiddenInput.value = currentPartOfProjectId;
-                            input.value = currentPartOfProjectTitle;
-                            showSelectedProject({
-                                id: currentPartOfProjectId,
-                                title: currentPartOfProjectTitle,
-                                image: "",
-                            });
+                        if (currentPartOfProjectId) {
+                            const found = projects.find(
+                                (p) => String(p.id) === String(currentPartOfProjectId)
+                            );
+                            if (found) {
+                                hiddenInput.value = found.id;
+                                input.value = found.title;
+                                showSelectedProject(found);
+                            } else if (currentPartOfProjectTitle) {
+                                hiddenInput.value = currentPartOfProjectId;
+                                input.value = currentPartOfProjectTitle;
+                                showSelectedProject({
+                                    id: currentPartOfProjectId,
+                                    title: currentPartOfProjectTitle,
+                                    image: "",
+                                });
+                            }
                         }
+                    });
+
+                input.addEventListener("input", () => renderDropdown(input.value));
+                input.addEventListener("focus", () => renderDropdown(input.value));
+                document.addEventListener("click", (e) => {
+                    if (!dropdown.contains(e.target) && e.target !== input) {
+                        dropdown.style.display = "none";
                     }
                 });
+            }
 
-            input.addEventListener("input", () => renderDropdown(input.value));
-            input.addEventListener("focus", () => renderDropdown(input.value));
-
-            document.addEventListener("click", (e) => {
-                if (!dropdown.contains(e.target) && e.target !== input) {
-                    dropdown.style.display = "none";
-                }
+            $("#editProjectModal").on("shown.bs.modal", function (e) {
+                const data = $(e.relatedTarget).data("project") || {};
+                populatePartOfProjectSelects(
+                    data.id,
+                    data.title || "",
+                    data.part_of_project || ""
+                );
             });
-        }
+        });
 
         // Image input helper for edit modal
         function setupImageInput(inputEl, labelEl, clearBtnEl) {
