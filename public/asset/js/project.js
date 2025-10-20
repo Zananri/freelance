@@ -1288,7 +1288,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             const inProgress = counts.in_progress || 0;
                             const late = counts.late || 0;
 
-                            if (total === 0) return "No Task";
+                            if (total === 0) return "not_started";
                             if (notStarted === total) return "not_started";
                             if (inProgress > 0) return "in_progress";
                             if (completed === total) return "completed";
@@ -1302,9 +1302,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 in_progress: { text: "In Progress", color: "#ffc107" },
                                 not_started: { text: "Not Started", color: "#6c757d" },
                                 late: { text: "Late", color: "#dc3545" },
-                                "No Task": { text: "No Task", color: "#4B4F5E" },
                             };
-                            const s = map[status] || map["No Task"];
+                            const s = map[status] || map["not_started"];
                             return `<span class="ms-1 fs-8 fw-semibold" style="color:${s.color};">${s.text}</span>`;
                         }
 
