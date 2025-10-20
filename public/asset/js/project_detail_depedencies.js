@@ -147,19 +147,46 @@ function renderTaskNode(task, $template) {
 
         // Add three-dots menu button (menu will be portaled to body)
         if ($card.find('.task-more-btn').length === 0) {
-            const taskId = task && task.id ? String(task.id) : null;
-            const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
-            if (taskId) $moreBtn.attr('data-task-id', taskId);
-            $card.append($moreBtn);
-
-            // Always show on mobile devices (no hover)
+            // Determine current logged-in employee id from known DOM locations
+            let currentEmployeeId = null;
             try {
-                var isMobile =
-                    window.matchMedia && window.matchMedia('(max-width: 1024px)').matches ||
-                    window.innerWidth <= 1024 ||
-                    /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                if (isMobile) $moreBtn.removeClass('d-none');
-            } catch(_){}
+                const empInput = document.querySelector('input[name="employee_id"]') || document.querySelector('#currentEmployee') || document.querySelector('[data-employee-id]');
+                if (empInput) {
+                    currentEmployeeId = empInput.value || empInput.getAttribute('data-employee-id') || (empInput.dataset && empInput.dataset.employeeId) || null;
+                }
+            } catch(_) {}
+
+            // Decide whether to show menu: if we can detect currentEmployeeId, only show when it's equal to task.pic.id
+            let showMenu = true;
+            try {
+                if (currentEmployeeId !== null && currentEmployeeId !== undefined && String(currentEmployeeId).trim() !== '') {
+                    if (task && task.pic && (task.pic.id !== null && task.pic.id !== undefined)) {
+                        showMenu = String(currentEmployeeId) === String(task.pic.id);
+                    } else {
+                        // If task has no PIC, do not show the menu when we know the current employee
+                        showMenu = false;
+                    }
+                } else {
+                    // If we couldn't detect current employee id, fall back to original behavior (show menu)
+                    showMenu = true;
+                }
+            } catch(_) { showMenu = true; }
+
+            if (showMenu) {
+                const taskId = task && task.id ? String(task.id) : null;
+                const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
+                if (taskId) $moreBtn.attr('data-task-id', taskId);
+                $card.append($moreBtn);
+
+                // Always show on mobile devices (no hover)
+                try {
+                    var isMobile =
+                        window.matchMedia && window.matchMedia('(max-width: 1024px)').matches ||
+                        window.innerWidth <= 1024 ||
+                        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                    if (isMobile) $moreBtn.removeClass('d-none');
+                } catch(_){ }
+            }
         }
 
         // Show both handle and menu button on hover
