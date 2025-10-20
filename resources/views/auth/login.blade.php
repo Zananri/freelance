@@ -13,7 +13,7 @@
                     <p class="fs-14 text-black text-opacity-75">Please enter log in details below</p>
                 </div>
 
-                <form method="POST" action="{{ route('login') }}" autocomplete="off">
+                <form method="POST" action="{{ route('login') }}" autocomplete="off" id="form-login">
                     @csrf
                     <div class="mb-3">
                         <input type="text" name="email" class="form-control form-input bg-white bg-opacity-75"
@@ -67,4 +67,5 @@
     </div>
 
     <script src="{{ asset('asset/js/guest-alert.js') }}"></script>
+    <!-- Geolocation for login removed: authentication now logs to user_auth_logs only -->
 </x-guest-layout>

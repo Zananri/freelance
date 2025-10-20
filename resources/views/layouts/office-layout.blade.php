@@ -152,9 +152,9 @@
                         </div>
 
                         <div class="w-100 p-3">
-                            <form method="POST" action="{{ route('logout') }}"  >
-                                 @csrf
-                                 <div class="d-flex justify-content-center   align-items-center w-100" >
+                       <form method="POST" action="{{ route('logout') }}" id="form-logout-avatar">
+                           @csrf
+                           <div class="d-flex justify-content-center   align-items-center w-100" >
                                         <a  class="btn btn-profile-left w-100" href="{{ route('profile') }}">
                                             <span class="material-symbols-outlined">account_circle</span>
                                             Profile
@@ -362,11 +362,9 @@
                     @endif
 
                     <li>
-                        <form method="POST" action="{{ route('logout') }}" class="d-none"  >
+                        <form method="POST" action="{{ route('logout') }}" class="d-none" id="form-logout-sidebar"  >
                             @csrf
-                            
                             <button type="submit" class="" id="btn-sidebar-logout">SUBMIT</button>
-                            
                         </form>
                         <a href="#" class="" onclick="$('#btn-sidebar-logout').click();">
                             <span class="material-symbols-outlined">logout</span>
@@ -460,6 +458,10 @@
 
     <script src="{{ asset('asset/js/app.js?v=' . time()) }}"></script>
     <script src="{{ asset('asset/js/office.js?v=' . time()) }}"></script>
+
+    <script>
+        // Logout location capture removed (activity tracking deprecated). Logout directly submits the form.
+    </script>
 
     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']))
     <script src="{{ asset('asset/js/hr_info.js')}}?v={{time() }}"></script>
