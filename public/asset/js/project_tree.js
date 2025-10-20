@@ -155,7 +155,11 @@
 			currentProjectId = projectId;
 			
 			if (!$globalMenu || !$globalMenu.length) {
-				$globalMenu = $('<div id="project-global-more-menu" class="d-none" style="position:fixed;min-width:140px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;overflow:hidden;pointer-events:auto;"><button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button></div>');
+				$globalMenu = $('<div id="project-global-more-menu" class="d-none" style="position:fixed;min-width:160px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;overflow:hidden;pointer-events:auto;">' +
+					'<button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button>' +
+					'<button type="button" class="edit-project-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit</button>' +
+					'<button type="button" class="delete-project-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete</button>' +
+				'</div>');
 				$('body').append($globalMenu);
 			}
 			
@@ -218,6 +222,34 @@
 				} catch(_){}
 			});
 		} catch(_){}
+	});
+	
+	// Edit Project action
+	$(document).on('click', '#project-global-more-menu .edit-project-action', function(e){
+		try {
+			e.preventDefault(); e.stopPropagation();
+			var projectId = currentProjectId;
+			if (!projectId) return;
+			hideMenu();
+			// Call the global edit function if it exists
+			if (typeof window.editProject === 'function') {
+				window.editProject(projectId);
+			}
+		} catch(_) {}
+	});
+	
+	// Delete Project action
+	$(document).on('click', '#project-global-more-menu .delete-project-action', function(e){
+		try {
+			e.preventDefault(); e.stopPropagation();
+			var projectId = currentProjectId;
+			if (!projectId) return;
+			hideMenu();
+			// Call the global delete function if it exists
+			if (typeof window.deleteProject === 'function') {
+				window.deleteProject(projectId);
+			}
+		} catch(_) {}
 	});
 
 	function isDescendant(sourceId, targetId){
