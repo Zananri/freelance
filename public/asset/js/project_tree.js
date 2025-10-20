@@ -578,10 +578,26 @@
 							}
 						} catch(_){}
 
+						// Populate co-authors and contributors preview/hidden inputs using existing helpers in project.js
+						try {
+							// First, programmatically set co-authors then contributors to allow mutual exclusion logic
+							if (typeof window.setSelectedCoAuthorsEdit === 'function') {
+								window.setSelectedCoAuthorsEdit(Array.isArray(data.co_authors) ? data.co_authors : (data.co_authors ? [data.co_authors] : []));
+							}
+							if (typeof window.setSelectedContributorsEdit === 'function') {
+								window.setSelectedContributorsEdit(Array.isArray(data.contributors) ? data.contributors : (data.contributors ? [data.contributors] : []));
+							}
+						} catch(_){ }
+
 						// Finally show modal (ensure it stacks above Project Tree modal/backdrops)
 						try {
 							if (editModalEl) {
 								var modalInstance = bootstrap.Modal.getOrCreateInstance(editModalEl) || new bootstrap.Modal(editModalEl);
+								// store desired values so we can enforce them after modal shown
+								var __desired_edit_department = data.department_id || null;
+								var __desired_edit_division = data.division_id || null;
+								var __desired_co_authors = Array.isArray(data.co_authors) ? data.co_authors : (data.co_authors ? [data.co_authors] : []);
+								var __desired_contributors = Array.isArray(data.contributors) ? data.contributors : (data.contributors ? [data.contributors] : []);
 								try {
 									// Count currently open modals to calculate stacking offset
 									var openModals = document.querySelectorAll('.modal.show').length;
@@ -601,6 +617,19 @@
 											// Re-apply modal z-index in case Bootstrap changed it
 											try { editModalEl.style.zIndex = (1050 + zOffset).toString(); } catch(_){}
 										} catch(_){}
+										// After modal shown, ensure division and co/contributor selections are applied
+										try {
+											// If department/division not yet set by earlier load callback, enforce now
+											if (__desired_edit_department) {
+												try { $('#edit_department').val(__desired_edit_department).trigger && $('#edit_department').trigger('change'); } catch(_){}
+											}
+											if (__desired_edit_division) {
+												try { $('#edit_division').val(__desired_edit_division).trigger && $('#edit_division').trigger('change'); } catch(_){}
+											}
+											// Set co-authors and contributors preview (call helpers again to be safe)
+											try { if (typeof window.setSelectedCoAuthorsEdit === 'function') window.setSelectedCoAuthorsEdit(__desired_co_authors); } catch(_){ }
+											try { if (typeof window.setSelectedContributorsEdit === 'function') window.setSelectedContributorsEdit(__desired_contributors); } catch(_){ }
+										} catch(_){ }
 										try { editModalEl.removeEventListener('shown.bs.modal', onShownAdjust); } catch(_){ }
 									};
 									editModalEl.addEventListener('shown.bs.modal', onShownAdjust);
