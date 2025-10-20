@@ -212,6 +212,8 @@ class TaskController extends Controller
             $priorityFilter = $request->input('priority');
             $dateFilter = $request->input('date');
             $search = $request->input('search');
+            // Accept explicit employee filter (employee id or name)
+            $employeeFilter = $request->input('employee') ?? $request->input('employee_id');
             $perPage = (int) $request->input('per_page', 7);
             $page = (int) $request->input('page', 1);
 
@@ -268,12 +270,44 @@ class TaskController extends Controller
                 });
             }
 
-            if ($search) {
-                $baseQuery->where(function ($q) use ($search) {
-                    $q->where('title', 'like', "%{$search}%")
-                        ->orWhereHas('project', function ($p) use ($search) {
-                            $p->where('title', 'like', "%{$search}%");
+            if ($search || $employeeFilter) {
+                $baseQuery->where(function ($q) use ($search, $employeeFilter) {
+                    // Search by task title and project title
+                    if ($search) {
+                        $q->where('title', 'like', "%{$search}%")
+                            ->orWhereHas('project', function ($p) use ($search) {
+                                $p->where('title', 'like', "%{$search}%");
+                            });
+
+                        // If search is numeric, allow direct match to employee_id
+                        if (is_numeric($search)) {
+                            $q->orWhereHas('assignments', function ($a) use ($search) {
+                                $a->where('employee_id', (int) $search);
+                            });
+                        }
+
+                        // Search by employee name across assignments
+                        $q->orWhereHas('assignments', function ($a) use ($search) {
+                            $a->whereHas('employee', function ($e) use ($search) {
+                                $e->where('name', 'like', "%{$search}%");
+                            });
                         });
+                    }
+
+                    // Explicit employee filter (id or name)
+                    if ($employeeFilter) {
+                        if (is_numeric($employeeFilter)) {
+                            $q->orWhereHas('assignments', function ($a) use ($employeeFilter) {
+                                $a->where('employee_id', (int) $employeeFilter);
+                            });
+                        } else {
+                            $q->orWhereHas('assignments', function ($a) use ($employeeFilter) {
+                                $a->whereHas('employee', function ($e) use ($employeeFilter) {
+                                    $e->where('name', 'like', "%{$employeeFilter}%");
+                                });
+                            });
+                        }
+                    }
                 });
             }
 
@@ -4008,26 +4042,31 @@ class TaskController extends Controller
                 // don't block acceptance if logging fails
             }
 
+            // Optionally add the accepting employee as a project contributor.
+            // Default: disabled. Set AUTO_ADD_PROJECT_CONTRIBUTOR_ON_TASK_ACCEPT=true in .env to enable.
             try {
-                if ($task->project_id) {
-                    $projectId = $task->project_id;
-                    $exists = ProjectAssignment::where('project_id', $projectId)
-                        ->where('employee_id', $user->employee->id)
-                        ->exists();
-                    if (!$exists) {
-                        ProjectAssignment::create([
-                            'project_id' => $projectId,
-                            'employee_id' => $user->employee->id,
-                            'role' => 'contributor',
-                            'is_receive' => true,
-                            'created_by' => $user->id ?? null,
-                            'updated_by' => $user->id ?? null,
-                            'created_at' => now(),
-                            'updated_at' => now(),
-                        ]);
+                if (env('AUTO_ADD_PROJECT_CONTRIBUTOR_ON_TASK_ACCEPT', false)) {
+                    if ($task->project_id) {
+                        $projectId = $task->project_id;
+                        $exists = ProjectAssignment::where('project_id', $projectId)
+                            ->where('employee_id', $user->employee->id)
+                            ->exists();
+                        if (!$exists) {
+                            ProjectAssignment::create([
+                                'project_id' => $projectId,
+                                'employee_id' => $user->employee->id,
+                                'role' => 'contributor',
+                                'is_receive' => true,
+                                'created_by' => $user->id ?? null,
+                                'updated_by' => $user->id ?? null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                        }
                     }
                 }
             } catch (\Throwable $_) {
+                // intentionally ignore failures when updating project assignments
             }
 
 

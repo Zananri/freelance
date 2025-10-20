@@ -33,7 +33,7 @@
             </button>
             <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" data-bs-toggle="tooltip"
                 data-bs-title="Job Tracking" data-bs-placement="top">
-                <span class="material-symbols-outlined">grid_view</span>
+                <span class="material-symbols-outlined">mist</span>
             </button>
             <button class="btn-add-project" data-bs-toggle="modal" data-bs-target="#addProjectModal">
                 Add <span class="visible-mobile">Project</span>

@@ -3635,6 +3635,8 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
   if (query) params.search = query
   try {
     if (currentTaskFilters && currentTaskFilters.project) params.project = currentTaskFilters.project
+        // Forward explicit employee filter (id or name) from UI filters
+        if (currentTaskFilters && currentTaskFilters.employee) params.employee = currentTaskFilters.employee
     if (!statusKey && !query && currentTaskFilters && currentTaskFilters.status) params.status = currentTaskFilters.status
   } catch (_) {}
   if (statusKey && loaderMap[statusKey]) $(loaderMap[statusKey]).removeClass("d-none")
@@ -3947,7 +3949,47 @@ function filterVisibleTasks(queryRaw) {
                 // project title is rendered in a small.text-muted near title
                 const project = (card.querySelector('small.text-muted')?.textContent || '').toLowerCase();
                 const desc = (card.querySelector('.task-description')?.textContent || '').toLowerCase();
-                const match = !q || title.includes(q) || project.includes(q) || desc.includes(q);
+                // Also include PIC and Executors names when filtering so employee searches are preserved.
+                // Executors are often rendered as <img> with alt/title attributes, so include those attributes
+                // in the searchable text in addition to any plain text nodes.
+                let picText = '';
+                try {
+                    const picContainer = card.querySelector('.pic-executor-container');
+                    if (picContainer) {
+                        picText = (picContainer.textContent || '').toLowerCase();
+                        picContainer.querySelectorAll('img').forEach(function(img){
+                            try {
+                                const a = img.alt || img.getAttribute('alt') || '';
+                                const t = img.title || img.getAttribute('title') || '';
+                                const bs = img.getAttribute('data-bs-original-title') || '';
+                                if (a) picText += ' ' + String(a).toLowerCase();
+                                if (t) picText += ' ' + String(t).toLowerCase();
+                                if (bs) picText += ' ' + String(bs).toLowerCase();
+                            } catch(_){}
+                        });
+                    }
+                } catch(_) { picText = '' }
+
+                let executorsText = '';
+                try {
+                    const execWrapper = card.querySelector('.executor-wrapper') || card.querySelector('.executor-list') || card.querySelector('.pic-executor-container');
+                    if (execWrapper) {
+                        executorsText = (execWrapper.textContent || '').toLowerCase();
+                        // include image alt/title inside executor wrapper too
+                        execWrapper.querySelectorAll('img').forEach(function(img){
+                            try {
+                                const a = img.alt || img.getAttribute('alt') || '';
+                                const t = img.title || img.getAttribute('title') || '';
+                                const bs = img.getAttribute('data-bs-original-title') || '';
+                                if (a) executorsText += ' ' + String(a).toLowerCase();
+                                if (t) executorsText += ' ' + String(t).toLowerCase();
+                                if (bs) executorsText += ' ' + String(bs).toLowerCase();
+                            } catch(_){}
+                        });
+                    }
+                } catch(_) { executorsText = '' }
+
+                const match = !q || title.includes(q) || project.includes(q) || desc.includes(q) || picText.includes(q) || executorsText.includes(q);
                 if (match) card.style.removeProperty('display');
                 else card.style.display = 'none';
             });
@@ -9896,10 +9938,12 @@ function filterTaskTableRows(queryRaw) {
 
     // Add reset filter button functionality
     const resetFilterBtn = document.getElementById('resetTaskFilterBtn');
-    resetFilterBtn.addEventListener('click', resetTaskFilters);
-
-    if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
-        applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
+    if (resetFilterBtn) {
+        resetFilterBtn.addEventListener('click', resetTaskFilters);
+        
+        if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
+            applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
+        }
     }
 
     let mobileState = {
