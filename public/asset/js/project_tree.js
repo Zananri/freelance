@@ -472,6 +472,167 @@
 			}
 		} catch(_) {}
 	});
+
+	// Provide a global editProject(projectId) so tree can reuse existing edit modal logic
+	window.editProject = function(projectId){
+		try {
+			if (!projectId) return;
+			var url = appUrl.replace(/\/$/, '') + '/project/' + encodeURIComponent(String(projectId)) + '/edit';
+			// show loader on modal if exists
+			var editModalEl = document.getElementById('editProjectModal');
+			var loader = editModalEl ? editModalEl.querySelector('#editModalLoader') : null;
+			try { if (loader) loader.classList.remove('d-none'); } catch(_){}
+
+			$.ajax({ url: url, type: 'GET', dataType: 'json' })
+				.done(function(resp){
+					var data = resp && resp.data ? resp.data : resp;
+					try {
+						// Basic fields
+						try { $('#edit_project_id').val(data.id); } catch(_){}
+						try { $('#edit_title').val(data.title || ''); } catch(_){}
+						try { $('#edit_description').val(data.description || ''); } catch(_){}
+						try { if (window.__quillEdit && window.__quillEdit.root) window.__quillEdit.root.innerHTML = data.description || ''; } catch(_){}
+
+						// Reference URLs (will be normalized by existing project.js helpers if present)
+						try {
+							var container = document.getElementById('edit_project_reference_urls_container');
+							if (container) {
+								container.innerHTML = '';
+								var urls = [];
+								if (Array.isArray(data.reference_urls)) urls = data.reference_urls.slice();
+								else if (typeof data.reference_urls === 'string') {
+									try { var parsed = JSON.parse(data.reference_urls); if (Array.isArray(parsed)) urls = parsed; } catch(_){}
+								}
+								if ((!urls || urls.length === 0) && data.reference_url) urls = [data.reference_url];
+								function makeRow(value, withAdd){
+									var row = document.createElement('div'); row.className = 'input-group';
+									row.innerHTML = '<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com">' + (withAdd ? ' <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>' : ' <button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>');
+									container.appendChild(row);
+									var inp = row.querySelector('input[type="url"]'); if (inp && value) inp.value = value;
+								}
+								if (urls && urls.length) { urls.forEach(function(u){ makeRow(u, false); }); makeRow('', true); } else { makeRow('', true); }
+							}
+						} catch(_){}
+
+						try { $('#edit_start_date').val(data.start_date || ''); } catch(_){}
+						try { $('#edit_due_date').val(data.due_date || ''); } catch(_){}
+
+						// Part of project select population helper (defined in project.js)
+						try {
+							var curId = data.id || $('#edit_project_id').val();
+							var curTitle = data.title || '';
+							populatePartOfProjectSelects && populatePartOfProjectSelects('edit', curId, curTitle, data.part_of_project);
+						} catch(_){}
+
+						// Department and division: try to use existing helpers if available
+						try {
+							if (typeof loadDepartments === 'function') {
+								loadDepartments(function(){
+									try { $('#edit_department').val(data.department_id).trigger && $('#edit_department').trigger('change'); } catch(_){}
+									try { loadDivisions && loadDivisions(data.department_id, function(){ $('#edit_division').val(data.division_id); $('#edit_division').trigger && $('#edit_division').trigger('change'); }, document.getElementById('edit_division')); } catch(_){}
+								}, document.getElementById('edit_department'));
+							} else {
+								try { $('#edit_department').val(data.department_id); $('#edit_division').val(data.division_id); } catch(_){}
+							}
+						} catch(_){}
+
+						// Image preview
+						try {
+							if (data.image) {
+								$('#editImageLabel').css('background-image', 'url(' + appUrl + '/file/project/' + data.image + ')');
+								$('#editImageLabel').addClass('has-image').css('background-size','cover').css('opacity','1');
+								$('#editImageClearBtn').removeClass('d-none');
+							} else {
+								$('#editImageLabel').css('background-image', "url('"+ appUrl +"/asset/img/background/add-image.png')");
+								$('#editImageLabel').removeClass('has-image').css('opacity','0.5');
+								$('#editImageClearBtn').addClass('d-none');
+							}
+						} catch(_){}
+
+						// Existing reference files handling (keep JSON in hidden input)
+						try {
+							var existingFiles = Array.isArray(data.reference_files) ? data.reference_files.slice() : (Array.isArray(data.reference_file) ? data.reference_file.slice() : (data.reference_file ? [data.reference_file] : []));
+							var existingInput = document.getElementById('existing_reference_files_input');
+							if (!existingInput) {
+								existingInput = document.createElement('input'); existingInput.type='hidden'; existingInput.id='existing_reference_files_input'; existingInput.name='existing_reference_files'; document.getElementById('editProjectForm').appendChild(existingInput);
+							}
+							existingInput.value = JSON.stringify(existingFiles || []);
+
+							var existingContainer = document.getElementById('existing_reference_files');
+							if (existingContainer) {
+								existingContainer.innerHTML = '';
+								if (existingFiles && existingFiles.length) {
+									var fileList = document.createElement('div'); fileList.className = 'selected-files-list mt-2 existing-files-list w-100';
+									existingFiles.forEach(function(fn){
+										var fileItem = document.createElement('div'); fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+										var isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(String(fn||''));
+										if (isImage) { var img = document.createElement('img'); img.src = appUrl + '/file/project/' + fn; img.width=28; img.height=28; img.style.objectFit='cover'; img.style.borderRadius='50%'; fileItem.appendChild(img); }
+										var link = document.createElement('a'); link.href = appUrl + '/file/project/' + fn; link.target='_blank'; link.className='flex-grow-1 text-truncate'; link.textContent = fn; fileItem.appendChild(link);
+										var removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight='1'; removeBtn.innerHTML='<span class="material-symbols-outlined">close</span>';
+										removeBtn.addEventListener('click', function(){ try { existingFiles = existingFiles.filter(function(x){ return x !== fn; }); existingInput.value = JSON.stringify(existingFiles); fileItem.remove(); } catch(_){} });
+										fileItem.appendChild(removeBtn);
+										fileList.appendChild(fileItem);
+									});
+									existingContainer.appendChild(fileList);
+								}
+							}
+						} catch(_){}
+
+						// Finally show modal (ensure it stacks above Project Tree modal/backdrops)
+						try {
+							if (editModalEl) {
+								var modalInstance = bootstrap.Modal.getOrCreateInstance(editModalEl) || new bootstrap.Modal(editModalEl);
+								try {
+									// Count currently open modals to calculate stacking offset
+									var openModals = document.querySelectorAll('.modal.show').length;
+									var zOffset = (openModals || 0) * 20; // 20px per stacked modal step
+
+									// Pre-set modal z-index so it will appear above existing ones
+									try { editModalEl.style.zIndex = (1050 + zOffset).toString(); } catch(_){}
+
+									// When shown, adjust the most-recent backdrop z-index to sit behind this modal
+									var onShownAdjust = function() {
+										try {
+											var backdrops = document.querySelectorAll('.modal-backdrop');
+											if (backdrops && backdrops.length) {
+												var lastBackdrop = backdrops[backdrops.length - 1];
+												if (lastBackdrop) lastBackdrop.style.zIndex = (1040 + zOffset).toString();
+											}
+											// Re-apply modal z-index in case Bootstrap changed it
+											try { editModalEl.style.zIndex = (1050 + zOffset).toString(); } catch(_){}
+										} catch(_){}
+										try { editModalEl.removeEventListener('shown.bs.modal', onShownAdjust); } catch(_){ }
+									};
+									editModalEl.addEventListener('shown.bs.modal', onShownAdjust);
+								} catch(_){}
+
+								modalInstance.show();
+
+								// Remove extra backdrops so the newest modal's backdrop is on top of older ones
+								try {
+									setTimeout(function(){
+										var backdrops = document.querySelectorAll('.modal-backdrop');
+										if (backdrops && backdrops.length > 1) {
+											// Keep only the last backdrop (the top-most), remove others to avoid overlaying issues
+											for (var i = 0; i < backdrops.length - 1; i++) {
+												try { backdrops[i].parentNode && backdrops[i].parentNode.removeChild(backdrops[i]); } catch(_){ }
+											}
+										}
+									}, 50);
+								} catch(_){}
+							} else {
+								// fallback: navigate to edit page
+								window.location.href = appUrl + '/project/' + encodeURIComponent(String(projectId)) + '/edit';
+							}
+						} catch(_){ }
+					} catch(e){ console.error('Failed to populate edit modal', e); }
+				})
+				.fail(function(xhr){
+					try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Gagal memuat data project untuk diedit', 'warning', 3000); else alert('Gagal memuat data project untuk diedit'); } catch(_){}
+				})
+				.always(function(){ try { if (loader) loader.classList.add('d-none'); } catch(_){} });
+		} catch(_){}
+	};
 	
 	// Delete Project action
 	$(document).on('click', '#project-global-more-menu .delete-project-action', function(e){
