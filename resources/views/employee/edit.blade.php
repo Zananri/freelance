@@ -48,7 +48,7 @@
                 <div class="px-3 py-3" style="">
                     <div class="row">
                         <!-- Left Section -->
-                        <div class="col-md-4 d-flex flex-column gap-3">
+                        <div class="col-md-4">
                             <div class="custom-form-employee">
                                 <label for="employee_name" class="form-label">Employee Name</label>
                                 <input type="text" id="employee_name" name="employee_name"
@@ -108,7 +108,7 @@
                         </div>
 
                         <!-- Middle Section -->
-                        <div class="col-md-4 d-flex flex-column gap-3">
+                        <div class="col-md-4">
 
                             <div class="custom-form-employee">
                                 <label for="hire_date" class="form-label">Join Date</label>
@@ -238,6 +238,61 @@
 
                         <!-- Right Section -->
                         <div class="col-md-3">
+                            <div class="custom-form-employee" style="margin-bottom: 40px;">
+                                @php
+                                    $thp = $employee->basic_salary + $employee->positional_allowance + $employee->transportation_allowance+ $employee->meal_allowance + $employee->internet_phone_allowance;                               
+                                @endphp
+                                <div class="form-label">Take Home Pay THP</div>
+                                <div class="fs-14 text-thp">{{$thp}}</div>
+
+                                <input type="text" value="{{ $thp }}" name="hid_thp" class="d-none" >
+                            </div>
+
+                            <div class="custom-form-employee mb-3">
+                                <label for="basic_salary" class="form-label">Basic Salary</label>
+                                <input type="text" id="basic_salary" class="form-control input-text" value="{{ $employee->basic_salary }}" required />
+                                <input type="number" name="basic_salary" class="d-none" value="{{ $employee->basic_salary }}" required />
+                                <div class="invalid-feedback">
+                                    Please enter the basic salary.
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee mb-3">
+                                <label for="positional_allowance" class="form-label">Positional allowance</label>
+                                <input type="text" id="positional_allowance" class="form-control input-text" value="{{ $employee->positional_allowance }}" required />
+                                <input type="number" name="positional_allowance" class="d-none" value="{{ $employee->positional_allowance }}" required />
+                                <div class="invalid-feedback">
+                                    Please enter the Positional allowance
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee mb-3"> 
+                                <label for="transportation_allowance" class="form-label">Transportation allowance</label>
+                                <input type="text" id="transportation_allowance" class="form-control input-text" value="{{ $employee->transportation_allowance }}" required />
+                                <input type="number" name="transportation_allowance" class="d-none" value="{{ $employee->transportation_allowance }}" required />
+                                <div class="invalid-feedback">
+                                    Please enter the Transportation allowance
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee mb-3">
+                                <label for="meal_allowance" class="form-label">Meal allowance</label>
+                                <input type="text" id="meal_allowance" class="form-control input-text" value="{{ $employee->meal_allowance }}" required />
+                                <input type="number" name="meal_allowance" class="d-none" value="{{ $employee->meal_allowance }}" required />
+                                <div class="invalid-feedback">
+                                    Please enter the Meal allowance
+                                </div>
+                            </div>
+
+                            <div class="custom-form-employee mb-5">
+                                <label for="internet_phone_allowance" class="form-label">Internet phone allowance</label>
+                                <input type="text" id="internet_phone_allowance" class="form-control input-text" value="{{ $employee->internet_phone_allowance }}" required />
+                                <input type="number" name="internet_phone_allowance" class="d-none" value="{{ $employee->internet_phone_allowance }}" required />
+                                <div class="invalid-feedback">
+                                    Please enter the Internet phone allowance
+                                </div>
+                            </div>
+
                             <div class="mb-3">
                                 <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
                                     <span>Upload Photo</span>
@@ -295,6 +350,7 @@
 
 
     <x-slot name="script_slot">
+        <script src="{{ asset('asset/js/jquery.mask.min.js') }}"></script>
         <script src="{{ asset('asset/js/edit-employee.js') }}?v={{ time() }}"></script>
     </x-slot>
 </x-office-layout>

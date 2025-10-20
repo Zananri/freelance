@@ -482,3 +482,47 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Date picker removed for employee create; shift selection is used instead
 });
+
+$('#basic_salary,#positional_allowance,#transportation_allowance,#meal_allowance,#internet_phone_allowance').mask('000.000.000', {reverse: true});
+
+$('[name="hid_thp"]').mask('000.000.000', {reverse: true});
+
+$('.text-thp').html($('[name="hid_thp"]').val());
+
+$('#basic_salary').on('keyup',function(){
+    $('[name="basic_salary"]').val($('#basic_salary').cleanVal());
+});
+
+$('#positional_allowance').on('keyup',function(){
+    $('[name="positional_allowance"]').val($('#positional_allowance').cleanVal());
+});
+
+$('#transportation_allowance').on('keyup',function(){
+    $('[name="transportation_allowance"]').val($('#transportation_allowance').cleanVal());
+});
+
+$('#meal_allowance').on('keyup',function(){
+    $('[name="meal_allowance"]').val($('#meal_allowance').cleanVal());
+});
+
+$('#internet_phone_allowance').on('keyup',function(){
+    $('[name="internet_phone_allowance"]').val($('#internet_phone_allowance').cleanVal());
+});
+
+
+$('#basic_salary,#positional_allowance,#transportation_allowance,#meal_allowance,#internet_phone_allowance').on('keyup',function(){
+    setTHP();
+});
+
+function setTHP(){
+    let basicSalary = $('[name="basic_salary"]').val();
+    let positionalAllowance = $('[name="positional_allowance"]').val();
+    let transportationAllowance = $('[name="transportation_allowance"]').val();
+    let mealAllowance = $('[name="meal_allowance"]').val();
+    let internetPhoneAllowance = $('[name="internet_phone_allowance"]').val();
+    let thp = parseInt(basicSalary) + parseInt(positionalAllowance) + parseInt(transportationAllowance) + parseInt(mealAllowance) + parseInt(internetPhoneAllowance);
+    
+    $('[name="hid_thp"]').val(thp).unmask().mask('000.000.000', {reverse: true});
+
+    $('.text-thp').html($('[name="hid_thp"]').val());
+}
