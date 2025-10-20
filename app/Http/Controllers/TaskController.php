@@ -3499,21 +3499,20 @@ class TaskController extends Controller
     public function getTasksByProject($projectId)
     {
         try {
-            // For project detail, show all tasks in the project (assuming user has access to view the project)
             $tasks = Task::with([
                 'assignments.employee.user',
                 'project',
                 'parent'
             ])
                 ->where('project_id', $projectId)
-                ->whereRaw('LOWER(status) <> ?', ['canceled'])
+                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
-                // Ambil PIC
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $picData = null;
+
                 if ($pic && $pic->employee) {
                     $picData = [
                         'id' => $pic->employee->id,
@@ -3533,11 +3532,11 @@ class TaskController extends Controller
                     ];
                 })->values();
 
-                $payload = [
+                return [
                     'id' => $task->id,
                     'title' => $task->title,
                     'parent_id' => $task->parent_id ?? null,
-                    'parent_ids' => (function() use ($task) {
+                    'parent_ids' => (function () use ($task) {
                         $arr = [];
                         try {
                             if (is_array($task->parent_ids)) $arr = $task->parent_ids;
@@ -3560,7 +3559,6 @@ class TaskController extends Controller
                     'project_image' => $task->project ? $task->project->image : null,
                     'children' => [],
                 ];
-                return $payload;
             })->values();
 
             return response()->json([
