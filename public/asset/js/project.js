@@ -7927,51 +7927,35 @@ document.addEventListener("DOMContentLoaded", function () {
             type: "GET",
             dataType: "json",
             success: function (data) {
-                let options =
-                    '<option value="" disabled selected>Select Department</option>';
+                let options = '<option value="" disabled selected>Select Department</option>';
                 (data.data || []).forEach((dept) => {
-                    options += `<option value="${dept.id}">${
-                        dept.name_department || dept.name
-                    }</option>`;
+                    options += `<option value="${dept.id}">${dept.name_department || dept.name}</option>`;
                 });
                 targetSelect.innerHTML = options;
                 if (typeof callback === "function") callback();
             },
             error: function () {
-                showFloatingAlert(
-                    "Failed to load departments.",
-                    "warning",
-                    3500
-                );
+                showFloatingAlert("Failed to load departments.", "warning", 3500);
                 if (typeof callback === "function") callback();
             },
         });
     }
 
-    // Load divisions based on selected department
-    function loadDivisions(
-        departmentId,
-        callback,
-        targetSelect = divisionSelect
-    ) {
-        targetSelect.innerHTML =
-            '<option value="" disabled selected>Loading...</option>';
+    function loadDivisions(departmentId, callback, targetSelect = divisionSelect) {
+        targetSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
         $.ajax({
             url: appUrl + "/divisions-for-projects",
             type: "GET",
             data: { department_id: departmentId },
             dataType: "json",
             success: function (data) {
-                let options =
-                    '<option value="" disabled selected>Select Division</option>';
+                let options = '<option value="" disabled selected>Select Division</option>';
                 (data.data || []).forEach((div) => {
-                    options += `<option value="${div.id}">${
-                        div.name_division || div.name
-                    }</option>`;
+                    options += `<option value="${div.id}">${div.name_division || div.name}</option>`;
                 });
                 targetSelect.innerHTML = options;
-                targetSelect.disabled = false; // Ensure select is enabled
-                targetSelect.style.display = "block"; // Ensure visible
+                targetSelect.disabled = false;
+                targetSelect.style.display = "block";
                 if (typeof callback === "function") callback();
             },
             error: function () {
@@ -7980,6 +7964,9 @@ document.addEventListener("DOMContentLoaded", function () {
             },
         });
     }
+
+    window.loadDepartments = loadDepartments;
+    window.loadDivisions = loadDivisions;
 
     function loadCardProjects(page = 1) {
         $.ajax({

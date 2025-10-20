@@ -6,6 +6,7 @@
 	var isInitialized = false;
 	var currentProjectId = null;
 	var $globalMenu = null;
+    const userDeptId = $('select#edit_department option:selected').val();
 
 	function normalizeStatus(v){
 		var s = String(v||'').toLowerCase();
@@ -63,7 +64,7 @@
 				$handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
 				$card.append($handle);
 			}
-			
+
 			// Add three-dot menu button (circular, half outside top-right corner) - smaller
 			if ($card.find('.more-menu-btn').length === 0) {
 				const $moreBtn = $('<div class="more-menu-btn d-none" title="More options"\
@@ -72,22 +73,22 @@
 					<circle cx="2" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="14" cy="8" r="1.2"/>\
 					</svg></div>');
 				$moreBtn.attr('draggable', false);
-				$moreBtn.on('click', function(e){ 
-					try { 
-						e.stopPropagation(); 
+				$moreBtn.on('click', function(e){
+					try {
+						e.stopPropagation();
 						e.preventDefault();
 						showMenu(e, p.id);
-					} catch(_){} 
+					} catch(_){}
 				});
 				$card.append($moreBtn);
 			}
 
 			$card.hover(
-				function () { 
-					$(this).find('.plumb-handle, .more-menu-btn').removeClass('d-none'); 
+				function () {
+					$(this).find('.plumb-handle, .more-menu-btn').removeClass('d-none');
 				},
-				function () { 
-					$(this).find('.plumb-handle, .more-menu-btn').addClass('d-none'); 
+				function () {
+					$(this).find('.plumb-handle, .more-menu-btn').addClass('d-none');
 				}
 			);
 		} catch(_) {}
@@ -97,7 +98,7 @@
 		var due = formatDateENMediumDayMonth(p.due_date);
 		var dateTxt = start && due ? (start+' - '+due) : (start||due||'');
 		$tpl.find('.task-date').text(dateTxt);
-		
+
 		// Apply colors immediately based on visual_status from server
 		var visual = normalizeStatus(p.visual_status||p.status);
 		if (visual==='complete') $card.css('background-color', '#B2EECD');
@@ -143,7 +144,7 @@
 				try { if (typeof showFloatingAlert==='function') showFloatingAlert('Gagal memuat project tree','warning',3000); } catch(_){ }
 			});
 	}
-	
+
 	// Expose fetchTree globally
 	window.fetchProjectTree = fetchTree;
 
@@ -153,7 +154,7 @@
 		try {
 			hideMenu();
 			currentProjectId = projectId;
-			
+
 			if (!$globalMenu || !$globalMenu.length) {
 				$globalMenu = $('<div id="project-global-more-menu" class="d-none" style="position:fixed;min-width:160px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;overflow:hidden;pointer-events:auto;">' +
 					'<button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button>' +
@@ -162,18 +163,18 @@
 				'</div>');
 				$('body').append($globalMenu);
 			}
-			
+
 			var x = e.clientX || (e.originalEvent && e.originalEvent.clientX) || 0;
 			var y = e.clientY || (e.originalEvent && e.originalEvent.clientY) || 0;
-			
+
 			$globalMenu.css({ left: x + 'px', top: y + 'px' }).removeClass('d-none');
-			
+
 			setTimeout(function() {
 				$(document).one('click', hideMenu);
 			}, 50);
 		} catch(_) {}
 	}
-	
+
 	function hideMenu() {
 		try {
 			if ($globalMenu && $globalMenu.length) {
@@ -182,7 +183,7 @@
 			currentProjectId = null;
 		} catch(_) {}
 	}
-	
+
 	// Expose a global deleteProject(projectId) used by tree menu to delete a project
 	window.deleteProject = function(projectId){
 		try {
@@ -425,7 +426,7 @@
 			var projectId = currentProjectId;
 			if (!projectId) return;
 			hideMenu();
-			
+
 			// Clear all parents: set parent_ids to empty array
 			$.ajax({
 				url: appUrl + '/project/' + encodeURIComponent(String(projectId)) + '/parents',
@@ -458,7 +459,7 @@
 			});
 		} catch(_){}
 	});
-	
+
 	// Edit Project action
 	$(document).on('click', '#project-global-more-menu .edit-project-action', function(e){
 		try {
@@ -524,17 +525,31 @@
 							populatePartOfProjectSelects && populatePartOfProjectSelects('edit', curId, curTitle, data.part_of_project);
 						} catch(_){}
 
-						// Department and division: try to use existing helpers if available
-						try {
-							if (typeof loadDepartments === 'function') {
-								loadDepartments(function(){
-									try { $('#edit_department').val(data.department_id).trigger && $('#edit_department').trigger('change'); } catch(_){}
-									try { loadDivisions && loadDivisions(data.department_id, function(){ $('#edit_division').val(data.division_id); $('#edit_division').trigger && $('#edit_division').trigger('change'); }, document.getElementById('edit_division')); } catch(_){}
-								}, document.getElementById('edit_department'));
-							} else {
-								try { $('#edit_department').val(data.department_id); $('#edit_division').val(data.division_id); } catch(_){}
-							}
-						} catch(_){}
+                        try {
+                            const deptEl = document.getElementById("edit_department");
+                            const divEl = document.getElementById("edit_division");
+
+                            // Ambil department dari user login (sudah auto-inject di Blade)
+                            const fixedDeptId = $(deptEl).val();
+
+                            if (typeof window.loadDivisions === "function" && fixedDeptId) {
+                                divEl.innerHTML = '<option value="" disabled selected>Loading...</option>';
+                                divEl.disabled = true;
+
+                                // Load division berdasarkan department user login
+                                window.loadDivisions(fixedDeptId, function () {
+                                    try {
+                                        if (data.division_id) {
+                                            $(divEl).val(data.division_id).trigger("change");
+                                        }
+                                    } catch (e) {
+                                        console.error("Error applying division_id:", e);
+                                    }
+                                }, divEl);
+                            }
+                        } catch (e) {
+                            console.error("Error loading division:", e);
+                        }
 
 						// Image preview
 						try {
@@ -657,12 +672,12 @@
 					} catch(e){ console.error('Failed to populate edit modal', e); }
 				})
 				.fail(function(xhr){
-					try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Gagal memuat data project untuk diedit', 'warning', 3000); else alert('Gagal memuat data project untuk diedit'); } catch(_){}
+					try { if (typeof showFloatingAlert === 'function') showFloatingAlert('You are enabled to edit this project', 'warning', 3000); else alert('Unexpected error while opening edit modal'); } catch(_){}
 				})
 				.always(function(){ try { if (loader) loader.classList.add('d-none'); } catch(_){} });
 		} catch(_){}
 	};
-	
+
 	// Delete Project action
 	$(document).on('click', '#project-global-more-menu .delete-project-action', function(e){
 		try {
@@ -738,9 +753,9 @@
 			try { if (e.originalEvent && e.originalEvent.dataTransfer) dragData = e.originalEvent.dataTransfer.getData('text/plain'); } catch(_){}
 			var draggedId = dragData || window.__dragProjectId;
 			if (!draggedId) return;
-			$.ajax({ 
-				url: appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents', 
-				type:'DELETE', 
+			$.ajax({
+				url: appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents',
+				type:'DELETE',
 				dataType:'json',
 				headers: {
 					'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
@@ -769,10 +784,10 @@
 			if (!draggedId || !targetId) return;
 			if (String(draggedId)===String(targetId) || isDescendant(draggedId, targetId)) return;
 			var url = appUrl + '/project/' + encodeURIComponent(String(draggedId)) + '/parents';
-			$.ajax({ 
-				url: url, 
-				type:'POST', 
-				dataType:'json', 
+			$.ajax({
+				url: url,
+				type:'POST',
+				dataType:'json',
 				data: { parent_id: String(targetId) },
 				headers: {
 					'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
@@ -796,7 +811,7 @@
 	function initializeProjectTree(){
 		if (isInitialized) return;
 		isInitialized = true;
-		
+
 		// Bind modal event handler
 		$(document).on('shown.bs.modal', '#projectTreeModal', function(){
 			fetchTree();
@@ -804,14 +819,14 @@
 				try { $('[data-bs-toggle="tooltip"]').tooltip(); } catch(_){}
 			}, 200);
 		});
-		
+
 		// Initialize drag and drop
 		bindDnD();
 	}
 
 	// Initialize when DOM is ready
-	$(document).ready(function(){ 
-		initializeProjectTree(); 
+	$(document).ready(function(){
+		initializeProjectTree();
 	});
 })();
 
