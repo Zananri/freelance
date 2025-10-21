@@ -16,6 +16,7 @@ use App\Models\EmployeeLeaveRequest;
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
 use App\Helpers\DeviceHelper;
+use App\Helpers\ActivityHelper;
 use Illuminate\Http\Request;
 
 class AttendanceController extends Controller
@@ -198,9 +199,21 @@ class AttendanceController extends Controller
 
 
         
+        try {
+            ActivityHelper::record([
+                'employee_id' => $employee?->id,
+                'menu' => 'ATTENDANCE',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($employee?->name ?? 'Unknown') . ' View page attendance',
+            ]);
+        } catch (\Throwable $_) {}
+
         return view('attendance.attendance', compact('employee','employeeLeave','overtimeTotalDays','overtimeTotalHours','office', 'timeStart','timeEnd', 'attendance','employeeShift','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
     
     }
+
+    // Record page view activity for attendance page (safe, non-blocking)
+    // We add call near return points; above is main return.
 
     public function getAttendanceEmployeeByMonth(Request $request){
 
@@ -457,6 +470,16 @@ class AttendanceController extends Controller
             ]);
 
             DB::commit();
+
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employee?->id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'CHECK_IN',
+                    'description' => ($employee?->name ?? 'Unknown') . ' performed check in',
+                    'date_time_activity' => $now,
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -722,6 +745,16 @@ class AttendanceController extends Controller
 
 
             DB::commit();
+
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employee?->id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'CHECK_OUT',
+                    'description' => ($employee?->name ?? 'Unknown') . ' performed check out',
+                    'date_time_activity' => $now,
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,

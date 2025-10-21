@@ -10,6 +10,7 @@ use App\Models\Attendance;
 use Carbon\Carbon;
 use App\Models\Employee;
 use Log;
+use App\Helpers\ActivityHelper;
 
 class ProfileController extends Controller
 {
@@ -29,6 +30,15 @@ class ProfileController extends Controller
     {
         $user = auth()->user();
         $employee = Employee::with('division', 'department', 'job','grade')->where('user_id', $user->id)->first();
+
+        try {
+            ActivityHelper::record([
+                'employee_id' => $employee?->id,
+                'menu' => 'PROFILE',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($employee?->name ?? 'Unknown') . ' View page profile',
+            ]);
+        } catch (\Throwable $_) {}
 
         return view('profile.profile', [
             'id' => $user->id,

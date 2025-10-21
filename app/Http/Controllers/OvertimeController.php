@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Employee;
 use App\Models\EmployeeOvertime;
+use App\Helpers\ActivityHelper;
 
 class OvertimeController extends Controller
 {
@@ -176,6 +177,16 @@ class OvertimeController extends Controller
 
             DB::commit();
 
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employeeOvertime?->employee_id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'OVERTIME_APPROVE',
+                    'description' => 'Overtime request approved by user_id ' . $userId,
+                    'date_time_activity' => Carbon::now(),
+                ]);
+            } catch (\Throwable $_) {}
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
@@ -233,6 +244,16 @@ class OvertimeController extends Controller
             $employeeOvertime->save();
 
             DB::commit();
+
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employeeOvertime?->employee_id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'OVERTIME_REJECT',
+                    'description' => 'Overtime request rejected by user_id ' . $userId,
+                    'date_time_activity' => Carbon::now(),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,

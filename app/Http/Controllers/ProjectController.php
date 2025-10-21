@@ -24,6 +24,7 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use Carbon\Carbon;
+use App\Helpers\ActivityHelper;
 
 class ProjectController extends Controller
 {
@@ -300,6 +301,17 @@ class ProjectController extends Controller
      */
     public function showProjectPage()
     {
+        try {
+            $user = auth()->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            ActivityHelper::record([
+                'employee_id' => $employeeId,
+                'menu' => 'PROJECT',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($user?->employee?->name ?? 'Unknown') . ' View page project',
+            ]);
+        } catch (\Throwable $_) {}
+
         return view('project/project');
     }
 
