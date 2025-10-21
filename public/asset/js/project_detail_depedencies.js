@@ -10,7 +10,9 @@ function renderChildGroups(task, $container, $template) {
         const child = task.children[i];
         const $child = renderTaskNode(child, $template);
         const $wrap = $('<div class="task-item"></div>');
-        try { $wrap.css({ overflow: 'visible', position: 'relative' }); } catch(_) {}
+        try {
+            $wrap.css({ overflow: "visible", position: "relative" });
+        } catch (_) {}
         // Old connector stub removed in jsPlumb-only mode
         $wrap.append($child);
         $container.append($wrap);
@@ -127,41 +129,82 @@ function renderTaskNode(task, $template) {
     } catch (_) {}
 
     try {
-    $card.css("position", function(i, v){ return v || "relative"; });
-    // Ensure the overflow is visible so half-outside controls remain clickable
-    try { if (!$card.css('overflow') || $card.css('overflow') === 'hidden') { $card.css('overflow', 'visible'); } } catch(_){ }
-    try { if ($card.css('z-index') == null || $card.css('z-index') === 'auto') { $card.css('z-index', 10); } } catch(_){}
-        if ($card.find('.plumb-handle').length === 0) {
-            const $handle = $('<div class="plumb-handle d-none" title="Drag a line to add a parent"\
-                style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>');
-            $handle.attr('draggable', false);
-            $handle.on('pointerdown mousedown touchstart', function(){
-                try { $card.attr('draggable', false); } catch(_){ }
+        $card.css("position", function (i, v) {
+            return v || "relative";
+        });
+        // Ensure the overflow is visible so half-outside controls remain clickable
+        try {
+            if (!$card.css("overflow") || $card.css("overflow") === "hidden") {
+                $card.css("overflow", "visible");
+            }
+        } catch (_) {}
+        try {
+            if (
+                $card.css("z-index") == null ||
+                $card.css("z-index") === "auto"
+            ) {
+                $card.css("z-index", 10);
+            }
+        } catch (_) {}
+        if ($card.find(".plumb-handle").length === 0) {
+            const $handle = $(
+                '<div class="plumb-handle d-none" title="Drag a line to add a parent"\
+                style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>'
+            );
+            $handle.attr("draggable", false);
+            $handle.on("pointerdown mousedown touchstart", function () {
+                try {
+                    $card.attr("draggable", false);
+                } catch (_) {}
             });
-            $handle.on('pointerup mouseup touchend touchcancel', function(){
-                try { $card.attr('draggable', true); } catch(_){ }
+            $handle.on("pointerup mouseup touchend touchcancel", function () {
+                try {
+                    $card.attr("draggable", true);
+                } catch (_) {}
             });
-            $handle.on('click', function(e){ try { e.stopPropagation(); e.preventDefault(); } catch(_){} });
+            $handle.on("click", function (e) {
+                try {
+                    e.stopPropagation();
+                    e.preventDefault();
+                } catch (_) {}
+            });
             $card.append($handle);
         }
 
         // Add three-dots menu button (menu will be portaled to body)
-        if ($card.find('.task-more-btn').length === 0) {
+        if ($card.find(".task-more-btn").length === 0) {
             // Determine current logged-in employee id from known DOM locations
             let currentEmployeeId = null;
             try {
-                const empInput = document.querySelector('input[name="employee_id"]') || document.querySelector('#currentEmployee') || document.querySelector('[data-employee-id]');
+                const empInput =
+                    document.querySelector('input[name="employee_id"]') ||
+                    document.querySelector("#currentEmployee") ||
+                    document.querySelector("[data-employee-id]");
                 if (empInput) {
-                    currentEmployeeId = empInput.value || empInput.getAttribute('data-employee-id') || (empInput.dataset && empInput.dataset.employeeId) || null;
+                    currentEmployeeId =
+                        empInput.value ||
+                        empInput.getAttribute("data-employee-id") ||
+                        (empInput.dataset && empInput.dataset.employeeId) ||
+                        null;
                 }
-            } catch(_) {}
+            } catch (_) {}
 
             // Decide whether to show menu: if we can detect currentEmployeeId, only show when it's equal to task.pic.id
             let showMenu = true;
             try {
-                if (currentEmployeeId !== null && currentEmployeeId !== undefined && String(currentEmployeeId).trim() !== '') {
-                    if (task && task.pic && (task.pic.id !== null && task.pic.id !== undefined)) {
-                        showMenu = String(currentEmployeeId) === String(task.pic.id);
+                if (
+                    currentEmployeeId !== null &&
+                    currentEmployeeId !== undefined &&
+                    String(currentEmployeeId).trim() !== ""
+                ) {
+                    if (
+                        task &&
+                        task.pic &&
+                        task.pic.id !== null &&
+                        task.pic.id !== undefined
+                    ) {
+                        showMenu =
+                            String(currentEmployeeId) === String(task.pic.id);
                     } else {
                         // If task has no PIC, do not show the menu when we know the current employee
                         showMenu = false;
@@ -170,31 +213,46 @@ function renderTaskNode(task, $template) {
                     // If we couldn't detect current employee id, fall back to original behavior (show menu)
                     showMenu = true;
                 }
-            } catch(_) { showMenu = true; }
+            } catch (_) {
+                showMenu = true;
+            }
 
             if (showMenu) {
                 const taskId = task && task.id ? String(task.id) : null;
-                const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
-                if (taskId) $moreBtn.attr('data-task-id', taskId);
+                const $moreBtn = $(
+                    '<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>'
+                );
+                if (taskId) $moreBtn.attr("data-task-id", taskId);
                 $card.append($moreBtn);
 
                 // Always show on mobile devices (no hover)
                 try {
                     var isMobile =
-                        window.matchMedia && window.matchMedia('(max-width: 1024px)').matches ||
+                        (window.matchMedia &&
+                            window.matchMedia("(max-width: 1024px)").matches) ||
                         window.innerWidth <= 1024 ||
-                        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                    if (isMobile) $moreBtn.removeClass('d-none');
-                } catch(_){ }
+                        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+                            navigator.userAgent
+                        );
+                    if (isMobile) $moreBtn.removeClass("d-none");
+                } catch (_) {}
             }
         }
 
         // Show both handle and menu button on hover
         $card.hover(
-            function () { $(this).find('.plumb-handle, .task-more-btn').removeClass('d-none'); },
-            function () { $(this).find('.plumb-handle, .task-more-btn').addClass('d-none'); /* don't auto-hide menu here */ }
+            function () {
+                $(this)
+                    .find(".plumb-handle, .task-more-btn")
+                    .removeClass("d-none");
+            },
+            function () {
+                $(this)
+                    .find(".plumb-handle, .task-more-btn")
+                    .addClass("d-none"); /* don't auto-hide menu here */
+            }
         );
-    } catch(_) {}
+    } catch (_) {}
 
     if (visual === "complete") $card.css("background-color", "#B2EECD");
     else if (visual === "in-progress") $card.css("background-color", "#F5EFCE");
@@ -232,12 +290,21 @@ function renderTaskNode(task, $template) {
 function renderTaskList(data) {
     const $tree = $("#task-tree");
     $tree.empty();
-    try { $tree.css({ overflow: 'visible', position: function(i,v){ return v || 'relative'; } }); } catch(_){}
+    try {
+        $tree.css({
+            overflow: "visible",
+            position: function (i, v) {
+                return v || "relative";
+            },
+        });
+    } catch (_) {}
     if (!data || data.length === 0) return;
 
     const treeData = buildTaskTree(data);
     const $rootCol = $('<div class="root-column"></div>');
-    try { $rootCol.css({ overflow: 'visible', position: 'relative' }); } catch(_){}
+    try {
+        $rootCol.css({ overflow: "visible", position: "relative" });
+    } catch (_) {}
     $tree.append($rootCol);
     treeData.forEach((root) => {
         $rootCol.append(renderTaskNode(root, $("#task-template")));
@@ -247,7 +314,11 @@ function renderTaskList(data) {
         setTimeout(adjustConnectors, 40);
         setTimeout(drawSvgConnectors, 60);
     }
-    try { if (typeof window.initTaskPlumb === 'function') { window.initTaskPlumb(allTasks || data || []); } } catch(_) {}
+    try {
+        if (typeof window.initTaskPlumb === "function") {
+            window.initTaskPlumb(allTasks || data || []);
+        }
+    } catch (_) {}
 }
 
 function adjustConnectors() {
@@ -560,7 +631,7 @@ if (projectId) getTaskByProject(projectId);
         })();
         if (typeof window.ResizeObserver !== "undefined") {
             var ro = new ResizeObserver(function () {
-                    if (!window.USE_PLUMB_ONLY) scheduleRecalc();
+                if (!window.USE_PLUMB_ONLY) scheduleRecalc();
             });
             ro.observe($tree[0]);
             var $parent = $tree.closest(".structure-detail-content");
@@ -583,7 +654,7 @@ if (projectId) getTaskByProject(projectId);
                         lastW = w;
                         lastH = h;
                         lastPW = pW;
-                            if (!window.USE_PLUMB_ONLY) scheduleRecalc(20);
+                        if (!window.USE_PLUMB_ONLY) scheduleRecalc(20);
                     }
                 } catch (_) {}
             }, 220);
@@ -674,7 +745,10 @@ $("#fullscreen-tree-btn").on("click", function () {
     $(document).on("dragstart", "#task-tree .task-box", function (e) {
         try {
             // If starting drag from plumb handle, ignore DnD
-            if ($(e.target).closest('.plumb-handle').length) { e.preventDefault(); return; }
+            if ($(e.target).closest(".plumb-handle").length) {
+                e.preventDefault();
+                return;
+            }
             var id = $(this).attr("data-task-id");
             window.__dragTaskId = id != null ? String(id) : null;
             if (e.originalEvent && e.originalEvent.dataTransfer) {
@@ -799,7 +873,9 @@ $("#fullscreen-tree-btn").on("click", function () {
             })
                 .done(function () {
                     try {
-                        if (typeof window.refreshTaskTreePartial === 'function') {
+                        if (
+                            typeof window.refreshTaskTreePartial === "function"
+                        ) {
                             window.refreshTaskTreePartial();
                         } else {
                             // Fallback to local render if global not available
@@ -893,11 +969,16 @@ $("#fullscreen-tree-btn").on("click", function () {
             })
                 .done(function () {
                     try {
-                        if (typeof window.refreshTaskTreePartial === 'function') {
+                        if (
+                            typeof window.refreshTaskTreePartial === "function"
+                        ) {
                             window.refreshTaskTreePartial();
                         } else {
                             if (dragged) dragged.parent_id = targetId;
-                            try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
+                            try {
+                                if (typeof window.initTaskPlumb === "function")
+                                    window.initTaskPlumb(allTasks);
+                            } catch (_) {}
                         }
                     } catch (_) {}
                 })
@@ -1110,13 +1191,18 @@ $("#fullscreen-tree-btn").on("click", function () {
                 })
                     .done(function () {
                         try {
-                            if (typeof window.refreshTaskTreePartial === 'function') {
+                            if (
+                                typeof window.refreshTaskTreePartial ===
+                                "function"
+                            ) {
                                 window.refreshTaskTreePartial();
                             } else {
                                 if (dragged) dragged.parent_id = null;
                                 renderTaskList(allTasks);
                             }
-                            if (typeof window.showFloatingAlert === "function") {
+                            if (
+                                typeof window.showFloatingAlert === "function"
+                            ) {
                                 window.showFloatingAlert(
                                     "Task berhasil dikeluarkan dari parent",
                                     "success",
@@ -1176,11 +1262,20 @@ $("#fullscreen-tree-btn").on("click", function () {
                 })
                     .done(function () {
                         try {
-                            if (typeof window.refreshTaskTreePartial === 'function') {
+                            if (
+                                typeof window.refreshTaskTreePartial ===
+                                "function"
+                            ) {
                                 window.refreshTaskTreePartial();
                             } else {
                                 if (dragged) dragged.parent_id = targetId;
-                                try { if (typeof window.initTaskPlumb === 'function') window.initTaskPlumb(allTasks); } catch(_){ }
+                                try {
+                                    if (
+                                        typeof window.initTaskPlumb ===
+                                        "function"
+                                    )
+                                        window.initTaskPlumb(allTasks);
+                                } catch (_) {}
                             }
                         } catch (_) {}
                     })
@@ -1230,8 +1325,9 @@ $("#fullscreen-tree-btn").on("click", function () {
         $(document).on("touchstart", "#task-tree .task-box", function (e) {
             try {
                 // Ignore long-press start if touching the plumb handle
-                var target = e.target || (e.originalEvent && e.originalEvent.target);
-                if (target && $(target).closest('.plumb-handle').length) return;
+                var target =
+                    e.target || (e.originalEvent && e.originalEvent.target);
+                if (target && $(target).closest(".plumb-handle").length) return;
                 var t =
                     e.originalEvent &&
                     e.originalEvent.touches &&
@@ -1304,8 +1400,16 @@ $("#fullscreen-tree-btn").on("click", function () {
 })();
 
 $(document).on("click", ".task-box, .timeline-bar", function (e) {
-    if ($(e.target).closest('.plumb-handle').length) { e.preventDefault(); e.stopPropagation(); return; }
-    if ($(e.target).closest('.task-more-btn, .task-more-menu').length) { e.preventDefault(); e.stopPropagation(); return; }
+    if ($(e.target).closest(".plumb-handle").length) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
+    if ($(e.target).closest(".task-more-btn, .task-more-menu").length) {
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+    }
     const taskId = $(this).data("task-id");
     if (taskId) handleProjectTaskDetail(taskId);
 });
@@ -1321,12 +1425,17 @@ function handleProjectTaskDetail(taskId) {
         url: `${appUrl}/task/${taskId}`,
         type: "GET",
         dataType: "json",
-        success: function(res) {
+        success: function (res) {
             console.log("Task detail response:", res);
             renderProjectTaskDetail(res);
         },
-        error: function(xhr, status, error) {
-            console.error("Failed to load task detail:", status, error, xhr.responseText);
+        error: function (xhr, status, error) {
+            console.error(
+                "Failed to load task detail:",
+                status,
+                error,
+                xhr.responseText
+            );
             showAlert("Failed to load task details.", "danger");
         },
     });
@@ -1506,30 +1615,48 @@ function getAvatarHTML(task) {
                 font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
 }
 
-if (typeof window.getTaskInitials !== 'function') {
+if (typeof window.getTaskInitials !== "function") {
     window.getTaskInitials = function (title) {
         try {
-            if (!title) return 'NA';
-            const words = String(title || '').trim().split(/\s+/).filter(Boolean);
-            if (!words.length) return 'NA';
-            if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
-            return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+            if (!title) return "NA";
+            const words = String(title || "")
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean);
+            if (!words.length) return "NA";
+            if (words.length === 1)
+                return words[0].substring(0, 2).toUpperCase();
+            return (
+                words[0].charAt(0) + words[words.length - 1].charAt(0)
+            ).toUpperCase();
         } catch (e) {
-            return 'NA';
+            return "NA";
         }
     };
 }
 
-if (typeof window.getRandomColorFromText !== 'function') {
+if (typeof window.getRandomColorFromText !== "function") {
     window.getRandomColorFromText = function (text) {
         try {
-            const colors = ['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
-            const key = String(text || '');
+            const colors = [
+                "#6A5AE0",
+                "#FF8A3C",
+                "#00A881",
+                "#D4526E",
+                "#3E8EDE",
+                "#546E7A",
+                "#8E44AD",
+                "#2E7D32",
+                "#AD1457",
+                "#EF6C00",
+            ];
+            const key = String(text || "");
             let hash = 0;
-            for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+            for (let i = 0; i < key.length; i++)
+                hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
             return colors[hash % colors.length];
         } catch (e) {
-            return '#6A5AE0';
+            return "#6A5AE0";
         }
     };
 }
@@ -1587,7 +1714,7 @@ function initProjectTaskDetailModal() {
     modal.show();
 }
 
-(function setupTaskMoreMenu(){
+(function setupTaskMoreMenu() {
     if (window.__taskMoreMenuBound) return;
     window.__taskMoreMenuBound = true;
 
@@ -1615,7 +1742,7 @@ function initProjectTaskDetailModal() {
                     </button>
                 </div>
             `);
-            $('body').append($globalMenu);
+            $("body").append($globalMenu);
         }
         return $globalMenu;
     }
@@ -1627,118 +1754,507 @@ function initProjectTaskDetailModal() {
             var top = rect.bottom + 4;
             var left = rect.left - 60;
             if (left < 10) left = 10;
-            $menu.css({ top: top + 'px', left: left + 'px' });
-            $menu.removeClass('d-none');
+            $menu.css({ top: top + "px", left: left + "px" });
+            $menu.removeClass("d-none");
             currentTaskId = taskId;
-        } catch(_){}
+        } catch (_) {}
     }
 
     function hideMenu() {
         try {
-            if ($globalMenu) $globalMenu.addClass('d-none');
+            if ($globalMenu) $globalMenu.addClass("d-none");
             currentTaskId = null;
-        } catch(_){}
+        } catch (_) {}
     }
 
-    $(document).on('click', '.task-more-btn', function(e){
+    $(document).on("click", ".task-more-btn", function (e) {
         try {
-            e.preventDefault(); e.stopPropagation();
+            e.preventDefault();
+            e.stopPropagation();
             var $btn = $(this);
-            var taskId = $btn.attr('data-task-id') || $btn.closest('.task-box').attr('data-task-id');
+            var taskId =
+                $btn.attr("data-task-id") ||
+                $btn.closest(".task-box").attr("data-task-id");
             if (!taskId) return;
             var $menu = createOrGetMenu();
-            if (!$menu.hasClass('d-none') && currentTaskId === taskId) {
+            if (!$menu.hasClass("d-none") && currentTaskId === taskId) {
                 hideMenu();
             } else {
                 hideMenu();
                 showMenuAt($btn, taskId);
             }
-        } catch(_){}
+        } catch (_) {}
     });
 
     // Action Edit
-    $(document).on('click', '#task-global-more-menu .edit-task-action', function(e){
-        e.preventDefault(); e.stopPropagation();
-        var taskId = currentTaskId;
-        hideMenu();
-        if (!taskId) return;
+    $(document).on(
+        "click",
+        "#task-global-more-menu .edit-task-action",
+        function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var taskId = currentTaskId;
+            hideMenu();
+            if (!taskId) return;
 
-        try {
-            const modal = new bootstrap.Modal('#editProjectTaskModal');
-            $('#editProjectTaskModal').attr('data-task-id', taskId);
-            modal.show();
+            try {
+                const modal = new bootstrap.Modal("#editProjectTaskModal");
+                $("#editProjectTaskModal").attr("data-task-id", taskId);
+                modal.show();
 
-            if (typeof window.handleProjectTaskEdit === 'function') {
-                window.handleProjectTaskEdit(taskId);
-            }
-        } catch(err) {
+                if (typeof window.handleProjectTaskEdit === "function") {
+                    window.handleProjectTaskEdit(taskId);
+                }
+            } catch (err) {}
         }
-    });
+    );
 
     // Action Clear Parent
-    $(document).on('click', '#task-global-more-menu .clear-parent-action', function(e){
-        try {
-            e.preventDefault(); e.stopPropagation();
-            var taskId = currentTaskId;
-            if (!taskId) return;
-            hideMenu();
+    $(document).on(
+        "click",
+        "#task-global-more-menu .clear-parent-action",
+        function (e) {
+            try {
+                e.preventDefault();
+                e.stopPropagation();
+                var taskId = currentTaskId;
+                if (!taskId) return;
+                hideMenu();
 
-            $.ajax({
-                url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
-                type: 'PUT',
-                data: JSON.stringify({ parent_id: null, parent_ids: [] }),
-                contentType: 'application/json',
-                dataType: 'json',
-                headers: {
-                    'X-CSRF-TOKEN': window.csrfToken || $('meta[name="csrf-token"]').attr('content') || '',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            })
-            .done(function(){
-                if (typeof window.refreshTaskTreePartial === 'function') {
-                    window.refreshTaskTreePartial();
-                } else {
-                    var idStr = String(taskId);
-                    (allTasks || []).forEach(function(t){
-                        if (String(t.id) === idStr) {
-                            t.parent_id = null;
-                            t.parent_ids = [];
+                $.ajax({
+                    url: appUrl + "/task/" + encodeURIComponent(String(taskId)),
+                    type: "PUT",
+                    data: JSON.stringify({ parent_id: null, parent_ids: [] }),
+                    contentType: "application/json",
+                    dataType: "json",
+                    headers: {
+                        "X-CSRF-TOKEN":
+                            window.csrfToken ||
+                            $('meta[name="csrf-token"]').attr("content") ||
+                            "",
+                        "X-Requested-With": "XMLHttpRequest",
+                        Accept: "application/json",
+                    },
+                })
+                    .done(function () {
+                        if (
+                            typeof window.refreshTaskTreePartial === "function"
+                        ) {
+                            window.refreshTaskTreePartial();
+                        } else {
+                            var idStr = String(taskId);
+                            (allTasks || []).forEach(function (t) {
+                                if (String(t.id) === idStr) {
+                                    t.parent_id = null;
+                                    t.parent_ids = [];
+                                }
+                            });
+                            renderTaskList(allTasks);
                         }
+                        window.showFloatingAlert?.(
+                            "Parent clear succesfully",
+                            "success",
+                            1400
+                        );
+                    })
+                    .fail(function (xhr) {
+                        console.error("Gagal clear parent", xhr?.responseText);
+                        window.showFloatingAlert?.(
+                            "Failed to delete parent",
+                            "warning",
+                            2400
+                        );
                     });
-                    renderTaskList(allTasks);
-                }
-                window.showFloatingAlert?.('Parent clear succesfully', 'success', 1400);
-            })
-            .fail(function(xhr){
-                console.error('Gagal clear parent', xhr?.responseText);
-                window.showFloatingAlert?.('Failed to delete parent', 'warning', 2400);
-            });
-        } catch(_){}
-    });
+            } catch (_) {}
+        }
+    );
 
     // Action Delete
-    $(document).on('click', '#task-global-more-menu .delete-task-action', function(e){
-        e.preventDefault(); e.stopPropagation();
-        var taskId = currentTaskId;
+    $(document).on(
+        "click",
+        "#task-global-more-menu .delete-task-action",
+        function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            var taskId = currentTaskId;
+            hideMenu();
+            if (!taskId) return;
+
+            try {
+                const modal = new bootstrap.Modal("#deleteProjectTaskModal");
+                $("#deleteProjectTaskModal").attr("data-task-id", taskId);
+                modal.show();
+
+                if (typeof window.handleProjectTaskDelete === "function") {
+                    window.handleProjectTaskDelete(taskId);
+                }
+            } catch (err) {}
+        }
+    );
+
+    $(document).on("click", function (e) {
+        if (
+            !$(e.target).closest("#task-global-more-menu, .task-more-btn")
+                .length
+        )
+            hideMenu();
+    });
+
+    $(window).on("scroll", function () {
         hideMenu();
-        if (!taskId) return;
-
-        try {
-            const modal = new bootstrap.Modal('#deleteProjectTaskModal');
-            $('#deleteProjectTaskModal').attr('data-task-id', taskId);
-            modal.show();
-
-            if (typeof window.handleProjectTaskDelete === 'function') {
-                window.handleProjectTaskDelete(taskId);
-            }
-        } catch(err) {}
     });
-
-    $(document).on('click', function(e){
-        if (!$(e.target).closest('#task-global-more-menu, .task-more-btn').length) hideMenu();
-    });
-
-    $(window).on('scroll', function(){ hideMenu(); });
 })();
 
+$(function () {
+    var modal = $("#addTaskModalProject");
+    if (!modal.length) return;
+
+    function loadTasksForProject(projectId) {
+        var $dropdown = $("#task_parent_dropdown");
+        var $selected = $("#task_selected_parent");
+        var $input = $("#task_parent_input");
+        var $id = $("#task_parent_id");
+
+        $dropdown.html('<div class="dropdown-item text-muted">Loading tasks...</div>').show();
+
+        $.ajax({
+            url: (window.APP_URL || "") + `/projects/${projectId}/tasks`,
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                var data = res.data || [];
+                if (!data.length) {
+                    $dropdown.html('<div class="dropdown-item text-muted">No tasks available in this project</div>');
+                    return;
+                }
+
+                $dropdown.empty();
+                $.each(data, function (_, task) {
+                    var $item = $("<div>")
+                        .addClass("dropdown-item")
+                        .css("cursor", "pointer")
+                        .text(task.title || "Task #" + task.id)
+                        .on("click", function () {
+                            $id.val(task.id);
+                            $input.val(task.title || "Task #" + task.id);
+                            $selected.html(`
+                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                                    <span class="flex-grow-1">${task.title || "Task #" + task.id}</span>
+                                    <button type="button" class="btn btn-sm btn-remove-task remove-task">
+                                        <span class="material-symbols-outlined">close</span>
+                                    </button>
+                                </div>
+                            `);
+                            $dropdown.hide();
+                        });
+                    $dropdown.append($item);
+                });
+
+                $selected.on("click", ".remove-task", function () {
+                    $(this).closest(".selected-task").remove();
+                    $id.val("");
+                    $input.val("");
+                });
+            },
+            error: function () {
+                $dropdown.html('<div class="dropdown-item text-danger">Failed to load tasks</div>');
+            }
+        });
+    }
+
+    modal.on("show.bs.modal", function () {
+        var projectId = $('meta[name="project-id"]').attr("content") || "";
+        var $projectIdInput = $("#task_project_id");
+        var $projectInput = $("#task_project_input");
+        var $projectDropdown = $("#task_project_dropdown");
+        var $projectSelected = $("#task_selected_project");
+        var $projectContainer = $projectInput.closest(".mb-3");
+
+        if (projectId) {
+            $projectIdInput.val(projectId);
+            $projectContainer.hide();
+            $projectInput.prop("required", false).prop("disabled", true);
+            loadTasksForProject(projectId);
+        } else {
+            $projectInput.on("change", function () {
+                var pid = $projectIdInput.val();
+                if (pid) loadTasksForProject(pid);
+            });
+        }
+
+        var $prio = $("#task_priority");
+        if (!$prio.val()) $prio.val("MEDIUM");
+
+        var now = new Date();
+        var today = now.toISOString().split("T")[0];
+        var due = new Date(now);
+        due.setDate(due.getDate() + 2);
+        var dueStr = due.toISOString().split("T")[0];
+
+        var $start = $("#task_start_date");
+        var $due = $("#task_due_date");
+        if (!$start.val()) $start.val(today);
+        if (!$due.val()) $due.val(dueStr);
+    });
+
+    modal.on("hidden.bs.modal", function () {
+        var $form = $("#addTaskForm");
+        $form.trigger("reset");
+        if (window.__quillTaskAdd?.root) window.__quillTaskAdd.root.innerHTML = "";
+
+        var $projectInput = $("#task_project_input");
+        var $projectDropdown = $("#task_project_dropdown");
+        var $projectSelected = $("#task_selected_project");
+        var $projectId = $("#task_project_id");
+
+        $projectInput.show().val("").prop("required", true).prop("disabled", false);
+        $projectDropdown.show().empty();
+        $projectSelected.hide().empty();
+        $projectId.val("");
+
+        var $parentInput = $("#task_parent_input");
+        var $parentDropdown = $("#task_parent_dropdown");
+        var $parentSelected = $("#task_selected_parent");
+        var $parentId = $("#task_parent_id");
+
+        $parentInput.val("");
+        $parentDropdown.empty().hide();
+        $parentSelected.empty();
+        $parentId.val("");
+    });
+});
+
+
+(function () {
+    try {
+        var addTaskForm = document.getElementById("addTaskForm");
+        var addTaskModalEl = document.getElementById("addTaskModalProject");
+        var loader = document.getElementById("addTaskModalLoader");
+        var imageLabel = document.getElementById("taskImageLabel");
+        var imageClearBtn = document.getElementById("taskImageClearBtn");
+
+        if (!addTaskForm) return; // nothing to do
+
+        // Helper: sync quill editor if present
+        function syncQuillIfPresent(quill, taId) {
+            try {
+                if (quill && quill.root && document.getElementById(taId)) {
+                    document.getElementById(taId).value =
+                        quill.root.innerHTML || "";
+                }
+            } catch (_) {}
+        }
+
+        // Capture-phase listener runs before other bubble listeners; attach once
+        addTaskForm.addEventListener(
+            "submit",
+            function (e) {
+                try {
+                    // Only run when this modal is open (prevents interfering on global task page)
+                    if (
+                        addTaskModalEl &&
+                        !addTaskModalEl.classList.contains("show") &&
+                        !addTaskModalEl.classList.contains("modal")
+                    ) {
+                        // allow normal submit flow elsewhere
+                        return;
+                    }
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+
+                    // Sync Quill editors
+                    try {
+                        if (window.__quillTaskAdd)
+                            syncQuillIfPresent(
+                                window.__quillTaskAdd,
+                                "task_description"
+                            );
+                    } catch (_) {}
+
+                    // Basic HTML5 validation
+                    if (!addTaskForm.checkValidity()) {
+                        addTaskForm.classList.add("was-validated");
+                        return;
+                    }
+
+                    // Executor validation (hidden input)
+                    try {
+                        var execHidden = document.getElementById("executors");
+                        var execVal = execHidden ? execHidden.value : "";
+                        var execArr = [];
+                        if (execVal) {
+                            try {
+                                execArr = JSON.parse(execVal);
+                            } catch (_) {
+                                execArr = [];
+                            }
+                        }
+                        if (!Array.isArray(execArr) || execArr.length === 0) {
+                            try {
+                                if (typeof showFloatingAlert === "function")
+                                    showFloatingAlert(
+                                        "Please select at least one executor.",
+                                        "warning",
+                                        2500
+                                    );
+                                else
+                                    alert(
+                                        "Please select at least one executor."
+                                    );
+                            } catch (_) {
+                                alert("Please select at least one executor.");
+                            }
+                            return;
+                        }
+                    } catch (_) {}
+
+                    // Show loader and disable submit
+                    try {
+                        if (loader) loader.classList.remove("d-none");
+                    } catch (_) {}
+                    var submitBtn = addTaskForm.querySelector(
+                        "button[type='submit']"
+                    );
+                    if (submitBtn) submitBtn.disabled = true;
+
+                    // Assemble FormData (respect existing form structure)
+                    var fd = new FormData(addTaskForm);
+
+                    // Ensure parent_id only when numeric
+                    try {
+                        var parentSel =
+                            document.getElementById("task_parent_id");
+                        if (parentSel) {
+                            var pv = parentSel.value;
+                            if (
+                                !pv ||
+                                pv === "" ||
+                                pv === "null" ||
+                                isNaN(Number(pv))
+                            ) {
+                                try {
+                                    fd.delete("parent_id");
+                                } catch (_) {}
+                            } else {
+                                fd.set("parent_id", String(Number(pv)));
+                            }
+                        }
+                    } catch (_) {}
+
+                    // Append image file if present (task_image)
+                    try {
+                        var imgEl = document.getElementById("task_image");
+                        if (imgEl && imgEl.files && imgEl.files[0])
+                            fd.set("image", imgEl.files[0]);
+                    } catch (_) {}
+
+                    // Append reference files if any (input id task_reference_files) and also use selectedFiles if present globally
+                    try {
+                        var refInput = document.getElementById(
+                            "task_reference_files"
+                        );
+                        if (
+                            refInput &&
+                            refInput.files &&
+                            refInput.files.length
+                        ) {
+                            for (var i = 0; i < refInput.files.length; i++)
+                                fd.append(
+                                    "reference_files[]",
+                                    refInput.files[i]
+                                );
+                        }
+                    } catch (_) {}
+
+                    // CSRF token header
+                    var csrf = document.querySelector('meta[name="csrf-token"]')
+                        ? document
+                              .querySelector('meta[name="csrf-token"]')
+                              .getAttribute("content")
+                        : "";
+
+                    // Send via fetch so multipart works
+                    fetch((window.APP_URL || "") + "/task/store", {
+                        method: "POST",
+                        headers: csrf ? { "X-CSRF-TOKEN": csrf } : {},
+                        body: fd,
+                        credentials: "same-origin",
+                    })
+                        .then(function (res) {
+                            if (!res.ok)
+                                return res.json().then(function (json) {
+                                    throw { status: res.status, body: json };
+                                });
+                            return res.json();
+                        })
+                        .then(function (json) {
+                            try {
+                                if (loader) loader.classList.add("d-none");
+                            } catch (_) {}
+                            if (submitBtn) submitBtn.disabled = false;
+                            try {
+                                if (typeof showFloatingAlert === "function")
+                                    showFloatingAlert(
+                                        json.message ||
+                                            "Task added successfully!",
+                                        "success"
+                                    );
+                            } catch (_) {}
+
+                            // close modal after short delay and reload
+                            setTimeout(function () {
+                                try {
+                                    if (
+                                        addTaskModalEl &&
+                                        addTaskModalEl.dataset
+                                    )
+                                        addTaskModalEl.dataset.allowProgrammaticClose =
+                                            "1";
+                                } catch (_) {}
+                                try {
+                                    var m =
+                                        bootstrap.Modal.getInstance(
+                                            addTaskModalEl
+                                        );
+                                    if (m) m.hide();
+                                } catch (_) {}
+                                window.location.reload();
+                            }, 1200);
+                        })
+                        .catch(function (err) {
+                            try {
+                                if (loader) loader.classList.add("d-none");
+                            } catch (_) {}
+                            if (submitBtn) submitBtn.disabled = false;
+                            var msg = "Failed to create task.";
+                            try {
+                                if (err && err.body) {
+                                    if (err.body.errors)
+                                        msg = Object.values(err.body.errors)
+                                            .flat()
+                                            .join("\n");
+                                    else if (err.body.message)
+                                        msg = err.body.message;
+                                }
+                            } catch (_) {}
+                            try {
+                                if (typeof showFloatingAlert === "function")
+                                    showFloatingAlert(msg, "danger");
+                                else alert(msg);
+                            } catch (_) {
+                                alert(msg);
+                            }
+                        });
+                } catch (e) {
+                    try {
+                        if (loader) loader.classList.add("d-none");
+                    } catch (_) {}
+                    console.error("AddTask fallback submit error", e);
+                }
+            },
+            true
+        ); // capture
+    } catch (e) {
+        console.warn("AddTask fallback install failed", e);
+    }
+})();
