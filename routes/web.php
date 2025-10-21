@@ -200,9 +200,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/get-schedule-data/{id}', [ScheduleController::class, 'show'])->name('get-schedule-data.schedules');
     Route::get('/schedules', [ScheduleController::class, 'showSchedulePage'])->name('schedules');
 
-    // Client-side activity logging (modal opens, UI events)
-    Route::post('/activity/log', [App\Http\Controllers\ActivityController::class, 'logClientEvent'])->name('activity.log');
-
     Route::get('/teams', [TeamsController::class, 'showTeamsPage'])->name('teams');
     Route::get('/teams/get-teams-detail', [TeamsController::class, 'getTeamsDetail'])->name('teams.getTeamsDetail');
 
