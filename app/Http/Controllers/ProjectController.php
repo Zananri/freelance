@@ -188,13 +188,13 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            // record activity: project created
+            // record activity: project accepted
             try {
                 ActivityHelper::record([
-                    'employee_id' => $authEmp?->id,
+                    'employee_id' => $employeeId,
                     'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_CREATE',
-                    'description' => ($authEmp?->name ?? 'Unknown') . ' created project: ' . ($project->title ?? $project->id),
+                    'activity' => 'PROJECT_ACCEPT',
+                    'description' => ($user?->employee?->name ?? 'Unknown') . ' accepted assignment for project: ' . ($assignment->project->title ?? $assignment->project->id),
                 ]);
             } catch (\Throwable $_) {}
 
@@ -1281,6 +1281,8 @@ class ProjectController extends Controller
      */
     public function store(Request $request)
     {
+        // debug: log incoming store request to trace caller
+        try { \Log::info('ProjectController@store called', ['user_id' => auth()->id(), 'employee_id' => auth()->user()?->employee?->id, 'input_keys' => array_keys($request->all())]); } catch (\Throwable $_) {}
         DB::beginTransaction();
         try {
             if ($request->has('co_author') && is_string($request->co_author)) {
@@ -1574,13 +1576,13 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            // record activity: project updated
+            // record activity: project created
             try {
                 ActivityHelper::record([
                     'employee_id' => $authEmp?->id,
                     'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_UPDATE',
-                    'description' => ($authEmp?->name ?? 'Unknown') . ' updated project: ' . ($project->title ?? $project->id),
+                    'activity' => 'PROJECT_CREATE',
+                    'description' => ($authEmp?->name ?? 'Unknown') . ' created project: ' . ($project->title ?? $project->id),
                 ]);
             } catch (\Throwable $_) {}
 
@@ -2006,6 +2008,8 @@ class ProjectController extends Controller
     public function update(Request $request, string $id)
     {
         DB::beginTransaction();
+        // debug: log incoming update request to trace caller
+        try { \Log::info('ProjectController@update called', ['project_id' => $id, 'user_id' => auth()->id(), 'employee_id' => auth()->user()?->employee?->id, 'input_keys' => array_keys($request->all())]); } catch (\Throwable $_) {}
         try {
             $project = Project::findOrFail($id);
             $authEmp = auth()->user()->employee ?? null;
@@ -2259,13 +2263,13 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            // record activity: project deleted
+            // record activity: project updated
             try {
                 ActivityHelper::record([
-                    'employee_id' => auth()->user()?->employee?->id,
+                    'employee_id' => $authEmp?->id,
                     'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_DELETE',
-                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' deleted project: ' . ($project->title ?? $project->id),
+                    'activity' => 'PROJECT_UPDATE',
+                    'description' => ($authEmp?->name ?? 'Unknown') . ' updated project: ' . ($project->title ?? $project->id),
                 ]);
             } catch (\Throwable $_) {}
 
@@ -2291,6 +2295,8 @@ class ProjectController extends Controller
      */
     public function destroy(string $id)
     {
+        // debug: log incoming destroy request to trace caller
+        try { \Log::info('ProjectController@destroy called', ['project_id' => $id, 'user_id' => auth()->id(), 'employee_id' => auth()->user()?->employee?->id]); } catch (\Throwable $_) {}
         DB::beginTransaction();
         try {
             $project = Project::findOrFail($id);
@@ -2312,6 +2318,16 @@ class ProjectController extends Controller
             $project->save();
 
             DB::commit();
+
+            // record activity: project deleted
+            try {
+                ActivityHelper::record([
+                    'employee_id' => auth()->user()?->employee?->id,
+                    'menu' => 'PROJECT',
+                    'activity' => 'PROJECT_DELETE',
+                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' deleted project: ' . ($project->title ?? $project->id),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
