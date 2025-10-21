@@ -113,7 +113,7 @@ class SettingsController extends Controller
             // GENERAL_MANAGER MANAGER LEADER HR_MANAGER FINANCE_MANAGER EMPLOYEE
             $request->validate([
                 'user_type' => 'required|string|in:ADMINISTRATOR,REGULAR,MANAGEMENT',
-                'user_role' => 'required|string|in:ADMINISTRATOR,CEO,GENERAL_MANAGER,MANAGER,LEADER,HR_MANAGER,FINANCE_MANAGER,EMPLOYEE',
+                'user_role' => 'required|string|in:ADMINISTRATOR,CEO,GENERAL_MANAGER,MANAGER,LEADER,HR_MANAGER,PERSONAL_ASSISTANT,FINANCE_MANAGER,EMPLOYEE',
 
                 'employee_id' => 'required|numeric',
                 'user_id' => 'required|numeric'
@@ -161,4 +161,5 @@ class SettingsController extends Controller
 
 
     }
+
 }

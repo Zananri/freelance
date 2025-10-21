@@ -153,6 +153,7 @@
                                         <option value="LEADER">LEADER</option>
                                         <option value="HR_MANAGER">HR MANAGER</option>
                                         <option value="FINANCE_MANAGER">FINANCE MANAGER</option>
+                                        <option value="PERSONAL_ASSISTANT">PERSONAL ASSISTANT</option>
                                         <option value="EMPLOYEE">EMPLOYEE</option>
                                     </select>
                                 </div>

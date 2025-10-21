@@ -356,6 +356,11 @@ class ProjectController extends Controller
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
                     $canSeeAll = true;
                 }
+
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
+
             } catch (\Throwable $_) {
                 $canSeeAll = false;
             }
@@ -428,6 +433,10 @@ class ProjectController extends Controller
                     $canSeeAll = true;
                 }
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
                     $canSeeAll = true;
                 }
             } catch (\Throwable $_) {
@@ -698,6 +707,9 @@ class ProjectController extends Controller
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
                     $canSeeAll = true;
                 }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
             } catch (\Throwable $_) {
                 $canSeeAll = false;
             }
@@ -834,6 +846,9 @@ class ProjectController extends Controller
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
                     $canSeeAll = true;
                 }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
             } catch (\Throwable $_) { $canSeeAll = false; }
 
             $isAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
@@ -899,6 +914,9 @@ class ProjectController extends Controller
                     $canSeeAll = true;
                 }
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
                     $canSeeAll = true;
                 }
             } catch (\Throwable $_) { $canSeeAll = false; }
@@ -997,6 +1015,9 @@ class ProjectController extends Controller
                     $canSeeAll = true;
                 }
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
                     $canSeeAll = true;
                 }
             } catch (\Throwable $_) {
@@ -1603,6 +1624,9 @@ class ProjectController extends Controller
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
                     $canSeeAll = true;
                 }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
             } catch (\Throwable $_) {
                 $canSeeAll = false;
             }
@@ -1789,6 +1813,9 @@ class ProjectController extends Controller
                 $canSeeAll = true;
             }
             if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                $canSeeAll = true;
+            }
+            if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
                 $canSeeAll = true;
             }
         } catch (\Throwable $_) {
@@ -2225,16 +2252,47 @@ class ProjectController extends Controller
     {
         DB::beginTransaction();
         try {
-            $project = Project::findOrFail($id);
-            // If project has any tasks, do not allow deletion
-            if ($project->tasks()->exists()) {
-                DB::rollBack();
-                return response()->json([
-                    'code' => 400,
-                    'status' => 'error',
-                    'message' => 'This project has a task, it cannot be deleted'
-                ], 400);
+
+            $employee = Employee::where('user_id', auth()->id())
+                ->where('status','ACTIVE')
+            ->first();
+
+            if (!$employeeId) {
+                throw new \Exception('Employee not found');
             }
+
+            $projectAssignments = ProjectAssignment::where('project_id', $id)
+                ->where('employee_id',$employee->id)
+                ->whereIn('role',['author','co_author'])
+            ->first();
+
+            if (!$employeeId) {
+                throw new \Exception('Access denied');
+            }
+
+            $project = Project::findOrFail($id);
+
+            if(!$project) {
+                throw new \Exception('Access denied');
+            }
+
+            $taskExist = Task::where('project_id', $project->id)
+                ->whereIn('status',['completed','in_progress'])
+            ->exists();
+
+            if(!$project) {
+                throw new \Exception('This project has a task Active, it cannot be deleted');
+            }
+
+            // If project has any tasks, do not allow deletion
+            // if ($project->tasks()->exists()) {
+            //     DB::rollBack();
+            //     return response()->json([
+            //         'code' => 400,
+            //         'status' => 'error',
+            //         'message' => 'This project has a task, it cannot be deleted'
+            //     ], 400);
+            // }
 
             // Soft-delete behavior: mark status as DELETED and record who deleted it.
             // Do NOT remove related assignments, feedbacks, or files so data remains in DB.
