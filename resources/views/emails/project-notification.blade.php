@@ -1,50 +1,39 @@
 <!doctype html>
 <html>
+
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Project Notification</title>
-  <style>
-    .button {
-      display: inline-block;
-      padding: 10px 18px;
-      background-color: #1f93ff;
-      color: #fff;
-      text-decoration: none;
-      border-radius: 4px;
-    }
-    .card { max-width:700px; margin:20px auto; font-family: Arial, Helvetica, sans-serif; }
-    .header { background:#f6f8fa; padding:12px; border-bottom:1px solid #e1e4e8 }
-    .body { padding:18px }
-  </style>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Project Notification</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; background:#eef6fb; color:#566172; }
+        .container{max-width:700px;margin:40px auto;background:#fff;padding:40px;border-radius:4px}
+        .brand{ text-align:center; margin-bottom:20px }
+        .button{ display:inline-block;background:#2b3946;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none }
+        .muted{ color:#97a0ab }
+    </style>
 </head>
+
 <body>
-  <div class="card">
-    <div class="header">
-      <strong>Project Notification</strong>
-    </div>
-    <div class="body">
-      <p>Halo,</p>
+    <div style="background:#e9f0f4;padding:40px 0">
+        <div class="container">
+            <div class="brand">
+                <h2 style="margin:0;color:#2b3946">NSA Performance</h2>
+            </div>
 
-      <p>
-        Ada pembaruan proyek: <strong>{{ $project->title ?? 'Untitled project' }}</strong>.
-      </p>
+            <h3>Hello!</h3>
+            <p class="muted">You are receiving this email because a new project has been assigned to you.</p>
 
-      @if(!empty($project->description))
-      <p>{{ Str::limit(strip_tags($project->description), 200) }}</p>
-      @endif
+            <p>
+                <a href="{{ $url }}"
+                    style="color:#fff !important; background: #444; text-decoration: none; padding: 10px 18px;">View
+                    Project</a>
+            </p>
 
-      <p>
-        <a href="{{ $url }}" class="button">See Project</a>
-      </p>
+            <p class="muted">Please review the project details and take the necessary actions.</p>
 
-      <p>Jika tombol tidak berfungsi, buka link ini: <br>
-        <a href="{{ $url }}">{{ $url }}</a>
-      </p>
-
-      <p>Salam,<br>
-      Tim NSA Office</p>
-    </div>
-  </div>
+            <p>Best regards,<br>NSA Performance</p>
+        </div>
 </body>
+
 </html>
