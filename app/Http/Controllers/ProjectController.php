@@ -985,7 +985,7 @@ class ProjectController extends Controller
                     'data' => [],
                     'pagination' => [
                         'total' => 0,
-                        'per_page' => 9,
+                        'per_page' => 50,
                         'current_page' => 1,
                         'last_page' => 1,
                     ]
@@ -1054,6 +1054,11 @@ class ProjectController extends Controller
                         });
                     }
                 });
+            }
+
+            $divisionId = $request->input('division_id');
+            if ($divisionId !== null && $divisionId !== '') {
+                $query->where('division_id', $divisionId);
             }
 
             // Optional text search across project fields and related department/division
@@ -1193,7 +1198,7 @@ class ProjectController extends Controller
                             ->whereNotNull('due_date')
                             ->where('due_date', '<', now()),
                 ])
-                ->paginate(9);
+                ->paginate(50);
 
             $projectsTransformed = $projects->map(function ($project) {
                 $projectAssignments = $project->projectAssignments->map(function ($a) {
@@ -1226,6 +1231,8 @@ class ProjectController extends Controller
                     'co_authors' => $coAuthors,
                     'contributors' => $contributors,
                     'project_assignments' => $projectAssignments,
+                    'due_date' => $project->due_date,
+                    'start_date' => $project->start_date,
                     'task_counts' => [
                         'total' => $project->total_tasks,
                         'in_progress' => $project->in_progress_tasks,

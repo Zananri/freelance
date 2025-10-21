@@ -1142,7 +1142,8 @@ document.addEventListener("DOMContentLoaded", function () {
         filter = null,
         page = 1,
         search = null,
-        sortBy = "asc"
+        sortBy = "asc",
+        divisionId = null,
     ) {
         // Track current search text
         if (typeof search === "string") {
@@ -1157,6 +1158,7 @@ document.addEventListener("DOMContentLoaded", function () {
             task_scope: "me",
             page: page,
             sort_by: sortBy,
+            division_id: divisionId,
         };
         if (currentSearch && currentSearch.trim() !== "") {
             params.search = currentSearch.trim();
@@ -1167,6 +1169,8 @@ document.addEventListener("DOMContentLoaded", function () {
         if (currentFilterDate && currentFilterDate.trim() !== "") {
             params.date = currentFilterDate.trim();
         }
+
+        if (divisionId) params.division_id = divisionId;
 
         $.ajax({
             url: appUrl + "/project/get-all-projects",
@@ -1280,9 +1284,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         const projectSlug = project.slug || slugify(project.title || "unknown-project");
                         const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
 
-                        console.log(project.task_counts);
-
-
                         function deriveProjectStatusFromTasks(project) {
                             const counts = project.task_counts || {};
                             const total = counts.total || 0;
@@ -1302,13 +1303,16 @@ document.addEventListener("DOMContentLoaded", function () {
                         function renderProjectStatus(status) {
                             const map = {
                                 completed: { text: "Completed", color: "#28a745" },
-                                in_progress: { text: "In Progress", color: "#ffc107" },
+                                in_progress: { text: "In Progress", color: "#BAA349" },
                                 not_started: { text: "Not Started", color: "#6c757d" },
                                 late: { text: "Late", color: "#dc3545" },
                             };
                             const s = map[status] || map["not_started"];
                             return `<span class="ms-1 fs-8 fw-semibold" style="color:${s.color};">${s.text}</span>`;
                         }
+
+                        console.log(project);
+
 
                         rowHtml += `
                             <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
@@ -1340,6 +1344,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">
                                                 ${project.title}
                                             </h6>
+                                            <p class="text-muted fs-8">  ${formatDateENMedium(project.start_date)} - ${formatDateENMedium(project.due_date)}</p>
                                         </a>
 
                                         </div>
@@ -1444,9 +1449,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="d-flex justify-content-end align-items-center mt-1">
-                                        <span class="fs-8">Status :</span>
-                                        ${renderProjectStatus(deriveProjectStatusFromTasks(project))}
+                                    <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-start align-items-center mt-1">
+                                            <span class="fs-8">${project.task_counts.total} Task</span>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center mt-1">
+                                            ${renderProjectStatus(deriveProjectStatusFromTasks(project))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -8036,10 +8045,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const paginationContainer = document.querySelector(".pagination");
         if (!paginationContainer) return;
 
-        const currentPage = parseInt(pagination.current_page, 10);
-        const perPage = parseInt(pagination.per_page, 10);
-        const total = parseInt(pagination.total, 10);
-        const lastPage = parseInt(pagination.last_page, 10);
+        const currentPage = parseInt(pagination.current_page, 15);
+        const perPage = parseInt(pagination.per_page, 15);
+        const total = parseInt(pagination.total, 15);
+        const lastPage = parseInt(pagination.last_page, 15);
 
         if (total <= perPage || lastPage <= 1) {
             paginationContainer.innerHTML = "";
@@ -10222,13 +10231,15 @@ document.addEventListener("DOMContentLoaded", function () {
         const applyFilterBtn = document.getElementById("applyProjectFilterBtn");
         const resetFilterBtn = document.getElementById("resetProjectFilterBtn");
         const filterStatus = document.getElementById("filterProjectStatus");
+        const filterDivisionSelect = document.getElementById("filterProjectDivision");
         const sortBySelect = document.getElementById("filterSortBy");
 
         if (!openFilterBtn || !filterDropdown) return;
 
-        // Remove dup event listener
         openFilterBtn.replaceWith(openFilterBtn.cloneNode(true));
         const newOpenFilterBtn = document.getElementById("openProjectFilterBtn");
+
+        loadDivisionsForFilter();
 
         newOpenFilterBtn.addEventListener("click", function (e) {
             e.preventDefault();
@@ -10247,61 +10258,81 @@ document.addEventListener("DOMContentLoaded", function () {
             } else {
                 filterDropdown.style.display = "block";
                 filterDropdown.classList.remove("d-none");
+
             }
         });
+
+        function loadDivisionsForFilter() {
+            if (!filterDivisionSelect) return;
+
+            filterDivisionSelect.innerHTML = '<option value="" disabled selected>Loading...</option>';
+
+            $.ajax({
+                url: appUrl + "/divisions-for-projects",
+                type: "GET",
+                dataType: "json",
+                success: function (data) {
+                    let options = '<option value="">All Divisions</option>';
+                    (data.data || []).forEach((div) => {
+                        options += `<option value="${div.id}">${div.name_division || div.name}</option>`;
+                    });
+                    filterDivisionSelect.innerHTML = options;
+                    filterDivisionSelect.disabled = false;
+                },
+                error: function () {
+                    filterDivisionSelect.innerHTML = '<option value="">Failed to load divisions</option>';
+                    console.error("Failed to load divisions for filter");
+                },
+            });
+        }
 
         if (applyFilterBtn) {
             applyFilterBtn.replaceWith(applyFilterBtn.cloneNode(true));
             const newApplyFilterBtn = document.getElementById("applyProjectFilterBtn");
+
             newApplyFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
 
+                const selectedDivision = filterDivisionSelect ? filterDivisionSelect.value : "";
                 const selectedStatus = filterStatus ? filterStatus.value : "";
+
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add("d-none");
 
                 let filterParam = null;
                 let sortBy = "asc";
-                if (selectedStatus === "ongoing") {
-                    filterParam = "not_started";
-                } else if (selectedStatus === "completed") {
-                    filterParam = "completed";
-                } else if (selectedStatus === "pending") {
-                    filterParam = "in_progress";
-                } else if (selectedStatus === "late") {
-                    filterParam = "late";
-                }
 
-                if (sortBySelect) {
-                    sortBy = sortBySelect.value || "desc";
-                }
+                if (selectedStatus === "ongoing") filterParam = "not_started";
+                else if (selectedStatus === "completed") filterParam = "completed";
+                else if (selectedStatus === "pending") filterParam = "in_progress";
+                else if (selectedStatus === "late") filterParam = "late";
 
-                const q =
-                    typeof window.currentSearch === "string"
-                        ? window.currentSearch
-                        : "";
+                if (sortBySelect) sortBy = sortBySelect.value || "desc";
 
-                loadProjectCardData(filterParam, 1, q, sortBy);
+                const q = typeof window.currentSearch === "string" ? window.currentSearch : "";
+
+                const divisionParam = selectedDivision ? selectedDivision : null;
+
+                loadProjectCardData(filterParam, 1, q, sortBy, divisionParam);
             });
         }
 
         if (resetFilterBtn) {
             resetFilterBtn.replaceWith(resetFilterBtn.cloneNode(true));
             const newResetFilterBtn = document.getElementById("resetProjectFilterBtn");
+
             newResetFilterBtn.addEventListener("click", function (e) {
                 e.preventDefault();
                 e.stopPropagation();
 
                 if (filterStatus) filterStatus.value = "";
+                if (filterDivisionSelect) filterDivisionSelect.value = "";
 
                 filterDropdown.style.display = "none";
                 filterDropdown.classList.add("d-none");
 
-                const q =
-                    typeof window.currentSearch === "string"
-                        ? window.currentSearch
-                        : "";
+                const q = typeof window.currentSearch === "string" ? window.currentSearch : "";
                 loadProjectCardData(null, 1, q);
             });
         }
@@ -10433,10 +10464,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 if (key && projectNames[key] && projectNames[key].length > 0) {
                                     const names = projectNames[key];
-                                    const list = names.slice(0, 20).map(name => `- ${name}`);
-                                    const remaining = names.length;
+                                    const shown = 10;
+                                    const list = names.slice(0, shown).map(name => `- ${name}`);
+                                    const remaining = names.length - shown;
 
-                                    if (remaining > 20) list.push(`(+${remaining} more...)`);
+                                    if (remaining > 0) list.push(`(+${remaining} more...)`);
 
                                     return list;
                                 }
