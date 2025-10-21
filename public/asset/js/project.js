@@ -1327,26 +1327,21 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 imageUrl
                                                     ? `<img src="${imageUrl}" data-role="project-avatar" class="rounded-circle me-2" style="width:34px;height:34px;object-fit:cover;">`
                                                     : (function () {
-                                                          const init =
-                                                              getInitials(
-                                                                  project.title
-                                                              );
-                                                          const color =
-                                                              getInitialsColor(
-                                                                  project.title
-                                                              );
-                                                          return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
+                                                        const init = getInitials(project.title);
+                                                        const color = getInitialsColor(project.title);
+                                                        return `<div class="rounded-circle me-2 d-flex align-items-center justify-content-center"
                                                             style="width:34px;height:34px;background:${color};color:#fff;font-size:14px;font-weight:600;">${init}</div>`;
-                                                      })()
+                                                    })()
                                             }
 
-                                        <a class="project-link text-decoration-none" data-project-id="${project.id}" href="${fullProjectUrl}">
-                                            <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">
-                                                ${project.title}
-                                            </h6>
-                                            <p class="text-muted fs-8">  ${formatDateENMedium(project.start_date)} - ${formatDateENMedium(project.due_date)}</p>
-                                        </a>
-
+                                            <a class="project-link text-decoration-none d-flex flex-column justify-content-center"
+                                            data-project-id="${project.id}"
+                                            href="${fullProjectUrl}">
+                                                <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">
+                                                    ${project.title}
+                                                </h6>
+                                                <p class="text-muted fs-8 mb-0" style="line-height:1;">${formatDateENMedium(project.start_date)} - ${formatDateENMedium(project.due_date)}</p>
+                                            </a>
                                         </div>
                                         <div class="dropdown-icon-container">
                                             <button class="btn btn-sm border-0 d-flex align-items-center justify-content-center dropdown-icon dropdown-icon-custom"
@@ -1413,6 +1408,16 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <hr class="my-2 border-3" style="border-top:1px solid #DEDFE7;">
 
                                     <!-- Footer -->
+
+                                    <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-start align-items-center mt-1 mb-2">
+                                            <span class="text-muted fs-8">${project.task_counts.total} Task</span>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center mt-1 mb-2">
+                                            ${renderProjectStatus(deriveProjectStatusFromTasks(project))}
+                                        </div>
+                                    </div>
+
                                     <div class="d-flex justify-content-between align-items-center mt-2">
                                         <div class="collaborators-image d-flex align-items-center">
                                             ${renderCollaborators(project)}
@@ -1447,14 +1452,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <!-- Add Schedule button: opens schedule create modal and passes project id -->
                                             <button class="btn btn-sm p-0 border-0 ms-1 bg-transparent add-schedule-btn d-flex align-items-center" title="Add Schedule" data-bs-toggle="modal" data-bs-target="#scheduleCreateModal" data-project-id="${project.id}">
                                             </button>
-                                        </div>
-                                    </div>
-                                    <div class="d-flex justify-content-between">
-                                        <div class="d-flex justify-content-start align-items-center mt-1">
-                                            <span class="fs-8">${project.task_counts.total} Task</span>
-                                        </div>
-                                        <div class="d-flex justify-content-end align-items-center mt-1">
-                                            ${renderProjectStatus(deriveProjectStatusFromTasks(project))}
                                         </div>
                                     </div>
                                 </div>
@@ -8784,8 +8781,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 imageLabel.classList.remove("has-image");
                 imageLabel.style.opacity = "0.5";
                 imageClearBtn.classList.add("d-none");
-                divisionSelect.innerHTML =
-                    '<option value="" disabled selected>Select Division</option>';
                 loadDepartments();
 
                 // Close modal after short delay to show alert
@@ -10376,12 +10371,9 @@ document.addEventListener("DOMContentLoaded", function () {
     // Clear form and reset image preview when modal is closed
     var addProjectModalEl = document.getElementById("addProjectModal");
     addProjectModalEl.addEventListener("hidden.bs.modal", function () {
-        // Reset the form
         addProjectForm.reset();
 
-        // Reset image preview
-        imageLabel.style.backgroundImage =
-            "url('" + appUrl + "/asset/img/background/add-image.png')";
+        imageLabel.style.backgroundImage = "url('" + appUrl + "/asset/img/background/add-image.png')";
         imageLabel.style.backgroundPosition = "center center";
         imageLabel.style.backgroundRepeat = "no-repeat";
         imageLabel.style.backgroundSize = "50%";
@@ -10389,16 +10381,10 @@ document.addEventListener("DOMContentLoaded", function () {
         imageLabel.style.opacity = "0.5";
         imageClearBtn.classList.add("d-none");
 
-        // Reload departments, divisions, projects to reset selects
         loadDepartments();
-        divisionSelect.innerHTML =
-            '<option value="" disabled selected>Select Division</option>';
 
-        // Clear selected reference files and preview
         try {
-            if (typeof projectSelectedFiles !== "undefined") {
-                projectSelectedFiles = [];
-            }
+            if (typeof projectSelectedFiles !== "undefined") projectSelectedFiles = [];
             const preview = document.getElementById("reference_files_preview");
             if (preview) preview.innerHTML = "";
             const input = document.getElementById("reference_file");
@@ -10409,6 +10395,7 @@ document.addEventListener("DOMContentLoaded", function () {
             window.clearSelectedCoAuthors();
         }
     });
+
 });
 
 // Doughnut Chart Porject
