@@ -1469,7 +1469,197 @@ function renderProjectTaskDetail(res) {
     );
     $("#taskStatusChanges").html(scHTML);
 
+    // Ensure the modal shows and tooltips are initialised
     initProjectTaskDetailModal();
+
+    // Store current task id on the projectTaskDetailModal element so child modals can read it
+    try {
+        const detailEl = document.getElementById('projectTaskDetailModal');
+        if (detailEl) {
+            detailEl.dataset.taskId = String(task.id || '');
+        }
+    } catch (_) {}
+
+    // Wire the file-copy button inside the Project Task Detail modal to open Reference Files modal
+    try {
+        const detailEl = document.getElementById('projectTaskDetailModal');
+        if (detailEl) {
+            // find the button that opens the reference modal (matching data-bs-target)
+            const refBtn = detailEl.querySelector('button[data-bs-target="#referenceFilesModal"]');
+            if (refBtn) {
+                // remove previous listener if present (idempotent)
+                try { refBtn.removeEventListener('click', refBtn._refClickHandler || function(){}); } catch(_) {}
+                refBtn._refClickHandler = function (e) {
+                    try {
+                        e && e.preventDefault && e.preventDefault();
+                        e && e.stopPropagation && e.stopPropagation();
+                    } catch(_) {}
+                    // Use helper to fetch and show reference files for this task
+                    showReferenceFilesForTask(task.id);
+                };
+                refBtn.addEventListener('click', refBtn._refClickHandler);
+            }
+        }
+    } catch (_) {}
+}
+
+// Helper: fetch reference files for a given task id, populate #referenceFilesList and show the modal
+function showReferenceFilesForTask(taskId) {
+    if (!taskId) return;
+    try {
+        $.ajax({
+            url: appUrl + "/task/" + encodeURIComponent(String(taskId)),
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const payload = res && (res.data || res);
+                let referenceFiles = payload && payload.reference_files;
+
+                if (typeof referenceFiles === "string") {
+                    try {
+                        referenceFiles = JSON.parse(referenceFiles);
+                    } catch (e) {
+                        referenceFiles = referenceFiles.includes("[")
+                            ? []
+                            : referenceFiles
+                                  .split(",")
+                                  .map((s) => s.trim())
+                                  .filter(Boolean);
+                    }
+                }
+
+                const referenceFilesList = document.getElementById("referenceFilesList");
+                if (!referenceFilesList) return;
+                referenceFilesList.innerHTML = "";
+
+                // keep task id on the list for later operations (delete / add)
+                try { referenceFilesList.dataset.taskId = String(taskId || ''); } catch(_) {}
+                try { document.getElementById('referenceFilesModal').dataset.taskId = String(taskId || ''); } catch(_) {}
+
+                if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
+                    referenceFiles.forEach((fileName) => {
+                        if (!fileName) return;
+
+                        let fileUrl = String(fileName || '');
+                        const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+                        const isRefPath = fileUrl.startsWith('/file/task_reference_files/') || fileUrl.startsWith('file/task_reference_files/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
+                        if (!isAbs && !isRefPath) {
+                            fileUrl = appUrl + '/file/task_reference_files/' + fileUrl;
+                        } else if (!isAbs && fileUrl.startsWith('/')) {
+                            fileUrl = appUrl + fileUrl;
+                        }
+
+                        const item = document.createElement('div');
+                        item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        const lower = String(fileName || '').toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+
+                        if (isImage) {
+                            const img = document.createElement('img');
+                            img.src = fileUrl;
+                            img.width = 28; img.height = 28;
+                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                            img.alt = fileName;
+                            item.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            item.appendChild(badge);
+                        }
+
+                        const title = document.createElement('a');
+                        title.className = 'flex-grow-1 text-decoration-none text-truncate';
+                        title.href = fileUrl;
+                        title.target = '_blank';
+                        title.textContent = fileName;
+                        title.style.color = "#444444";
+                        item.appendChild(title);
+
+                        const dlBtn = document.createElement('button');
+                        dlBtn.type = 'button';
+                        dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        dlBtn.title = 'Download';
+                        dlBtn.style.color = "#444444";
+                        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                        dlBtn.addEventListener('click', function (ev) {
+                            try {
+                                ev.preventDefault(); ev.stopPropagation();
+                                const a = document.createElement('a');
+                                a.style.display = 'none';
+                                a.href = fileUrl;
+                                try { a.download = String(fileName || '').split('/').pop(); } catch(_) {}
+                                a.target = '_blank';
+                                document.body.appendChild(a);
+                                a.click();
+                                setTimeout(() => { try { document.body.removeChild(a); } catch(_) {} }, 100);
+                            } catch (e) {
+                                window.open(fileUrl, '_blank');
+                            }
+                        });
+
+                        item.appendChild(dlBtn);
+
+                        // Delete button (server will enforce permissions)
+                        const delBtn = document.createElement('button');
+                        delBtn.type = 'button';
+                        delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        delBtn.title = 'Delete';
+                        delBtn.style.color = '#444444';
+                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                        delBtn.addEventListener('click', function (ev) {
+                            ev.preventDefault(); ev.stopPropagation();
+                            try {
+                                showDeleteConfirmModal({
+                                    type: 'reference_file',
+                                    id: fileName,
+                                    authorName: '',
+                                    content: fileName,
+                                    avatarUrl: '',
+                                    parentModalId: 'referenceFilesModal',
+                                    onConfirm: function (done) {
+                                        try {
+                                            $.ajax({
+                                                url: appUrl + '/task/' + taskId + '/reference-file',
+                                                type: 'DELETE',
+                                                data: { filename: fileName },
+                                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                                success: function (res) {
+                                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reference file deleted', 'success'); } catch(_) {}
+                                                    if (item && item.parentNode) item.parentNode.removeChild(item);
+                                                    done(true);
+                                                },
+                                                error: function (xhr) {
+                                                    let msg = 'Failed to delete reference file';
+                                                    if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                                    done(false);
+                                                }
+                                            });
+                                        } catch (e) { done(false); }
+                                    }
+                                });
+                            } catch (e) {}
+                        });
+
+                        item.appendChild(delBtn);
+                        referenceFilesList.appendChild(item);
+                    });
+                } else {
+                    referenceFilesList.textContent = "No reference files available.";
+                }
+
+                const modalEl = document.getElementById("referenceFilesModal");
+                if (modalEl) {
+                    try { modalEl.dataset.taskId = String(taskId || ''); } catch(_) {}
+                    const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    referenceFilesModal.show();
+                }
+            },
+            error: function () {
+                showFloatingAlert("Failed to load reference files.", "danger", 3000);
+            }
+        });
+    } catch (_) {}
 }
 
 function buildStatusChangesHTML(statusChanges) {
