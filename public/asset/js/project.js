@@ -10430,10 +10430,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 if (key && projectNames[key] && projectNames[key].length > 0) {
                                     const names = projectNames[key];
-                                    const list = names.slice(0, 10).map(name => `- ${name}`);
+                                    const list = names.slice(0, 20).map(name => `- ${name}`);
                                     const remaining = names.length;
 
-                                    if (remaining > 10) list.push(`(+${remaining} more...)`);
+                                    if (remaining > 20) list.push(`(+${remaining} more...)`);
 
                                     return list;
                                 }
