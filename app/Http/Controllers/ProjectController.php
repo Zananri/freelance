@@ -1231,6 +1231,8 @@ class ProjectController extends Controller
                     'co_authors' => $coAuthors,
                     'contributors' => $contributors,
                     'project_assignments' => $projectAssignments,
+                    'due_date' => $project->due_date,
+                    'start_date' => $project->start_date,
                     'task_counts' => [
                         'total' => $project->total_tasks,
                         'in_progress' => $project->in_progress_tasks,

@@ -1303,13 +1303,16 @@ document.addEventListener("DOMContentLoaded", function () {
                         function renderProjectStatus(status) {
                             const map = {
                                 completed: { text: "Completed", color: "#28a745" },
-                                in_progress: { text: "In Progress", color: "#ffc107" },
+                                in_progress: { text: "In Progress", color: "#BAA349" },
                                 not_started: { text: "Not Started", color: "#6c757d" },
                                 late: { text: "Late", color: "#dc3545" },
                             };
                             const s = map[status] || map["not_started"];
                             return `<span class="ms-1 fs-8 fw-semibold" style="color:${s.color};">${s.text}</span>`;
                         }
+
+                        console.log(project);
+
 
                         rowHtml += `
                             <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
@@ -1341,6 +1344,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">
                                                 ${project.title}
                                             </h6>
+                                            <p class="text-muted fs-8">  ${formatDateENMedium(project.start_date)} - ${formatDateENMedium(project.due_date)}</p>
                                         </a>
 
                                         </div>
@@ -1445,8 +1449,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </button>
                                         </div>
                                     </div>
-                                    <div class="d-flex justify-content-end align-items-center mt-1">
-                                        ${renderProjectStatus(deriveProjectStatusFromTasks(project))}
+                                    <div class="d-flex justify-content-between">
+                                        <div class="d-flex justify-content-start align-items-center mt-1">
+                                            <span class="fs-8">${project.task_counts.total} Task</span>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center mt-1">
+                                            ${renderProjectStatus(deriveProjectStatusFromTasks(project))}
+                                        </div>
                                     </div>
                                 </div>
                             </div>

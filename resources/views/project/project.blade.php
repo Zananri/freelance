@@ -826,6 +826,7 @@
         <script src="{{ asset('asset/js/project_tree_plumb.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/project_tree.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
         <script>
