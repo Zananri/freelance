@@ -1151,7 +1151,7 @@ class ProjectController extends Controller
                             ->whereNotNull('due_date')
                             ->where('due_date', '<', now()),
                 ])
-                ->paginate(9);
+                ->paginate(27);
 
             $projectsTransformed = $projects->map(function ($project) {
                 $projectAssignments = $project->projectAssignments->map(function ($a) {
@@ -1184,6 +1184,8 @@ class ProjectController extends Controller
                     'co_authors' => $coAuthors,
                     'contributors' => $contributors,
                     'project_assignments' => $projectAssignments,
+                    'start_date' => $project->start_date,
+                    'due_date' => $project->due_date,
                     'task_counts' => [
                         'total' => $project->total_tasks,
                         'in_progress' => $project->in_progress_tasks,
@@ -1865,7 +1867,7 @@ class ProjectController extends Controller
         $response['co_authors'] = $coAuthors;
         $response['contributors'] = $contributors;
 
-   
+
     return response()->json($response);
     }
 
