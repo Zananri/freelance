@@ -1368,14 +1368,14 @@
                         try {
                             if (window.__quillTaskAdd) syncQuillToTextarea(window.__quillTaskAdd,
                                 'task_description');
-                            // Basic non-empty validation (strip whitespace)
+                            // Only enforce non-empty validation if Quill editor is present.
                             const plain = (window.__quillTaskAdd && typeof window.__quillTaskAdd.getText ===
-                                'function') ? window.__quillTaskAdd.getText().trim() : '';
-                            if (!plain) {
+                                'function') ? window.__quillTaskAdd.getText().trim() : null;
+                            if (plain === '') {
                                 e.preventDefault();
                                 e.stopImmediatePropagation();
                                 try {
-                                    window.__quillTaskAdd.focus();
+                                    window.__quillTaskAdd && window.__quillTaskAdd.focus();
                                 } catch (_) {}
                                 return false;
                             }
@@ -1389,13 +1389,14 @@
                         try {
                             if (window.__quillTaskEdit) syncQuillToTextarea(window.__quillTaskEdit,
                                 'edit_task_description');
+                            // Only enforce non-empty validation if Quill editor is present.
                             const plain = (window.__quillTaskEdit && typeof window.__quillTaskEdit.getText ===
-                                'function') ? window.__quillTaskEdit.getText().trim() : '';
-                            if (!plain) {
+                                'function') ? window.__quillTaskEdit.getText().trim() : null;
+                            if (plain === '') {
                                 e.preventDefault();
                                 e.stopImmediatePropagation();
                                 try {
-                                    window.__quillTaskEdit.focus();
+                                    window.__quillTaskEdit && window.__quillTaskEdit.focus();
                                 } catch (_) {}
                                 return false;
                             }
@@ -1582,13 +1583,14 @@
                         try {
                             if (window.__quillProjectEdit) syncQuillToTextarea(window.__quillProjectEdit,
                                 'edit_description');
+                            // Only enforce non-empty validation if Quill editor is present.
                             const plain = (window.__quillProjectEdit && typeof window.__quillProjectEdit.getText ===
-                                'function') ? window.__quillProjectEdit.getText().trim() : '';
-                            if (!plain) {
+                                'function') ? window.__quillProjectEdit.getText().trim() : null;
+                            if (plain === '') {
                                 e.preventDefault();
                                 e.stopImmediatePropagation();
                                 try {
-                                    window.__quillProjectEdit.focus();
+                                    window.__quillProjectEdit && window.__quillProjectEdit.focus();
                                 } catch (_) {}
                                 return false;
                             }
@@ -1747,6 +1749,35 @@
                         });
                     }
                 });
+                // Lightweight runtime diagnostics for Edit Project form
+                (function(){
+                    try {
+                        document.addEventListener('DOMContentLoaded', function(){
+                            try {
+                                console.debug && console.debug('[debug] project show page loaded. APP_URL=', window.APP_URL);
+                                var form = document.getElementById('editProjectForm');
+                                console.debug && console.debug('[debug] editProjectForm present:', !!form);
+                                if (form) {
+                                    var submitBtn = form.querySelector('button[type="submit"]');
+                                    console.debug && console.debug('[debug] editProjectForm submit button present:', !!submitBtn);
+                                    if (submitBtn) {
+                                        submitBtn.addEventListener('click', function (ev) {
+                                            try { console.debug && console.debug('[debug] editProjectForm submit button clicked'); } catch(_) {}
+                                        });
+                                    }
+
+                                    // Small check to show whether jQuery has attached a submit handler (best-effort)
+                                    try {
+                                        if (window.jQuery) {
+                                            var ev = jQuery._data && jQuery._data(form, 'events') ? jQuery._data(form, 'events') : null;
+                                            console.debug && console.debug('[debug] jQuery events on editProjectForm:', ev ? Object.keys(ev) : ev);
+                                        }
+                                    } catch(_) {}
+                                }
+                            } catch(e) { console.warn('project show debug inner failed', e); }
+                        });
+                    } catch(e) { console.warn('project show debug failed', e); }
+                })();
             </script>
             <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
         </x-slot>
