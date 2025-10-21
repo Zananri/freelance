@@ -2280,7 +2280,7 @@ class ProjectController extends Controller
                 ->whereIn('status',['completed','in_progress'])
             ->first();
 
-            if(!$taskExist) {
+            if($taskExist) {
                 throw new \Exception('This project has a task Active, it cannot be deleted');
             }
 
