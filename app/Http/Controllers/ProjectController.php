@@ -1042,6 +1042,12 @@ class ProjectController extends Controller
                     }
                 });
 
+            $divisionId = $request->input('division_id');
+            if ($divisionId !== null && $divisionId !== '') {
+                $query->where('division_id', $divisionId);
+            }
+
+
             // Handle sorting options
             switch ($sortBy) {
                 case 'title_asc':
