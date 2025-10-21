@@ -11,8 +11,7 @@ use App\Models\Task;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\Notification;
-use Illuminate\Support\Facades\Notification as NotificationFacade;
-use App\Notifications\ProjectNotification;
+// Notification sending disabled: imports removed
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +23,6 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use Carbon\Carbon;
-use App\Helpers\ActivityHelper;
 
 class ProjectController extends Controller
 {
@@ -188,15 +186,6 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            // record activity: project accepted
-            try {
-                ActivityHelper::record([
-                    'employee_id' => $employeeId,
-                    'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_ACCEPT',
-                    'description' => ($user?->employee?->name ?? 'Unknown') . ' accepted assignment for project: ' . ($assignment->project->title ?? $assignment->project->id),
-                ]);
-            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -310,17 +299,6 @@ class ProjectController extends Controller
      */
     public function showProjectPage()
     {
-        try {
-            $user = auth()->user();
-            $employeeId = $user && $user->employee ? $user->employee->id : null;
-            ActivityHelper::record([
-                'employee_id' => $employeeId,
-                'menu' => 'PROJECT',
-                'activity' => 'VIEW_PAGE',
-                'description' => ($user?->employee?->name ?? 'Unknown') . ' View page project',
-            ]);
-        } catch (\Throwable $_) {}
-
         return view('project/project');
     }
 
@@ -859,16 +837,6 @@ class ProjectController extends Controller
             // Add parent using the model method
             $project->addParent($parentId);
 
-            // record activity: parent added
-            try {
-                ActivityHelper::record([
-                    'employee_id' => $employeeId,
-                    'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_PARENT_ADD',
-                    'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' added parent project id: ' . $parentId . ' to project id: ' . $project->id,
-                ]);
-            } catch (\Throwable $_) {}
-
             return response()->json(['code' => 200, 'status' => 'success']);
         } catch (\Exception $e) {
             $status = $this->deriveHttpStatusFromException($e);
@@ -902,16 +870,6 @@ class ProjectController extends Controller
                 // Remove specific parent
                 $project->removeParent((int)$parentId);
             }
-
-            // record activity: parent removed / cleared
-            try {
-                ActivityHelper::record([
-                    'employee_id' => $employeeId,
-                    'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_PARENT_REMOVE',
-                    'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' removed/cleared parent id: ' . ($parentId ?? 'all') . ' for project id: ' . $project->id,
-                ]);
-            } catch (\Throwable $_) {}
 
             return response()->json(['code' => 200, 'status' => 'success']);
         } catch (\Exception $e) {
@@ -985,7 +943,7 @@ class ProjectController extends Controller
                     'data' => [],
                     'pagination' => [
                         'total' => 0,
-                        'per_page' => 50,
+                        'per_page' => 9,
                         'current_page' => 1,
                         'last_page' => 1,
                     ]
@@ -1054,11 +1012,6 @@ class ProjectController extends Controller
                         });
                     }
                 });
-            }
-
-            $divisionId = $request->input('division_id');
-            if ($divisionId !== null && $divisionId !== '') {
-                $query->where('division_id', $divisionId);
             }
 
             // Optional text search across project fields and related department/division
@@ -1198,7 +1151,7 @@ class ProjectController extends Controller
                             ->whereNotNull('due_date')
                             ->where('due_date', '<', now()),
                 ])
-                ->paginate(50);
+                ->paginate(9);
 
             $projectsTransformed = $projects->map(function ($project) {
                 $projectAssignments = $project->projectAssignments->map(function ($a) {
@@ -1231,8 +1184,6 @@ class ProjectController extends Controller
                     'co_authors' => $coAuthors,
                     'contributors' => $contributors,
                     'project_assignments' => $projectAssignments,
-                    'due_date' => $project->due_date,
-                    'start_date' => $project->start_date,
                     'task_counts' => [
                         'total' => $project->total_tasks,
                         'in_progress' => $project->in_progress_tasks,
@@ -1281,8 +1232,6 @@ class ProjectController extends Controller
      */
     public function store(Request $request)
     {
-        // debug: log incoming store request to trace caller
-        try { \Log::info('ProjectController@store called', ['user_id' => auth()->id(), 'employee_id' => auth()->user()?->employee?->id, 'input_keys' => array_keys($request->all())]); } catch (\Throwable $_) {}
         DB::beginTransaction();
         try {
             if ($request->has('co_author') && is_string($request->co_author)) {
@@ -1468,7 +1417,6 @@ class ProjectController extends Controller
             // Insert co_author assignments and create notifications
             if ($request->co_author && is_array($request->co_author)) {
                 $coAuthorAssignments = [];
-                $coAuthorNotifiables = [];
                 foreach ($request->co_author as $employeeId) {
                     if (!Employee::where('id', $employeeId)->exists()) {
                         throw new \Exception("Co-author employee ID {$employeeId} does not exist");
@@ -1495,35 +1443,13 @@ class ProjectController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ]);
-                    // prepare mail notifiable (prefer related user)
-                    try {
-                        $empModel = Employee::find($employeeId);
-                        if ($empModel) {
-                            if (isset($empModel->user) && $empModel->user) {
-                                $coAuthorNotifiables[] = $empModel->user;
-                            } elseif (!empty($empModel->email)) {
-                                $coAuthorNotifiables[] = new class($empModel->email) {
-                                    public $email;
-                                    public function __construct($email) { $this->email = $email; }
-                                    public function routeNotificationForMail() { return $this->email; }
-                                };
-                            }
-                        }
-                    } catch (\Throwable $_) {}
                 }
                 ProjectAssignment::insert($coAuthorAssignments);
-                // Send email notifications to co-authors
-                try {
-                    if (!empty($coAuthorNotifiables)) {
-                        NotificationFacade::send($coAuthorNotifiables, new ProjectNotification($project, auth()->user()));
-                    }
-                } catch (\Throwable $_) {}
             }
 
             // Insert contributor assignments and create notifications
             if ($request->contributors && is_array($request->contributors)) {
                 $contributorAssignments = [];
-                $contributorNotifiables = [];
                 foreach ($request->contributors as $employeeId) {
                     if (!Employee::where('id', $employeeId)->exists()) {
                         throw new \Exception("Contributor employee ID {$employeeId} does not exist");
@@ -1550,41 +1476,11 @@ class ProjectController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ]);
-                    // prepare mail notifiable (prefer related user)
-                    try {
-                        $empModel = Employee::find($employeeId);
-                        if ($empModel) {
-                            if (isset($empModel->user) && $empModel->user) {
-                                $contributorNotifiables[] = $empModel->user;
-                            } elseif (!empty($empModel->email)) {
-                                $contributorNotifiables[] = new class($empModel->email) {
-                                    public $email;
-                                    public function __construct($email) { $this->email = $email; }
-                                    public function routeNotificationForMail() { return $this->email; }
-                                };
-                            }
-                        }
-                    } catch (\Throwable $_) {}
                 }
                 ProjectAssignment::insert($contributorAssignments);
-                // Send email notifications to contributors
-                try {
-                    if (!empty($contributorNotifiables)) {
-                        NotificationFacade::send($contributorNotifiables, new ProjectNotification($project, auth()->user()));
-                    }
-                } catch (\Throwable $_) {}
             }
 
             DB::commit();
-            // record activity: project created
-            try {
-                ActivityHelper::record([
-                    'employee_id' => $authEmp?->id,
-                    'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_CREATE',
-                    'description' => ($authEmp?->name ?? 'Unknown') . ' created project: ' . ($project->title ?? $project->id),
-                ]);
-            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -1925,50 +1821,17 @@ class ProjectController extends Controller
     {
         $user = auth()->user();
         $employee = $user->employee ?? null;
-        $employeeId = $employee?->id ?? null;
+        $deptId = $employee->department_id ?? null;
 
         $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])
             ->findOrFail($id);
 
-        $canSeeAll = false;
-        try {
-            $userType = strtoupper((string) ($user->user_type ?? ''));
-            $userRole = strtoupper((string) ($user->user_role ?? ''));
-            if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
-                $canSeeAll = true;
-            }
-            if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
-                $canSeeAll = true;
-            }
-        } catch (\Throwable $_) { $canSeeAll = false; }
-
-        $deptId = $employee?->department_id ?? null;
-
-        if (!$employeeId && !$canSeeAll) {
+        if ($deptId && $project->department_id != $deptId) {
             return response()->json([
                 'code' => 403,
                 'status' => 'error',
                 'message' => 'You are not authorized to access this project.'
             ], 403);
-        }
-
-        if (!$canSeeAll) {
-            // Allow when user belongs to same department as the project (previous behavior)
-            if ($deptId && $project->department_id == $deptId) {
-                // allowed
-            } else {
-                $isAssigned = ProjectAssignment::where('project_id', $project->id)
-                    ->where('employee_id', $employeeId)
-                    ->whereIn('role', ['author', 'co_author', 'contributor'])
-                    ->exists();
-                if (!$isAssigned) {
-                    return response()->json([
-                        'code' => 403,
-                        'status' => 'error',
-                        'message' => 'You are not authorized to access this project.'
-                    ], 403);
-                }
-            }
         }
 
         $coAuthors = [];
@@ -2002,14 +1865,12 @@ class ProjectController extends Controller
         $response['co_authors'] = $coAuthors;
         $response['contributors'] = $contributors;
 
-        return response()->json($response);
+        return response()->json(['data' => $response]);
     }
 
     public function update(Request $request, string $id)
     {
         DB::beginTransaction();
-        // debug: log incoming update request to trace caller
-        try { \Log::info('ProjectController@update called', ['project_id' => $id, 'user_id' => auth()->id(), 'employee_id' => auth()->user()?->employee?->id, 'input_keys' => array_keys($request->all())]); } catch (\Throwable $_) {}
         try {
             $project = Project::findOrFail($id);
             $authEmp = auth()->user()->employee ?? null;
@@ -2263,15 +2124,6 @@ class ProjectController extends Controller
             }
 
             DB::commit();
-            // record activity: project updated
-            try {
-                ActivityHelper::record([
-                    'employee_id' => $authEmp?->id,
-                    'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_UPDATE',
-                    'description' => ($authEmp?->name ?? 'Unknown') . ' updated project: ' . ($project->title ?? $project->id),
-                ]);
-            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2295,8 +2147,6 @@ class ProjectController extends Controller
      */
     public function destroy(string $id)
     {
-        // debug: log incoming destroy request to trace caller
-        try { \Log::info('ProjectController@destroy called', ['project_id' => $id, 'user_id' => auth()->id(), 'employee_id' => auth()->user()?->employee?->id]); } catch (\Throwable $_) {}
         DB::beginTransaction();
         try {
             $project = Project::findOrFail($id);
@@ -2318,16 +2168,6 @@ class ProjectController extends Controller
             $project->save();
 
             DB::commit();
-
-            // record activity: project deleted
-            try {
-                ActivityHelper::record([
-                    'employee_id' => auth()->user()?->employee?->id,
-                    'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_DELETE',
-                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' deleted project: ' . ($project->title ?? $project->id),
-                ]);
-            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2402,17 +2242,7 @@ class ProjectController extends Controller
             $project->save();
 
             DB::commit();
-                // record activity: reference file removed
-                try {
-                    ActivityHelper::record([
-                        'employee_id' => $employeeId,
-                        'menu' => 'PROJECT',
-                        'activity' => 'REFERENCE_FILE_DELETE',
-                        'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' removed reference file ' . $filename . ' from project: ' . ($project->title ?? $project->id),
-                    ]);
-                } catch (\Throwable $_) {}
-
-                return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Reference file removed successfully']);
+            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Reference file removed successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
@@ -2472,17 +2302,7 @@ class ProjectController extends Controller
             $project->save();
 
             DB::commit();
-                // record activity: reference files added
-                try {
-                    ActivityHelper::record([
-                        'employee_id' => $employeeId,
-                        'menu' => 'PROJECT',
-                        'activity' => 'REFERENCE_FILE_ADD',
-                        'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' uploaded ' . count($stored) . ' reference file(s) to project: ' . ($project->title ?? $project->id),
-                    ]);
-                } catch (\Throwable $_) {}
-
-                return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Files uploaded', 'reference_files' => $merged]);
+            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Files uploaded', 'reference_files' => $merged]);
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
@@ -2698,16 +2518,6 @@ class ProjectController extends Controller
 
             DB::commit();
 
-            // record activity: project feedback created
-            try {
-                ActivityHelper::record([
-                    'employee_id' => auth()->user()?->employee?->id,
-                    'menu' => 'PROJECT',
-                    'activity' => 'FEEDBACK_CREATE',
-                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' added feedback to project id: ' . ($feedback->project_id ?? '' ),
-                ]);
-            } catch (\Throwable $_) {}
-
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
@@ -2835,16 +2645,6 @@ class ProjectController extends Controller
 
             DB::commit();
 
-            // record activity: project feedback updated
-            try {
-                ActivityHelper::record([
-                    'employee_id' => $currentEmployeeId,
-                    'menu' => 'PROJECT',
-                    'activity' => 'FEEDBACK_UPDATE',
-                    'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' updated feedback id: ' . ($feedback->id ?? ''),
-                ]);
-            } catch (\Throwable $_) {}
-
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
@@ -2886,21 +2686,11 @@ class ProjectController extends Controller
 
             DB::commit();
 
-                // record activity: project feedback deleted
-                try {
-                    ActivityHelper::record([
-                        'employee_id' => $currentEmployeeId,
-                        'menu' => 'PROJECT',
-                        'activity' => 'FEEDBACK_DELETE',
-                        'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' deleted feedback id: ' . ($feedback->id ?? ''),
-                    ]);
-                } catch (\Throwable $_) {}
-
-                return response()->json([
-                    'code' => 200,
-                    'status' => 'success',
-                    'message' => 'Feedback deleted successfully',
-                ]);
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Feedback deleted successfully',
+            ]);
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
@@ -3515,16 +3305,6 @@ class ProjectController extends Controller
             $tempFile = tempnam(sys_get_temp_dir(), 'project_export');
             $writer->save($tempFile);
 
-            // record activity: project export (bulk)
-            try {
-                ActivityHelper::record([
-                    'employee_id' => auth()->user()?->employee?->id,
-                    'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_EXPORT',
-                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' exported projects report',
-                ]);
-            } catch (\Throwable $_) {}
-
             return response()->download($tempFile, $filename, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])->deleteFileAfterSend(true);
@@ -3774,16 +3554,6 @@ class ProjectController extends Controller
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
             $tempFile = tempnam(sys_get_temp_dir(), 'project_export_single');
             $writer->save($tempFile);
-            // record activity: project export (single)
-            try {
-                ActivityHelper::record([
-                    'employee_id' => auth()->user()?->employee?->id,
-                    'menu' => 'PROJECT',
-                    'activity' => 'PROJECT_EXPORT',
-                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' exported project id: ' . $project->id,
-                ]);
-            } catch (\Throwable $_) {}
-
             return response()->download($tempFile, $filename, [
                 'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             ])->deleteFileAfterSend(true);
