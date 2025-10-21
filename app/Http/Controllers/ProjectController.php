@@ -1921,7 +1921,6 @@ class ProjectController extends Controller
         $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])
             ->findOrFail($id);
 
-        // Determine if user has elevated privileges (management/administrator)
         $canSeeAll = false;
         try {
             $userType = strtoupper((string) ($user->user_type ?? ''));
