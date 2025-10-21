@@ -1139,6 +1139,9 @@ class ProjectController extends Controller
                     'tasks as in_progress_tasks' => function ($q) {
                         $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'rejected']);
                     },
+                    'tasks as new_reques_tasks' => function ($q) {
+                        $q->where('status', 'new_request');
+                    },
                     'tasks as completed_tasks' => function ($q) {
                         $q->where('status', 'completed');
                     },
@@ -1183,6 +1186,7 @@ class ProjectController extends Controller
                     'task_counts' => [
                         'total' => $project->total_tasks,
                         'in_progress' => $project->in_progress_tasks,
+                        'new_request' => $project->new_reques_tasks,
                         'completed' => $project->completed_tasks,
                         'late' => $project->late_tasks,
                     ]
