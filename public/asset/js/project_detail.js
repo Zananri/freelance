@@ -8221,6 +8221,7 @@
         $(document)
             .off("submit", "#editProjectForm")
             .on("submit", "#editProjectForm", function (e) {
+                try { console.debug && console.debug('[debug] editProjectForm submit handler invoked'); } catch(_) {}
                 e.preventDefault();
                 if (isSubmitting) return;
                 isSubmitting = true;
