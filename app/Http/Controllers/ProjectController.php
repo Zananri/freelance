@@ -11,6 +11,8 @@ use App\Models\Task;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\Notification;
+use Illuminate\Support\Facades\Notification as NotificationFacade;
+use App\Notifications\ProjectNotification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
@@ -1416,6 +1418,7 @@ class ProjectController extends Controller
             // Insert co_author assignments and create notifications
             if ($request->co_author && is_array($request->co_author)) {
                 $coAuthorAssignments = [];
+                $coAuthorNotifiables = [];
                 foreach ($request->co_author as $employeeId) {
                     if (!Employee::where('id', $employeeId)->exists()) {
                         throw new \Exception("Co-author employee ID {$employeeId} does not exist");
@@ -1442,13 +1445,35 @@ class ProjectController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ]);
+                    // prepare mail notifiable (prefer related user)
+                    try {
+                        $empModel = Employee::find($employeeId);
+                        if ($empModel) {
+                            if (isset($empModel->user) && $empModel->user) {
+                                $coAuthorNotifiables[] = $empModel->user;
+                            } elseif (!empty($empModel->email)) {
+                                $coAuthorNotifiables[] = new class($empModel->email) {
+                                    public $email;
+                                    public function __construct($email) { $this->email = $email; }
+                                    public function routeNotificationForMail() { return $this->email; }
+                                };
+                            }
+                        }
+                    } catch (\Throwable $_) {}
                 }
                 ProjectAssignment::insert($coAuthorAssignments);
+                // Send email notifications to co-authors
+                try {
+                    if (!empty($coAuthorNotifiables)) {
+                        NotificationFacade::send($coAuthorNotifiables, new ProjectNotification($project, auth()->user()));
+                    }
+                } catch (\Throwable $_) {}
             }
 
             // Insert contributor assignments and create notifications
             if ($request->contributors && is_array($request->contributors)) {
                 $contributorAssignments = [];
+                $contributorNotifiables = [];
                 foreach ($request->contributors as $employeeId) {
                     if (!Employee::where('id', $employeeId)->exists()) {
                         throw new \Exception("Contributor employee ID {$employeeId} does not exist");
@@ -1475,8 +1500,29 @@ class ProjectController extends Controller
                         'updated_at' => now(),
                         'created_at' => now(),
                     ]);
+                    // prepare mail notifiable (prefer related user)
+                    try {
+                        $empModel = Employee::find($employeeId);
+                        if ($empModel) {
+                            if (isset($empModel->user) && $empModel->user) {
+                                $contributorNotifiables[] = $empModel->user;
+                            } elseif (!empty($empModel->email)) {
+                                $contributorNotifiables[] = new class($empModel->email) {
+                                    public $email;
+                                    public function __construct($email) { $this->email = $email; }
+                                    public function routeNotificationForMail() { return $this->email; }
+                                };
+                            }
+                        }
+                    } catch (\Throwable $_) {}
                 }
                 ProjectAssignment::insert($contributorAssignments);
+                // Send email notifications to contributors
+                try {
+                    if (!empty($contributorNotifiables)) {
+                        NotificationFacade::send($contributorNotifiables, new ProjectNotification($project, auth()->user()));
+                    }
+                } catch (\Throwable $_) {}
             }
 
             DB::commit();
