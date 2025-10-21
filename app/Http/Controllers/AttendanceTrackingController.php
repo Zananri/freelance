@@ -99,9 +99,9 @@ class AttendanceTrackingController extends Controller
                 ->where('date_attendance', $dateAttendance)
             ->first();
  
-            if(!$attendance){
-                throw new \Exception('Attendance not found');
-            }
+            // if(!$attendance){
+            //     throw new \Exception('Attendance not found');
+            // }
 
             $employee = Employee::where('id', $employeeId)->first();
 
@@ -109,8 +109,12 @@ class AttendanceTrackingController extends Controller
                 throw new \Exception('Employee not found');
             }
 
-            $attendanceTracking = AttendanceTracking::where('attendance_id', $attendance->id)
-            ->get();
+            $attendanceTracking = [];
+
+            if($attendance){
+                $attendanceTracking = AttendanceTracking::where('attendance_id', $attendance->id)
+                ->get();
+            }
             
 
             return response()->json([
