@@ -1865,7 +1865,8 @@ class ProjectController extends Controller
         $response['co_authors'] = $coAuthors;
         $response['contributors'] = $contributors;
 
-        return response()->json(['data' => $response]);
+   
+    return response()->json($response);
     }
 
     public function update(Request $request, string $id)
