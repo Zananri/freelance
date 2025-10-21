@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Helpers\TaskAssignmentLogService;
 use App\Models\TaskAssignmentLog;
+use App\Helpers\ActivityHelper;
 // use Illuminate\Support\Carbon; // not used directly
 
 class TaskController extends Controller
@@ -186,6 +187,17 @@ class TaskController extends Controller
      */
     public function showTaskPage()
     {
+        try {
+            $user = auth()->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            ActivityHelper::record([
+                'employee_id' => $employeeId,
+                'menu' => 'TASK',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($user?->employee?->name ?? 'Unknown') . ' View page task',
+            ]);
+        } catch (\Throwable $_) {}
+
         return view('task/task');
     }
 

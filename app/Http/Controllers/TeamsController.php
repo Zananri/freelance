@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\Job;
+use App\Helpers\ActivityHelper;
 
 class TeamsController extends Controller
 {
@@ -42,6 +43,17 @@ class TeamsController extends Controller
         $department = Department::where('status',"ACTIVE")->get();
         $division = Division::where('status',"ACTIVE")->where('department_id',$currentEmployee->department_id)->get();
         $job = Job::where('status',"ACTIVE")->get();
+
+        try {
+            $user = auth()->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            ActivityHelper::record([
+                'employee_id' => $employeeId,
+                'menu' => 'TEAMS',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($user?->employee?->name ?? 'Unknown') . ' View page teams',
+            ]);
+        } catch (\Throwable $_) {}
 
         return view('teams.teams',[
             'employee' => $employee,

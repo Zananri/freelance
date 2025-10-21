@@ -14,6 +14,7 @@ use App\Models\AttendanceTracking;
 use App\Models\EmployeeShift;
 use App\Models\Project;
 use App\Models\ProjectAssignment;
+use App\Helpers\ActivityHelper;
 
 class DashboardController extends Controller
 {
@@ -107,6 +108,16 @@ class DashboardController extends Controller
             ->where('status',"ACTIVE")
             ->orderBy('id','desc')
         ->get();
+
+        // record activity
+        try {
+            ActivityHelper::record([
+                'employee_id' => $currentEmployee?->id,
+                'menu' => 'DASHBOARD',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($currentEmployee?->name ?? 'Unknown') . ' View page dashboard (management)',
+            ]);
+        } catch (\Throwable $_) {}
 
         return view('dashboard_management',
             [
@@ -264,9 +275,20 @@ class DashboardController extends Controller
         
 
 
+        try {
+            ActivityHelper::record([
+                'employee_id' => $employee?->id,
+                'menu' => 'DASHBOARD',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($employee?->name ?? 'Unknown') . ' View page dashboard',
+            ]);
+        } catch (\Throwable $_) {}
+
         return view('dashboard', compact('employee','office', 'attendance','employeeShift','todayDate','isLate','timeIn','timeOut','atendanceTrackingCheckin','atendanceTrackingCheckout'));
     
     }
+
+    // Add activity logging for dashboard_employee views is done above where view is returned
 
 
     // 'Present'

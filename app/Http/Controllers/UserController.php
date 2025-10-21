@@ -13,6 +13,7 @@ use App\Models\EmployeeShift;
 use App\Helpers\DeviceHelper;
 use App\Models\UserAuthLog;
 use App\Helpers\RequestHelper;
+use App\Helpers\ActivityHelper;
 
 class UserController extends Controller
 {
@@ -249,6 +250,15 @@ class UserController extends Controller
                 $photo = asset($photo);
             }
         }
+
+        try {
+            ActivityHelper::record([
+                'employee_id' => $employee?->id,
+                'menu' => 'DASHBOARD',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($employee?->name ?? 'Unknown') . ' View page dashboard',
+            ]);
+        } catch (\Throwable $_) {}
 
         return view('dashboard', compact('photo', 'employee', 'attendance', 'attendanceStatus', 'shift', 'isLate', 'timeIn'));
     }
