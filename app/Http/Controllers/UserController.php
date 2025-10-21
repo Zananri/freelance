@@ -96,7 +96,7 @@ class UserController extends Controller
             } catch (\Exception $e) {
                 \Log::error('Failed to record activity tracking on login: ' . $e->getMessage());
             }
-            return redirect('/dashboard')->with('success', 'Login successful!');
+            return redirect()->intended('/dashboard')->with('success', 'Login successful!');
         }
         // Log failed login attempt (record attempt even when credentials incorrect)
         try {
