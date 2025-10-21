@@ -2697,12 +2697,6 @@ class ProjectController extends Controller
             $feedback->save();
 
             DB::commit();
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'message' => 'Feedback added successfully',
-                'feedback' => $feedback
-            ]);
 
             // record activity: project feedback created
             try {
@@ -2710,7 +2704,7 @@ class ProjectController extends Controller
                     'employee_id' => auth()->user()?->employee?->id,
                     'menu' => 'PROJECT',
                     'activity' => 'FEEDBACK_CREATE',
-                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' added feedback to project: ' . ($feedback->project_id ?? '' ),
+                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' added feedback to project id: ' . ($feedback->project_id ?? '' ),
                 ]);
             } catch (\Throwable $_) {}
 
@@ -2840,12 +2834,6 @@ class ProjectController extends Controller
             $feedback->save();
 
             DB::commit();
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'message' => 'Project feedback updated successfully',
-                'data' => $feedback,
-            ]);
 
             // record activity: project feedback updated
             try {
