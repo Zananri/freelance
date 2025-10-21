@@ -234,7 +234,7 @@
                         </a>
                     </li>
 
-                    @if (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE']))
+                    @if (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE','PERSONAL_ASSISTANT']))
 
 
                     <li>
@@ -246,7 +246,7 @@
                     </li>
                     @endif
 
-                    @if (in_array(Auth::user()->user_type,['REGULAR','MANAGEMENT']) && in_array(Auth::user()->user_role,['EMPLOYEE','HR_MANAGER']))
+                    @if (in_array(Auth::user()->user_type,['REGULAR','MANAGEMENT']) && in_array(Auth::user()->user_role,['EMPLOYEE','HR_MANAGER','PERSONAL_ASSISTANT']))
                     
                     <li>
                         <a href="{{ url('task') }}" class="{{ $menu_active == 'task' ? 'active' : '' }}">
