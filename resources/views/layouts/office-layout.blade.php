@@ -518,7 +518,8 @@
 
                         // Send POST to /activity/log (same-origin, uses CSRF token)
                         var token = getCsrfToken();
-                        fetch('/activity/log', {
+                        var base = (document.querySelector('meta[name="app-url"]') && document.querySelector('meta[name="app-url"]').getAttribute('content')) ? document.querySelector('meta[name="app-url"]').getAttribute('content').replace(/\/$/, '') : '';
+                        fetch((base ? base : '') + '/activity/log', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
