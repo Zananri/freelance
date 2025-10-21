@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use App\Models\Employee;
 use App\Models\EmployeeLeave;
 use App\Models\EmployeeLeaveRequest;
+use App\Helpers\ActivityHelper;
 
 
 class EmployeeTimeOffController extends Controller
@@ -130,6 +131,16 @@ class EmployeeTimeOffController extends Controller
             //leave_type start_date end_date description file_pdf file_photo
 
             DB::commit();
+
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employee?->id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'TIME_OFF_REQUEST',
+                    'description' => ($employee?->name ?? 'Unknown') . ' created time off request',
+                    'date_time_activity' => $now,
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -266,6 +277,16 @@ class EmployeeTimeOffController extends Controller
 
             DB::commit();
 
+                try {
+                    ActivityHelper::record([
+                        'employee_id' => $employee?->id,
+                        'menu' => 'ATTENDANCE',
+                        'activity' => 'TIME_OFF_EDIT',
+                        'description' => ($employee?->name ?? 'Unknown') . ' edited time off request',
+                        'date_time_activity' => Carbon::now(),
+                    ]);
+                } catch (\Throwable $_) {}
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
@@ -319,6 +340,16 @@ class EmployeeTimeOffController extends Controller
             $employeeLeaveRequest->save();
 
             DB::commit();
+
+                try {
+                    ActivityHelper::record([
+                        'employee_id' => $employee?->id,
+                        'menu' => 'ATTENDANCE',
+                        'activity' => 'TIME_OFF_DELETE',
+                        'description' => ($employee?->name ?? 'Unknown') . ' deleted time off request',
+                        'date_time_activity' => Carbon::now(),
+                    ]);
+                } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,

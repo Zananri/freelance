@@ -13,6 +13,7 @@ use App\Models\EmployeeShift;
 use App\Helpers\DeviceHelper;
 use App\Models\UserAuthLog;
 use App\Helpers\RequestHelper;
+use App\Helpers\ActivityHelper;
 
 class UserController extends Controller
 {
@@ -96,7 +97,7 @@ class UserController extends Controller
             } catch (\Exception $e) {
                 \Log::error('Failed to record activity tracking on login: ' . $e->getMessage());
             }
-            return redirect('/dashboard')->with('success', 'Login successful!');
+            return redirect()->intended('/dashboard')->with('success', 'Login successful!');
         }
         // Log failed login attempt (record attempt even when credentials incorrect)
         try {
@@ -249,6 +250,15 @@ class UserController extends Controller
                 $photo = asset($photo);
             }
         }
+
+        try {
+            ActivityHelper::record([
+                'employee_id' => $employee?->id,
+                'menu' => 'DASHBOARD',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($employee?->name ?? 'Unknown') . ' View page dashboard',
+            ]);
+        } catch (\Throwable $_) {}
 
         return view('dashboard', compact('photo', 'employee', 'attendance', 'attendanceStatus', 'shift', 'isLate', 'timeIn'));
     }

@@ -25,6 +25,14 @@
     <meta name="app-url" content="{{ url('/') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    <script>
+        // Expose minimal user info to client-side logging
+        window.AppUser = {
+            name: "{{ Auth::check() ? addslashes(Auth::user()->name) : '' }}",
+            employee_id: "{{ Auth::check() && auth()->user()->employee ? auth()->user()->employee->id : '' }}"
+        };
+    </script>
+
     <script src="{{ asset('asset/js/office_nav.js?v=' . time()) }}"></script>
 
     <link rel="icon" href="{{ asset('asset/img/favicon.ico') }}" type="image/x-icon">
@@ -470,6 +478,71 @@
     @isset($script_slot)
     {{ $script_slot }}
     @endisset
+
+    <script>
+        // Global listener: when any Bootstrap modal is shown, log a client-side activity
+        (function(){
+            function deriveMenuFromPath(path) {
+                path = (path || '/').toLowerCase();
+                if (path.startsWith('/project')) return 'PROJECT';
+                if (path.startsWith('/task')) return 'TASK';
+                if (path.startsWith('/attendance')) return 'ATTENDANCE';
+                if (path === '/' || path.startsWith('/dashboard')) return 'DASHBOARD';
+                if (path.startsWith('/teams')) return 'TEAMS';
+                if (path.startsWith('/calendar')) return 'CALENDAR';
+                if (path.startsWith('/profile')) return 'PROFILE';
+                return 'UNKNOWN';
+            }
+
+            function getCsrfToken() {
+                var m = document.querySelector('meta[name="csrf-token"]');
+                return m ? m.getAttribute('content') : null;
+            }
+
+            try {
+                document.addEventListener('show.bs.modal', function (ev) {
+                    try {
+                        var modal = ev.target;
+                        if (!modal) return;
+                        var modalId = modal.id || null;
+                        var title = null;
+                        var titleEl = modal.querySelector('.modal-title');
+                        if (titleEl) title = titleEl.textContent.trim();
+
+                        var menu = deriveMenuFromPath(window.location.pathname || location.pathname);
+
+                        var description = '';
+                        if (title) description = title + (modalId ? ' (' + modalId + ')' : '');
+                        else if (modalId) description = modalId;
+                        else description = 'Opened a modal on ' + window.location.pathname;
+
+                        // Send POST to /activity/log (same-origin, uses CSRF token)
+                        var token = getCsrfToken();
+                        fetch('/activity/log', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': token
+                            },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({
+                                    menu: menu,
+                                    activity: 'MODAL_OPEN',
+                                    description: ((window.AppUser && window.AppUser.name) ? (window.AppUser.name + ' ') : '') + description
+                                })
+                        }).catch(function(err){
+                            // ignore logging errors
+                            console.debug('Activity log failed', err);
+                        });
+                    } catch (e) {
+                        // swallow
+                    }
+                }, true);
+            } catch (e) {
+                // swallow
+            }
+        })();
+    </script>
 
 
 

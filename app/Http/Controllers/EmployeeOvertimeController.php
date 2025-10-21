@@ -12,6 +12,7 @@ use Carbon\Carbon;
 
 use App\Models\Employee;
 use App\Models\EmployeeOvertime;
+use App\Helpers\ActivityHelper;
 
 class EmployeeOvertimeController extends Controller
 {
@@ -109,6 +110,16 @@ class EmployeeOvertimeController extends Controller
 
             DB::commit();
 
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employee?->id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'OVERTIME_START',
+                    'description' => ($employee?->name ?? 'Unknown') . ' started overtime request',
+                    'date_time_activity' => $now,
+                ]);
+            } catch (\Throwable $_) {}
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
@@ -201,6 +212,16 @@ class EmployeeOvertimeController extends Controller
 
 
             DB::commit();
+
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employee?->id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'OVERTIME_STOP',
+                    'description' => ($employee?->name ?? 'Unknown') . ' stopped overtime request',
+                    'date_time_activity' => $now,
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,

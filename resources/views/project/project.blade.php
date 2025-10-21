@@ -198,6 +198,7 @@
                                         <option value="ongoing">Not Started</option>
                                         <option value="pending">In Progress</option>
                                         <option value="completed">Completed</option>
+                                        <option value="late">Late</option>
                                     </select>
                                 </div>
 

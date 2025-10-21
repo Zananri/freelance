@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use App\Helpers\TaskAssignmentLogService;
 use App\Models\TaskAssignmentLog;
+use App\Helpers\ActivityHelper;
 // use Illuminate\Support\Carbon; // not used directly
 
 class TaskController extends Controller
@@ -186,6 +187,17 @@ class TaskController extends Controller
      */
     public function showTaskPage()
     {
+        try {
+            $user = auth()->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+            ActivityHelper::record([
+                'employee_id' => $employeeId,
+                'menu' => 'TASK',
+                'activity' => 'VIEW_PAGE',
+                'description' => ($user?->employee?->name ?? 'Unknown') . ' View page task',
+            ]);
+        } catch (\Throwable $_) {}
+
         return view('task/task');
     }
 
@@ -500,6 +512,17 @@ class TaskController extends Controller
             $this->deleteFeedbackCascade($feedback);
 
             DB::commit();
+
+            try {
+                $user = $request->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                ActivityHelper::record([
+                    'employee_id' => $employeeId,
+                    'menu' => 'TASK',
+                    'activity' => 'FEEDBACK_DELETE',
+                    'description' => ($user?->employee?->name ?? 'Unknown') . ' deleted feedback id: ' . ($feedback->id ?? ''),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -1526,6 +1549,17 @@ class TaskController extends Controller
             }
 
             DB::commit();
+            try {
+                // Record activity: task created
+                $user = $request->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                ActivityHelper::record([
+                    'employee_id' => $employeeId,
+                    'menu' => 'TASK',
+                    'activity' => 'TASK_CREATE',
+                    'description' => ($user?->employee?->name ?? 'Unknown') . ' created task: ' . ($task->title ?? ('#' . $task->id)),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2259,6 +2293,17 @@ class TaskController extends Controller
 
             DB::commit();
 
+            try {
+                $user = $request->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                ActivityHelper::record([
+                    'employee_id' => $employeeId,
+                    'menu' => 'TASK',
+                    'activity' => 'TASK_UPDATE',
+                    'description' => ($user?->employee?->name ?? 'Unknown') . ' updated task: ' . ($task->title ?? ('#' . $task->id)),
+                ]);
+            } catch (\Throwable $_) {}
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
@@ -2314,6 +2359,17 @@ class TaskController extends Controller
             $task->save();
 
             DB::commit();
+
+            try {
+                $user = auth()->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                ActivityHelper::record([
+                    'employee_id' => $employeeId,
+                    'menu' => 'TASK',
+                    'activity' => 'TASK_DELETE',
+                    'description' => ($user?->employee?->name ?? 'Unknown') . ' deleted/canceled task: ' . ($task->title ?? ('#' . $task->id)),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2935,6 +2991,17 @@ class TaskController extends Controller
 
             DB::commit();
 
+            try {
+                $user = $request->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                ActivityHelper::record([
+                    'employee_id' => $employeeId,
+                    'menu' => 'TASK',
+                    'activity' => 'FEEDBACK_CREATE',
+                    'description' => ($user?->employee?->name ?? 'Unknown') . ' added feedback on task #' . ($data['task_id'] ?? ''),
+                ]);
+            } catch (\Throwable $_) {}
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
@@ -3124,6 +3191,17 @@ class TaskController extends Controller
             $feedback->save();
 
             DB::commit();
+
+            try {
+                $user = $request->user();
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+                ActivityHelper::record([
+                    'employee_id' => $employeeId,
+                    'menu' => 'TASK',
+                    'activity' => 'FEEDBACK_UPDATE',
+                    'description' => ($user?->employee?->name ?? 'Unknown') . ' updated feedback id: ' . ($feedback->id ?? ''),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
