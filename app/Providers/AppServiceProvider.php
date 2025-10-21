@@ -3,8 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use App\Models\Project;
-use App\Observers\ProjectObserver;
+// Project observer disabled (removed to stop automatic email notifications)
+// use App\Models\Project;
+// use App\Observers\ProjectObserver;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Register model observers
-        Project::observe(ProjectObserver::class);
+    // Project observers disabled to prevent email sending while debugging
+    // Project::observe(ProjectObserver::class);
     }
 }
