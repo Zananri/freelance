@@ -188,6 +188,15 @@ class ProjectController extends Controller
             }
 
             DB::commit();
+            // record activity: project created
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $authEmp?->id,
+                    'menu' => 'PROJECT',
+                    'activity' => 'PROJECT_CREATE',
+                    'description' => ($authEmp?->name ?? 'Unknown') . ' created project: ' . ($project->title ?? $project->id),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -850,6 +859,16 @@ class ProjectController extends Controller
             // Add parent using the model method
             $project->addParent($parentId);
 
+            // record activity: parent added
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employeeId,
+                    'menu' => 'PROJECT',
+                    'activity' => 'PROJECT_PARENT_ADD',
+                    'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' added parent project id: ' . $parentId . ' to project id: ' . $project->id,
+                ]);
+            } catch (\Throwable $_) {}
+
             return response()->json(['code' => 200, 'status' => 'success']);
         } catch (\Exception $e) {
             $status = $this->deriveHttpStatusFromException($e);
@@ -883,6 +902,16 @@ class ProjectController extends Controller
                 // Remove specific parent
                 $project->removeParent((int)$parentId);
             }
+
+            // record activity: parent removed / cleared
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employeeId,
+                    'menu' => 'PROJECT',
+                    'activity' => 'PROJECT_PARENT_REMOVE',
+                    'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' removed/cleared parent id: ' . ($parentId ?? 'all') . ' for project id: ' . $project->id,
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json(['code' => 200, 'status' => 'success']);
         } catch (\Exception $e) {
@@ -1538,6 +1567,15 @@ class ProjectController extends Controller
             }
 
             DB::commit();
+            // record activity: project updated
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $authEmp?->id,
+                    'menu' => 'PROJECT',
+                    'activity' => 'PROJECT_UPDATE',
+                    'description' => ($authEmp?->name ?? 'Unknown') . ' updated project: ' . ($project->title ?? $project->id),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2181,6 +2219,15 @@ class ProjectController extends Controller
             }
 
             DB::commit();
+            // record activity: project deleted
+            try {
+                ActivityHelper::record([
+                    'employee_id' => auth()->user()?->employee?->id,
+                    'menu' => 'PROJECT',
+                    'activity' => 'PROJECT_DELETE',
+                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' deleted project: ' . ($project->title ?? $project->id),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2299,7 +2346,17 @@ class ProjectController extends Controller
             $project->save();
 
             DB::commit();
-            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Reference file removed successfully']);
+                // record activity: reference file removed
+                try {
+                    ActivityHelper::record([
+                        'employee_id' => $employeeId,
+                        'menu' => 'PROJECT',
+                        'activity' => 'REFERENCE_FILE_DELETE',
+                        'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' removed reference file ' . $filename . ' from project: ' . ($project->title ?? $project->id),
+                    ]);
+                } catch (\Throwable $_) {}
+
+                return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Reference file removed successfully']);
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
@@ -2359,7 +2416,17 @@ class ProjectController extends Controller
             $project->save();
 
             DB::commit();
-            return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Files uploaded', 'reference_files' => $merged]);
+                // record activity: reference files added
+                try {
+                    ActivityHelper::record([
+                        'employee_id' => $employeeId,
+                        'menu' => 'PROJECT',
+                        'activity' => 'REFERENCE_FILE_ADD',
+                        'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' uploaded ' . count($stored) . ' reference file(s) to project: ' . ($project->title ?? $project->id),
+                    ]);
+                } catch (\Throwable $_) {}
+
+                return response()->json(['code' => 200, 'status' => 'success', 'message' => 'Files uploaded', 'reference_files' => $merged]);
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
@@ -2574,6 +2641,22 @@ class ProjectController extends Controller
             $feedback->save();
 
             DB::commit();
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Feedback added successfully',
+                'feedback' => $feedback
+            ]);
+
+            // record activity: project feedback created
+            try {
+                ActivityHelper::record([
+                    'employee_id' => auth()->user()?->employee?->id,
+                    'menu' => 'PROJECT',
+                    'activity' => 'FEEDBACK_CREATE',
+                    'description' => (auth()->user()?->employee?->name ?? 'Unknown') . ' added feedback to project: ' . ($feedback->project_id ?? '' ),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2701,6 +2784,22 @@ class ProjectController extends Controller
             $feedback->save();
 
             DB::commit();
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'message' => 'Project feedback updated successfully',
+                'data' => $feedback,
+            ]);
+
+            // record activity: project feedback updated
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $currentEmployeeId,
+                    'menu' => 'PROJECT',
+                    'activity' => 'FEEDBACK_UPDATE',
+                    'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' updated feedback id: ' . ($feedback->id ?? ''),
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2743,11 +2842,21 @@ class ProjectController extends Controller
 
             DB::commit();
 
-            return response()->json([
-                'code' => 200,
-                'status' => 'success',
-                'message' => 'Feedback deleted successfully',
-            ]);
+                // record activity: project feedback deleted
+                try {
+                    ActivityHelper::record([
+                        'employee_id' => $currentEmployeeId,
+                        'menu' => 'PROJECT',
+                        'activity' => 'FEEDBACK_DELETE',
+                        'description' => ($request->user()?->employee?->name ?? 'Unknown') . ' deleted feedback id: ' . ($feedback->id ?? ''),
+                    ]);
+                } catch (\Throwable $_) {}
+
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'message' => 'Feedback deleted successfully',
+                ]);
         } catch (\Exception $e) {
             DB::rollBack();
             $status = $this->deriveHttpStatusFromException($e);
