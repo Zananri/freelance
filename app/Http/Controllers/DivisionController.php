@@ -54,7 +54,7 @@ class DivisionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'code' => 406,
                 'status' => "error",
@@ -114,7 +114,7 @@ class DivisionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'code' => 406,
                 'status' => "error",
@@ -130,7 +130,7 @@ class DivisionController extends Controller
             DB::beginTransaction();
 
             $division = Division::with('department')->find($id);
-            
+
             if (!$division) {
                 throw new \Exception('Division not found');
             }
@@ -149,7 +149,7 @@ class DivisionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'code' => 406,
                 'status' => "error",
@@ -165,7 +165,7 @@ class DivisionController extends Controller
             DB::beginTransaction();
 
             $division = Division::find($id);
-            
+
             if (!$division) {
                 throw new \Exception('Division not found');
             }
@@ -219,7 +219,7 @@ class DivisionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'code' => 406,
                 'status' => "error",
@@ -235,7 +235,7 @@ class DivisionController extends Controller
             DB::beginTransaction();
 
             $division = Division::find($id);
-            
+
             if (!$division) {
                 throw new \Exception('Division not found');
             }
@@ -255,7 +255,7 @@ class DivisionController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            
+
             return response()->json([
                 'code' => 406,
                 'status' => "error",
@@ -276,23 +276,28 @@ class DivisionController extends Controller
     public function getDivisionsForProjects(Request $request)
     {
         try {
-            $departmentId = $request->input('department_id');
-            
-            $divisionsQuery = Division::where('status', 'ACTIVE')
-                ->orderBy('name_division');
-                
-            if ($departmentId) {
-                $divisionsQuery->where('department_id', $departmentId);
+            $user = auth()->user();
+            $employee = $user ? $user->employee : null;
+            $departmentId = $employee ? $employee->department_id : null;
+
+            if (!$departmentId) {
+                return response()->json([
+                    'code' => 404,
+                    'status' => 'error',
+                    'message' => 'Department not found for current user.'
+                ], 404);
             }
-            
-            $divisions = $divisionsQuery->get(['id', 'name_division', 'department_id', 'description']);
+
+            $divisions = Division::where('status', 'ACTIVE')
+                ->where('department_id', $departmentId)
+                ->orderBy('name_division')
+                ->get(['id', 'name_division', 'department_id', 'description']);
 
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => $divisions
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'code' => 500,
@@ -301,4 +306,5 @@ class DivisionController extends Controller
             ], 500);
         }
     }
+
 }
