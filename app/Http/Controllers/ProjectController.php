@@ -819,13 +819,47 @@ class ProjectController extends Controller
             if ($parentId <= 0) throw new \Exception('parent_id is required');
             if ($parentId === (int) $project->id) throw new \Exception('Project cannot be its own parent');
 
-            // Authorization: only author can restructure project tree
+            // Authorization: author or co-author or privileged roles can restructure project tree
             $user = $request->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
+
+            // Determine privileged backend roles (management/general manager/CEO or administrator)
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) { $canSeeAll = false; }
+
             $isAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
                 ->where('employee_id', $employeeId)
                 ->where('role', 'author')->exists();
-            if (!$isAuthor) {
+
+            $isCoAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'co_author')->exists();
+
+            if (!($isAuthor || $isCoAuthor || $canSeeAll)) {
+                // Diagnostic logging to help troubleshoot unexpected 403 during drag & drop
+                try {
+                    \Log::info('addParent authorization failed', [
+                        'user_id' => $user?->id ?? null,
+                        'employee_id' => $employeeId,
+                        'project_id' => $project->id,
+                        'parent_id' => $parentId,
+                        'isAuthor' => $isAuthor,
+                        'isCoAuthor' => $isCoAuthor,
+                        'canSeeAll' => $canSeeAll,
+                        'user_type' => $user?->user_type ?? null,
+                        'user_role' => $user?->user_role ?? null,
+                    ]);
+                } catch (\Throwable $_) {}
+
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
             }
 
@@ -853,13 +887,46 @@ class ProjectController extends Controller
             $project = Project::findOrFail($id);
             $parentId = $request->input('parent_id');
 
-            // Authorization: only author
+            // Authorization: author or co-author or privileged roles can remove parents
             $user = $request->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
+
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) { $canSeeAll = false; }
+
             $isAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
                 ->where('employee_id', $employeeId)
                 ->where('role', 'author')->exists();
-            if (!$isAuthor) {
+
+            $isCoAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'co_author')->exists();
+
+            if (!($isAuthor || $isCoAuthor || $canSeeAll)) {
+                // Diagnostic logging to help troubleshoot unexpected 403 during drag & drop
+                try {
+                    \Log::info('removeParent authorization failed', [
+                        'user_id' => $user?->id ?? null,
+                        'employee_id' => $employeeId,
+                        'project_id' => $project->id,
+                        'parent_id' => $parentId,
+                        'isAuthor' => $isAuthor,
+                        'isCoAuthor' => $isCoAuthor,
+                        'canSeeAll' => $canSeeAll,
+                        'user_type' => $user?->user_type ?? null,
+                        'user_role' => $user?->user_role ?? null,
+                    ]);
+                } catch (\Throwable $_) {}
+
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
             }
 
