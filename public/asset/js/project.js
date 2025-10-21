@@ -2331,16 +2331,44 @@ document.addEventListener("DOMContentLoaded", function () {
                                 console.groupEnd && console.groupEnd();
                             } catch (_) {}
 
+                            // Client-side safety: estimate total upload size and warn if it's large.
+                            try {
+                                let totalBytes = 0;
+                                for (const pair of formData.entries()) {
+                                    try {
+                                        const val = pair[1];
+                                        if (val instanceof File) totalBytes += val.size || 0;
+                                    } catch (_) {}
+                                }
+                                // Warn and stop if extremely large to avoid opaque server/proxy rejections
+                                const MAX_SAFE_BYTES = 50 * 1024 * 1024; // 50 MB
+                                if (totalBytes > MAX_SAFE_BYTES) {
+                                    showFloatingAlert(
+                                        'Total upload size is too large (' + Math.round(totalBytes / (1024 * 1024)) + " MB). Please upload smaller files or add reference files separately.",
+                                        'warning',
+                                        7000
+                                    );
+                                    $("#editModalLoader").addClass("d-none");
+                                    submitBtn.prop("disabled", false);
+                                    isSubmitting = false;
+                                    return; // abort submit to avoid server/proxy truncation
+                                }
+                            } catch (_) {}
+
                             $.ajax({
                                 url: appUrl + "/project/" + projectId,
                                 type: "POST", // Laravel expects POST with _method=PUT for PUT requests
                                 data: formData,
                                 contentType: false,
                                 processData: false,
+                                timeout: 120000, // 2 minutes - allow longer uploads on slow connections
                                 headers: {
                                     "X-CSRF-TOKEN": $(
                                         'meta[name="csrf-token"]'
                                     ).attr("content"),
+                                    // Mark as XHR and request JSON to help server routing and error responses
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                    'Accept': 'application/json'
                                 },
                                 success: function (response) {
                                     showFloatingAlert(
@@ -2365,34 +2393,46 @@ document.addEventListener("DOMContentLoaded", function () {
                                         loadProjectCardData(); // refresh project cards
                                     }, 800);
                                 },
-                                error: function (xhr) {
-                                    if (xhr.status === 422) {
-                                        let errors = xhr.responseJSON.errors;
-                                        var listHtml =
-                                            '<ul style="margin:0; padding-left:18px;">';
+                                error: function (xhr, status, errorThrown) {
+                                    // Log detailed info to console to aid debugging (production should keep logs private)
+                                    try {
+                                        console.error('Project update failed', {
+                                            status: xhr.status,
+                                            statusText: xhr.statusText,
+                                            errorThrown: errorThrown,
+                                            responseText: xhr.responseText
+                                        });
+                                    } catch (_) {}
+
+                                    if (xhr && xhr.status === 422) {
+                                        let errors = (xhr.responseJSON && xhr.responseJSON.errors) || {};
+                                        var listHtml = '<ul style="margin:0; padding-left:18px;">';
                                         $.each(errors, function (key, value) {
                                             if (Array.isArray(value)) {
                                                 value.forEach(function (msg) {
-                                                    listHtml +=
-                                                        "<li>" + msg + "</li>";
+                                                    listHtml += "<li>" + msg + "</li>";
                                                 });
                                             } else {
-                                                listHtml +=
-                                                    "<li>" + value + "</li>";
+                                                listHtml += "<li>" + value + "</li>";
                                             }
                                         });
                                         listHtml += "</ul>";
+                                        showFloatingAlert(listHtml, "warning", 5000);
+                                    } else if (xhr && xhr.status >= 500) {
+                                        // 5xx (server) - give actionable guidance
                                         showFloatingAlert(
-                                            listHtml,
+                                            "Server error while updating project (status " + xhr.status + "). This may be caused by webserver/proxy limits or security rules. Check server logs, ModSecurity, and PHP upload limits.",
                                             "warning",
-                                            5000
+                                            7000
+                                        );
+                                    } else if (xhr && xhr.status === 0) {
+                                        showFloatingAlert(
+                                            "Network error or connection blocked. The request didn't reach the server. Check server firewall, reverse proxy, or WAF (ModSecurity).",
+                                            "warning",
+                                            7000
                                         );
                                     } else {
-                                        showFloatingAlert(
-                                            "Failed to update project.",
-                                            "warning",
-                                            3500
-                                        );
+                                        showFloatingAlert("Failed to update project.", "warning", 3500);
                                     }
                                 },
                                 complete: function () {
