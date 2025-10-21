@@ -1916,17 +1916,51 @@ class ProjectController extends Controller
     {
         $user = auth()->user();
         $employee = $user->employee ?? null;
-        $deptId = $employee->department_id ?? null;
+        $employeeId = $employee?->id ?? null;
 
         $project = Project::with(['department', 'division', 'projectAssignments.employee.user'])
             ->findOrFail($id);
 
-        if ($deptId && $project->department_id != $deptId) {
+        // Determine if user has elevated privileges (management/administrator)
+        $canSeeAll = false;
+        try {
+            $userType = strtoupper((string) ($user->user_type ?? ''));
+            $userRole = strtoupper((string) ($user->user_role ?? ''));
+            if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                $canSeeAll = true;
+            }
+            if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                $canSeeAll = true;
+            }
+        } catch (\Throwable $_) { $canSeeAll = false; }
+
+        $deptId = $employee?->department_id ?? null;
+
+        if (!$employeeId && !$canSeeAll) {
             return response()->json([
                 'code' => 403,
                 'status' => 'error',
                 'message' => 'You are not authorized to access this project.'
             ], 403);
+        }
+
+        if (!$canSeeAll) {
+            // Allow when user belongs to same department as the project (previous behavior)
+            if ($deptId && $project->department_id == $deptId) {
+                // allowed
+            } else {
+                $isAssigned = ProjectAssignment::where('project_id', $project->id)
+                    ->where('employee_id', $employeeId)
+                    ->whereIn('role', ['author', 'co_author', 'contributor'])
+                    ->exists();
+                if (!$isAssigned) {
+                    return response()->json([
+                        'code' => 403,
+                        'status' => 'error',
+                        'message' => 'You are not authorized to access this project.'
+                    ], 403);
+                }
+            }
         }
 
         $coAuthors = [];
@@ -1960,7 +1994,7 @@ class ProjectController extends Controller
         $response['co_authors'] = $coAuthors;
         $response['contributors'] = $contributors;
 
-        return response()->json(['data' => $response]);
+        return response()->json($response);
     }
 
     public function update(Request $request, string $id)
