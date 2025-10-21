@@ -1280,10 +1280,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         const projectSlug = project.slug || slugify(project.title || "unknown-project");
                         const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
 
+                        console.log(project.task_counts);
+
+
                         function deriveProjectStatusFromTasks(project) {
                             const counts = project.task_counts || {};
                             const total = counts.total || 0;
-                            const notStarted = counts.not_started || 0;
+                            const notStarted = counts.new_request || 0;
                             const completed = counts.completed || 0;
                             const inProgress = counts.in_progress || 0;
                             const late = counts.late || 0;
