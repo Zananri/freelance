@@ -191,6 +191,14 @@
                         <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown">
                             <div class="dropdown-filter-body">
                                 <div class="mb-2">
+                                    <label for="filterProjectDivision" class="form-label label-custom-filter">Filter by
+                                        Status</label>
+                                    <select id="filterProjectDivision" class="form-select label-custom-filter">
+                                        <option value="">All Division</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-2">
                                     <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by
                                         Status</label>
                                     <select id="filterProjectStatus" class="form-select label-custom-filter">
@@ -202,7 +210,7 @@
                                     </select>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-2">
                                     <label for="filterSortBy" class="form-label label-custom-filter">Sort By</label>
                                     <select id="filterSortBy" class="form-select label-custom-filter">
                                         <option value="title_asc">Title A-Z</option>
