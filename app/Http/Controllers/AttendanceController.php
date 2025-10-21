@@ -471,6 +471,16 @@ class AttendanceController extends Controller
 
             DB::commit();
 
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employee?->id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'CHECK_IN',
+                    'description' => ($employee?->name ?? 'Unknown') . ' performed check in',
+                    'date_time_activity' => $now,
+                ]);
+            } catch (\Throwable $_) {}
+
             return response()->json([
                 'code' => 200,
                 'status' => 'success',
@@ -735,6 +745,16 @@ class AttendanceController extends Controller
 
 
             DB::commit();
+
+            try {
+                ActivityHelper::record([
+                    'employee_id' => $employee?->id,
+                    'menu' => 'ATTENDANCE',
+                    'activity' => 'CHECK_OUT',
+                    'description' => ($employee?->name ?? 'Unknown') . ' performed check out',
+                    'date_time_activity' => $now,
+                ]);
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
