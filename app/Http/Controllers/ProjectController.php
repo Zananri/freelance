@@ -2278,9 +2278,9 @@ class ProjectController extends Controller
 
             $taskExist = Task::where('project_id', $project->id)
                 ->whereIn('status',['completed','in_progress'])
-            ->exists();
+            ->first();
 
-            if(!$project) {
+            if(!$taskExist) {
                 throw new \Exception('This project has a task Active, it cannot be deleted');
             }
 
