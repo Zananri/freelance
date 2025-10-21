@@ -4,6 +4,9 @@ const modalAttendance = new bootstrap.Modal('#modalAttendance', {
   keyboard: false
 });
 
+const modalAttendanceEdit = new bootstrap.Modal('#modalAttendanceEdit', {
+  keyboard: false
+});
 
 
 
@@ -212,10 +215,13 @@ $(document).on('click','tbody .col-day',function(){
     
 });
 
-function getAttendanceDetail(employeeId,dateAttendance)
-{
+let CURRENT_ATTENDANCE = [];
+let CURRENT_EMPLOYEE = [];
 
-    $.ajax({
+
+async function getAttendanceDetail(employeeId,dateAttendance)
+{
+    return getData = await $.ajax({
         url: appUrl + "/attendance_tracking/get-attendance-detail",
         type: "GET",
         data:{
@@ -234,33 +240,10 @@ function getAttendanceDetail(employeeId,dateAttendance)
         success: function(response) {
             var resData = response.data;
             
-            let employee = resData.employee;
-            let attendance = resData.attendance;
+            CURRENT_ATTENDANCE = resData.attendance;
+            CURRENT_EMPLOYEE = resData.employee;
 
-            let employeeShift = formatTimeShort(attendance.shift_time_start)+' - '+formatTimeShort(attendance.shift_time_end);
-
-            $('#modalAttendance .attendance-date').text(formateDateFull(attendance.date_attendance));
-            
-            $('#modalAttendance .employee-name').text(employee.name);
-            $('#modalAttendance .employee-shift').text(employeeShift);
-
-            $('#modalAttendance .attendance-late').text(formatTimeShort(attendance.time_late)).removeClass('text-danger');
-
-            if(attendance.time_late != null && attendance.time_late != '00:00:00'){
-                $('#modalAttendance .attendance-late').addClass('text-danger');   
-            }
-            
-            
-            $('#modalAttendance [name="employee_id"]').text(employee.id);
-            $('#modalAttendance [name="date"]').text(attendance.date_attendance);
-            $('#modalAttendance [name="attendance_id"]').text(attendance.id);
-
-            $('#modalAttendance .attendance-status').text(attendance.status);
-            $('#modalAttendance .attendance-checkin').text(formatTimeShort(attendance.time_in));
-            $('#modalAttendance .attendance-checkout').text(formatTimeShort(attendance.time_out));
-            $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendance.total_work_duration));
-
-            
+            setAttendanceDetail();
             //attendance-checkin attendance-checkout attendance-work-duration
 
             modalAttendance.show();
@@ -269,6 +252,43 @@ function getAttendanceDetail(employeeId,dateAttendance)
          
     });
 
+}
+
+async function setAttendanceDetail(){
+
+    let attendance = CURRENT_ATTENDANCE;
+    let employee = CURRENT_EMPLOYEE;
+
+    let employeeShift = formatTimeShort(attendance.shift_time_start)+' - '+formatTimeShort(attendance.shift_time_end);
+
+    $('#modalAttendance .attendance-date,#modalAttendanceEdit .attendance-date').text(formateDateFull(attendance.date_attendance));
+    
+    $('#modalAttendance .employee-name,#modalAttendanceEdit .employee-name').text(employee.name);
+    $('#modalAttendance .employee-shift,#modalAttendanceEdit .employee-shift').text(employeeShift);
+
+    $('#modalAttendance .attendance-late,#modalAttendanceEdit .attendance-late').text(formatTimeShort(attendance.time_late)).removeClass('text-danger');
+
+    if(attendance.time_late != null && attendance.time_late != '00:00:00'){
+        $('#modalAttendance .attendance-late').addClass('text-danger');   
+    }
+    
+    
+    $('#modalAttendance [name="employee_id"],#modalAttendanceEdit [name="employee_id"]').val(employee.id);
+    $('#modalAttendance [name="date"],#modalAttendanceEdit [name="date"]').val(attendance.date_attendance);
+    $('#modalAttendance [name="attendance_id"],#modalAttendanceEdit [name="attendance_id"]').val(attendance.id);
+
+    $('#modalAttendance .attendance-status').text(attendance.status);
+    $('#modalAttendance .attendance-checkin').text(formatTimeShort(attendance.time_in));
+    $('#modalAttendance .attendance-checkout').text(formatTimeShort(attendance.time_out));
+    $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendance.total_work_duration));
+
+    $('#modalAttendance .attendance-note').text('-');
+    
+    if(attendance.note != null && attendance.note != '' && attendance.note != 'null'){
+        $('#modalAttendance .attendance-note').text(attendance.note);
+    }
+    
+    return true;
 }
 
 $('#btn-download-xlsx').on('click',function(){
@@ -359,10 +379,6 @@ const formatDateIDMonthYear = (date) => {
 };
 
 
-$('#btn-togle-note-box, #btn-cancel-note-box').on('click',function(){
-    $('.box-note-input, .box-note').toggleClass('d-none');
-
-});
 
 $('#modalAttendance .btn-submit-note').on('click',function(){
 
@@ -370,4 +386,9 @@ $('#modalAttendance .btn-submit-note').on('click',function(){
 
     
 
+});
+
+$('#modalAttendance .btn-edit-attendance').on('click',function(){
+    modalAttendance.hide();
+    modalAttendanceEdit.show();
 });

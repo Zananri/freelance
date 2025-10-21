@@ -10436,7 +10436,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     const list = names.slice(0, 10).map(name => `- ${name}`);
                                     const remaining = names.length;
 
-                                    if (remaining > 0) list.push(`(+${remaining} more...)`);
+                                    if (remaining > 10) list.push(`(+${remaining} more...)`);
 
                                     return list;
                                 }

@@ -236,6 +236,10 @@
                             <span class="text-menu">Attendance</span>
                         </a>
                     </li>
+                    @endif
+
+                    @if (in_array(Auth::user()->user_type,['REGULAR','MANAGEMENT']) && in_array(Auth::user()->user_role,['EMPLOYEE','HR_MANAGER']))
+                    
                     <li>
                         <a href="{{ url('task') }}" class="{{ $menu_active == 'task' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">task</span>
