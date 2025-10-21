@@ -2257,7 +2257,7 @@ class ProjectController extends Controller
                 ->where('status','ACTIVE')
             ->first();
 
-            if (!$employeeId) {
+            if (!$employee) {
                 throw new \Exception('Employee not found');
             }
 
@@ -2266,7 +2266,7 @@ class ProjectController extends Controller
                 ->whereIn('role',['author','co_author'])
             ->first();
 
-            if (!$employeeId) {
+            if (!$projectAssignments) {
                 throw new \Exception('Access denied');
             }
 
