@@ -359,7 +359,7 @@ function renderTaskNode(task, $template) {
         if (visual === "complete") {
             // avoid duplicate
             if ($card.find('.playlist_add_check').length === 0) {
-                const $icon = $(`<span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:default;">playlist_add_check</span>`);
+                const $icon = $(`<span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" role="button" tabindex="0" aria-label="Lihat task selesai" style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:pointer; z-index:2000;">playlist_add_check</span>`);
                 $card.append($icon);
             }
         }
@@ -512,6 +512,247 @@ function adjustConnectors() {
 
 $(window).on("resize", function () {
     if (!window.USE_PLUMB_ONLY) setTimeout(adjustConnectors, 60);
+});
+
+// Handle activation (click or keyboard) on completed icon inside task tree: open Completed modal
+function openCompletedModalById(tid) {
+    if (!tid) return;
+    try {
+        // Ensure completed modal markup exists on the page (task page includes it, project detail may not)
+        try {
+            if (!document.getElementById('completedModal')) {
+                const tpl = `
+                <div class="modal fade" id="completedModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-body modal-body-custom">
+                                <div class="d-flex align-items-center mb-2">
+                                    <img id="completed_task_image" src="" alt="Project Image" class="rounded-circle me-2" width="34" height="34">
+                                    <div>
+                                        <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;"></h6>
+                                        <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4 task-description-container">
+                                    <div id="completed_task_note" class="text-muted task-description"><em>No note</em></div>
+                                </div>
+
+                                <div class="row mb-4 link-file-task">
+                                    <div class="col-6 d-flex align-items-center">
+                                        <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
+                                        <span id="completed_priority" style="font-weight: 500; color: #f0ad4e;">-</span>
+                                    </div>
+                                    <div class="col-6 d-flex align-items-center">
+                                        <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
+                                        <span id="completed_date">-</span>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="fw-normal text-muted d-block mb-1">Links:</label>
+                                        <div id="completed_task_urls"><em>-</em></div>
+                                    </div>
+                                    <div class="col-12">
+                                        <label class="fw-normal text-muted d-block mb-1">Files:</label>
+                                        <div id="completed_task_files"><em>-</em></div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                try { document.body.insertAdjacentHTML('beforeend', tpl); } catch (e) { /* ignore */ }
+            }
+        } catch (_) {}
+
+        const flat = (function flatten(tasks) {
+            const out = [];
+            (tasks || []).forEach(function tfn(t) {
+                out.push(t);
+                if (Array.isArray(t.children) && t.children.length) t.children.forEach(tfn);
+            });
+            return out;
+        })(allTasks || []);
+        const task = flat.find(function (x) {
+            try { return String(x.id) === String(tid); } catch(_) { return false; }
+        });
+        if (task && typeof window.showCompletedModal === 'function') {
+            window.showCompletedModal(task);
+            try {
+                const completedEl = document.getElementById('completedModal');
+                if (completedEl) {
+                    const parentModalEl = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal');
+                    let parentWasOpen = false;
+                    let parentInst = null;
+                    try {
+                        if (parentModalEl && parentModalEl.classList.contains('show')) {
+                            parentWasOpen = true;
+                            parentInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                            try { parentInst.hide(); } catch(_) {}
+                        }
+                    } catch(_) {}
+                    const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
+                    try { inst.show(); } catch(_) { try { inst.show(); } catch(_) {} }
+                    if (parentWasOpen && parentInst) {
+                        const onHide = function () {
+                            try { parentInst.show(); } catch(_) {}
+                            try { inst._element.removeEventListener('hidden.bs.modal', onHide); } catch(_) {}
+                        };
+                        try { inst._element.addEventListener('hidden.bs.modal', onHide); } catch(_) {}
+                    }
+                }
+            } catch (_) {}
+            return;
+        }
+    } catch (_) {}
+
+    try {
+        const url = (function(){ try { const m = document.querySelector('meta[name="app-url"]'); return (m && m.getAttribute('content')||'').replace(/\/+$/,''); } catch(e){ return ''; } })();
+        if (!url) return;
+        $.ajax({ url: url + '/task/' + encodeURIComponent(String(tid)), type: 'GET', dataType: 'json' })
+            .done(function (res) {
+                console.debug('[task-tree] AJAX fetched task for completed modal', res);
+                const payload = res && (res.data || res) || null;
+                if (payload && typeof window.showCompletedModal === 'function') {
+                    window.showCompletedModal(payload);
+                    try {
+                        const completedEl = document.getElementById('completedModal');
+                        if (completedEl) {
+                            const parentModalEl = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal');
+                            let parentWasOpen = false;
+                            let parentInst = null;
+                            try {
+                                if (parentModalEl && parentModalEl.classList.contains('show')) {
+                                    parentWasOpen = true;
+                                    parentInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                    try { parentInst.hide(); } catch(_) {}
+                                }
+                            } catch(_) {}
+                            const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
+                            try { inst.show(); } catch(_) { try { inst.show(); } catch(_) {} }
+                            if (parentWasOpen && parentInst) {
+                                const onHide = function () {
+                                    try { parentInst.show(); } catch(_) {}
+                                    try { inst._element.removeEventListener('hidden.bs.modal', onHide); } catch(_) {}
+                                };
+                                try { inst._element.addEventListener('hidden.bs.modal', onHide); } catch(_) {}
+                            }
+                        }
+                    } catch (_) {}
+                }
+            })
+            .fail(function (xhr) {
+                try { console.warn('[task-tree] AJAX fetch failed', tid, xhr && xhr.status); } catch(_) {}
+            });
+    } catch (_) {}
+}
+
+// Fallback showCompletedModal if task.js not loaded on this page
+if (typeof window.showCompletedModal !== 'function') {
+    window.showCompletedModal = function (task) {
+        try {
+            if (!task || !task.id) return;
+            const appUrlMeta = document.querySelector('meta[name="app-url"]');
+            const base = (appUrlMeta && appUrlMeta.getAttribute('content') || '').replace(/\/+$/,'');
+
+            try {
+                // Replace avatar area with same markup used elsewhere to ensure initials fallback
+                const avatarContainer = document.getElementById('completed_task_image');
+                if (avatarContainer) {
+                    // If the element is an <img>, replace it with the avatar HTML (image or initials)
+                    const parent = avatarContainer.parentElement;
+                    const avatarHtml = getAvatarHTML(task, 34);
+                    if (parent) {
+                        // If the existing element is an <img>, replace that node with a wrapper containing our HTML
+                        try { parent.removeChild(avatarContainer); } catch(_) {}
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = avatarHtml;
+                        // add spacing similar to original layout
+                        wrapper.firstElementChild && wrapper.firstElementChild.classList.add('me-2');
+                        parent.insertBefore(wrapper.firstElementChild, parent.firstChild || null);
+                    } else {
+                        // Fallback: set src if replacement not possible
+                        try { avatarContainer.setAttribute('src', (task.image || task.project_image || task.image_url || (base + '/asset/img/avatar.png')) ); } catch(_) {}
+                    }
+                }
+            } catch(_) {}
+            try { document.getElementById('completed_task_title').textContent = task.title || '-'; } catch(_) {}
+            try { document.getElementById('completed_project_title').textContent = task.project_title || (task.project && task.project.title) || '-'; } catch(_) {}
+            try { document.getElementById('completed_task_note').innerHTML = task.complete_note || task.description || '<em>No note</em>'; } catch(_) {}
+            try { document.getElementById('completed_priority').textContent = task.priority || '-'; } catch(_) {}
+            try { document.getElementById('completed_date').textContent = task.complete_date || task.due_date || '-'; } catch(_) {}
+
+            // Links
+            try {
+                const urls = document.getElementById('completed_task_urls');
+                if (urls) {
+                    urls.innerHTML = '';
+                    if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
+                        task.complete_urls.forEach(function(u, idx){
+                            const a = document.createElement('a');
+                            a.href = u.startsWith('http') ? u : (base + '/' + String(u).replace(/^\/+/, ''));
+                            a.target = '_blank';
+                            a.textContent = 'link_' + (idx+1);
+                            urls.appendChild(a);
+                            urls.appendChild(document.createElement('br'));
+                        });
+                    } else urls.innerHTML = '<em>-</em>';
+                }
+            } catch(_) {}
+
+            // Files
+            try {
+                const files = document.getElementById('completed_task_files');
+                if (files) {
+                    files.innerHTML = '';
+                    if (Array.isArray(task.complete_files) && task.complete_files.length) {
+                        task.complete_files.forEach(function(f){
+                            const raw = (f && (f.url || f)) || '';
+                            const link = document.createElement('a');
+                            const url = (raw.startsWith('http') ? raw : (base + '/' + String(raw).replace(/^\/+/, '')));
+                            link.href = url; link.target = '_blank'; link.textContent = decodeURIComponent(String(url).split('/').pop() || url);
+                            files.appendChild(link); files.appendChild(document.createElement('br'));
+                        });
+                    } else files.innerHTML = '<em>-</em>';
+                }
+            } catch(_) {}
+
+            try {
+                const completedEl = document.getElementById('completedModal');
+                if (completedEl) {
+                    const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
+                    inst.show();
+                }
+            } catch(_) {}
+        } catch(_) {}
+    };
+}
+
+$(document).on('click', '#task-tree .playlist_add_check', function (e) {
+    try {
+        // prevent other handlers from intercepting
+        e.preventDefault && e.preventDefault();
+        e.stopImmediatePropagation && e.stopImmediatePropagation();
+        e.stopPropagation && e.stopPropagation();
+    } catch(_) {}
+    const $el = $(this);
+    const tid = $el.attr('data-task-id') || $el.data('task-id');
+    try { console.debug('[task-tree] playlist_add_check clicked, taskId=', tid); } catch(_) {}
+    openCompletedModalById(tid);
+});
+
+// keyboard support (Enter / Space)
+$(document).on('keydown', '#task-tree .playlist_add_check', function (e) {
+    const key = e.key || e.keyCode;
+    if (key === 'Enter' || key === ' ' || key === 13 || key === 32) {
+        try { e.preventDefault && e.preventDefault(); e.stopImmediatePropagation && e.stopImmediatePropagation(); } catch(_) {}
+        const $el = $(this);
+        const tid = $el.attr('data-task-id') || $el.data('task-id');
+        openCompletedModalById(tid);
+    }
 });
 
 function ensureSvgOverlay() {
@@ -1495,6 +1736,11 @@ $("#fullscreen-tree-btn").on("click", function () {
 })();
 
 $(document).on("click", ".task-box, .timeline-bar", function (e) {
+    // If click came from the completed icon, do not open task detail here
+    if ($(e.target).closest('.playlist_add_check').length) {
+        // Let the playlist_add_check delegated handler handle it
+        return;
+    }
     if ($(e.target).closest(".plumb-handle").length) {
         e.preventDefault();
         e.stopPropagation();
@@ -2018,20 +2264,23 @@ function escapeHTML(str) {
         .replace(/'/g, "&#039;");
 }
 
-function getAvatarHTML(task) {
-    const img = task.image ? `${appUrl}/file/task/${task.image}` : null;
+function getAvatarHTML(task, size = 48) {
+    // size: numeric pixel for width/height (default 48)
+    const px = Number(size) || 48;
+    const img = task && (task.image || task.image_url || task.project_image) ? `${appUrl}/file/task/${(task.image || task.image_url || task.project_image)}` : null;
 
     if (img) {
-        return `<img src="${img}" alt="Task" class="project-image"
-                    style="width:48px;height:48px;object-fit:cover;border-radius:50%;"
-                    onerror="this.src='${appUrl}/asset/img/avatar.png'">`;
+        // onerror will replace the <img> with an initials div to match other parts of the app
+        const initials = escapeHTML(getTaskInitials(task.title || ''));
+        const color = getRandomColorFromText(task.title || '');
+        // Build a JS-safe replacement string for onerror (escape quotes)
+        const replaceDiv = `<div class=\"rounded-circle d-flex align-items-center justify-content-center me-3\" style=\"width:${px}px;height:${px}px;background:${color};color:#fff;font-weight:600;font-size:${Math.max(10, Math.round(px*0.34))}px;\">${initials}</div>`;
+        return `<img src="${img}" alt="Task" class="project-image" style="width:${px}px;height:${px}px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.replaceWith('${replaceDiv}')">`;
     }
 
-    const initials = getTaskInitials(task.title);
-    const color = getRandomColorFromText(task.title);
-    return `<div class="project-initial-avatar"
-                style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-                font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
+    const initials = escapeHTML(getTaskInitials(task.title || ''));
+    const color = getRandomColorFromText(task.title || '');
+    return `<div class="project-initial-avatar" style="width:${px}px;height:${px}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:${Math.max(10, Math.round(px*0.34))}px;color:#fff;background:${color};">${initials}</div>`;
 }
 
 if (typeof window.getTaskInitials !== "function") {
