@@ -267,186 +267,93 @@ function normalizeStatus(status) {
 function renderTaskNode(task, $template) {
     const normalizedStatus = normalizeStatus(task.status);
     let $item = $template.clone().removeClass("d-none").removeAttr("id");
-    try {
-        if (task && task.id != null) {
-            $item.attr("data-task-id", String(task.id));
-        }
-    } catch (_) {}
+    if (task?.id != null) $item.attr("data-task-id", String(task.id));
+
     let visual = "not-started";
-    try {
-        const s = String(task.status || "").toLowerCase();
-        if (["new_request", "new request", "new-request"].includes(s))
-            visual = "not-started";
-        else if (["in_progress", "in progress", "in-progress"].includes(s))
-            visual = "in-progress";
-        else if (["complete", "completed"].includes(s)) visual = "complete";
-        else visual = normalizedStatus || "not-started";
-        if (task.due_date && visual !== "complete") {
-            const due = new Date(task.due_date);
-            const today = new Date();
-            due.setHours(0, 0, 0, 0);
-            today.setHours(0, 0, 0, 0);
-            if (!isNaN(due.getTime()) && today > due) visual = "late";
-        }
-    } catch (e) {}
+    const s = String(task.status || "").toLowerCase();
+    if (["new_request", "new request", "new-request"].includes(s)) visual = "not-started";
+    else if (["in_progress", "in progress", "in-progress"].includes(s)) visual = "in-progress";
+    else if (["complete", "completed"].includes(s)) visual = "complete";
+    else visual = normalizedStatus || "not-started";
+    if (task.due_date && visual !== "complete") {
+        const due = new Date(task.due_date), today = new Date();
+        due.setHours(0, 0, 0, 0); today.setHours(0, 0, 0, 0);
+        if (!isNaN(due.getTime()) && today > due) visual = "late";
+    }
+
     const $card = $item.find(".task-box");
-    try {
-        if (task && task.id != null) {
-            $card.attr("data-task-id", String(task.id));
-            $card.attr("id", "task-node-" + String(task.id));
-            $card.attr("draggable", true);
-            $card.addClass("draggable-task");
-            if (!$card.attr("title")) {
-                $card.attr(
-                    "title",
-                    "Drag this task and drop onto another task to re-parent"
-                );
-            }
-        }
-    } catch (_) {}
+    if (task?.id != null) {
+        $card.attr("data-task-id", String(task.id));
+        $card.attr("id", "task-node-" + String(task.id));
+        $card.attr("draggable", true).addClass("draggable-task");
+        if (!$card.attr("title")) $card.attr("title", "Drag this task and drop onto another task to re-parent");
+    }
 
-    try {
-        $card.css("position", function (i, v) {
-            return v || "relative";
-        });
-        // Ensure the overflow is visible so half-outside controls remain clickable
-        try {
-            if (!$card.css("overflow") || $card.css("overflow") === "hidden") {
-                $card.css("overflow", "visible");
-            }
-        } catch (_) {}
-        try {
-            if (
-                $card.css("z-index") == null ||
-                $card.css("z-index") === "auto"
-            ) {
-                $card.css("z-index", 10);
-            }
-        } catch (_) {}
-        if ($card.find(".plumb-handle").length === 0) {
-            const $handle = $(
-                '<div class="plumb-handle d-none" title="Drag a line to add a parent"\
-                style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>'
-            );
-            $handle.attr("draggable", false);
-            $handle.on("pointerdown mousedown touchstart", function () {
-                try {
-                    $card.attr("draggable", false);
-                } catch (_) {}
-            });
-            $handle.on("pointerup mouseup touchend touchcancel", function () {
-                try {
-                    $card.attr("draggable", true);
-                } catch (_) {}
-            });
-            $handle.on("click", function (e) {
-                try {
-                    e.stopPropagation();
-                    e.preventDefault();
-                } catch (_) {}
-            });
-            $card.append($handle);
+    $card.css("position", "relative").css("overflow", "visible").css("z-index", 10);
+
+    if ($card.find(".plumb-handle").length === 0) {
+        const $handle = $('<div class="plumb-handle d-none" title="Drag a line to add a parent" style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;"></div>');
+        $handle.attr("draggable", false);
+        $handle.on("pointerdown mousedown touchstart", () => $card.attr("draggable", false));
+        $handle.on("pointerup mouseup touchend touchcancel", () => $card.attr("draggable", true));
+        $card.append($handle);
+    }
+
+    if ($card.find(".task-more-btn").length === 0) {
+        let currentEmployeeId = null;
+        const empInput =
+            document.querySelector('input[name="employee_id"]') ||
+            document.querySelector("#currentEmployee") ||
+            document.querySelector("[data-employee-id]");
+        if (empInput) {
+            currentEmployeeId =
+                empInput.value ||
+                empInput.getAttribute("data-employee-id") ||
+                (empInput.dataset && empInput.dataset.employeeId) ||
+                null;
         }
 
-        // Add three-dots menu button (menu will be portaled to body)
-        if ($card.find(".task-more-btn").length === 0) {
-            // Determine current logged-in employee id from known DOM locations
-            let currentEmployeeId = null;
-            try {
-                const empInput =
-                    document.querySelector('input[name="employee_id"]') ||
-                    document.querySelector("#currentEmployee") ||
-                    document.querySelector("[data-employee-id]");
-                if (empInput) {
-                    currentEmployeeId =
-                        empInput.value ||
-                        empInput.getAttribute("data-employee-id") ||
-                        (empInput.dataset && empInput.dataset.employeeId) ||
-                        null;
-                }
-            } catch (_) {}
-
-            // Decide whether to show menu: if we can detect currentEmployeeId, only show when it's equal to task.pic.id
-            let showMenu = true;
-            try {
-                if (
-                    currentEmployeeId !== null &&
-                    currentEmployeeId !== undefined &&
-                    String(currentEmployeeId).trim() !== ""
-                ) {
-                    if (
-                        task &&
-                        task.pic &&
-                        task.pic.id !== null &&
-                        task.pic.id !== undefined
-                    ) {
-                        showMenu =
-                            String(currentEmployeeId) === String(task.pic.id);
-                    } else {
-                        // If task has no PIC, do not show the menu when we know the current employee
-                        showMenu = false;
-                    }
-                } else {
-                    // If we couldn't detect current employee id, fall back to original behavior (show menu)
-                    showMenu = true;
-                }
-            } catch (_) {
-                showMenu = true;
-            }
-
-            if (showMenu) {
-                const taskId = task && task.id ? String(task.id) : null;
-                const $moreBtn = $(
-                    '<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>'
-                );
-                if (taskId) $moreBtn.attr("data-task-id", taskId);
-                $card.append($moreBtn);
-
-                // Always show on mobile devices (no hover)
-                try {
-                    var isMobile =
-                        (window.matchMedia &&
-                            window.matchMedia("(max-width: 1024px)").matches) ||
-                        window.innerWidth <= 1024 ||
-                        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-                            navigator.userAgent
-                        );
-                    if (isMobile) $moreBtn.removeClass("d-none");
-                } catch (_) {}
-            }
+        let showMenu = false;
+        if (currentEmployeeId) {
+            const isPIC = task.pic?.id && String(currentEmployeeId) === String(task.pic.id);
+            const isAuthor = task.project?.authors?.some((a) => String(a.id) === String(currentEmployeeId));
+            const isCoAuthor = task.project?.co_authors?.some((a) => String(a.id) === String(currentEmployeeId));
+            showMenu = isPIC || isAuthor || isCoAuthor;
         }
 
-        // Show both handle and menu button on hover
-        $card.hover(
-            function () {
-                $(this)
-                    .find(".plumb-handle, .task-more-btn")
-                    .removeClass("d-none");
-            },
-            function () {
-                $(this)
-                    .find(".plumb-handle, .task-more-btn")
-                    .addClass("d-none"); /* don't auto-hide menu here */
-            }
-        );
-    } catch (_) {}
+        if (showMenu) {
+            const taskId = task?.id ? String(task.id) : null;
+            const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
+            if (taskId) $moreBtn.attr("data-task-id", taskId);
+            $card.append($moreBtn);
+
+            const isMobile =
+                (window.matchMedia && window.matchMedia("(max-width: 1024px)").matches) ||
+                window.innerWidth <= 1024 ||
+                /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) $moreBtn.removeClass("d-none");
+        }
+    }
+
+    $card.hover(
+        function () {
+            $(this).find(".plumb-handle, .task-more-btn").removeClass("d-none");
+        },
+        function () {
+            $(this).find(".plumb-handle, .task-more-btn").addClass("d-none");
+        }
+    );
 
     if (visual === "complete") $card.css("background-color", "#B2EECD");
     else if (visual === "in-progress") $card.css("background-color", "#F5EFCE");
     else if (visual === "late") $card.css("background-color", "#EBA5A5");
     else $card.css("background-color", "#DDE4E8");
+
     $item.find(".task-name").text(task.title);
-    let startText = task.start_date
-        ? formatDateENMediumDayMonth(task.start_date)
-        : "";
-    let dueText = task.due_date
-        ? formatDateENMediumDayMonth(task.due_date)
-        : "";
-    let dateText =
-        startText && dueText
-            ? `${startText} - ${dueText}`
-            : startText || dueText;
-    $item.find(".task-date").text(dateText);
+    const startText = task.start_date ? formatDateENMediumDayMonth(task.start_date) : "";
+    const dueText = task.due_date ? formatDateENMediumDayMonth(task.due_date) : "";
+    $item.find(".task-date").text(startText && dueText ? `${startText} - ${dueText}` : startText || dueText);
+
     if (task.children && task.children.length > 0) {
         const $branch = $('<div class="task-branch"></div>');
         $branch.append($item);

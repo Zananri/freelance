@@ -3708,15 +3708,12 @@ class TaskController extends Controller
                 'project',
                 'parent'
             ])
-                //->whereIn('id', $allIds)
                 ->where('project_id', $projectId)
-                // Exclude both canceled and deleted tasks from the project tree
                 ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
                 ->orderBy('start_date', 'asc')
                 ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
-                // Ambil PIC
                 $pic = $task->assignments->firstWhere('role', 'PIC');
                 $picData = null;
                 if ($pic && $pic->employee) {
@@ -3738,16 +3735,36 @@ class TaskController extends Controller
                     ];
                 })->values();
 
-                $payload = [
+                $project = $task->project;
+                $authors = [];
+                $coAuthors = [];
+                if ($project) {
+                    $assignments = \DB::table('project_assignments')
+                        ->join('employees', 'employees.id', '=', 'project_assignments.employee_id')
+                        ->where('project_assignments.project_id', $project->id)
+                        ->whereIn('project_assignments.role', ['author', 'co_author'])
+                        ->select('project_assignments.role', 'employees.id', 'employees.name')
+                        ->get();
+
+                    $authors = $assignments->where('role', 'author')->map(function ($a) {
+                        return ['id' => $a->id, 'name' => $a->name];
+                    })->values();
+
+                    $coAuthors = $assignments->where('role', 'co_author')->map(function ($a) {
+                        return ['id' => $a->id, 'name' => $a->name];
+                    })->values();
+                }
+
+                return [
                     'id' => $task->id,
                     'title' => $task->title,
                     'parent_id' => $task->parent_id ?? null,
-                    'parent_ids' => (function() use ($task) {
+                    'parent_ids' => (function () use ($task) {
                         $arr = [];
                         try {
                             if (is_array($task->parent_ids)) $arr = $task->parent_ids;
                         } catch (\Throwable $_) {}
-                        if (!empty($task->parent_id) && !in_array((int)$task->parent_id, $arr)) $arr[] = (int)$task->parent_id;
+                        if (!empty($task->parent_id) && !in_array((int) $task->parent_id, $arr)) $arr[] = (int) $task->parent_id;
                         return array_values(array_unique(array_filter($arr)));
                     })(),
                     'parent_task' => $task->parent ? $task->parent->title : null,
@@ -3762,14 +3779,17 @@ class TaskController extends Controller
                     'due' => $task->due_date,
                     'deadline' => $task->due_date,
                     'children' => [],
+                    'project' => $project ? [
+                        'id' => $project->id,
+                        'title' => $project->title,
+                        'authors' => $authors,
+                        'co_authors' => $coAuthors,
+                    ] : null,
                 ];
-                return $payload;
             });
 
-            // Check if there are more levels beyond the current pageTab
             $hasMore = Task::where('project_id', $projectId)
                 ->whereIn('parent_id', $allIds)
-                // Ensure we don't count canceled or deleted tasks as "more"
                 ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
                 ->whereNotIn('id', $allIds)
                 ->exists();
