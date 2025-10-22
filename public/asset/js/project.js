@@ -1799,12 +1799,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ${renderCollaborators(project)}
                                         </div>
                                         <div class="d-flex align-items-center">
-                                            <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${
-                                                project.id
-                                            }" style="cursor:pointer; max-width: 160px;">
-                                                <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
-                                                <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
-                                            </div>
                                             <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative"
                                                     title="Comment" data-project-id="${
                                                         project.id
@@ -13176,12 +13170,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         p
                     )}</div>
                     <div class="d-flex align-items-center">
-                        <div class="latest-feedback-snippet d-none align-items-center me-1" data-project-id="${
-                            p.id
-                        }" style="cursor:pointer; max-width: 160px;">
-                            <img class="latest-feedback-avatar rounded-circle me-1" src="${appUrl}/asset/img/avatar.png" alt="avatar" width="20" height="20" style="object-fit:cover;">
-                            <span class="latest-feedback-text text-truncate" style="max-width: 130px; font-size: 11px; color:#4B4F5E;"></span>
-                        </div>
                         <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${
                             p.id
                         }">
