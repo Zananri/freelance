@@ -91,13 +91,38 @@ class Project extends Model
      */
     public function children()
     {
-        // MySQL JSON_CONTAINS expects the second arg to be a JSON value (e.g. a JSON number or string).
-        // Ensure we pass a proper JSON literal by encoding the integer id.
-        $childrenIds = \DB::table('project_parents')
-            ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [json_encode((int)$this->id)])
-            ->pluck('project_id');
-            
-        return Project::whereIn('id', $childrenIds)->get();
+        try {
+            $childrenIds = \DB::table('project_parents')
+                ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [json_encode((int)$this->id)])
+                ->pluck('project_id');
+            return Project::whereIn('id', $childrenIds)->get();
+        } catch (\Throwable $e) {
+            try {
+                $rows = \DB::table('project_parents')->get(['project_id', 'project_parent_ids']);
+                $ids = collect($rows)->filter(function ($row) {
+                    if (!isset($row->project_parent_ids) || $row->project_parent_ids === null) return false;
+                    $raw = $row->project_parent_ids;
+                    if (is_string($raw)) {
+                        $decoded = json_decode($raw, true);
+                        if (is_array($decoded)) {
+                            return in_array((int)$this->id, array_map('intval', $decoded));
+                        }
+                        if (strpos($raw, ',') !== false) {
+                            $parts = array_map('trim', explode(',', $raw));
+                            return in_array((string)$this->id, $parts) || in_array((int)$this->id, array_map('intval', $parts));
+                        }
+                    }
+                    if (is_array($raw)) {
+                        return in_array((int)$this->id, array_map('intval', $raw));
+                    }
+                    return false;
+                })->pluck('project_id')->toArray();
+
+                return Project::whereIn('id', $ids)->get();
+            } catch (\Throwable $_) {
+                return collect();
+            }
+        }
     }
 
     /**
