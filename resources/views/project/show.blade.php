@@ -1029,7 +1029,7 @@
                                 <button class="btn border-0" data-bs-target="#referenceFilesModal" data-bs-toggle="modal">
                                     <span style="font-size: 18px; color: #444;" class="material-symbols-outlined">file_copy</span>
                                 </button>
-                                <button class="btn border-0">
+                                <button class="btn border-0" data-bs-target="#referenceUrlsModal" data-bs-toggle="modal">
                                     <span style="font-size: 18px; color: #444;" class="material-symbols-outlined">attach_file</span>
                                 </button>
                             </div>
@@ -1076,6 +1076,34 @@
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" id="openAddReferenceFilesBtn" class="btn btn-sm btn-submit-black">Add
                             Files</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reference URLs Modal (same styling as Reference Files) -->
+        <div class="modal fade modal-custom" id="referenceUrlsModal" tabindex="-1"
+            aria-labelledby="referenceUrlsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header modal-header-custom d-flex align-items-center justify-content-between">
+                        <div>
+                            <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceUrlsModalLabel">
+                                Reference URLs</h5>
+                        </div>
+                        <div>
+                            <button type="button" class="btn-close ms-2" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="modal-body modal-body-custom">
+                        <div id="referenceUrlsList" class="d-flex flex-column gap-2">
+                            <!-- Reference URLs will be inserted here -->
+                        </div>
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
@@ -1818,5 +1846,42 @@
                 })();
             </script>
             <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
+            <script>
+                // Ensure reference URLs modal opens cleanly when triggered from inside another modal
+                document.addEventListener('DOMContentLoaded', function() {
+                    try {
+                        document.querySelectorAll('[data-bs-target="#referenceUrlsModal"]').forEach(function(btn){
+                            btn.addEventListener('click', function(ev){
+                                try {
+                                    // If task detail modal is open, hide it first to avoid nested modal backdrop issues
+                                    var detailModalEl = document.getElementById('projectTaskDetailModal');
+                                    if (detailModalEl && detailModalEl.classList.contains('show')) {
+                                        var inst = bootstrap.Modal.getInstance(detailModalEl) || bootstrap.Modal.getOrCreateInstance(detailModalEl);
+                                        try { inst.hide(); } catch(_){}
+                                    }
+
+                                    // If button is inside a task element that has data-task-id, forward that id to the URL loader helper
+                                    var taskId = null;
+                                    try {
+                                        // look for nearest ancestor with data-task-id or dataset
+                                        var el = btn;
+                                        while (el) {
+                                            if (el.dataset && el.dataset.taskId) { taskId = el.dataset.taskId; break; }
+                                            if (el.getAttribute && el.getAttribute('data-task-id')) { taskId = el.getAttribute('data-task-id'); break; }
+                                            el = el.parentElement;
+                                        }
+                                    } catch(_){}
+
+                                    if (taskId && typeof showReferenceUrlsForTask === 'function') {
+                                        // slight delay to allow previous modal hide animation to finish
+                                        setTimeout(function(){ try { showReferenceUrlsForTask(taskId); } catch(_){} }, 200);
+                                        ev.preventDefault();
+                                    }
+                                } catch(_){}
+                            });
+                        });
+                    } catch(_){}
+                });
+            </script>
         </x-slot>
     </x-office-layout>
