@@ -79,13 +79,19 @@
 .task-name {
     font-weight: 500;
     font-size: 10px;
-    line-height: 1;
     color: #222;
     white-space: nowrap;
     overflow-x: auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
     max-width: 150px;
+}
+
+.task-name a{
+    font-weight: 500;
+    font-size: 10px;
+    line-height: 1;
+    color: #222;
 }
 
 .task-date {

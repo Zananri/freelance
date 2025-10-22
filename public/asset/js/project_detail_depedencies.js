@@ -19,6 +19,183 @@ function renderChildGroups(task, $container, $template) {
     }
 }
 
+// Helper: fetch reference URLs for a given task id, populate #referenceUrlsList and show the modal
+function showReferenceUrlsForTask(taskId) {
+    if (!taskId) return;
+    try {
+        $.ajax({
+            url: appUrl + "/task/" + encodeURIComponent(String(taskId)),
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const payload = res && (res.data || res);
+                let referenceUrls = payload && payload.reference_urls;
+
+                // Normalize possible formats: stringified JSON, comma-separated string, or single reference_url
+                if (typeof referenceUrls === "string") {
+                    try {
+                        const parsed = JSON.parse(referenceUrls);
+                        if (Array.isArray(parsed)) referenceUrls = parsed;
+                        else referenceUrls = [String(referenceUrls)];
+                    } catch (e) {
+                        // fallback: split by comma
+                        referenceUrls = referenceUrls
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter(Boolean);
+                    }
+                }
+                if ((!referenceUrls || referenceUrls.length === 0) && payload && payload.reference_url) {
+                    referenceUrls = [payload.reference_url];
+                }
+
+                const listEl = document.getElementById('referenceUrlsList');
+                if (!listEl) return;
+                listEl.innerHTML = '';
+
+                try { listEl.dataset.taskId = String(taskId || ''); } catch(_) {}
+                try { document.getElementById('referenceUrlsModal').dataset.taskId = String(taskId || ''); } catch(_) {}
+
+                if (Array.isArray(referenceUrls) && referenceUrls.length > 0) {
+                    referenceUrls.forEach(function (u) {
+                        if (!u) return;
+                        const safeUrl = String(u || '').trim();
+
+                        const row = document.createElement('div');
+                        row.className = 'd-flex align-items-center justify-content-between gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        const a = document.createElement('a');
+                        a.href = safeUrl;
+                        a.target = '_blank';
+                        a.className = 'flex-grow-1 text-decoration-none text-truncate feedback-reference-url';
+                        a.textContent = safeUrl;
+                        a.style.color = '#444444';
+
+                        const btnGroup = document.createElement('div');
+                        btnGroup.className = 'd-flex align-items-center gap-1 ms-auto';
+
+                        const makeBtn = (icon, title, onClick) => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'btn btn-sm btn-link p-0';
+                            btn.title = title;
+                            btn.style.color = '#444444';
+                            btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">${icon}</span>`;
+                            btn.addEventListener('click', onClick);
+                            return btn;
+                        };
+
+                        const copyBtn = makeBtn('content_copy', 'Copy URL', function (ev) {
+                            ev.preventDefault(); ev.stopPropagation();
+                            navigator.clipboard?.writeText(safeUrl).then(function () {
+                                if (typeof showFloatingAlert === 'function')
+                                    showFloatingAlert('URL copied to clipboard', 'success');
+                            }).catch(function () {
+                                const ta = document.createElement('textarea');
+                                ta.value = safeUrl;
+                                ta.style.position = 'fixed';
+                                ta.style.left = '-9999px';
+                                document.body.appendChild(ta);
+                                ta.select();
+                                try {
+                                    document.execCommand('copy');
+                                    if (typeof showFloatingAlert === 'function')
+                                        showFloatingAlert('URL copied to clipboard', 'success');
+                                } catch (_) {
+                                    if (typeof showFloatingAlert === 'function')
+                                        showFloatingAlert('Failed to copy', 'warning');
+                                }
+                                document.body.removeChild(ta);
+                            });
+                        });
+
+                        const openBtn = makeBtn('open_in_new', 'Open URL', function (ev) {
+                            ev.preventDefault(); ev.stopPropagation();
+                            window.open(safeUrl, '_blank');
+                        });
+
+                        const delBtn = makeBtn('delete', 'Remove URL', function (ev) {
+                            ev.preventDefault(); ev.stopPropagation();
+                            try {
+                                showDeleteConfirmModal({
+                                    type: 'reference_url',
+                                    id: safeUrl,
+                                    authorName: '',
+                                    content: safeUrl,
+                                    avatarUrl: '',
+                                    parentModalId: 'referenceUrlsModal',
+                                    onConfirm: function (done) {
+                                        $.ajax({
+                                            url: appUrl + '/task/' + taskId + '/reference-url',
+                                            type: 'DELETE',
+                                            data: { url: safeUrl },
+                                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                            success: function (resp) {
+                                                if (typeof showFloatingAlert === 'function')
+                                                    showFloatingAlert(resp.message || 'Reference URL removed', 'success');
+                                                if (row && row.parentNode) row.parentNode.removeChild(row);
+                                                done(true);
+                                            },
+                                            error: function () {
+                                                const update = function () {
+                                                    $.ajax({
+                                                        url: appUrl + '/task/' + taskId,
+                                                        type: 'PUT',
+                                                        contentType: 'application/json',
+                                                        data: JSON.stringify({
+                                                            reference_urls: (function (orig) {
+                                                                try {
+                                                                    let arr = Array.isArray(orig)
+                                                                        ? orig
+                                                                        : (typeof orig === 'string' ? JSON.parse(orig) : []);
+                                                                    return arr.filter(x => String(x || '').trim() !== String(safeUrl || '').trim());
+                                                                } catch (e) { return []; }
+                                                            })(referenceUrls)
+                                                        }),
+                                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                                        success: function (r2) {
+                                                            if (typeof showFloatingAlert === 'function')
+                                                                showFloatingAlert(r2.message || 'Reference URL removed', 'success');
+                                                            if (row && row.parentNode) row.parentNode.removeChild(row);
+                                                            done(true);
+                                                        },
+                                                        error: function () {
+                                                            if (typeof showFloatingAlert === 'function')
+                                                                showFloatingAlert('Failed to remove URL', 'danger');
+                                                            done(false);
+                                                        }
+                                                    });
+                                                };
+                                                update();
+                                            }
+                                        });
+                                    }
+                                });
+                            } catch (_) { }
+                        });
+
+                        btnGroup.append(copyBtn, openBtn, delBtn);
+                        row.append(a, btnGroup);
+                        listEl.appendChild(row);
+                    });
+                } else {
+                    listEl.textContent = 'No reference URLs available.';
+                }
+
+                const modalEl = document.getElementById('referenceUrlsModal');
+                if (modalEl) {
+                    try { modalEl.dataset.taskId = String(taskId || ''); } catch(_) {}
+                    const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    m.show();
+                }
+            },
+            error: function(){
+                showFloatingAlert && showFloatingAlert('Failed to load reference URLs.', 'danger');
+            }
+        });
+    } catch(_){}
+}
+
 // function updateViewMoreButton() {
 //     if ($("#view-more-wrapper").length === 0) {
 //         const wrapper = $(`
@@ -90,186 +267,104 @@ function normalizeStatus(status) {
 function renderTaskNode(task, $template) {
     const normalizedStatus = normalizeStatus(task.status);
     let $item = $template.clone().removeClass("d-none").removeAttr("id");
-    try {
-        if (task && task.id != null) {
-            $item.attr("data-task-id", String(task.id));
-        }
-    } catch (_) {}
+    if (task?.id != null) $item.attr("data-task-id", String(task.id));
+
     let visual = "not-started";
-    try {
-        const s = String(task.status || "").toLowerCase();
-        if (["new_request", "new request", "new-request"].includes(s))
-            visual = "not-started";
-        else if (["in_progress", "in progress", "in-progress"].includes(s))
-            visual = "in-progress";
-        else if (["complete", "completed"].includes(s)) visual = "complete";
-        else visual = normalizedStatus || "not-started";
-        if (task.due_date && visual !== "complete") {
-            const due = new Date(task.due_date);
-            const today = new Date();
-            due.setHours(0, 0, 0, 0);
-            today.setHours(0, 0, 0, 0);
-            if (!isNaN(due.getTime()) && today > due) visual = "late";
-        }
-    } catch (e) {}
+    const s = String(task.status || "").toLowerCase();
+    if (["new_request", "new request", "new-request"].includes(s)) visual = "not-started";
+    else if (["in_progress", "in progress", "in-progress"].includes(s)) visual = "in-progress";
+    else if (["complete", "completed"].includes(s)) visual = "complete";
+    else visual = normalizedStatus || "not-started";
+    if (task.due_date && visual !== "complete") {
+        const due = new Date(task.due_date), today = new Date();
+        due.setHours(0, 0, 0, 0); today.setHours(0, 0, 0, 0);
+        if (!isNaN(due.getTime()) && today > due) visual = "late";
+    }
+
     const $card = $item.find(".task-box");
-    try {
-        if (task && task.id != null) {
-            $card.attr("data-task-id", String(task.id));
-            $card.attr("id", "task-node-" + String(task.id));
-            $card.attr("draggable", true);
-            $card.addClass("draggable-task");
-            if (!$card.attr("title")) {
-                $card.attr(
-                    "title",
-                    "Drag this task and drop onto another task to re-parent"
-                );
-            }
-        }
-    } catch (_) {}
+    if (task?.id != null) {
+        $card.attr("data-task-id", String(task.id));
+        $card.attr("id", "task-node-" + String(task.id));
+        $card.attr("draggable", true).addClass("draggable-task");
+        if (!$card.attr("title")) $card.attr("title", "Drag this task and drop onto another task to re-parent");
+    }
 
-    try {
-        $card.css("position", function (i, v) {
-            return v || "relative";
-        });
-        // Ensure the overflow is visible so half-outside controls remain clickable
-        try {
-            if (!$card.css("overflow") || $card.css("overflow") === "hidden") {
-                $card.css("overflow", "visible");
-            }
-        } catch (_) {}
-        try {
-            if (
-                $card.css("z-index") == null ||
-                $card.css("z-index") === "auto"
-            ) {
-                $card.css("z-index", 10);
-            }
-        } catch (_) {}
-        if ($card.find(".plumb-handle").length === 0) {
-            const $handle = $(
-                '<div class="plumb-handle d-none" title="Drag a line to add a parent"\
-                style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;user-select:none;-webkit-user-select:none;"></div>'
-            );
-            $handle.attr("draggable", false);
-            $handle.on("pointerdown mousedown touchstart", function () {
-                try {
-                    $card.attr("draggable", false);
-                } catch (_) {}
-            });
-            $handle.on("pointerup mouseup touchend touchcancel", function () {
-                try {
-                    $card.attr("draggable", true);
-                } catch (_) {}
-            });
-            $handle.on("click", function (e) {
-                try {
-                    e.stopPropagation();
-                    e.preventDefault();
-                } catch (_) {}
-            });
-            $card.append($handle);
+    $card.css("position", "relative").css("overflow", "visible").css("z-index", 10);
+
+    if ($card.find(".plumb-handle").length === 0) {
+        const $handle = $('<div class="plumb-handle d-none" title="Drag a line to add a parent" style="position:absolute;top:15px;right:-5px;width:14px;height:14px;border-radius:50%;background:#D2D3E1;cursor:crosshair;opacity:0.9;box-shadow:0 0 0 1px #fff;z-index:10;pointer-events:auto;"></div>');
+        $handle.attr("draggable", false);
+        $handle.on("pointerdown mousedown touchstart", () => $card.attr("draggable", false));
+        $handle.on("pointerup mouseup touchend touchcancel", () => $card.attr("draggable", true));
+        $card.append($handle);
+    }
+
+    if ($card.find(".task-more-btn").length === 0) {
+        let currentEmployeeId = null;
+        const empInput =
+            document.querySelector('input[name="employee_id"]') ||
+            document.querySelector("#currentEmployee") ||
+            document.querySelector("[data-employee-id]");
+        if (empInput) {
+            currentEmployeeId =
+                empInput.value ||
+                empInput.getAttribute("data-employee-id") ||
+                (empInput.dataset && empInput.dataset.employeeId) ||
+                null;
         }
 
-        // Add three-dots menu button (menu will be portaled to body)
-        if ($card.find(".task-more-btn").length === 0) {
-            // Determine current logged-in employee id from known DOM locations
-            let currentEmployeeId = null;
-            try {
-                const empInput =
-                    document.querySelector('input[name="employee_id"]') ||
-                    document.querySelector("#currentEmployee") ||
-                    document.querySelector("[data-employee-id]");
-                if (empInput) {
-                    currentEmployeeId =
-                        empInput.value ||
-                        empInput.getAttribute("data-employee-id") ||
-                        (empInput.dataset && empInput.dataset.employeeId) ||
-                        null;
-                }
-            } catch (_) {}
-
-            // Decide whether to show menu: if we can detect currentEmployeeId, only show when it's equal to task.pic.id
-            let showMenu = true;
-            try {
-                if (
-                    currentEmployeeId !== null &&
-                    currentEmployeeId !== undefined &&
-                    String(currentEmployeeId).trim() !== ""
-                ) {
-                    if (
-                        task &&
-                        task.pic &&
-                        task.pic.id !== null &&
-                        task.pic.id !== undefined
-                    ) {
-                        showMenu =
-                            String(currentEmployeeId) === String(task.pic.id);
-                    } else {
-                        // If task has no PIC, do not show the menu when we know the current employee
-                        showMenu = false;
-                    }
-                } else {
-                    // If we couldn't detect current employee id, fall back to original behavior (show menu)
-                    showMenu = true;
-                }
-            } catch (_) {
-                showMenu = true;
-            }
-
-            if (showMenu) {
-                const taskId = task && task.id ? String(task.id) : null;
-                const $moreBtn = $(
-                    '<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>'
-                );
-                if (taskId) $moreBtn.attr("data-task-id", taskId);
-                $card.append($moreBtn);
-
-                // Always show on mobile devices (no hover)
-                try {
-                    var isMobile =
-                        (window.matchMedia &&
-                            window.matchMedia("(max-width: 1024px)").matches) ||
-                        window.innerWidth <= 1024 ||
-                        /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-                            navigator.userAgent
-                        );
-                    if (isMobile) $moreBtn.removeClass("d-none");
-                } catch (_) {}
-            }
+        let showMenu = false;
+        if (currentEmployeeId) {
+            const isPIC = task.pic?.id && String(currentEmployeeId) === String(task.pic.id);
+            const isAuthor = task.project?.authors?.some((a) => String(a.id) === String(currentEmployeeId));
+            const isCoAuthor = task.project?.co_authors?.some((a) => String(a.id) === String(currentEmployeeId));
+            showMenu = isPIC || isAuthor || isCoAuthor;
         }
 
-        // Show both handle and menu button on hover
-        $card.hover(
-            function () {
-                $(this)
-                    .find(".plumb-handle, .task-more-btn")
-                    .removeClass("d-none");
-            },
-            function () {
-                $(this)
-                    .find(".plumb-handle, .task-more-btn")
-                    .addClass("d-none"); /* don't auto-hide menu here */
-            }
-        );
-    } catch (_) {}
+        if (showMenu) {
+            const taskId = task?.id ? String(task.id) : null;
+            const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
+            if (taskId) $moreBtn.attr("data-task-id", taskId);
+            $card.append($moreBtn);
+
+            const isMobile =
+                (window.matchMedia && window.matchMedia("(max-width: 1024px)").matches) ||
+                window.innerWidth <= 1024 ||
+                /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            if (isMobile) $moreBtn.removeClass("d-none");
+        }
+    }
+
+    $card.hover(
+        function () {
+            $(this).find(".plumb-handle, .task-more-btn").removeClass("d-none");
+        },
+        function () {
+            $(this).find(".plumb-handle, .task-more-btn").addClass("d-none");
+        }
+    );
 
     if (visual === "complete") $card.css("background-color", "#B2EECD");
     else if (visual === "in-progress") $card.css("background-color", "#F5EFCE");
     else if (visual === "late") $card.css("background-color", "#EBA5A5");
     else $card.css("background-color", "#DDE4E8");
+
     $item.find(".task-name").text(task.title);
-    let startText = task.start_date
-        ? formatDateENMediumDayMonth(task.start_date)
-        : "";
-    let dueText = task.due_date
-        ? formatDateENMediumDayMonth(task.due_date)
-        : "";
-    let dateText =
-        startText && dueText
-            ? `${startText} - ${dueText}`
-            : startText || dueText;
-    $item.find(".task-date").text(dateText);
+    const startText = task.start_date ? formatDateENMediumDayMonth(task.start_date) : "";
+    const dueText = task.due_date ? formatDateENMediumDayMonth(task.due_date) : "";
+    $item.find(".task-date").text(startText && dueText ? `${startText} - ${dueText}` : startText || dueText);
+
+    // Show completed icon on task card when task is complete
+    try {
+        if (visual === "complete") {
+            // avoid duplicate
+            if ($card.find('.playlist_add_check').length === 0) {
+                const $icon = $(`<span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" role="button" tabindex="0" aria-label="Lihat task selesai" style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:pointer; z-index:2000;">playlist_add_check</span>`);
+                $card.append($icon);
+            }
+        }
+    } catch (_) {}
+
     if (task.children && task.children.length > 0) {
         const $branch = $('<div class="task-branch"></div>');
         $branch.append($item);
@@ -417,6 +512,247 @@ function adjustConnectors() {
 
 $(window).on("resize", function () {
     if (!window.USE_PLUMB_ONLY) setTimeout(adjustConnectors, 60);
+});
+
+// Handle activation (click or keyboard) on completed icon inside task tree: open Completed modal
+function openCompletedModalById(tid) {
+    if (!tid) return;
+    try {
+        // Ensure completed modal markup exists on the page (task page includes it, project detail may not)
+        try {
+            if (!document.getElementById('completedModal')) {
+                const tpl = `
+                <div class="modal fade" id="completedModal" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-body modal-body-custom">
+                                <div class="d-flex align-items-center mb-2">
+                                    <img id="completed_task_image" src="" alt="Project Image" class="rounded-circle me-2" width="34" height="34">
+                                    <div>
+                                        <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;"></h6>
+                                        <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
+                                    </div>
+                                </div>
+
+                                <div class="mb-4 task-description-container">
+                                    <div id="completed_task_note" class="text-muted task-description"><em>No note</em></div>
+                                </div>
+
+                                <div class="row mb-4 link-file-task">
+                                    <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
+                                        <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
+                                        <span id="completed_priority" style="font-weight: 500; color: #f0ad4e;">-</span>
+                                    </div>
+                                    <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
+                                        <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
+                                        <span id="completed_date">-</span>
+                                    </div>
+                                    <div class="col-12" style="font-size: 12px;">
+                                        <label class="fw-normal text-muted d-block mb-1">Links:</label>
+                                        <div id="completed_task_urls"><em>-</em></div>
+                                    </div>
+                                    <div class="col-12" style="font-size: 12px;">
+                                        <label class="fw-normal text-muted d-block mb-1">Files:</label>
+                                        <div id="completed_task_files"><em>-</em></div>
+                                    </div>
+                                </div>
+
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                try { document.body.insertAdjacentHTML('beforeend', tpl); } catch (e) { /* ignore */ }
+            }
+        } catch (_) {}
+
+        const flat = (function flatten(tasks) {
+            const out = [];
+            (tasks || []).forEach(function tfn(t) {
+                out.push(t);
+                if (Array.isArray(t.children) && t.children.length) t.children.forEach(tfn);
+            });
+            return out;
+        })(allTasks || []);
+        const task = flat.find(function (x) {
+            try { return String(x.id) === String(tid); } catch(_) { return false; }
+        });
+        if (task && typeof window.showCompletedModal === 'function') {
+            window.showCompletedModal(task);
+            try {
+                const completedEl = document.getElementById('completedModal');
+                if (completedEl) {
+                    const parentModalEl = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal');
+                    let parentWasOpen = false;
+                    let parentInst = null;
+                    try {
+                        if (parentModalEl && parentModalEl.classList.contains('show')) {
+                            parentWasOpen = true;
+                            parentInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                            try { parentInst.hide(); } catch(_) {}
+                        }
+                    } catch(_) {}
+                    const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
+                    try { inst.show(); } catch(_) { try { inst.show(); } catch(_) {} }
+                    if (parentWasOpen && parentInst) {
+                        const onHide = function () {
+                            try { parentInst.show(); } catch(_) {}
+                            try { inst._element.removeEventListener('hidden.bs.modal', onHide); } catch(_) {}
+                        };
+                        try { inst._element.addEventListener('hidden.bs.modal', onHide); } catch(_) {}
+                    }
+                }
+            } catch (_) {}
+            return;
+        }
+    } catch (_) {}
+
+    try {
+        const url = (function(){ try { const m = document.querySelector('meta[name="app-url"]'); return (m && m.getAttribute('content')||'').replace(/\/+$/,''); } catch(e){ return ''; } })();
+        if (!url) return;
+        $.ajax({ url: url + '/task/' + encodeURIComponent(String(tid)), type: 'GET', dataType: 'json' })
+            .done(function (res) {
+                console.debug('[task-tree] AJAX fetched task for completed modal', res);
+                const payload = res && (res.data || res) || null;
+                if (payload && typeof window.showCompletedModal === 'function') {
+                    window.showCompletedModal(payload);
+                    try {
+                        const completedEl = document.getElementById('completedModal');
+                        if (completedEl) {
+                            const parentModalEl = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal');
+                            let parentWasOpen = false;
+                            let parentInst = null;
+                            try {
+                                if (parentModalEl && parentModalEl.classList.contains('show')) {
+                                    parentWasOpen = true;
+                                    parentInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                    try { parentInst.hide(); } catch(_) {}
+                                }
+                            } catch(_) {}
+                            const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
+                            try { inst.show(); } catch(_) { try { inst.show(); } catch(_) {} }
+                            if (parentWasOpen && parentInst) {
+                                const onHide = function () {
+                                    try { parentInst.show(); } catch(_) {}
+                                    try { inst._element.removeEventListener('hidden.bs.modal', onHide); } catch(_) {}
+                                };
+                                try { inst._element.addEventListener('hidden.bs.modal', onHide); } catch(_) {}
+                            }
+                        }
+                    } catch (_) {}
+                }
+            })
+            .fail(function (xhr) {
+                try { console.warn('[task-tree] AJAX fetch failed', tid, xhr && xhr.status); } catch(_) {}
+            });
+    } catch (_) {}
+}
+
+// Fallback showCompletedModal if task.js not loaded on this page
+if (typeof window.showCompletedModal !== 'function') {
+    window.showCompletedModal = function (task) {
+        try {
+            if (!task || !task.id) return;
+            const appUrlMeta = document.querySelector('meta[name="app-url"]');
+            const base = (appUrlMeta && appUrlMeta.getAttribute('content') || '').replace(/\/+$/,'');
+
+            try {
+                // Replace avatar area with same markup used elsewhere to ensure initials fallback
+                const avatarContainer = document.getElementById('completed_task_image');
+                if (avatarContainer) {
+                    // If the element is an <img>, replace it with the avatar HTML (image or initials)
+                    const parent = avatarContainer.parentElement;
+                    const avatarHtml = getAvatarHTML(task, 34);
+                    if (parent) {
+                        // If the existing element is an <img>, replace that node with a wrapper containing our HTML
+                        try { parent.removeChild(avatarContainer); } catch(_) {}
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = avatarHtml;
+                        // add spacing similar to original layout
+                        wrapper.firstElementChild && wrapper.firstElementChild.classList.add('me-2');
+                        parent.insertBefore(wrapper.firstElementChild, parent.firstChild || null);
+                    } else {
+                        // Fallback: set src if replacement not possible
+                        try { avatarContainer.setAttribute('src', (task.image || task.project_image || task.image_url || (base + '/asset/img/avatar.png')) ); } catch(_) {}
+                    }
+                }
+            } catch(_) {}
+            try { document.getElementById('completed_task_title').textContent = task.title || '-'; } catch(_) {}
+            try { document.getElementById('completed_project_title').textContent = task.project_title || (task.project && task.project.title) || '-'; } catch(_) {}
+            try { document.getElementById('completed_task_note').innerHTML = task.complete_note || task.description || '<em>No note</em>'; } catch(_) {}
+            try { document.getElementById('completed_priority').textContent = task.priority || '-'; } catch(_) {}
+            try { document.getElementById('completed_date').textContent = task.complete_date || task.due_date || '-'; } catch(_) {}
+
+            // Links
+            try {
+                const urls = document.getElementById('completed_task_urls');
+                if (urls) {
+                    urls.innerHTML = '';
+                    if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
+                        task.complete_urls.forEach(function(u, idx){
+                            const a = document.createElement('a');
+                            a.href = u.startsWith('http') ? u : (base + '/' + String(u).replace(/^\/+/, ''));
+                            a.target = '_blank';
+                            a.textContent = 'link_' + (idx+1);
+                            urls.appendChild(a);
+                            urls.appendChild(document.createElement('br'));
+                        });
+                    } else urls.innerHTML = '<em>-</em>';
+                }
+            } catch(_) {}
+
+            // Files
+            try {
+                const files = document.getElementById('completed_task_files');
+                if (files) {
+                    files.innerHTML = '';
+                    if (Array.isArray(task.complete_files) && task.complete_files.length) {
+                        task.complete_files.forEach(function(f){
+                            const raw = (f && (f.url || f)) || '';
+                            const link = document.createElement('a');
+                            const url = (raw.startsWith('http') ? raw : (base + '/' + String(raw).replace(/^\/+/, '')));
+                            link.href = url; link.target = '_blank'; link.textContent = decodeURIComponent(String(url).split('/').pop() || url);
+                            files.appendChild(link); files.appendChild(document.createElement('br'));
+                        });
+                    } else files.innerHTML = '<em>-</em>';
+                }
+            } catch(_) {}
+
+            try {
+                const completedEl = document.getElementById('completedModal');
+                if (completedEl) {
+                    const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
+                    inst.show();
+                }
+            } catch(_) {}
+        } catch(_) {}
+    };
+}
+
+$(document).on('click', '#task-tree .playlist_add_check', function (e) {
+    try {
+        // prevent other handlers from intercepting
+        e.preventDefault && e.preventDefault();
+        e.stopImmediatePropagation && e.stopImmediatePropagation();
+        e.stopPropagation && e.stopPropagation();
+    } catch(_) {}
+    const $el = $(this);
+    const tid = $el.attr('data-task-id') || $el.data('task-id');
+    try { console.debug('[task-tree] playlist_add_check clicked, taskId=', tid); } catch(_) {}
+    openCompletedModalById(tid);
+});
+
+// keyboard support (Enter / Space)
+$(document).on('keydown', '#task-tree .playlist_add_check', function (e) {
+    const key = e.key || e.keyCode;
+    if (key === 'Enter' || key === ' ' || key === 13 || key === 32) {
+        try { e.preventDefault && e.preventDefault(); e.stopImmediatePropagation && e.stopImmediatePropagation(); } catch(_) {}
+        const $el = $(this);
+        const tid = $el.attr('data-task-id') || $el.data('task-id');
+        openCompletedModalById(tid);
+    }
 });
 
 function ensureSvgOverlay() {
@@ -1400,6 +1736,11 @@ $("#fullscreen-tree-btn").on("click", function () {
 })();
 
 $(document).on("click", ".task-box, .timeline-bar", function (e) {
+    // If click came from the completed icon, do not open task detail here
+    if ($(e.target).closest('.playlist_add_check').length) {
+        // Let the playlist_add_check delegated handler handle it
+        return;
+    }
     if ($(e.target).closest(".plumb-handle").length) {
         e.preventDefault();
         e.stopPropagation();
@@ -1501,6 +1842,150 @@ function renderProjectTaskDetail(res) {
             }
         }
     } catch (_) {}
+
+        // Make task image clickable to open preview (reuse global showImageModal if available)
+        try {
+                const avatarContainer = document.getElementById('projectTaskProjectAvatar');
+                if (avatarContainer) {
+                        const img = avatarContainer.querySelector('img');
+                        if (img) {
+                                img.style.cursor = 'pointer';
+                                try { img.removeEventListener('click', img._previewHandler || function(){}); } catch(_) {}
+                img._previewHandler = function (e) {
+                    try { e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); } catch(_) {}
+                    const src = img.getAttribute('src') || img.src;
+                    if (!src) return;
+                    try {
+                        // Prefer the task.js helper if present
+                        if (typeof showImageInModal === 'function') {
+                            // If this modal is a parent detail, hide it first so preview appears alone.
+                            try {
+                                const parent = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal') || document.getElementById('taskDetailModal');
+                                if (parent && parent.classList && parent.classList.contains('show')) {
+                                try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                                const pi = bootstrap.Modal.getInstance(parent) || new bootstrap.Modal(parent);
+                                try { pi.hide(); } catch(_) {}
+                                }
+                            } catch(_) {}
+                            showImageInModal(src);
+                            return;
+                        }
+                    } catch (_) {}
+
+                    // Fallback: create or reuse taskImagePreviewModal markup (same as task.js uses)
+                                        try {
+                                                let modalEl = document.getElementById('taskImagePreviewModal');
+                                                if (!modalEl) {
+                                                        const tpl = document.createElement('div');
+                                                        tpl.innerHTML = `
+                                                            <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+                                                                <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
+                                                                    <div class="modal-content modal-content-custom bg-light border-0">
+                                                                        <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                                                                            <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
+                                                                        </div>
+                                                                        <div class="modal-footer modal-footer-custom border-0 justify-content-center">
+                                                                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>`;
+
+
+                                                    try { document.body.insertAdjacentHTML('beforeend', tpl.innerHTML); } catch (_) { document.body.appendChild(tpl.firstElementChild); }
+                                                        modalEl = document.getElementById('taskImagePreviewModal');
+                                                    }
+
+                                                const imgEl = document.getElementById('taskImagePreviewModalImg');
+                                                const dialogEl = document.getElementById('taskImageDialog');
+                                                if (imgEl) {
+                                                    // remove any previous onload handlers
+                                                    try { imgEl.onload = null; } catch(_) {}
+                                                    imgEl.setAttribute('src', src);
+                                                    imgEl.addEventListener('load', function onLoad() {
+                                                        try {
+                                                            const naturalW = this.naturalWidth || 0;
+                                                            const naturalH = this.naturalHeight || 0;
+                                                            const viewportW = window.innerWidth * 0.9;
+                                                            const viewportH = window.innerHeight * 0.8;
+                                                            const ratio = Math.min(viewportW / Math.max(naturalW,1), viewportH / Math.max(naturalH,1), 1);
+                                                            const modalWidth = Math.round(naturalW * ratio);
+                                                            if (dialogEl && dialogEl.style) dialogEl.style.maxWidth = modalWidth + 'px';
+                                                        } catch(_) {}
+                                                    });
+                                                }
+
+                                                // If project detail modal is open, hide it and remember to restore
+                                                const parentModalEl = document.getElementById('projectTaskDetailModal');
+                                                let parentWasOpen = false;
+                                                try {
+                                                    if (parentModalEl && parentModalEl.classList.contains('show')) {
+                                                        parentWasOpen = true;
+                                                        try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                                                        const pmInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                                        try { pmInst.hide(); } catch(_) {}
+                                                    }
+                                                } catch(_) {}
+
+                                                const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl));
+
+                                                const onPreviewHidden = function() {
+                                                    try { inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                                    try {
+                                                        if (parentWasOpen) {
+                                                            try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                                                            const pmInst2 = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(parentModalEl) : (bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl));
+                                                            try { pmInst2.show(); } catch(_) {}
+                                                        }
+                                                    } catch(_) {}
+                                                };
+                                                try { inst._element.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                                try { inst.show(); } catch(e) { try { inst.show(); } catch(_) {} }
+                                        } catch (e) {
+                                                // Last resort: open image in new tab
+                                                try { window.open(src, '_blank'); } catch (_) {}
+                                        }
+                                };
+                                img.addEventListener('click', img._previewHandler);
+                        }
+                }
+        } catch (_) {}
+
+    // Wire attach_file button to open Reference URLs modal and populate with task's reference URLs
+    try {
+        const detailEl2 = document.getElementById('projectTaskDetailModal');
+        if (detailEl2) {
+            const attachBtn = detailEl2.querySelector('button:not([data-bs-target]) .material-symbols-outlined');
+            // safer selector: find the second button with attach_file icon
+            const buttons = detailEl2.querySelectorAll('button.border-0');
+            let found = null;
+            if (buttons && buttons.length) {
+                buttons.forEach(function(b){
+                    try {
+                        const icon = b.querySelector('.material-symbols-outlined');
+                        if (icon && icon.textContent && icon.textContent.trim() === 'attach_file') {
+                            found = b;
+                        }
+                    } catch(_){}
+                });
+            }
+            if (found) {
+                const btn = found;
+                try { btn.removeEventListener('click', btn._attachClickHandler || function(){}); } catch(_) {}
+                btn._attachClickHandler = function(e){
+                    try { e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); } catch(_){}
+                    // read task id from the parent modal dataset
+                    try {
+                        const modalEl = document.getElementById('projectTaskDetailModal');
+                        const tid = modalEl && modalEl.dataset && modalEl.dataset.taskId ? String(modalEl.dataset.taskId) : null;
+                        if (tid) showReferenceUrlsForTask(tid);
+                        else showFloatingAlert && showFloatingAlert('Task ID not found', 'warning');
+                    } catch(e){}
+                };
+                btn.addEventListener('click', btn._attachClickHandler);
+            }
+        }
+    } catch(_){}
 }
 
 // Helper: fetch reference files for a given task id, populate #referenceFilesList and show the modal
@@ -1789,20 +2274,23 @@ function escapeHTML(str) {
         .replace(/'/g, "&#039;");
 }
 
-function getAvatarHTML(task) {
-    const img = task.image ? `${appUrl}/file/task/${task.image}` : null;
+function getAvatarHTML(task, size = 48) {
+    // size: numeric pixel for width/height (default 48)
+    const px = Number(size) || 48;
+    const img = task && (task.image || task.image_url || task.project_image) ? `${appUrl}/file/task/${(task.image || task.image_url || task.project_image)}` : null;
 
     if (img) {
-        return `<img src="${img}" alt="Task" class="project-image"
-                    style="width:48px;height:48px;object-fit:cover;border-radius:50%;"
-                    onerror="this.src='${appUrl}/asset/img/avatar.png'">`;
+        // onerror will replace the <img> with an initials div to match other parts of the app
+        const initials = escapeHTML(getTaskInitials(task.title || ''));
+        const color = getRandomColorFromText(task.title || '');
+        // Build a JS-safe replacement string for onerror (escape quotes)
+        const replaceDiv = `<div class=\"rounded-circle d-flex align-items-center justify-content-center me-3\" style=\"width:${px}px;height:${px}px;background:${color};color:#fff;font-weight:600;font-size:${Math.max(10, Math.round(px*0.34))}px;\">${initials}</div>`;
+        return `<img src="${img}" alt="Task" class="project-image" style="width:${px}px;height:${px}px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.replaceWith('${replaceDiv}')">`;
     }
 
-    const initials = getTaskInitials(task.title);
-    const color = getRandomColorFromText(task.title);
-    return `<div class="project-initial-avatar"
-                style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-                font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
+    const initials = escapeHTML(getTaskInitials(task.title || ''));
+    const color = getRandomColorFromText(task.title || '');
+    return `<div class="project-initial-avatar" style="width:${px}px;height:${px}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:${Math.max(10, Math.round(px*0.34))}px;color:#fff;background:${color};">${initials}</div>`;
 }
 
 if (typeof window.getTaskInitials !== "function") {
