@@ -1020,11 +1020,39 @@ class ProjectController extends Controller
 
         $visited[] = $projectId;
 
-        // Get all projects that have $projectId as parent from project_parents table
-        // Use json_encode to ensure the bound parameter is valid JSON (MySQL expects a JSON value)
-        $children = collect(DB::table('project_parents')
-            ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [json_encode((int)$projectId)])
-            ->pluck('project_id'));
+       
+        $children = collect();
+        try {
+            $children = collect(DB::table('project_parents')
+                ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [json_encode((int)$projectId)])
+                ->pluck('project_id'));
+        } catch (\Throwable $e) {
+            try {
+                $rows = DB::table('project_parents')->get(['project_id', 'project_parent_ids']);
+                $filtered = collect($rows)->filter(function ($row) use ($projectId) {
+                    if (!isset($row->project_parent_ids) || $row->project_parent_ids === null) return false;
+                    $raw = $row->project_parent_ids;
+                    if (is_string($raw)) {
+                        $decoded = json_decode($raw, true);
+                        if (is_array($decoded)) {
+                            return in_array((int)$projectId, array_map('intval', $decoded));
+                        }
+                        if (strpos($raw, ',') !== false) {
+                            $parts = array_map('trim', explode(',', $raw));
+                            return in_array((string)$projectId, $parts) || in_array((int)$projectId, array_map('intval', $parts));
+                        }
+                    }
+                    if (is_array($raw)) {
+                        return in_array((int)$projectId, array_map('intval', $raw));
+                    }
+                    return false;
+                })->pluck('project_id');
+
+                $children = collect($filtered->toArray());
+            } catch (\Throwable $_) {
+                $children = collect();
+            }
+        }
 
         foreach ($children as $childId) {
             if ($childId == $potentialAncestorId) {
