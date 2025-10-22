@@ -539,19 +539,19 @@ function openCompletedModalById(tid) {
                                 </div>
 
                                 <div class="row mb-4 link-file-task">
-                                    <div class="col-6 d-flex align-items-center">
+                                    <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
                                         <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
                                         <span id="completed_priority" style="font-weight: 500; color: #f0ad4e;">-</span>
                                     </div>
-                                    <div class="col-6 d-flex align-items-center">
+                                    <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
                                         <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
                                         <span id="completed_date">-</span>
                                     </div>
-                                    <div class="col-12">
+                                    <div class="col-12" style="font-size: 12px;">
                                         <label class="fw-normal text-muted d-block mb-1">Links:</label>
                                         <div id="completed_task_urls"><em>-</em></div>
                                     </div>
-                                    <div class="col-12">
+                                    <div class="col-12" style="font-size: 12px;">
                                         <label class="fw-normal text-muted d-block mb-1">Files:</label>
                                         <div id="completed_task_files"><em>-</em></div>
                                     </div>
