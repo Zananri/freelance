@@ -19,6 +19,165 @@ function renderChildGroups(task, $container, $template) {
     }
 }
 
+// Helper: fetch reference URLs for a given task id, populate #referenceUrlsList and show the modal
+function showReferenceUrlsForTask(taskId) {
+    if (!taskId) return;
+    try {
+        $.ajax({
+            url: appUrl + "/task/" + encodeURIComponent(String(taskId)),
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const payload = res && (res.data || res);
+                let referenceUrls = payload && payload.reference_urls;
+
+                // Normalize possible formats: stringified JSON, comma-separated string, or single reference_url
+                if (typeof referenceUrls === "string") {
+                    try {
+                        const parsed = JSON.parse(referenceUrls);
+                        if (Array.isArray(parsed)) referenceUrls = parsed;
+                        else referenceUrls = [String(referenceUrls)];
+                    } catch (e) {
+                        // fallback: split by comma
+                        referenceUrls = referenceUrls
+                            .split(',')
+                            .map((s) => s.trim())
+                            .filter(Boolean);
+                    }
+                }
+                if ((!referenceUrls || referenceUrls.length === 0) && payload && payload.reference_url) {
+                    referenceUrls = [payload.reference_url];
+                }
+
+                const listEl = document.getElementById('referenceUrlsList');
+                if (!listEl) return;
+                listEl.innerHTML = '';
+
+                try { listEl.dataset.taskId = String(taskId || ''); } catch(_) {}
+                try { document.getElementById('referenceUrlsModal').dataset.taskId = String(taskId || ''); } catch(_) {}
+
+                if (Array.isArray(referenceUrls) && referenceUrls.length > 0) {
+                    referenceUrls.forEach(function(u){
+                        if (!u) return;
+                        const safeUrl = String(u || '').trim();
+                        const row = document.createElement('div');
+                        row.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        const a = document.createElement('a');
+                        a.href = safeUrl;
+                        a.target = '_blank';
+                        a.className = 'flex-grow-1 text-decoration-none text-truncate feedback-reference-url';
+                        a.textContent = safeUrl;
+                        a.style.color = '#444444';
+                        row.appendChild(a);
+
+                        const copyBtn = document.createElement('button');
+                        copyBtn.type = 'button';
+                        copyBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        copyBtn.title = 'Copy URL';
+                        copyBtn.style.color = '#444444';
+                        copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>';
+                        copyBtn.addEventListener('click', function(ev){
+                            try {
+                                ev.preventDefault(); ev.stopPropagation();
+                                navigator.clipboard && navigator.clipboard.writeText(safeUrl).then(function(){
+                                    if (typeof showFloatingAlert === 'function') showFloatingAlert('URL copied to clipboard', 'success');
+                                }, function(){
+                                    // fallback
+                                    const ta = document.createElement('textarea'); ta.value = safeUrl; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); if (typeof showFloatingAlert === 'function') showFloatingAlert('URL copied to clipboard', 'success'); }catch(_){ if (typeof showFloatingAlert === 'function') showFloatingAlert('Failed to copy', 'warning'); } try{ document.body.removeChild(ta); }catch(_){ }
+                                });
+                            } catch(_){}
+                        });
+                        row.appendChild(copyBtn);
+
+                        const openBtn = document.createElement('button');
+                        openBtn.type = 'button';
+                        openBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        openBtn.title = 'Open URL';
+                        openBtn.style.color = '#444444';
+                        openBtn.innerHTML = '<span class="material-symbols-outlined">open_in_new</span>';
+                        openBtn.addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); window.open(safeUrl, '_blank'); });
+                        row.appendChild(openBtn);
+
+                        // Optionally allow removing URL (UI only) - server side may be required to persist
+                        const delBtn = document.createElement('button');
+                        delBtn.type = 'button';
+                        delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        delBtn.title = 'Remove URL';
+                        delBtn.style.color = '#444444';
+                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                        delBtn.addEventListener('click', function(ev){
+                            ev.preventDefault(); ev.stopPropagation();
+                            try {
+                                showDeleteConfirmModal({
+                                    type: 'reference_url',
+                                    id: safeUrl,
+                                    authorName: '',
+                                    content: safeUrl,
+                                    avatarUrl: '',
+                                    parentModalId: 'referenceUrlsModal',
+                                    onConfirm: function(done){
+                                        try {
+                                            // attempt to delete via backend endpoint if exists: /task/{id}/reference-url (DELETE) with { url }
+                                            $.ajax({
+                                                url: appUrl + '/task/' + taskId + '/reference-url',
+                                                type: 'DELETE',
+                                                data: { url: safeUrl },
+                                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                                success: function(resp){ try{ if (typeof showFloatingAlert === 'function') showFloatingAlert(resp.message || 'Reference URL removed', 'success'); }catch(_){}
+                                                    if (row && row.parentNode) row.parentNode.removeChild(row);
+                                                    done(true);
+                                                },
+                                                error: function(xhr){
+                                                    // fallback: try to PATCH task to remove url from reference_urls array
+                                                    try {
+                                                        const update = function(){
+                                                            try{
+                                                                $.ajax({
+                                                                    url: appUrl + '/task/' + taskId,
+                                                                    type: 'PUT',
+                                                                    contentType: 'application/json',
+                                                                    data: JSON.stringify({ reference_urls: (function(orig){ try{ let arr = Array.isArray(orig)?orig:(typeof orig==='string'?JSON.parse(orig):[]); arr = arr.filter(function(x){ return String(x||'').trim() !== String(safeUrl||'').trim(); }); return arr; }catch(e){ return []; } })(referenceUrls) }),
+                                                                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                                                    success: function(r2){ try{ if (typeof showFloatingAlert === 'function') showFloatingAlert(r2.message || 'Reference URL removed', 'success'); }catch(_){}
+                                                                        if (row && row.parentNode) row.parentNode.removeChild(row);
+                                                                        done(true);
+                                                                    },
+                                                                    error: function(){ try{ if (typeof showFloatingAlert === 'function') showFloatingAlert('Failed to remove URL', 'danger'); }catch(_){} done(false); }
+                                                                });
+                                                            }catch(e){ done(false); }
+                                                        };
+                                                        update();
+                                                    } catch (e) { done(false); }
+                                                }
+                                            });
+                                        } catch (e) { done(false); }
+                                    }
+                                });
+                            } catch(_){}
+                        });
+                        row.appendChild(delBtn);
+
+                        listEl.appendChild(row);
+                    });
+                } else {
+                    listEl.textContent = 'No reference URLs available.';
+                }
+
+                const modalEl = document.getElementById('referenceUrlsModal');
+                if (modalEl) {
+                    try { modalEl.dataset.taskId = String(taskId || ''); } catch(_) {}
+                    const m = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    m.show();
+                }
+            },
+            error: function(){
+                showFloatingAlert && showFloatingAlert('Failed to load reference URLs.', 'danger');
+            }
+        });
+    } catch(_){}
+}
+
 // function updateViewMoreButton() {
 //     if ($("#view-more-wrapper").length === 0) {
 //         const wrapper = $(`
@@ -1501,6 +1660,42 @@ function renderProjectTaskDetail(res) {
             }
         }
     } catch (_) {}
+
+    // Wire attach_file button to open Reference URLs modal and populate with task's reference URLs
+    try {
+        const detailEl2 = document.getElementById('projectTaskDetailModal');
+        if (detailEl2) {
+            const attachBtn = detailEl2.querySelector('button:not([data-bs-target]) .material-symbols-outlined');
+            // safer selector: find the second button with attach_file icon
+            const buttons = detailEl2.querySelectorAll('button.border-0');
+            let found = null;
+            if (buttons && buttons.length) {
+                buttons.forEach(function(b){
+                    try {
+                        const icon = b.querySelector('.material-symbols-outlined');
+                        if (icon && icon.textContent && icon.textContent.trim() === 'attach_file') {
+                            found = b;
+                        }
+                    } catch(_){}
+                });
+            }
+            if (found) {
+                const btn = found;
+                try { btn.removeEventListener('click', btn._attachClickHandler || function(){}); } catch(_) {}
+                btn._attachClickHandler = function(e){
+                    try { e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); } catch(_){}
+                    // read task id from the parent modal dataset
+                    try {
+                        const modalEl = document.getElementById('projectTaskDetailModal');
+                        const tid = modalEl && modalEl.dataset && modalEl.dataset.taskId ? String(modalEl.dataset.taskId) : null;
+                        if (tid) showReferenceUrlsForTask(tid);
+                        else showFloatingAlert && showFloatingAlert('Task ID not found', 'warning');
+                    } catch(e){}
+                };
+                btn.addEventListener('click', btn._attachClickHandler);
+            }
+        }
+    } catch(_){}
 }
 
 // Helper: fetch reference files for a given task id, populate #referenceFilesList and show the modal
