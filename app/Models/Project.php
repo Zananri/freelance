@@ -91,8 +91,10 @@ class Project extends Model
      */
     public function children()
     {
+        // MySQL JSON_CONTAINS expects the second arg to be a JSON value (e.g. a JSON number or string).
+        // Ensure we pass a proper JSON literal by encoding the integer id.
         $childrenIds = \DB::table('project_parents')
-            ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [$this->id])
+            ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [json_encode((int)$this->id)])
             ->pluck('project_id');
             
         return Project::whereIn('id', $childrenIds)->get();

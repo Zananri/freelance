@@ -1021,8 +1021,9 @@ class ProjectController extends Controller
         $visited[] = $projectId;
 
         // Get all projects that have $projectId as parent from project_parents table
+        // Use json_encode to ensure the bound parameter is valid JSON (MySQL expects a JSON value)
         $children = collect(DB::table('project_parents')
-            ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [$projectId])
+            ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [json_encode((int)$projectId)])
             ->pluck('project_id'));
 
         foreach ($children as $childId) {
