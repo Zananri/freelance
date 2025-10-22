@@ -57,11 +57,12 @@ function showReferenceUrlsForTask(taskId) {
                 try { document.getElementById('referenceUrlsModal').dataset.taskId = String(taskId || ''); } catch(_) {}
 
                 if (Array.isArray(referenceUrls) && referenceUrls.length > 0) {
-                    referenceUrls.forEach(function(u){
+                    referenceUrls.forEach(function (u) {
                         if (!u) return;
                         const safeUrl = String(u || '').trim();
+
                         const row = document.createElement('div');
-                        row.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+                        row.className = 'd-flex align-items-center justify-content-between gap-2 p-2 rounded bg-light selected-task mb-2';
 
                         const a = document.createElement('a');
                         a.href = safeUrl;
@@ -69,44 +70,51 @@ function showReferenceUrlsForTask(taskId) {
                         a.className = 'flex-grow-1 text-decoration-none text-truncate feedback-reference-url';
                         a.textContent = safeUrl;
                         a.style.color = '#444444';
-                        row.appendChild(a);
 
-                        const copyBtn = document.createElement('button');
-                        copyBtn.type = 'button';
-                        copyBtn.className = 'btn btn-sm btn-link p-0 ms-2';
-                        copyBtn.title = 'Copy URL';
-                        copyBtn.style.color = '#444444';
-                        copyBtn.innerHTML = '<span class="material-symbols-outlined">content_copy</span>';
-                        copyBtn.addEventListener('click', function(ev){
-                            try {
-                                ev.preventDefault(); ev.stopPropagation();
-                                navigator.clipboard && navigator.clipboard.writeText(safeUrl).then(function(){
-                                    if (typeof showFloatingAlert === 'function') showFloatingAlert('URL copied to clipboard', 'success');
-                                }, function(){
-                                    // fallback
-                                    const ta = document.createElement('textarea'); ta.value = safeUrl; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.select(); try{ document.execCommand('copy'); if (typeof showFloatingAlert === 'function') showFloatingAlert('URL copied to clipboard', 'success'); }catch(_){ if (typeof showFloatingAlert === 'function') showFloatingAlert('Failed to copy', 'warning'); } try{ document.body.removeChild(ta); }catch(_){ }
-                                });
-                            } catch(_){}
+                        const btnGroup = document.createElement('div');
+                        btnGroup.className = 'd-flex align-items-center gap-1 ms-auto';
+
+                        const makeBtn = (icon, title, onClick) => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.className = 'btn btn-sm btn-link p-0';
+                            btn.title = title;
+                            btn.style.color = '#444444';
+                            btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:18px;">${icon}</span>`;
+                            btn.addEventListener('click', onClick);
+                            return btn;
+                        };
+
+                        const copyBtn = makeBtn('content_copy', 'Copy URL', function (ev) {
+                            ev.preventDefault(); ev.stopPropagation();
+                            navigator.clipboard?.writeText(safeUrl).then(function () {
+                                if (typeof showFloatingAlert === 'function')
+                                    showFloatingAlert('URL copied to clipboard', 'success');
+                            }).catch(function () {
+                                const ta = document.createElement('textarea');
+                                ta.value = safeUrl;
+                                ta.style.position = 'fixed';
+                                ta.style.left = '-9999px';
+                                document.body.appendChild(ta);
+                                ta.select();
+                                try {
+                                    document.execCommand('copy');
+                                    if (typeof showFloatingAlert === 'function')
+                                        showFloatingAlert('URL copied to clipboard', 'success');
+                                } catch (_) {
+                                    if (typeof showFloatingAlert === 'function')
+                                        showFloatingAlert('Failed to copy', 'warning');
+                                }
+                                document.body.removeChild(ta);
+                            });
                         });
-                        row.appendChild(copyBtn);
 
-                        const openBtn = document.createElement('button');
-                        openBtn.type = 'button';
-                        openBtn.className = 'btn btn-sm btn-link p-0 ms-2';
-                        openBtn.title = 'Open URL';
-                        openBtn.style.color = '#444444';
-                        openBtn.innerHTML = '<span class="material-symbols-outlined">open_in_new</span>';
-                        openBtn.addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); window.open(safeUrl, '_blank'); });
-                        row.appendChild(openBtn);
+                        const openBtn = makeBtn('open_in_new', 'Open URL', function (ev) {
+                            ev.preventDefault(); ev.stopPropagation();
+                            window.open(safeUrl, '_blank');
+                        });
 
-                        // Optionally allow removing URL (UI only) - server side may be required to persist
-                        const delBtn = document.createElement('button');
-                        delBtn.type = 'button';
-                        delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
-                        delBtn.title = 'Remove URL';
-                        delBtn.style.color = '#444444';
-                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
-                        delBtn.addEventListener('click', function(ev){
+                        const delBtn = makeBtn('delete', 'Remove URL', function (ev) {
                             ev.preventDefault(); ev.stopPropagation();
                             try {
                                 showDeleteConfirmModal({
@@ -116,48 +124,58 @@ function showReferenceUrlsForTask(taskId) {
                                     content: safeUrl,
                                     avatarUrl: '',
                                     parentModalId: 'referenceUrlsModal',
-                                    onConfirm: function(done){
-                                        try {
-                                            // attempt to delete via backend endpoint if exists: /task/{id}/reference-url (DELETE) with { url }
-                                            $.ajax({
-                                                url: appUrl + '/task/' + taskId + '/reference-url',
-                                                type: 'DELETE',
-                                                data: { url: safeUrl },
-                                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                                success: function(resp){ try{ if (typeof showFloatingAlert === 'function') showFloatingAlert(resp.message || 'Reference URL removed', 'success'); }catch(_){}
-                                                    if (row && row.parentNode) row.parentNode.removeChild(row);
-                                                    done(true);
-                                                },
-                                                error: function(xhr){
-                                                    // fallback: try to PATCH task to remove url from reference_urls array
-                                                    try {
-                                                        const update = function(){
-                                                            try{
-                                                                $.ajax({
-                                                                    url: appUrl + '/task/' + taskId,
-                                                                    type: 'PUT',
-                                                                    contentType: 'application/json',
-                                                                    data: JSON.stringify({ reference_urls: (function(orig){ try{ let arr = Array.isArray(orig)?orig:(typeof orig==='string'?JSON.parse(orig):[]); arr = arr.filter(function(x){ return String(x||'').trim() !== String(safeUrl||'').trim(); }); return arr; }catch(e){ return []; } })(referenceUrls) }),
-                                                                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                                                    success: function(r2){ try{ if (typeof showFloatingAlert === 'function') showFloatingAlert(r2.message || 'Reference URL removed', 'success'); }catch(_){}
-                                                                        if (row && row.parentNode) row.parentNode.removeChild(row);
-                                                                        done(true);
-                                                                    },
-                                                                    error: function(){ try{ if (typeof showFloatingAlert === 'function') showFloatingAlert('Failed to remove URL', 'danger'); }catch(_){} done(false); }
-                                                                });
-                                                            }catch(e){ done(false); }
-                                                        };
-                                                        update();
-                                                    } catch (e) { done(false); }
-                                                }
-                                            });
-                                        } catch (e) { done(false); }
+                                    onConfirm: function (done) {
+                                        $.ajax({
+                                            url: appUrl + '/task/' + taskId + '/reference-url',
+                                            type: 'DELETE',
+                                            data: { url: safeUrl },
+                                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                            success: function (resp) {
+                                                if (typeof showFloatingAlert === 'function')
+                                                    showFloatingAlert(resp.message || 'Reference URL removed', 'success');
+                                                if (row && row.parentNode) row.parentNode.removeChild(row);
+                                                done(true);
+                                            },
+                                            error: function () {
+                                                const update = function () {
+                                                    $.ajax({
+                                                        url: appUrl + '/task/' + taskId,
+                                                        type: 'PUT',
+                                                        contentType: 'application/json',
+                                                        data: JSON.stringify({
+                                                            reference_urls: (function (orig) {
+                                                                try {
+                                                                    let arr = Array.isArray(orig)
+                                                                        ? orig
+                                                                        : (typeof orig === 'string' ? JSON.parse(orig) : []);
+                                                                    return arr.filter(x => String(x || '').trim() !== String(safeUrl || '').trim());
+                                                                } catch (e) { return []; }
+                                                            })(referenceUrls)
+                                                        }),
+                                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                                        success: function (r2) {
+                                                            if (typeof showFloatingAlert === 'function')
+                                                                showFloatingAlert(r2.message || 'Reference URL removed', 'success');
+                                                            if (row && row.parentNode) row.parentNode.removeChild(row);
+                                                            done(true);
+                                                        },
+                                                        error: function () {
+                                                            if (typeof showFloatingAlert === 'function')
+                                                                showFloatingAlert('Failed to remove URL', 'danger');
+                                                            done(false);
+                                                        }
+                                                    });
+                                                };
+                                                update();
+                                            }
+                                        });
                                     }
                                 });
-                            } catch(_){}
+                            } catch (_) { }
                         });
-                        row.appendChild(delBtn);
 
+                        btnGroup.append(copyBtn, openBtn, delBtn);
+                        row.append(a, btnGroup);
                         listEl.appendChild(row);
                     });
                 } else {
