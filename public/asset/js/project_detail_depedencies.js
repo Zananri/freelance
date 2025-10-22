@@ -658,8 +658,27 @@ if (typeof window.showCompletedModal !== 'function') {
             const appUrlMeta = document.querySelector('meta[name="app-url"]');
             const base = (appUrlMeta && appUrlMeta.getAttribute('content') || '').replace(/\/+$/,'');
 
-            const img = (task.image || task.project_image || task.image_url || '') || (base + '/asset/img/avatar.png');
-            try { document.getElementById('completed_task_image').setAttribute('src', img); } catch(_) {}
+            try {
+                // Replace avatar area with same markup used elsewhere to ensure initials fallback
+                const avatarContainer = document.getElementById('completed_task_image');
+                if (avatarContainer) {
+                    // If the element is an <img>, replace it with the avatar HTML (image or initials)
+                    const parent = avatarContainer.parentElement;
+                    const avatarHtml = getAvatarHTML(task, 34);
+                    if (parent) {
+                        // If the existing element is an <img>, replace that node with a wrapper containing our HTML
+                        try { parent.removeChild(avatarContainer); } catch(_) {}
+                        const wrapper = document.createElement('div');
+                        wrapper.innerHTML = avatarHtml;
+                        // add spacing similar to original layout
+                        wrapper.firstElementChild && wrapper.firstElementChild.classList.add('me-2');
+                        parent.insertBefore(wrapper.firstElementChild, parent.firstChild || null);
+                    } else {
+                        // Fallback: set src if replacement not possible
+                        try { avatarContainer.setAttribute('src', (task.image || task.project_image || task.image_url || (base + '/asset/img/avatar.png')) ); } catch(_) {}
+                    }
+                }
+            } catch(_) {}
             try { document.getElementById('completed_task_title').textContent = task.title || '-'; } catch(_) {}
             try { document.getElementById('completed_project_title').textContent = task.project_title || (task.project && task.project.title) || '-'; } catch(_) {}
             try { document.getElementById('completed_task_note').innerHTML = task.complete_note || task.description || '<em>No note</em>'; } catch(_) {}
@@ -2245,20 +2264,23 @@ function escapeHTML(str) {
         .replace(/'/g, "&#039;");
 }
 
-function getAvatarHTML(task) {
-    const img = task.image ? `${appUrl}/file/task/${task.image}` : null;
+function getAvatarHTML(task, size = 48) {
+    // size: numeric pixel for width/height (default 48)
+    const px = Number(size) || 48;
+    const img = task && (task.image || task.image_url || task.project_image) ? `${appUrl}/file/task/${(task.image || task.image_url || task.project_image)}` : null;
 
     if (img) {
-        return `<img src="${img}" alt="Task" class="project-image"
-                    style="width:48px;height:48px;object-fit:cover;border-radius:50%;"
-                    onerror="this.src='${appUrl}/asset/img/avatar.png'">`;
+        // onerror will replace the <img> with an initials div to match other parts of the app
+        const initials = escapeHTML(getTaskInitials(task.title || ''));
+        const color = getRandomColorFromText(task.title || '');
+        // Build a JS-safe replacement string for onerror (escape quotes)
+        const replaceDiv = `<div class=\"rounded-circle d-flex align-items-center justify-content-center me-3\" style=\"width:${px}px;height:${px}px;background:${color};color:#fff;font-weight:600;font-size:${Math.max(10, Math.round(px*0.34))}px;\">${initials}</div>`;
+        return `<img src="${img}" alt="Task" class="project-image" style="width:${px}px;height:${px}px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.replaceWith('${replaceDiv}')">`;
     }
 
-    const initials = getTaskInitials(task.title);
-    const color = getRandomColorFromText(task.title);
-    return `<div class="project-initial-avatar"
-                style="width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-                font-weight:600;font-size:14px;color:#fff;background:${color};">${initials}</div>`;
+    const initials = escapeHTML(getTaskInitials(task.title || ''));
+    const color = getRandomColorFromText(task.title || '');
+    return `<div class="project-initial-avatar" style="width:${px}px;height:${px}px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:${Math.max(10, Math.round(px*0.34))}px;color:#fff;background:${color};">${initials}</div>`;
 }
 
 if (typeof window.getTaskInitials !== "function") {
