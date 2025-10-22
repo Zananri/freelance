@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -15,10 +16,12 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
+use App\Helpers\ActivityHelper;
 use App\Models\User;
 use App\Models\Attendance;
 use App\Models\AttendanceTracking;
 use App\Models\Employee;
+use App\Models\EmployeeShift;
 
 
 class AttendanceTrackingController extends Controller
@@ -103,7 +106,8 @@ class AttendanceTrackingController extends Controller
             //     throw new \Exception('Attendance not found');
             // }
 
-            $employee = Employee::where('id', $employeeId)->first();
+            $employee = Employee::with('department','division','job','grade','shift')
+                ->where('id', $employeeId)->first();
 
             if(!$employee){
                 throw new \Exception('Employee not found');
@@ -390,4 +394,111 @@ class AttendanceTrackingController extends Controller
         return response()->download($tempFileName,$fileName)->deleteFileAfterSend(true);
 
     }
+
+    public function editEmployeeAttendance(Request $request){
+
+        try{
+
+            DB::beginTransaction();
+            
+            $request->validate([
+                'employee_id' => 'required|integer',
+                'attendance_date' => 'required',
+                'attendance_id' => 'required',
+            ]);
+
+            $userId = auth()->user()->id;
+            $employeeId = $request->employee_id;
+            $statusAttendance = $request->attendance_status;
+            $timeIn = Carbon::parse($request->attendance_time_in)->format('H:i');
+            $timeOut = Carbon::parse($request->attendance_time_out)->format('H:i');
+
+            $note = $request->attendance_note;
+
+            $dateAttendance = Carbon::parse($request->attendance_date)->toDateString();
+            
+
+            $attendance = Attendance::where('employee_id', $employeeId)
+                ->where('date_attendance', $dateAttendance)
+            ->first();
+
+            $timeLate = '00:00:00';
+
+            $employee = Employee::with('shift')->where('id', $employeeId)->first();
+
+            $stadeProccess = 'EDIT';
+
+            if($attendance){
+
+                Attendance::where('employee_id', $employeeId)
+                    ->where('date_attendance', $dateAttendance)
+                    ->update([
+                        'time_in' => $timeIn,
+                        'time_out' => $timeOut,
+                        'note' => $note,
+                        'status' => $statusAttendance,
+                        'updated_by' => $userId
+                ]);
+
+                
+                $stadeProccess = 'Edit';
+
+            }else{
+                $stadeProccess = 'new';
+
+                $attendanceNew = Attendance::create([
+                    'employee_id' => $employeeId,
+                    'date_attendance' => $dateAttendance,
+                    'time_in' => $timeIn,
+                    'time_out' => $timeOut,
+                    'type_attendance' => 'CHECK_IN',
+                    'shift_time_start' => $employee->shift->time_start,
+                    'shift_time_end' => $employee->shift->time_end,
+                    'note' => $note,
+                    'status' => $statusAttendance,
+                    'image' => '',
+                    'time_late' => $timeLate,
+                    'created_by' => $userId,
+                    'updated_by' => $userId
+                ]);
+
+            }
+
+            $attendanceData = Attendance::where('employee_id', $employeeId)
+                ->where('date_attendance', $dateAttendance)
+            ->first();
+            
+            ActivityHelper::record([
+                'employee_id' => $employeeId,
+                'menu' => 'ATTENDANCE_TRACKING',
+                'activity' => 'EDIT_ATTENDANCE',
+                'description' => 'Edit attendance',
+                'date_time_activity' => Carbon::now(),
+            ]);
+            
+
+            DB::commit();
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => [
+                    'attendance' => $attendanceData
+                ],
+                'message' => $stadeProccess.' attendance successfully'
+            ]);
+
+        }catch (\Exception $e) {
+
+            DB::rollBack();
+            
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'data' => [],
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }

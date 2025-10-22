@@ -155,7 +155,7 @@
                         <form action="" novalidate="" method="POST">
                             @csrf
                             <input type="hidden" name="employee_id" value="">
-                            <input type="hidden" name="date" value="">
+                            <input type="hidden" name="attendance_date" value="">
                             <input type="hidden" name="attendance_id" value="">
                         
 
@@ -295,10 +295,10 @@
                 <div class="modal-content">
 
                     <div class="modal-body p-4 position-relative">
-                        <form id="form-edit" action="" novalidate="" method="POST">
+                        <form id="form-edit-attendance" action="" novalidate="" method="POST">
                             @csrf
                             <input type="hidden" name="employee_id" value="">
-                            <input type="hidden" name="date" value="">
+                            <input type="hidden" name="attendance_date" value="">
                             <input type="hidden" name="attendance_id" value="">
                         
 
@@ -310,6 +310,7 @@
                             </div>
 
                             <div class="mb-3 pb-2 border-bottom border-3">
+
                                 <div class="d-flex mb-2 justify-content-between align-items-center w-100">
                                     <div>
                                         <div class="fs-14 text-secondary fw-normal">Employee</div>
@@ -330,72 +331,81 @@
                                     </div>
                                 </div>
 
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between align-items-center w-100">
-                                        <div>
-                                            <div class="fs-14 text-secondary fw-normal">Status</div>
-                                        </div>
-                                        <div>
-                                            <div class="attendance-status  fs-14 fw-normal"></div>
-                                        </div>
-                                    </div>
-                                </div>
-
-
                             </div>
 
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Late</div>
+
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label for="attendance_status" class="fs-14 text-secondary fw-normal">
+                                            Status
+                                        </label>
                                     </div>
-                                    <div>
-                                        <div class="attendance-late  fs-14 fw-normal"></div>
+                                    <div class="col-6">
+                                        <select class="form-select border-0 fs-14" name="attendance_status" id="attendance_status">
+                                            <option value="PRESENT">Present</option>
+                                            <option value="ABSENT">Absent</option>
+                                            <option value="LATE">Late</option>
+                                            <option value="SICK">Sick</option>
+                                            <option value="LEAVE">Leave</option>
+                                        </select>
                                     </div>
                                 </div>
+                                
                             </div>
 
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Check In</div>
+
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label for="attendance_time_in" class="fs-14 text-secondary fw-normal">
+                                            Check In
+                                        </label>
                                     </div>
-                                    <div>
-                                        <div class="attendance-checkin  fs-14 fw-normal"></div>
+                                    <div class="col-6">
+                                        <input type="time" class="form-control  border-0 fs-14" name="attendance_time_in" id="attendance_time_in">
                                     </div>
                                 </div>
+                                
                             </div>
 
                             <div class="mb-2">
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Check Out</div>
+
+                                <div class="row">
+                                    <div class="col-6">
+                                        <label for="attendance_time_out" class="fs-14 text-secondary fw-normal">
+                                            Check Out
+                                        </label>
                                     </div>
-                                    <div>
-                                        <div class="attendance-checkout  fs-14 fw-normal"></div>
+                                    <div class="col-6">
+                                        <input type="time" class="form-control border-0 fs-14" name="attendance_time_out" id="attendance_time_out">
                                     </div>
                                 </div>
+                                
                             </div>
 
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Work Duration</div>
+                            <div class="mb-2">
+
+                                <div class="row">
+                                    <div class="col-12  col-md-6">
+                                        <label for="attendance_note" class="fs-14 text-secondary fw-normal">
+                                            Note
+                                        </label>
                                     </div>
-                                    <div>
-                                        <div class="attendance-work-duration  fs-14 fw-normal">00 : 00</div>
+                                    <div class="col-12  col-md-6">
+                                        <textarea class="form-control border-0" name="attendance_note" id="attendance_note" cols="3" rows="3"></textarea>
+                                    
                                     </div>
                                 </div>
-                            </div>                
-
-                            
+                                
+                            </div>
 
                             
                             
                             <div class="mt-5">
                                 <div class="row">
                                     <div class="col-6">
-                                        <div class="btn btn-default-modal border-0 w-100 p-2" data-bs-dismiss="modal">Cancel</div>
+                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
                                     </div>
                                     <div class="col-6">
                                         <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-submit-attendance">Submit</div>
@@ -403,19 +413,23 @@
                                 </div>
                             </div>
 
-                            <div class="loader d-none" >
-                                <div class="box-loader rounded-20" >
-                                    <div class="text-center">
-                                        <div class="spinner-border text-secondary" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
+                            
                         </form>
 
-                    </div> 
+                        <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                            <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                                <div>
+                                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="fs-14">Loading...</div>
+                                </div>
+                                
+                            </div>
+                            
+                        </div> 
+                    </div>
 
                 </div>
             </div>
