@@ -696,7 +696,6 @@ class ProjectController extends Controller
             $user = $request->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
 
-            // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
             $canSeeAll = false;
             try {
                 $userType = strtoupper((string) ($user->user_type ?? ''));
@@ -718,20 +717,48 @@ class ProjectController extends Controller
                 return response()->json(['code' => 200, 'status' => 'success', 'data' => []]);
             }
 
-            // Fetch projects visible to this employee (assigned author/co_author/contributor), exclude DELETED
-            // Special roles (GENERAL_MANAGER, CEO, ADMINISTRATOR) can see ALL projects
-            $projects = Project::where('status', '!=', 'DELETED');
-
+            // Step 1: Project yang langsung di-assign ke user
+            $assignedProjectIds = [];
             if (!$canSeeAll) {
-                $projects->whereHas('projectAssignments', function ($q) use ($employeeId) {
-                    $q->where('employee_id', $employeeId)
-                      ->whereIn('role', ['author', 'co_author', 'contributor']);
-                });
+                $assignedProjectIds = DB::table('project_assignments')
+                    ->where('employee_id', $employeeId)
+                    ->whereIn('role', ['author', 'co_author', 'contributor'])
+                    ->pluck('project_id')
+                    ->toArray();
             }
 
-            $projects = $projects
+            // Step 2: Ambil semua anak project dari project-project di atas
+            $childProjectIds = [];
+            if (!empty($assignedProjectIds)) {
+                // Cari di kolom part_of_project
+                $childProjectIds = DB::table('projects')
+                    ->whereIn('part_of_project', $assignedProjectIds)
+                    ->pluck('id')
+                    ->toArray();
+
+                // Cari juga di project_parents (multi parent)
+                $parentMatches = DB::table('project_parents')
+                    ->get(['project_id', 'project_parent_ids'])
+                    ->filter(function ($row) use ($assignedProjectIds) {
+                        if (!$row->project_parent_ids) return false;
+                        $parents = json_decode($row->project_parent_ids, true);
+                        return is_array($parents) && count(array_intersect($parents, $assignedProjectIds)) > 0;
+                    })
+                    ->pluck('project_id')
+                    ->toArray();
+
+                $childProjectIds = array_unique(array_merge($childProjectIds, $parentMatches));
+            }
+
+            // Gabungkan semua project_id yang bisa dilihat
+            $visibleProjectIds = $canSeeAll
+                ? Project::where('status', '!=', 'DELETED')->pluck('id')->toArray()
+                : array_unique(array_merge($assignedProjectIds, $childProjectIds));
+
+            // Step 3: Ambil data project yang bisa dilihat
+            $projects = Project::whereIn('id', $visibleProjectIds)
+                ->where('status', '!=', 'DELETED')
                 ->withCount([
-                    // Total active tasks (exclude canceled/deleted)
                     'tasks as total_tasks' => function ($q) {
                         $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
                     },
@@ -743,53 +770,38 @@ class ProjectController extends Controller
                     },
                     'tasks as late_tasks' => function ($q) {
                         $q->whereRaw('LOWER(status) <> ?', ['completed'])
-                          ->whereNotNull('due_date')
-                          ->where('due_date', '<', now());
+                        ->whereNotNull('due_date')
+                        ->where('due_date', '<', now());
                     },
                 ])
                 ->get(['id', 'title', 'status', 'start_date', 'due_date', 'image', 'part_of_project']);
 
             $data = $projects->map(function ($p) {
-                // Derive visual status (for coloring) - always provide a consistent value
                 $total = (int) ($p->total_tasks ?? 0);
                 $completed = (int) ($p->completed_tasks ?? 0);
                 $newReq = (int) ($p->new_request_tasks ?? 0);
                 $lateCnt = (int) ($p->late_tasks ?? 0);
 
-                // Default to not-started
                 $visual = 'not-started';
-
-                // Logic untuk menentukan visual status
                 if ($total === 0) {
-                    // Tidak ada task -> not-started
                     $visual = 'not-started';
                 } elseif ($completed === $total) {
-                    // Semua task selesai -> complete
                     $visual = 'complete';
                 } else {
-                    // Ada task, tapi tidak semua selesai
                     if ($newReq === $total) {
-                        // Semua task masih new request -> not-started
                         $visual = 'not-started';
                     } else {
-                        // Ada progress -> in-progress
                         $visual = 'in-progress';
                     }
                 }
 
-                // Override dengan late jika ada task yang terlambat atau project sudah lewat due date
-                try {
-                    if ($visual !== 'complete') {
-                        $isPastDue = $p->due_date && (now()->toDateString() > (string) $p->due_date);
-                        if ($lateCnt > 0 || $isPastDue) {
-                            $visual = 'late';
-                        }
+                if ($visual !== 'complete') {
+                    $isPastDue = $p->due_date && (now()->toDateString() > (string) $p->due_date);
+                    if ($lateCnt > 0 || $isPastDue) {
+                        $visual = 'late';
                     }
-                } catch (\Throwable $_) {
-                    // Fallback jika ada error
                 }
 
-                // Get parent IDs from project_parents table
                 $parentRecord = DB::table('project_parents')
                     ->where('project_id', $p->id)
                     ->first();
@@ -807,7 +819,6 @@ class ProjectController extends Controller
                     'due_date' => $p->due_date,
                     'image' => $p->image,
                     'visual_status' => $visual,
-                    // Use parent_ids from project_parents table
                     'parent_ids' => $parentIds,
                     'legacy_parent_id' => $p->part_of_project ?? null,
                 ];
