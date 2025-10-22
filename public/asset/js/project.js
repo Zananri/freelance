@@ -8531,9 +8531,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             return;
                         const html = `
                             <div class="modal fade" id="projectImagePreviewModal" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-dialog-centered" style="max-width:95vw;">
+                                <div class="modal-dialog modal-dialog-centered" style="max-width:95vw;" id="projectImageDialog">
                                     <div class="modal-content modal-content-custom">
-                                        <div class="modal-body p-0 bg-dark d-flex align-items-center justify-content-center" style="min-height:160px; max-height:80vh; overflow:auto;">
+                                        <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="min-height:160px; max-height:80vh; overflow:auto;">
                                             <div style="box-sizing:border-box; padding:12px; width:100%; display:flex; align-items:center; justify-content:center;">
                                                 <div style="max-width:100%; width:100%; max-height:calc(80vh - 72px); display:flex; align-items:center; justify-content:center;">
                                                     <img id="projectImagePreviewModalImg" src="" alt="Preview image" style="max-width:100%; max-height:100%; width:auto; height:auto; display:block; object-fit:contain;">
@@ -8546,6 +8546,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                     </div>
                                 </div>
                             </div>`;
+
+                                $(document).on('click', '.feedback-image', function(e) {
+                                    e.preventDefault()
+                                    const imgSrc = $(this).attr('src') || $(this).data('img')
+                                    const $img = $('#projectImagePreviewModalImg')
+                                    const $dialog = $('#projectImageDialog')
+                                    $img.off('load')
+                                    $img.attr('src', imgSrc)
+                                    $('#projectImagePreviewModal').modal('show')
+                                    $img.on('load', function() {
+                                        const naturalW = this.naturalWidth
+                                        const naturalH = this.naturalHeight
+                                        const viewportW = window.innerWidth * 0.9
+                                        const viewportH = window.innerHeight * 0.8
+                                        const ratio = Math.min(viewportW / naturalW, viewportH / naturalH, 1)
+                                        const modalWidth = naturalW * ratio
+                                        $dialog.css({
+                                        'max-width': modalWidth + 'px'
+                                        })
+                                    })
+                                })
                         try {
                             document.body.insertAdjacentHTML("beforeend", html);
                         } catch (_) {}
