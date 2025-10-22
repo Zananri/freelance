@@ -2280,12 +2280,8 @@ function getAvatarHTML(task, size = 48) {
     const img = task && (task.image || task.image_url || task.project_image) ? `${appUrl}/file/task/${(task.image || task.image_url || task.project_image)}` : null;
 
     if (img) {
-        // onerror will replace the <img> with an initials div to match other parts of the app
-        const initials = escapeHTML(getTaskInitials(task.title || ''));
-        const color = getRandomColorFromText(task.title || '');
-        // Build a JS-safe replacement string for onerror (escape quotes)
-        const replaceDiv = `<div class=\"rounded-circle d-flex align-items-center justify-content-center me-3\" style=\"width:${px}px;height:${px}px;background:${color};color:#fff;font-weight:600;font-size:${Math.max(10, Math.round(px*0.34))}px;\">${initials}</div>`;
-        return `<img src="${img}" alt="Task" class="project-image" style="width:${px}px;height:${px}px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.replaceWith('${replaceDiv}')">`;
+        // Safer fallback: set image src to default avatar on error instead of injecting HTML
+        return `<img src="${img}" alt="Task" class="project-image" style="width:${px}px;height:${px}px;object-fit:cover;border-radius:50%;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
     }
 
     const initials = escapeHTML(getTaskInitials(task.title || ''));

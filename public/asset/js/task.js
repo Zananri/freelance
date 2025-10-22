@@ -8809,7 +8809,7 @@ function filterTaskTableRows(queryRaw) {
                     avatarHtml = `<img src="${imgUrl}" alt="Task Image"
                                     class="rounded-circle me-3"
                                     style="width:34px;height:34px;object-fit:cover;"
-                                    onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getRandomColorFromText(task.title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getTaskInitials(task.title)}</div>')">`;
+                                    onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
                 } else {
                     const initials = getTaskInitials(task.title);
                     const bgColor = getRandomColorFromText(task.title);
@@ -8955,7 +8955,7 @@ function filterTaskTableRows(queryRaw) {
                     avatarHtml = `<img src="${imgUrl}" alt="Task Image"
                                     class="rounded-circle me-3"
                                     style="width:34px;height:34px;object-fit:cover;"
-                                    onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getRandomColorFromText(task.title)};color:#fff;font-weight:600;font-size:11px;&quot;>${getTaskInitials(task.title)}</div>')">`;
+                                    onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
                 } else {
                     const initials = getTaskInitials(task.title);
                     const bgColor = getRandomColorFromText(task.title);

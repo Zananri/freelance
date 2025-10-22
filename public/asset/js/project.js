@@ -8677,11 +8677,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         ? appUrl + imgUrl
                                         : appUrl + "/" + imgUrl;
                                 }
-                                avatarHtml = `<img src="${imgUrl}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.replaceWith('<div class=&quot;rounded-circle d-flex align-items-center justify-content-center me-3&quot; style=&quot;width:34px;height:34px;background:${getInitialsColor(
-                                    title
-                                )};color:#fff;font-weight:600;font-size:11px;&quot;>${getInitials(
-                                    title
-                                )}</div>')">`;
+                                avatarHtml = `<img src="${imgUrl}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
                             } else {
                                 avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${getInitialsColor(
                                     title
