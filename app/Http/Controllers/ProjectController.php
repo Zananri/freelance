@@ -870,9 +870,25 @@ class ProjectController extends Controller
                 ->where('employee_id', $employeeId)
                 ->where('role', 'co_author')->exists();
 
-            if (!($isAuthor || $isCoAuthor || $canSeeAll)) {
+            $isContributor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'contributor')->exists();
+
+            // Also allow the original creator (created_by) to manage the hierarchy as a safe fallback
+            $isCreator = $user && isset($project->created_by) && $project->created_by == $user->id;
+
+            if (!($isAuthor || $isCoAuthor || $isContributor || $isCreator || $canSeeAll)) {
                 // Diagnostic logging to help troubleshoot unexpected 403 during drag & drop
                 try {
+                    // collect any project assignment roles for this employee (if present)
+                    $roles = [];
+                    if ($employeeId) {
+                        $roles = \App\Models\ProjectAssignment::where('project_id', $project->id)
+                            ->where('employee_id', $employeeId)
+                            ->pluck('role')
+                            ->toArray();
+                    }
+
                     \Log::info('addParent authorization failed', [
                         'user_id' => $user?->id ?? null,
                         'employee_id' => $employeeId,
@@ -880,9 +896,12 @@ class ProjectController extends Controller
                         'parent_id' => $parentId,
                         'isAuthor' => $isAuthor,
                         'isCoAuthor' => $isCoAuthor,
+                        'isContributor' => $isContributor,
+                        'isCreator' => $isCreator,
                         'canSeeAll' => $canSeeAll,
                         'user_type' => $user?->user_type ?? null,
                         'user_role' => $user?->user_role ?? null,
+                        'assignment_roles' => $roles,
                     ]);
                 } catch (\Throwable $_) {}
 
@@ -940,9 +959,22 @@ class ProjectController extends Controller
                 ->where('employee_id', $employeeId)
                 ->where('role', 'co_author')->exists();
 
-            if (!($isAuthor || $isCoAuthor || $canSeeAll)) {
-                // Diagnostic logging to help troubleshoot unexpected 403 during drag & drop
+            $isContributor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+                ->where('employee_id', $employeeId)
+                ->where('role', 'contributor')->exists();
+
+            // Allow creator as well
+            $isCreator = $user && isset($project->created_by) && $project->created_by == $user->id;
+
+            if (!($isAuthor || $isCoAuthor || $isContributor || $isCreator || $canSeeAll)) {
                 try {
+                    $roles = [];
+                    if ($employeeId) {
+                        $roles = \App\Models\ProjectAssignment::where('project_id', $project->id)
+                            ->where('employee_id', $employeeId)
+                            ->pluck('role')
+                            ->toArray();
+                    }
                     \Log::info('removeParent authorization failed', [
                         'user_id' => $user?->id ?? null,
                         'employee_id' => $employeeId,
@@ -950,9 +982,12 @@ class ProjectController extends Controller
                         'parent_id' => $parentId,
                         'isAuthor' => $isAuthor,
                         'isCoAuthor' => $isCoAuthor,
+                        'isContributor' => $isContributor,
+                        'isCreator' => $isCreator,
                         'canSeeAll' => $canSeeAll,
                         'user_type' => $user?->user_type ?? null,
                         'user_role' => $user?->user_role ?? null,
+                        'assignment_roles' => $roles,
                     ]);
                 } catch (\Throwable $_) {}
 
