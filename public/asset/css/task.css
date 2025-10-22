@@ -370,7 +370,7 @@
 .modal-content-custom {
     border-radius: 16px;
     padding: 12px 12px;
-    background: rgb(240, 241, 248);
+    background: #f0f1f8 !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
     border: none;
 }
