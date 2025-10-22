@@ -1586,6 +1586,102 @@ function renderProjectTaskDetail(res) {
         }
     } catch (_) {}
 
+        // Make task image clickable to open preview (reuse global showImageModal if available)
+        try {
+                const avatarContainer = document.getElementById('projectTaskProjectAvatar');
+                if (avatarContainer) {
+                        const img = avatarContainer.querySelector('img');
+                        if (img) {
+                                img.style.cursor = 'pointer';
+                                try { img.removeEventListener('click', img._previewHandler || function(){}); } catch(_) {}
+                                img._previewHandler = function (e) {
+                                        try { e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); } catch(_) {}
+                                        const src = img.getAttribute('src') || img.src;
+                                        if (!src) return;
+                                        try {
+                                                if (typeof showImageModal === 'function') {
+                                                        showImageModal(src);
+                                                        return;
+                                                }
+                                        } catch (_) {}
+
+                                        // Fallback: create or reuse taskImagePreviewModal markup (same as task.js uses)
+                                        try {
+                                                let modalEl = document.getElementById('taskImagePreviewModal');
+                                                if (!modalEl) {
+                                                        const tpl = document.createElement('div');
+                                                        tpl.innerHTML = `
+<div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
+        <div class="modal-content modal-content-custom bg-dark border-0">
+            <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
+            </div>
+            <div class="modal-footer modal-footer-custom border-0 justify-content-center">
+                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>`;
+                                                        try { document.body.insertAdjacentHTML('beforeend', tpl.innerHTML); } catch (_) { document.body.appendChild(tpl.firstElementChild); }
+                                                        modalEl = document.getElementById('taskImagePreviewModal');
+                                                }
+
+                                                const imgEl = document.getElementById('taskImagePreviewModalImg');
+                                                const dialogEl = document.getElementById('taskImageDialog');
+                                                if (imgEl) {
+                                                    // remove any previous onload handlers
+                                                    try { imgEl.onload = null; } catch(_) {}
+                                                    imgEl.setAttribute('src', src);
+                                                    imgEl.addEventListener('load', function onLoad() {
+                                                        try {
+                                                            const naturalW = this.naturalWidth || 0;
+                                                            const naturalH = this.naturalHeight || 0;
+                                                            const viewportW = window.innerWidth * 0.9;
+                                                            const viewportH = window.innerHeight * 0.8;
+                                                            const ratio = Math.min(viewportW / Math.max(naturalW,1), viewportH / Math.max(naturalH,1), 1);
+                                                            const modalWidth = Math.round(naturalW * ratio);
+                                                            if (dialogEl && dialogEl.style) dialogEl.style.maxWidth = modalWidth + 'px';
+                                                        } catch(_) {}
+                                                    });
+                                                }
+
+                                                // If project detail modal is open, hide it and remember to restore
+                                                const parentModalEl = document.getElementById('projectTaskDetailModal');
+                                                let parentWasOpen = false;
+                                                try {
+                                                    if (parentModalEl && parentModalEl.classList.contains('show')) {
+                                                        parentWasOpen = true;
+                                                        try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                                                        const pmInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                                        try { pmInst.hide(); } catch(_) {}
+                                                    }
+                                                } catch(_) {}
+
+                                                const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl));
+
+                                                const onPreviewHidden = function() {
+                                                    try { inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                                    try {
+                                                        if (parentWasOpen) {
+                                                            try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                                                            const pmInst2 = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(parentModalEl) : (bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl));
+                                                            try { pmInst2.show(); } catch(_) {}
+                                                        }
+                                                    } catch(_) {}
+                                                };
+                                                try { inst._element.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                                try { inst.show(); } catch(e) { try { inst.show(); } catch(_) {} }
+                                        } catch (e) {
+                                                // Last resort: open image in new tab
+                                                try { window.open(src, '_blank'); } catch (_) {}
+                                        }
+                                };
+                                img.addEventListener('click', img._previewHandler);
+                        }
+                }
+        } catch (_) {}
+
     // Wire attach_file button to open Reference URLs modal and populate with task's reference URLs
     try {
         const detailEl2 = document.getElementById('projectTaskDetailModal');
