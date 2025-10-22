@@ -906,6 +906,7 @@
     overflow-y: hidden;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    margin-right: 10px;
 }
 
 .timeline-bar .bar-name::-webkit-scrollbar {
@@ -1165,7 +1166,7 @@
     overflow-x: auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
-    max-width: 150px;
+    max-width: 100px;
 }
 
 .task-date {

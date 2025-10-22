@@ -1074,8 +1074,7 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" id="openAddReferenceFilesBtn" class="btn btn-sm btn-submit-black">Add
-                            Files</button>
+                        <button type="button" class="btn btn-sm btn-submit-black" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
