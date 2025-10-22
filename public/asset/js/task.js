@@ -562,7 +562,7 @@
                                 url: appUrl + '/task/' + taskId + '/accept',
                                 method: 'POST',
                                 headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                success: function(response){ 
+                                success: function(response){
                                     var message = 'Task accepted successfully!';
                                     var alertType = 'success';
                                     try {
@@ -574,10 +574,10 @@
                                             alertType = 'warning';
                                         }
                                     } catch(_) {}
-                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert(message, alertType); } catch(_){} 
-                                    modal2.hide(); 
-                                    markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); 
-                                    window.location.reload(); 
+                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert(message, alertType); } catch(_){}
+                                    modal2.hide();
+                                    markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                                    window.location.reload();
                                 },
                                 error: function(xhr){ let msg = 'Failed to accept task'; try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ } if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); },
                                 complete: function(){ const btn = document.getElementById('confirmAcceptInviteBtn'); if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; } }
@@ -606,14 +606,14 @@
                     const modalEl = document.getElementById('taskDetailModal');
                     const modal2 = new bootstrap.Modal(modalEl);
                     modal2.show();
-                    document.getElementById('confirmAcceptInviteBtn').addEventListener('click', function(){ 
-                        this.disabled = true; 
-                        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...'; 
-                        $.ajax({ 
-                            url: appUrl + '/task/' + taskId + '/accept', 
-                            method: 'POST', 
-                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') }, 
-                            success: function(response){ 
+                    document.getElementById('confirmAcceptInviteBtn').addEventListener('click', function(){
+                        this.disabled = true;
+                        this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Accepting...';
+                        $.ajax({
+                            url: appUrl + '/task/' + taskId + '/accept',
+                            method: 'POST',
+                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                            success: function(response){
                                 var message = 'Task accepted successfully!';
                                 var alertType = 'success';
                                 try {
@@ -625,21 +625,21 @@
                                         alertType = 'warning';
                                     }
                                 } catch(_) {}
-                                try { if (typeof showFloatingAlert === 'function') showFloatingAlert(message, alertType); } catch(_){} 
-                                modal2.hide(); 
-                                markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); }); 
-                                window.location.reload(); 
-                            }, 
-                            error: function(xhr){ 
-                                let msg = 'Failed to accept task'; 
-                                try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ } 
-                                if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); 
-                            }, 
-                            complete: function(){ 
-                                const btn = document.getElementById('confirmAcceptInviteBtn'); 
-                                if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; } 
-                            } 
-                        }); 
+                                try { if (typeof showFloatingAlert === 'function') showFloatingAlert(message, alertType); } catch(_){}
+                                modal2.hide();
+                                markTaskAssignmentNotificationsRead(taskId).always(function(){ refreshNotificationCountBadge(); });
+                                window.location.reload();
+                            },
+                            error: function(xhr){
+                                let msg = 'Failed to accept task';
+                                try { if (xhr.responseJSON && (xhr.responseJSON.message || xhr.responseJSON.error)) msg = xhr.responseJSON.message || xhr.responseJSON.error; } catch(_){ }
+                                if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger');
+                            },
+                            complete: function(){
+                                const btn = document.getElementById('confirmAcceptInviteBtn');
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<span>Accept Task</span>'; }
+                            }
+                        });
                     });
                     $(modalEl).on('hidden.bs.modal', function(){ $(this).remove(); });
                 }
@@ -912,14 +912,14 @@
     // Helper function to load tasks from a specific project for "Related to Task" dropdown
     function loadProjectTasksForRelated(projectId) {
         if (!projectId) return;
-        
+
         const taskParentDropdown = document.getElementById('task_parent_dropdown');
         if (!taskParentDropdown) return;
-        
+
         // Show loading state
         taskParentDropdown.innerHTML = '<div class="dropdown-item text-muted">Loading tasks...</div>';
         taskParentDropdown.style.display = 'block';
-        
+
         // Fetch tasks for this project
         fetch(appUrl + '/projects/' + projectId + '/tasks/tree', {
             method: 'GET',
@@ -931,7 +931,7 @@
         .then(response => response.json())
         .then(data => {
             const tasks = data.data || data || [];
-            
+
             if (tasks.length === 0) {
                 taskParentDropdown.innerHTML = '<div class="dropdown-item text-muted">No tasks available in this project</div>';
             } else {
@@ -944,11 +944,11 @@
                     item.textContent = task.title || `Task #${task.id}`;
                     item.dataset.taskId = task.id;
                     item.dataset.taskTitle = task.title || '';
-                    
+
                     item.addEventListener('click', function() {
                         document.getElementById('task_parent_id').value = task.id;
                         document.getElementById('task_parent_input').value = task.title || `Task #${task.id}`;
-                        
+
                         const selectedParent = document.getElementById('task_selected_parent');
                         if (selectedParent) {
                             selectedParent.innerHTML = `
@@ -962,11 +962,11 @@
                         }
                         taskParentDropdown.style.display = 'none';
                     });
-                    
+
                     taskParentDropdown.appendChild(item);
                 });
             }
-            
+
             // Hide dropdown initially
             setTimeout(() => {
                 taskParentDropdown.style.display = 'none';
@@ -985,12 +985,12 @@
             const modal = input.closest('.modal');
             if (modal && !modal.dataset.pasteHandlerAdded) {
                 modal.dataset.pasteHandlerAdded = 'true';
-                
+
                 modal.addEventListener('paste', function(e) {
                     try {
                         const clipboardData = e.clipboardData || window.clipboardData;
                         if (!clipboardData) return;
-                        
+
                         const items = clipboardData.items || [];
                         for (let i = 0; i < items.length; i++) {
                             const item = items[i];
@@ -998,36 +998,36 @@
                                 e.preventDefault();
                                 const blob = item.getAsFile();
                                 if (!blob) continue;
-                                
+
                                 // Check size limit
                                 if (blob.size > MAX_IMAGE_BYTES) {
-                                    try { 
-                                        if (typeof showFloatingAlert === 'function') 
-                                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); 
-                                    } catch(_) { 
-                                        alert('Image must be smaller than 10 MB.'); 
+                                    try {
+                                        if (typeof showFloatingAlert === 'function')
+                                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning');
+                                    } catch(_) {
+                                        alert('Image must be smaller than 10 MB.');
                                     }
                                     return;
                                 }
-                                
+
                                 // Create a File object from blob
                                 const file = new File([blob], 'pasted-image-' + Date.now() + '.png', { type: blob.type });
-                                
+
                                 // Create a DataTransfer to set the files
                                 const dataTransfer = new DataTransfer();
                                 dataTransfer.items.add(file);
                                 input.files = dataTransfer.files;
-                                
+
                                 // Trigger change event
                                 const event = new Event('change', { bubbles: true });
                                 input.dispatchEvent(event);
-                                
+
                                 // Show floating alert
-                                try { 
-                                    if (typeof showFloatingAlert === 'function') 
-                                        showFloatingAlert('Screenshot pasted successfully!', 'success', 1500); 
+                                try {
+                                    if (typeof showFloatingAlert === 'function')
+                                        showFloatingAlert('Screenshot pasted successfully!', 'success', 1500);
                                 } catch(_) {}
-                                
+
                                 break;
                             }
                         }
@@ -1037,7 +1037,7 @@
                 }, true);
             }
         };
-        
+
         input.addEventListener("change", function () {
             if (input.files && input.files[0]) {
                 // Enforce image size limit
@@ -1078,7 +1078,7 @@
             label.classList.remove("is-invalid");
             clearBtn.classList.add("d-none");
         });
-        
+
         // Setup paste handler after a short delay to ensure modal is ready
         setTimeout(setupPasteHandler, 100);
     }
@@ -1375,46 +1375,46 @@
             if (window.clearSelectedExecutors) {
                 window.clearSelectedExecutors();
             }
-            
+
             // Reset project input visibility for normal task page
             const taskProjectInput = document.getElementById('task_project_input');
             const taskSelectedProject = document.getElementById('task_selected_project');
             const taskProjectDropdown = document.getElementById('task_project_dropdown');
             const taskProjectId = document.getElementById('task_project_id');
             const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
-            
+
             // Show entire project container
             if (taskProjectContainer) {
                 taskProjectContainer.style.display = 'block';
             }
-            
+
             if (taskProjectInput) {
                 taskProjectInput.style.display = 'block';
                 taskProjectInput.setAttribute('required', 'required');
                 taskProjectInput.disabled = false; // Re-enable
                 taskProjectInput.value = '';
             }
-            
+
             if (taskProjectDropdown) {
                 taskProjectDropdown.style.display = 'block';
                 taskProjectDropdown.innerHTML = '';
             }
-            
+
             if (taskSelectedProject) {
                 taskSelectedProject.innerHTML = '';
                 taskSelectedProject.style.display = 'none';
             }
-            
+
             if (taskProjectId) {
                 taskProjectId.value = '';
             }
-            
+
             // Reset parent task selection
             const taskParentInput = document.getElementById('task_parent_input');
             const taskParentId = document.getElementById('task_parent_id');
             const taskSelectedParent = document.getElementById('task_selected_parent');
             const taskParentDropdown = document.getElementById('task_parent_dropdown');
-            
+
             if (taskParentInput) taskParentInput.value = '';
             if (taskParentId) taskParentId.value = '';
             if (taskSelectedParent) taskSelectedParent.innerHTML = '';
@@ -1429,7 +1429,7 @@
                 // Check if we're on project detail page
                 const projectIdMeta = document.querySelector('meta[name="project-id"]');
                 const currentProjectId = projectIdMeta ? projectIdMeta.getAttribute('content') : null;
-                
+
                 if (currentProjectId) {
                     // Auto-fill project for project detail page
                     const taskProjectIdInput = document.getElementById('task_project_id');
@@ -1437,11 +1437,11 @@
                     const taskSelectedProject = document.getElementById('task_selected_project');
                     const taskProjectDropdown = document.getElementById('task_project_dropdown');
                     const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
-                    
+
                     if (taskProjectIdInput) {
                         taskProjectIdInput.value = currentProjectId;
                     }
-                    
+
                     // Hide entire project input container (including label)
                     if (taskProjectContainer) {
                         taskProjectContainer.style.display = 'none';
@@ -1457,13 +1457,13 @@
                             taskSelectedProject.style.display = 'none';
                         }
                     }
-                    
+
                     // CRITICAL: Remove required attribute and disable to prevent validation error
                     if (taskProjectInput) {
                         taskProjectInput.removeAttribute('required');
                         taskProjectInput.disabled = true;
                     }
-                    
+
                     // Load tasks from current project for "Related to Task" dropdown
                     loadProjectTasksForRelated(currentProjectId);
                 } else {
@@ -1472,28 +1472,28 @@
                     const taskSelectedProject = document.getElementById('task_selected_project');
                     const taskProjectDropdown = document.getElementById('task_project_dropdown');
                     const taskProjectContainer = taskProjectInput ? taskProjectInput.closest('.mb-3.custom-input') : null;
-                    
+
                     // Show entire project input container
                     if (taskProjectContainer) {
                         taskProjectContainer.style.display = 'block';
                     }
-                    
+
                     if (taskProjectInput) {
                         taskProjectInput.style.display = 'block';
                         taskProjectInput.setAttribute('required', 'required');
                         taskProjectInput.disabled = false; // Re-enable
                     }
-                    
+
                     if (taskProjectDropdown) {
                         taskProjectDropdown.style.display = 'block';
                     }
-                    
+
                     if (taskSelectedProject) {
                         taskSelectedProject.innerHTML = '';
                         taskSelectedProject.style.display = 'none';
                     }
                 }
-                
+
                 // Priority default: MEDIUM if not selected
                 const prio = document.getElementById('task_priority');
                 if (prio && (!prio.value || String(prio.value).trim() === '')) {
@@ -1637,11 +1637,11 @@
                             } catch(_) {}
                             if (addTaskModalInstance)
                                 addTaskModalInstance.hide();
-                            
+
                             // Check if we're on project detail page
                             const projectIdMeta = document.querySelector('meta[name="project-id"]');
                             const currentProjectId = projectIdMeta ? projectIdMeta.getAttribute('content') : null;
-                            
+
                             if (currentProjectId) {
                                 // Stay on project detail page and reload
                                 window.location.reload();
@@ -6306,21 +6306,38 @@ function filterTaskTableRows(queryRaw) {
                             if (document.getElementById('taskImagePreviewModal')) return;
                             const html = `
                                 <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
-                                    <div class="modal-dialog modal-dialog-centered" style="max-width:95vw;">
-                                        <div class="modal-content modal-content-custom">
-                                            <div class="modal-body p-0 bg-dark d-flex align-items-center justify-content-center" style="min-height:160px; max-height:80vh; overflow:auto;">
-                                                <div style="box-sizing:border-box; padding:12px; width:100%; display:flex; align-items:center; justify-content:center;">
-                                                    <div style="max-width:100%; width:100%; max-height:calc(80vh - 72px); display:flex; align-items:center; justify-content:center;">
-                                                        <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="max-width:100%; max-height:100%; width:auto; height:auto; display:block; object-fit:contain;">
-                                                    </div>
-                                                </div>
+                                    <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
+                                        <div class="modal-content modal-content-custom bg-dark border-0">
+                                            <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                                                <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
                                             </div>
-                                            <div class="modal-footer modal-footer-custom">
+                                            <div class="modal-footer modal-footer-custom border-0 justify-content-center">
                                                 <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>`;
+
+                                $(document).on('click', '.feedback-image', function(e) {
+                                    e.preventDefault()
+                                    const imgSrc = $(this).attr('src') || $(this).data('img')
+                                    const $img = $('#taskImagePreviewModalImg')
+                                    const $dialog = $('#taskImageDialog')
+                                    $img.off('load')
+                                    $img.attr('src', imgSrc)
+                                    $('#taskImagePreviewModal').modal('show')
+                                    $img.on('load', function() {
+                                        const naturalW = this.naturalWidth
+                                        const naturalH = this.naturalHeight
+                                        const viewportW = window.innerWidth * 0.9
+                                        const viewportH = window.innerHeight * 0.8
+                                        const ratio = Math.min(viewportW / naturalW, viewportH / naturalH, 1)
+                                        const modalWidth = naturalW * ratio
+                                        $dialog.css({
+                                        'max-width': modalWidth + 'px'
+                                        })
+                                    })
+                                })
                             try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){}
                         }
 
@@ -9940,7 +9957,7 @@ function filterTaskTableRows(queryRaw) {
     const resetFilterBtn = document.getElementById('resetTaskFilterBtn');
     if (resetFilterBtn) {
         resetFilterBtn.addEventListener('click', resetTaskFilters);
-        
+
         if (applyTaskFilterBtn && applyTaskFilterBtn.parentNode) {
             applyTaskFilterBtn.parentNode.insertBefore(resetFilterBtn, applyTaskFilterBtn.nextSibling);
         }
