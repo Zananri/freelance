@@ -8539,6 +8539,25 @@ function filterTaskTableRows(queryRaw) {
                                     try {
                                         const src = this.src || this.getAttribute('src') || '';
                                         if (!src) return;
+
+                                        // If task detail modal is open, mark it as having a child opened
+                                        // and hide it first (follow existing pattern used elsewhere)
+                                        const detailEl = document.getElementById('taskDetailModal');
+                                        if (detailEl && detailEl.classList && detailEl.classList.contains('show')) {
+                                            try {
+                                                detailEl.setAttribute('data-child-opened', '1');
+
+                                                if (detailEl._timelineHiddenHandler) {
+                                                    detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+                                                    detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                                                    detailEl._timelineHiddenHandler = null;
+                                                }
+
+                                                const detailModalInst = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                                                try { detailModalInst.hide(); } catch (_) {}
+                                            } catch (_) {}
+                                        }
+
                                         const modalId = 'taskImagePreviewModal_' + Date.now();
                                         const modalHtml = `
                                             <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
@@ -8557,13 +8576,35 @@ function filterTaskTableRows(queryRaw) {
                                         document.body.insertAdjacentHTML('beforeend', modalHtml);
                                         const mEl = document.getElementById(modalId);
                                         const mInst = new bootstrap.Modal(mEl);
+
                                         // Ensure image fits within viewport on load
                                         mEl.addEventListener('shown.bs.modal', function () {
                                             try { const imgEl = mEl.querySelector('#taskImagePreviewModalImg'); if (imgEl) imgEl.style.maxHeight = (window.innerHeight * 0.8) + 'px'; } catch(_) {}
                                         }, { once: true });
 
+                                        // When preview modal hides, remove it and restore the detail modal if needed
                                         mEl.addEventListener('hidden.bs.modal', function () {
                                             try { mEl.remove(); } catch(_) {}
+                                            try {
+                                                const d = document.getElementById('taskDetailModal');
+                                                if (d && d.getAttribute && d.getAttribute('data-child-opened')) {
+                                                    try { d.removeAttribute('data-child-opened'); } catch(_) {}
+
+                                                    // Restore timeline hidden handler if backed up
+                                                    try {
+                                                        if (d._timelineHiddenHandlerBackup) {
+                                                            d._timelineHiddenHandler = d._timelineHiddenHandlerBackup;
+                                                            d.addEventListener('hidden.bs.modal', d._timelineHiddenHandler);
+                                                            d._timelineHiddenHandlerBackup = null;
+                                                        }
+                                                    } catch(_) {}
+
+                                                    try {
+                                                        const restoreInst = bootstrap.Modal.getOrCreateInstance(d) || new bootstrap.Modal(d);
+                                                        restoreInst.show();
+                                                    } catch(_) {}
+                                                }
+                                            } catch(_) {}
                                         }, { once: true });
 
                                         mInst.show();
