@@ -208,7 +208,7 @@ $(document).on('click','tbody .col-day',function(){
 
 
     $('#modalAttendance [name="employee_id"]').text(employeeId);
-    $('#modalAttendance [name="date"]').text(dateAttendance);
+    $('#modalAttendance [name="attendance_date"]').val(dateAttendance);
     
     getAttendanceDetail(employeeId,dateAttendance)
     
@@ -274,7 +274,7 @@ async function setAttendanceDetail(){
     
     
     $('#modalAttendance [name="employee_id"],#modalAttendanceEdit [name="employee_id"]').val(employee.id);
-    $('#modalAttendance [name="date"],#modalAttendanceEdit [name="date"]').val(attendance.date_attendance);
+    $('#modalAttendance [name="attendance_date"],#modalAttendanceEdit [name="attendance_date"]').val(attendance.date_attendance);
     $('#modalAttendance [name="attendance_id"],#modalAttendanceEdit [name="attendance_id"]').val(attendance.id);
 
     $('#modalAttendance .attendance-status').text(attendance.status);
@@ -283,6 +283,12 @@ async function setAttendanceDetail(){
     $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendance.total_work_duration));
 
     $('#modalAttendance .attendance-note').text('-');
+
+    $('#modalAttendanceEdit [name="attendance_time_in"]').val(attendance.time_in);
+    $('#modalAttendanceEdit [name="attendance_time_out"]').val(attendance.time_out);
+    $('#modalAttendanceEdit [name="attendance_note"]').val(attendance.note);
+    $('#modalAttendanceEdit [name="attendance_status"]').val(attendance.status);
+    
     
     if(attendance.note != null && attendance.note != '' && attendance.note != 'null'){
         $('#modalAttendance .attendance-note').text(attendance.note);
@@ -392,3 +398,46 @@ $('#modalAttendance .btn-edit-attendance').on('click',function(){
     modalAttendance.hide();
     modalAttendanceEdit.show();
 });
+
+$('#modalAttendanceEdit .btn-close-modal-edit').on('click',function(){
+    modalAttendanceEdit.hide();
+    modalAttendance.show();
+});
+
+$('#modalAttendanceEdit .btn-submit-attendance').on('click',function(){
+    submitEditAttendance();
+});
+
+function submitEditAttendance(){
+    $.ajax({
+        url: appUrl + "/attendance_tracking/edit-employee-attendance",
+        type: "POST",
+        data: new FormData($('#form-edit-attendance').get(0)) ,
+        cache: false,
+        processData: false,
+        contentType: false,
+        beforeSend:function(){
+            $('#modalAttendanceEdit .box-loader').fadeIn();
+        },
+        error:function(res){
+            var resJson = res.responseJSON;
+            showAlertMsg(resJson.message,'error',5000);
+            $('#modalAttendanceEdit .box-loader').fadeOut();
+            //$('.loader').fadeOut('fast');
+        },
+        success: function(res) {
+            
+            CURRENT_ATTENDANCE = res.attendance;
+
+            setAttendanceDetail();
+            
+            modalAttendanceEdit.hide();
+            modalAttendance.show();
+
+            $('#modalAttendanceEdit .box-loader').fadeOut();
+            $('#form-edit-attendance')[0].reset();
+            showAlertMsg(res.message,'success',3000);
+            
+        }
+    });
+}
