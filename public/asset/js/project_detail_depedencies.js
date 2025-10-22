@@ -354,6 +354,17 @@ function renderTaskNode(task, $template) {
     const dueText = task.due_date ? formatDateENMediumDayMonth(task.due_date) : "";
     $item.find(".task-date").text(startText && dueText ? `${startText} - ${dueText}` : startText || dueText);
 
+    // Show completed icon on task card when task is complete
+    try {
+        if (visual === "complete") {
+            // avoid duplicate
+            if ($card.find('.playlist_add_check').length === 0) {
+                const $icon = $(`<span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:default;">playlist_add_check</span>`);
+                $card.append($icon);
+            }
+        }
+    } catch (_) {}
+
     if (task.children && task.children.length > 0) {
         const $branch = $('<div class="task-branch"></div>');
         $branch.append($item);

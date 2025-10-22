@@ -696,31 +696,7 @@ function initResponsiveTooltips(container = document) {
 // Make function globally available
 window.initResponsiveTooltips = initResponsiveTooltips;
 
-// Delegated click: open project detail when playlist_add_check icon is clicked (if handler exists)
-document.addEventListener("click", function (e) {
-    const el = e.target.closest && e.target.closest(".playlist_add_check[data-project-id]");
-    if (!el) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const pid = el.getAttribute("data-project-id");
-    if (!pid) return;
-    try {
-        if (typeof fetchAndShowProjectDetail === "function") {
-            fetchAndShowProjectDetail(pid);
-            return;
-        }
-    } catch (_) {}
-    // Fallback: try to open Project Detail modal by id if exists
-    try {
-        const projectDetailModalEl = document.getElementById("projectDetailModal");
-        if (projectDetailModalEl) {
-            projectDetailModalEl.setAttribute("data-project-id", pid);
-            if (typeof loadProjectDetail === "function") loadProjectDetail(pid);
-            const m = new bootstrap.Modal(projectDetailModalEl);
-            m.show();
-        }
-    } catch (_) {}
-});
+
 
 // Global avatar cache-bust version (updated when profile picture changes)
 window.__avatarVersion = Date.now();
@@ -1825,7 +1801,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             ${renderCollaborators(project)}
                                         </div>
                                         <div class="d-flex align-items-center">
-                                            ${deriveProjectStatusFromTasks(project) === 'completed' ? `<button type="button" class="btn btn-sm p-0 border-0 bg-transparent me-2 playlist_add_check d-flex align-items-center" data-project-id="${project.id}" title="Completed"><span class="material-symbols-outlined" style="font-size:16px; color:#828282;">playlist_add_check</span></button>` : ''}
+                                            
                                             <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative"
                                                     title="Comment" data-project-id="${
                                                         project.id
@@ -13218,7 +13194,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         p
                     )}</div>
                     <div class="d-flex align-items-center">
-                        ${deriveProjectStatusFromTasks(p) === 'completed' ? `<button type="button" class="btn btn-sm p-0 border-0 bg-transparent me-2 playlist_add_check d-flex align-items-center" data-project-id="${p.id}" title="Completed"><span class="material-symbols-outlined" style="font-size:22px !important; color:#828282;">playlist_add_check</span></button>` : ''}
+                        
                         <button class="btn btn-sm p-0 border-0 bg-transparent me-2 comment-icon d-flex align-items-center position-relative" title="Comment" data-project-id="${
                             p.id
                         }">
