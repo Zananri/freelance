@@ -8508,7 +8508,59 @@ function filterTaskTableRows(queryRaw) {
                 </div>`;
 
                 const contentEl = document.getElementById("taskDetailContent");
-                if (contentEl) contentEl.innerHTML = html;
+                if (contentEl) {
+                    contentEl.innerHTML = html;
+
+                    // Make task image clickable to open a centered preview modal
+                    try {
+                        const imgs = contentEl.querySelectorAll('img.project-image');
+                        imgs.forEach(function(img) {
+                            try {
+                                img.style.cursor = 'pointer';
+                                // Prevent binding duplicate handlers
+                                if (img.__previewHandlerBound) return;
+                                img.__previewHandlerBound = true;
+
+                                img.addEventListener('click', function () {
+                                    try {
+                                        const src = this.src || this.getAttribute('src') || '';
+                                        if (!src) return;
+                                        const modalId = 'taskImagePreviewModal_' + Date.now();
+                                        const modalHtml = `
+                                            <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+                                                <div class="modal-dialog modal-dialog-centered modal-xl">
+                                                    <div class="modal-content modal-content-custom bg-light border-0">
+                                                        <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                                                            <img id="taskImagePreviewModalImg" src="${src}" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
+                                                        </div>
+                                                        <div class="modal-footer modal-footer-custom border-0 justify-content-center">
+                                                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>`;
+
+                                        document.body.insertAdjacentHTML('beforeend', modalHtml);
+                                        const mEl = document.getElementById(modalId);
+                                        const mInst = new bootstrap.Modal(mEl);
+                                        // Ensure image fits within viewport on load
+                                        mEl.addEventListener('shown.bs.modal', function () {
+                                            try { const imgEl = mEl.querySelector('#taskImagePreviewModalImg'); if (imgEl) imgEl.style.maxHeight = (window.innerHeight * 0.8) + 'px'; } catch(_) {}
+                                        }, { once: true });
+
+                                        mEl.addEventListener('hidden.bs.modal', function () {
+                                            try { mEl.remove(); } catch(_) {}
+                                        }, { once: true });
+
+                                        mInst.show();
+                                    } catch (e) {
+                                        console.warn('Failed to open image preview', e);
+                                    }
+                                });
+                            } catch (_) {}
+                        });
+                    } catch (_) {}
+                }
 
                 const detailEl = document.getElementById("taskDetailModal");
                 if (detailEl) {
