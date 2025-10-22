@@ -1611,21 +1611,23 @@ function renderProjectTaskDetail(res) {
                                                 if (!modalEl) {
                                                         const tpl = document.createElement('div');
                                                         tpl.innerHTML = `
-<div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
-        <div class="modal-content modal-content-custom bg-dark border-0">
-            <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
-                <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
-            </div>
-            <div class="modal-footer modal-footer-custom border-0 justify-content-center">
-                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>`;
-                                                        try { document.body.insertAdjacentHTML('beforeend', tpl.innerHTML); } catch (_) { document.body.appendChild(tpl.firstElementChild); }
+                                                            <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+                                                                <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
+                                                                    <div class="modal-content modal-content-custom bg-light border-0">
+                                                                        <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                                                                            <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
+                                                                        </div>
+                                                                        <div class="modal-footer modal-footer-custom border-0 justify-content-center">
+                                                                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>`;
+
+
+                                                    try { document.body.insertAdjacentHTML('beforeend', tpl.innerHTML); } catch (_) { document.body.appendChild(tpl.firstElementChild); }
                                                         modalEl = document.getElementById('taskImagePreviewModal');
-                                                }
+                                                    }
 
                                                 const imgEl = document.getElementById('taskImagePreviewModalImg');
                                                 const dialogEl = document.getElementById('taskImageDialog');
