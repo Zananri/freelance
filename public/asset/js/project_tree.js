@@ -93,7 +93,10 @@
 			);
 		} catch(_) {}
 
-		$tpl.find('.task-name').text(p.title||'Untitled');
+        const pDetailUrl = `${appUrl}/project/${p.id}/${p.title}`
+
+        $tpl.find('.task-name')
+        .html(`<a href="${pDetailUrl}" target="_blank" class="text-decoration-none">${p.title || 'Untitled'}</a>`)
 		var start = formatDateENMediumDayMonth(p.start_date);
 		var due = formatDateENMediumDayMonth(p.due_date);
 		var dateTxt = start && due ? (start+' - '+due) : (start||due||'');
