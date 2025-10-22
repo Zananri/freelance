@@ -1851,18 +1851,28 @@ function renderProjectTaskDetail(res) {
                         if (img) {
                                 img.style.cursor = 'pointer';
                                 try { img.removeEventListener('click', img._previewHandler || function(){}); } catch(_) {}
-                                img._previewHandler = function (e) {
-                                        try { e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); } catch(_) {}
-                                        const src = img.getAttribute('src') || img.src;
-                                        if (!src) return;
-                                        try {
-                                                if (typeof showImageModal === 'function') {
-                                                        showImageModal(src);
-                                                        return;
-                                                }
-                                        } catch (_) {}
+                img._previewHandler = function (e) {
+                    try { e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); } catch(_) {}
+                    const src = img.getAttribute('src') || img.src;
+                    if (!src) return;
+                    try {
+                        // Prefer the task.js helper if present
+                        if (typeof showImageInModal === 'function') {
+                            // If this modal is a parent detail, hide it first so preview appears alone.
+                            try {
+                                const parent = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal') || document.getElementById('taskDetailModal');
+                                if (parent && parent.classList && parent.classList.contains('show')) {
+                                try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                                const pi = bootstrap.Modal.getInstance(parent) || new bootstrap.Modal(parent);
+                                try { pi.hide(); } catch(_) {}
+                                }
+                            } catch(_) {}
+                            showImageInModal(src);
+                            return;
+                        }
+                    } catch (_) {}
 
-                                        // Fallback: create or reuse taskImagePreviewModal markup (same as task.js uses)
+                    // Fallback: create or reuse taskImagePreviewModal markup (same as task.js uses)
                                         try {
                                                 let modalEl = document.getElementById('taskImagePreviewModal');
                                                 if (!modalEl) {

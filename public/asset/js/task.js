@@ -6307,7 +6307,7 @@ function filterTaskTableRows(queryRaw) {
                             const html = `
                                 <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
                                     <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
-                                        <div class="modal-content modal-content-custom bg-dark border-0">
+                                        <div class="modal-content modal-content-custom bg-light border-0">
                                             <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
                                                 <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
                                             </div>
@@ -6318,6 +6318,7 @@ function filterTaskTableRows(queryRaw) {
                                     </div>
                                 </div>`;
 
+                                // Use delegated click for feedback images as before but with slightly smaller sizing
                                 $(document).on('click', '.feedback-image', function(e) {
                                     e.preventDefault()
                                     const imgSrc = $(this).attr('src') || $(this).data('img')
@@ -6327,18 +6328,20 @@ function filterTaskTableRows(queryRaw) {
                                     $img.attr('src', imgSrc)
                                     $('#taskImagePreviewModal').modal('show')
                                     $img.on('load', function() {
-                                        const naturalW = this.naturalWidth
-                                        const naturalH = this.naturalHeight
-                                        const viewportW = window.innerWidth * 0.9
-                                        const viewportH = window.innerHeight * 0.8
-                                        const ratio = Math.min(viewportW / naturalW, viewportH / naturalH, 1)
-                                        const modalWidth = naturalW * ratio
-                                        $dialog.css({
-                                        'max-width': modalWidth + 'px'
-                                        })
+                                        try {
+                                            const naturalW = this.naturalWidth || 0
+                                            const naturalH = this.naturalHeight || 0
+                                            // Tighter viewport multipliers to avoid overly large previews
+                                            const viewportW = window.innerWidth * 0.8
+                                            const viewportH = window.innerHeight * 0.7
+                                            // Cap scale so very large images don't become huge modals
+                                            const ratio = Math.min(viewportW / Math.max(naturalW,1), viewportH / Math.max(naturalH,1), 0.9)
+                                            const modalWidth = Math.round(naturalW * ratio)
+                                            $dialog.css({ 'max-width': modalWidth + 'px' })
+                                        } catch(_) {}
                                     })
                                 })
-                            try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){}
+                            try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){ }
                         }
 
                         function showImageInModal(src, filename) {
@@ -6350,32 +6353,43 @@ function filterTaskTableRows(queryRaw) {
                                 if (imgEl) imgEl.src = src;
                                 // No download button per UX request; preview only
 
-                                // If feedback modal is open, hide it first and remember to restore later
-                                const feedbackModalEl = document.getElementById('taskFeedbackModal');
-                                let feedbackWasOpen = false;
+                                // If certain parent modals are open (feedback/detail/project), hide them first and remember to restore later
+                                const parentIds = ['taskFeedbackModal', 'taskDetailModal', 'projectTaskDetailModal', 'projectDetailModal'];
+                                let parentModalEl = null;
+                                let parentWasOpen = false;
                                 try {
-                                    if (feedbackModalEl && feedbackModalEl.classList.contains('show')) {
-                                        feedbackWasOpen = true;
-                                        // Suppress backdrop removal in feedback modal hidden handlers (used elsewhere)
+                                    for (let i = 0; i < parentIds.length; i++) {
+                                        const id = parentIds[i];
+                                        const el = document.getElementById(id);
+                                        if (el && el.classList && el.classList.contains('show')) {
+                                            parentModalEl = el;
+                                            parentWasOpen = true;
+                                            break;
+                                        }
+                                    }
+                                } catch(_) {}
+
+                                try {
+                                    if (parentWasOpen && parentModalEl) {
+                                        // Suppress any backdrop removal logic used elsewhere
                                         try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
-                                        const fbInst = bootstrap.Modal.getInstance(feedbackModalEl) || new bootstrap.Modal(feedbackModalEl);
-                                        try { fbInst.hide(); } catch(_) {}
+                                        const pmInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                        try { pmInst.hide(); } catch(_) {}
                                     }
                                 } catch(_) {}
 
                                 const inst = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
 
-                                // When preview modal hides, restore feedback modal if it was previously open
+                                // When preview modal hides, restore parent modal if it was previously open
                                 const onPreviewHidden = function() {
+                                    try { inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
                                     try {
-                                        inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden);
+                                        if (parentWasOpen && parentModalEl) {
+                                            try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                                            const pm2 = bootstrap.Modal.getOrCreateInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                            try { pm2.show(); } catch(_) {}
+                                        }
                                     } catch(_) {}
-                                    try { if (feedbackWasOpen) {
-                                        // Clear suppression and re-show feedback modal
-                                        try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
-                                        const fbInst2 = bootstrap.Modal.getOrCreateInstance(feedbackModalEl) || new bootstrap.Modal(feedbackModalEl);
-                                        try { fbInst2.show(); } catch(_) {}
-                                    } } catch(_) {}
                                 };
                                 try { inst._element.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
                                 inst.show();
