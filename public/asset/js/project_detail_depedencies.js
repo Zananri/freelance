@@ -524,19 +524,22 @@ $(document).on("click", "#projectTaskDetailModal .playlist-add-check", function 
         }
     } catch(_) {}
 
+    console.log(task);
+    
+
     // Teks dasar
     $('#completed_task_title').text(task.title || '-');
     $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
-    $('#completed_task_note').html(task.complete_note || task.description || '<em>No note</em>');
+    $('#completed_task_note').html(task.complete_note || '<em>No note</em>');
     $('#completed_priority').text(task.priority || '-');
-    $('#completed_date').text(task.complete_date || task.due_date || '-');
+    $('#completed_date').text(task.complete_date || '-');
 
     // Links
     const $urls = $('#completed_task_urls').empty();
     if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
         task.complete_urls.forEach((u, idx) => {
             const href = u.startsWith('http') ? u : '/' + String(u).replace(/^\/+/, '');
-            const $a = $('<a>', { href, target: '_blank', text: 'link_' + (idx+1) });
+            const $a = $('<a>', { href, target: '_blank', text: 'completed_link_' + (idx + 1) });
             $urls.append($a).append('<br>');
         });
     } else $urls.html('<em>-</em>');
@@ -544,11 +547,10 @@ $(document).on("click", "#projectTaskDetailModal .playlist-add-check", function 
     // Files
     const $files = $('#completed_task_files').empty();
     if (Array.isArray(task.complete_files) && task.complete_files.length) {
-        task.complete_files.forEach(f => {
+        task.complete_files.forEach((f, idx) => {
             const raw = f && (f.url || f) || '';
             const url = raw.startsWith('http') ? raw : '/' + String(raw).replace(/^\/+/, '');
-            const filename = decodeURIComponent(String(url).split('/').pop() || url);
-            const $link = $('<a>', { href: url, target: '_blank', text: filename });
+            const $link = $('<a>', { href: url, target: '_blank', text: 'completed_file_' + (idx + 1) });
             $files.append($link).append('<br>');
         });
     } else $files.html('<em>-</em>');

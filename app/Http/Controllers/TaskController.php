@@ -1730,6 +1730,10 @@ class TaskController extends Controller
                 // top-level project helpers so frontend single-item response matches index() mapping
                 'project_title' => $task->project?->title ?? '',
                 'project_id' => $task->project_id,
+                'complete_date' => $task->complete_date,
+                'complete_note' => $task->complete_note,
+                'complete_urls' => $task->complete_urls,
+                'complete_files' => $task->complete_files,
                 'project_image' => $projectImageUrl,
                 'project_has_image' => $projectHasImage,
                 // Include last status change metadata
