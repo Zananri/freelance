@@ -136,11 +136,7 @@ class Project extends Model
             // ignore
         }
         
-        // Update legacy_parent_id field if exists (for tree structure positioning)
-        if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
-            $this->legacy_parent_id = $parentId;
-            $this->save();
-        }
+        // No legacy column writes: parent relations are persisted in part_of_project pivot table only.
         
         return $this;
     }
@@ -174,11 +170,7 @@ class Project extends Model
                 ->delete();
         } catch (\Throwable $_) {}
         
-        // Clear legacy_parent_id field if exists
-        if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
-            $this->legacy_parent_id = null;
-            $this->save();
-        }
+        // No legacy column handling: parent relations are persisted in part_of_project pivot table only.
             
         return $this;
     }

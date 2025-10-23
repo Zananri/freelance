@@ -806,12 +806,7 @@ class ProjectController extends Controller
                 try {
                     $parentIds = DB::table('part_of_project')->where('project_id', $p->id)->pluck('parent_project_id')->toArray();
                 } catch (\Throwable $_) {
-                    // fallback to legacy column
-                    try {
-                        if (isset($p->part_of_project) && $p->part_of_project) {
-                            $parentIds[] = (int)$p->part_of_project;
-                        }
-                    } catch (\Throwable $_) {}
+                    $parentIds = [];
                 }
 
                 return [
@@ -823,7 +818,6 @@ class ProjectController extends Controller
                     'image' => $p->image,
                     'visual_status' => $visual,
                     'parent_ids' => $parentIds,
-                    'legacy_parent_id' => $p->part_of_project ?? null,
                 ];
             })->values();
 
@@ -1862,7 +1856,6 @@ class ProjectController extends Controller
                 'contributors' => $contributors,
                 // Expose primary parent for backward compatibility
                 'part_of_project' => null,
-                'part_of_project_title' => null,
             ];
 
             // Try resolve primary parent from pivot table
@@ -1870,15 +1863,6 @@ class ProjectController extends Controller
                 $primary = DB::table('part_of_project')->where('project_id', $project->id)->where('is_primary', true)->first();
                 if ($primary) {
                     $response['part_of_project'] = $primary->parent_project_id;
-                    $pp = Project::find($primary->parent_project_id);
-                    $response['part_of_project_title'] = $pp ? $pp->title : null;
-                } else {
-                    // fallback to legacy column if present
-                    if (isset($project->part_of_project) && $project->part_of_project) {
-                        $response['part_of_project'] = (int)$project->part_of_project;
-                        $pp = Project::find((int)$project->part_of_project);
-                        $response['part_of_project_title'] = $pp ? $pp->title : null;
-                    }
                 }
             } catch (\Throwable $_) {}
 

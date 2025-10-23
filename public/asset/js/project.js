@@ -8813,9 +8813,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 }
                             });
 
-                            const parentTitle = project?.part_of_project_title
-                                ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>`
-                                : "";
+                            // Parent title not provided by API (use parent_ids + lookup if needed)
+                            const parentTitle = "";
                             const desc = project?.description
                                 ? String(project.description)
                                 : "";
