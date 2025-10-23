@@ -534,7 +534,7 @@ function openCompletedModalById(tid) {
                                     </div>
                                 </div>
 
-                                <div class="mb-4 task-description-container">
+                                <div class="mb-4 task-description-container" style="font-size="10px">
                                     <div id="completed_task_note" class="text-muted task-description"><em>No note</em></div>
                                 </div>
 
