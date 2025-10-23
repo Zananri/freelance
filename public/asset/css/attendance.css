@@ -533,6 +533,36 @@
     border-radius: 8px;
 }
 
+.table-calendar .note{
+    position: absolute;
+    border-radius: 10px;
+    padding: 0px 0px 0px 4px;
+    font-size: 10px;
+    font-weight: 500;
+    bottom: 4px;
+    left: 4px;
+    width: calc(100% - 8px);
+    height: 15px;
+    background-color: #ff3939;
+    color: #fff;
+    overflow: auto;
+    text-overflow: hidden;
+    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 1; /* Number of lines to show */
+    -webkit-box-orient: vertical;
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none; 
+    display: none;
+}
+
+.table-calendar .note::-webkit-scrollbar {
+  display: none;
+}
+
+.calendar-day.has-note .note{
+    display: block;
+}
 
 .calendar-day.check-in .day {
     color: #fff !important;
