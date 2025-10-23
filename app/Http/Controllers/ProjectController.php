@@ -2251,6 +2251,16 @@ class ProjectController extends Controller
             $project->reference_files = $finalFiles;
             $project->save();
 
+         
+            try {
+                if (empty($request->part_of_project)) {
+                    $project->clearParents();
+                }
+            } catch (\Throwable $_) {
+                // Dont let parent sync failures block the update flow; log if needed
+                try { \Log::warning('Failed to sync project parents during update for project id ' . $project->id); } catch (\Throwable $__) {}
+            }
+
             if (auth()->check()) {
                 $employee = auth()->user()->employee;
                 if ($employee) {
