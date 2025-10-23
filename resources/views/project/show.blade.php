@@ -36,10 +36,12 @@
                 <h2 class="m-0">Project Detail</h2>
             </div>
             <div class="d-flex align-items-center button-group">
-                <button class="btn btn-sm toggle-grid d-none me-2" id="gridViewTaskDetail" data-bs-toggle="tooltip" title="Grid View">
+                <button class="btn btn-sm toggle-grid d-none me-2" id="gridViewTaskDetail" data-bs-toggle="tooltip"
+                    title="Grid View">
                     <span class="material-symbols-outlined">grid_view</span>
                 </button>
-                <button class="btn btn-sm toggle-list me-2" id="listViewTaskDetail" data-bs-toggle="tooltip" title="List View">
+                <button class="btn btn-sm toggle-list me-2" id="listViewTaskDetail" data-bs-toggle="tooltip"
+                    title="List View">
                     <span class="material-symbols-outlined">list</span>
                 </button>
                 <button class="btn btn-contributor-custom me-2" id="openContributionsModalBtn" title="My Contributions">
@@ -126,7 +128,8 @@
                                 <span class="material-symbols-outlined">fullscreen</span>
                             </button>
 
-                            <button class="btn btn-sm border-0 ms-2" id="add-task-btn" data-bs-target="#addTaskModalProject" data-bs-toggle="modal" title="Add Task">
+                            <button class="btn btn-sm border-0 ms-2" id="add-task-btn"
+                                data-bs-target="#addTaskModalProject" data-bs-toggle="modal" title="Add Task">
                                 <span class="material-symbols-outlined">add</span>
                             </button>
                         </div>
@@ -203,7 +206,9 @@
                                     <input type="file" id="inline_feedback_image_input" name="feedback_image"
                                         accept="image/*" class="d-none">
                                     <input type="file" id="inline_feedback_files_input" name="reference_files[]"
-                                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                                        multiple
+                                        accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                        class="d-none">
                                     <input type="text" id="inline_edit_feedback_input" name="edit_feedback"
                                         class="d-none">
                                 </div>
@@ -516,7 +521,8 @@
                                 <label for="edit_reference_file" class="form-label label-custom">Reference
                                     Files</label>
                                 <input type="file" class="form-control input-text" id="edit_reference_file"
-                                    name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                    name="reference_file[]"
+                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                                     multiple>
                                 <div id="edit_reference_files_preview" class="mt-2"></div>
                                 <div id="existing_reference_files" class="mt-2"></div>
@@ -541,7 +547,8 @@
                                     autocomplete="off" placeholder="Search project...">
                                 <div id="edit_part_of_project_dropdown" class="dropdown-list mt-1"></div>
                                 <div id="edit_selected_project" class="mt-2"></div>
-                                <input type="hidden" id="edit_part_of_project" name="part_of_project" value="">
+                                <input type="hidden" id="edit_part_of_project" name="part_of_project"
+                                    value="">
                             </div>
                             <div class="mb-3 input-custom">
                                 <label for="edit_co_author_input" class="form-label label-custom">Co-Author</label>
@@ -632,7 +639,8 @@
                                     files</label>
                                 <input type="file" class="form-control input-text"
                                     id="add_project_reference_files" name="reference_files[]"
-                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" multiple>
+                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                                    multiple>
                             </div>
 
                             <div id="add_project_reference_files_preview" class="mt-2"></div>
@@ -663,8 +671,8 @@
             </div>
         </div>
 
-        <div class="modal fade" id="editProjectTaskModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1"
-            aria-labelledby="editProjectTaskModalLabel" aria-hidden="true">
+        <div class="modal fade" id="editProjectTaskModal" data-bs-backdrop="static" data-bs-keyboard="false"
+            tabindex="-1" aria-labelledby="editProjectTaskModalLabel" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content modal-content-custom">
                     <div class="modal-loading-overlay d-none" id="editProjectTaskModalLoader">
@@ -672,7 +680,8 @@
                     </div>
                     <div class="modal-header modal-header-custom">
                         <h5 class="modal-title modal-title-custom" id="editProjectTaskModalLabel">Edit Task</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
                     <form id="editProjectTaskForm" enctype="multipart/form-data">
                         <input type="hidden" id="edit_task_id" name="task_id" value="">
@@ -770,7 +779,8 @@
                             </div>
                             <div class="mb-3 input-custom d-flex justify-content-between">
                                 <div class="date-form">
-                                    <label for="edit_task_start_date" class="form-label label-custom">Start Date</label>
+                                    <label for="edit_task_start_date" class="form-label label-custom">Start
+                                        Date</label>
                                     <input type="date" class="form-control input-text" id="edit_task_start_date"
                                         name="start_date" required>
                                 </div>
@@ -825,7 +835,8 @@
                     </div>
                     <div class="modal-header modal-header-custom">
                         <h5 class="modal-title modal-title-custom" id="addTaskModalLabel">Add Task</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                     </div>
                     <form id="addTaskForm" enctype="multipart/form-data">
                         <div class="modal-body modal-body-custom">
@@ -837,8 +848,8 @@
                                 <div class="title-label-image">
                                     <span>Upload image</span>
                                 </div>
-                                <label for="task_image" class="custom-image-upload position-relative" id="taskImageLabel"
-                                    style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
+                                <label for="task_image" class="custom-image-upload position-relative"
+                                    id="taskImageLabel" style="background-image: url('{!! asset('asset/img/background/add-image.png') !!}');">
                                     <input type="file" class="input-image" id="task_image" name="image"
                                         accept="image/*" hidden>
                                     <span class="image-clear-btn d-none" id="taskImageClearBtn"
@@ -908,7 +919,8 @@
                                 </div>
                             </div>
                             <div class="mb-3 input-custom">
-                                <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
+                                <label for="task_reference_files" class="form-label label-custom">Reference
+                                    Files</label>
                                 <input type="file" class="form-control input-text" id="task_reference_files"
                                     name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                                     multiple>
@@ -974,15 +986,16 @@
                     </div>
                     <div class="modal-footer modal-footer-custom">
                         <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-submit-black" id="confirmDeleteProjectTaskBtn">Delete</button>
+                        <button type="button" class="btn btn-submit-black"
+                            id="confirmDeleteProjectTaskBtn">Delete</button>
                     </div>
                 </div>
             </div>
         </div>
 
         {{-- Modal Detail Task --}}
-        <div class="modal fade" id="projectTaskDetailModal" tabindex="-1" aria-labelledby="projectTaskDetailModalLabel"
-            aria-hidden="true">
+        <div class="modal fade" id="projectTaskDetailModal" tabindex="-1"
+            aria-labelledby="projectTaskDetailModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal-content-custom">
                     <div class="modal-body modal-body-custom">
@@ -996,7 +1009,8 @@
                                     <div>
                                         <small class="text-muted" style="font-size: 11px;"
                                             id="projectTaskProjectTitle"></small>
-                                        <h5 class="mb-0" id="projectTaskTitle" style="font-size:16px;font-weight:600;">-
+                                        <h5 class="mb-0" id="projectTaskTitle"
+                                            style="font-size:16px;font-weight:600;">-
                                         </h5>
                                     </div>
                                 </div>
@@ -1004,15 +1018,18 @@
 
                             <!-- Description -->
                             <div class="description-container">
-                                <div id="projectTaskDescription" class="description-detail text-muted">No description</div>
+                                <div id="projectTaskDescription" class="description-detail text-muted">No description
+                                </div>
                             </div>
 
                             <hr>
 
                             <!-- Meta Info -->
                             <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                                <div><span class="text-muted">Priority:</span> <span font id="projectTaskPriority">-</span></div>
-                                <div><span class="text-muted">Deadline:</span> <span id="projectTaskDeadline">-</span></div>
+                                <div><span class="text-muted">Priority:</span> <span font
+                                        id="projectTaskPriority">-</span></div>
+                                <div><span class="text-muted">Deadline:</span> <span id="projectTaskDeadline">-</span>
+                                </div>
                             </div>
 
                             <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
@@ -1026,11 +1043,20 @@
                             </div>
 
                             <div class="d-flex justify-content-end">
-                                <button class="btn border-0" data-bs-target="#referenceFilesModal" data-bs-toggle="modal">
-                                    <span style="font-size: 18px; color: #444;" class="material-symbols-outlined">file_copy</span>
+                                <button class="btn border-0 playlist-add-check" data-bs-target="#completedModal"
+                                    data-bs-toggle="modal">
+                                    <span style="font-size: 18px; color: #444;"
+                                        class="material-symbols-outlined">playlist_add_check</span>
                                 </button>
-                                <button class="btn border-0" data-bs-target="#referenceUrlsModal" data-bs-toggle="modal">
-                                    <span style="font-size: 18px; color: #444;" class="material-symbols-outlined">attach_file</span>
+                                <button class="btn border-0" data-bs-target="#referenceFilesModal"
+                                    data-bs-toggle="modal">
+                                    <span style="font-size: 18px; color: #444;"
+                                        class="material-symbols-outlined">file_copy</span>
+                                </button>
+                                <button class="btn border-0" data-bs-target="#referenceUrlsModal"
+                                    data-bs-toggle="modal">
+                                    <span style="font-size: 18px; color: #444;"
+                                        class="material-symbols-outlined">attach_file</span>
                                 </button>
                             </div>
 
@@ -1052,8 +1078,54 @@
             </div>
         </div>
 
-        <div class="modal fade" id="referenceFilesModal" tabindex="-1" aria-labelledby="referenceFilesModalLabel"
-            aria-hidden="true">
+        <div class="modal fade" id="completedModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-body modal-body-custom">
+                        <div class="d-flex align-items-center mb-2">
+                            <img id="completed_task_image" src="" alt="Project Image"
+                                class="rounded-circle me-2" width="34" height="34">
+                            <div>
+                                <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;">
+                                </h6>
+                                <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
+                            </div>
+                        </div>
+
+                        <div class="mb-4 task-description-container" style="font-size= 10px">
+                            <div id="completed_task_note" class="text-muted task-description"><em>No note</em></div>
+                        </div>
+
+                        <div class="row mb-4 link-file-task">
+                            <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
+                                <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
+                                <span id="completed_priority" style="font-weight: 500; color: #f0ad4e;">-</span>
+                            </div>
+                            <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
+                                <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
+                                <span id="completed_date">-</span>
+                            </div>
+                            <div class="col-12" style="font-size: 12px;">
+                                <label class="fw-normal text-muted d-block mb-1">Links:</label>
+                                <div id="completed_task_urls"><em>-</em></div>
+                            </div>
+                            <div class="col-12" style="font-size: 12px;">
+                                <label class="fw-normal text-muted d-block mb-1">Files:</label>
+                                <div id="completed_task_files"><em>-</em></div>
+                            </div>
+                        </div>
+
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn btn-custom-close"
+                                data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal fade" id="referenceFilesModal" tabindex="-1"
+            aria-labelledby="referenceFilesModalLabel" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content modal-content-custom">
                     <div class="modal-header modal-header-custom d-flex align-items-center justify-content-between">
@@ -1074,7 +1146,8 @@
                         </div>
                     </div>
                     <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-sm btn-submit-black" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-sm btn-submit-black"
+                            data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>
@@ -1171,7 +1244,8 @@
                 <div class="mb-3 input-custom">
                     <label for="feedback_reference_files" class="form-label">Reference Files (Optional)</label>
                     <input type="file" class="form-control" id="feedback_reference_files"
-                        name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                        name="reference_files[]" multiple
+                        accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
                     <div id="feedback_reference_files_preview" class="mt-2"></div>
                 </div>
             </form>
@@ -1238,8 +1312,9 @@
 
                 <div class="mb-3 input-custom">
                     <label for="reply_reference_files" class="form-label">Reference Files (Optional)</label>
-                    <input type="file" class="form-control" id="reply_reference_files" name="reference_files[]"
-                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                    <input type="file" class="form-control" id="reply_reference_files"
+                        name="reference_files[]" multiple
+                        accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
                     <div id="reply_reference_files_preview" class="mt-2"></div>
                 </div>
             </form>
@@ -1649,7 +1724,8 @@
                             if (window.__quillProjectEdit) syncQuillToTextarea(window.__quillProjectEdit,
                                 'edit_description');
                             // Only enforce non-empty validation if Quill editor is present.
-                            const plain = (window.__quillProjectEdit && typeof window.__quillProjectEdit.getText ===
+                            const plain = (window.__quillProjectEdit && typeof window.__quillProjectEdit
+                                .getText ===
                                 'function') ? window.__quillProjectEdit.getText().trim() : null;
                             if (plain === '') {
                                 e.preventDefault();
@@ -1667,7 +1743,8 @@
                 try {
                     $('#editProjectModal').on('hidden.bs.modal', function() {
                         try {
-                            if (window.__quillProjectEdit && window.__quillProjectEdit.root) window.__quillProjectEdit
+                            if (window.__quillProjectEdit && window.__quillProjectEdit.root) window
+                                .__quillProjectEdit
                                 .root.innerHTML = '';
                         } catch (_) {}
                         try {
@@ -1747,8 +1824,9 @@
 
                 <div class="mb-3 input-custom">
                     <label for="edit_reference_files" class="form-label">Reference Files (Optional)</label>
-                    <input type="file" class="form-control" id="edit_reference_files" name="reference_files[]"
-                        multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
+                    <input type="file" class="form-control" id="edit_reference_files"
+                        name="reference_files[]" multiple
+                        accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
                     <input type="hidden" id="existing_feedback_reference_files_input"
                         name="existing_reference_files" value="[]">
                     <div id="existing_feedback_reference_files" class="mt-2 d-flex flex-wrap gap-2"></div>
@@ -1757,8 +1835,9 @@
             </form>
         </template>
 
-        <div class="modal fade" id="projectFeedbackModal" tabindex="-1" aria-labelledby="projectFeedbackModalLabel"
-            aria-hidden="true" data-project-id="{{ $project->id ?? '' }}"
+        <div class="modal fade" id="projectFeedbackModal" tabindex="-1"
+            aria-labelledby="projectFeedbackModalLabel" aria-hidden="true"
+            data-project-id="{{ $project->id ?? '' }}"
             data-employee-id="{{ auth()->user()->employee->id ?? '' }}">
             <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
                 <div class="modal-content modal-content-custom">
@@ -1801,7 +1880,8 @@
                     if (taskParentInput && taskParentDropdown) {
                         // Show dropdown on focus/click if it has content
                         taskParentInput.addEventListener('focus', function() {
-                            if (taskParentDropdown.children.length > 0 && taskParentDropdown.innerHTML.trim() !== '') {
+                            if (taskParentDropdown.children.length > 0 && taskParentDropdown.innerHTML.trim() !==
+                                '') {
                                 taskParentDropdown.style.display = 'block';
                             }
                         });
@@ -1815,33 +1895,44 @@
                     }
                 });
                 // Lightweight runtime diagnostics for Edit Project form
-                (function(){
+                (function() {
                     try {
-                        document.addEventListener('DOMContentLoaded', function(){
+                        document.addEventListener('DOMContentLoaded', function() {
                             try {
-                                console.debug && console.debug('[debug] project show page loaded. APP_URL=', window.APP_URL);
+                                console.debug && console.debug('[debug] project show page loaded. APP_URL=', window
+                                    .APP_URL);
                                 var form = document.getElementById('editProjectForm');
                                 console.debug && console.debug('[debug] editProjectForm present:', !!form);
                                 if (form) {
                                     var submitBtn = form.querySelector('button[type="submit"]');
-                                    console.debug && console.debug('[debug] editProjectForm submit button present:', !!submitBtn);
+                                    console.debug && console.debug('[debug] editProjectForm submit button present:', !!
+                                        submitBtn);
                                     if (submitBtn) {
-                                        submitBtn.addEventListener('click', function (ev) {
-                                            try { console.debug && console.debug('[debug] editProjectForm submit button clicked'); } catch(_) {}
+                                        submitBtn.addEventListener('click', function(ev) {
+                                            try {
+                                                console.debug && console.debug(
+                                                    '[debug] editProjectForm submit button clicked');
+                                            } catch (_) {}
                                         });
                                     }
 
                                     // Small check to show whether jQuery has attached a submit handler (best-effort)
                                     try {
                                         if (window.jQuery) {
-                                            var ev = jQuery._data && jQuery._data(form, 'events') ? jQuery._data(form, 'events') : null;
-                                            console.debug && console.debug('[debug] jQuery events on editProjectForm:', ev ? Object.keys(ev) : ev);
+                                            var ev = jQuery._data && jQuery._data(form, 'events') ? jQuery._data(form,
+                                                'events') : null;
+                                            console.debug && console.debug('[debug] jQuery events on editProjectForm:',
+                                                ev ? Object.keys(ev) : ev);
                                         }
-                                    } catch(_) {}
+                                    } catch (_) {}
                                 }
-                            } catch(e) { console.warn('project show debug inner failed', e); }
+                            } catch (e) {
+                                console.warn('project show debug inner failed', e);
+                            }
                         });
-                    } catch(e) { console.warn('project show debug failed', e); }
+                    } catch (e) {
+                        console.warn('project show debug failed', e);
+                    }
                 })();
             </script>
             <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
@@ -1849,14 +1940,17 @@
                 // Ensure reference URLs modal opens cleanly when triggered from inside another modal
                 document.addEventListener('DOMContentLoaded', function() {
                     try {
-                        document.querySelectorAll('[data-bs-target="#referenceUrlsModal"]').forEach(function(btn){
-                            btn.addEventListener('click', function(ev){
+                        document.querySelectorAll('[data-bs-target="#referenceUrlsModal"]').forEach(function(btn) {
+                            btn.addEventListener('click', function(ev) {
                                 try {
                                     // If task detail modal is open, hide it first to avoid nested modal backdrop issues
                                     var detailModalEl = document.getElementById('projectTaskDetailModal');
                                     if (detailModalEl && detailModalEl.classList.contains('show')) {
-                                        var inst = bootstrap.Modal.getInstance(detailModalEl) || bootstrap.Modal.getOrCreateInstance(detailModalEl);
-                                        try { inst.hide(); } catch(_){}
+                                        var inst = bootstrap.Modal.getInstance(detailModalEl) || bootstrap
+                                            .Modal.getOrCreateInstance(detailModalEl);
+                                        try {
+                                            inst.hide();
+                                        } catch (_) {}
                                     }
 
                                     // If button is inside a task element that has data-task-id, forward that id to the URL loader helper
@@ -1865,21 +1959,31 @@
                                         // look for nearest ancestor with data-task-id or dataset
                                         var el = btn;
                                         while (el) {
-                                            if (el.dataset && el.dataset.taskId) { taskId = el.dataset.taskId; break; }
-                                            if (el.getAttribute && el.getAttribute('data-task-id')) { taskId = el.getAttribute('data-task-id'); break; }
+                                            if (el.dataset && el.dataset.taskId) {
+                                                taskId = el.dataset.taskId;
+                                                break;
+                                            }
+                                            if (el.getAttribute && el.getAttribute('data-task-id')) {
+                                                taskId = el.getAttribute('data-task-id');
+                                                break;
+                                            }
                                             el = el.parentElement;
                                         }
-                                    } catch(_){}
+                                    } catch (_) {}
 
                                     if (taskId && typeof showReferenceUrlsForTask === 'function') {
                                         // slight delay to allow previous modal hide animation to finish
-                                        setTimeout(function(){ try { showReferenceUrlsForTask(taskId); } catch(_){} }, 200);
+                                        setTimeout(function() {
+                                            try {
+                                                showReferenceUrlsForTask(taskId);
+                                            } catch (_) {}
+                                        }, 200);
                                         ev.preventDefault();
                                     }
-                                } catch(_){}
+                                } catch (_) {}
                             });
                         });
-                    } catch(_){}
+                    } catch (_) {}
                 });
             </script>
         </x-slot>
