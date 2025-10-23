@@ -190,29 +190,9 @@ class Project extends Model
     {
         $parentId = (int)$parentId;
         
-        $existing = \DB::table('project_parents')
+        \DB::table('project_parents')
             ->where('project_id', $this->id)
-            ->first();
-            
-        if ($existing && $existing->project_parent_ids) {
-            $parentIds = json_decode($existing->project_parent_ids, true) ?: [];
-            $parentIds = array_values(array_filter(array_map('intval', $parentIds), function($id) use ($parentId) {
-                return $id !== $parentId;
-            }));
-            
-            if (empty($parentIds)) {
-                \DB::table('project_parents')
-                    ->where('project_id', $this->id)
-                    ->delete();
-            } else {
-                \DB::table('project_parents')
-                    ->where('project_id', $this->id)
-                    ->update([
-                        'project_parent_ids' => json_encode($parentIds),
-                        'updated_at' => now()
-                    ]);
-            }
-        }
+            ->delete();
         
         return $this;
     }
@@ -226,12 +206,6 @@ class Project extends Model
             ->where('project_id', $this->id)
             ->delete();
         
-        // Clear legacy_parent_id field if exists
-        if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
-            $this->legacy_parent_id = null;
-            $this->save();
-        }
-            
         return $this;
     }
 }
