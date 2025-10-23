@@ -1023,13 +1023,12 @@ class ProjectController extends Controller
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
             }
 
-            if ($parentId === null || $parentId === '') {
-                // Clear all parents
-                $project->clearParents();
-            } else {
-                // Remove specific parent
-                $project->removeParent((int)$parentId);
-            }
+            $project->part_of_project = '';
+            $project->save();
+
+            DB::table('project_parents')
+            ->where('project_id', $project->id)
+            ->delete();
 
             return response()->json(['code' => 200, 'status' => 'success']);
         } catch (\Exception $e) {
