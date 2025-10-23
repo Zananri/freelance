@@ -9221,7 +9221,7 @@ function filterTaskTableRows(queryRaw) {
                     const fileList = document.createElement("div");
                     fileList.className = "existing-files-list";
 
-                    files.forEach((fileName) => {
+                    files.forEach((fileName, idx) => {
                         const fileItem = document.createElement("div");
                         fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
@@ -9242,7 +9242,15 @@ function filterTaskTableRows(queryRaw) {
 
                         const titleSpan = document.createElement('span');
                         titleSpan.className = 'flex-grow-1';
-                        titleSpan.textContent = fileName;
+                        // store original filename and show formatted display name
+                        titleSpan.setAttribute('data-filename', fileName);
+                        try {
+                            var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
+                            var num = Number(idx) + 1;
+                            titleSpan.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
+                        } catch (e) {
+                            titleSpan.textContent = fileName;
+                        }
                         fileItem.appendChild(titleSpan);
 
                         const removeBtn = document.createElement('button');
@@ -9286,12 +9294,8 @@ function filterTaskTableRows(queryRaw) {
 
             existingItems.forEach((item) => {
                 let fileName = '';
-                const a = item.querySelector('a');
-                if (a && a.textContent) fileName = a.textContent.trim();
-                if (!fileName) {
-                    const sp = item.querySelector('span.flex-grow-1');
-                    if (sp && sp.textContent) fileName = sp.textContent.trim();
-                }
+                const sp = item.querySelector('span.flex-grow-1');
+                if (sp && sp.getAttribute) fileName = sp.getAttribute('data-filename') || sp.textContent.trim();
                 if (fileName) existingFiles.push(fileName);
             });
 
