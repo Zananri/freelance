@@ -5825,7 +5825,20 @@
                 var files = data.reference_files || [];
 
                 if (files && files.length > 0) {
-                    files.forEach(function(fileName) {
+                    // Local helper for formatted display names (1-based index)
+                    function formatRefDisplayNameLocal(origName, idx) {
+                        try {
+                            var ext = (String(origName || "").split('.').pop() || '').toLowerCase();
+                            if (!ext || ext === origName) ext = '';
+                            var num = Number(idx) + 1;
+                            if (ext) return 'PROJECT_REF_FILE_' + num + '.' + ext;
+                            return 'PROJECT_REF_FILE_' + num;
+                        } catch (e) {
+                            return String(origName || '');
+                        }
+                    }
+
+                    files.forEach(function(fileName, idx) {
                         if (!fileName) return;
 
                         var isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
@@ -5848,15 +5861,17 @@
                             leftSection.append(imgPreview);
                         }
 
-                        leftSection.append($('<span class="fw-normal text-truncate" style="font-size="16px""></span>').text(fileName));
+                        // Show formatted name but keep original filename in data attribute
+                        var displayName = formatRefDisplayNameLocal(fileName, idx);
+                        leftSection.append($('<span class="fw-normal text-truncate" style="font-size="16px""></span>').attr('data-filename', fileName).text(displayName));
 
                         var removeBtn = $('<button type="button" class="btn-close btn-sm ms-2 flex-shrink-0"></button>');
                         removeBtn.on("click", function() {
                             fileDisplay.remove();
                             var remaining = [];
                             existingFilesContainer.find("span.fw-normal").each(function() {
-                                var txt = $(this).text().trim();
-                                if (txt) remaining.push(txt);
+                                var orig = $(this).attr('data-filename') || $(this).text().trim();
+                                if (orig) remaining.push(orig);
                             });
                             $("#existing_reference_files_input").val(JSON.stringify(remaining));
                         });
@@ -5866,6 +5881,7 @@
                         existingFilesContainer.append(fileDisplay);
                     });
 
+                    // Keep hidden input containing original filenames (for server)
                     $("#existing_reference_files_input").val(JSON.stringify(files));
                 }
             }
@@ -5987,7 +6003,20 @@
                     listEl.innerHTML = "";
 
                     if (files && files.length > 0) {
-                        files.forEach((fileName) => {
+                        // helper to format user-visible reference file name
+                        function formatRefDisplayName(origName, idx) {
+                            try {
+                                var ext = (String(origName || "").split('.').pop() || '').toLowerCase();
+                                if (!ext || ext === origName) ext = '';
+                                var num = Number(idx) + 1; // make it 1-based
+                                if (ext) return 'PROJECT_REF_FILE_' + num + '.' + ext;
+                                return 'PROJECT_REF_FILE_' + num;
+                            } catch (e) {
+                                return String(origName || '');
+                            }
+                        }
+
+                        files.forEach((fileName, fidx) => {
                             if (!fileName) return;
 
                             let fileUrl = String(fileName || "");
@@ -6034,7 +6063,8 @@
                                 "reference-files-list flex-grow-1 text-decoration-none text-truncate";
                             title.href = fileUrl;
                             title.target = "_blank";
-                            title.textContent = fileName;
+                            // display a clean sequential name while keeping the real filename for download
+                            title.textContent = formatRefDisplayName(fileName, fidx);
                             item.appendChild(title);
 
                             // Download button
@@ -6106,7 +6136,8 @@
                                     );
                                 if (refModalInstance) refModalInstance.hide(); // tutup modal utama
 
-                                deleteFileNameEl.textContent = fileName;
+                                // Show user-friendly name in delete confirmation too
+                                deleteFileNameEl.textContent = formatRefDisplayName(fileName, 0);
 
                                 const deleteModalInstance = new bootstrap.Modal(
                                     deleteModalEl

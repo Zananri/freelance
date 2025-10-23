@@ -590,7 +590,7 @@ function addAttachFileIconListeners(taskId) {
             referenceFilesList.dataset.taskId = String(taskId || '');
 
                     if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
-                        referenceFiles.forEach((fileName) => {
+                        referenceFiles.forEach((fileName, idx) => {
                             if (!fileName) return;
 
                                 let fileUrl = String(fileName || '');
@@ -624,7 +624,13 @@ function addAttachFileIconListeners(taskId) {
                                 title.className = 'flex-grow-1 text-decoration-none text-truncate';
                                 title.href = fileUrl;
                                 title.target = '_blank';
-                                title.textContent = fileName;
+                                try {
+                                    var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
+                                    var num = Number(idx) + 1;
+                                    title.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
+                                } catch (e) {
+                                    title.textContent = fileName;
+                                }
                                 title.style.color = "#444444"
                                 item.appendChild(title);
 
@@ -663,7 +669,7 @@ function addAttachFileIconListeners(taskId) {
                                 try {
                                     showDeleteConfirmModal({
                                         id: fileName,
-                                        content: fileName,
+                                        content: (function(){ try { var e=(String(fileName||'').split('.').pop()||'').toLowerCase(); return e?('PROJECT_REF_FILE_1.'+e):'PROJECT_REF_FILE_1'; }catch(_){return fileName;} })(),
                                         parentModalId: 'referenceFilesModal',
                                         onConfirm: function (done) {
                                             try {

@@ -2022,7 +2022,7 @@ function showReferenceFilesForTask(taskId) {
                 try { document.getElementById('referenceFilesModal').dataset.taskId = String(taskId || ''); } catch(_) {}
 
                 if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
-                    referenceFiles.forEach((fileName) => {
+                    referenceFiles.forEach((fileName, idx) => {
                         if (!fileName) return;
 
                         let fileUrl = String(fileName || '');
@@ -2056,7 +2056,13 @@ function showReferenceFilesForTask(taskId) {
                         title.className = 'flex-grow-1 text-decoration-none text-truncate';
                         title.href = fileUrl;
                         title.target = '_blank';
-                        title.textContent = fileName;
+                        try {
+                            var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
+                            var num = Number(idx) + 1;
+                            title.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
+                        } catch (e) {
+                            title.textContent = fileName;
+                        }
                         title.style.color = "#444444";
                         item.appendChild(title);
 
@@ -2098,7 +2104,7 @@ function showReferenceFilesForTask(taskId) {
                                     type: 'reference_file',
                                     id: fileName,
                                     authorName: '',
-                                    content: fileName,
+                                    content: (function(){ try { var e=(String(fileName||'').split('.').pop()||'').toLowerCase(); return e?('PROJECT_REF_FILE_1.'+e):'PROJECT_REF_FILE_1'; }catch(_){return fileName;} })(),
                                     avatarUrl: '',
                                     parentModalId: 'referenceFilesModal',
                                     onConfirm: function (done) {
