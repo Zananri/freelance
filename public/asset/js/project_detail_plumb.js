@@ -227,13 +227,39 @@
         return edges;
     }
 
+    function getRandomColor() {
+        var hue = Math.floor(Math.random() * 360);
+        var saturation = 70 + Math.random() * 20;
+        var lightness = 60 + Math.random() * 10;
+        return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    }
+
+    var childColors = {};
+
     function connectEdge(pId, cId) {
         var inst = ensureInstance();
         if (!inst) return;
+
+        if (!childColors[cId]) {
+            childColors[cId] = getRandomColor();
+        }
+
+        var color = childColors[cId];
         var sourceId = getElId(pId),
             targetId = getElId(cId);
+
         try {
-            inst.connect({ source: sourceId, target: targetId });
+            inst.connect({
+                source: sourceId,
+                target: targetId,
+                paintStyle: {
+                    stroke: color,
+                    strokeWidth: 2,
+                    outlineStroke: "#fff",
+                    outlineWidth: 0.5
+                },
+                endpointStyle: { fill: color }
+            });
         } catch (_) {}
     }
 
