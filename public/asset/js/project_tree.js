@@ -31,7 +31,6 @@
 		list.forEach(function(p){ map[p.id] = Object.assign({children:[]}, p); });
 		list.forEach(function(p){
 			var parents = Array.isArray(p.parent_ids) ? p.parent_ids.slice() : [];
-			if ((!parents || parents.length === 0) && p.legacy_parent_id) parents = [p.legacy_parent_id];
 			if (parents && parents.length && parents[0] !== p.id && map[parents[0]]){
 				map[parents[0]].children.push(map[p.id]);
 			} else {
@@ -703,7 +702,7 @@
 			var cur = map[targetId]; var guard=0;
 			while (cur && guard++<2000){
 				var parents = Array.isArray(cur.parent_ids) ? cur.parent_ids : [];
-				var parentId = parents.length ? String(parents[0]) : (cur.legacy_parent_id? String(cur.legacy_parent_id): null);
+				var parentId = parents.length ? String(parents[0]) : null;
 				if (!parentId) return false;
 				if (parentId === String(sourceId)) return true;
 				cur = map[parentId];

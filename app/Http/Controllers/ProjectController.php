@@ -730,24 +730,23 @@ class ProjectController extends Controller
             // Step 2: Ambil semua anak project dari project-project di atas
             $childProjectIds = [];
             if (!empty($assignedProjectIds)) {
-                // Cari di kolom part_of_project
-                $childProjectIds = DB::table('projects')
-                    ->whereIn('part_of_project', $assignedProjectIds)
-                    ->pluck('id')
-                    ->toArray();
-
-                // Cari juga di project_parents (multi parent)
-                $parentMatches = DB::table('project_parents')
-                    ->get(['project_id', 'project_parent_ids'])
-                    ->filter(function ($row) use ($assignedProjectIds) {
-                        if (!$row->project_parent_ids) return false;
-                        $parents = json_decode($row->project_parent_ids, true);
-                        return is_array($parents) && count(array_intersect($parents, $assignedProjectIds)) > 0;
-                    })
-                    ->pluck('project_id')
-                    ->toArray();
-
-                $childProjectIds = array_unique(array_merge($childProjectIds, $parentMatches));
+                // Cari di tabel part_of_project (pivot rows)
+                try {
+                    $childProjectIds = DB::table('part_of_project')
+                        ->whereIn('parent_project_id', $assignedProjectIds)
+                        ->pluck('project_id')
+                        ->toArray();
+                } catch (\Throwable $_) {
+                    $childProjectIds = [];
+                }
+                // Also include legacy column fallback (projects.part_of_project)
+                try {
+                    $legacyMatches = DB::table('projects')
+                        ->whereIn('part_of_project', $assignedProjectIds)
+                        ->pluck('id')
+                        ->toArray();
+                    $childProjectIds = array_unique(array_merge($childProjectIds, $legacyMatches));
+                } catch (\Throwable $_) {}
             }
 
             // Gabungkan semua project_id yang bisa dilihat
@@ -802,13 +801,12 @@ class ProjectController extends Controller
                     }
                 }
 
-                $parentRecord = DB::table('project_parents')
-                    ->where('project_id', $p->id)
-                    ->first();
-
+                // Read parents from part_of_project pivot table (one row per parent)
                 $parentIds = [];
-                if ($parentRecord && $parentRecord->project_parent_ids) {
-                    $parentIds = json_decode($parentRecord->project_parent_ids, true) ?: [];
+                try {
+                    $parentIds = DB::table('part_of_project')->where('project_id', $p->id)->pluck('parent_project_id')->toArray();
+                } catch (\Throwable $_) {
+                    $parentIds = [];
                 }
 
                 return [
@@ -820,7 +818,6 @@ class ProjectController extends Controller
                     'image' => $p->image,
                     'visual_status' => $visual,
                     'parent_ids' => $parentIds,
-                    'legacy_parent_id' => $p->part_of_project ?? null,
                 ];
             })->values();
 
@@ -1050,37 +1047,13 @@ class ProjectController extends Controller
         $visited[] = $projectId;
 
        
-        $children = collect();
+        // New: read children from part_of_project pivot
         try {
-            $children = collect(DB::table('project_parents')
-                ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [json_encode((int)$projectId)])
+            $children = collect(DB::table('part_of_project')
+                ->where('parent_project_id', (int)$projectId)
                 ->pluck('project_id'));
-        } catch (\Throwable $e) {
-            try {
-                $rows = DB::table('project_parents')->get(['project_id', 'project_parent_ids']);
-                $filtered = collect($rows)->filter(function ($row) use ($projectId) {
-                    if (!isset($row->project_parent_ids) || $row->project_parent_ids === null) return false;
-                    $raw = $row->project_parent_ids;
-                    if (is_string($raw)) {
-                        $decoded = json_decode($raw, true);
-                        if (is_array($decoded)) {
-                            return in_array((int)$projectId, array_map('intval', $decoded));
-                        }
-                        if (strpos($raw, ',') !== false) {
-                            $parts = array_map('trim', explode(',', $raw));
-                            return in_array((string)$projectId, $parts) || in_array((int)$projectId, array_map('intval', $parts));
-                        }
-                    }
-                    if (is_array($raw)) {
-                        return in_array((int)$projectId, array_map('intval', $raw));
-                    }
-                    return false;
-                })->pluck('project_id');
-
-                $children = collect($filtered->toArray());
-            } catch (\Throwable $_) {
-                $children = collect();
-            }
+        } catch (\Throwable $_) {
+            $children = collect();
         }
 
         foreach ($children as $childId) {
@@ -1554,7 +1527,20 @@ class ProjectController extends Controller
             $project->reference_url = count($refUrls) ? $refUrls[0] : null;
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
-            $project->part_of_project = $request->part_of_project;
+            // Instead of storing in projects.part_of_project, insert into part_of_project pivot table
+            try {
+                if ($request->part_of_project) {
+                    DB::table('part_of_project')->insert([
+                        'project_id' => $project->id,
+                        'parent_project_id' => (int)$request->part_of_project,
+                        'is_primary' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            } catch (\Throwable $_) {
+                // ignore failures to keep create working
+            }
             $project->complete_date = $request->complete_date;
             $project->created_by = auth()->user() ? auth()->user()->id : null;
             $project->updated_by = auth()->user() ? auth()->user()->id : null;
@@ -1868,7 +1854,17 @@ class ProjectController extends Controller
                 'author' => $author,
                 'co_authors' => $coAuthors,
                 'contributors' => $contributors,
+                // Expose primary parent for backward compatibility
+                'part_of_project' => null,
             ];
+
+            // Try resolve primary parent from pivot table
+            try {
+                $primary = DB::table('part_of_project')->where('project_id', $project->id)->where('is_primary', true)->first();
+                if ($primary) {
+                    $response['part_of_project'] = $primary->parent_project_id;
+                }
+            } catch (\Throwable $_) {}
 
             return response()->json([
                 'code' => 200,
@@ -2197,7 +2193,21 @@ class ProjectController extends Controller
 
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
-            $project->part_of_project = $request->part_of_project;
+            // Update part_of_project pivot: remove existing and insert new if provided
+            try {
+                DB::table('part_of_project')->where('project_id', $project->id)->delete();
+                if ($request->part_of_project) {
+                    DB::table('part_of_project')->insert([
+                        'project_id' => $project->id,
+                        'parent_project_id' => (int)$request->part_of_project,
+                        'is_primary' => true,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+            } catch (\Throwable $_) {
+                // ignore
+            }
             $project->complete_date = $request->complete_date;
             $project->updated_by = auth()->user() ? auth()->user()->id : null;
 
