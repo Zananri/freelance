@@ -354,17 +354,6 @@ function renderTaskNode(task, $template) {
     const dueText = task.due_date ? formatDateENMediumDayMonth(task.due_date) : "";
     $item.find(".task-date").text(startText && dueText ? `${startText} - ${dueText}` : startText || dueText);
 
-    // Show completed icon on task card when task is complete
-    try {
-        if (visual === "complete") {
-            // avoid duplicate
-            if ($card.find('.playlist_add_check').length === 0) {
-                const $icon = $(`<span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" role="button" tabindex="0" aria-label="Lihat task selesai" style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:pointer; z-index:2000;">playlist_add_check</span>`);
-                $card.append($icon);
-            }
-        }
-    } catch (_) {}
-
     if (task.children && task.children.length > 0) {
         const $branch = $('<div class="task-branch"></div>');
         $branch.append($item);
@@ -514,245 +503,56 @@ $(window).on("resize", function () {
     if (!window.USE_PLUMB_ONLY) setTimeout(adjustConnectors, 60);
 });
 
-// Handle activation (click or keyboard) on completed icon inside task tree: open Completed modal
-function openCompletedModalById(tid) {
-    if (!tid) return;
+$(document).on("click", "#projectTaskDetailModal .playlist-add-check", function () {
+    const task = this._task;
+    if (!task) return console.warn("Task not found");
+
+    // Avatar / gambar
     try {
-        // Ensure completed modal markup exists on the page (task page includes it, project detail may not)
-        try {
-            if (!document.getElementById('completedModal')) {
-                const tpl = `
-                <div class="modal fade" id="completedModal" tabindex="-1" aria-hidden="true">
-                    <div class="modal-dialog modal-dialog-centered">
-                        <div class="modal-content modal-content-custom">
-                            <div class="modal-body modal-body-custom">
-                                <div class="d-flex align-items-center mb-2">
-                                    <img id="completed_task_image" src="" alt="Project Image" class="rounded-circle me-2" width="34" height="34">
-                                    <div>
-                                        <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;"></h6>
-                                        <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
-                                    </div>
-                                </div>
-
-                                <div class="mb-4 task-description-container" style="font-size="10px">
-                                    <div id="completed_task_note" class="text-muted task-description"><em>No note</em></div>
-                                </div>
-
-                                <div class="row mb-4 link-file-task">
-                                    <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
-                                        <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
-                                        <span id="completed_priority" style="font-weight: 500; color: #f0ad4e;">-</span>
-                                    </div>
-                                    <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
-                                        <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
-                                        <span id="completed_date">-</span>
-                                    </div>
-                                    <div class="col-12" style="font-size: 12px;">
-                                        <label class="fw-normal text-muted d-block mb-1">Links:</label>
-                                        <div id="completed_task_urls"><em>-</em></div>
-                                    </div>
-                                    <div class="col-12" style="font-size: 12px;">
-                                        <label class="fw-normal text-muted d-block mb-1">Files:</label>
-                                        <div id="completed_task_files"><em>-</em></div>
-                                    </div>
-                                </div>
-
-                                <div class="modal-footer modal-footer-custom">
-                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-                try { document.body.insertAdjacentHTML('beforeend', tpl); } catch (e) { /* ignore */ }
+        const $avatarContainer = $('#completed_task_image');
+        if ($avatarContainer.length) {
+            const avatarHtml = getAvatarHTML(task, 34);
+            const $parent = $avatarContainer.parent();
+            if ($parent.length) {
+                $avatarContainer.remove();
+                const $wrapper = $(avatarHtml);
+                $wrapper.addClass('me-2');
+                $parent.prepend($wrapper);
+            } else {
+                $avatarContainer.attr('src', task.image || task.project_image || task.image_url || '/img/default.png');
             }
-        } catch (_) {}
-
-        const flat = (function flatten(tasks) {
-            const out = [];
-            (tasks || []).forEach(function tfn(t) {
-                out.push(t);
-                if (Array.isArray(t.children) && t.children.length) t.children.forEach(tfn);
-            });
-            return out;
-        })(allTasks || []);
-        const task = flat.find(function (x) {
-            try { return String(x.id) === String(tid); } catch(_) { return false; }
-        });
-        if (task && typeof window.showCompletedModal === 'function') {
-            window.showCompletedModal(task);
-            try {
-                const completedEl = document.getElementById('completedModal');
-                if (completedEl) {
-                    const parentModalEl = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal');
-                    let parentWasOpen = false;
-                    let parentInst = null;
-                    try {
-                        if (parentModalEl && parentModalEl.classList.contains('show')) {
-                            parentWasOpen = true;
-                            parentInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
-                            try { parentInst.hide(); } catch(_) {}
-                        }
-                    } catch(_) {}
-                    const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
-                    try { inst.show(); } catch(_) { try { inst.show(); } catch(_) {} }
-                    if (parentWasOpen && parentInst) {
-                        const onHide = function () {
-                            try { parentInst.show(); } catch(_) {}
-                            try { inst._element.removeEventListener('hidden.bs.modal', onHide); } catch(_) {}
-                        };
-                        try { inst._element.addEventListener('hidden.bs.modal', onHide); } catch(_) {}
-                    }
-                }
-            } catch (_) {}
-            return;
         }
-    } catch (_) {}
-
-    try {
-        const url = (function(){ try { const m = document.querySelector('meta[name="app-url"]'); return (m && m.getAttribute('content')||'').replace(/\/+$/,''); } catch(e){ return ''; } })();
-        if (!url) return;
-        $.ajax({ url: url + '/task/' + encodeURIComponent(String(tid)), type: 'GET', dataType: 'json' })
-            .done(function (res) {
-                console.debug('[task-tree] AJAX fetched task for completed modal', res);
-                const payload = res && (res.data || res) || null;
-                if (payload && typeof window.showCompletedModal === 'function') {
-                    window.showCompletedModal(payload);
-                    try {
-                        const completedEl = document.getElementById('completedModal');
-                        if (completedEl) {
-                            const parentModalEl = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal');
-                            let parentWasOpen = false;
-                            let parentInst = null;
-                            try {
-                                if (parentModalEl && parentModalEl.classList.contains('show')) {
-                                    parentWasOpen = true;
-                                    parentInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
-                                    try { parentInst.hide(); } catch(_) {}
-                                }
-                            } catch(_) {}
-                            const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
-                            try { inst.show(); } catch(_) { try { inst.show(); } catch(_) {} }
-                            if (parentWasOpen && parentInst) {
-                                const onHide = function () {
-                                    try { parentInst.show(); } catch(_) {}
-                                    try { inst._element.removeEventListener('hidden.bs.modal', onHide); } catch(_) {}
-                                };
-                                try { inst._element.addEventListener('hidden.bs.modal', onHide); } catch(_) {}
-                            }
-                        }
-                    } catch (_) {}
-                }
-            })
-            .fail(function (xhr) {
-                try { console.warn('[task-tree] AJAX fetch failed', tid, xhr && xhr.status); } catch(_) {}
-            });
-    } catch (_) {}
-}
-
-// Fallback showCompletedModal if task.js not loaded on this page
-if (typeof window.showCompletedModal !== 'function') {
-    window.showCompletedModal = function (task) {
-        try {
-            if (!task || !task.id) return;
-            const appUrlMeta = document.querySelector('meta[name="app-url"]');
-            const base = (appUrlMeta && appUrlMeta.getAttribute('content') || '').replace(/\/+$/,'');
-
-            try {
-                // Replace avatar area with same markup used elsewhere to ensure initials fallback
-                const avatarContainer = document.getElementById('completed_task_image');
-                if (avatarContainer) {
-                    // If the element is an <img>, replace it with the avatar HTML (image or initials)
-                    const parent = avatarContainer.parentElement;
-                    const avatarHtml = getAvatarHTML(task, 34);
-                    if (parent) {
-                        // If the existing element is an <img>, replace that node with a wrapper containing our HTML
-                        try { parent.removeChild(avatarContainer); } catch(_) {}
-                        const wrapper = document.createElement('div');
-                        wrapper.innerHTML = avatarHtml;
-                        // add spacing similar to original layout
-                        wrapper.firstElementChild && wrapper.firstElementChild.classList.add('me-2');
-                        parent.insertBefore(wrapper.firstElementChild, parent.firstChild || null);
-                    } else {
-                        // Fallback: set src if replacement not possible
-                        try { avatarContainer.setAttribute('src', (task.image || task.project_image || task.image_url || (base + '/asset/img/avatar.png')) ); } catch(_) {}
-                    }
-                }
-            } catch(_) {}
-            try { document.getElementById('completed_task_title').textContent = task.title || '-'; } catch(_) {}
-            try { document.getElementById('completed_project_title').textContent = task.project_title || (task.project && task.project.title) || '-'; } catch(_) {}
-            try { document.getElementById('completed_task_note').innerHTML = task.complete_note || task.description || '<em>No note</em>'; } catch(_) {}
-            try { document.getElementById('completed_priority').textContent = task.priority || '-'; } catch(_) {}
-            try { document.getElementById('completed_date').textContent = task.complete_date || task.due_date || '-'; } catch(_) {}
-
-            // Links
-            try {
-                const urls = document.getElementById('completed_task_urls');
-                if (urls) {
-                    urls.innerHTML = '';
-                    if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
-                        task.complete_urls.forEach(function(u, idx){
-                            const a = document.createElement('a');
-                            a.href = u.startsWith('http') ? u : (base + '/' + String(u).replace(/^\/+/, ''));
-                            a.target = '_blank';
-                            a.textContent = 'link_' + (idx+1);
-                            urls.appendChild(a);
-                            urls.appendChild(document.createElement('br'));
-                        });
-                    } else urls.innerHTML = '<em>-</em>';
-                }
-            } catch(_) {}
-
-            // Files
-            try {
-                const files = document.getElementById('completed_task_files');
-                if (files) {
-                    files.innerHTML = '';
-                    if (Array.isArray(task.complete_files) && task.complete_files.length) {
-                        task.complete_files.forEach(function(f){
-                            const raw = (f && (f.url || f)) || '';
-                            const link = document.createElement('a');
-                            const url = (raw.startsWith('http') ? raw : (base + '/' + String(raw).replace(/^\/+/, '')));
-                            link.href = url; link.target = '_blank'; link.textContent = decodeURIComponent(String(url).split('/').pop() || url);
-                            files.appendChild(link); files.appendChild(document.createElement('br'));
-                        });
-                    } else files.innerHTML = '<em>-</em>';
-                }
-            } catch(_) {}
-
-            try {
-                const completedEl = document.getElementById('completedModal');
-                if (completedEl) {
-                    const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(completedEl) : (bootstrap.Modal.getInstance(completedEl) || new bootstrap.Modal(completedEl));
-                    inst.show();
-                }
-            } catch(_) {}
-        } catch(_) {}
-    };
-}
-
-$(document).on('click', '#task-tree .playlist_add_check', function (e) {
-    try {
-        // prevent other handlers from intercepting
-        e.preventDefault && e.preventDefault();
-        e.stopImmediatePropagation && e.stopImmediatePropagation();
-        e.stopPropagation && e.stopPropagation();
     } catch(_) {}
-    const $el = $(this);
-    const tid = $el.attr('data-task-id') || $el.data('task-id');
-    try { console.debug('[task-tree] playlist_add_check clicked, taskId=', tid); } catch(_) {}
-    openCompletedModalById(tid);
-});
 
-// keyboard support (Enter / Space)
-$(document).on('keydown', '#task-tree .playlist_add_check', function (e) {
-    const key = e.key || e.keyCode;
-    if (key === 'Enter' || key === ' ' || key === 13 || key === 32) {
-        try { e.preventDefault && e.preventDefault(); e.stopImmediatePropagation && e.stopImmediatePropagation(); } catch(_) {}
-        const $el = $(this);
-        const tid = $el.attr('data-task-id') || $el.data('task-id');
-        openCompletedModalById(tid);
-    }
+    // Teks dasar
+    $('#completed_task_title').text(task.title || '-');
+    $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
+    $('#completed_task_note').html(task.complete_note || task.description || '<em>No note</em>');
+    $('#completed_priority').text(task.priority || '-');
+    $('#completed_date').text(task.complete_date || task.due_date || '-');
+
+    // Links
+    const $urls = $('#completed_task_urls').empty();
+    if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
+        task.complete_urls.forEach((u, idx) => {
+            const href = u.startsWith('http') ? u : '/' + String(u).replace(/^\/+/, '');
+            const $a = $('<a>', { href, target: '_blank', text: 'link_' + (idx+1) });
+            $urls.append($a).append('<br>');
+        });
+    } else $urls.html('<em>-</em>');
+
+    // Files
+    const $files = $('#completed_task_files').empty();
+    if (Array.isArray(task.complete_files) && task.complete_files.length) {
+        task.complete_files.forEach(f => {
+            const raw = f && (f.url || f) || '';
+            const url = raw.startsWith('http') ? raw : '/' + String(raw).replace(/^\/+/, '');
+            const filename = decodeURIComponent(String(url).split('/').pop() || url);
+            const $link = $('<a>', { href: url, target: '_blank', text: filename });
+            $files.append($link).append('<br>');
+        });
+    } else $files.html('<em>-</em>');
+
 });
 
 function ensureSvgOverlay() {
@@ -1767,7 +1567,6 @@ function handleProjectTaskDetail(taskId) {
         type: "GET",
         dataType: "json",
         success: function (res) {
-            console.log("Task detail response:", res);
             renderProjectTaskDetail(res);
         },
         error: function (xhr, status, error) {
@@ -1792,8 +1591,7 @@ function showAlert(msg, type) {
 
 function renderProjectTaskDetail(res) {
     const task = res?.data || res;
-    if (!task || typeof task !== "object")
-        return showAlert("Invalid task data.", "danger");
+    if (!task || typeof task !== "object") return showAlert("Invalid task data.", "danger");
 
     $("#projectTaskProjectAvatar").html(getAvatarHTML(task));
     $("#projectTaskProjectTitle").text(task.project?.title || "-");
@@ -1804,188 +1602,84 @@ function renderProjectTaskDetail(res) {
     $("#projectTaskDepartment").text(task.project?.department || "-");
     $("#projectTaskDivision").text(task.project?.division || "-");
     $("#projectTaskCollaborators").html(buildCollaboratorsList(task));
+    $("#projectTaskStatusChanges").html(buildStatusChangesHTML(task.status_changes || task.status_change));
 
-    const scHTML = buildStatusChangesHTML(
-        task.status_changes || task.status_change
-    );
-    $("#taskStatusChanges").html(scHTML);
-
-    // Ensure the modal shows and tooltips are initialised
     initProjectTaskDetailModal();
 
-    // Store current task id on the projectTaskDetailModal element so child modals can read it
-    try {
-        const detailEl = document.getElementById('projectTaskDetailModal');
-        if (detailEl) {
-            detailEl.dataset.taskId = String(task.id || '');
-        }
-    } catch (_) {}
+    const checkBtn = document.querySelector('#projectTaskDetailModal .playlist-add-check');
+    if (checkBtn) checkBtn._task = task;
 
-    // Wire the file-copy button inside the Project Task Detail modal to open Reference Files modal
-    try {
-        const detailEl = document.getElementById('projectTaskDetailModal');
-        if (detailEl) {
-            // find the button that opens the reference modal (matching data-bs-target)
-            const refBtn = detailEl.querySelector('button[data-bs-target="#referenceFilesModal"]');
-            if (refBtn) {
-                // remove previous listener if present (idempotent)
-                try { refBtn.removeEventListener('click', refBtn._refClickHandler || function(){}); } catch(_) {}
-                refBtn._refClickHandler = function (e) {
-                    try {
-                        e && e.preventDefault && e.preventDefault();
-                        e && e.stopPropagation && e.stopPropagation();
-                    } catch(_) {}
-                    // Use helper to fetch and show reference files for this task
-                    showReferenceFilesForTask(task.id);
-                };
-                refBtn.addEventListener('click', refBtn._refClickHandler);
+    const detailEl = document.getElementById('projectTaskDetailModal');
+    if (detailEl) detailEl.dataset.taskId = String(task.id || '');
+
+    const refBtn = detailEl?.querySelector('button[data-bs-target="#referenceFilesModal"]');
+    if (refBtn) {
+        try { refBtn.removeEventListener('click', refBtn._refClickHandler || function(){}); } catch(_) {}
+        refBtn._refClickHandler = function(e) {
+            e?.preventDefault?.();
+            showReferenceFilesForTask(task.id);
+        };
+        refBtn.addEventListener('click', refBtn._refClickHandler);
+    }
+
+    const avatarContainer = document.getElementById('projectTaskProjectAvatar');
+    const img = avatarContainer?.querySelector('img');
+    if (img) {
+        img.style.cursor = 'pointer';
+        try { img.removeEventListener('click', img._previewHandler || function(){}); } catch(_) {}
+        img._previewHandler = function(e) {
+            e?.preventDefault?.();
+            const src = img.getAttribute('src') || img.src;
+            if (!src) return;
+            if (typeof showImageInModal === 'function') {
+                const parent = document.getElementById('projectTaskDetailModal');
+                if (parent?.classList.contains('show')) bootstrap.Modal.getInstance(parent)?.hide();
+                showImageInModal(src);
+                return;
             }
-        }
-    } catch (_) {}
-
-        // Make task image clickable to open preview (reuse global showImageModal if available)
-        try {
-                const avatarContainer = document.getElementById('projectTaskProjectAvatar');
-                if (avatarContainer) {
-                        const img = avatarContainer.querySelector('img');
-                        if (img) {
-                                img.style.cursor = 'pointer';
-                                try { img.removeEventListener('click', img._previewHandler || function(){}); } catch(_) {}
-                img._previewHandler = function (e) {
-                    try { e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); } catch(_) {}
-                    const src = img.getAttribute('src') || img.src;
-                    if (!src) return;
-                    try {
-                        // Prefer the task.js helper if present
-                        if (typeof showImageInModal === 'function') {
-                            // If this modal is a parent detail, hide it first so preview appears alone.
-                            try {
-                                const parent = document.getElementById('projectTaskDetailModal') || document.getElementById('projectDetailModal') || document.getElementById('taskDetailModal');
-                                if (parent && parent.classList && parent.classList.contains('show')) {
-                                try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
-                                const pi = bootstrap.Modal.getInstance(parent) || new bootstrap.Modal(parent);
-                                try { pi.hide(); } catch(_) {}
-                                }
-                            } catch(_) {}
-                            showImageInModal(src);
-                            return;
-                        }
-                    } catch (_) {}
-
-                    // Fallback: create or reuse taskImagePreviewModal markup (same as task.js uses)
-                                        try {
-                                                let modalEl = document.getElementById('taskImagePreviewModal');
-                                                if (!modalEl) {
-                                                        const tpl = document.createElement('div');
-                                                        tpl.innerHTML = `
-                                                            <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
-                                                                <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
-                                                                    <div class="modal-content modal-content-custom bg-light border-0">
-                                                                        <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
-                                                                            <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
-                                                                        </div>
-                                                                        <div class="modal-footer modal-footer-custom border-0 justify-content-center">
-                                                                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>`;
-
-
-                                                    try { document.body.insertAdjacentHTML('beforeend', tpl.innerHTML); } catch (_) { document.body.appendChild(tpl.firstElementChild); }
-                                                        modalEl = document.getElementById('taskImagePreviewModal');
-                                                    }
-
-                                                const imgEl = document.getElementById('taskImagePreviewModalImg');
-                                                const dialogEl = document.getElementById('taskImageDialog');
-                                                if (imgEl) {
-                                                    // remove any previous onload handlers
-                                                    try { imgEl.onload = null; } catch(_) {}
-                                                    imgEl.setAttribute('src', src);
-                                                    imgEl.addEventListener('load', function onLoad() {
-                                                        try {
-                                                            const naturalW = this.naturalWidth || 0;
-                                                            const naturalH = this.naturalHeight || 0;
-                                                            const viewportW = window.innerWidth * 0.9;
-                                                            const viewportH = window.innerHeight * 0.8;
-                                                            const ratio = Math.min(viewportW / Math.max(naturalW,1), viewportH / Math.max(naturalH,1), 1);
-                                                            const modalWidth = Math.round(naturalW * ratio);
-                                                            if (dialogEl && dialogEl.style) dialogEl.style.maxWidth = modalWidth + 'px';
-                                                        } catch(_) {}
-                                                    });
-                                                }
-
-                                                // If project detail modal is open, hide it and remember to restore
-                                                const parentModalEl = document.getElementById('projectTaskDetailModal');
-                                                let parentWasOpen = false;
-                                                try {
-                                                    if (parentModalEl && parentModalEl.classList.contains('show')) {
-                                                        parentWasOpen = true;
-                                                        try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
-                                                        const pmInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
-                                                        try { pmInst.hide(); } catch(_) {}
-                                                    }
-                                                } catch(_) {}
-
-                                                const inst = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(modalEl) : (bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl));
-
-                                                const onPreviewHidden = function() {
-                                                    try { inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
-                                                    try {
-                                                        if (parentWasOpen) {
-                                                            try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
-                                                            const pmInst2 = bootstrap.Modal.getOrCreateInstance ? bootstrap.Modal.getOrCreateInstance(parentModalEl) : (bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl));
-                                                            try { pmInst2.show(); } catch(_) {}
-                                                        }
-                                                    } catch(_) {}
-                                                };
-                                                try { inst._element.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
-                                                try { inst.show(); } catch(e) { try { inst.show(); } catch(_) {} }
-                                        } catch (e) {
-                                                // Last resort: open image in new tab
-                                                try { window.open(src, '_blank'); } catch (_) {}
-                                        }
-                                };
-                                img.addEventListener('click', img._previewHandler);
-                        }
-                }
-        } catch (_) {}
-
-    // Wire attach_file button to open Reference URLs modal and populate with task's reference URLs
-    try {
-        const detailEl2 = document.getElementById('projectTaskDetailModal');
-        if (detailEl2) {
-            const attachBtn = detailEl2.querySelector('button:not([data-bs-target]) .material-symbols-outlined');
-            // safer selector: find the second button with attach_file icon
-            const buttons = detailEl2.querySelectorAll('button.border-0');
-            let found = null;
-            if (buttons && buttons.length) {
-                buttons.forEach(function(b){
-                    try {
-                        const icon = b.querySelector('.material-symbols-outlined');
-                        if (icon && icon.textContent && icon.textContent.trim() === 'attach_file') {
-                            found = b;
-                        }
-                    } catch(_){}
-                });
+            let modalEl = document.getElementById('taskImagePreviewModal');
+            if (!modalEl) {
+                const tpl = document.createElement('div');
+                tpl.innerHTML = `
+                    <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
+                            <div class="modal-content modal-content-custom bg-light border-0">
+                                <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                                    <img id="taskImagePreviewModalImg" src="" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
+                                </div>
+                                <div class="modal-footer modal-footer-custom border-0 justify-content-center">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                document.body.insertAdjacentHTML('beforeend', tpl.innerHTML);
+                modalEl = document.getElementById('taskImagePreviewModal');
             }
-            if (found) {
-                const btn = found;
-                try { btn.removeEventListener('click', btn._attachClickHandler || function(){}); } catch(_) {}
-                btn._attachClickHandler = function(e){
-                    try { e && e.preventDefault && e.preventDefault(); e && e.stopPropagation && e.stopPropagation(); } catch(_){}
-                    // read task id from the parent modal dataset
-                    try {
-                        const modalEl = document.getElementById('projectTaskDetailModal');
-                        const tid = modalEl && modalEl.dataset && modalEl.dataset.taskId ? String(modalEl.dataset.taskId) : null;
-                        if (tid) showReferenceUrlsForTask(tid);
-                        else showFloatingAlert && showFloatingAlert('Task ID not found', 'warning');
-                    } catch(e){}
-                };
-                btn.addEventListener('click', btn._attachClickHandler);
-            }
-        }
-    } catch(_){}
+            const imgEl = document.getElementById('taskImagePreviewModalImg');
+            if (imgEl) imgEl.setAttribute('src', src);
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        };
+        img.addEventListener('click', img._previewHandler);
+    }
+
+    const $checkBtn = $("#projectTaskDetailModal .playlist-add-check").closest("button");
+    if (task.status?.toLowerCase() === "completed") $checkBtn.show();
+    else $checkBtn.hide();
+
+    const buttons = detailEl?.querySelectorAll('button.border-0');
+    let attachBtn = null;
+    buttons?.forEach(b => {
+        if (b.querySelector('.material-symbols-outlined')?.textContent.trim() === 'attach_file') attachBtn = b;
+    });
+    if (attachBtn) {
+        try { attachBtn.removeEventListener('click', attachBtn._attachClickHandler || function(){}); } catch(_) {}
+        attachBtn._attachClickHandler = function(e) {
+            e?.preventDefault?.();
+            showReferenceUrlsForTask(task.id);
+        };
+        attachBtn.addEventListener('click', attachBtn._attachClickHandler);
+    }
 }
 
 // Helper: fetch reference files for a given task id, populate #referenceFilesList and show the modal
