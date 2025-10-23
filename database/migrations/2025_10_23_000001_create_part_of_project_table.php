@@ -13,12 +13,14 @@ return new class extends Migration
             Schema::create('part_of_project', function (Blueprint $table) {
                 $table->id();
                 $table->unsignedBigInteger('project_id');
-                $table->unsignedBigInteger('parent_project_id');
+                // parent_project_id is nullable so we can represent "cleared" parents without deleting rows
+                $table->unsignedBigInteger('parent_project_id')->nullable();
                 $table->boolean('is_primary')->default(false);
                 $table->timestamps();
 
                 $table->foreign('project_id')->references('id')->on('projects')->onDelete('cascade');
-                $table->foreign('parent_project_id')->references('id')->on('projects')->onDelete('cascade');
+                // When a parent project is deleted, prefer to set parent_project_id=NULL instead of cascading delete
+                $table->foreign('parent_project_id')->references('id')->on('projects')->onDelete('set null');
                 $table->unique(['project_id', 'parent_project_id'], 'part_of_project_unique');
             });
         }
@@ -80,18 +82,9 @@ return new class extends Migration
             }
         } catch (\Throwable $_) {}
 
-        // Optionally drop legacy column to prevent future writes. This is best-effort and will
-        // not block migration if DB does not allow dropping or column absent.
-        try {
-            if (Schema::hasColumn('projects', 'part_of_project')) {
-                Schema::table('projects', function (Blueprint $table) {
-                    $table->dropForeign(['part_of_project']);
-                    $table->dropColumn('part_of_project');
-                });
-            }
-        } catch (\Throwable $_) {
-            // ignore failures
-        }
+        // NOTE: intentionally NOT dropping legacy column `projects.part_of_project` here.
+        // Dropping legacy schema should be a separate, explicit migration after
+        // application code and data-migration have been verified in production.
     }
 
     public function down(): void

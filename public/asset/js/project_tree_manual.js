@@ -30,6 +30,9 @@ window.drawManualProjectConnectors = function(projects) {
     projects.forEach(function(p) {
         if (!p || p.id == null) return;
         var parents = Array.isArray(p.parent_ids) ? p.parent_ids.slice() : [];
+        if ((!parents || parents.length === 0) && p.legacy_parent_id) {
+            parents = [p.legacy_parent_id];
+        }
         parents.forEach(function(pid) {
             if (pid == null || String(pid) === String(p.id)) return;
             edges.push({
