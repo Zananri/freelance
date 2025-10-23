@@ -1023,7 +1023,7 @@ class ProjectController extends Controller
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
             }
 
-            $project->part_of_project = '';
+            $project->part_of_project = null;
             $project->save();
 
             DB::table('project_parents')
@@ -2253,7 +2253,7 @@ class ProjectController extends Controller
          
             try {
                 if (empty($request->part_of_project)) {
-                    $project->clearParents();
+                    
                 }
             } catch (\Throwable $_) {
                 // Dont let parent sync failures block the update flow; log if needed

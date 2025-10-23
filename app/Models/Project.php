@@ -183,29 +183,5 @@ class Project extends Model
         return $this;
     }
 
-    /**
-     * Remove a parent from this project
-     */
-    public function removeParent($parentId)
-    {
-        $parentId = (int)$parentId;
-        
-        \DB::table('project_parents')
-            ->where('project_id', $this->id)
-            ->delete();
-        
-        return $this;
-    }
 
-    /**
-     * Remove all parents from this project
-     */
-    public function clearParents()
-    {
-        \DB::table('project_parents')
-            ->where('project_id', $this->id)
-            ->delete();
-        
-        return $this;
-    }
 }
