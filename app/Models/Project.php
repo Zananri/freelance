@@ -73,7 +73,9 @@ class Project extends Model
         try {
             $parentIds = \DB::table('part_of_project')
                 ->where('project_id', $this->id)
+                ->whereNotNull('parent_project_id')
                 ->pluck('parent_project_id')
+                ->filter(fn($v) => !is_null($v))
                 ->toArray();
             if (empty($parentIds)) return collect();
             return Project::whereIn('id', $parentIds)->get();
@@ -165,13 +167,14 @@ class Project extends Model
     public function clearParents()
     {
         try {
+           
             \DB::table('part_of_project')
                 ->where('project_id', $this->id)
-                ->delete();
-        } catch (\Throwable $_) {}
-        
-        // No legacy column handling: parent relations are persisted in part_of_project pivot table only.
-            
+                ->update(['parent_project_id' => null]);
+        } catch (\Throwable $_) {
+            // ignore
+        }
+
         return $this;
     }
 }
