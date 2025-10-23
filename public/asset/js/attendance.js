@@ -239,7 +239,11 @@ async function renderCalendar(year, month) {
         const today = new Date();
         const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
 
-        row.append(`<td class="calendar-day  ${isToday ? 'today' : ''}" data-calendar-date="${year}-${month+1}-${day}"><div class="bg-day"><div class="day">${day}</div></div></td>`);
+        row.append(`<td class="calendar-day  ${isToday ? 'today' : ''}" data-calendar-date="${year}-${month+1}-${day}"><div class="bg-day"><div class="day">${day}</div>
+            <div class="note" data-bs-toggle="tooltip" data-bs-placement="top"
+                data-bs-title="This top tooltip is themed via CSS variables.">
+                Note : Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+            </div></td>`);
 
         day++;
     }
@@ -258,6 +262,10 @@ async function renderAttendance(year, month){
 
         if(calendaerResponse == 'done-rendering'){
             const attendanceReposnse = await getAttendanceEmployeeByMonth(month+1,year);
+
+
+            const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
         }
         
         //console.log(data);
@@ -307,7 +315,7 @@ function appendEventCalendar(dateCalendar,text,type){
 async function getAttendanceEmployeeByMonth(month,year)
 {
 
-    $.ajax({
+    return getData = await $.ajax({
         url: appUrl + "/attendance/get-attendance-employee-by-month",
         type: "GET",
         data:{
@@ -333,6 +341,7 @@ async function getAttendanceEmployeeByMonth(month,year)
                 const attendanceDateObject = new Date(attendance.date_attendance);
                 const attendanceDateEN = attendanceDateObject.toISOString().slice(0, 10);
                 
+                const note = attendance.note;
                 const timeIn = formatTimeDisplay(attendance.time_in);
                 const timeOut = formatTimeDisplay(attendance.time_out);
 
@@ -342,6 +351,13 @@ async function getAttendanceEmployeeByMonth(month,year)
                 $(`[data-calendar-date="${dateAttendance}"]`).attr('attendance',attendance.id);
                 $(`[data-calendar-date="${dateAttendance}"]`).attr('check-in',timeIn);
                 $(`[data-calendar-date="${dateAttendance}"]`).attr('check-out',timeOut);
+                $(`[data-calendar-date="${dateAttendance}"]`).attr('note',note);
+
+                if(note != '' && note != null && note != undefined && note != 'null' && note != 'undefined'){
+                    $(document).find(`[data-calendar-date="${dateAttendance}"]`).addClass('has-note');
+                    
+                    $(document).find(`[data-calendar-date="${dateAttendance}"] .note`).text(`note : ${note}`).attr('data-bs-title',`note : ${note}`);
+                }
 
                 if(timeIn != '--:--'){
                     $(document).find(`[data-calendar-date="${dateAttendance}"]`).addClass('check-in');

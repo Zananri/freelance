@@ -102,9 +102,6 @@ class AttendanceTrackingController extends Controller
                 ->where('date_attendance', $dateAttendance)
             ->first();
  
-            // if(!$attendance){
-            //     throw new \Exception('Attendance not found');
-            // }
 
             $employee = Employee::with('department','division','job','grade','shift')
                 ->where('id', $employeeId)->first();
@@ -405,6 +402,7 @@ class AttendanceTrackingController extends Controller
                 'employee_id' => 'required|integer',
                 'attendance_date' => 'required',
                 'attendance_id' => 'required',
+                'attendance_date' => 'required|date'
             ]);
 
             $userId = auth()->user()->id;
@@ -415,7 +413,7 @@ class AttendanceTrackingController extends Controller
 
             $note = $request->attendance_note;
 
-            $dateAttendance = Carbon::parse($request->attendance_date)->toDateString();
+            $dateAttendance = $request->attendance_date;
             
 
             $attendance = Attendance::where('employee_id', $employeeId)
@@ -426,7 +424,6 @@ class AttendanceTrackingController extends Controller
 
             $employee = Employee::with('shift')->where('id', $employeeId)->first();
 
-            $stadeProccess = 'EDIT';
 
             if($attendance){
 
@@ -440,11 +437,9 @@ class AttendanceTrackingController extends Controller
                         'updated_by' => $userId
                 ]);
 
-                
-                $stadeProccess = 'Edit';
 
             }else{
-                $stadeProccess = 'new';
+                
 
                 $attendanceNew = Attendance::create([
                     'employee_id' => $employeeId,
@@ -468,14 +463,6 @@ class AttendanceTrackingController extends Controller
                 ->where('date_attendance', $dateAttendance)
             ->first();
             
-            ActivityHelper::record([
-                'employee_id' => $employeeId,
-                'menu' => 'ATTENDANCE_TRACKING',
-                'activity' => 'EDIT_ATTENDANCE',
-                'description' => 'Edit attendance',
-                'date_time_activity' => Carbon::now(),
-            ]);
-            
 
             DB::commit();
 
@@ -485,7 +472,7 @@ class AttendanceTrackingController extends Controller
                 'data' => [
                     'attendance' => $attendanceData
                 ],
-                'message' => $stadeProccess.' attendance successfully'
+                'message' => 'Edit attendance successfully'
             ]);
 
         }catch (\Exception $e) {

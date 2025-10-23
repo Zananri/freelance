@@ -427,7 +427,7 @@ function submitEditAttendance(){
         },
         success: function(res) {
             
-            CURRENT_ATTENDANCE = res.attendance;
+            CURRENT_ATTENDANCE = res.data.attendance;
 
             setAttendanceDetail();
             
@@ -437,7 +437,10 @@ function submitEditAttendance(){
             $('#modalAttendanceEdit .box-loader').fadeOut();
             $('#form-edit-attendance')[0].reset();
             showAlertMsg(res.message,'success',3000);
-            
+            renderCalendar(CURRENT_DATE.getFullYear(), CURRENT_DATE.getMonth());
+        },
+        complete:function(res){
+            $('#modalAttendanceEdit .box-loader').fadeOut();
         }
     });
 }
