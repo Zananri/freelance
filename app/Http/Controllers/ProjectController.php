@@ -862,17 +862,36 @@ class ProjectController extends Controller
                 }
             } catch (\Throwable $_) { $canSeeAll = false; }
 
-            $isAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
-                ->where('employee_id', $employeeId)
-                ->where('role', 'author')->exists();
+            // Normalize role checks: some DBs or imports may have different casing/whitespace
+            $isAuthor = false; $isCoAuthor = false; $isContributor = false;
+            try {
+                if ($employeeId) {
+                    $roles = ProjectAssignment::where('project_id', $project->id)
+                        ->where('employee_id', $employeeId)
+                        ->pluck('role')
+                        ->map(function ($r) { return strtoupper(trim((string)$r)); })
+                        ->toArray();
 
-            $isCoAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
-                ->where('employee_id', $employeeId)
-                ->where('role', 'co_author')->exists();
-
-            $isContributor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
-                ->where('employee_id', $employeeId)
-                ->where('role', 'contributor')->exists();
+                    $isAuthor = in_array('AUTHOR', $roles, true);
+                    $isCoAuthor = in_array('CO_AUTHOR', $roles, true) || in_array('CO-AUTHOR', $roles, true) || in_array('COAUTHOR', $roles, true);
+                    $isContributor = in_array('CONTRIBUTOR', $roles, true);
+                }
+            } catch (\Throwable $_) {
+                // fallback to original exists checks if anything goes wrong
+                try {
+                    $isAuthor = $employeeId && ProjectAssignment::where('project_id', $project->id)
+                        ->where('employee_id', $employeeId)
+                        ->where('role', 'author')->exists();
+                    $isCoAuthor = $employeeId && ProjectAssignment::where('project_id', $project->id)
+                        ->where('employee_id', $employeeId)
+                        ->where('role', 'co_author')->exists();
+                    $isContributor = $employeeId && ProjectAssignment::where('project_id', $project->id)
+                        ->where('employee_id', $employeeId)
+                        ->where('role', 'contributor')->exists();
+                } catch (\Throwable $__) {
+                    $isAuthor = $isCoAuthor = $isContributor = false;
+                }
+            }
 
             // Also allow the original creator (created_by) to manage the hierarchy as a safe fallback
             $isCreator = $user && isset($project->created_by) && $project->created_by == $user->id;
@@ -883,7 +902,7 @@ class ProjectController extends Controller
                     // collect any project assignment roles for this employee (if present)
                     $roles = [];
                     if ($employeeId) {
-                        $roles = \App\Models\ProjectAssignment::where('project_id', $project->id)
+                        $roles = ProjectAssignment::where('project_id', $project->id)
                             ->where('employee_id', $employeeId)
                             ->pluck('role')
                             ->toArray();
@@ -951,31 +970,40 @@ class ProjectController extends Controller
                 }
             } catch (\Throwable $_) { $canSeeAll = false; }
 
-            $isAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+            $isAuthor = $employeeId && ProjectAssignment::where('project_id', $project->id)
                 ->where('employee_id', $employeeId)
                 ->where('role', 'author')->exists();
 
-            $isCoAuthor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+            $isCoAuthor = $employeeId && ProjectAssignment::where('project_id', $project->id)
                 ->where('employee_id', $employeeId)
                 ->where('role', 'co_author')->exists();
 
-            $isContributor = $employeeId && \App\Models\ProjectAssignment::where('project_id', $project->id)
+            $isContributor = $employeeId && ProjectAssignment::where('project_id', $project->id)
                 ->where('employee_id', $employeeId)
                 ->where('role', 'contributor')->exists();
 
-            // Allow creator as well
-            $isCreator = $user && isset($project->created_by) && $project->created_by == $user->id;
+            // Allow creator as well. Some installs store created_by as user id; also allow created_by_employee if present
+            $isCreator = false;
+            try {
+                if ($user && isset($project->created_by) && $project->created_by == $user->id) {
+                    $isCreator = true;
+                }
+                // fallback: if created_by_employee exists on projects as employee id
+                if (!$isCreator && isset($project->created_by_employee) && $employeeId && $project->created_by_employee == $employeeId) {
+                    $isCreator = true;
+                }
+            } catch (\Throwable $_) { $isCreator = false; }
 
             if (!($isAuthor || $isCoAuthor || $isContributor || $isCreator || $canSeeAll)) {
                 try {
                     $roles = [];
                     if ($employeeId) {
-                        $roles = \App\Models\ProjectAssignment::where('project_id', $project->id)
+                        $roles = ProjectAssignment::where('project_id', $project->id)
                             ->where('employee_id', $employeeId)
                             ->pluck('role')
-                            ->toArray();
+                            ->map(function ($r) { return trim((string)$r); })->toArray();
                     }
-                    \Log::info('removeParent authorization failed', [
+                    \Log::warning('removeParent authorization failed', [
                         'user_id' => $user?->id ?? null,
                         'employee_id' => $employeeId,
                         'project_id' => $project->id,
@@ -988,6 +1016,7 @@ class ProjectController extends Controller
                         'user_type' => $user?->user_type ?? null,
                         'user_role' => $user?->user_role ?? null,
                         'assignment_roles' => $roles,
+                        'note' => 'Authorization mismatch when attempting to remove or clear parents'
                     ]);
                 } catch (\Throwable $_) {}
 
