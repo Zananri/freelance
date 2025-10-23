@@ -32,13 +32,16 @@ return new class extends Migration
             try {
                 $driver = DB::getDriverName();
                 if ($driver === 'mysql') {
-                    DB::table('part_of_project')->whereNull('parent_project_id')->update(['parent_project_id' => 0]);
+                    // Remove rows where parent_project_id is NULL to avoid FK/constraint issues, then make column NOT NULL
+                    DB::table('part_of_project')->whereNull('parent_project_id')->delete();
                     DB::statement('ALTER TABLE `part_of_project` MODIFY `parent_project_id` BIGINT UNSIGNED NOT NULL');
                 } elseif ($driver === 'pgsql') {
-                    DB::table('part_of_project')->whereNull('parent_project_id')->update(['parent_project_id' => 0]);
+                    DB::table('part_of_project')->whereNull('parent_project_id')->delete();
                     DB::statement('ALTER TABLE part_of_project ALTER COLUMN parent_project_id SET NOT NULL');
                 } else {
                     Schema::table('part_of_project', function (Blueprint $table) {
+                        // Remove rows with NULL parent_project_id first
+                        DB::table('part_of_project')->whereNull('parent_project_id')->delete();
                         $table->unsignedBigInteger('parent_project_id')->nullable(false)->change();
                     });
                 }

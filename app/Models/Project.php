@@ -23,6 +23,7 @@ class Project extends Model
         'read_markers',
         'start_date',
         'due_date',
+        'part_of_project',
         'complete_date',
         'created_by',
         'updated_by',
@@ -69,19 +70,20 @@ class Project extends Model
      */
     public function parents()
     {
-        // New approach: use part_of_project pivot table where each parent is a row
-        try {
-            $parentIds = \DB::table('part_of_project')
-                ->where('project_id', $this->id)
-                ->whereNotNull('parent_project_id')
-                ->pluck('parent_project_id')
-                ->filter(fn($v) => !is_null($v))
-                ->toArray();
-            if (empty($parentIds)) return collect();
-            return Project::whereIn('id', $parentIds)->get();
-        } catch (\Throwable $_) {
+        $parentRecord = \DB::table('project_parents')
+            ->where('project_id', $this->id)
+            ->first();
+            
+        if (!$parentRecord || !$parentRecord->project_parent_ids) {
             return collect();
         }
+        
+        $parentIds = json_decode($parentRecord->project_parent_ids, true);
+        if (empty($parentIds)) {
+            return collect();
+        }
+        
+        return Project::whereIn('id', $parentIds)->get();
     }
 
     /**
@@ -90,12 +92,36 @@ class Project extends Model
     public function children()
     {
         try {
-            $childrenIds = \DB::table('part_of_project')
-                ->where('parent_project_id', (int)$this->id)
+            $childrenIds = \DB::table('project_parents')
+                ->whereRaw('JSON_CONTAINS(project_parent_ids, ?)', [json_encode((int)$this->id)])
                 ->pluck('project_id');
             return Project::whereIn('id', $childrenIds)->get();
-        } catch (\Throwable $_) {
-            return collect();
+        } catch (\Throwable $e) {
+            try {
+                $rows = \DB::table('project_parents')->get(['project_id', 'project_parent_ids']);
+                $ids = collect($rows)->filter(function ($row) {
+                    if (!isset($row->project_parent_ids) || $row->project_parent_ids === null) return false;
+                    $raw = $row->project_parent_ids;
+                    if (is_string($raw)) {
+                        $decoded = json_decode($raw, true);
+                        if (is_array($decoded)) {
+                            return in_array((int)$this->id, array_map('intval', $decoded));
+                        }
+                        if (strpos($raw, ',') !== false) {
+                            $parts = array_map('trim', explode(',', $raw));
+                            return in_array((string)$this->id, $parts) || in_array((int)$this->id, array_map('intval', $parts));
+                        }
+                    }
+                    if (is_array($raw)) {
+                        return in_array((int)$this->id, array_map('intval', $raw));
+                    }
+                    return false;
+                })->pluck('project_id')->toArray();
+
+                return Project::whereIn('id', $ids)->get();
+            } catch (\Throwable $_) {
+                return collect();
+            }
         }
     }
 
@@ -104,14 +130,16 @@ class Project extends Model
      */
     public function hasParent($parentId)
     {
-        try {
-            return \DB::table('part_of_project')
-                ->where('project_id', $this->id)
-                ->where('parent_project_id', (int)$parentId)
-                ->exists();
-        } catch (\Throwable $_) {
+        $parentRecord = \DB::table('project_parents')
+            ->where('project_id', $this->id)
+            ->first();
+            
+        if (!$parentRecord || !$parentRecord->project_parent_ids) {
             return false;
         }
+        
+        $parentIds = json_decode($parentRecord->project_parent_ids, true);
+        return in_array((int)$parentId, array_map('intval', $parentIds ?: []));
     }
 
     /**
@@ -120,25 +148,37 @@ class Project extends Model
     public function addParent($parentId)
     {
         $parentId = (int)$parentId;
-        try {
-            $exists = \DB::table('part_of_project')
-                ->where('project_id', $this->id)
-                ->where('parent_project_id', $parentId)
-                ->exists();
-            if (!$exists) {
-                \DB::table('part_of_project')->insert([
-                    'project_id' => $this->id,
-                    'parent_project_id' => $parentId,
-                    'is_primary' => false,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+        
+        // Get existing record or prepare new data
+        $existing = \DB::table('project_parents')
+            ->where('project_id', $this->id)
+            ->first();
+            
+        if ($existing) {
+            $parentIds = json_decode($existing->project_parent_ids, true) ?: [];
+            if (!in_array($parentId, array_map('intval', $parentIds))) {
+                $parentIds[] = $parentId;
+                \DB::table('project_parents')
+                    ->where('project_id', $this->id)
+                    ->update([
+                        'project_parent_ids' => json_encode($parentIds),
+                        'updated_at' => now()
+                    ]);
             }
-        } catch (\Throwable $_) {
-            // ignore
+        } else {
+            \DB::table('project_parents')->insert([
+                'project_id' => $this->id,
+                'project_parent_ids' => json_encode([$parentId]),
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
         }
         
-        // No legacy column writes: parent relations are persisted in part_of_project pivot table only.
+        // Update legacy_parent_id field if exists (for tree structure positioning)
+        if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
+            $this->legacy_parent_id = $parentId;
+            $this->save();
+        }
         
         return $this;
     }
@@ -149,13 +189,29 @@ class Project extends Model
     public function removeParent($parentId)
     {
         $parentId = (int)$parentId;
-        try {
-            \DB::table('part_of_project')
-                ->where('project_id', $this->id)
-                ->where('parent_project_id', $parentId)
-                ->delete();
-        } catch (\Throwable $_) {
-            // ignore
+        
+        $existing = \DB::table('project_parents')
+            ->where('project_id', $this->id)
+            ->first();
+            
+        if ($existing && $existing->project_parent_ids) {
+            $parentIds = json_decode($existing->project_parent_ids, true) ?: [];
+            $parentIds = array_values(array_filter(array_map('intval', $parentIds), function($id) use ($parentId) {
+                return $id !== $parentId;
+            }));
+            
+            if (empty($parentIds)) {
+                \DB::table('project_parents')
+                    ->where('project_id', $this->id)
+                    ->delete();
+            } else {
+                \DB::table('project_parents')
+                    ->where('project_id', $this->id)
+                    ->update([
+                        'project_parent_ids' => json_encode($parentIds),
+                        'updated_at' => now()
+                    ]);
+            }
         }
         
         return $this;
@@ -166,15 +222,16 @@ class Project extends Model
      */
     public function clearParents()
     {
-        try {
-           
-            \DB::table('part_of_project')
-                ->where('project_id', $this->id)
-                ->update(['parent_project_id' => null]);
-        } catch (\Throwable $_) {
-            // ignore
+        \DB::table('project_parents')
+            ->where('project_id', $this->id)
+            ->delete();
+        
+        // Clear legacy_parent_id field if exists
+        if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
+            $this->legacy_parent_id = null;
+            $this->save();
         }
-
+            
         return $this;
     }
 }
