@@ -617,8 +617,15 @@
 							}
 						} catch(_){}
 
-						try { $('#edit_start_date').val(data.start_date || ''); } catch(_){}
-						try { $('#edit_due_date').val(data.due_date || ''); } catch(_){}
+						try {
+							if (typeof toInputDatetimeLocal === 'function') {
+								try { $('#edit_start_date').val(toInputDatetimeLocal(data.start_date || '')); } catch(_){}
+								try { $('#edit_due_date').val(toInputDatetimeLocal(data.due_date || '')); } catch(_){}
+							} else {
+								try { $('#edit_start_date').val(data.start_date || ''); } catch(_){}
+								try { $('#edit_due_date').val(data.due_date || ''); } catch(_){}
+							}
+						} catch(_){}
 
 						// Part of project select population helper (defined in project.js)
 						try {

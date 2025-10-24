@@ -8428,6 +8428,18 @@ function filterTaskTableRows(queryRaw) {
                     }
                 }
 
+                let refUrlsHtml = '';
+                const referenceUrls = task.reference_urls || (task.reference_url ? [task.reference_url] : []);
+                if (Array.isArray(referenceUrls) && referenceUrls.length) {
+                    refUrlsHtml = '<div class="mb-2">';
+                    referenceUrls.forEach((u, idx) => {
+                        refUrlsHtml += `<div class="d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
+                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1" style="color: #444;">REF_URL_TASK_${idx+1}</a>
+                                        </div>`;
+                    });
+                    refUrlsHtml += '</div>';
+                }
+
                 const showDelete = (function(){
                     try {
                         const empId = (document.getElementById('taskFeedbackModal')?.dataset?.employeeId) || null;
@@ -8480,6 +8492,7 @@ function filterTaskTableRows(queryRaw) {
                         <span class="text-muted">Division:</span>
                         <span>${task.project?.division || "-"}</span>
                     </div>
+                    ${refUrlsHtml}
                     <div class="d-flex justify-content-between align-items-start mt-2 gap-3">
                         <div class="flex-grow-1">${buildTaskCollaboratorsList(task)}
                             ${(function(){

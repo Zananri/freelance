@@ -1452,7 +1452,8 @@ class ProjectController extends Controller
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url',
                 'start_date' => 'required|date',
-                'due_date' => 'required|date|after_or_equal:start_date',
+                // Allow due_date to be nullable so "Forever" projects (no due date) can be created.
+                'due_date' => 'nullable|date|after_or_equal:start_date',
                 'parent_project_ids' => 'nullable|array',
                 'parent_project_ids.*' => 'nullable|exists:projects,id',
                 'co_author' => 'nullable|array',
@@ -2151,7 +2152,8 @@ class ProjectController extends Controller
                 'reference_urls' => 'nullable|array',
                 'reference_urls.*' => 'nullable|url',
                 'start_date' => 'required|date',
-                'due_date' => 'required|date|after_or_equal:start_date',
+                // Allow due_date to be nullable on update as well (edit can mark as Forever)
+                'due_date' => 'nullable|date|after_or_equal:start_date',
                 'parent_project_ids' => 'nullable|array',
                 'parent_project_ids.*' => 'nullable|exists:projects,id',
                 'complete_date' => 'nullable|date',

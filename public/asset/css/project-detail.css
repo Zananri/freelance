@@ -403,23 +403,13 @@
     display: block;
 }
 
-#ref-files-container {
-    overflow-y: auto;
-    max-height: 50px;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-#ref-files-container::-webkit-scrollbar {
-    display: none;
-}
-
 .reference-files-list,
 .reference-files-list a,
 .reference-files-list .material-symbols-outlined,
 .reference-files-list .btn-link,
 .reference-files-list .rounded-circle {
     color: #444444 !important;
+    max-width: 100%;
 }
 
 .feedback-reference-container {

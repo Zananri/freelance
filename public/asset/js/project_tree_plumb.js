@@ -148,6 +148,8 @@
         return edges;
     }
 
+    var parentColors = {};
+
     function getRandomColor() {
         var hue = Math.floor(Math.random() * 360);
         var saturation = 70 + Math.random() * 20;
@@ -155,17 +157,15 @@
         return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
-    var childColors = {};
-
     function connectEdge(pId, cId) {
         var inst = ensureInstance();
         if (!inst) return;
 
-        if (!childColors[cId]) {
-            childColors[cId] = getRandomColor();
+        if (!parentColors[pId]) {
+            parentColors[pId] = getRandomColor();
         }
 
-        var color = childColors[cId];
+        var color = parentColors[pId];
         var sourceId = getElId(pId),
             targetId = getElId(cId);
 
@@ -183,6 +183,7 @@
             });
         } catch (_) {}
     }
+
 
     function clearAll() {
         var inst = ensureInstance();

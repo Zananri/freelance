@@ -2224,12 +2224,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     /* noop */
                                                 }
                                             })();
-                                            $("#edit_start_date").val(
-                                                data.start_date
-                                            );
-                                            $("#edit_due_date").val(
-                                                data.due_date
-                                            );
+                                            try {
+                                                // Ensure values match datetime-local format (YYYY-MM-DDTHH:MM)
+                                                if (typeof toInputDatetimeLocal === 'function') {
+                                                    $("#edit_start_date").val(toInputDatetimeLocal(data.start_date));
+                                                    $("#edit_due_date").val(toInputDatetimeLocal(data.due_date));
+                                                } else {
+                                                    $("#edit_start_date").val(data.start_date);
+                                                    $("#edit_due_date").val(data.due_date);
+                                                }
+                                            } catch(_) {
+                                                try { $("#edit_start_date").val(data.start_date); } catch(_){}
+                                                try { $("#edit_due_date").val(data.due_date); } catch(_){}
+                                            }
                                             // Populate part_of_project selects and ensure the current project appears
                                             try {
                                                 const currentProjectId =
@@ -11137,6 +11144,17 @@ document.addEventListener("DOMContentLoaded", function () {
                     }</option>`;
                 });
                 targetSelect.innerHTML = options;
+                // If the select element carries a data-current-division attribute (set from Blade for Add modal),
+                // attempt to auto-select that division after options are populated.
+                try {
+                    var currentDiv = targetSelect.getAttribute('data-current-division') || targetSelect.dataset.currentDivision || '';
+                    if (currentDiv) {
+                        // Only set if the option exists; setting value to a non-existing option will have no effect.
+                        targetSelect.value = String(currentDiv);
+                    }
+                } catch (e) {
+                    // ignore selection failures
+                }
                 targetSelect.disabled = false;
                 targetSelect.style.display = "block";
                 if (typeof callback === "function") callback();

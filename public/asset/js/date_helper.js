@@ -346,3 +346,40 @@ function formatTimeDisplayHm(timeString) {
         if (m) return `${parseInt(m[1])}h ${parseInt(m[2])}m`;
     }
 }
+
+/**
+ * Convert a server-side datetime string into a value suitable for <input type="datetime-local">.
+ * Accepts ISO strings, "YYYY-MM-DD HH:MM:SS", or date-only strings. Returns "YYYY-MM-DDTHH:MM" or
+ * an empty string when input is empty or cannot be parsed.
+ */
+function toInputDatetimeLocal(value) {
+  if (!value && value !== 0) return '';
+  try {
+    // If already seems like datetime-local (contains 'T' and no timezone), try to normalize
+    var s = String(value).trim();
+    if (!s) return '';
+
+    // Replace space between date and time with 'T' if present (common MySQL format)
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(:\d{2})?$/.test(s)) {
+      s = s.replace(/\s+/, 'T');
+    }
+
+    // Try Date parse; if invalid and contains no time, append T00:00:00
+    var d = new Date(s);
+    if (isNaN(d.getTime())) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+        d = new Date(s + 'T00:00:00');
+      } else if (s.indexOf('T') === -1 && s.indexOf(' ') !== -1) {
+        d = new Date(s.replace(/\s+/, 'T'));
+      }
+    }
+    if (isNaN(d.getTime())) return '';
+
+    // Convert to local datetime-local string (trim seconds)
+    var off = d.getTimezoneOffset();
+    var local = new Date(d.getTime() - off * 60000);
+    return local.toISOString().slice(0, 16);
+  } catch (e) {
+    return '';
+  }
+}

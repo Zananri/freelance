@@ -38,6 +38,9 @@ class Project extends Model
         'reference_files' => 'array',
         'read_markers' => 'array',
         'project_type' => 'string',
+        // Cast start_date and due_date to DateTime instances for consistent handling
+        'start_date' => 'datetime',
+        'due_date' => 'datetime',
     ];
 
     public function department()
