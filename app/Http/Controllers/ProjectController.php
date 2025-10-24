@@ -2105,8 +2105,22 @@ class ProjectController extends Controller
         $response['co_authors'] = $coAuthors;
         $response['contributors'] = $contributors;
 
+        // Include parent project ids (multi-parent) for frontend edit prefill
+        try {
+            $parentRecord = DB::table('project_parents')->where('project_id', $project->id)->first();
+            $parentIds = [];
+            if ($parentRecord && $parentRecord->project_parent_ids) {
+                $parentIds = json_decode($parentRecord->project_parent_ids, true) ?: [];
+            }
+        } catch (\Throwable $_) {
+            $parentIds = [];
+        }
 
-    return response()->json($response);
+        $response['parent_project_ids'] = $parentIds;
+        // keep legacy single-parent field for backward compatibility
+        $response['part_of_project'] = $project->part_of_project ?? null;
+
+        return response()->json($response);
     }
 
     public function update(Request $request, string $id)

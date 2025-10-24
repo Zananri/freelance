@@ -2237,11 +2237,13 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     $("#edit_project_id").val();
                                                 const currentProjectTitle =
                                                     data.title || "";
+                                                // prefer new parent_project_ids (array) but fall back to legacy part_of_project
+                                                var parentIds = (data.parent_project_ids !== undefined) ? data.parent_project_ids : data.part_of_project;
                                                 populatePartOfProjectSelects(
                                                     "edit",
                                                     currentProjectId,
                                                     currentProjectTitle,
-                                                    data.part_of_project
+                                                    parentIds
                                                 );
                                             } catch (_) {
                                                 try {

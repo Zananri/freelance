@@ -6399,7 +6399,7 @@
                 populatePartOfProjectSelects(
                     data.id,
                     data.title || "",
-                    data.part_of_project || ""
+                    (typeof data.parent_project_ids !== 'undefined') ? data.parent_project_ids : (data.part_of_project || "")
                 );
             });
         });
@@ -7748,7 +7748,7 @@
                             populatePartOfProjectSelects(
                                 data.id,
                                 data.title || "",
-                                data.part_of_project || ""
+                                (typeof data.parent_project_ids !== 'undefined') ? data.parent_project_ids : (data.part_of_project || "")
                             );
 
                             try {

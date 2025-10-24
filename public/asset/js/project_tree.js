@@ -447,6 +447,16 @@
 					} else {
 						fetchTree();
 					}
+					// If edit modal is open for this project, refresh its content so parent list reflects changes
+					try {
+						var editModalEl = document.getElementById('editProjectModal');
+						if (editModalEl && editModalEl.classList.contains('show')) {
+							var curEditedId = document.getElementById('edit_project_id') ? document.getElementById('edit_project_id').value : null;
+							if (curEditedId && String(curEditedId) === String(projectId)) {
+								if (typeof window.editProject === 'function') window.editProject(projectId);
+							}
+						}
+					} catch(_){ }
 					if (typeof window.showFloatingAlert === 'function') {
 						window.showFloatingAlert('Semua parent dibersihkan', 'success', 1400);
 					}
@@ -614,19 +624,27 @@
 						try {
 							var curId = data.id || $('#edit_project_id').val();
 							var curTitle = data.title || '';
-							populatePartOfProjectSelects('edit', curId, curTitle, data.part_of_project);
+							// prefer new parent_project_ids (array) but fall back to legacy part_of_project if present
+							var parentIds = (data.parent_project_ids !== undefined) ? data.parent_project_ids : data.part_of_project;
+							populatePartOfProjectSelects('edit', curId, curTitle, parentIds);
 						} catch(_){
 							try {
 								const container = document.getElementById('edit_parent_inputs');
 								const selContainer = document.getElementById('edit_selected_project');
 								if (container) {
 									container.innerHTML = '';
-									if (data.part_of_project) {
-										const inp = document.createElement('input'); inp.type='hidden'; inp.name='parent_project_ids[]'; inp.value = String(data.part_of_project); container.appendChild(inp);
-									}
+									// support array of parent ids or legacy single id
+									var ids = [];
+									if (Array.isArray(data.parent_project_ids)) ids = data.parent_project_ids.slice();
+									else if (data.part_of_project) ids = [data.part_of_project];
+									ids.forEach(function(id){ const inp = document.createElement('input'); inp.type='hidden'; inp.name='parent_project_ids[]'; inp.value = String(id); container.appendChild(inp); });
 								}
-								if (selContainer && data.part_of_project) {
-									selContainer.innerHTML = `<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project"><div class="rounded-circle" style="width:28px;height:28px;background:#6A5AE0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;">#</div><span class="flex-grow-1">${escapeHtml(data.part_of_project_title || data.part_of_project)}</span></div>`;
+								if (selContainer) {
+									selContainer.innerHTML = '';
+									var titles = [];
+									if (data.parent_project_titles && Array.isArray(data.parent_project_titles)) titles = data.parent_project_titles;
+									else if (data.part_of_project_title) titles = [data.part_of_project_title];
+									titles.forEach(function(t){ selContainer.insertAdjacentHTML('beforeend', `<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project"><div class="rounded-circle" style="width:28px;height:28px;background:#6A5AE0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;">#</div><span class="flex-grow-1">${escapeHtml(t)}</span></div>`); });
 								}
 							} catch (_) {}
 						}
@@ -875,6 +893,16 @@
 						} else {
 							fetchTree();
 						}
+						// If edit modal is open and it is the dragged project, refresh it so parent list updates
+						try {
+							var editModalEl = document.getElementById('editProjectModal');
+							if (editModalEl && editModalEl.classList.contains('show')) {
+								var curEditedId = document.getElementById('edit_project_id') ? document.getElementById('edit_project_id').value : null;
+								if (curEditedId && String(curEditedId) === String(draggedId)) {
+									if (typeof window.editProject === 'function') window.editProject(draggedId);
+								}
+							}
+						} catch(_){ }
 						if (typeof showFloatingAlert==='function') showFloatingAlert('Project dikeluarkan dari parent','success',2000);
 					} catch(_){ }
 				})
@@ -907,6 +935,16 @@
 						} else {
 							fetchTree();
 						}
+						// If edit modal is open and it is the dragged project, refresh it so new parent appears
+						try {
+							var editModalEl = document.getElementById('editProjectModal');
+							if (editModalEl && editModalEl.classList.contains('show')) {
+								var curEditedId = document.getElementById('edit_project_id') ? document.getElementById('edit_project_id').value : null;
+								if (curEditedId && String(curEditedId) === String(draggedId)) {
+									if (typeof window.editProject === 'function') window.editProject(draggedId);
+								}
+							}
+						} catch(_){ }
 						if (typeof showFloatingAlert === 'function') showFloatingAlert('Project berhasil menjadi sub dari parent', 'success', 2000);
 					} catch(_){ }
 				})
