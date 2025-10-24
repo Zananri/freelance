@@ -320,7 +320,8 @@
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="division" class="form-label label-custom">Division</label>
-                            <select class="form-select input-select" id="division" name="division" required>
+                            {{-- Mark current employee division so JS can auto-select after divisions are loaded --}}
+                            <select class="form-select input-select" id="division" name="division" required data-current-division="{{ $__emp->division_id ?? '' }}">
                                 <option value="">Select Division</option>
                                 <!-- Options to be populated dynamically -->
                             </select>

@@ -11144,6 +11144,17 @@ document.addEventListener("DOMContentLoaded", function () {
                     }</option>`;
                 });
                 targetSelect.innerHTML = options;
+                // If the select element carries a data-current-division attribute (set from Blade for Add modal),
+                // attempt to auto-select that division after options are populated.
+                try {
+                    var currentDiv = targetSelect.getAttribute('data-current-division') || targetSelect.dataset.currentDivision || '';
+                    if (currentDiv) {
+                        // Only set if the option exists; setting value to a non-existing option will have no effect.
+                        targetSelect.value = String(currentDiv);
+                    }
+                } catch (e) {
+                    // ignore selection failures
+                }
                 targetSelect.disabled = false;
                 targetSelect.style.display = "block";
                 if (typeof callback === "function") callback();
