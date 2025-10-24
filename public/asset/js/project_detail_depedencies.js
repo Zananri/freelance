@@ -303,6 +303,16 @@ function renderTaskNode(task, $template) {
             showMenu = true;
         }
 
+        try {
+            if (visual === "complete") {
+                // avoid duplicate
+                if ($card.find('.playlist_add_check').length === 0) {
+                    const $icon = $(`<span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" role="button" tabindex="0" aria-label="Lihat task selesai" style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:pointer; z-index:2000;">playlist_add_check</span>`);
+                    $card.append($icon);
+                }
+            }
+        } catch (_) {}
+
         if (showMenu) {
             const taskId = task?.id ? String(task.id) : null;
             const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
@@ -492,6 +502,61 @@ $(window).on("resize", function () {
     if (!window.USE_PLUMB_ONLY) setTimeout(adjustConnectors, 60);
 });
 
+$(document).on('click', '.playlist_add_check', function () {
+    const taskId = $(this).data('task-id');
+
+    $.ajax({
+        url: appUrl + "/task/" + taskId,
+        type: "GET",
+        dataType: "json",
+        success: function(res) {
+            const task = res && (res.data || res);
+            if (!task) return;
+
+            $('#completed_task_image').attr('src', task.image || task.project_image || '/img/default.png');
+            $('#completed_task_title').text(task.title || '-');
+            $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
+            $('#completed_task_note').html(task.complete_note || '<em>No note</em>');
+            $('#completed_priority').text(task.priority || '-');
+            $('#completed_date').text(task.complete_date || '-');
+
+            const $urls = $('#completed_task_urls').empty();
+            if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
+                task.complete_urls.forEach((u, idx) => {
+                    const href = u.startsWith('http') ? u : '/' + String(u).replace(/^\/+/, '');
+                    const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
+                    const $link = $('<a>', { href, target: '_blank', class: 'flex-grow-1 text-truncate text-decoration-none', text: `COMPLETED_LINK_${idx+1}` }).css({ fontSize:'10px', color:'#444' });
+                    $item.append($link);
+                    $urls.append($item);
+                });
+            } else $urls.html('<em>-</em>');
+
+            const $files = $('#completed_task_files').empty();
+            if (Array.isArray(task.complete_files) && task.complete_files.length) {
+                task.complete_files.forEach((f, idx) => {
+                    const raw = f && (f.url || f) || '';
+                    const url = raw.startsWith('http') ? raw : '/' + String(raw).replace(/^\/+/, '');
+                    const ext = (raw.split('.').pop() || '').toLowerCase();
+                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(ext);
+
+                    const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
+                    if (isImage) {
+                        const $img = $('<img>', { src: url, width: 28, height: 28, alt: raw });
+                        $img.css({ objectFit: 'cover', borderRadius: '50%' });
+                        $item.append($img);
+                    }
+                    const $name = $('<span>').text(`COMPLETED_FILES_${idx+1}`).css({ fontSize: '10px' });
+                    $item.append($name);
+                    $files.append($item);
+                });
+            } else $files.html('<em>-</em>');
+
+            const modal = new bootstrap.Modal(document.getElementById('completedModal'));
+            modal.show();
+        }
+    });
+});
+
 $(document).on("click", "#projectTaskDetailModal .playlist-add-check", function () {
     const task = this._task;
     if (!task) return console.warn("Task not found");
@@ -512,37 +577,61 @@ $(document).on("click", "#projectTaskDetailModal .playlist-add-check", function 
             }
         }
     } catch(_) {}
-
-    console.log(task);
     
-
-    // Teks dasar
     $('#completed_task_title').text(task.title || '-');
     $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
     $('#completed_task_note').html(task.complete_note || '<em>No note</em>');
     $('#completed_priority').text(task.priority || '-');
     $('#completed_date').text(task.complete_date || '-');
 
-    // Links
+    // Completed URLs
     const $urls = $('#completed_task_urls').empty();
     if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
         task.complete_urls.forEach((u, idx) => {
             const href = u.startsWith('http') ? u : '/' + String(u).replace(/^\/+/, '');
-            const $a = $('<a>', { href, target: '_blank', text: 'completed_link_' + (idx + 1) });
-            $urls.append($a).append('<br>');
+            
+            const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
+
+            // link
+            const $link = $('<a>', {
+                href,
+                target: '_blank',
+                class: 'flex-grow-1 text-decoration-none text-truncate',
+                text: 'COMPLETED_LINK_' + (idx + 1)
+            }).css({ fontSize: '10px', color: '#444444' });
+            $item.append($link);
+
+            $urls.append($item);
         });
     } else $urls.html('<em>-</em>');
 
-    // Files
+
+    // Completed Files
     const $files = $('#completed_task_files').empty();
     if (Array.isArray(task.complete_files) && task.complete_files.length) {
         task.complete_files.forEach((f, idx) => {
             const raw = f && (f.url || f) || '';
             const url = raw.startsWith('http') ? raw : '/' + String(raw).replace(/^\/+/, '');
-            const $link = $('<a>', { href: url, target: '_blank', text: 'completed_file_' + (idx + 1) });
-            $files.append($link).append('<br>');
+
+            const ext = (raw.split('.').pop() || '').toLowerCase();
+            const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(ext);
+
+            const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
+
+            if (isImage) {
+                const $img = $('<img>', { src: url, width: 28, height: 28, alt: raw });
+                $img.css({ objectFit: 'cover', borderRadius: '50%' });
+                $item.append($img);
+            }
+
+            const $name = $('<span>').text(`COMPLETED_FILES_${idx + 1}`).css({ fontSize: '10px' });
+            $item.append($name);
+
+            $files.append($item);
         });
-    } else $files.html('<em>-</em>');
+    } else {
+        $files.html('<em>-</em>');
+    }
 
 });
 
