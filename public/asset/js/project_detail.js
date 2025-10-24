@@ -5951,43 +5951,20 @@
             setupImageInput(editImageEl, editImageLabel, editImageClearBtn);
         } catch (e) {}
 
-        // button references: open Reference Files modal (mirror project.js behavior)
-        $("#btn-references").on("click", function (e) {
-            e.preventDefault();
-            var pid = getMeta("project-id");
-            if (pid && window.showProjectFiles) {
-                window.showProjectFiles(pid);
-                return;
-            }
-            // fallback: try to open modal directly if element exists
-            try {
-                var modalEl = document.getElementById("projectFilesModal");
-                if (modalEl) {
-                    var m = new bootstrap.Modal(modalEl);
-                    m.show();
-                } else {
-                    // fallback to hash navigation
-                    window.location.hash = "#references";
-                }
-            } catch (err) {
-                window.location.hash = "#references";
-            }
-        });
-        // Expose showProjectFiles for detail page (same behavior as project.js)
-        window.showProjectFiles = function (projectId) {
-            const modalEl = document.getElementById("projectFilesModal");
-            const listEl = document.getElementById("projectReferenceFilesList");
-            if (!modalEl || !listEl) return;
+        $(document).ready(function () {
+            const pid = getMeta("project-id");
+            if (!pid) return;
 
-            listEl.innerHTML =
-                '<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            const container = document.getElementById("ref-files-container");
+            if (!container) return;
 
-            const appBase = getMeta("app-url")
-                ? getMeta("app-url").replace(/\/$/, "")
-                : "";
+            container.innerHTML =
+                '<div class="text-center py-3 w-100"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            const appBase = getMeta("app-url") ? getMeta("app-url").replace(/\/$/, "") : "";
 
             $.ajax({
-                url: appBase + "/project/" + projectId,
+                url: appBase + "/project/" + pid,
                 method: "GET",
                 dataType: "json",
                 success: function (resp) {
@@ -6000,204 +5977,100 @@
                         ? [data.reference_file]
                         : [];
 
-                    listEl.innerHTML = "";
+                    container.innerHTML = "";
 
-                    if (files && files.length > 0) {
-                        // helper to format user-visible reference file name
-                        function formatRefDisplayName(origName, idx) {
-                            try {
-                                var ext = (String(origName || "").split('.').pop() || '').toLowerCase();
-                                if (!ext || ext === origName) ext = '';
-                                var num = Number(idx) + 1; // make it 1-based
-                                if (ext) return 'PROJECT_REF_FILE_' + num + '.' + ext;
-                                return 'PROJECT_REF_FILE_' + num;
-                            } catch (e) {
-                                return String(origName || '');
-                            }
-                        }
-
-                        files.forEach((fileName, fidx) => {
-                            if (!fileName) return;
-
-                            let fileUrl = String(fileName || "");
-                            const isAbs =
-                                fileUrl.startsWith("http://") ||
-                                fileUrl.startsWith("https://");
-                            const isRefPath =
-                                fileUrl.startsWith("/file/project/") ||
-                                fileUrl.startsWith("file/project/") ||
-                                fileUrl.startsWith("/file/") ||
-                                fileUrl.startsWith("file/");
-                            if (!isAbs && !isRefPath) {
-                                fileUrl = appBase + "/file/project/" + fileUrl;
-                            } else if (!isAbs && fileUrl.startsWith("/")) {
-                                fileUrl = appBase + fileUrl;
-                            }
-
-                            const item = document.createElement("div");
-                            item.className =
-                                "reference-files-list d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
-
-                            const lower = String(fileName || "").toLowerCase();
-                            const isImage =
-                                /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                                    lower
-                                ) ||
-                                fileUrl.match(
-                                    /\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i
-                                );
-
-                            if (isImage) {
-                                const img = document.createElement("img");
-                                img.src = fileUrl;
-                                img.width = 28;
-                                img.height = 28;
-                                img.style.objectFit = "cover";
-                                img.style.borderRadius = "50%";
-                                img.alt = fileName;
-                                item.appendChild(img);
-                            }
-
-                            const title = document.createElement("a");
-                            title.className =
-                                "reference-files-list flex-grow-1 text-decoration-none text-truncate";
-                            title.href = fileUrl;
-                            title.target = "_blank";
-                            // display a clean sequential name while keeping the real filename for download
-                            title.textContent = formatRefDisplayName(fileName, fidx);
-                            item.appendChild(title);
-
-                            // Download button
-                            const dlBtn = document.createElement("button");
-                            dlBtn.type = "button";
-                            dlBtn.className = "btn btn-sm btn-link p-0 ms-2";
-                            dlBtn.title = "Download";
-                            dlBtn.innerHTML =
-                                '<span class="material-symbols-outlined">download</span>';
-                            dlBtn.addEventListener("click", function (ev) {
-                                try {
-                                    ev.preventDefault();
-                                    ev.stopPropagation();
-                                    const a = document.createElement("a");
-                                    a.style.display = "none";
-                                    a.href = fileUrl;
-                                    try {
-                                        a.download = String(fileName || "")
-                                            .split("/")
-                                            .pop();
-                                    } catch (_) {}
-                                    a.target = "_blank";
-                                    document.body.appendChild(a);
-                                    a.click();
-                                    setTimeout(() => {
-                                        try {
-                                            document.body.removeChild(a);
-                                        } catch (_) {}
-                                    }, 100);
-                                } catch (e) {
-                                    window.open(fileUrl, "_blank");
-                                }
-                            });
-                            item.appendChild(dlBtn);
-
-                            // Delete button
-                            const delBtn = document.createElement("button");
-                            delBtn.type = "button";
-                            delBtn.className =
-                                "btn btn-sm btn-link p-0 ms-1 text-danger";
-                            delBtn.title = "Delete";
-                            delBtn.innerHTML =
-                                '<span class="material-symbols-outlined">delete</span>';
-
-                            delBtn.addEventListener("click", function (ev) {
-                                ev.preventDefault();
-                                ev.stopPropagation();
-
-                                const deleteModalEl =
-                                    document.getElementById("deleteFileModal");
-                                const deleteFileNameEl =
-                                    document.getElementById("deleteFileName");
-                                const confirmDeleteBtn =
-                                    document.getElementById("confirmDeleteBtn");
-
-                                if (
-                                    !deleteModalEl ||
-                                    !deleteFileNameEl ||
-                                    !confirmDeleteBtn
-                                )
-                                    return;
-
-                                // Simpan instance modal reference files
-                                const refModalInstance =
-                                    bootstrap.Modal.getInstance(
-                                        document.getElementById(
-                                            "projectFilesModal"
-                                        )
-                                    );
-                                if (refModalInstance) refModalInstance.hide(); // tutup modal utama
-
-                                // Show user-friendly name in delete confirmation too
-                                deleteFileNameEl.textContent = formatRefDisplayName(fileName, 0);
-
-                                const deleteModalInstance = new bootstrap.Modal(
-                                    deleteModalEl
-                                );
-                                deleteModalInstance.show();
-
-                                // Hapus event listener lama supaya ga numpuk
-                                confirmDeleteBtn.onclick = function () {
-                                    $.ajax({
-                                        url:
-                                            appBase +
-                                            "/project/" +
-                                            projectId +
-                                            "/reference-file",
-                                        method: "DELETE",
-                                        // backend expects key 'filename' (lowercase)
-                                        data: { filename: fileName },
-                                        success: function () {
-                                            item.remove();
-                                            deleteModalInstance.hide();
-                                        },
-                                        error: function () {
-                                            alert("Failed to delete file.");
-                                            deleteModalInstance.hide();
-                                        },
-                                    });
-                                };
-
-                                // Kalau modal delete ditutup tanpa delete (cancel)
-                                deleteModalEl.addEventListener(
-                                    "hidden.bs.modal",
-                                    function () {
-                                        if (refModalInstance)
-                                            refModalInstance.show(); // buka kembali modal reference files
-                                    },
-                                    { once: true }
-                                );
-                            });
-
-                            item.appendChild(delBtn);
-
-                            listEl.appendChild(item);
-                        });
-                    } else {
-                        listEl.textContent = "No reference files available.";
+                    if (!files.length) {
+                        container.innerHTML = '<div style="font-size:8px;color:#666;">No reference files available.</div>';
+                        return;
                     }
 
-                    try {
-                        new bootstrap.Modal(modalEl).show();
-                    } catch (_) {}
+                    files.forEach((fileName, fidx) => {
+                        if (!fileName) return;
+
+                        let fileUrl = String(fileName || "");
+                        const isAbs = fileUrl.startsWith("http://") || fileUrl.startsWith("https://");
+                        const isRefPath =
+                            fileUrl.startsWith("/file/project/") ||
+                            fileUrl.startsWith("file/project/") ||
+                            fileUrl.startsWith("/file/") ||
+                            fileUrl.startsWith("file/");
+                        if (!isAbs && !isRefPath) {
+                            fileUrl = appBase + "/file/project/" + fileUrl;
+                        } else if (!isAbs && fileUrl.startsWith("/")) {
+                            fileUrl = appBase + fileUrl;
+                        }
+
+                        const item = document.createElement("div");
+                        item.className = "reference-files-list d-flex justify-content-between align-items-center bg-light rounded p-1 mb-1";
+                        item.style.fontSize = "10px";
+
+                        const left = document.createElement("div");
+                        left.className = "d-flex justify-content-start align-items-center gap-2 me-2";
+
+                        const lower = String(fileName || "").toLowerCase();
+                        const isImage =
+                            /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) ||
+                            fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+
+                        if (isImage) {
+                            const img = document.createElement("img");
+                            img.src = fileUrl;
+                            img.width = 14;
+                            img.height = 14;
+                            img.style.objectFit = "cover";
+                            img.style.borderRadius = "50%";
+                            img.alt = "ref";
+                            left.appendChild(img);
+                        }
+
+                        const title = document.createElement("a");
+                        title.className = "text-decoration-none text-truncate fs-8";
+                        title.href = fileUrl;
+                        title.target = "_blank";
+                        title.style.color = "#444"
+                        title.textContent = "PROJECT_FILE_" + (fidx + 1);
+                        left.appendChild(title);
+
+                        const right = document.createElement("div");
+                        right.className = "d-flex justify-content-end align-items-center";
+
+                        const dlBtn = document.createElement("button");
+                        dlBtn.type = "button";
+                        dlBtn.className = "btn btn-sm btn-link p-0 text-secondary";
+                        dlBtn.title = "Download";
+                        dlBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">download</span>';
+
+                        dlBtn.addEventListener("click", function (ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            const a = document.createElement("a");
+                            a.style.display = "none";
+                            a.href = fileUrl;
+                            try {
+                                a.download = "project_file_" + (fidx + 1);
+                            } catch (_) {}
+                            a.target = "_blank";
+                            document.body.appendChild(a);
+                            a.click();
+                            setTimeout(() => {
+                                try {
+                                    document.body.removeChild(a);
+                                } catch (_) {}
+                            }, 100);
+                        });
+
+                        right.appendChild(dlBtn);
+                        item.appendChild(left);
+                        item.appendChild(right);
+                        container.appendChild(item);
+                    });
                 },
                 error: function () {
-                    listEl.innerHTML = "";
-                    listEl.textContent = "Failed to load reference files.";
-                    try {
-                        new bootstrap.Modal(modalEl).show();
-                    } catch (_) {}
+                    container.innerHTML = "";
+                    container.textContent = "Failed to load reference files.";
                 },
             });
-        };
+        });
 
         // Delegated handler: add/remove reference URL rows (match project.js behavior)
         document.addEventListener("click", function (e) {

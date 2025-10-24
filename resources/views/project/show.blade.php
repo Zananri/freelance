@@ -73,11 +73,8 @@
                         <div class="description-container mb-1">
                             <p id="project-description" class="description-detail">-</p>
                         </div>
-                        <div class="d-flex justify-content-between">
-                            <div class="d-flex">
-                                <button id="btn-references" class="detail-icon" title="References">
-                                    <span class="material-symbols-outlined me-3">attach_file</span>
-                                </button>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div id="ref-files-container">
                             </div>
                             <div class="d-flex" id="project-actions">
                                 <!-- edit / delete buttons will be injected by JS -->
@@ -587,71 +584,6 @@
                     </form>
                 </div>
                 <div class="alert-container mt-2" style="width: 100%;"></div>
-            </div>
-        </div>
-
-        {{-- Reference Files Modal --}}
-        <div class="modal fade modal-custom" id="projectFilesModal" tabindex="-1"
-            aria-labelledby="projectFilesModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom d-flex justify-content-between">
-                        <div>
-                            <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="projectFilesModalLabel">
-                                Reference Files
-                            </h5>
-                        </div>
-                        <div>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="modal-body modal-body-custom">
-                        <div id="projectReferenceFilesList" class="d-flex flex-column gap-2">
-                        </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" data-bs-toggle="modal" data-bs-target="#addProjectReferenceFilesModal"
-                            class="btn btn-submit-black">Add
-                            Files</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Add Project Reference Files Modal -->
-        <div class="modal fade" id="addProjectReferenceFilesModal" tabindex="-1"
-            aria-labelledby="addProjectReferenceFilesModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom">
-                        <h5 class="modal-title modal-title-custom fs-5 fw-normal"
-                            id="addProjectReferenceFilesModalLabel">Add Files</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body modal-body-custom">
-                        <form id="addProjectReferenceFilesForm" enctype="multipart/form-data">
-                            <input type="hidden" name="project_id" id="addRefProjectId" value="">
-                            <div class="mb-3">
-                                <label for="add_project_reference_files" class="form-label label-custom">Select
-                                    files</label>
-                                <input type="file" class="form-control input-text"
-                                    id="add_project_reference_files" name="reference_files[]"
-                                    accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-                                    multiple>
-                            </div>
-
-                            <div id="add_project_reference_files_preview" class="mt-2"></div>
-                        </form>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
-                        <button type="button" id="submitAddProjectReferenceFiles"
-                            class="btn btn-submit-black">Upload</button>
-                    </div>
-                </div>
             </div>
         </div>
 
