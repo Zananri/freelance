@@ -5789,9 +5789,19 @@
                 }
             }
 
-            // Set dates
-            $("#edit_start_date").val(data.start_date || "");
-            $("#edit_due_date").val(data.due_date || "");
+            // Set dates (format to datetime-local if helper available)
+            try {
+                if (typeof toInputDatetimeLocal === 'function') {
+                    $("#edit_start_date").val(toInputDatetimeLocal(data.start_date || ""));
+                    $("#edit_due_date").val(toInputDatetimeLocal(data.due_date || ""));
+                } else {
+                    $("#edit_start_date").val(data.start_date || "");
+                    $("#edit_due_date").val(data.due_date || "");
+                }
+            } catch (e) {
+                try { $("#edit_start_date").val(data.start_date || ""); } catch(_){}
+                try { $("#edit_due_date").val(data.due_date || ""); } catch(_){}
+            }
 
             // Set reference URLs
             var urlsContainer = $("#edit_project_reference_urls_container");
