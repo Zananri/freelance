@@ -238,8 +238,8 @@
 
                     <li>
                         <a href="{{ route('bi_dashboard') }}" class="{{ $menu_active == 'bi_dashboard' ? 'active' : '' }}">
-                            <span class="material-symbols-outlined">chart_data</span>
-                            <span class="text-menu">Bi Dashoboard</span>
+                            <span class="material-symbols-outlined">area_chart</span>
+                            <span class="text-menu">BI Dashboard</span>
                         </a>
                     </li>
 
