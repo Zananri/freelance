@@ -5969,6 +5969,15 @@
                 dataType: "json",
                 success: function (resp) {
                     const data = resp && resp.data ? resp.data : resp || {};
+
+                    const urls = Array.isArray(data.reference_urls)
+                        ? data.reference_urls
+                        : Array.isArray(data.reference_url)
+                        ? data.reference_url
+                        : data.reference_url
+                        ? [data.reference_url]
+                        : [];
+
                     const files = Array.isArray(data.reference_files)
                         ? data.reference_files
                         : Array.isArray(data.reference_file)
@@ -5979,14 +5988,87 @@
 
                     container.innerHTML = "";
 
-                    if (!files.length) {
-                        container.innerHTML = '<div style="font-size:8px;color:#666;">No reference files available.</div>';
+                    if (!urls.length && !files.length) {
+                        container.innerHTML = '<div style="font-size:8px;color:#666;">No reference data available.</div>';
                         return;
                     }
 
+                    function createRefItem(label, url, showImage, isFile) {
+                        const item = document.createElement("div");
+                        item.className =
+                            "reference-files-list d-flex justify-content-between align-items-center bg-light rounded p-1 mb-1";
+                        item.style.fontSize = "10px";
+
+                        const left = document.createElement("div");
+                        left.className = "d-flex justify-content-start align-items-center gap-2 me-2";
+
+                        if (showImage) {
+                            const img = document.createElement("img");
+                            img.src = url;
+                            img.width = 14;
+                            img.height = 14;
+                            img.style.objectFit = "cover";
+                            img.style.borderRadius = "50%";
+                            img.alt = "ref";
+                            left.appendChild(img);
+                        }
+
+                        const title = document.createElement("a");
+                        title.className = "text-decoration-none text-truncate fs-8";
+                        title.href = url;
+                        title.target = "_blank";
+                        title.style.color = "#444";
+                        title.textContent = label;
+                        left.appendChild(title);
+
+                        const right = document.createElement("div");
+                        right.className = "d-flex justify-content-end align-items-center";
+
+                        if (isFile) {
+                            const dlBtn = document.createElement("button");
+                            dlBtn.type = "button";
+                            dlBtn.className = "btn btn-sm btn-link p-0 text-secondary";
+                            dlBtn.title = "Download";
+                            dlBtn.innerHTML =
+                                '<span class="material-symbols-outlined" style="font-size: 16px;">download</span>';
+
+                            dlBtn.addEventListener("click", function (ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const a = document.createElement("a");
+                                a.style.display = "none";
+                                a.href = url;
+                                try {
+                                    a.download = label.replace(/\s+/g, "_");
+                                } catch (_) {}
+                                a.target = "_blank";
+                                document.body.appendChild(a);
+                                a.click();
+                                setTimeout(() => {
+                                    try {
+                                        document.body.removeChild(a);
+                                    } catch (_) {}
+                                }, 100);
+                            });
+
+                            right.appendChild(dlBtn);
+                        }
+
+                        item.appendChild(left);
+                        item.appendChild(right);
+
+                        return item;
+                    }
+
+                    urls.forEach((u, idx) => {
+                        if (!u) return;
+                        const label = "REFERENCE_URL_" + (idx + 1);
+                        const item = createRefItem(label, u, false, false);
+                        container.appendChild(item);
+                    });
+
                     files.forEach((fileName, fidx) => {
                         if (!fileName) return;
-
                         let fileUrl = String(fileName || "");
                         const isAbs = fileUrl.startsWith("http://") || fileUrl.startsWith("https://");
                         const isRefPath =
@@ -6000,74 +6082,19 @@
                             fileUrl = appBase + fileUrl;
                         }
 
-                        const item = document.createElement("div");
-                        item.className = "reference-files-list d-flex justify-content-between align-items-center bg-light rounded p-1 mb-1";
-                        item.style.fontSize = "10px";
-
-                        const left = document.createElement("div");
-                        left.className = "d-flex justify-content-start align-items-center gap-2 me-2";
-
                         const lower = String(fileName || "").toLowerCase();
                         const isImage =
                             /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) ||
                             fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
 
-                        if (isImage) {
-                            const img = document.createElement("img");
-                            img.src = fileUrl;
-                            img.width = 14;
-                            img.height = 14;
-                            img.style.objectFit = "cover";
-                            img.style.borderRadius = "50%";
-                            img.alt = "ref";
-                            left.appendChild(img);
-                        }
-
-                        const title = document.createElement("a");
-                        title.className = "text-decoration-none text-truncate fs-8";
-                        title.href = fileUrl;
-                        title.target = "_blank";
-                        title.style.color = "#444"
-                        title.textContent = "PROJECT_FILE_" + (fidx + 1);
-                        left.appendChild(title);
-
-                        const right = document.createElement("div");
-                        right.className = "d-flex justify-content-end align-items-center";
-
-                        const dlBtn = document.createElement("button");
-                        dlBtn.type = "button";
-                        dlBtn.className = "btn btn-sm btn-link p-0 text-secondary";
-                        dlBtn.title = "Download";
-                        dlBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 16px;">download</span>';
-
-                        dlBtn.addEventListener("click", function (ev) {
-                            ev.preventDefault();
-                            ev.stopPropagation();
-                            const a = document.createElement("a");
-                            a.style.display = "none";
-                            a.href = fileUrl;
-                            try {
-                                a.download = "project_file_" + (fidx + 1);
-                            } catch (_) {}
-                            a.target = "_blank";
-                            document.body.appendChild(a);
-                            a.click();
-                            setTimeout(() => {
-                                try {
-                                    document.body.removeChild(a);
-                                } catch (_) {}
-                            }, 100);
-                        });
-
-                        right.appendChild(dlBtn);
-                        item.appendChild(left);
-                        item.appendChild(right);
+                        const label = "PROJECT_FILE_" + (fidx + 1);
+                        const item = createRefItem(label, fileUrl, isImage, true);
                         container.appendChild(item);
                     });
                 },
                 error: function () {
                     container.innerHTML = "";
-                    container.textContent = "Failed to load reference files.";
+                    container.textContent = "Failed to load reference data.";
                 },
             });
         });
