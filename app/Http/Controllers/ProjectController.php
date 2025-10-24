@@ -1453,7 +1453,8 @@ class ProjectController extends Controller
                 'reference_urls.*' => 'nullable|url',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
-                'part_of_project' => 'nullable|exists:projects,id',
+                'parent_project_ids' => 'nullable|array',
+                'parent_project_ids.*' => 'nullable|exists:projects,id',
                 'co_author' => 'nullable|array',
                 'co_author.*' => 'nullable|exists:employees,id',
                 'contributors' => 'nullable|array',
@@ -1553,7 +1554,6 @@ class ProjectController extends Controller
             $project->reference_url = count($refUrls) ? $refUrls[0] : null;
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
-            $project->part_of_project = $request->part_of_project;
             $project->complete_date = $request->complete_date;
             $project->created_by = auth()->user() ? auth()->user()->id : null;
             $project->updated_by = auth()->user() ? auth()->user()->id : null;
@@ -1677,6 +1677,26 @@ class ProjectController extends Controller
                     ]);
                 }
                 ProjectAssignment::insert($contributorAssignments);
+            }
+
+            // Sync parent_project_ids into project_parents table (multi-parent)
+            try {
+                $parentIds = $request->input('parent_project_ids', []);
+                if (is_string($parentIds)) {
+                    // sometimes submitted as JSON string
+                    $decoded = json_decode($parentIds, true);
+                    if (is_array($decoded)) $parentIds = $decoded; else $parentIds = [];
+                }
+                $parentIds = array_values(array_filter(array_unique(array_map('intval', (array)$parentIds))));
+                // remove any self-reference
+                $parentIds = array_values(array_filter($parentIds, function ($v) use ($project) { return $v && (int)$v !== (int)$project->id; }));
+                // Clear existing and add new parents
+                $project->clearParents();
+                foreach ($parentIds as $pid) {
+                    try { $project->addParent((int)$pid); } catch (\Throwable $_) {}
+                }
+            } catch (\Throwable $_) {
+                try { \Log::warning('Failed to sync project parents during store for project id ' . $project->id); } catch (\Throwable $__) {}
             }
 
             DB::commit();
@@ -1848,6 +1868,17 @@ class ProjectController extends Controller
                 $files = [];
             }
 
+            // Include parent project ids (multi-parent) for frontend edit prefill
+            try {
+                $parentRecord = DB::table('project_parents')->where('project_id', $project->id)->first();
+                $parentIds = [];
+                if ($parentRecord && $parentRecord->project_parent_ids) {
+                    $parentIds = json_decode($parentRecord->project_parent_ids, true) ?: [];
+                }
+            } catch (\Throwable $_) {
+                $parentIds = [];
+            }
+
             $response = [
                 'id' => $project->id,
                 'title' => $project->title,
@@ -1867,6 +1898,10 @@ class ProjectController extends Controller
                 'author' => $author,
                 'co_authors' => $coAuthors,
                 'contributors' => $contributors,
+                // expose parent ids for multi-parent editor
+                'parent_project_ids' => $parentIds,
+                // legacy single-parent for backward compatibility
+                'part_of_project' => $project->part_of_project ?? null,
             ];
 
             return response()->json([
@@ -2103,7 +2138,8 @@ class ProjectController extends Controller
                 'reference_urls.*' => 'nullable|url',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
-                'part_of_project' => 'nullable|exists:projects,id',
+                'parent_project_ids' => 'nullable|array',
+                'parent_project_ids.*' => 'nullable|exists:projects,id',
                 'complete_date' => 'nullable|date',
                 'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:10240',
                 'reference_files' => 'nullable|array',
@@ -2196,7 +2232,6 @@ class ProjectController extends Controller
 
             $project->start_date = $request->start_date;
             $project->due_date = $request->due_date;
-            $project->part_of_project = $request->part_of_project;
             $project->complete_date = $request->complete_date;
             $project->updated_by = auth()->user() ? auth()->user()->id : null;
 
@@ -2250,13 +2285,22 @@ class ProjectController extends Controller
             $project->reference_files = $finalFiles;
             $project->save();
 
-         
+            // Sync parent_project_ids into project_parents table (multi-parent)
             try {
-                if (empty($request->part_of_project)) {
-                    
+                $parentIds = $request->input('parent_project_ids', []);
+                if (is_string($parentIds)) {
+                    $decoded = json_decode($parentIds, true);
+                    if (is_array($decoded)) $parentIds = $decoded; else $parentIds = [];
+                }
+                $parentIds = array_values(array_filter(array_unique(array_map('intval', (array)$parentIds))));
+                // remove any self-reference
+                $parentIds = array_values(array_filter($parentIds, function ($v) use ($project) { return $v && (int)$v !== (int)$project->id; }));
+                // Clear existing and add new parents
+                $project->clearParents();
+                foreach ($parentIds as $pid) {
+                    try { $project->addParent((int)$pid); } catch (\Throwable $_) {}
                 }
             } catch (\Throwable $_) {
-                // Dont let parent sync failures block the update flow; log if needed
                 try { \Log::warning('Failed to sync project parents during update for project id ' . $project->id); } catch (\Throwable $__) {}
             }
 
@@ -3815,4 +3859,3 @@ class ProjectController extends Controller
 
 
 }
-

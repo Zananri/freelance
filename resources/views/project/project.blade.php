@@ -365,7 +365,8 @@
                                 autocomplete="off" placeholder="Search project...">
                             <div id="add_part_of_project_dropdown" class="dropdown-list mt-1"></div>
                             <div id="add_selected_project" class="mt-2"></div>
-                            <input type="hidden" id="add_part_of_project" name="part_of_project" value="">
+                            <!-- container for parent hidden inputs (multiple) -->
+                            <div id="add_parent_inputs"></div>
                         </div>
                         <div class="mb-3 input-custom">
                             <label for="co_author_input" class="form-label label-custom">Co-Author</label>
@@ -519,7 +520,8 @@
                                 autocomplete="off" placeholder="Search project...">
                             <div id="edit_part_of_project_dropdown" class="dropdown-list mt-1"></div>
                             <div id="edit_selected_project" class="mt-2"></div>
-                            <input type="hidden" id="edit_part_of_project" name="part_of_project" value="">
+                            <!-- container for parent hidden inputs (multiple) -->
+                            <div id="edit_parent_inputs"></div>
                         </div>
 
                         <div class="mb-3 input-custom">
@@ -823,8 +825,8 @@
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
         <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script>
-        <script src="{{ asset('asset/js/project_tree_plumb.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/project_tree.js') }}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/project_tree_plumb.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
         <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>

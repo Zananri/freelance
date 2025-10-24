@@ -477,6 +477,95 @@
 		} catch(_) {}
 	});
 
+	function populatePartOfProjectSelects(
+		prefix,
+		currentProjectId = null,
+		currentProjectTitle = "",
+		currentPartOfProjectId = null,
+		currentPartOfProjectTitle = ""
+	) {
+		const input = document.getElementById(`${prefix}_part_of_project_input`);
+		const dropdown = document.getElementById(`${prefix}_part_of_project_dropdown`);
+		const selectedContainer = document.getElementById(`${prefix}_selected_project`);
+		const parentInputsContainer = document.getElementById(`${prefix}_parent_inputs`);
+
+		let projects = [];
+		let selected = [];
+
+		function getInitialAvatar(name) {
+			const colors = ['#F44336','#E91E63','#9C27B0','#673AB7','#3F51B5','#2196F3','#03A9F4','#00BCD4','#009688','#4CAF50','#8BC34A','#FFC107','#FF9800','#FF5722','#795548'];
+			const color = colors[Math.floor(Math.random() * colors.length)];
+			const initial = (name || '?').charAt(0).toUpperCase();
+			return `<div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;">${initial}</div>`;
+		}
+
+		function renderSelected() {
+			selectedContainer.innerHTML = '';
+			if (!selected.length) return;
+			const frag = document.createDocumentFragment();
+			selected.forEach(p => {
+				const wrapper = document.createElement('div');
+				wrapper.className = 'd-inline-block me-2 mb-2';
+				wrapper.innerHTML = `
+					<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project" data-parent-id="${p.id}">
+						${p.image ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : getInitialAvatar(p.title)}
+						<span class="flex-grow-1 text-truncate" style="max-width:160px;">${p.title}</span>
+						<button type="button" class="btn btn-sm btn-remove-parent" style="line-height:1"><span class="material-symbols-outlined">close</span></button>
+					</div>
+				`;
+				wrapper.querySelector('.btn-remove-parent').addEventListener('click', () => {
+					selected = selected.filter(s => String(s.id) !== String(p.id));
+					updateHiddenInputs();
+					renderSelected();
+				});
+				frag.appendChild(wrapper);
+			});
+			selectedContainer.appendChild(frag);
+		}
+
+		function updateHiddenInputs() {
+			if (!parentInputsContainer) return;
+			parentInputsContainer.innerHTML = '';
+			selected.forEach(p => {
+				const inp = document.createElement('input'); inp.type='hidden'; inp.name='parent_project_ids[]'; inp.value = String(p.id);
+				parentInputsContainer.appendChild(inp);
+			});
+		}
+
+		function renderDropdown(filter = '') {
+			dropdown.innerHTML = '';
+			let filtered = projects.filter(p => p.title.toLowerCase().includes(filter.toLowerCase()));
+			if (prefix === 'edit' && currentProjectId) filtered = filtered.filter(p => String(p.id) !== String(currentProjectId));
+			filtered = filtered.filter(p => !selected.find(s => String(s.id) === String(p.id)));
+			filtered.forEach(p => {
+				const item = document.createElement('div'); item.className='dropdown-item d-flex align-items-center gap-2'; item.innerHTML = `${p.image ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">` : getInitialAvatar(p.title)}<span>${p.title}</span>`;
+				item.addEventListener('click', () => {
+					selected.push({id:p.id,title:p.title,image:p.image}); updateHiddenInputs(); renderSelected(); input.value=''; dropdown.style.display='none';
+				});
+				dropdown.appendChild(item);
+			});
+			dropdown.style.display = filtered.length ? 'block' : 'none';
+		}
+
+		fetch(appUrl + '/project/index?task_scope=all').then(res => res.json()).then(payload => {
+			projects = (Array.isArray(payload) ? payload : payload.data) || [];
+			projects = projects.map(p => ({ id: p.id, title: p.title || p.name || 'Project ' + p.id, image: p.image || '', project_type: p.project_type || 'public' }));
+
+			if (prefix === 'edit' && currentPartOfProjectId) {
+				let arr = [];
+				if (Array.isArray(currentPartOfProjectId)) arr = currentPartOfProjectId.slice();
+				else if (typeof currentPartOfProjectId === 'string' || typeof currentPartOfProjectId === 'number') arr = [currentPartOfProjectId];
+				arr = arr.map(a => String(a));
+				arr.forEach(idStr => { const found = projects.find(p => String(p.id) === String(idStr)); if (found) selected.push({id:found.id,title:found.title,image:found.image}); else if (currentPartOfProjectTitle) selected.push({id:idStr,title:currentPartOfProjectTitle,image:''}); });
+				updateHiddenInputs(); renderSelected();
+			}
+		});
+
+		input.addEventListener('input', () => renderDropdown(input.value));
+		input.addEventListener('focus', () => renderDropdown(input.value));
+		document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
+	}
+
 	// Provide a global editProject(projectId) so tree can reuse existing edit modal logic
 	window.editProject = function(projectId){
 		try {
@@ -525,8 +614,22 @@
 						try {
 							var curId = data.id || $('#edit_project_id').val();
 							var curTitle = data.title || '';
-							populatePartOfProjectSelects && populatePartOfProjectSelects('edit', curId, curTitle, data.part_of_project);
-						} catch(_){}
+							populatePartOfProjectSelects('edit', curId, curTitle, data.part_of_project);
+						} catch(_){
+							try {
+								const container = document.getElementById('edit_parent_inputs');
+								const selContainer = document.getElementById('edit_selected_project');
+								if (container) {
+									container.innerHTML = '';
+									if (data.part_of_project) {
+										const inp = document.createElement('input'); inp.type='hidden'; inp.name='parent_project_ids[]'; inp.value = String(data.part_of_project); container.appendChild(inp);
+									}
+								}
+								if (selContainer && data.part_of_project) {
+									selContainer.innerHTML = `<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project"><div class="rounded-circle" style="width:28px;height:28px;background:#6A5AE0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;">#</div><span class="flex-grow-1">${escapeHtml(data.part_of_project_title || data.part_of_project)}</span></div>`;
+								}
+							} catch (_) {}
+						}
 
                         try {
                             const deptEl = document.getElementById("edit_department");
@@ -832,4 +935,3 @@
 		initializeProjectTree();
 	});
 })();
-

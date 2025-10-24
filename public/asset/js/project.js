@@ -787,14 +787,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const dropdown = document.getElementById(
             `${prefix}_part_of_project_dropdown`
         );
-        const hiddenInput = document.getElementById(
-            `${prefix}_part_of_project`
-        );
         const selectedContainer = document.getElementById(
             `${prefix}_selected_project`
         );
+        const parentInputsContainer = document.getElementById(`${prefix}_parent_inputs`);
 
         let projects = [];
+        let selected = []; // array of {id,title,image}
 
         function getInitialAvatar(name) {
             const colors = [
@@ -829,31 +828,40 @@ document.addEventListener("DOMContentLoaded", function () {
             ">${initial}</div>`;
         }
 
-        function showSelectedProject(p) {
-            let avatarHtml;
-            if (p.image && p.image.trim() !== "") {
-                avatarHtml = `<img src="${appUrl}/file/project/${p.image}"
-                                width="28" height="28" style="object-fit:cover;border-radius:50%;">`;
-            } else {
-                avatarHtml = getInitialAvatar(p.title);
-            }
+        function renderSelected() {
+            selectedContainer.innerHTML = "";
+            if (!selected || selected.length === 0) return;
+            const frag = document.createDocumentFragment();
+            selected.forEach((p) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'd-inline-block me-2 mb-2';
+                wrapper.innerHTML = `
+                    <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project" data-parent-id="${p.id}">
+                        ${p.image ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : getInitialAvatar(p.title)}
+                        <span class="flex-grow-1 text-truncate" style="max-width:160px;">${p.title}</span>
+                        <button type="button" class="btn btn-sm btn-remove-parent" style="line-height:1"><span class="material-symbols-outlined">close</span></button>
+                    </div>
+                `;
+                const btn = wrapper.querySelector('.btn-remove-parent');
+                btn.addEventListener('click', function(){
+                    selected = selected.filter(s => String(s.id) !== String(p.id));
+                    updateHiddenInputs();
+                    renderSelected();
+                });
+                frag.appendChild(wrapper);
+            });
+            selectedContainer.appendChild(frag);
+        }
 
-            selectedContainer.innerHTML = `
-                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
-                    ${avatarHtml}
-                    <span class="flex-grow-1">${p.title}</span>
-                    <button type="button" class="btn btn-sm btn-remove-project remove-project" style="line-height:1">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-            `;
-
-            const removeBtn =
-                selectedContainer.querySelector(".remove-project");
-            removeBtn.addEventListener("click", () => {
-                hiddenInput.value = "";
-                input.value = "";
-                selectedContainer.innerHTML = "";
+        function updateHiddenInputs() {
+            if (!parentInputsContainer) return;
+            parentInputsContainer.innerHTML = '';
+            selected.forEach(p => {
+                const inp = document.createElement('input');
+                inp.type = 'hidden';
+                inp.name = 'parent_project_ids[]';
+                inp.value = String(p.id);
+                parentInputsContainer.appendChild(inp);
             });
         }
 
@@ -863,31 +871,34 @@ document.addEventListener("DOMContentLoaded", function () {
                 p.title.toLowerCase().includes(filter.toLowerCase())
             );
 
-            // Kalo edit → exclude current project
+            // exclude current project
             if (prefix === "edit" && currentProjectId) {
                 filtered = filtered.filter(
                     (p) => String(p.id) !== String(currentProjectId)
                 );
             }
 
+            // exclude already selected
+            filtered = filtered.filter(p => !selected.find(s => String(s.id) === String(p.id)));
+
             filtered.forEach((p) => {
                 let avatarHtml;
                 if (p.image && p.image.trim() !== "") {
-                    avatarHtml = `<img src="${appUrl}/file/project/${p.image}"
-                                    width="24" height="24" style="object-fit:cover;border-radius:50%;">`;
+                    avatarHtml = `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`;
                 } else {
                     avatarHtml = getInitialAvatar(p.title);
                 }
 
                 const item = document.createElement("div");
-                item.className =
-                    "dropdown-item d-flex align-items-center gap-2";
+                item.className = "dropdown-item d-flex align-items-center gap-2";
                 item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
                 item.addEventListener("click", () => {
-                    hiddenInput.value = p.id;
-                    input.value = p.title;
+                    // add to selected
+                    selected.push({ id: p.id, title: p.title, image: p.image });
+                    updateHiddenInputs();
+                    renderSelected();
+                    input.value = "";
                     dropdown.style.display = "none";
-                    showSelectedProject(p);
                 });
                 dropdown.appendChild(item);
             });
@@ -899,8 +910,7 @@ document.addEventListener("DOMContentLoaded", function () {
         fetch(appUrl + "/project/index?task_scope=all")
             .then((res) => res.json())
             .then((payload) => {
-                projects =
-                    (Array.isArray(payload) ? payload : payload.data) || [];
+                projects = (Array.isArray(payload) ? payload : payload.data) || [];
                 projects = (projects || []).map((p) => ({
                     id: p.id,
                     title: p.title || p.name || "Project " + p.id,
@@ -908,24 +918,25 @@ document.addEventListener("DOMContentLoaded", function () {
                     project_type: p.project_type || "public",
                 }));
 
-                // Kalau EDIT dan ada part_of_project → preselect itu
+                // PRESELECT for EDIT: accept array or single id
                 if (prefix === "edit" && currentPartOfProjectId) {
-                    const found = projects.find(
-                        (p) => String(p.id) === String(currentPartOfProjectId)
-                    );
-                    if (found) {
-                        hiddenInput.value = found.id;
-                        input.value = found.title;
-                        showSelectedProject(found);
-                    } else if (currentPartOfProjectTitle) {
-                        hiddenInput.value = currentPartOfProjectId;
-                        input.value = currentPartOfProjectTitle;
-                        showSelectedProject({
-                            id: currentPartOfProjectId,
-                            title: currentPartOfProjectTitle,
-                            image: "",
-                        });
-                    }
+                    let arr = [];
+                    if (Array.isArray(currentPartOfProjectId)) arr = currentPartOfProjectId.slice();
+                    else if (typeof currentPartOfProjectId === 'string' || typeof currentPartOfProjectId === 'number') arr = [currentPartOfProjectId];
+                    else if (currentPartOfProjectId && typeof currentPartOfProjectId === 'object') arr = currentPartOfProjectId;
+
+                    arr = arr.map(a => String(a));
+                    arr.forEach(idStr => {
+                        const found = projects.find(p => String(p.id) === String(idStr));
+                        if (found) {
+                            selected.push({ id: found.id, title: found.title, image: found.image });
+                        } else if (currentPartOfProjectTitle) {
+                            // fallback: use provided title for the single legacy case
+                            selected.push({ id: idStr, title: currentPartOfProjectTitle, image: '' });
+                        }
+                    });
+                    updateHiddenInputs();
+                    renderSelected();
                 }
             });
 
@@ -2234,9 +2245,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 );
                                             } catch (_) {
                                                 try {
-                                                    $(
-                                                        "#edit_part_of_project"
-                                                    ).val(data.part_of_project);
+                                                    // fallback: populate legacy single parent into new parent inputs container
+                                                    const container = document.getElementById('edit_parent_inputs');
+                                                    const selContainer = document.getElementById('edit_selected_project');
+                                                    if (container) {
+                                                        container.innerHTML = '';
+                                                        if (data.part_of_project) {
+                                                            const inp = document.createElement('input');
+                                                            inp.type = 'hidden';
+                                                            inp.name = 'parent_project_ids[]';
+                                                            inp.value = String(data.part_of_project);
+                                                            container.appendChild(inp);
+                                                        }
+                                                    }
+                                                    if (selContainer && data.part_of_project) {
+                                                        selContainer.innerHTML = `<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project"><div class="rounded-circle" style="width:28px;height:28px;background:#6A5AE0;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;">#</div><span class="flex-grow-1">${escapeHtml(data.part_of_project_title || data.part_of_project)}</span></div>`;
+                                                    }
                                                 } catch (_) {}
                                             }
 
@@ -8813,9 +8837,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 }
                             });
 
-                            const parentTitle = project?.part_of_project_title
-                                ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${project.part_of_project_title}</p>`
-                                : "";
+                            // Parent title not provided by API (use parent_ids + lookup if needed)
+                            const parentTitle = "";
                             const desc = project?.description
                                 ? String(project.description)
                                 : "";
