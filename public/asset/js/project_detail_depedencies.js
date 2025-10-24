@@ -274,8 +274,10 @@ function renderTaskNode(task, $template) {
     if (["new_request", "new request", "new-request"].includes(s)) visual = "not-started";
     else if (["in_progress", "in progress", "in-progress"].includes(s)) visual = "in-progress";
     else if (["complete", "completed"].includes(s)) visual = "complete";
+    else if (["rejected"].includes(s)) visual = "rejected";
     else visual = normalizedStatus || "not-started";
-    if (task.due_date && visual !== "complete") {
+
+    if (task.due_date && !["complete", "rejected"].includes(visual)) {
         const due = new Date(task.due_date), today = new Date();
         due.setHours(0, 0, 0, 0); today.setHours(0, 0, 0, 0);
         if (!isNaN(due.getTime()) && today > due) visual = "late";
@@ -324,7 +326,10 @@ function renderTaskNode(task, $template) {
         if (showMenu) {
             const taskId = task?.id ? String(task.id) : null;
             const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
+
             if (taskId) $moreBtn.attr("data-task-id", taskId);
+            if (task.status) $moreBtn.attr("data-task-status", task.status);
+
             $card.append($moreBtn);
 
             const isMobile =
@@ -345,9 +350,14 @@ function renderTaskNode(task, $template) {
     );
 
     if (visual === "complete") $card.css("background-color", "#B2EECD");
-    else if (visual === "in-progress") $card.css("background-color", "#F5EFCE");
+    else if (visual === "in-progress" || visual === "rejected") $card.css("background-color", "#F5EFCE");
     else if (visual === "late") $card.css("background-color", "#EBA5A5");
     else $card.css("background-color", "#DDE4E8");
+
+    if (visual === "rejected") {
+        const $badge = $('<div class="rejected-badge" style="position:absolute;top:-10px;left:0;background:#dc3545;color:#fff;font-size:8px;padding:2px 6px;border-radius:10px;box-shadow:0 1px 3px rgba(0,0,0,0.2);z-index:999;">REJECTED</div>');
+        $card.prepend($badge);
+    }
 
     $item.find(".task-name").text(task.title);
     const startText = task.start_date ? formatDateENMediumDayMonth(task.start_date) : "";
@@ -2098,181 +2108,223 @@ function initProjectTaskDetailModal() {
     var currentTaskId = null;
 
     function createOrGetMenu() {
-        if (!$globalMenu || !$globalMenu.parent().length) {
-            $globalMenu = $(`
-                <div id="task-global-more-menu" class="d-none"
-                    style="position:fixed;min-width:140px;background:#fff;border:1px solid #e5e7eb;
-                    box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;
-                    overflow:hidden;pointer-events:auto;">
-                    <button type="button" class="clear-parent-action"
-                    style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                    text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent
-                    </button>
-                    <button type="button" class="edit-task-action"
-                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                        text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit
-                    </button>
-                    <button type="button" class="delete-task-action"
-                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                        text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete
-                    </button>
-                </div>
-            `);
+        if (!$globalMenu || !$globalMenu.length) {
+            $globalMenu = $('<div id="task-global-more-menu" class="d-none" style="position:fixed;z-index:9999;background:#fff;border:1px solid #ddd;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.1);min-width:160px;overflow:hidden;"></div>');
             $("body").append($globalMenu);
         }
         return $globalMenu;
     }
 
+    function createMenuForStatus(status) {
+        const baseButtons = `
+            <button type="button" class="clear-parent-action"
+                style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button>
+
+            <button type="button" class="edit-task-action"
+                style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit</button>
+
+            <button type="button" class="delete-task-action"
+                style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete</button>
+        `;
+
+        let extraButtons = "";
+        switch ((status || "").trim()) {
+            case "new_request":
+                extraButtons = `
+                    <button type="button" class="status-progress-action"
+                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                        text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">Progress</button>
+                `;
+                break;
+            case "in_progress":
+                extraButtons = `
+                    <button type="button" class="status-newrequest-action"
+                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                        text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">New Request</button>
+                    <button type="button" class="status-completed-action"
+                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                        text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>
+                `;
+                break;
+            case "completed":
+                extraButtons = `
+                    <button type="button" class="status-rejected-action"
+                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                        text-align:left;font-size:13px;color:#ff6600;cursor:pointer;">Rejected</button>
+                `;
+                break;
+            case "rejected":
+                extraButtons = `
+                    <button type="button" class="status-completed-action"
+                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
+                        text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>
+                `;
+                break;
+        }
+
+        return extraButtons + baseButtons;
+    }
+
     function showMenuAt($btn, taskId) {
-        try {
-            var $menu = createOrGetMenu();
-            var rect = $btn[0].getBoundingClientRect();
-            var top = rect.bottom + 4;
-            var left = rect.left - 60;
-            if (left < 10) left = 10;
-            $menu.css({ top: top + "px", left: left + "px" });
-            $menu.removeClass("d-none");
-            currentTaskId = taskId;
-        } catch (_) {}
+        const $menu = createOrGetMenu();
+        const rect = $btn[0].getBoundingClientRect();
+        const top = rect.bottom + 4;
+        const left = Math.max(rect.left - 60, 10);
+
+        let status =
+            $btn.attr("data-task-status") ||
+            $btn.closest(".task-box").attr("data-task-status") ||
+            $btn.data("status") ||
+            "";
+
+        $menu.html(createMenuForStatus(status));
+        $menu.css({ top: top + "px", left: left + "px" });
+        $menu.removeClass("d-none");
+        currentTaskId = taskId;
     }
 
     function hideMenu() {
-        try {
-            if ($globalMenu) $globalMenu.addClass("d-none");
-            currentTaskId = null;
-        } catch (_) {}
+        if ($globalMenu) $globalMenu.addClass("d-none");
+        currentTaskId = null;
     }
 
     $(document).on("click", ".task-more-btn", function (e) {
-        try {
-            e.preventDefault();
-            e.stopPropagation();
-            var $btn = $(this);
-            var taskId =
-                $btn.attr("data-task-id") ||
-                $btn.closest(".task-box").attr("data-task-id");
-            if (!taskId) return;
-            var $menu = createOrGetMenu();
-            if (!$menu.hasClass("d-none") && currentTaskId === taskId) {
-                hideMenu();
-            } else {
-                hideMenu();
-                showMenuAt($btn, taskId);
-            }
-        } catch (_) {}
+        e.preventDefault();
+        e.stopPropagation();
+        var $btn = $(this);
+        var taskId =
+            $btn.attr("data-task-id") ||
+            $btn.closest(".task-box").attr("data-task-id");
+        if (!taskId) return;
+
+        var $menu = createOrGetMenu();
+        if (!$menu.hasClass("d-none") && currentTaskId === taskId) {
+            hideMenu();
+        } else {
+            hideMenu();
+            showMenuAt($btn, taskId);
+        }
     });
 
-    // Action Edit
-    $(document).on(
-        "click",
-        "#task-global-more-menu .edit-task-action",
-        function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var taskId = currentTaskId;
-            hideMenu();
-            if (!taskId) return;
+    $(document).on("click", "#task-global-more-menu [class^='status-']", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const $btn = $(this);
+        const taskId = currentTaskId;
+        if (!taskId) return;
+        hideMenu();
 
-            try {
-                const modal = new bootstrap.Modal("#editProjectTaskModal");
-                $("#editProjectTaskModal").attr("data-task-id", taskId);
-                modal.show();
+        let newStatus = null;
+        if ($btn.hasClass("status-progress-action")) newStatus = "in_progress";
+        if ($btn.hasClass("status-newrequest-action")) newStatus = "new_request";
+        if ($btn.hasClass("status-completed-action")) newStatus = "completed";
+        if ($btn.hasClass("status-rejected-action")) newStatus = "rejected";
+        if (!newStatus) return;
 
-                if (typeof window.handleProjectTaskEdit === "function") {
-                    window.handleProjectTaskEdit(taskId);
-                }
-            } catch (err) {}
+        if (newStatus === "completed") {
+            const $taskCard = $(`[data-task-id='${taskId}']`).closest(".task-box");
+            showConfirmationToCompleteModal(taskId, $taskCard[0]);
+            return;
         }
-    );
 
-    // Action Clear Parent
-    $(document).on(
-        "click",
-        "#task-global-more-menu .clear-parent-action",
-        function (e) {
-            try {
-                e.preventDefault();
-                e.stopPropagation();
-                var taskId = currentTaskId;
-                if (!taskId) return;
-                hideMenu();
+        $.ajax({
+            url: `${appUrl}/task/${taskId}/status`,
+            type: "PUT",
+            data: JSON.stringify({ status: newStatus }),
+            contentType: "application/json",
+            dataType: "json",
+            headers: {
+                "X-CSRF-TOKEN": window.csrfToken || $('meta[name="csrf-token"]').attr("content") || "",
+                "X-Requested-With": "XMLHttpRequest",
+                Accept: "application/json",
+            },
+        })
+            .done(function () {
+                window.showFloatingAlert?.(`Status changed to ${newStatus}`, "success", 1400);
+                if (typeof window.refreshTaskTreePartial === "function") {
+                    window.refreshTaskTreePartial();
+                } else {
+                    renderTaskList?.(allTasks);
+                }
+            })
+            .fail(function (xhr) {
+                console.error("Failed to update status", xhr?.responseText);
+                window.showFloatingAlert?.("Failed to update status", "warning", 2000);
+            });
+    });
 
-                $.ajax({
-                    url: appUrl + "/task/" + encodeURIComponent(String(taskId)),
-                    type: "PUT",
-                    data: JSON.stringify({ parent_id: null, parent_ids: [] }),
-                    contentType: "application/json",
-                    dataType: "json",
-                    headers: {
-                        "X-CSRF-TOKEN":
-                            window.csrfToken ||
-                            $('meta[name="csrf-token"]').attr("content") ||
-                            "",
-                        "X-Requested-With": "XMLHttpRequest",
-                        Accept: "application/json",
-                    },
-                })
-                    .done(function () {
-                        if (
-                            typeof window.refreshTaskTreePartial === "function"
-                        ) {
-                            window.refreshTaskTreePartial();
-                        } else {
-                            var idStr = String(taskId);
-                            (allTasks || []).forEach(function (t) {
-                                if (String(t.id) === idStr) {
-                                    t.parent_id = null;
-                                    t.parent_ids = [];
-                                }
-                            });
-                            renderTaskList(allTasks);
+    $(document).on("click", "#task-global-more-menu .edit-task-action", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var taskId = currentTaskId;
+        hideMenu();
+        if (!taskId) return;
+        const modal = new bootstrap.Modal("#editProjectTaskModal");
+        $("#editProjectTaskModal").attr("data-task-id", taskId);
+        modal.show();
+        if (typeof window.handleProjectTaskEdit === "function") {
+            window.handleProjectTaskEdit(taskId);
+        }
+    });
+
+    $(document).on("click", "#task-global-more-menu .clear-parent-action", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var taskId = currentTaskId;
+        if (!taskId) return;
+        hideMenu();
+        $.ajax({
+            url: appUrl + "/task/" + encodeURIComponent(String(taskId)),
+            type: "PUT",
+            data: JSON.stringify({ parent_id: null, parent_ids: [] }),
+            contentType: "application/json",
+            dataType: "json",
+            headers: {
+                "X-CSRF-TOKEN": window.csrfToken || $('meta[name="csrf-token"]').attr("content") || "",
+                "X-Requested-With": "XMLHttpRequest",
+                Accept: "application/json",
+            },
+        })
+            .done(function () {
+                if (typeof window.refreshTaskTreePartial === "function") {
+                    window.refreshTaskTreePartial();
+                } else {
+                    var idStr = String(taskId);
+                    (allTasks || []).forEach(function (t) {
+                        if (String(t.id) === idStr) {
+                            t.parent_id = null;
+                            t.parent_ids = [];
                         }
-                        window.showFloatingAlert?.(
-                            "Parent clear succesfully",
-                            "success",
-                            1400
-                        );
-                    })
-                    .fail(function (xhr) {
-                        console.error("Gagal clear parent", xhr?.responseText);
-                        window.showFloatingAlert?.(
-                            "Failed to delete parent",
-                            "warning",
-                            2400
-                        );
                     });
-            } catch (_) {}
-        }
-    );
-
-    // Action Delete
-    $(document).on(
-        "click",
-        "#task-global-more-menu .delete-task-action",
-        function (e) {
-            e.preventDefault();
-            e.stopPropagation();
-            var taskId = currentTaskId;
-            hideMenu();
-            if (!taskId) return;
-
-            try {
-                const modal = new bootstrap.Modal("#deleteProjectTaskModal");
-                $("#deleteProjectTaskModal").attr("data-task-id", taskId);
-                modal.show();
-
-                if (typeof window.handleProjectTaskDelete === "function") {
-                    window.handleProjectTaskDelete(taskId);
+                    renderTaskList(allTasks);
                 }
-            } catch (err) {}
+                window.showFloatingAlert?.("Parent clear succesfully", "success", 1400);
+            })
+            .fail(function (xhr) {
+                console.error("Gagal clear parent", xhr?.responseText);
+                window.showFloatingAlert?.("Failed to delete parent", "warning", 2400);
+            });
+    });
+
+    $(document).on("click", "#task-global-more-menu .delete-task-action", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var taskId = currentTaskId;
+        hideMenu();
+        if (!taskId) return;
+        const modal = new bootstrap.Modal("#deleteProjectTaskModal");
+        $("#deleteProjectTaskModal").attr("data-task-id", taskId);
+        modal.show();
+        if (typeof window.handleProjectTaskDelete === "function") {
+            window.handleProjectTaskDelete(taskId);
         }
-    );
+    });
 
     $(document).on("click", function (e) {
-        if (
-            !$(e.target).closest("#task-global-more-menu, .task-more-btn")
-                .length
-        )
+        if (!$(e.target).closest("#task-global-more-menu, .task-more-btn").length)
             hideMenu();
     });
 
@@ -2280,6 +2332,128 @@ function initProjectTaskDetailModal() {
         hideMenu();
     });
 })();
+
+function showConfirmationToCompleteModal(taskId, taskCard) {
+    $.ajax({ url: appUrl + '/task/' + taskId, type: 'GET', dataType: 'json' })
+    .done(function(res){
+        const t = (res && (res.data || res)) || {};
+        const modalId = 'confirmation-to-complete';
+        try { const existing = document.getElementById(modalId); if (existing) existing.remove(); } catch(_){}
+
+        const modalHtml = `
+        <div class="modal fade" id="${modalId}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header modal-header-custom">
+                        <h5 class="modal-title modal-title-custom">Complete Task</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <form id="confirmationToCompleteForm" enctype="multipart/form-data">
+                        <div class="modal-body modal-body-custom">
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Complete Note (required)</label>
+                                <div id="complete_note_editor" style="min-height:120px;background:#fff;border:1px solid #e3e6ee;border-radius:6px;"></div>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Complete URLs (optional)</label>
+                                <div id="complete_reference_urls_container" class="d-flex flex-column gap-2">
+                                    <div class="input-group">
+                                        <input type="url" name="complete_urls[]" placeholder="https://example.com" class="form-control input-text">
+                                        <button type="button" class="btn btn-submit-black add-ref-url"><span class="material-symbols-outlined">add</span></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom" for="complete_files">Complete Files (optional)</label>
+                                <input type="file" class="form-control input-text" id="complete_files" name="complete_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                <div id="complete_files_preview" class="mt-2"></div>
+                            </div>
+                        </div>
+                        <div class="modal-footer modal-footer-custom">
+                            <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-submit-black" id="confirmCompleteBtn">Submit</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const mEl = document.getElementById(modalId);
+        const modal = new bootstrap.Modal(mEl);
+        modal.show();
+
+        window.__quillComplete = new Quill('#complete_note_editor', { theme: 'snow', modules: { toolbar: false } });
+
+        mEl.addEventListener('click', function(ev){
+            const addBtn = ev.target.closest('.add-ref-url');
+            if (addBtn) {
+                const container = document.getElementById('complete_reference_urls_container');
+                const row = document.createElement('div');
+                row.className = 'input-group';
+                row.innerHTML = `<input type="url" name="complete_urls[]" placeholder="https://example.com" class="form-control input-text">
+                                 <button type="button" class="btn btn-remove-url remove-ref-url"><span class="material-symbols-outlined">close</span></button>`;
+                addBtn.closest('.input-group').after(row);
+                return;
+            }
+            const rmBtn = ev.target.closest('.remove-ref-url');
+            if (rmBtn) rmBtn.closest('.input-group')?.remove();
+        });
+
+        const fileInput = mEl.querySelector('#complete_files');
+        const preview = mEl.querySelector('#complete_files_preview');
+        if (fileInput && preview) {
+            fileInput.addEventListener('change', e => {
+                const files = Array.from(e.target.files || []);
+                preview.innerHTML = files.map(f => `<div>${f.name} <small class="text-muted">(${(f.size/1024).toFixed(1)} KB)</small></div>`).join('');
+            });
+        }
+
+        const submitBtn = mEl.querySelector('#confirmCompleteBtn');
+        submitBtn.addEventListener('click', function(){
+            let noteHtml = '';
+            try { noteHtml = window.__quillComplete.root.innerHTML.trim(); } catch(_) {}
+            const plain = noteHtml.replace(/<(.|\n)*?>/g, '').trim();
+            if (!plain) { showFloatingAlert('Complete note is required.', 'warning'); return; }
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+
+            const fd = new FormData();
+            fd.append('_method', 'PUT');
+            fd.append('status', 'completed');
+            fd.append('complete_note', noteHtml);
+
+            const urls = Array.from(mEl.querySelectorAll('input[name="complete_urls[]"]')).map(i => i.value.trim()).filter(Boolean);
+            if (urls.length) fd.append('complete_urls', JSON.stringify(urls));
+
+            const fl = mEl.querySelector('#complete_files');
+            if (fl && fl.files.length) Array.from(fl.files).forEach(f => fd.append('complete_files[]', f));
+
+            fetch(appUrl + '/task/' + taskId + '/status', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                body: fd,
+                credentials: 'same-origin'
+            }).then(r => r.ok ? r.json() : r.json().then(Promise.reject))
+            .then(json => {
+                modal.hide();
+                showFloatingAlert(json.message || 'Task marked as completed.', 'success');
+                if (typeof window.refreshTaskTreePartial === 'function') {
+                    window.refreshTaskTreePartial();
+                } else if (typeof fetchAndRenderTasks === 'function') {
+                    fetchAndRenderTasks();
+                }
+            }).catch(err => {
+                showFloatingAlert('Failed to mark task as completed.', 'danger');
+            }).finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Submit';
+            });
+        });
+    }).fail(function(){
+        showFloatingAlert('Failed to load task details.', 'danger');
+    });
+}
 
 $(function () {
     var modal = $("#addTaskModalProject");
