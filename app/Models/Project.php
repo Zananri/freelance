@@ -183,8 +183,6 @@ class Project extends Model
         return $this;
     }
 
-
-<<<<<<< HEAD
     /**
      * Remove all parents from this project
      */
@@ -203,6 +201,4 @@ class Project extends Model
         return $this;
     }
 }
-=======
-}
->>>>>>> da62c3ceeb7d28ecc30b1ce954d9943616599492
+
