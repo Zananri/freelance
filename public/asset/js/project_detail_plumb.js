@@ -234,17 +234,17 @@
         return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     }
 
-    var childColors = {};
+    var parentColors = {};
 
     function connectEdge(pId, cId) {
         var inst = ensureInstance();
         if (!inst) return;
 
-        if (!childColors[cId]) {
-            childColors[cId] = getRandomColor();
+        if (!parentColors[pId]) {
+            parentColors[pId] = getRandomColor();
         }
 
-        var color = childColors[cId];
+        var color = parentColors[pId];
         var sourceId = getElId(pId),
             targetId = getElId(cId);
 
