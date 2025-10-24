@@ -18,6 +18,10 @@ use App\Helpers\ActivityHelper;
 
 class DashboardController extends Controller
 {
+    public function biDashboard(){
+        return view('bi_dashboard');
+    }
+
     public function dashboard()
     {
         $user = auth()->user();

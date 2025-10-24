@@ -20,11 +20,18 @@ class Management
         $userType = explode(',',Auth::user()->user_type) ;
         $arrUserAllow = array('MANAGEMENT','ADMINISTRATOR');
         
-        foreach($userType as $item ){
-            if( in_array($item,$arrUserAllow)){
-                return $next($request);
-            }
+        if(Auth::user()->user_type == 'ADMINISTRATOR'){
+            return $next($request);
+        }elseif(in_array(Auth::user()->user_type,['MANAGEMENT']) && in_array(Auth::user()->user_role,['CEO','GENERAL_MANAGER','HR_MANAGER'])){
+            return $next($request);
         }
+
+        
+        // foreach($userType as $item ){
+        //     if( in_array($item,$arrUserAllow)){
+        //         return $next($request);
+        //     }
+        // }
 
         // if(Auth::user()->user_type == 'admin_web' || Auth::user()->user_type == 'admin_warehouse'){
         //     return $next($request);

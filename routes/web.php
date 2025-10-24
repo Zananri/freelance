@@ -68,6 +68,7 @@ Route::get('/server-time', function () {
 });
 
 
+
 Route::middleware('auth')->group(function () {
 
     Route::post('/logout', [UserController::class, 'logout'])->name('logout');
@@ -262,6 +263,9 @@ Route::middleware('auth')->group(function () {
 
 
 Route::middleware('auth', 'management')->group(function () {
+    
+    Route::get('/bi_dashboard', [DashboardController::class, 'biDashboard'])->name('bi_dashboard');
+
     Route::get('/calendar_management', [EmployeeCalendarController::class, 'showCalendarPage'])->name('calendar_management');
     
     Route::get('/master', function () {

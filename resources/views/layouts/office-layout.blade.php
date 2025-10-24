@@ -234,6 +234,17 @@
                         </a>
                     </li>
 
+                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
+
+                    <li>
+                        <a href="{{ route('bi_dashboard') }}" class="{{ $menu_active == 'bi_dashboard' ? 'active' : '' }}">
+                            <span class="material-symbols-outlined">chart_data</span>
+                            <span class="text-menu">Bi Dashoboard</span>
+                        </a>
+                    </li>
+
+                    @endif
+
                     @if (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE','PERSONAL_ASSISTANT']))
 
 
