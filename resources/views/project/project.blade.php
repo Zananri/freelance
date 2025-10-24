@@ -1206,6 +1206,14 @@
                         if (!due || !chk) return;
 
                         function applyInitial() {
+                            // For Add modal: leave checkbox unchecked by default so user actively chooses "Forever"
+                            if (modalId === 'addProjectModal') {
+                                chk.checked = false;
+                                due.disabled = false;
+                                return;
+                            }
+
+                            // For Edit modal: if there's no due date, treat it as "Forever" (checked + disabled)
                             if (!due.value || due.value === '') {
                                 chk.checked = true;
                                 due.disabled = true;
