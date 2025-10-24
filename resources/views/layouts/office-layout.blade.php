@@ -247,7 +247,6 @@
 
                     @if (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE','PERSONAL_ASSISTANT']))
 
-
                     <li>
                         <a href="{{ url('attendance') }}"
                             class="{{ $menu_active == 'attendance' ? 'active' : '' }}">
@@ -255,20 +254,17 @@
                             <span class="text-menu">Attendance</span>
                         </a>
                     </li>
+                    
                     @endif
 
-                    @if (in_array(Auth::user()->user_type,['REGULAR','MANAGEMENT']) && in_array(Auth::user()->user_role,['EMPLOYEE','HR_MANAGER','PERSONAL_ASSISTANT']))
-                    
                     <li>
                         <a href="{{ url('task') }}" class="{{ $menu_active == 'task' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">task</span>
                             <span class="text-menu">Task</span>
                         </a>
                     </li>
-                   
-                    @endif
 
-                     <li>
+                    <li>
                         <a href="{{ url('project') }}" class="{{ $menu_active == 'project' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">rocket_launch</span>
                             <span class="text-menu">Project</span>
