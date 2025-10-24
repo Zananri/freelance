@@ -1023,13 +1023,12 @@ class ProjectController extends Controller
                 return response()->json(['code' => 403, 'status' => 'error', 'message' => 'Only author can modify project hierarchy'], 403);
             }
 
-            if ($parentId === null || $parentId === '') {
-                // Clear all parents
-                $project->clearParents();
-            } else {
-                // Remove specific parent
-                $project->removeParent((int)$parentId);
-            }
+            $project->part_of_project = null;
+            $project->save();
+
+            DB::table('project_parents')
+            ->where('project_id', $project->id)
+            ->delete();
 
             return response()->json(['code' => 200, 'status' => 'success']);
         } catch (\Exception $e) {
@@ -2251,6 +2250,19 @@ class ProjectController extends Controller
             $project->reference_files = $finalFiles;
             $project->save();
 
+<<<<<<< HEAD
+=======
+         
+            try {
+                if (empty($request->part_of_project)) {
+                    
+                }
+            } catch (\Throwable $_) {
+                // Dont let parent sync failures block the update flow; log if needed
+                try { \Log::warning('Failed to sync project parents during update for project id ' . $project->id); } catch (\Throwable $__) {}
+            }
+
+>>>>>>> da62c3ceeb7d28ecc30b1ce954d9943616599492
             if (auth()->check()) {
                 $employee = auth()->user()->employee;
                 if ($employee) {
