@@ -316,20 +316,21 @@ function renderTaskNode(task, $template) {
         }
 
         let showMenu = false;
+        let isPrivileged = false;
         if (currentEmployeeId) {
             const isPIC = task.pic?.id && String(currentEmployeeId) === String(task.pic.id);
             const isAuthor = task.project?.authors?.some((a) => String(a.id) === String(currentEmployeeId));
             const isCoAuthor = task.project?.co_authors?.some((a) => String(a.id) === String(currentEmployeeId));
-            showMenu = isPIC || isAuthor || isCoAuthor;
+            isPrivileged = isPIC || isAuthor || isCoAuthor;
+            showMenu = true;
         }
 
         if (showMenu) {
             const taskId = task?.id ? String(task.id) : null;
             const $moreBtn = $('<div class="task-more-btn d-none" title="More actions" style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.15);display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:9999;user-select:none;border:1px solid rgba(0,0,0,0.08);pointer-events:auto;"><span style="font-size:12px;line-height:1;color:#555;">&#8942;</span></div>');
-
             if (taskId) $moreBtn.attr("data-task-id", taskId);
             if (task.status) $moreBtn.attr("data-task-status", task.status);
-
+            $moreBtn.attr("data-privileged", isPrivileged ? "1" : "0");
             $card.append($moreBtn);
 
             const isMobile =
@@ -2106,6 +2107,7 @@ function initProjectTaskDetailModal() {
 
     var $globalMenu = null;
     var currentTaskId = null;
+    var isPrivileged = false;
 
     function createOrGetMenu() {
         if (!$globalMenu || !$globalMenu.length) {
@@ -2115,56 +2117,33 @@ function initProjectTaskDetailModal() {
         return $globalMenu;
     }
 
-    function createMenuForStatus(status) {
-        const baseButtons = `
-            <button type="button" class="clear-parent-action"
-                style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button>
-
-            <button type="button" class="edit-task-action"
-                style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit</button>
-
-            <button type="button" class="delete-task-action"
-                style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete</button>
-        `;
+    function createMenuForStatus(status, privileged) {
+        let baseButtons = "";
+        if (privileged) {
+            baseButtons = `
+                <button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button>
+                <button type="button" class="edit-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit</button>
+                <button type="button" class="delete-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete</button>
+            `;
+        }
 
         let extraButtons = "";
         switch ((status || "").trim()) {
             case "new_request":
-                extraButtons = `
-                    <button type="button" class="status-progress-action"
-                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                        text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">Progress</button>
-                `;
+                extraButtons = `<button type="button" class="status-progress-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">Progress</button>`;
                 break;
             case "in_progress":
                 extraButtons = `
-                    <button type="button" class="status-newrequest-action"
-                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                        text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">New Request</button>
-                    <button type="button" class="status-completed-action"
-                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                        text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>
-                `;
+                    <button type="button" class="status-newrequest-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">New Request</button>
+                    <button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>`;
                 break;
             case "completed":
-                extraButtons = `
-                    <button type="button" class="status-rejected-action"
-                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                        text-align:left;font-size:13px;color:#ff6600;cursor:pointer;">Rejected</button>
-                `;
+                extraButtons = `<button type="button" class="status-rejected-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#ff6600;cursor:pointer;">Rejected</button>`;
                 break;
             case "rejected":
-                extraButtons = `
-                    <button type="button" class="status-completed-action"
-                        style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;
-                        text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>
-                `;
+                extraButtons = `<button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>`;
                 break;
         }
-
         return extraButtons + baseButtons;
     }
 
@@ -2173,14 +2152,10 @@ function initProjectTaskDetailModal() {
         const rect = $btn[0].getBoundingClientRect();
         const top = rect.bottom + 4;
         const left = Math.max(rect.left - 60, 10);
-
-        let status =
-            $btn.attr("data-task-status") ||
-            $btn.closest(".task-box").attr("data-task-status") ||
-            $btn.data("status") ||
-            "";
-
-        $menu.html(createMenuForStatus(status));
+        const status = $btn.attr("data-task-status") || "";
+        const privileged = $btn.attr("data-privileged") === "1";
+        isPrivileged = privileged;
+        $menu.html(createMenuForStatus(status, privileged));
         $menu.css({ top: top + "px", left: left + "px" });
         $menu.removeClass("d-none");
         currentTaskId = taskId;
@@ -2194,19 +2169,12 @@ function initProjectTaskDetailModal() {
     $(document).on("click", ".task-more-btn", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var $btn = $(this);
-        var taskId =
-            $btn.attr("data-task-id") ||
-            $btn.closest(".task-box").attr("data-task-id");
+        const $btn = $(this);
+        const taskId = $btn.attr("data-task-id");
         if (!taskId) return;
-
-        var $menu = createOrGetMenu();
-        if (!$menu.hasClass("d-none") && currentTaskId === taskId) {
-            hideMenu();
-        } else {
-            hideMenu();
-            showMenuAt($btn, taskId);
-        }
+        const $menu = createOrGetMenu();
+        if (!$menu.hasClass("d-none") && currentTaskId === taskId) hideMenu();
+        else { hideMenu(); showMenuAt($btn, taskId); }
     });
 
     $(document).on("click", "#task-global-more-menu [class^='status-']", function (e) {
@@ -2216,7 +2184,6 @@ function initProjectTaskDetailModal() {
         const taskId = currentTaskId;
         if (!taskId) return;
         hideMenu();
-
         let newStatus = null;
         if ($btn.hasClass("status-progress-action")) newStatus = "in_progress";
         if ($btn.hasClass("status-newrequest-action")) newStatus = "new_request";
@@ -2244,11 +2211,8 @@ function initProjectTaskDetailModal() {
         })
             .done(function () {
                 window.showFloatingAlert?.(`Status changed to ${newStatus}`, "success", 1400);
-                if (typeof window.refreshTaskTreePartial === "function") {
-                    window.refreshTaskTreePartial();
-                } else {
-                    renderTaskList?.(allTasks);
-                }
+                if (typeof window.refreshTaskTreePartial === "function") window.refreshTaskTreePartial();
+                else renderTaskList?.(allTasks);
             })
             .fail(function (xhr) {
                 console.error("Failed to update status", xhr?.responseText);
@@ -2259,23 +2223,23 @@ function initProjectTaskDetailModal() {
     $(document).on("click", "#task-global-more-menu .edit-task-action", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var taskId = currentTaskId;
+        if (!isPrivileged) return;
+        const taskId = currentTaskId;
         hideMenu();
         if (!taskId) return;
         const modal = new bootstrap.Modal("#editProjectTaskModal");
         $("#editProjectTaskModal").attr("data-task-id", taskId);
         modal.show();
-        if (typeof window.handleProjectTaskEdit === "function") {
-            window.handleProjectTaskEdit(taskId);
-        }
+        window.handleProjectTaskEdit?.(taskId);
     });
 
     $(document).on("click", "#task-global-more-menu .clear-parent-action", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var taskId = currentTaskId;
-        if (!taskId) return;
+        if (!isPrivileged) return;
+        const taskId = currentTaskId;
         hideMenu();
+        if (!taskId) return;
         $.ajax({
             url: appUrl + "/task/" + encodeURIComponent(String(taskId)),
             type: "PUT",
@@ -2289,9 +2253,8 @@ function initProjectTaskDetailModal() {
             },
         })
             .done(function () {
-                if (typeof window.refreshTaskTreePartial === "function") {
-                    window.refreshTaskTreePartial();
-                } else {
+                if (typeof window.refreshTaskTreePartial === "function") window.refreshTaskTreePartial();
+                else {
                     var idStr = String(taskId);
                     (allTasks || []).forEach(function (t) {
                         if (String(t.id) === idStr) {
@@ -2301,36 +2264,32 @@ function initProjectTaskDetailModal() {
                     });
                     renderTaskList(allTasks);
                 }
-                window.showFloatingAlert?.("Parent clear succesfully", "success", 1400);
+                window.showFloatingAlert?.("Parent cleared successfully", "success", 1400);
             })
             .fail(function (xhr) {
-                console.error("Gagal clear parent", xhr?.responseText);
-                window.showFloatingAlert?.("Failed to delete parent", "warning", 2400);
+                console.error("Failed to clear parent", xhr?.responseText);
+                window.showFloatingAlert?.("Failed to clear parent", "warning", 2400);
             });
     });
 
     $(document).on("click", "#task-global-more-menu .delete-task-action", function (e) {
         e.preventDefault();
         e.stopPropagation();
-        var taskId = currentTaskId;
+        if (!isPrivileged) return;
+        const taskId = currentTaskId;
         hideMenu();
         if (!taskId) return;
         const modal = new bootstrap.Modal("#deleteProjectTaskModal");
         $("#deleteProjectTaskModal").attr("data-task-id", taskId);
         modal.show();
-        if (typeof window.handleProjectTaskDelete === "function") {
-            window.handleProjectTaskDelete(taskId);
-        }
+        window.handleProjectTaskDelete?.(taskId);
     });
 
     $(document).on("click", function (e) {
-        if (!$(e.target).closest("#task-global-more-menu, .task-more-btn").length)
-            hideMenu();
+        if (!$(e.target).closest("#task-global-more-menu, .task-more-btn").length) hideMenu();
     });
 
-    $(window).on("scroll", function () {
-        hideMenu();
-    });
+    $(window).on("scroll", hideMenu);
 })();
 
 function showConfirmationToCompleteModal(taskId, taskCard) {
