@@ -535,17 +535,33 @@ $(document).on('click', '.playlist_add_check', function () {
             if (Array.isArray(task.complete_files) && task.complete_files.length) {
                 task.complete_files.forEach((f, idx) => {
                     const raw = f && (f.url || f) || '';
-                    const url = raw.startsWith('http') ? raw : '/' + String(raw).replace(/^\/+/, '');
-                    const ext = (raw.split('.').pop() || '').toLowerCase();
+                    const fileName = String(raw).replace(/^\/+/, '');
+                    const url = `/file/task_complete_files/${fileName}`;
+
+                    const ext = (fileName.split('.').pop() || '').toLowerCase();
                     const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(ext);
+                    const isPDF = ext === 'pdf';
+                    const isDownloadable = /^(docx?|xlsx?|pptx?)$/i.test(ext);
 
                     const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
+
                     if (isImage) {
                         const $img = $('<img>', { src: url, width: 28, height: 28, alt: raw });
                         $img.css({ objectFit: 'cover', borderRadius: '50%' });
                         $item.append($img);
                     }
-                    const $name = $('<span>').text(`COMPLETED_FILES_${idx+1}`).css({ fontSize: '10px' });
+
+                    const $name = $('<a>')
+                        .text(`COMPLETED_FILES_${idx + 1}`)
+                        .css({ fontSize: '10px', cursor: 'pointer', color: '#444', textDecoration: 'none' })
+                        .attr('href', url);
+
+                    if (isPDF) {
+                        $name.attr('target', '_blank');
+                    } else if (isDownloadable) {
+                        $name.attr('download', '');
+                    }
+
                     $item.append($name);
                     $files.append($item);
                 });
