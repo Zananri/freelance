@@ -980,16 +980,14 @@
                                     <span style="font-size: 18px; color: #444;"
                                         class="material-symbols-outlined">playlist_add_check</span>
                                 </button>
-                                <button class="btn border-0" data-bs-target="#referenceFilesModal"
-                                    data-bs-toggle="modal">
-                                    <span style="font-size: 18px; color: #444;"
-                                        class="material-symbols-outlined">file_copy</span>
-                                </button>
-                                <button class="btn border-0" data-bs-target="#referenceUrlsModal"
-                                    data-bs-toggle="modal">
-                                    <span style="font-size: 18px; color: #444;"
-                                        class="material-symbols-outlined">attach_file</span>
-                                </button>
+                            </div>
+
+                            <div id="referenceUrlsList" class="d-flex flex-column gap-2">
+                                <!-- Reference URLs will be inserted here -->
+                            </div>
+
+                            <div id="referenceFilesList" class="d-flex flex-column gap-2">
+                                <!-- Reference files links will be inserted here -->
                             </div>
 
                             <!-- Collaborators -->
@@ -1051,63 +1049,6 @@
                             <button type="button" class="btn btn-custom-close"
                                 data-bs-dismiss="modal">Close</button>
                         </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal fade" id="referenceFilesModal" tabindex="-1"
-            aria-labelledby="referenceFilesModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom d-flex align-items-center justify-content-between">
-                        <div>
-                            <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceFilesModalLabel">
-                                Reference
-                                Files</h5>
-                        </div>
-                        <div>
-                            <button type="button" class="btn-close ms-2" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="modal-body modal-body-custom">
-                        <div id="referenceFilesList" class="d-flex flex-column gap-2">
-                            <!-- Reference files links will be inserted here -->
-                        </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-sm btn-submit-black"
-                            data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Reference URLs Modal (same styling as Reference Files) -->
-        <div class="modal fade modal-custom" id="referenceUrlsModal" tabindex="-1"
-            aria-labelledby="referenceUrlsModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content modal-content-custom">
-                    <div class="modal-header modal-header-custom d-flex align-items-center justify-content-between">
-                        <div>
-                            <h5 class="modal-title modal-title-custom fs-5 fw-normal" id="referenceUrlsModalLabel">
-                                Reference URLs</h5>
-                        </div>
-                        <div>
-                            <button type="button" class="btn-close ms-2" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="modal-body modal-body-custom">
-                        <div id="referenceUrlsList" class="d-flex flex-column gap-2">
-                            <!-- Reference URLs will be inserted here -->
-                        </div>
-                    </div>
-                    <div class="modal-footer modal-footer-custom">
-                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
                     </div>
                 </div>
             </div>

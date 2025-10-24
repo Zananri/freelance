@@ -31,14 +31,13 @@ function showReferenceUrlsForTask(taskId) {
                 const payload = res && (res.data || res);
                 let referenceUrls = payload && payload.reference_urls;
 
-                // Normalize possible formats: stringified JSON, comma-separated string, or single reference_url
                 if (typeof referenceUrls === "string") {
                     try {
                         const parsed = JSON.parse(referenceUrls);
-                        if (Array.isArray(parsed)) referenceUrls = parsed;
-                        else referenceUrls = [String(referenceUrls)];
+                        referenceUrls = Array.isArray(parsed)
+                            ? parsed
+                            : [String(referenceUrls)];
                     } catch (e) {
-                        // fallback: split by comma
                         referenceUrls = referenceUrls
                             .split(',')
                             .map((s) => s.trim())
@@ -52,24 +51,28 @@ function showReferenceUrlsForTask(taskId) {
                 const listEl = document.getElementById('referenceUrlsList');
                 if (!listEl) return;
                 listEl.innerHTML = '';
-
-                try { listEl.dataset.taskId = String(taskId || ''); } catch(_) {}
-                try { document.getElementById('referenceUrlsModal').dataset.taskId = String(taskId || ''); } catch(_) {}
+                try { listEl.dataset.taskId = String(taskId || ''); } catch (_) {}
 
                 if (Array.isArray(referenceUrls) && referenceUrls.length > 0) {
-                    referenceUrls.forEach(function (u) {
+                    referenceUrls.forEach(function (u, idx) {
                         if (!u) return;
                         const safeUrl = String(u || '').trim();
 
                         const row = document.createElement('div');
-                        row.className = 'd-flex align-items-center justify-content-between gap-2 p-2 rounded bg-light selected-task mb-2';
+                        row.className =
+                            'd-flex align-items-center justify-content-between gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        const left = document.createElement('div');
+                        left.className = 'd-flex align-items-center flex-grow-1 text-truncate';
+                        left.style.fontSize = "10px";
 
                         const a = document.createElement('a');
                         a.href = safeUrl;
                         a.target = '_blank';
-                        a.className = 'flex-grow-1 text-decoration-none text-truncate feedback-reference-url';
-                        a.textContent = safeUrl;
-                        a.style.color = '#444444';
+                        a.className = 'text-decoration-none text-truncate flex-grow-1';
+                        a.textContent = "REF_URL_TASK_" + (idx + 1);
+                        a.style.color = '#444';
+                        left.appendChild(a);
 
                         const btnGroup = document.createElement('div');
                         btnGroup.className = 'd-flex align-items-center gap-1 ms-auto';
@@ -87,26 +90,23 @@ function showReferenceUrlsForTask(taskId) {
 
                         const copyBtn = makeBtn('content_copy', 'Copy URL', function (ev) {
                             ev.preventDefault(); ev.stopPropagation();
-                            navigator.clipboard?.writeText(safeUrl).then(function () {
-                                if (typeof showFloatingAlert === 'function')
-                                    showFloatingAlert('URL copied to clipboard', 'success');
-                            }).catch(function () {
-                                const ta = document.createElement('textarea');
-                                ta.value = safeUrl;
-                                ta.style.position = 'fixed';
-                                ta.style.left = '-9999px';
-                                document.body.appendChild(ta);
-                                ta.select();
-                                try {
-                                    document.execCommand('copy');
-                                    if (typeof showFloatingAlert === 'function')
-                                        showFloatingAlert('URL copied to clipboard', 'success');
-                                } catch (_) {
-                                    if (typeof showFloatingAlert === 'function')
-                                        showFloatingAlert('Failed to copy', 'warning');
-                                }
-                                document.body.removeChild(ta);
-                            });
+                            navigator.clipboard?.writeText(safeUrl)
+                                .then(() => showFloatingAlert?.('URL copied to clipboard', 'success'))
+                                .catch(() => {
+                                    const ta = document.createElement('textarea');
+                                    ta.value = safeUrl;
+                                    ta.style.position = 'fixed';
+                                    ta.style.left = '-9999px';
+                                    document.body.appendChild(ta);
+                                    ta.select();
+                                    try {
+                                        document.execCommand('copy');
+                                        showFloatingAlert?.('URL copied to clipboard', 'success');
+                                    } catch (_) {
+                                        showFloatingAlert?.('Failed to copy', 'warning');
+                                    }
+                                    document.body.removeChild(ta);
+                                });
                         });
 
                         const openBtn = makeBtn('open_in_new', 'Open URL', function (ev) {
@@ -116,84 +116,62 @@ function showReferenceUrlsForTask(taskId) {
 
                         const delBtn = makeBtn('delete', 'Remove URL', function (ev) {
                             ev.preventDefault(); ev.stopPropagation();
-                            try {
-                                showDeleteConfirmModal({
-                                    type: 'reference_url',
-                                    id: safeUrl,
-                                    authorName: '',
-                                    content: safeUrl,
-                                    avatarUrl: '',
-                                    parentModalId: 'referenceUrlsModal',
-                                    onConfirm: function (done) {
-                                        $.ajax({
-                                            url: appUrl + '/task/' + taskId + '/reference-url',
-                                            type: 'DELETE',
-                                            data: { url: safeUrl },
-                                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                            success: function (resp) {
-                                                if (typeof showFloatingAlert === 'function')
-                                                    showFloatingAlert(resp.message || 'Reference URL removed', 'success');
-                                                if (row && row.parentNode) row.parentNode.removeChild(row);
-                                                done(true);
-                                            },
-                                            error: function () {
-                                                const update = function () {
-                                                    $.ajax({
-                                                        url: appUrl + '/task/' + taskId,
-                                                        type: 'PUT',
-                                                        contentType: 'application/json',
-                                                        data: JSON.stringify({
-                                                            reference_urls: (function (orig) {
-                                                                try {
-                                                                    let arr = Array.isArray(orig)
-                                                                        ? orig
-                                                                        : (typeof orig === 'string' ? JSON.parse(orig) : []);
-                                                                    return arr.filter(x => String(x || '').trim() !== String(safeUrl || '').trim());
-                                                                } catch (e) { return []; }
-                                                            })(referenceUrls)
-                                                        }),
-                                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                                        success: function (r2) {
-                                                            if (typeof showFloatingAlert === 'function')
-                                                                showFloatingAlert(r2.message || 'Reference URL removed', 'success');
-                                                            if (row && row.parentNode) row.parentNode.removeChild(row);
-                                                            done(true);
-                                                        },
-                                                        error: function () {
-                                                            if (typeof showFloatingAlert === 'function')
-                                                                showFloatingAlert('Failed to remove URL', 'danger');
-                                                            done(false);
-                                                        }
-                                                    });
-                                                };
-                                                update();
-                                            }
-                                        });
-                                    }
-                                });
-                            } catch (_) { }
+                            showDeleteConfirmModal?.({
+                                type: 'reference_url',
+                                id: safeUrl,
+                                content: safeUrl,
+                                parentModalId: 'projectTaskDetailModal',
+                                onConfirm: function (done) {
+                                    $.ajax({
+                                        url: appUrl + '/task/' + taskId + '/reference-url',
+                                        type: 'DELETE',
+                                        data: { url: safeUrl },
+                                        headers: {
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                        },
+                                        success: function (resp) {
+                                            showFloatingAlert?.(resp.message || 'Reference URL removed', 'success');
+                                            row.remove();
+                                            done(true);
+                                        },
+                                        error: function () {
+                                            $.ajax({
+                                                url: appUrl + '/task/' + taskId,
+                                                type: 'PUT',
+                                                contentType: 'application/json',
+                                                data: JSON.stringify({
+                                                    reference_urls: referenceUrls.filter(x => String(x || '').trim() !== safeUrl)
+                                                }),
+                                                headers: {
+                                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                                },
+                                                success: function (r2) {
+                                                    showFloatingAlert?.(r2.message || 'Reference URL removed', 'success');
+                                                    row.remove();
+                                                    done(true);
+                                                },
+                                                error: function () {
+                                                    showFloatingAlert?.('Failed to remove URL', 'danger');
+                                                    done(false);
+                                                }
+                                            });
+                                        }
+                                    });
+                                }
+                            });
                         });
 
                         btnGroup.append(copyBtn, openBtn, delBtn);
-                        row.append(a, btnGroup);
+                        row.append(left, btnGroup);
                         listEl.appendChild(row);
                     });
-                } else {
-                    listEl.textContent = 'No reference URLs available.';
-                }
-
-                const modalEl = document.getElementById('referenceUrlsModal');
-                if (modalEl) {
-                    try { modalEl.dataset.taskId = String(taskId || ''); } catch(_) {}
-                    const m = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    m.show();
                 }
             },
-            error: function(){
-                showFloatingAlert && showFloatingAlert('Failed to load reference URLs.', 'danger');
+            error: function () {
+                showFloatingAlert?.('Failed to load reference URLs.', 'danger');
             }
         });
-    } catch(_){}
+    } catch (_) { }
 }
 
 // function updateViewMoreButton() {
@@ -1625,16 +1603,6 @@ function renderProjectTaskDetail(res) {
     const detailEl = document.getElementById('projectTaskDetailModal');
     if (detailEl) detailEl.dataset.taskId = String(task.id || '');
 
-    const refBtn = detailEl?.querySelector('button[data-bs-target="#referenceFilesModal"]');
-    if (refBtn) {
-        try { refBtn.removeEventListener('click', refBtn._refClickHandler || function(){}); } catch(_) {}
-        refBtn._refClickHandler = function(e) {
-            e?.preventDefault?.();
-            showReferenceFilesForTask(task.id);
-        };
-        refBtn.addEventListener('click', refBtn._refClickHandler);
-    }
-
     const avatarContainer = document.getElementById('projectTaskProjectAvatar');
     const img = avatarContainer?.querySelector('img');
     if (img) {
@@ -1680,19 +1648,8 @@ function renderProjectTaskDetail(res) {
     if (task.status?.toLowerCase() === "completed") $checkBtn.show();
     else $checkBtn.hide();
 
-    const buttons = detailEl?.querySelectorAll('button.border-0');
-    let attachBtn = null;
-    buttons?.forEach(b => {
-        if (b.querySelector('.material-symbols-outlined')?.textContent.trim() === 'attach_file') attachBtn = b;
-    });
-    if (attachBtn) {
-        try { attachBtn.removeEventListener('click', attachBtn._attachClickHandler || function(){}); } catch(_) {}
-        attachBtn._attachClickHandler = function(e) {
-            e?.preventDefault?.();
-            showReferenceUrlsForTask(task.id);
-        };
-        attachBtn.addEventListener('click', attachBtn._attachClickHandler);
-    }
+    showReferenceUrlsForTask(task.id);
+    showReferenceFilesForTask(task.id);
 }
 
 // Helper: fetch reference files for a given task id, populate #referenceFilesList and show the modal
@@ -1723,8 +1680,6 @@ function showReferenceFilesForTask(taskId) {
                 const referenceFilesList = document.getElementById("referenceFilesList");
                 if (!referenceFilesList) return;
                 referenceFilesList.innerHTML = "";
-
-                // keep task id on the list for later operations (delete / add)
                 try { referenceFilesList.dataset.taskId = String(taskId || ''); } catch(_) {}
                 try { document.getElementById('referenceFilesModal').dataset.taskId = String(taskId || ''); } catch(_) {}
 
@@ -1735,18 +1690,14 @@ function showReferenceFilesForTask(taskId) {
                         let fileUrl = String(fileName || '');
                         const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
                         const isRefPath = fileUrl.startsWith('/file/task_reference_files/') || fileUrl.startsWith('file/task_reference_files/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
-                        if (!isAbs && !isRefPath) {
-                            fileUrl = appUrl + '/file/task_reference_files/' + fileUrl;
-                        } else if (!isAbs && fileUrl.startsWith('/')) {
-                            fileUrl = appUrl + fileUrl;
-                        }
+                        if (!isAbs && !isRefPath) fileUrl = appUrl + '/file/task_reference_files/' + fileUrl;
+                        else if (!isAbs && fileUrl.startsWith('/')) fileUrl = appUrl + fileUrl;
 
                         const item = document.createElement('div');
-                        item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+                        item.className = 'd-flex align-items-center justify-content-between gap-2 p-2 rounded bg-light selected-task mb-2';
 
                         const lower = String(fileName || '').toLowerCase();
                         const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
-
                         if (isImage) {
                             const img = document.createElement('img');
                             img.src = fileUrl;
@@ -1754,22 +1705,14 @@ function showReferenceFilesForTask(taskId) {
                             img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
                             img.alt = fileName;
                             item.appendChild(img);
-                        } else {
-                            const badge = document.createElement('div');
-                            item.appendChild(badge);
                         }
 
                         const title = document.createElement('a');
                         title.className = 'flex-grow-1 text-decoration-none text-truncate';
+                        title.style.fontSize = "10px";
                         title.href = fileUrl;
                         title.target = '_blank';
-                        try {
-                            var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
-                            var num = Number(idx) + 1;
-                            title.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
-                        } catch (e) {
-                            title.textContent = fileName;
-                        }
+                        title.textContent = "REF_FILE_TASK_" + (idx + 1);
                         title.style.color = "#444444";
                         item.appendChild(title);
 
@@ -1778,14 +1721,14 @@ function showReferenceFilesForTask(taskId) {
                         dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
                         dlBtn.title = 'Download';
                         dlBtn.style.color = "#444444";
-                        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                        dlBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">download</span>';
                         dlBtn.addEventListener('click', function (ev) {
                             try {
                                 ev.preventDefault(); ev.stopPropagation();
                                 const a = document.createElement('a');
                                 a.style.display = 'none';
                                 a.href = fileUrl;
-                                try { a.download = String(fileName || '').split('/').pop(); } catch(_) {}
+                                a.download = fileName.split('/').pop();
                                 a.target = '_blank';
                                 document.body.appendChild(a);
                                 a.click();
@@ -1797,23 +1740,20 @@ function showReferenceFilesForTask(taskId) {
 
                         item.appendChild(dlBtn);
 
-                        // Delete button (server will enforce permissions)
                         const delBtn = document.createElement('button');
                         delBtn.type = 'button';
                         delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
                         delBtn.title = 'Delete';
                         delBtn.style.color = '#444444';
-                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill" style="font-size: 18px;">delete</span>';
                         delBtn.addEventListener('click', function (ev) {
                             ev.preventDefault(); ev.stopPropagation();
                             try {
-                                showDeleteConfirmModal({
+                                showDeleteConfirmModal?.({
                                     type: 'reference_file',
                                     id: fileName,
-                                    authorName: '',
-                                    content: (function(){ try { var e=(String(fileName||'').split('.').pop()||'').toLowerCase(); return e?('PROJECT_REF_FILE_1.'+e):'PROJECT_REF_FILE_1'; }catch(_){return fileName;} })(),
-                                    avatarUrl: '',
-                                    parentModalId: 'referenceFilesModal',
+                                    content: "REF_FILE_TASK_" + (idx + 1),
+                                    parentModalId: 'projectTaskDetailModal',
                                     onConfirm: function (done) {
                                         try {
                                             $.ajax({
@@ -1822,16 +1762,11 @@ function showReferenceFilesForTask(taskId) {
                                                 data: { filename: fileName },
                                                 headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
                                                 success: function (res) {
-                                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reference file deleted', 'success'); } catch(_) {}
-                                                    if (item && item.parentNode) item.parentNode.removeChild(item);
+                                                    showFloatingAlert?.(res.message || 'Reference file deleted', 'success');
+                                                    item.remove();
                                                     done(true);
                                                 },
-                                                error: function (xhr) {
-                                                    let msg = 'Failed to delete reference file';
-                                                    if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                                                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
-                                                    done(false);
-                                                }
+                                                error: function () { done(false); }
                                             });
                                         } catch (e) { done(false); }
                                     }
@@ -1842,15 +1777,6 @@ function showReferenceFilesForTask(taskId) {
                         item.appendChild(delBtn);
                         referenceFilesList.appendChild(item);
                     });
-                } else {
-                    referenceFilesList.textContent = "No reference files available.";
-                }
-
-                const modalEl = document.getElementById("referenceFilesModal");
-                if (modalEl) {
-                    try { modalEl.dataset.taskId = String(taskId || ''); } catch(_) {}
-                    const referenceFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    referenceFilesModal.show();
                 }
             },
             error: function () {
