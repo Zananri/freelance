@@ -1022,8 +1022,8 @@
                             </div>
                         </div>
 
-                        <div class="mb-4 task-description-container" style="font-size= 10px">
-                            <div id="completed_task_note" class="text-muted task-description"><em>No note</em></div>
+                        <div class="mb-4 task-description-container">
+                            <div id="completed_task_note" style="font-size: 12px" class="text-muted task-description"><em>No note</em></div>
                         </div>
 
                         <div class="row mb-4 link-file-task">

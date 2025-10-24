@@ -114,54 +114,7 @@ function showReferenceUrlsForTask(taskId) {
                             window.open(safeUrl, '_blank');
                         });
 
-                        const delBtn = makeBtn('delete', 'Remove URL', function (ev) {
-                            ev.preventDefault(); ev.stopPropagation();
-                            showDeleteConfirmModal?.({
-                                type: 'reference_url',
-                                id: safeUrl,
-                                content: safeUrl,
-                                parentModalId: 'projectTaskDetailModal',
-                                onConfirm: function (done) {
-                                    $.ajax({
-                                        url: appUrl + '/task/' + taskId + '/reference-url',
-                                        type: 'DELETE',
-                                        data: { url: safeUrl },
-                                        headers: {
-                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                        },
-                                        success: function (resp) {
-                                            showFloatingAlert?.(resp.message || 'Reference URL removed', 'success');
-                                            row.remove();
-                                            done(true);
-                                        },
-                                        error: function () {
-                                            $.ajax({
-                                                url: appUrl + '/task/' + taskId,
-                                                type: 'PUT',
-                                                contentType: 'application/json',
-                                                data: JSON.stringify({
-                                                    reference_urls: referenceUrls.filter(x => String(x || '').trim() !== safeUrl)
-                                                }),
-                                                headers: {
-                                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                                                },
-                                                success: function (r2) {
-                                                    showFloatingAlert?.(r2.message || 'Reference URL removed', 'success');
-                                                    row.remove();
-                                                    done(true);
-                                                },
-                                                error: function () {
-                                                    showFloatingAlert?.('Failed to remove URL', 'danger');
-                                                    done(false);
-                                                }
-                                            });
-                                        }
-                                    });
-                                }
-                            });
-                        });
-
-                        btnGroup.append(copyBtn, openBtn, delBtn);
+                        btnGroup.append(copyBtn, openBtn);
                         row.append(left, btnGroup);
                         listEl.appendChild(row);
                     });
@@ -513,7 +466,22 @@ $(document).on('click', '.playlist_add_check', function () {
             const task = res && (res.data || res);
             if (!task) return;
 
-            $('#completed_task_image').attr('src', task.image || task.project_image || '/img/default.png');
+            try {
+                const $avatarContainer = $('#completed_task_image');
+                if ($avatarContainer.length) {
+                    const avatarHtml = getAvatarHTML(task, 34);
+                    const $parent = $avatarContainer.parent();
+                    if ($parent.length) {
+                        $avatarContainer.remove();
+                        const $wrapper = $(avatarHtml);
+                        $wrapper.addClass('me-2');
+                        $parent.prepend($wrapper);
+                    } else {
+                        $avatarContainer.attr('src', task.image || task.project_image || task.image_url || '/img/default.png');
+                    }
+                }
+            } catch(_) {}
+
             $('#completed_task_title').text(task.title || '-');
             $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
             $('#completed_task_note').html(task.complete_note || '<em>No note</em>');
@@ -1845,41 +1813,6 @@ function showReferenceFilesForTask(taskId) {
 
                         item.appendChild(dlBtn);
 
-                        const delBtn = document.createElement('button');
-                        delBtn.type = 'button';
-                        delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
-                        delBtn.title = 'Delete';
-                        delBtn.style.color = '#444444';
-                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill" style="font-size: 18px;">delete</span>';
-                        delBtn.addEventListener('click', function (ev) {
-                            ev.preventDefault(); ev.stopPropagation();
-                            try {
-                                showDeleteConfirmModal?.({
-                                    type: 'reference_file',
-                                    id: fileName,
-                                    content: "REF_FILE_TASK_" + (idx + 1),
-                                    parentModalId: 'projectTaskDetailModal',
-                                    onConfirm: function (done) {
-                                        try {
-                                            $.ajax({
-                                                url: appUrl + '/task/' + taskId + '/reference-file',
-                                                type: 'DELETE',
-                                                data: { filename: fileName },
-                                                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                                success: function (res) {
-                                                    showFloatingAlert?.(res.message || 'Reference file deleted', 'success');
-                                                    item.remove();
-                                                    done(true);
-                                                },
-                                                error: function () { done(false); }
-                                            });
-                                        } catch (e) { done(false); }
-                                    }
-                                });
-                            } catch (e) {}
-                        });
-
-                        item.appendChild(delBtn);
                         referenceFilesList.appendChild(item);
                     });
                 }
