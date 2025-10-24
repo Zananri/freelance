@@ -350,13 +350,17 @@
                         <div class="mb-3 d-flex justify-content-between">
                             <div style="width: 48%;" class="input-custom">
                                 <label for="start_date" class="form-label label-custom">Start Date</label>
-                                <input type="date" class="form-control input-text" id="start_date"
-                                    name="start_date" required>
+                                <input type="datetime-local" class="form-control input-text" id="start_date"
+                                    name="start_date" required value="{{ now()->format('Y-m-d\\TH:i') }}">
                             </div>
                             <div style="width: 48%;" class="input-custom">
                                 <label for="due_date" class="form-label label-custom">Due Date</label>
-                                <input type="date" class="form-control input-text" id="due_date" name="due_date"
+                                <input type="datetime-local" class="form-control input-text" id="due_date" name="due_date"
                                     required>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="due_forever" name="due_forever">
+                                    <label class="form-check-label" for="due_forever">Forever</label>
+                                </div>
                             </div>
                         </div>
                         <div class="mb-3 input-custom">
@@ -505,13 +509,17 @@
                         <div class="mb-3 input-custom d-flex justify-content-between">
                             <div style="width: 48%;">
                                 <label for="edit_start_date" class="form-label label-custom">Start Date</label>
-                                <input type="date" class="form-control input-text" id="edit_start_date"
+                                <input type="datetime-local" class="form-control input-text" id="edit_start_date"
                                     name="start_date" required>
                             </div>
                             <div style="width: 48%;">
                                 <label for="edit_due_date" class="form-label label-custom">Due Date</label>
-                                <input type="date" class="form-control input-text" id="edit_due_date"
+                                <input type="datetime-local" class="form-control input-text" id="edit_due_date"
                                     name="due_date" required>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="edit_due_forever" name="due_forever">
+                                    <label class="form-check-label" for="edit_due_forever">Forever</label>
+                                </div>
                             </div>
                         </div>
                         <div class="mb-3 input-custom">
@@ -1168,6 +1176,106 @@
         </script>
 
 
-        <script></script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                function toLocalInputDatetime(d) {
+                    try {
+                        d = d || new Date();
+                        // convert to local ISO and trim seconds (datetime-local expects yyyy-MM-ddTHH:mm)
+                        var off = d.getTimezoneOffset();
+                        var local = new Date(d.getTime() - off * 60000);
+                        return local.toISOString().slice(0, 16);
+                    } catch (e) {
+                        return '';
+                    }
+                }
+
+                // Ensure add start_date has default today's datetime (local)
+                try {
+                    var addStart = document.getElementById('start_date');
+                    if (addStart && !addStart.value) {
+                        addStart.value = toLocalInputDatetime(new Date());
+                    }
+                } catch (_) {}
+
+                // Setup due date forever toggle for add/edit
+                function setupToggle(dueId, chkId, modalId) {
+                    try {
+                        var due = document.getElementById(dueId);
+                        var chk = document.getElementById(chkId);
+                        if (!due || !chk) return;
+
+                        function applyInitial() {
+                            if (!due.value || due.value === '') {
+                                chk.checked = true;
+                                due.disabled = true;
+                            } else {
+                                chk.checked = false;
+                                due.disabled = false;
+                            }
+                        }
+
+                        applyInitial();
+
+                        chk.addEventListener('change', function() {
+                            if (this.checked) {
+                                // clear and disable the input so it won't be submitted
+                                try { due.value = ''; } catch (_) {}
+                                due.disabled = true;
+                            } else {
+                                due.disabled = false;
+                            }
+                        });
+
+                        var modalEl = document.getElementById(modalId);
+                        if (modalEl) {
+                            modalEl.addEventListener('shown.bs.modal', function() {
+                                // when modal opens, re-evaluate value (project.js may populate fields)
+                                applyInitial();
+                            });
+
+                            // for add modal reset defaults when hidden
+                            if (modalId === 'addProjectModal') {
+                                modalEl.addEventListener('hidden.bs.modal', function() {
+                                    try {
+                                        if (addStart) addStart.value = toLocalInputDatetime(new Date());
+                                        if (due) { due.value = ''; due.disabled = false; }
+                                        if (chk) chk.checked = false;
+                                    } catch (_) {}
+                                });
+                            }
+                        }
+                    } catch (e) {
+                        console.warn('setupToggle error', e);
+                    }
+                }
+
+                setupToggle('due_date', 'due_forever', 'addProjectModal');
+                setupToggle('edit_due_date', 'edit_due_forever', 'editProjectModal');
+
+                // Before form submit ensure disabled due_date is not submitted (disabled fields are excluded by browser)
+                try {
+                    var addForm = document.getElementById('addProjectForm');
+                    if (addForm) {
+                        addForm.addEventListener('submit', function() {
+                            var chk = document.getElementById('due_forever');
+                            var due = document.getElementById('due_date');
+                            if (chk && chk.checked && due) due.disabled = true;
+                        }, true);
+                    }
+                } catch (_) {}
+
+                try {
+                    var editForm = document.getElementById('editProjectForm');
+                    if (editForm) {
+                        editForm.addEventListener('submit', function() {
+                            var chk = document.getElementById('edit_due_forever');
+                            var due = document.getElementById('edit_due_date');
+                            if (chk && chk.checked && due) due.disabled = true;
+                        }, true);
+                    }
+                } catch (_) {}
+            });
+        </script>
     </x-slot>
 </x-office-layout>
