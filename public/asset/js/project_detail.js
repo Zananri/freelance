@@ -6303,130 +6303,96 @@
 
         $(document).ready(function () {
 
-            function populatePartOfProjectSelects(
-                currentProjectId = null,
-                currentProjectTitle = "",
-                currentPartOfProjectId = null,
-                currentPartOfProjectTitle = ""
-            ) {
-                const input = document.getElementById("edit_part_of_project_input");
-                const dropdown = document.getElementById("edit_part_of_project_dropdown");
-                const hiddenInput = document.getElementById("edit_part_of_project");
-                const selectedContainer = document.getElementById("edit_selected_project");
+                function populatePartOfProjectSelects(
+                    currentProjectId = null,
+                    currentProjectTitle = "",
+                    currentPartOfProjectId = null,
+                    currentPartOfProjectTitle = ""
+                ) {
+                    const input = document.getElementById(`${currentProjectId ? 'edit' : 'edit'}_part_of_project_input`);
+                    const dropdown = document.getElementById(`${currentProjectId ? 'edit' : 'edit'}_part_of_project_dropdown`);
+                    const selectedContainer = document.getElementById(`${currentProjectId ? 'edit' : 'edit'}_selected_project`);
+                    const parentInputsContainer = document.getElementById(`${currentProjectId ? 'edit' : 'edit'}_parent_inputs`);
 
-                if (!input || !dropdown || !hiddenInput || !selectedContainer) {
-                    console.warn("[populatePartOfProjectSelects] Elements not found for edit");
-                    return;
-                }
-
-                let projects = [];
-
-                function getInitialAvatar(name) {
-                    const colors = [
-                        "#F44336","#E91E63","#9C27B0","#673AB7","#3F51B5","#2196F3",
-                        "#03A9F4","#00BCD4","#009688","#4CAF50","#8BC34A","#FFC107",
-                        "#FF9800","#FF5722","#795548"
-                    ];
-                    const color = colors[Math.floor(Math.random() * colors.length)];
-                    const initial = (name || "?").charAt(0).toUpperCase();
-                    return `<div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;">${initial}</div>`;
-                }
-
-                function showSelectedProject(p) {
-                    const avatarHtml = p.image
-                        ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
-                        : getInitialAvatar(p.title);
-                    selectedContainer.innerHTML = `
-                        <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
-                            ${avatarHtml}
-                            <span class="flex-grow-1">${p.title}</span>
-                            <button type="button" class="btn btn-sm btn-remove-project remove-project" style="line-height:1">
-                                <span class="material-symbols-outlined">close</span>
-                            </button>
-                        </div>
-                    `;
-                    selectedContainer.querySelector(".remove-project").addEventListener("click", () => {
-                        hiddenInput.value = "";
-                        input.value = "";
-                        selectedContainer.innerHTML = "";
-                    });
-                }
-
-                function renderDropdown(filter = "") {
-                    dropdown.innerHTML = "";
-                    let filtered = projects.filter((p) =>
-                        p.title.toLowerCase().includes(filter.toLowerCase())
-                    );
-
-                    if (currentProjectId) {
-                        filtered = filtered.filter(
-                            (p) => String(p.id) !== String(currentProjectId)
-                        );
+                    if (!input || !dropdown || !selectedContainer) {
+                        console.warn("[populatePartOfProjectSelects] Elements not found for edit");
+                        return;
                     }
 
-                    if (filtered.length === 0) {
-                        dropdown.innerHTML = '<div class="dropdown-item disabled">No projects found</div>';
-                    } else {
-                        filtered.forEach((p) => {
-                            const avatarHtml = p.image
-                                ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`
-                                : getInitialAvatar(p.title);
-                            const item = document.createElement("div");
-                            item.className = "dropdown-item d-flex align-items-center gap-2";
-                            item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
-                            item.addEventListener("click", () => {
-                                hiddenInput.value = p.id;
-                                input.value = p.title;
-                                dropdown.style.display = "none";
-                                showSelectedProject(p);
+                    let projects = [];
+                    let selected = [];
+
+                    function getInitialAvatar(name) {
+                        const colors = ['#F44336','#E91E63','#9C27B0','#673AB7','#3F51B5','#2196F3','#03A9F4','#00BCD4','#009688','#4CAF50','#8BC34A','#FFC107','#FF9800','#FF5722','#795548'];
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        const initial = (name || '?').charAt(0).toUpperCase();
+                        return `<div style="width:28px;height:28px;border-radius:50%;background:${color};color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;">${initial}</div>`;
+                    }
+
+                    function renderSelected() {
+                        selectedContainer.innerHTML = '';
+                        if (!selected.length) return;
+                        const frag = document.createDocumentFragment();
+                        selected.forEach(p => {
+                            const wrapper = document.createElement('div');
+                            wrapper.className = 'd-inline-block me-2 mb-2';
+                            wrapper.innerHTML = `
+                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project" data-parent-id="${p.id}">
+                                    ${p.image ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : getInitialAvatar(p.title)}
+                                    <span class="flex-grow-1 text-truncate" style="max-width:160px;">${p.title}</span>
+                                    <button type="button" class="btn btn-sm btn-remove-parent" style="line-height:1"><span class="material-symbols-outlined">close</span></button>
+                                </div>
+                            `;
+                            wrapper.querySelector('.btn-remove-parent').addEventListener('click', () => {
+                                selected = selected.filter(s => String(s.id) !== String(p.id));
+                                updateHiddenInputs();
+                                renderSelected();
                             });
-                            dropdown.appendChild(item);
+                            frag.appendChild(wrapper);
+                        });
+                        selectedContainer.appendChild(frag);
+                    }
+
+                    function updateHiddenInputs() {
+                        if (!parentInputsContainer) return;
+                        parentInputsContainer.innerHTML = '';
+                        selected.forEach(p => {
+                            const inp = document.createElement('input'); inp.type='hidden'; inp.name='parent_project_ids[]'; inp.value = String(p.id);
+                            parentInputsContainer.appendChild(inp);
                         });
                     }
 
-                    dropdown.style.display = "block";
-                }
+                    function renderDropdown(filter = '') {
+                        dropdown.innerHTML = '';
+                        let filtered = projects.filter(p => p.title.toLowerCase().includes(filter.toLowerCase()));
+                        if (currentProjectId) filtered = filtered.filter(p => String(p.id) !== String(currentProjectId));
+                        filtered = filtered.filter(p => !selected.find(s => String(s.id) === String(p.id)));
+                        filtered.forEach(p => {
+                            const item = document.createElement('div'); item.className='dropdown-item d-flex align-items-center gap-2'; item.innerHTML = `${p.image ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">` : getInitialAvatar(p.title)}<span>${p.title}</span>`;
+                            item.addEventListener('click', () => { selected.push({id:p.id,title:p.title,image:p.image}); updateHiddenInputs(); renderSelected(); input.value=''; dropdown.style.display='none'; });
+                            dropdown.appendChild(item);
+                        });
+                        dropdown.style.display = filtered.length ? 'block' : 'none';
+                    }
 
-                // Fetch projects list
-                fetch(appUrl + "/project/index?task_scope=all")
-                    .then((res) => res.json())
-                    .then((payload) => {
+                    fetch(appUrl + '/project/index?task_scope=all').then(res => res.json()).then(payload => {
                         projects = (Array.isArray(payload) ? payload : payload.data) || [];
-                        projects = projects.map((p) => ({
-                            id: p.id,
-                            title: p.title || p.name || "Project " + p.id,
-                            image: p.image || "",
-                            project_type: p.project_type || "public",
-                        }));
+                        projects = projects.map(p => ({ id: p.id, title: p.title || p.name || 'Project ' + p.id, image: p.image || '', project_type: p.project_type || 'public' }));
 
                         if (currentPartOfProjectId) {
-                            const found = projects.find(
-                                (p) => String(p.id) === String(currentPartOfProjectId)
-                            );
-                            if (found) {
-                                hiddenInput.value = found.id;
-                                input.value = found.title;
-                                showSelectedProject(found);
-                            } else if (currentPartOfProjectTitle) {
-                                hiddenInput.value = currentPartOfProjectId;
-                                input.value = currentPartOfProjectTitle;
-                                showSelectedProject({
-                                    id: currentPartOfProjectId,
-                                    title: currentPartOfProjectTitle,
-                                    image: "",
-                                });
-                            }
+                            let arr = [];
+                            if (Array.isArray(currentPartOfProjectId)) arr = currentPartOfProjectId.slice();
+                            else if (typeof currentPartOfProjectId === 'string' || typeof currentPartOfProjectId === 'number') arr = [currentPartOfProjectId];
+                            arr = arr.map(a => String(a));
+                            arr.forEach(idStr => { const found = projects.find(p => String(p.id) === String(idStr)); if (found) selected.push({id:found.id,title:found.title,image:found.image}); else if (currentPartOfProjectTitle) selected.push({id:idStr,title:currentPartOfProjectTitle,image:''}); });
+                            updateHiddenInputs(); renderSelected();
                         }
                     });
 
-                input.addEventListener("input", () => renderDropdown(input.value));
-                input.addEventListener("focus", () => renderDropdown(input.value));
-                document.addEventListener("click", (e) => {
-                    if (!dropdown.contains(e.target) && e.target !== input) {
-                        dropdown.style.display = "none";
-                    }
-                });
-            }
+                    input.addEventListener('input', () => renderDropdown(input.value));
+                    input.addEventListener('focus', () => renderDropdown(input.value));
+                    document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
+                }
 
             $("#editProjectModal").on("shown.bs.modal", function (e) {
                 const data = $(e.relatedTarget).data("project") || {};
@@ -8959,9 +8925,9 @@ function statusLabel(statusRaw) {
 
     function loadProjectsForEdit(selectedProjectId = null, callback) {
         const input = document.getElementById("edit_task_project_input");
-        const dropdown = document.getElementById("edit_task_project_dropdown");
-        const selectedContainer = document.getElementById("edit_task_selected_project");
-        const hiddenInput = document.getElementById("edit_task_project_id");
+                const dropdown = document.getElementById(`${prefix}_part_of_project_dropdown`);
+                const selectedContainer = document.getElementById(`${prefix}_selected_project`);
+                const parentInputsContainer = document.getElementById(`${prefix}_parent_inputs`);
 
         if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
 
