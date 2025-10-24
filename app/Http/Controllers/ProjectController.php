@@ -2250,6 +2250,8 @@ class ProjectController extends Controller
             $project->reference_files = $finalFiles;
             $project->save();
 
+<<<<<<< HEAD
+=======
          
             try {
                 if (empty($request->part_of_project)) {
@@ -2260,6 +2262,7 @@ class ProjectController extends Controller
                 try { \Log::warning('Failed to sync project parents during update for project id ' . $project->id); } catch (\Throwable $__) {}
             }
 
+>>>>>>> da62c3ceeb7d28ecc30b1ce954d9943616599492
             if (auth()->check()) {
                 $employee = auth()->user()->employee;
                 if ($employee) {
@@ -3815,4 +3818,3 @@ class ProjectController extends Controller
 
 
 }
-

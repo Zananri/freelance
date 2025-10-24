@@ -139,8 +139,6 @@
             $.each(projects || [], function (_i, p) {
                 var parents = [];
                 if ($.isArray(p.parent_ids)) parents = p.parent_ids.slice();
-                if (p.legacy_parent_id && $.inArray(p.legacy_parent_id, parents) === -1)
-                    parents.push(p.legacy_parent_id);
                 $.each(parents, function (_j, pid) {
                     if (pid)
                         edges.push({ parent: String(pid), child: String(p.id) });

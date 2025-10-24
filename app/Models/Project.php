@@ -184,4 +184,25 @@ class Project extends Model
     }
 
 
+<<<<<<< HEAD
+    /**
+     * Remove all parents from this project
+     */
+    public function clearParents()
+    {
+        \DB::table('project_parents')
+            ->where('project_id', $this->id)
+            ->delete();
+        
+        // Clear legacy_parent_id field if exists
+        if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
+            $this->legacy_parent_id = null;
+            $this->save();
+        }
+            
+        return $this;
+    }
 }
+=======
+}
+>>>>>>> da62c3ceeb7d28ecc30b1ce954d9943616599492
