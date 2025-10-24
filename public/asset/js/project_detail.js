@@ -8823,7 +8823,7 @@ function statusLabel(statusRaw) {
         } catch (e) { console.warn('ensureParentOption error', e); }
     }
 
-    function loadProjectsForEdit(selectedProjectId = null, callback) {
+    function loadProjectsForEdit(prefix, selectedProjectId = null, callback) {
         const input = document.getElementById("edit_task_project_input");
                 const dropdown = document.getElementById(`${prefix}_part_of_project_dropdown`);
                 const selectedContainer = document.getElementById(`${prefix}_selected_project`);
