@@ -348,22 +348,22 @@
                             </div>
                             <div id="reference_files_preview" class="mt-2"></div>
                         </div>
-                        <div class="mb-3 d-flex justify-content-between">
-                            <div style="width: 48%;" class="input-custom">
-                                <label for="start_date" class="form-label label-custom">Start Date</label>
-                                <input type="datetime-local" class="form-control input-text" id="start_date"
-                                    name="start_date" required value="{{ now()->format('Y-m-d\\TH:i') }}">
-                            </div>
-                            <div style="width: 48%;" class="input-custom">
-                                <label for="due_date" class="form-label label-custom">Due Date</label>
-                                <input type="datetime-local" class="form-control input-text" id="due_date" name="due_date"
-                                    required>
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="due_forever" name="due_forever">
-                                    <label class="form-check-label" for="due_forever">Forever</label>
+                        <div class="mb-3">
+                            <div class="row">
+                                <div class="col-6">
+                                    <label for="start_date" class="form-label label-custom">Start Date</label>
+                                    <input type="datetime-local" class="form-control input-text" id="start_date" name="start_date" required value="{{ now()->format('Y-m-d\\TH:i') }}">
+                                </div>
+                                <div class="col-6">
+                                    <input class="fs-12 float-end mt-1" type="checkbox" id="due_forever" name="due_forever">
+                                    <label class="fs-10 float-end mt-1 me-1" for="due_forever">Forever</label>
+                                        
+                                    <label for="due_date" class="form-label label-custom">Due Date</label>
+                                    <input type="datetime-local" class="form-control input-text" id="due_date" name="due_date" required value="{{ now()->format('Y-m-d\\TH:i') }}">
                                 </div>
                             </div>
                         </div>
+                        
                         <div class="mb-3 input-custom">
                             <label class="form-label label-custom">Part of Project</label>
                             <input type="text" class="form-control input-text" id="add_part_of_project_input"
@@ -514,13 +514,12 @@
                                     name="start_date" required>
                             </div>
                             <div style="width: 48%;">
+                                <input class="fs-12 float-end mt-1" type="checkbox" id="edit_due_forever" name="due_forever">
+                                <label class="fs-10 float-end mt-1 me-1" for="edit_due_forever">Forever</label>
+
                                 <label for="edit_due_date" class="form-label label-custom">Due Date</label>
                                 <input type="datetime-local" class="form-control input-text" id="edit_due_date"
                                     name="due_date" required>
-                                <div class="form-check mt-2">
-                                    <input class="form-check-input" type="checkbox" id="edit_due_forever" name="due_forever">
-                                    <label class="form-check-label" for="edit_due_forever">Forever</label>
-                                </div>
                             </div>
                         </div>
                         <div class="mb-3 input-custom">

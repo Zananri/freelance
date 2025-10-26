@@ -1644,7 +1644,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             return `<span class="ms-1 fs-8 fw-semibold" style="color:${s.color};">${s.text}</span>`;
                         }
 
-                        console.log(project);
+                        let dateProject = `<p class="text-muted fs-8 mb-0" style="line-height:1;">${formatDateENMedium(project.start_date)}</p>`;
+                        
+                        if(project.due_date != '' && project.due_date != null && project.due_date != 'null' && project.due_date != undefined){
+                            dateProject = `<p class="text-muted fs-8 mb-0" style="line-height:1;">
+                                            ${formatDateENMedium(project.start_date)} - ${formatDateENMedium(project.due_date)}
+                                            </p>`;
+                        }
+                        
+
+                        //console.log(project);
 
                         rowHtml += `
                             <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
@@ -1678,11 +1687,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                                 <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">
                                                     ${project.title}
                                                 </h6>
-                                                <p class="text-muted fs-8 mb-0" style="line-height:1;">${formatDateENMedium(
-                                                    project.start_date
-                                                )} - ${formatDateENMedium(
-                            project.due_date
-                        )}</p>
+                                                ${dateProject}
                                             </a>
                                         </div>
                                         <div class="dropdown-icon-container">

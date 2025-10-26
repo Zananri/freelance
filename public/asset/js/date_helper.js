@@ -132,12 +132,17 @@ const formatDateENMedium = (date) => {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
-  const newDate = new Date(date);
-  const d = newDate.getDate();
-  const m = monthNames[newDate.getMonth()];
-  const y = newDate.getFullYear();
+  if(date != '' && date != null && date != 'null' && date != undefined){
+    const newDate = new Date(date);
+    const d = newDate.getDate();
+    const m = monthNames[newDate.getMonth()];
+    const y = newDate.getFullYear();
 
-  return `${d} ${m} ${y}`;
+    return `${d} ${m} ${y}`;
+  }else{
+    return '';
+  }
+  
 };
 
 const formatDateENMediumDayMonth = (date) => {
