@@ -120,7 +120,11 @@
                                                                 <div class="time-out"></div>
                                                             </div>
                                                         </div>
-                                                        
+                                                        <div class="box-leave">
+                                                            <div class="d-flex h-100 w-100 align-items-center justify-content-center">
+                                                                <div class="description-leave"></div>
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             @endfor

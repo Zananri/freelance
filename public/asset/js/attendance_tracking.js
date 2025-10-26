@@ -146,14 +146,15 @@ function getAttendanceTrackingData(month,year)
           //$('.col-user-management .loader').fadeOut('fast');
         },
         success: function(response) {
-            var resData = response.data;
+            var dtAttendance = response.data.attendance;
+            var employeeLeave = response.data.employeeLeave;
             
             $('.employee-row .time-in, .employee-row  .time-out').text(' ');
 
             $('.table-attendance .col-day').removeClass('is-late');
 
-            for (let i = 0; i < resData.length; i++) {
-                const attendance = resData[i];
+            for (let i = 0; i < dtAttendance.length; i++) {
+                const attendance = dtAttendance[i];
 
                 const dateString = attendance.date_attendance;
                 const dateObject = new Date(dateString);
@@ -171,9 +172,38 @@ function getAttendanceTrackingData(month,year)
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text(timeIn);
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text(timeOut);
                 
-                
-                
             }
+
+            $('.col-day .description-leave').text('');
+            
+            for (let i = 0; i < employeeLeave.length; i++) {
+                const employeeLeaveRequest = employeeLeave[i];
+
+                const startDateObject = new Date(employeeLeaveRequest.start_date);
+                const startDatedayOfMonth = startDateObject.getDate();
+
+                $('[data-employee-id="'+employeeLeaveRequest.employee_id+'"] [data-day="'+startDatedayOfMonth+'"]').addClass(employeeLeaveRequest.leave_type.toLowerCase());
+
+                let textLeave = '';
+
+                if(employeeLeaveRequest.leave_type == 'ANNUAL_LEAVE'){
+                    textLeave = 'LEAVE';
+                }
+                else if(employeeLeaveRequest.leave_type == 'SICK'){
+                    textLeave = 'SICK';
+                }
+                
+                $('[data-employee-id="'+employeeLeaveRequest.employee_id+'"] [data-day="'+startDatedayOfMonth+'"] .description-leave').text(textLeave);
+                
+                for (let j = 1; j < employeeLeaveRequest.day_amount; j++) {
+                    let startDateNew = addDays(employeeLeaveRequest.start_date,j);
+                    let startDatedayOfMonthNew = startDateNew.getDate();
+                    console.log(startDatedayOfMonthNew);
+                    $('[data-employee-id="'+employeeLeaveRequest.employee_id+'"] [data-day="'+startDatedayOfMonthNew+'"]').addClass(employeeLeaveRequest.leave_type.toLowerCase());
+                    $('[data-employee-id="'+employeeLeaveRequest.employee_id+'"] [data-day="'+startDatedayOfMonthNew+'"] .description-leave').text(textLeave);
+                }
+            }
+            
 
             // "id": 1,
             // "employee_id": 1,

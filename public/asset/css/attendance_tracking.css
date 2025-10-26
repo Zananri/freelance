@@ -399,6 +399,38 @@
 .table-attendance tbody .col-day.off-day:hover .box-attendance{
     background-color:#cd5456 !important ;
 }
+/* DAE3ED */
+.table-attendance tbody .col-day.annual_leave .box-attendance{
+    background-color:#dbebff !important ;
+}
+.table-attendance tbody .col-day.annual_leave:hover .box-attendance{
+    background-color:#e7f2ff !important ;
+}
+
+.table-attendance tbody .col-day .box-leave{
+    position: absolute;
+    left: 0px;
+    top:0px;
+    width: 100%;
+    height: 100%;
+    display: none;
+}
+
+.table-attendance tbody .col-day.annual_leave .box-leave,
+.table-attendance tbody .col-day.sick .box-leave{
+    display: block;
+}
+
+.table-attendance tbody .col-day.sick .box-attendance{
+    background-color:#ffceab !important ;
+}
+.table-attendance tbody .col-day.sick:hover .box-attendance{
+    background-color:#ffdbc1 !important ;
+}
+
+.table-attendance tbody .col-day .description-leave{
+    font-size: 10px;
+}
 
 .table-attendance .box-employee {
     padding: 8px 8px;

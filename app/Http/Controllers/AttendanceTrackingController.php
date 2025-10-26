@@ -22,6 +22,8 @@ use App\Models\Attendance;
 use App\Models\AttendanceTracking;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
+use App\Models\EmployeeLeaveRequest;
+use App\Models\EmployeeOvertimeRequest;
 
 
 class AttendanceTrackingController extends Controller
@@ -72,12 +74,23 @@ class AttendanceTrackingController extends Controller
             ->whereIn('employee_id',$employeeIds)
             ->where('date_attendance','<=',$lastDayOfMonth)
             ->get();
+        
+        $employeeLeave = EmployeeLeaveRequest::whereIn('employee_id',$employeeIds)
+            ->where('status','APPROVED')
+            ->where('start_date','>=',$firstDayOfMonth)
+            ->where('start_date','<=',$lastDayOfMonth)
+            ->where('end_date','>=',$firstDayOfMonth)
+            ->where('end_date','<=',$lastDayOfMonth)
+        ->get();
 
             //dd($month,$year, $firstDayOfMonth,$lastDayOfMonth,$attendance);
         return response()->json([
                 'code' => 200,
                 'status' => 'success',
-                'data' => $attendance,
+                'data' => [
+                    'attendance' => $attendance,
+                    'employeeLeave' => $employeeLeave,
+                ],
                 'message' => 'Get attendance tracking data successfully'
         ]);
 
@@ -272,6 +285,24 @@ class AttendanceTrackingController extends Controller
                     ->where('date_attendance', '>=', $firstDayOfMonth)
                     ->count();
 
+            $employeeLeaveAmount = EmployeeLeaveRequest::where('employee_id',$employeeItem->id)
+                    ->where('status','APPROVED')
+                    ->where('leave_type','ANNUAL_LEAVE')
+                    ->where('start_date','>=',$firstDayOfMonth)
+                    ->where('start_date','<=',$lastDayOfMonth)
+                    ->where('end_date','>=',$firstDayOfMonth)
+                    ->where('end_date','<=',$lastDayOfMonth)
+                ->sum('day_amount');
+
+            $employeeSickAmount = EmployeeLeaveRequest::where('employee_id',$employeeItem->id)
+                    ->where('status','APPROVED')
+                    ->where('leave_type','SICK')
+                    ->where('start_date','>=',$firstDayOfMonth)
+                    ->where('start_date','<=',$lastDayOfMonth)
+                    ->where('end_date','>=',$firstDayOfMonth)
+                    ->where('end_date','<=',$lastDayOfMonth)
+                ->sum('day_amount');
+
             $activeWorksheet->setCellValue('A'.$row, $no);
             $activeWorksheet->setCellValue('B'.$row, $employeeItem->name);
             $activeWorksheet->setCellValue('C'.$row, $employeeItem->employee_niks);
@@ -286,10 +317,10 @@ class AttendanceTrackingController extends Controller
             $activeWorksheet->setCellValue('L'.$row, '');//'Time Lateness 1 > Hour'
             $activeWorksheet->setCellValue('M'.$row, '');//'Overtime off work day'
             $activeWorksheet->setCellValue('N'.$row, '');//'Overtime on Work day'
-            $activeWorksheet->setCellValue('O'.$row, '');//'Sick'
+            $activeWorksheet->setCellValue('O'.$row, $employeeSickAmount);//'Sick'
             $activeWorksheet->setCellValue('P'.$row, '');//'Permit'
             $activeWorksheet->setCellValue('Q'.$row, '');//'Absen'
-            $activeWorksheet->setCellValue('R'.$row, '');//'Leave'
+            $activeWorksheet->setCellValue('R'.$row, $employeeLeaveAmount);//'Leave'
             $activeWorksheet->setCellValue('S'.$row, '');//'Shift'
             $activeWorksheet->setCellValue('T'.$row, '');//'Total Work half Day This Month'
             $activeWorksheet->setCellValue('U'.$row, '');//'Amount Work half Day This Month'
@@ -334,6 +365,26 @@ class AttendanceTrackingController extends Controller
                     $activeWorksheet->setCellValue($column.$row, '');
                 }
                 
+                $employeeLeave = EmployeeLeaveRequest::where('employee_id',$employeeItem->id)
+                    ->where('status','APPROVED')
+                    ->where('start_date','<=',$newAddDate->toDateString())
+                    ->where('end_date','>=',$newAddDate->toDateString())
+                ->first();
+
+                if($employeeLeave){
+                    $leaveType = '';
+
+                    if($employeeLeave->leave_type == 'SICK'){
+                        $leaveType = 'SICK';
+                    }
+
+                    if($employeeLeave->leave_type == 'ANNUAL_LEAVE'){
+                        $leaveType = 'LEAVE';
+                    }
+                    
+                    $activeWorksheet->setCellValue($column.$row, $leaveType);
+                }
+
                 
                 
 
