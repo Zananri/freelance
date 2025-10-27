@@ -195,6 +195,12 @@ class Project extends Model
             ->where('project_id', $this->id)
             ->delete();
         
+            // Clear legacy_parent_id field if exists
+        if (\Schema::hasColumn('projects', 'part_of_project')) {
+            $this->part_of_project = null;
+            $this->save();
+        }
+
         // Clear legacy_parent_id field if exists
         if (\Schema::hasColumn('projects', 'legacy_parent_id')) {
             $this->legacy_parent_id = null;

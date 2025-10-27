@@ -811,6 +811,10 @@ class ProjectController extends Controller
                     $parentIds = json_decode($parentRecord->project_parent_ids, true) ?: [];
                 }
 
+                if($p->part_of_project > 1){
+                    array_push($parentIds,$p->part_of_project);
+                }
+
                 return [
                     'id' => $p->id,
                     'title' => $p->title,
