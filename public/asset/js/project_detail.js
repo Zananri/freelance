@@ -5912,6 +5912,22 @@
                 }
             }
 
+            // Populate Part of Project preview (parent project selection) if function available
+            try {
+                var parentIds = (typeof data.parent_project_ids !== 'undefined') ? data.parent_project_ids : (data.part_of_project || "");
+                var tryCall = function() {
+                    try {
+                        if (typeof window.populatePartOfProjectSelects === 'function') {
+                            window.populatePartOfProjectSelects(data.id, data.title || "", parentIds);
+                        } else {
+                            // Try again shortly in case the function is defined later
+                            setTimeout(function(){ tryCall(); }, 150);
+                        }
+                    } catch (e) { console.warn('populatePartOfProjectSelects call failed', e); }
+                };
+                tryCall();
+            } catch (e) {}
+
             // Set co-authors and contributors
             if (window.clearSelectedCoAuthorsEdit) window.clearSelectedCoAuthorsEdit();
             if (window.clearSelectedContributorsEdit) window.clearSelectedContributorsEdit();
@@ -6318,7 +6334,12 @@
                     input.addEventListener('input', () => renderDropdown(input.value));
                     input.addEventListener('focus', () => renderDropdown(input.value));
                     document.addEventListener('click', (e) => { if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
-                }
+                    }
+
+                    // Expose for other scripts so edit population can call this and render selected parents
+                    try {
+                        window.populatePartOfProjectSelects = populatePartOfProjectSelects;
+                    } catch (_) {}
 
             $("#editProjectModal").on("shown.bs.modal", function (e) {
                 const data = $(e.relatedTarget).data("project") || {};
