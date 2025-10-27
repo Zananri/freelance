@@ -529,13 +529,16 @@
                             <div class="mb-3 input-custom d-flex justify-content-between">
                                 <div style="width: 48%;">
                                     <label for="edit_start_date" class="form-label label-custom">Start Date</label>
-                                    <input type="date" class="form-control input-text" id="edit_start_date"
+                                    <input type="datetime-local" class="form-control input-text" id="edit_start_date"
                                         name="start_date" required>
                                 </div>
                                 <div style="width: 48%;">
+                                    <input class="fs-12 float-end mt-1" type="checkbox" id="edit_due_forever" name="due_forever">
+                                    <label class="fs-10 float-end mt-1 me-1" for="edit_due_forever">Forever</label>
+
                                     <label for="edit_due_date" class="form-label label-custom">Due Date</label>
-                                    <input type="date" class="form-control input-text" id="edit_due_date"
-                                        name="due_date" required>
+                                    <input type="datetime-local" class="form-control input-text" id="edit_due_date"
+                                        name="due_date">
                                 </div>
                             </div>
                             <div class="mb-3 input-custom">
