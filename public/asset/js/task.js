@@ -3453,8 +3453,17 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             try { return !!(currentEmployeeId && Array.isArray(task.executors) && task.executors.some(ex => String(ex.id) === String(currentEmployeeId))); } catch(_) { return false; }
         })();
 
-        // Show the dropdown only when the viewer is the PIC and not pending
-        const shouldShowDropdown = !!(viewerIsPic && !viewerPending);
+        // determine if current viewer is the project author (project author is set in project_detail.js)
+        const viewerIsProjectAuthor = (function(){
+            try {
+                var pa = window.__projectAuthorId || null;
+                return !!(pa && currentEmployeeId && String(pa) === String(currentEmployeeId));
+            } catch(_) { return false; }
+        })();
+
+        // Show the dropdown when the viewer is the PIC (and not pending executor) OR when the viewer is the project author.
+        // Executors (non-PIC) will not see the dropdown unless they are the project author.
+        const shouldShowDropdown = !!((viewerIsPic && !viewerPending) || viewerIsProjectAuthor);
 
         // If dropdown isn't shown, make sure the arrow icon aligns to the right on THIS card only
         if (iconHtml && !shouldShowDropdown) {

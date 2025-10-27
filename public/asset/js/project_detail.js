@@ -5660,6 +5660,16 @@
             data.co_authors,
             data.contributors
         );
+        // expose project author id globally so other modules (e.g. task renderer) can
+        // decide UI visibility (e.g. show dropdown for project author across all tasks)
+        try {
+            window.__projectAuthorId = (data && data.author && (data.author.id || data.author.employee_id)) ? (data.author.id || data.author.employee_id) : null;
+            // also keep full author object for possible future use
+            window.__projectAuthor = data && data.author ? data.author : null;
+        } catch (_) {
+            window.__projectAuthorId = null;
+            window.__projectAuthor = null;
+        }
         createActionButtons(data.id, $("#project-actions"));
     }
 

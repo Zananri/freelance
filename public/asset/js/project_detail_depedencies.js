@@ -246,15 +246,16 @@ function renderTaskNode(task, $template) {
                 null;
         }
 
-        let showMenu = false;
+    
         let isPrivileged = false;
         if (currentEmployeeId) {
             const isPIC = task.pic?.id && String(currentEmployeeId) === String(task.pic.id);
             const isAuthor = task.project?.authors?.some((a) => String(a.id) === String(currentEmployeeId));
-            const isCoAuthor = task.project?.co_authors?.some((a) => String(a.id) === String(currentEmployeeId));
-            isPrivileged = isPIC || isAuthor || isCoAuthor;
-            showMenu = true;
+            // Note: intentionally do NOT grant privileges to co-authors here
+            isPrivileged = !!(isPIC || isAuthor);
         }
+        // Only show the menu button when viewer is privileged
+        const showMenu = !!isPrivileged;
 
         try {
             if (visual === "complete") {
