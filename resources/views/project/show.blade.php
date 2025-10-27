@@ -956,23 +956,7 @@
 
                             <hr>
 
-                            <!-- Meta Info -->
-                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                                <div><span class="text-muted">Priority:</span> <span font
-                                        id="projectTaskPriority">-</span></div>
-                                <div><span class="text-muted">Deadline:</span> <span id="projectTaskDeadline">-</span>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
-                                <span class="text-muted">Department:</span>
-                                <span id="projectTaskDepartment">-</span>
-                            </div>
-
-                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                                <span class="text-muted">Division:</span>
-                                <span id="projectTaskDivision">-</span>
-                            </div>
+                            
 
                             <div class="d-flex justify-content-end">
                                 <button class="btn border-0 playlist-add-check" data-bs-target="#completedModal"
@@ -998,6 +982,24 @@
                             <!-- Status Changes -->
                             <div id="projectTaskStatusChanges" class="mt-3"></div>
 
+                            <!-- Meta Info -->
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <div><span class="text-muted">Priority:</span> <span font
+                                        id="projectTaskPriority">-</span></div>
+                                <div><span class="text-muted">Deadline:</span> <span id="projectTaskDeadline">-</span>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                <span class="text-muted">Department:</span>
+                                <span id="projectTaskDepartment">-</span>
+                            </div>
+
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <span class="text-muted">Division:</span>
+                                <span id="projectTaskDivision">-</span>
+                            </div>
+
                         </div>
                     </div>
 
@@ -1012,7 +1014,7 @@
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content modal-content-custom">
                     <div class="modal-body modal-body-custom">
-                        <div class="d-flex align-items-center mb-2">
+                        <div class="d-flex align-items-center mb-3">
                             <img id="completed_task_image" src="" alt="Project Image"
                                 class="rounded-circle me-2" width="34" height="34">
                             <div>
@@ -1023,26 +1025,29 @@
                         </div>
 
                         <div class="mb-4 task-description-container">
-                            <div id="completed_task_note" style="font-size: 12px" class="text-muted task-description"><em>No note</em></div>
+                            <div id="completed_task_note" style="font-size: 14px" class="text-muted task-description"><em>No note</em></div>
                         </div>
 
                         <div class="row mb-4 link-file-task">
+                            
+                            <div class="col-12 mb-3" style="font-size: 12px;">
+                                <label class="fw-normal text-muted d-block mb-1">Links:</label>
+                                <div id="completed_task_urls"><em>-</em></div>
+                            </div>
+                            <div class="col-12 mb-5" style="font-size: 12px;">
+                                <label class="fw-normal text-muted d-block mb-1">Files:</label>
+                                <div id="completed_task_files"><em>-</em></div>
+                            </div>
+
                             <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
                                 <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
-                                <span id="completed_priority" style="font-weight: 500; color: #f0ad4e;">-</span>
+                                <span id="completed_priority">-</span>
                             </div>
                             <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
                                 <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
                                 <span id="completed_date">-</span>
                             </div>
-                            <div class="col-12" style="font-size: 12px;">
-                                <label class="fw-normal text-muted d-block mb-1">Links:</label>
-                                <div id="completed_task_urls"><em>-</em></div>
-                            </div>
-                            <div class="col-12" style="font-size: 12px;">
-                                <label class="fw-normal text-muted d-block mb-1">Files:</label>
-                                <div id="completed_task_files"><em>-</em></div>
-                            </div>
+
                         </div>
 
                         <div class="modal-footer modal-footer-custom">
