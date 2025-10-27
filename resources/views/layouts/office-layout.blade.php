@@ -326,6 +326,9 @@
                             <span class="text-menu">Weekday Off</span>
                         </a>
                     </li>
+                    @endif
+
+                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER']))
                     <li>
                         <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">groups</span>
@@ -338,7 +341,9 @@
                             <span class="text-menu">Attendance Tracking</span>
                         </a>
                     </li>
-                    
+                    @endif
+
+                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
                     <li>
                         <a href="{{ route('leave') }}" class="{{ $menu_active == 'leave' ? 'active' : '' }} menu-leave">
                             <span class="material-symbols-outlined">free_cancellation</span>

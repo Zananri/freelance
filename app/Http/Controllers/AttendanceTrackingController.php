@@ -456,6 +456,12 @@ class AttendanceTrackingController extends Controller
                 'attendance_date' => 'required|date'
             ]);
 
+            $userRole = auth()->user()->user_role;
+
+            if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER'])){
+                throw new \Exception('Only HR Manager can update attendance');
+            }
+
             $userId = auth()->user()->id;
             $employeeId = $request->employee_id;
             $statusAttendance = $request->attendance_status;

@@ -158,6 +158,12 @@ class EmployeeController extends Controller
         try {
             DB::beginTransaction();
 
+            $userRole = auth()->user()->user_role;
+
+            if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER'])){
+                throw new \Exception('Only HR Manager can add employee');
+            }
+
             $validator = Validator::make($request->all(), [
                 'department_id' => 'required|exists:departments,id',
                 'division_id' => 'required|exists:divisions,id',
@@ -310,6 +316,11 @@ class EmployeeController extends Controller
     {
         try {
             DB::beginTransaction();
+            $userRole = auth()->user()->user_role;
+
+            if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER'])){
+                throw new \Exception('Only HR Manager can update employee');
+            }
 
             $employee = Employee::find($id);
             if (!$employee) {
@@ -521,6 +532,12 @@ class EmployeeController extends Controller
     {
         try {
             DB::beginTransaction();
+
+            $userRole = auth()->user()->user_role;
+
+            if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER'])){
+                throw new \Exception('Only HR Manager can delete employee');
+            }
 
             $employee = Employee::find($id);
             if (!$employee) {
