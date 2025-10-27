@@ -5789,9 +5789,35 @@
                 }
             }
 
-            // Set dates
-            $("#edit_start_date").val(data.start_date || "");
-            $("#edit_due_date").val(data.due_date || "");
+            // Set dates (normalize to datetime-local format)
+            try {
+                var startVal = '';
+                try {
+                    startVal = (typeof toInputDatetimeLocal === 'function') ? toInputDatetimeLocal(data.start_date) : (data.start_date || '');
+                } catch (_) {
+                    startVal = data.start_date || '';
+                }
+                $("#edit_start_date").val(startVal);
+
+                // Due date: if missing treat as Forever (checked + disabled)
+                if (!data.due_date) {
+                    try { $("#edit_due_forever").prop('checked', true); } catch(_) {}
+                    try { $("#edit_due_date").val('').prop('disabled', true); } catch(_) {}
+                } else {
+                    try { $("#edit_due_forever").prop('checked', false); } catch(_) {}
+                    var dueVal = '';
+                    try {
+                        dueVal = (typeof toInputDatetimeLocal === 'function') ? toInputDatetimeLocal(data.due_date) : (data.due_date || '');
+                    } catch (_) {
+                        dueVal = data.due_date || '';
+                    }
+                    try { $("#edit_due_date").prop('disabled', false).val(dueVal); } catch(_) {}
+                }
+            } catch (e) {
+                // fallback: set raw values
+                try { $("#edit_start_date").val(data.start_date || ""); } catch(_) {}
+                try { $("#edit_due_date").val(data.due_date || ""); } catch(_) {}
+            }
 
             // Set reference URLs
             var urlsContainer = $("#edit_project_reference_urls_container");
