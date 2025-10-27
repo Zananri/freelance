@@ -66,22 +66,27 @@
 			}
 
 			// Add three-dot menu button (circular, half outside top-right corner) - smaller
-			if ($card.find('.more-menu-btn').length === 0) {
-				const $moreBtn = $('<div class="more-menu-btn d-none" title="More options"\
-					style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;background:#fff;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);z-index:9999;pointer-events:auto;user-select:none;-webkit-user-select:none;border:1px solid rgba(0,0,0,0.08);">\
-					<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style="color:#666;">\
-					<circle cx="2" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="14" cy="8" r="1.2"/>\
-					</svg></div>');
-				$moreBtn.attr('draggable', false);
-				$moreBtn.on('click', function(e){
-					try {
-						e.stopPropagation();
-						e.preventDefault();
-						showMenu(e, p.id);
-					} catch(_){}
-				});
-				$card.append($moreBtn);
-			}
+			// Only render the menu button when the current employee is author or co-author of the project
+			try {
+				if (p && (p.is_author_or_coauthor || p.isAuthorOrCoAuthor)) {
+					if ($card.find('.more-menu-btn').length === 0) {
+						const $moreBtn = $('<div class="more-menu-btn d-none" title="More options"\
+							style="position:absolute;top:-7px;right:-7px;width:18px;height:18px;background:#fff;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.15);z-index:9999;pointer-events:auto;user-select:none;-webkit-user-select:none;border:1px solid rgba(0,0,0,0.08);">\
+							<svg width="10" height="10" viewBox="0 0 16 16" fill="currentColor" style="color:#666;">\
+							<circle cx="2" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="14" cy="8" r="1.2"/>\
+							</svg></div>');
+						$moreBtn.attr('draggable', false);
+						$moreBtn.on('click', function(e){
+							try {
+								e.stopPropagation();
+								e.preventDefault();
+								showMenu(e, p.id);
+							} catch(_){}
+						});
+						$card.append($moreBtn);
+					}
+				}
+			} catch(_) {}
 
 			$card.hover(
 				function () {
