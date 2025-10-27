@@ -234,7 +234,7 @@
                         </a>
                     </li>
 
-                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
+                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','CEO']))
 
                     <li>
                         <a href="{{ route('bi_dashboard') }}" class="{{ $menu_active == 'bi_dashboard' ? 'active' : '' }}">
