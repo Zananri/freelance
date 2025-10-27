@@ -246,15 +246,16 @@ function renderTaskNode(task, $template) {
                 null;
         }
 
-        let showMenu = false;
+    
         let isPrivileged = false;
         if (currentEmployeeId) {
             const isPIC = task.pic?.id && String(currentEmployeeId) === String(task.pic.id);
             const isAuthor = task.project?.authors?.some((a) => String(a.id) === String(currentEmployeeId));
-            const isCoAuthor = task.project?.co_authors?.some((a) => String(a.id) === String(currentEmployeeId));
-            isPrivileged = isPIC || isAuthor || isCoAuthor;
-            showMenu = true;
+            // Note: intentionally do NOT grant privileges to co-authors here
+            isPrivileged = !!(isPIC || isAuthor);
         }
+        // Only show the menu button when viewer is privileged
+        const showMenu = !!isPrivileged;
 
         try {
             if (visual === "complete") {
@@ -2049,8 +2050,10 @@ function initBootstrapTooltips(root = document) {
 }
 
 function initProjectTaskDetailModal() {
-    const modal = new bootstrap.Modal("#projectTaskDetailModal");
-    const $modal = $("#projectTaskDetailModal");
+    const el = document.getElementById('projectTaskDetailModal');
+    if (!el) return;
+    const modal = bootstrap.Modal.getOrCreateInstance(el) || new bootstrap.Modal(el);
+    const $modal = $(el);
 
     $modal.on("shown.bs.modal", () =>
         setTimeout(() => initBootstrapTooltips($modal[0]), 100)
@@ -2191,10 +2194,11 @@ function initProjectTaskDetailModal() {
         const taskId = currentTaskId;
         hideMenu();
         if (!taskId) return;
-        const modal = new bootstrap.Modal("#editProjectTaskModal");
-        $("#editProjectTaskModal").attr("data-task-id", taskId);
-        modal.show();
-        window.handleProjectTaskEdit?.(taskId);
+        const el = document.getElementById('editProjectTaskModal');
+        if (!el) return;
+        // Let the centralized handler manage modal instantiation and showing.
+        el.setAttribute('data-task-id', taskId);
+        try { window.handleProjectTaskEdit && window.handleProjectTaskEdit(taskId); } catch (e) { console.warn('handleProjectTaskEdit failed', e); }
     });
 
     $(document).on("click", "#task-global-more-menu .clear-parent-action", function (e) {
@@ -2243,10 +2247,10 @@ function initProjectTaskDetailModal() {
         const taskId = currentTaskId;
         hideMenu();
         if (!taskId) return;
-        const modal = new bootstrap.Modal("#deleteProjectTaskModal");
-        $("#deleteProjectTaskModal").attr("data-task-id", taskId);
-        modal.show();
-        window.handleProjectTaskDelete?.(taskId);
+        const delEl = document.getElementById('deleteProjectTaskModal');
+        if (!delEl) return;
+        delEl.setAttribute('data-task-id', taskId);
+        try { window.handleProjectTaskDelete && window.handleProjectTaskDelete(taskId); } catch (e) { console.warn('handleProjectTaskDelete failed', e); }
     });
 
     $(document).on("click", function (e) {

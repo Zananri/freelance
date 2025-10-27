@@ -2350,7 +2350,29 @@ class TaskController extends Controller
                 ->where('role', 'PIC')
                 ->exists();
 
-            if (!$isPic) {
+            // Also allow project creator/author to delete tasks for their project.
+            $isProjectAuthor = false;
+            try {
+                $proj = $task->project;
+                if ($proj) {
+                    $userId = $user?->id;
+                    // Some installs store project.created_by as user id, some as employee id (created_by_employee)
+                    if (isset($proj->created_by) && $proj->created_by && $userId && ((string)$proj->created_by === (string)$userId)) {
+                        $isProjectAuthor = true;
+                    }
+                    if (!$isProjectAuthor && isset($proj->created_by_employee) && $proj->created_by_employee && $employeeId && ((string)$proj->created_by_employee === (string)$employeeId)) {
+                        $isProjectAuthor = true;
+                    }
+                    // fallback: if created_by stored as employee id
+                    if (!$isProjectAuthor && isset($proj->created_by) && $proj->created_by && $employeeId && ((string)$proj->created_by === (string)$employeeId)) {
+                        $isProjectAuthor = true;
+                    }
+                }
+            } catch (\Throwable $_) {
+                $isProjectAuthor = false;
+            }
+
+            if (!($isPic || $isProjectAuthor)) {
                 return response()->json([
                     'code' => 403,
                     'status' => 'error',
@@ -2419,7 +2441,27 @@ class TaskController extends Controller
                 ->where('role', 'PIC')
                 ->exists();
 
-            if (!$isPic) {
+            // Also allow project creator/author to soft-delete tasks for their project.
+            $isProjectAuthor = false;
+            try {
+                $proj = $task->project;
+                if ($proj) {
+                    $userId = $user?->id;
+                    if (isset($proj->created_by) && $proj->created_by && $userId && ((string)$proj->created_by === (string)$userId)) {
+                        $isProjectAuthor = true;
+                    }
+                    if (!$isProjectAuthor && isset($proj->created_by_employee) && $proj->created_by_employee && $employeeId && ((string)$proj->created_by_employee === (string)$employeeId)) {
+                        $isProjectAuthor = true;
+                    }
+                    if (!$isProjectAuthor && isset($proj->created_by) && $proj->created_by && $employeeId && ((string)$proj->created_by === (string)$employeeId)) {
+                        $isProjectAuthor = true;
+                    }
+                }
+            } catch (\Throwable $_) {
+                $isProjectAuthor = false;
+            }
+
+            if (!($isPic || $isProjectAuthor)) {
                 return response()->json([
                     'code' => 403,
                     'status' => 'error',
