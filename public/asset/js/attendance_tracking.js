@@ -152,6 +152,8 @@ function getAttendanceTrackingData(month,year)
             $('.employee-row .time-in, .employee-row  .time-out').text(' ');
 
             $('.table-attendance .col-day').removeClass('is-late');
+            $('.table-attendance .col-day').removeClass('annual_leave');
+            $('.table-attendance .col-day').removeClass('sick');
 
             for (let i = 0; i < dtAttendance.length; i++) {
                 const attendance = dtAttendance[i];
