@@ -8909,13 +8909,14 @@ function statusLabel(statusRaw) {
         } catch (e) { console.warn('ensureParentOption error', e); }
     }
 
-    function loadProjectsForEdit(prefix, selectedProjectId = null, callback) {
+    // NOTE: renamed to avoid clobbering the global loadProjectsForEdit used by task.js
+    function loadProjectsForEditWithPrefix(prefix, selectedProjectId = null, callback) {
         const input = document.getElementById("edit_task_project_input");
                 const dropdown = document.getElementById(`${prefix}_part_of_project_dropdown`);
                 const selectedContainer = document.getElementById(`${prefix}_selected_project`);
                 const parentInputsContainer = document.getElementById(`${prefix}_parent_inputs`);
 
-        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+    if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
 
         let projects = [];
 
@@ -9001,8 +9002,8 @@ function statusLabel(statusRaw) {
                 if (typeof callback === "function") callback();
             });
 
-        input.addEventListener("input", () => renderDropdown(input.value, true));
-        input.addEventListener("focus", () => renderDropdown(input.value, true));
+    input.addEventListener("input", () => renderDropdown(input.value, true));
+    input.addEventListener("focus", () => renderDropdown(input.value, true));
 
         document.addEventListener("click", (e) => {
             if (!dropdown.contains(e.target) && e.target !== input) {
@@ -9105,10 +9106,99 @@ function handleProjectTaskEdit(taskId) {
                 if (editParentSelected) editParentSelected.innerHTML = '';
             } catch(_) {}
 
-            loadProjectsForEdit(projectId, function () {
-                loadRelatedTasks(projectId, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
-                ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id);
-            });
+            // Call the projects loader used by task.js when available. If it's not defined
+            // (due to script load order or earlier rename), fall back to the prefixed
+            // loader defined in this file, and finally ensure related tasks are loaded
+            // so the edit modal shows correct parent preview.
+            (function() {
+                const cb = function() {
+                    try {
+                        loadRelatedTasks(projectId, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
+                    } catch(_) {}
+                    try { ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id); } catch(_) {}
+                };
+
+                // Helper to render a selected project preview into the edit modal
+                function renderSelectedProjectPreview(p) {
+                    try {
+                        if (!p) return;
+                        const input = document.getElementById("edit_task_project_input");
+                        const hiddenInput = document.getElementById("edit_task_project_id");
+                        const selectedContainer = document.getElementById("edit_task_selected_project");
+                        if (!input || !hiddenInput || !selectedContainer) return;
+
+                        hiddenInput.value = p.id;
+                        input.value = p.title || (p.name || '');
+
+                        const avatarHtml = p.image
+                            ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                            : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">${(p.title||p.name||'').charAt(0).toUpperCase()}</div>`;
+
+                        selectedContainer.innerHTML = `
+                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                                ${avatarHtml}
+                                <span class="flex-grow-1">${p.title || (p.name||'')}</span>
+                                <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        `;
+
+                        const btn = selectedContainer.querySelector('.btn-remove-project');
+                        if (btn) {
+                            btn.addEventListener('click', function() {
+                                hiddenInput.value = '';
+                                input.value = '';
+                                selectedContainer.innerHTML = '';
+                                try { document.getElementById('edit_task_parent_id').innerHTML = "<option value=''>No Parent</option>"; } catch(_) {}
+                            });
+                        }
+                    } catch (e) { console.warn('renderSelectedProjectPreview failed', e); }
+                }
+
+                // Try calling the usual loaders (task.js loader or local prefixed loader)
+                try {
+                    if (typeof window.loadProjectsForEdit === 'function') {
+                        try { window.loadProjectsForEdit(projectId, cb); } catch (e) { console.warn('window.loadProjectsForEdit failed', e); }
+                    }
+                } catch(_) {}
+
+                try {
+                    if (typeof loadProjectsForEditWithPrefix === 'function') {
+                        try { loadProjectsForEditWithPrefix('edit_task', projectId, cb); } catch (e) { console.warn('loadProjectsForEditWithPrefix failed', e); }
+                    }
+                } catch(_) {}
+
+                // Schedule a short check: if loader(s) didn't populate the selected project,
+                // fetch the single project and render preview so modal isn't left empty.
+                setTimeout(function() {
+                    try {
+                        const hid = document.getElementById('edit_task_project_id');
+                        if (hid && hid.value) return; // already populated by loader
+                        if (!projectId) return;
+
+                        // Try fetching single project record
+                        fetch(appUrl + '/project/' + encodeURIComponent(String(projectId)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                            .then(res => res.json())
+                            .then(payload => {
+                                const p = payload && (payload.data || payload) ? (payload.data || payload) : null;
+                                if (p) renderSelectedProjectPreview(p);
+                            }).catch(err => {
+                                // As a very last resort, set hidden input to projectId and show a minimal text label
+                                try {
+                                    const input = document.getElementById('edit_task_project_input');
+                                    const hid = document.getElementById('edit_task_project_id');
+                                    const selectedContainer = document.getElementById('edit_task_selected_project');
+                                    if (hid && input && selectedContainer) {
+                                        hid.value = projectId;
+                                        input.value = '';
+                                        selectedContainer.innerHTML = `<div class="p-2 text-muted">Project #${projectId} (info unavailable)</div>`;
+                                    }
+                                } catch(_) {}
+                            });
+                    } catch (_) {}
+                }, 150);
+            })();
 
             const pointEl = document.getElementById("edit_task_point");
             if (pointEl) pointEl.value = t.point || 1;
