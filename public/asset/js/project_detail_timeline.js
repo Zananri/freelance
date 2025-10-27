@@ -13,7 +13,7 @@ let tasks = [];
 
 function fetchProjectDueDate(projectId) {
     return $.ajax({
-        url: `${appUrl}/projects/${projectId}`,
+        url: `${appUrl}/project/${projectId}`,
         type: "GET",
         dataType: "json",
     }).done(function (response) {
