@@ -5789,9 +5789,35 @@
                 }
             }
 
-            // Set dates
-            $("#edit_start_date").val(data.start_date || "");
-            $("#edit_due_date").val(data.due_date || "");
+            // Set dates (normalize to datetime-local format)
+            try {
+                var startVal = '';
+                try {
+                    startVal = (typeof toInputDatetimeLocal === 'function') ? toInputDatetimeLocal(data.start_date) : (data.start_date || '');
+                } catch (_) {
+                    startVal = data.start_date || '';
+                }
+                $("#edit_start_date").val(startVal);
+
+                // Due date: if missing treat as Forever (checked + disabled)
+                if (!data.due_date) {
+                    try { $("#edit_due_forever").prop('checked', true); } catch(_) {}
+                    try { $("#edit_due_date").val('').prop('disabled', true); } catch(_) {}
+                } else {
+                    try { $("#edit_due_forever").prop('checked', false); } catch(_) {}
+                    var dueVal = '';
+                    try {
+                        dueVal = (typeof toInputDatetimeLocal === 'function') ? toInputDatetimeLocal(data.due_date) : (data.due_date || '');
+                    } catch (_) {
+                        dueVal = data.due_date || '';
+                    }
+                    try { $("#edit_due_date").prop('disabled', false).val(dueVal); } catch(_) {}
+                }
+            } catch (e) {
+                // fallback: set raw values
+                try { $("#edit_start_date").val(data.start_date || ""); } catch(_) {}
+                try { $("#edit_due_date").val(data.due_date || ""); } catch(_) {}
+            }
 
             // Set reference URLs
             var urlsContainer = $("#edit_project_reference_urls_container");
@@ -8135,6 +8161,20 @@
                     return;
                 }
                 var formEl = this;
+                // If Forever is checked, clear and disable due_date so it's not submitted (disabled inputs are omitted)
+                try {
+                    var foreverChk = document.getElementById('edit_due_forever');
+                    var dueInput = document.getElementById('edit_due_date');
+                    if (foreverChk && dueInput) {
+                        if (foreverChk.checked) {
+                            try { dueInput.value = ''; } catch(_) {}
+                            try { dueInput.disabled = true; } catch(_) {}
+                        } else {
+                            try { dueInput.disabled = false; } catch(_) {}
+                        }
+                    }
+                } catch(_) {}
+
                 var formData = new FormData(formEl);
                 // map reference_urls[] to single reference_url
                 try {
@@ -8258,6 +8298,21 @@
                 });
             });
     });
+
+    // Toggle behavior for edit modal's Forever checkbox: clear/disable due_date immediately when checked
+    try {
+        $(document).on('change', '#edit_due_forever', function () {
+            try {
+                var $due = $('#edit_due_date');
+                if ($(this).is(':checked')) {
+                    try { $due.val(''); } catch (_) {}
+                    try { $due.prop('disabled', true); } catch (_) {}
+                } else {
+                    try { $due.prop('disabled', false); } catch (_) {}
+                }
+            } catch (_) {}
+        });
+    } catch (_) {}
 
     const EMP_CACHE_TTL_MS = 5 * 60 * 1000;
     const __empCache = { map: new Map(), inFlight: new Map() };
