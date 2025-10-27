@@ -133,7 +133,7 @@
 
                         <div class="task-tree-wrapper">
                             <div id="task-tree">
-
+                                
                             </div>
                         </div>
 
@@ -659,7 +659,7 @@
                                 <label for="edit_task_project_input" class="form-label label-custom">Project</label>
                                 <input type="text" class="form-control input-text" id="edit_task_project_input"
                                     autocomplete="off" placeholder="Search project..." required>
-                                <div id="edit_task_project_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="edit_task_project_dropdown" class="dropdown-list mt-1 dropup"></div>
                                 <div id="edit_task_selected_project" class="mt-2"></div>
                                 <input type="hidden" id="edit_task_project_id" name="project_id" value="">
                             </div>
@@ -811,7 +811,7 @@
                                 <label class="form-label label-custom">Project</label>
                                 <input type="text" class="form-control input-text" id="task_project_input"
                                     autocomplete="off" placeholder="Search project..." required>
-                                <div id="task_project_dropdown" class="dropdown-list mt-1"></div>
+                                <div id="task_project_dropdown" class="dropdown-list mt-1 dropup"></div>
                                 <div id="task_selected_project" class="mt-2" style="display: none;"></div>
                                 <input type="hidden" id="task_project_id" name="project_id" value="">
                             </div>
@@ -1866,6 +1866,96 @@
                         });
                     } catch (_) {}
                 });
+            </script>
+            <script>
+                // Fallback project dropdown loader specific to Project Detail page.
+                // Purpose: ensure '#edit_task_project_input' and '#task_project_input' get a project list
+                // even if other global loaders didn't run or failed. Uses cached fetch to /project/index.
+                (function(){
+                    function fetchProjectsOnce(){
+                        if (window.__projectsForDropdown) return Promise.resolve(window.__projectsForDropdown);
+                        return fetch(window.APP_URL + '/project/index', { credentials: 'same-origin' })
+                            .then(r => r.ok ? r.json() : Promise.reject(r))
+                            .then(payload => {
+                                const data = (payload && payload.data) ? payload.data : (payload || []);
+                                window.__projectsForDropdown = Array.isArray(data) ? data : [];
+                                return window.__projectsForDropdown;
+                            })
+                            .catch(err => {
+                                console.warn('fetchProjectsOnce failed', err);
+                                window.__projectsForDropdown = [];
+                                return window.__projectsForDropdown;
+                            });
+                    }
+
+                    function wireProjectInput(prefix){
+                        try{
+                            const input = document.getElementById(prefix + '_project_input');
+                            const dropdown = document.getElementById(prefix + '_project_dropdown');
+                            const selected = document.getElementById(prefix + '_selected_project');
+                            const hidden = document.getElementById(prefix + '_project_id');
+                            if (!input || !dropdown || !selected || !hidden) return;
+
+                            let projects = [];
+
+                            function showSelected(p){
+                                try{
+                                    hidden.value = p.id || '';
+                                    input.value = p.title || p.name || '';
+                                    selected.innerHTML = `
+                                        <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                                            ${p.image ? `<img src="${window.APP_URL}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">${(p.title||p.name||'').charAt(0).toUpperCase()}</div>`}
+                                            <span class="flex-grow-1">${p.title || p.name || ''}</span>
+                                            <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
+                                                <span class="material-symbols-outlined">close</span>
+                                            </button>
+                                        </div>`;
+                                    const btn = selected.querySelector('.btn-remove-project');
+                                    if (btn) btn.addEventListener('click', function(){ hidden.value=''; input.value=''; selected.innerHTML=''; });
+                                }catch(e){console.warn('showSelected error',e);}    
+                            }
+
+                            function render(filter, autoShow){
+                                dropdown.innerHTML = '';
+                                const f = (filter || '').toLowerCase();
+                                const list = projects.filter(p => (p.title||p.name||'').toLowerCase().includes(f));
+                                list.forEach(p =>{
+                                    const item = document.createElement('div');
+                                    item.className = 'dropdown-item d-flex align-items-center gap-2';
+                                    const avatar = p.image ? `<img src="${window.APP_URL}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>` : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">${(p.title||p.name||'').charAt(0).toUpperCase()}</div>`;
+                                    item.innerHTML = avatar + '<span>' + (p.title||p.name||'') + '</span>';
+                                    item.addEventListener('click', function(){ showSelected(p); dropdown.style.display='none'; try{ if (typeof loadRelatedTasks === 'function') loadRelatedTasks(p.id, prefix + '_parent_input'); }catch(_){} });
+                                    dropdown.appendChild(item);
+                                });
+                                dropdown.style.display = (list.length && autoShow) ? 'block' : 'none';
+                            }
+
+                            input.addEventListener('input', function(){ render(this.value, true); });
+                            input.addEventListener('focus', function(){ render(this.value, true); });
+                            document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display='none'; });
+
+                            // Load projects once and cache
+                            fetchProjectsOnce().then(res => { projects = res || []; /* if there's already a selected id, preselect */ if (hidden && hidden.value) { const found = projects.find(p => String(p.id) === String(hidden.value)); if (found) showSelected(found); } }).catch(()=>{});
+                        }catch(e){console.warn('wireProjectInput failed', e);}                    
+                    }
+
+                    // Wire when modals are shown (ensures element present and avoids race conditions)
+                    document.addEventListener('DOMContentLoaded', function(){
+                        try{
+                            ['editTask','editProjectTask','addTaskModalProject','addTaskModal'].forEach(mid => {
+                                const modalEl = document.getElementById(mid + 'Modal');
+                                if (!modalEl) return;
+                                modalEl.addEventListener('shown.bs.modal', function(){
+                                    try{
+                                        // Map modal ids to prefixes used in inputs
+                                        if (mid === 'editTask' || mid === 'editProjectTask') wireProjectInput('edit_task');
+                                        if (mid === 'addTaskModalProject' || mid === 'addTaskModal') wireProjectInput('task');
+                                    }catch(e){console.warn('modal shown handler failed', e);} 
+                                });
+                            });
+                        }catch(e){console.warn('project dropdown wiring failed', e);} 
+                    });
+                })();
             </script>
         </x-slot>
     </x-office-layout>
