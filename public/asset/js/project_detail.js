@@ -9059,7 +9059,7 @@ function handleProjectTaskEdit(taskId) {
     const loader = document.getElementById("editProjectTaskModalLoader");
     if (loader) loader.classList.remove("d-none");
 
-    const modal = new bootstrap.Modal(modalEl);
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
     modal.show();
 
     document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
@@ -9684,19 +9684,13 @@ function formatTaskImage(image, title = "") {
                             instance.hide();
                         } catch(_) {}
 
-                        if (typeof window.refreshTaskTreePartial === 'function') {
-                            window.refreshTaskTreePartial();
-                            $(`[data-task-id="${taskId}"]`).remove();
-                            modal.hide();
-                        } else {
-                            var idStr = String(taskId);
-                            (allTasks || []).forEach(function(t){
-                                if (String(t.id) === idStr) {
-                                    t.parent_id = null;
-                                    t.parent_ids = [];
-                                }
-                            });
-                            renderTaskList(allTasks);
+                
+                        try {
+                            setTimeout(function () {
+                                try { location.reload(); } catch (e) { try { window.location.reload(); } catch (_) {} }
+                            }, 220);
+                        } catch (_) {
+                            try { location.reload(); } catch (_) {}
                         }
                     },
                     error: function(xhr){
