@@ -776,7 +776,7 @@ class ProjectController extends Controller
                 ])
                 ->get(['id', 'title', 'status', 'start_date', 'due_date', 'image', 'part_of_project']);
 
-            $data = $projects->map(function ($p) {
+            $data = $projects->map(function ($p) use ($employeeId) {
                 $total = (int) ($p->total_tasks ?? 0);
                 $completed = (int) ($p->completed_tasks ?? 0);
                 $newReq = (int) ($p->new_request_tasks ?? 0);
@@ -825,6 +825,10 @@ class ProjectController extends Controller
                     'visual_status' => $visual,
                     'parent_ids' => $parentIds,
                     'legacy_parent_id' => $p->part_of_project ?? null,
+                    // indicate whether the current authenticated employee is author/co-author
+                    'is_author' => ($employeeId) ? DB::table('project_assignments')->where('project_id', $p->id)->where('employee_id', $employeeId)->where('role', 'author')->exists() : false,
+                    'is_co_author' => ($employeeId) ? DB::table('project_assignments')->where('project_id', $p->id)->where('employee_id', $employeeId)->where('role', 'co_author')->exists() : false,
+                    'is_author_or_coauthor' => ($employeeId) ? (DB::table('project_assignments')->where('project_id', $p->id)->where('employee_id', $employeeId)->whereIn('role', ['author','co_author'])->exists()) : false,
                 ];
             })->values();
 
