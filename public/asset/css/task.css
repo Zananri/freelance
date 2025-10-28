@@ -2366,3 +2366,13 @@ input[type="file"]::file-selector-button {
     background-color: #FFD4D9;
     color: #454545;
 }
+.complete-note-container::-webkit-scrollbar {
+  width: 4px;
+}
+.complete-note-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 2px;
+}
+.complete-note-container:hover::-webkit-scrollbar-thumb {
+  background: #888;
+}

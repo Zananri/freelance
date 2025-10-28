@@ -3257,6 +3257,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             }
         } catch(_) {}
 
+        console.log(task);
+
         function buildProjectInitialsAvatar(title) {
             const text = (title || '').trim();
             if (!text) return 'NA';
@@ -3495,11 +3497,12 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     </div>
                 </div>
                 <hr class="task-separator rounded-4">
-                <div class="complete-note-container" style="max-height:60px; overflow-y:auto; font-size:12px; color:#4B4F5E;">
+                <div class="complete-note-container" 
+                    style="max-height: 3.6em; overflow-y: auto; font-size:12px; color:#4B4F5E; line-height:1.2em; display:-webkit-box; -webkit-box-orient:vertical;">
                     ${task.complete_note || '<i>No completion note provided.</i>'}
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:10px; color:#797E91;">
-                    <div>Complete by: <span style="color:#4B4F5E;">${task.complete_by?.name || '-'}</span></div>
+                    <div>Complete by: <span style="color:#4B4F5E;">${task.status_change.employee_name || '-'}</span></div>
                     <div>at: <span style="color:#4B4F5E; font-size: 10px;">${formatDateENMedium(task.complete_date)}</span></div>
                 </div>
                 ${(viewerIsPic) ? `
