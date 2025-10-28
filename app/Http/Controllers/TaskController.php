@@ -1042,6 +1042,17 @@ class TaskController extends Controller
                                     });
                             });
                     })
+                    ->orWhere(function ($fq) use ($today) {
+                        // Include tasks that moved to 'finished' today (treat similarly to 'completed')
+                        $fq->where('status', 'finished')
+                            ->where(function ($w) use ($today) {
+                                $w->whereDate('complete_date', $today)
+                                    ->orWhere(function ($w2) use ($today) {
+                                        $w2->whereNull('complete_date')
+                                            ->whereDate('updated_at', $today);
+                                    });
+                            });
+                    })
                     ->orWhere(function ($rq) use ($today) {
                         $rq->where('status', 'rejected')
                             ->whereDate('updated_at', $today);

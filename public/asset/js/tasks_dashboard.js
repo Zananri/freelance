@@ -42,6 +42,9 @@ function getStatusBackground(statusNorm) {
         bg = '#edebdf';
     } else if (statusNorm === 'completed') {
         bg = '#baeed340';
+    } else if (statusNorm === 'finished' || statusNorm === 'finished') {
+        // Dashboard-specific: finished tasks should use the requested translucent blue
+        bg = '#BACBEE40';
     } else if (statusNorm === 'rejected') {
         bg = '#FFFFFF';
     }
