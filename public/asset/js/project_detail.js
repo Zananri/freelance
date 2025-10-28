@@ -9043,7 +9043,6 @@ function handleProjectTaskEdit(taskId) {
     const detailEl = document.getElementById('taskDetailModal');
     if (detailEl) {
         detailEl.setAttribute('data-child-opened', '1');
-
         if (detailEl._timelineHiddenHandler) {
             detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
             detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
@@ -9072,14 +9071,12 @@ function handleProjectTaskEdit(taskId) {
         dataType: "json",
         success: function (res) {
             const t = (res && res.data) ? res.data : (res || {});
-
             try {
                 const earlyParentSel = document.getElementById('edit_task_parent_id');
                 if (earlyParentSel && t.parent_id) {
                     ensureParentOption(earlyParentSel, t.parent_id);
                 }
-            } catch (e) { console.warn('early ensureParentOption failed', e); }
-
+            } catch (e) {}
             const titleEl = document.getElementById("edit_task_title");
             const descEl = document.getElementById("edit_task_description");
             if (titleEl) titleEl.value = t.title || "";
@@ -9089,27 +9086,10 @@ function handleProjectTaskEdit(taskId) {
                     if (window.__quillTaskEdit && window.__quillTaskEdit.root) {
                         window.__quillTaskEdit.root.innerHTML = t.description || '';
                     }
-                } catch (e) { /* noop */ }
+                } catch (e) {}
             }
-
             const projectId = t.project_id || (t.project && t.project.id);
-            try {
-                const editProjSelected = document.getElementById('edit_task_selected_project');
-                const editProjInput = document.getElementById('edit_task_project_input');
-                const editParentSel = document.getElementById('edit_task_parent_id');
-                const editParentInput = document.getElementById('edit_task_parent_input');
-                const editParentSelected = document.getElementById('edit_task_selected_parent');
-                if (editProjSelected) editProjSelected.innerHTML = '';
-                if (editProjInput) editProjInput.value = '';
-                if (editParentSel) editParentSel.innerHTML = "<option value=''>No Parent</option>";
-                if (editParentInput) editParentInput.value = '';
-                if (editParentSelected) editParentSelected.innerHTML = '';
-            } catch(_) {}
 
-            // Call the projects loader used by task.js when available. If it's not defined
-            // (due to script load order or earlier rename), fall back to the prefixed
-            // loader defined in this file, and finally ensure related tasks are loaded
-            // so the edit modal shows correct parent preview.
             (function() {
                 const cb = function() {
                     try {
@@ -9117,8 +9097,6 @@ function handleProjectTaskEdit(taskId) {
                     } catch(_) {}
                     try { ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id); } catch(_) {}
                 };
-
-                // Helper to render a selected project preview into the edit modal
                 function renderSelectedProjectPreview(p) {
                     try {
                         if (!p) return;
@@ -9129,11 +9107,9 @@ function handleProjectTaskEdit(taskId) {
 
                         hiddenInput.value = p.id;
                         input.value = p.title || (p.name || '');
-
                         const avatarHtml = p.image
                             ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
                             : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">${(p.title||p.name||'').charAt(0).toUpperCase()}</div>`;
-
                         selectedContainer.innerHTML = `
                             <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
                                 ${avatarHtml}
@@ -9153,38 +9129,38 @@ function handleProjectTaskEdit(taskId) {
                                 try { document.getElementById('edit_task_parent_id').innerHTML = "<option value=''>No Parent</option>"; } catch(_) {}
                             });
                         }
-                    } catch (e) { console.warn('renderSelectedProjectPreview failed', e); }
-                }
 
-                // Try calling the usual loaders (task.js loader or local prefixed loader)
+                        // 🔥 Tambahan fix — reload parent task setelah project tampil
+                        setTimeout(() => {
+                            try {
+                                loadRelatedTasks(p.id, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
+                            } catch (e) {
+                                console.error('Failed to reload related tasks after project render', e);
+                            }
+                        }, 200);
+                    } catch (e) {}
+                }
                 try {
                     if (typeof window.loadProjectsForEdit === 'function') {
-                        try { window.loadProjectsForEdit(projectId, cb); } catch (e) { console.warn('window.loadProjectsForEdit failed', e); }
+                        try { window.loadProjectsForEdit(projectId, cb); } catch (e) {}
                     }
                 } catch(_) {}
-
                 try {
                     if (typeof loadProjectsForEditWithPrefix === 'function') {
-                        try { loadProjectsForEditWithPrefix('edit_task', projectId, cb); } catch (e) { console.warn('loadProjectsForEditWithPrefix failed', e); }
+                        try { loadProjectsForEditWithPrefix('edit_task', projectId, cb); } catch (e) {}
                     }
                 } catch(_) {}
-
-                // Schedule a short check: if loader(s) didn't populate the selected project,
-                // fetch the single project and render preview so modal isn't left empty.
                 setTimeout(function() {
                     try {
                         const hid = document.getElementById('edit_task_project_id');
-                        if (hid && hid.value) return; // already populated by loader
+                        if (hid && hid.value) return;
                         if (!projectId) return;
-
-                        // Try fetching single project record
                         fetch(appUrl + '/project/' + encodeURIComponent(String(projectId)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                             .then(res => res.json())
                             .then(payload => {
                                 const p = payload && (payload.data || payload) ? (payload.data || payload) : null;
                                 if (p) renderSelectedProjectPreview(p);
                             }).catch(err => {
-                                // As a very last resort, set hidden input to projectId and show a minimal text label
                                 try {
                                     const input = document.getElementById('edit_task_project_input');
                                     const hid = document.getElementById('edit_task_project_id');
@@ -9212,7 +9188,7 @@ function handleProjectTaskEdit(taskId) {
                 let urls = [];
                 let ru = t.reference_urls;
                 if (!Array.isArray(ru) && typeof ru === 'string') {
-                    try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
+                    try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) {}
                 }
                 if (Array.isArray(ru) && ru.length > 0) {
                     urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
@@ -9231,38 +9207,38 @@ function handleProjectTaskEdit(taskId) {
                 });
             })();
 
-                const startEl = document.getElementById("edit_task_start_date");
-                const dueEl = document.getElementById("edit_task_due_date");
-                if (startEl) startEl.value = (t.start_date || '').slice(0, 10);
-                if (dueEl) dueEl.value = (t.due_date || '').slice(0, 10);
+            const startEl = document.getElementById("edit_task_start_date");
+            const dueEl = document.getElementById("edit_task_due_date");
+            if (startEl) startEl.value = (t.start_date || '').slice(0, 10);
+            if (dueEl) dueEl.value = (t.due_date || '').slice(0, 10);
 
-                const imgLabel = document.getElementById("editTaskImageLabel");
-                const clearBtn = document.getElementById("editTaskImageClearBtn");
-                if (imgLabel) {
-                    if (t.image) {
-                        let imgUrl = t.image;
-                        if (typeof imgUrl === 'string') {
-                            const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
-                            const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
-                            const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
-                            if (!isAbsolute && !isFileTask && !isPublicPath) {
-                                imgUrl = appUrl + '/file/task/' + imgUrl;
-                            } else if (!isAbsolute && (isFileTask || isPublicPath)) {
-                                imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
-                            }
+            const imgLabel = document.getElementById("editTaskImageLabel");
+            const clearBtn = document.getElementById("editTaskImageClearBtn");
+            if (imgLabel) {
+                if (t.image) {
+                    let imgUrl = t.image;
+                    if (typeof imgUrl === 'string') {
+                        const isAbsolute = imgUrl.startsWith('http://') || imgUrl.startsWith('https://');
+                        const isFileTask = imgUrl.startsWith('/file/task/') || imgUrl.startsWith('file/task/');
+                        const isPublicPath = imgUrl.startsWith('/storage/') || imgUrl.startsWith('storage/');
+                        if (!isAbsolute && !isFileTask && !isPublicPath) {
+                            imgUrl = appUrl + '/file/task/' + imgUrl;
+                        } else if (!isAbsolute && (isFileTask || isPublicPath)) {
+                            imgUrl = imgUrl.startsWith('/') ? appUrl + imgUrl : appUrl + '/' + imgUrl;
                         }
-                        imgLabel.style.backgroundImage = `url('${imgUrl}')`;
-                        imgLabel.classList.add('has-image');
-                        imgLabel.style.backgroundSize = 'cover';
-                        imgLabel.style.opacity = '1';
-                        clearBtn && clearBtn.classList.remove('d-none');
-                    } else {
-                        imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
-                        imgLabel.classList.remove('has-image');
-                        imgLabel.style.opacity = '0.5';
-                        clearBtn && clearBtn.classList.add('d-none');
                     }
+                    imgLabel.style.backgroundImage = `url('${imgUrl}')`;
+                    imgLabel.classList.add('has-image');
+                    imgLabel.style.backgroundSize = 'cover';
+                    imgLabel.style.opacity = '1';
+                    clearBtn && clearBtn.classList.remove('d-none');
+                } else {
+                    imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                    imgLabel.classList.remove('has-image');
+                    imgLabel.style.opacity = '0.5';
+                    clearBtn && clearBtn.classList.add('d-none');
                 }
+            }
 
             if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
                 window.setSelectedExecutorsEdit(t.executors.map(e => ({
@@ -9282,6 +9258,37 @@ function handleProjectTaskEdit(taskId) {
                 window.displayExistingReferenceFiles(Array.isArray(refFiles) ? refFiles : []);
             }
 
+            try {
+                const pageProjectId = window.currentProjectId || (getMeta && getMeta('project-id'));
+                const projectTitle = window.currentProjectTitle || (getMeta && getMeta('project-title')) || '';
+                if (pageProjectId) {
+                    const input = document.getElementById("edit_task_project_input");
+                    const hiddenInput = document.getElementById("edit_task_project_id");
+                    const selectedContainer = document.getElementById("edit_task_selected_project");
+                    if (hiddenInput && input && selectedContainer && !hiddenInput.value) {
+                        hiddenInput.value = pageProjectId;
+                        input.value = projectTitle;
+                        const avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">${projectTitle ? projectTitle.charAt(0).toUpperCase() : 'P'}</div>`;
+                        selectedContainer.innerHTML = `
+                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                                ${avatarHtml}
+                                <span class="flex-grow-1">${projectTitle || 'Project #' + pageProjectId}</span>
+                                <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        `;
+                        const btn = selectedContainer.querySelector('.btn-remove-project');
+                        if (btn) {
+                            btn.addEventListener('click', function() {
+                                hiddenInput.value = '';
+                                input.value = '';
+                                selectedContainer.innerHTML = '';
+                            });
+                        }
+                    }
+                }
+            } catch (e) {}
         },
         error: function () {
             showFloatingAlert('Failed to load task data.', 'danger');
