@@ -10488,6 +10488,7 @@ function filterTaskTableRows(queryRaw) {
                 <option value="new_request">New</option>
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
+                <option value="finished">Finished</option>
                 </select>
             </div>
             <div class="task-mobile-actions d-flex justify-content-between align-items-center">
@@ -10703,7 +10704,7 @@ function filterTaskTableRows(queryRaw) {
                 if ((!arr || !arr.length) && data) {
                     // fallback: flatten buckets and filter by status canceled/deleted
                     const collected = [];
-                    const buckets = ['new_request','in_progress','completed','rejected','canceled','deleted','CANCELED','DELETED'];
+                    const buckets = ['new_request','in_progress','completed', 'finished','rejected','canceled','deleted','CANCELED','DELETED'];
                     buckets.forEach(key => {
                         const section = data[key];
                         if (!section) return;
@@ -10726,7 +10727,7 @@ function filterTaskTableRows(queryRaw) {
             tasks = tasks.concat(tasksCanceled || [], tasksDeleted || []);
             if (!tasks || tasks.length === 0) {
                 let collected = [];
-                const buckets = ['new_request', 'in_progress', 'completed', 'rejected', 'canceled', 'CANCELED'];
+                const buckets = ['new_request', 'in_progress', 'completed', 'finished', 'rejected', 'canceled', 'CANCELED'];
                 buckets.forEach(key => {
                     const section = data[key];
                     if (!section) return;
