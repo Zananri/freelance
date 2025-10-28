@@ -3497,24 +3497,24 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     <div>Finish at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
 
                     <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center position-relative"
+                            data-bs-toggle="modal" data-bs-target="#completedModal" style="cursor:pointer;">
+                            <span class="material-symbols-outlined task-icon playlist_add_check"
+                                data-task-id="${task.id}" style="color: #797E91; font-size: 18px;">
+                                playlist_add_check
+                            </span>
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                        </div>
+
                         <div class="d-flex align-items-center position-relative">
-                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}" style="font-size:18px;">mode_comment</span>
+                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}" style="font-size:18px; cursor: pointer;">mode_comment</span>
                             ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #797E91; font-size: 11px;">${task.feedback_comments_count}</span>` : ""}
                             <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                         </div>
 
                         <div class="d-flex align-items-center">
-                            <span class="material-symbols-outlined task-icon" style="font-size:18px;">attach_file</span>
+                            <span class="material-symbols-outlined task-icon" style="font-size:18px; cursor: pointer;">attach_file</span>
                             ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #797E91; font-size: 11px;">${task.reference_files_count}</span>` : ""}
-                        </div>
-
-                        <div class="d-flex align-items-center position-relative"
-                            data-bs-toggle="modal" data-bs-target="#completedModal" style="cursor:pointer;">
-                            <span class="material-symbols-outlined task-icon playlist_add_check me-2"
-                                data-task-id="${task.id}" style="color: #797E91; font-size: 18px;">
-                                playlist_add_check
-                            </span>
-                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                         </div>
                     </div>
                 </div>
@@ -3618,12 +3618,12 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <div class="d-flex align-items-center position-relative">
-                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}" style="font-size:18px;">mode_comment</span>
+                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}" style="font-size:18px; cursor: pointer;">mode_comment</span>
                             ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #797E91; font-size: 11px;">${task.feedback_comments_count}</span>` : ""}
                             <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                         </div>
                         <div class="d-flex align-items-center">
-                            <span class="material-symbols-outlined task-icon" style="font-size:18px;">attach_file</span>
+                            <span class="material-symbols-outlined task-icon" style="font-size:18px; cursor: pointer;">attach_file</span>
                             ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #797E91; font-size: 11px;">${task.reference_files_count}</span>` : ""}
                         </div>
                     </div>
