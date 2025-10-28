@@ -3243,13 +3243,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
     }
 
     function createTaskCard(task) {
-        // Early-safety: if this task is completed and older than threshold, register into
-        // client archive buffer and return an empty string so no card is rendered.
-        // Determine upfront whether we're rendering the archive modal so the
-        // template (later) can safely reference the flag without a ReferenceError.
         let inArchiveRender = !!(window.__renderingArchiveModal);
         try {
-            // If we're currently rendering the archive modal, allow cards to be created
             if (!inArchiveRender && __isCompletedOlderThanDaysGlobal(task, 90)) {
                 const idKey = String(task.id || task.task_id || '');
                 if (idKey) {
@@ -3261,9 +3256,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 return '';
             }
         } catch(_) {}
-        const userId = window.CurrentUserId;
 
-        const placeholderProjectImg = `${appUrl}/asset/img/avatar.png`;
+        console.log(task);
 
         function buildProjectInitialsAvatar(title) {
             const text = (title || '').trim();
@@ -3296,7 +3290,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
                     return null;
                 }
-                // If the backend already provided absolute URL, return it directly.
                 if (/^https?:\/\//i.test(val)) return val;
                 if (val.includes('/file/project/')) {
                     const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
@@ -3357,9 +3350,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 if (!imgSrc || imgSrc.toLowerCase() === 'null' || imgSrc.toLowerCase() === 'undefined') {
                     imgSrc = fallbackAvatar;
                 } else {
-                    // If executor.image is already absolute, keep it. If it looks like a local path, prefix appUrl.
                     if (!/^https?:\/\//i.test(imgSrc)) {
-                        // If value contains '/file/profile_picture/' or '/file/photo/' use as-is with appUrl
                         if (imgSrc.startsWith('/')) imgSrc = appUrl + imgSrc;
                         else if (imgSrc.indexOf('/') !== -1) imgSrc = appUrl + '/' + imgSrc;
                         else imgSrc = appUrl + '/file/profile_picture/' + imgSrc;
@@ -3467,8 +3458,79 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             </div>
         `;
 
+        if (task.status === 'completed') {
+            return `
+            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
+                <div class="d-flex align-items-center mb-2 mt-2">
+                    ${(function(){
+                        const showInitials = !projectImg;
+                        const avatarHtml = showInitials
+                            ? `<div class="project-initial-avatar me-3" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
+                            : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
+                        return avatarHtml;
+                    })()}
+                    <div class="d-flex flex-column">
+                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${task.project_title}</small>` : ''}
+                        <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
+                    </div>
+                </div>
+                <div class="task-description-container">
+                    <p class="task-description" data-full-description="${task.description}">
+                        ${task.description ? task.description : ''}
+                    </p>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mt-1">
+                    <div style="font-size: 10px; font-weight: 400;">
+                        <span style="color: #797E91;">Priority: </span>
+                        <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${task.priority}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center position-relative">
+                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}" style="font-size:16px;">mode_comment</span>
+                            ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 11px;">${task.feedback_comments_count}</span>` : ""}
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="material-symbols-outlined task-icon" style="font-size:16px;">attach_file</span>
+                            ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 11px;">${task.reference_files_count}</span>` : ""}
+                        </div>
+                    </div>
+                </div>
+                <hr class="task-separator rounded-4">
+                <div class="complete-note-container" 
+                    style="max-height: 3.6em; overflow-y: auto; font-size:12px; color:#4B4F5E; line-height:1.2em; display:-webkit-box; -webkit-box-orient:vertical;">
+                    ${task.complete_note || '<i>No completion note provided.</i>'}
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:10px; color:#797E91;">
+                    <div>Complete by: <span style="color:#4B4F5E;">${task.status_change.employee_name || '-'}</span></div>
+                    <div>at: <span style="color:#4B4F5E; font-size: 10px;">${formatDateENMedium(task.complete_date)}</span></div>
+                </div>
+                ${(viewerIsPic) ? `
+                <div class="d-flex align-items-center w-100 justify-content-between mt-3 gap-2">
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-sm btn-approve-complete me-2" data-task-id="${task.id}">Approve</button>
+                        <button class="btn btn-sm btn-reject-complete" data-task-id="${task.id}">Reject</button>
+                    </div>
+                    <div class="d-flex justify-content-end align-items-center">
+                        <div class="btn-attach-file-wrapper d-flex align-items-center position-relative"
+                            data-bs-toggle="modal" data-bs-target="#completedModal" style="cursor:pointer;">
+                            <span class="material-symbols-outlined task-icon playlist_add_check me-2" 
+                                data-task-id="${task.id}" 
+                                style="color: #454545; font-size: 24px;">
+                                playlist_add_check
+                            </span>
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" 
+                                data-task-id="${task.id}">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>`;
+        }
+
     return `
-    <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
+        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
                 ${statusBadge}
                 ${dropdownHtml}
                 ${iconHtml}
@@ -3531,8 +3593,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                                             (viewerIsPic && (String(task.status).toLowerCase() === 'completed'))
                                             ? `
                                                 <div class="d-flex align-items-center w-100 justify-content-between gap-1">
-                                                    <button class="btn btn-secondary btn-reject-complete" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
-                                                    <button class="btn btn-submit-black btn-approve-complete" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
+                                                    <button class="btn btn-secondary btn-reject-complete" data-task-id="${task.id}" style="height: 40px; font-size: 12px; flex:1 1 0;">Reject</button>
+                                                    <button class="btn btn-submit-black btn-approve-complete" data-task-id="${task.id}" style="height: 40px; font-size:12px; flex:1 1 0;">
                                                         Approve Task
                                                     </button>
                                                 </div>
@@ -3576,7 +3638,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                                 </div>
                                 `
                             }
-            </div>
+                 </div>
             `)}
                 </div>
             </div>
@@ -3668,7 +3730,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
           const rejT = data.rejected.tasks || []
           data.in_progress.tasks = [...inPT, ...rejT]
         }
-        ;["new_request", "in_progress", "completed"].forEach(sk => {
+        ;["new_request", "in_progress", "completed", "finished"].forEach(sk => {
           if (!desktopState[sk]) desktopState[sk] = { page: 1, last: 1, loading: false }
           desktopState[sk].last = data[sk]?.pagination?.last_page || 1
           desktopState[sk].page = data[sk]?.pagination?.current_page || 1
@@ -3737,6 +3799,7 @@ function renderTasks(data) {
   renderSingleSection("new_request", data.new_request?.tasks || [], false)
   renderSingleSection("in_progress", [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])], false)
   renderSingleSection("completed", data.completed?.tasks || [], false)
+  renderSingleSection("finished", data.finished?.tasks || [], false)
   ensureRejectedCardsPlaced()
   try {
     applyCurrentSearchFilter()
