@@ -9550,52 +9550,76 @@ function formatTaskImage(image, title = "") {
             }
         }
 
-        // Preview/edit selected reference files for edit task
-        const filesInput = document.getElementById('edit_task_reference_files');
-        const filesPreview = document.getElementById('edit_reference_files_preview');
-        // Store selected files in a global to reuse on submit
-        window.editSelectedFiles = window.editSelectedFiles || [];
+        document.addEventListener('shown.bs.modal', function (event) {
+            const modal = event.target;
+            if (!modal.id.includes('edit')) return;
 
-        function displayEditSelectedFiles(){
-            if (!filesPreview) return;
-            const list = window.editSelectedFiles || [];
-            filesPreview.innerHTML = '';
-            if (!list.length) return;
-            list.forEach((file, idx) => {
-                const item = document.createElement('div');
-                item.className = 'preview-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
-                const info = document.createElement('div');
-                info.className = 'd-flex align-items-center flex-grow-1';
-                const icon = document.createElement('span');
-                icon.className = 'material-symbols-outlined me-2';
-                icon.textContent = (file.type || '').startsWith('image/') ? 'image' : 'attach_file';
-                const name = document.createElement('span');
-                name.textContent = file.name;
-                info.appendChild(icon);
-                info.appendChild(name);
-                const removeBtn = document.createElement('button');
-                removeBtn.type = 'button';
-                removeBtn.className = 'border-0 bg-transparent';
-                removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444444;">close</span>';
-                removeBtn.addEventListener('click', function(){
-                    try {
+            const filesInput = modal.querySelector('#edit_task_reference_files');
+            const filesPreview = modal.querySelector('#edit_reference_files_preview');
+
+            window.editSelectedFiles = window.editSelectedFiles || [];
+
+            function displayEditSelectedFiles() {
+                if (!filesPreview) return;
+                filesPreview.innerHTML = '';
+                if (!window.editSelectedFiles.length) return;
+
+                window.editSelectedFiles.forEach((file, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'preview-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
+                    
+                    const info = document.createElement('div');
+                    info.className = 'd-flex align-items-center flex-grow-1';
+
+                    if ((file.type || '').startsWith('image/')) {
+                        const img = document.createElement('img');
+                        img.className = 'me-2 rounded border-0';
+                        img.style.width = '32px';
+                        img.style.height = '32px';
+                        img.style.objectFit = 'cover';
+
+                        const reader = new FileReader();
+                        reader.onload = function (e) {
+                            img.src = e.target.result;
+                        };
+                        reader.readAsDataURL(file);
+
+                        info.appendChild(img);
+                    }
+
+                    const name = document.createElement('span');
+                    name.textContent = file.name;
+                    info.appendChild(name);
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'border-0 bg-transparent';
+                    removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444;">close</span>';
+                    removeBtn.addEventListener('click', function () {
                         window.editSelectedFiles.splice(idx, 1);
                         displayEditSelectedFiles();
-                    } catch(_) {}
-                });
-                item.appendChild(info);
-                item.appendChild(removeBtn);
-                filesPreview.appendChild(item);
-            });
-        }
+                    });
 
-        if (filesInput) {
-            filesInput.addEventListener('change', function(){
-                const chosen = Array.from(this.files || []);
-                window.editSelectedFiles = chosen; // overwrite with latest selection
-                displayEditSelectedFiles();
-            });
-        }
+                    item.appendChild(info);
+                    item.appendChild(removeBtn);
+                    filesPreview.appendChild(item);
+                });
+            }
+
+            if (filesInput) {
+                filesInput.addEventListener('change', function () {
+                    const chosen = Array.from(this.files || []);
+                    console.log('Files chosen:', chosen);
+                    window.editSelectedFiles.push(...chosen);
+                    displayEditSelectedFiles();
+
+                    this.value = '';
+                });
+            }
+
+            displayEditSelectedFiles();
+        });
+
 
         // Provide minimal existing files renderer if not present
         if (typeof window.displayExistingReferenceFiles !== 'function') {
