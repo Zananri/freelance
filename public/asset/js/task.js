@@ -151,7 +151,7 @@
 
     // Listen for scroll on task containers to reinitialize tooltips
     document.addEventListener('DOMContentLoaded', function() {
-        const taskContainers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks'];
+        const taskContainers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks', 'finished-tasks'];
         taskContainers.forEach(containerId => {
             const container = document.getElementById(containerId);
             if (container) {
@@ -3964,7 +3964,7 @@ function injectRejectedIfMissing(rawData) {
     if (!rawData) return
     const inProgressCol = document.getElementById("in-progress-tasks")
     if (!inProgressCol) return
-    const buckets = ["new_request", "in_progress", "completed", "rejected"]
+    const buckets = ["new_request", "in_progress", "completed", "rejected", "finished"]
     const collected = []
     buckets.forEach(b => {
       const arr = rawData[b]?.tasks
@@ -3988,7 +3988,7 @@ function injectRejectedIfMissing(rawData) {
 
 function initDesktopInfiniteScroll(query = "") {
   try { window.__taskCurrentSearchQuery = String(query || '') } catch(_) {}
-  ;["new_request", "in_progress", "completed"].forEach(status => {
+  ;["new_request", "in_progress", "completed", "finished"].forEach(status => {
     const containerId = sectionMap[status]
     const el = document.getElementById(containerId)
     if (!el) return
@@ -4013,7 +4013,7 @@ function initDesktopInfiniteScroll(query = "") {
 function filterVisibleTasks(queryRaw) {
     try {
         const q = String(queryRaw || '').trim().toLowerCase();
-        const containers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks'];
+        const containers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks', 'filteredTasks'];
         containers.forEach(id => {
             const c = document.getElementById(id);
             if (!c) return;
@@ -5379,7 +5379,8 @@ function filterTaskTableRows(queryRaw) {
         const colToStatus = {
             'new-request-tasks': 'new_request',
             'in-progress-tasks': 'in_progress',
-            'completed-tasks': 'completed'
+            'completed-tasks': 'completed',
+            'finished-tasks': 'finished',
         };
 
         const SCALE = 1;
@@ -5389,7 +5390,7 @@ function filterTaskTableRows(queryRaw) {
         }
 
         $(function() {
-            $('#new-request-tasks, #in-progress-tasks, #completed-tasks').addClass('kanban-droppable');
+            $('#new-request-tasks, #in-progress-tasks, #completed-tasks, #finished-tasks').addClass('kanban-droppable');
         });
 
         let kanbanDrag = null;
@@ -5403,6 +5404,7 @@ function filterTaskTableRows(queryRaw) {
             s = String(s || '').toLowerCase();
             if (s === 'in progress') return 'in_progress';
             if (s === 'new request') return 'new_request';
+            if (s === 'finished') return 'finished';
             return s;
         }
 
@@ -5425,6 +5427,7 @@ function filterTaskTableRows(queryRaw) {
             }
             if (fromStatus === 'completed') {
                 if (toStatus === 'in_progress') return { allowed: true, newStatus: 'rejected' };
+                if (toStatus === 'finished') return { allowed: true, newStatus: 'finished' }
                 return { allowed: false };
             }
             return { allowed: false };
@@ -10096,9 +10099,11 @@ function filterTaskTableRows(queryRaw) {
                 const newEl = document.getElementById("new-request-tasks");
                 const progEl = document.getElementById("in-progress-tasks");
                 const compEl = document.getElementById("completed-tasks");
+                const finishEl = document.getElementById("finished-tasks");
                 if (newEl) newEl.innerHTML = "";
                 if (progEl) progEl.innerHTML = "";
                 if (compEl) compEl.innerHTML = "";
+                if (finishEl) finishEl.innerHTML = "";
 
                 // Helper to read tasks from a bucket that could be an array or {tasks:[]}
                 const getTasks = (section) => {
@@ -10111,6 +10116,7 @@ function filterTaskTableRows(queryRaw) {
                 let newTasks = getTasks(payload.new_request);
                 let progTasks = getTasks(payload.in_progress);
                 let compTasks = getTasks(payload.completed);
+                let finishTasks = getTasks(payload.finished);
                 let rejTasks = getTasks(payload.rejected);
 
                 // When filtering by status=in_progress, backend may already merge rejected; keep extra merge safe
@@ -10122,6 +10128,7 @@ function filterTaskTableRows(queryRaw) {
                 newTasks.forEach(t => { if (newEl) newEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
                 progTasks.forEach(t => { if (progEl) progEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
                 compTasks.forEach(t => { if (compEl) compEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
+                finishTasks.forEach(t => { if (finishEl) finishEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
 
                 // Dropdown listeners are bound once globally; avoid rebinding here
                 addAttachFileIconListeners();
@@ -10142,6 +10149,7 @@ function filterTaskTableRows(queryRaw) {
                     allTasksCache.new_request = { tasks: Array.isArray(payload.new_request) ? payload.new_request : (payload.new_request?.tasks || []), pagination: payload.new_request?.pagination || {} };
                     allTasksCache.in_progress = { tasks: inProgressMergedForCache, pagination: payload.in_progress?.pagination || {} };
                     allTasksCache.completed = { tasks: Array.isArray(payload.completed) ? payload.completed : (payload.completed?.tasks || []), pagination: payload.completed?.pagination || {} };
+                    allTasksCache.finished = { tasks: Array.isArray(payload.finished) ? payload.finished : (payload.finished?.tasks || []), pagination: payload.finished?.pagination || {} };
                 } catch (_) {}
 
                 // Refresh the List/Table view to reflect current filters
@@ -10332,6 +10340,8 @@ function filterTaskTableRows(queryRaw) {
             container.addClass("bg-progress");
         } else if (status === "completed") {
             container.addClass("bg-completed");
+        } else if (status === 'finished') {
+            container.addClass('bg-finish')
         }
 
         if (!append) list.empty();
@@ -10476,7 +10486,6 @@ function filterTaskTableRows(queryRaw) {
 
         $("#taskFilterDropdownMobile").hide();
 
-        console.log("✅ Filter reset ke default:", currentTaskFilters);
     });
 
 
