@@ -3486,9 +3486,9 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     </p>
                 </div>
                 <div class="d-flex align-items-center justify-content-between mt-1">
-                    <div style="font-size: 10px; font-weight: 400;">
+                    <div style="font-size: 8px; font-weight: 400;">
                         <span style="color: #797E91;">Priority: </span>
-                        <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${task.priority}</span>
+                        <span style="font-size: 8px; color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${task.priority}</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <div class="d-flex align-items-center position-relative">
@@ -3504,34 +3504,54 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
                 <hr class="task-separator rounded-4">
                 <div class="complete-note-container" 
-                    style="max-height: 3.6em; overflow-y: auto; font-size:12px; color:#4B4F5E; line-height:1.2em; display:-webkit-box; -webkit-box-orient:vertical;">
+                    style="max-height: 3.6em; overflow-y: auto; font-size:12px; color: #4C5060;">
                     ${task.complete_note || '<i>No completion note provided.</i>'}
                 </div>
-                <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:10px; color:#797E91;">
-                    <div>Complete by: <span style="color:#4B4F5E;">${task.status_change.employee_name || '-'}</span></div>
-                    <div>at: <span style="color:#4B4F5E; font-size: 10px;">${formatDateENMedium(task.complete_date)}</span></div>
+                <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:8px; color:#797E91;">
+                    <div>Complete by: <span style="color: #797E91; font-size: 8px;">${task.status_change.employee_name || '-'}</span></div>
+                    <div>at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
                 </div>
-                ${(viewerIsPic) ? `
-                <div class="d-flex align-items-center w-100 justify-content-between mt-3 gap-2">
-                    <div class="d-flex justify-content-between">
-                        <button class="btn btn-sm btn-approve-complete me-2" data-task-id="${task.id}">Approve</button>
-                        <button class="btn btn-sm btn-reject-complete" data-task-id="${task.id}">Reject</button>
-                    </div>
-                    <div class="d-flex justify-content-end align-items-center">
-                        <div class="btn-attach-file-wrapper d-flex align-items-center position-relative"
-                            data-bs-toggle="modal" data-bs-target="#completedModal" style="cursor:pointer;">
-                            <span class="material-symbols-outlined task-icon playlist_add_check me-2" 
-                                data-task-id="${task.id}" 
-                                style="color: #454545; font-size: 24px;">
-                                playlist_add_check
-                            </span>
-                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" 
-                                data-task-id="${task.id}">
-                            </span>
+                ${
+                (() => {
+                    let html = `
+                    <div class="d-flex align-items-center w-100 justify-content-between mt-3 gap-2">
+                    `;
+
+                    if (viewerIsPic) {
+                        html += `
+                        <div class="d-flex align-items-center">
+                            <button class="btn btn-sm btn-approve-complete me-2" data-task-id="${task.id}">
+                                Approve
+                            </button>
+                            <button class="btn btn-sm btn-reject-complete" data-task-id="${task.id}">
+                                Reject
+                            </button>
+                        </div>
+                        `;
+                    } else {
+                        html += `<div></div>`;
+                    }
+
+                    html += `
+                        <div class="d-flex justify-content-end align-items-center ms-auto">
+                            <div class="btn-attach-file-wrapper d-flex align-items-center position-relative"
+                                data-bs-toggle="modal" data-bs-target="#completedModal" style="cursor:pointer;">
+                                <span class="material-symbols-outlined task-icon playlist_add_check me-2"
+                                    data-task-id="${task.id}" 
+                                    style="color: #454545; font-size: 24px;">
+                                    playlist_add_check
+                                </span>
+                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" 
+                                    data-task-id="${task.id}">
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                ` : ''}
+                    `;
+                    return html;
+                })()
+                }
+
             </div>`;
         }
 
