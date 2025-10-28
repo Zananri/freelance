@@ -3424,7 +3424,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             }
         }
 
-        const viewerPending = isViewerPendingExecutor(task);
+    const viewerPending = isViewerPendingExecutor(task);
         if (viewerPending) {
             iconHtml = '';
         }
@@ -3518,15 +3518,26 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                         ${viewerPending
-                            ? `
-                            <div class="d-flex align-items-center w-100 justify-content-between gap-1">
-                                <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
-                                <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
-                                    Accept Task
-                                </button>
-                            </div>
-                            `
-                        : `
+                                            ? `
+                                            <div class="d-flex align-items-center w-100 justify-content-between gap-1">
+                                                <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
+                                                <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
+                                                    Accept Task
+                                                </button>
+                                            </div>
+                                            `
+                                        : (
+                                            // Special case: PIC viewing a Completed task should be able to Approve or Reject the completion
+                                            (viewerIsPic && (String(task.status).toLowerCase() === 'completed'))
+                                            ? `
+                                                <div class="d-flex align-items-center w-100 justify-content-between gap-1">
+                                                    <button class="btn btn-secondary btn-reject-complete" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
+                                                    <button class="btn btn-submit-black btn-approve-complete" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
+                                                        Approve Task
+                                                    </button>
+                                                </div>
+                                              `
+                                            : `
                         <div class="d-flex align-items-center pic-executor-container">${executorsHtml}</div>
                         <div class="d-flex align-items-center">
                             <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
@@ -3565,8 +3576,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                                 </div>
                                 `
                             }
-                        </div>
-                        `}
+            </div>
+            `)}
                 </div>
             </div>
         `;
@@ -4930,6 +4941,34 @@ function filterTaskTableRows(queryRaw) {
             });
             document._taskPendingInviteHandlerBound = true;
         }
+
+            // Approve/Reject buttons for PIC on Completed tasks (bind once globally)
+            if (!document._taskCompletedApproveRejectHandlerBound) {
+                document.addEventListener('click', function(e) {
+                    const approveBtn = e.target.closest('.btn-approve-complete');
+                    if (approveBtn) {
+                        e.preventDefault();
+                        const tId = approveBtn.getAttribute('data-task-id');
+                        if (!tId) return;
+                        const taskCard = approveBtn.closest('.custom-card') || document.querySelector('.custom-card[data-task-id="' + tId + '"]');
+                        // Confirm and set status to finished (Approve)
+                        showStatusModal(tId, taskCard, 'finished', 'Approve Task', 'Finished', 'Approve this task?');
+                        return;
+                    }
+
+                    const rejBtn = e.target.closest('.btn-reject-complete');
+                    if (rejBtn) {
+                        e.preventDefault();
+                        const tId = rejBtn.getAttribute('data-task-id');
+                        if (!tId) return;
+                        const taskCard = rejBtn.closest('.custom-card') || document.querySelector('.custom-card[data-task-id="' + tId + '"]');
+                        // Confirm and set status to rejected (Reject)
+                        showStatusModal(tId, taskCard, 'rejected', 'Reject', 'Rejected', 'Task has been rejected');
+                        return;
+                    }
+                });
+                document._taskCompletedApproveRejectHandlerBound = true;
+            }
     }
 
     function handleTaskProgress(taskId, taskCard) {
