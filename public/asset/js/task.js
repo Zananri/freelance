@@ -4103,9 +4103,9 @@ function getAllTasksFlatFromCache() {
         const prog = (buckets.in_progress && buckets.in_progress.tasks) ? buckets.in_progress.tasks : [];
         const rej = (buckets.rejected && buckets.rejected.tasks) ? buckets.rejected.tasks : [];
         const comp = (buckets.completed && buckets.completed.tasks) ? buckets.completed.tasks : [];
-        // Merge rejected into in_progress visually similar to grid
+        const fin = (buckets.finished && buckets.finished.tasks) ? buckets.finished.tasks : [];
         const inProgressMerged = [...prog, ...rej];
-        return [...newReq, ...inProgressMerged, ...comp];
+        return [...newReq, ...inProgressMerged, ...comp, ...fin];
     } catch(_) { return []; }
 }
 
@@ -4143,6 +4143,7 @@ function createExecutorsCellHtml(task) {
 
 function statusLabel(statusRaw) {
     const s = String(statusRaw || '').toLowerCase().replace(/\s+/g,'_');
+    if (s.includes('finish')) return '<span class="badge bg-finish text-dark">Finished</span>';
     if (s.includes('new')) return '<span class="badge bg-secondary text-dark" style="background:#ecedf5 !important;">New</span>';
     if (s.includes('progress')) return '<span class="badge bg-info text-dark" style="background:#edebdf !important; color:#5b4b00;">In Progress</span>';
     if (s.includes('completed')) return '<span class="badge bg-success">Completed</span>';
