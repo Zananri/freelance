@@ -311,6 +311,7 @@ Route::middleware('auth', 'management')->group(function () {
     Route::delete('/job/{id}', [JobController::class, 'destroy'])->name('job.destroy');
 
     // Employee CRUD routes
+    Route::get('/employee/export-employee-active', [EmployeeController::class, 'exportEmployeeActive'])->name('employee.exportEmployeeActive');
     Route::get('/employee', [EmployeeController::class, 'showEmployeePage'])->name('employee');
     Route::get('/employee/index', [EmployeeController::class, 'index'])->name('employee.index');
     Route::get('/employee/create', [EmployeeController::class, 'create'])->name('employee.create');

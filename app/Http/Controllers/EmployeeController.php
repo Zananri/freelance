@@ -2,6 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+
 use App\Models\Employee;
 use App\Models\User;
 use App\Models\Department;
@@ -670,5 +680,155 @@ class EmployeeController extends Controller
                 'message' => 'Failed to fetch employees: ' . $e->getMessage()
             ], $status);
         }
+    }
+
+
+    public function exportEmployeeActive(){
+        
+
+
+        $employee = Employee::select('employees.id')
+            ->join('users','employees.user_id','=','users.id')
+            ->where('employees.status',"ACTIVE")
+            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+            ->whereNotIn('users.user_type',["ADMINISTRATOR"])
+        ->get();
+
+        $employeeIds = $employee->pluck('id');
+
+        $allEmployeeActive = Employee::with('department','division','job','grade','shift')
+            ->whereIn('employees.id',$employeeIds)
+            ->orderBy('employees.division_id','asc')
+        ->get();
+
+        $spreadsheet = new Spreadsheet();
+        $activeWorksheet = $spreadsheet->getActiveSheet();
+    
+        $activeWorksheet->mergeCells('A1:R1');
+        
+        $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(34);
+        $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $activeWorksheet->setCellValue('A1', 'Data Karyawan');
+
+        //No	NAMA KARYAWAN	NSAID	Department	Division	Job Position	Grade/Rank	Join Date	Periode Kerja	Penempatan	Time Lateness 1 Hour	Time Lateness 1 > Hour	Overtime off work day	Overtime on Work day	Sick	Permit	Absen	Leave	Shift 2	Total Work half Day This Month	Amount Work half Day This Month	Total Work Day This Month (23 Days)	Total Day Off This Month
+        
+        $activeWorksheet->setCellValue('A2', 'No');
+        $activeWorksheet->setCellValue('B2', 'NAMA KARYAWAN');
+        $activeWorksheet->setCellValue('C2', 'EMAIL');
+        $activeWorksheet->setCellValue('D2', 'NSAID');
+        $activeWorksheet->setCellValue('E2', 'Department');
+        $activeWorksheet->setCellValue('F2', 'Division');
+        $activeWorksheet->setCellValue('G2', 'Job Position');
+        $activeWorksheet->setCellValue('H2', 'Grade/Rank');
+        $activeWorksheet->setCellValue('I2', 'Join Date');
+        $activeWorksheet->setCellValue('J2', 'Selesai Kontrak');
+        $activeWorksheet->setCellValue('K2', 'Status');
+        $activeWorksheet->setCellValue('L2', 'Alamat');
+        $activeWorksheet->setCellValue('M2', 'THP Take Home Pay');
+        $activeWorksheet->setCellValue('N2', 'Gaji Pokok');
+        $activeWorksheet->setCellValue('O2', 'Tunjangan Jabatan');
+        $activeWorksheet->setCellValue('P2', 'Tunjangan Transportasi');
+        $activeWorksheet->setCellValue('Q2', 'Tunjangan Makan');
+        $activeWorksheet->setCellValue('R2', 'Tunjangan Internet');
+        
+
+        // add border 
+        $headerStyle = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                ],
+            ],
+        ];
+        
+
+        $activeWorksheet->getStyle('A2:R2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+
+        $activeWorksheet->getStyle('A2:R2')
+            ->getAlignment()
+            ->setWrapText(true)
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+        ->setVertical(Alignment::VERTICAL_CENTER);
+        
+        
+
+        // Menulis data dari database ke sheet
+        $row = 3; // Mulai dari baris kedua
+        $no = 1;
+
+        foreach ($allEmployeeActive as $employeeItem) {
+
+            $thp = $employeeItem->basic_salary + $employeeItem->positional_allowance + $employeeItem->transportation_allowance + $employeeItem->meal_allowance + $employeeItem->internet_phone_allowance;
+
+            $activeWorksheet->setCellValue('A'.$row, $no);
+            $activeWorksheet->setCellValue('B'.$row, $employeeItem->name);
+            $activeWorksheet->setCellValue('C'.$row, $employeeItem->email_work);
+            $activeWorksheet->setCellValue('D'.$row, $employeeItem->employee_niks);
+            $activeWorksheet->setCellValue('E'.$row, $employeeItem->department->name_department);//'Department'
+            $activeWorksheet->setCellValue('F'.$row, $employeeItem->division->name_division);//'Division'
+            $activeWorksheet->setCellValue('G'.$row, $employeeItem->job->job_name);//'Job Position'
+            $activeWorksheet->setCellValue('H'.$row, $employeeItem->grade->title);//'Grade/Rank'
+            $activeWorksheet->setCellValue('I'.$row, $employeeItem->hire_date);//'Join Date'
+            $activeWorksheet->setCellValue('J'.$row, $employeeItem->contract_end_date);//'Kontrak'
+            $activeWorksheet->setCellValue('K'.$row, $employeeItem->status);//'Status'
+            $activeWorksheet->setCellValue('L'.$row, $employeeItem->address);//'Alamat'
+            $activeWorksheet->setCellValue('M'.$row, $thp);//'Take Home Pay'
+            $activeWorksheet->setCellValue('N'.$row, $employeeItem->basic_salary);//'Gaji Pokok'
+            $activeWorksheet->setCellValue('O'.$row, $employeeItem->positional_allowance);//'Tunjangan Jabatan'
+            $activeWorksheet->setCellValue('P'.$row, $employeeItem->transportation_allowance);//'Tunjangan Transportasi'
+            $activeWorksheet->setCellValue('Q'.$row, $employeeItem->meal_allowance);//'Tunjangan Makan'
+            $activeWorksheet->setCellValue('R'.$row, $employeeItem->internet_phone_allowance);//'Tunjangan Internet'
+            
+            
+            
+            $row++;
+            $no++;
+        }
+
+        $dataStyle = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                ],
+            ],
+        ];
+
+        $activeWorksheet->getStyle('A2:R'.($row-1))->applyFromArray($dataStyle);
+
+        $activeWorksheet->getStyle('A2:R'.($row-1))
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+        ->setVertical(Alignment::VERTICAL_CENTER);
+
+        $activeWorksheet->getStyle('B3:C'.($row-1))
+            ->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_LEFT)
+        ->setVertical(Alignment::VERTICAL_CENTER);
+
+        
+        // $activeWorksheet->getStyle('W4:'.$lastColumn.($row-1))
+        //     ->getAlignment()
+        //     ->setWrapText(true)
+        //     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+        // ->setVertical(Alignment::VERTICAL_CENTER);
+
+        // Mengatur lebar kolom agar otomatis
+        foreach (range('A', 'K') as $column) {
+            $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        foreach (range('M', 'R') as $column) {
+            $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
+        }
+ 
+        $fileName = 'Data Karyawan.xlsx';
+        $tempFileName = tempnam(sys_get_temp_dir(), $fileName);
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($tempFileName);
+
+        return response()->download($tempFileName,$fileName)->deleteFileAfterSend(true);
+
     }
 }
