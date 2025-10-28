@@ -3520,6 +3520,69 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
             </div>`;
         }
+      
+        if (task.status === 'completed') {
+            
+            let completeBy = '-';
+
+            if(task.status_change){
+                completeBy = task.status_change.employee_name;
+            }
+
+            return `
+            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
+                <div class="d-flex align-items-center mb-2 mt-2">
+                    ${(function(){
+                        const showInitials = !projectImg;
+                        const avatarHtml = showInitials
+                            ? `<div class="project-initial-avatar me-3" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
+                            : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
+                        return avatarHtml;
+                    })()}
+                    <div class="d-flex flex-column">
+                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${task.project_title}</small>` : ''}
+                        <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
+                    </div>
+                </div>
+                <div class="task-description-container">
+                    <p class="task-description" data-full-description="${task.description}">
+                        ${task.description ? task.description : ''}
+                    </p>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mt-1">
+                    <div style="font-size: 8px; font-weight: 400;">
+                        <span style="color: #797E91;">Priority: </span>
+                        <span style="font-size: 8px; color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${task.priority}</span>
+                    </div>
+                </div>
+                <hr class="task-separator rounded-4">
+                <div class="d-flex justify-content-between align-items-center" style="font-size:8px; color:#797E91;">
+                    <div>Finish at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
+
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center position-relative">
+                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}" style="font-size:18px;">mode_comment</span>
+                            ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #797E91; font-size: 11px;">${task.feedback_comments_count}</span>` : ""}
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                        </div>
+
+                        <div class="d-flex align-items-center">
+                            <span class="material-symbols-outlined task-icon" style="font-size:18px;">attach_file</span>
+                            ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #797E91; font-size: 11px;">${task.reference_files_count}</span>` : ""}
+                        </div>
+
+                        <div class="d-flex align-items-center position-relative"
+                            data-bs-toggle="modal" data-bs-target="#completedModal" style="cursor:pointer;">
+                            <span class="material-symbols-outlined task-icon playlist_add_check me-2"
+                                data-task-id="${task.id}" style="color: #797E91; font-size: 18px;">
+                                playlist_add_check
+                            </span>
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
         
         if (task.status === 'completed') {
             let completedBy = '-';
@@ -3570,9 +3633,10 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     style="max-height: 3.6em; overflow-y: auto; font-size:12px; color: #4C5060;">
                     ${task.complete_note || '<i>No completion note provided.</i>'}
                 </div>
-                <div class="d-flex flex-column align-items-start mt-3" style="font-size:8px; color:#797E91;">
-                    <div>Complete by: <span style="color: #797E91; font-size: 8px;">${completedBy}</span></div>
-                    <div class="mt-1">at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
+                
+                <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:8px; color:#797E91;">
+                    <div>Complete by: <span style="color: #797E91; font-size: 8px;">${completeBy}</span></div>
+                    <div>at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
                 </div>
                 ${
                 (() => {
