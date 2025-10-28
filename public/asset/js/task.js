@@ -3465,6 +3465,13 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         `;
 
         if (task.status === 'completed') {
+            
+            let completeBy = '-';
+
+            if(task.status_change){
+                completeBy = task.status_change.employee_name;
+            }
+
             return `
             <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
                 <div class="d-flex align-items-center mb-2 mt-2">
@@ -3508,7 +3515,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     ${task.complete_note || '<i>No completion note provided.</i>'}
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:8px; color:#797E91;">
-                    <div>Complete by: <span style="color: #797E91; font-size: 8px;">${task.status_change.employee_name || '-'}</span></div>
+                    <div>Complete by: <span style="color: #797E91; font-size: 8px;">${completeBy}</span></div>
                     <div>at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
                 </div>
                 ${
