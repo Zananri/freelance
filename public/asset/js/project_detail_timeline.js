@@ -17,8 +17,6 @@ function fetchProjectDueDate(projectId) {
         type: "GET",
         dataType: "json",
     }).done(function (response) {
-        console.log(response);
-
         if (response.status === "success") {
             projectDueDate = new Date(response.data.due_date);
         }
@@ -139,8 +137,6 @@ function getTaskByProject(projectId) {
         dataType: "json",
     })
     .done(function (response) {
-        console.log(response);
-
         $("#task-loading").addClass("d-none");
         if (response.status !== "success" || !response.data || response.data.length === 0) {
             $("#task-tree").empty();

@@ -46,16 +46,38 @@
     width: 100%;
 }
 
-.new-request-container {
-    background: #a1a3a60d;
+.new-request-container,
+.in-progress-container,
+.completed-container,
+.finished-container {
     padding: 20px 0 20px 20px;
     border-radius: 20px;
-    display: flex;
-    flex-direction: column;
-    /* height: 100%; */
 }
 
-.new-request-container .task-list {
+.new-request-container {
+    background: #a1a3a60d;
+    display: flex;
+    flex-direction: column;
+}
+
+.in-progress-container {
+    background: #edebdf5c;
+}
+
+.completed-container {
+    background: #baeed340;
+    margin-bottom: 100px;
+}
+
+.finished-container {
+    background: #BACBEE40;
+    margin-bottom: 100px;
+}
+
+.new-request-container .task-list,
+.in-progress-container .task-list,
+.completed-container .task-list,
+.finished-container .task-list {
     flex: 1;
     overflow-y: auto;
     min-height: calc(100vh - 30vh);
@@ -64,33 +86,8 @@
     margin-bottom: 20px;
 }
 
-.in-progress-container {
-    background: #edebdf5c;
-    padding: 20px 0 20px 20px;
-    border-radius: 20px;
-}
-
-.in-progress-container .task-list {
-    flex: 1;
-    overflow-y: auto;
-    min-height: calc(100vh - 30vh);
-    max-height: calc(100vh - 30vh);
-    padding-right: 10px;
-}
-
-.completed-container {
-    background: #baeed340;
-    padding: 20px 0 20px 20px;
-    border-radius: 20px;
-    margin-bottom: 100px;
-}
-
-.completed-container .task-list {
-    flex: 1;
-    overflow-y: auto;
-    min-height: calc(100vh - 30vh);
-    max-height: calc(100vh - 30vh);
-    padding-right: 10px;
+.completed-container .task-list,
+.finished-container .task-list {
     margin-bottom: 100px;
 }
 
@@ -1391,6 +1388,12 @@ p {
         margin-right: -20px;
     }
 
+    .bg-finish {
+        background: #BACBEE40;
+        margin-left: -20px;
+        margin-right: -20px;
+    }
+
     .task-mobile-card-header {
         display: flex;
         align-items: center;
@@ -1629,6 +1632,13 @@ p {
 }
 .task-mobile-completed {
     background: #baeed340;
+}
+
+/* Badge style for Finished status (used in List/Table view) */
+.badge.bg-finish {
+    background: #BACBEE40 !important; /* translucent blue as requested */
+    color: #454545 !important; /* darker text, not white */
+    border: none !important;
 }
 
 /* Delete modal image size (support both correct and typo class names) */
@@ -2340,4 +2350,42 @@ input[type="file"]::file-selector-button {
 .feedback-file-icon,
 .submit-feedback button span {
     font-size: 20px;
+}
+
+.btn-approve-complete {
+    background-color: #D8DBFF;
+    font-size: 10px;
+    font-weight: 400;
+    border-radius: 5px;
+    color: #454545;
+    width: fit-content;
+    height: fit-content;
+}
+.btn-approve-complete:hover {
+    background-color: #D8DBFF;
+    color: #454545;
+}
+.btn-reject-complete {
+    background-color: #FFD4D9;
+    font-size: 10px;
+    font-weight: 400;
+    border-radius: 5px;
+    color: #454545;
+    border: none;
+    width: fit-content;
+    height: fit-content;
+}
+.btn-reject-complete:hover {
+    background-color: #FFD4D9;
+    color: #454545;
+}
+.complete-note-container::-webkit-scrollbar {
+  width: 4px;
+}
+.complete-note-container::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 2px;
+}
+.complete-note-container:hover::-webkit-scrollbar-thumb {
+  background: #888;
 }

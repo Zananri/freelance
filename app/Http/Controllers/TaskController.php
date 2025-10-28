@@ -372,6 +372,19 @@ class TaskController extends Controller
                             });
                         })
                         ->orderBy('complete_date', 'desc');
+                } elseif ($normalizedFilter === 'finished') {
+                    // Finished tasks (approved completion)
+                    $query->where('status', 'finished')
+                        ->where(function ($q) use ($currentEmployeeId) {
+                            $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                                $a->where('employee_id', $currentEmployeeId)
+                                    ->whereIn('role', ['EXECUTOR', 'PIC'])
+                                    ->where(function ($r) {
+                                        $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                    });
+                            });
+                        })
+                        ->orderBy('updated_at', 'desc');
                 } else {
                     $query->where(function($qq) use ($normalizedFilter){
                             // allow filtering explicitly by 'canceled' or 'deleted'
@@ -469,6 +482,29 @@ class TaskController extends Controller
                         'per_page' => $completedPaginator->perPage(),
                         'total' => $completedPaginator->total(),
                         'last_page' => $completedPaginator->lastPage(),
+                    ]
+                ];
+
+                // Finished column: tasks that have been approved (status = 'finished')
+                $finishedQuery = clone $baseQuery;
+                $finishedQuery->where('status', 'finished')
+                    ->where(function ($q) use ($currentEmployeeId) {
+                        $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                            $a->where('employee_id', $currentEmployeeId)
+                                ->whereIn('role', ['EXECUTOR', 'PIC'])
+                                ->where(function ($r) {
+                                    $r->whereNull('is_receive')->orWhere('is_receive', false);
+                                });
+                        });
+                    })->orderBy('updated_at', 'desc');
+                $finishedPaginator = $finishedQuery->paginate($perPage, ['*'], 'page', $page);
+                $response['finished'] = [
+                    'tasks' => $this->mapTasks($finishedPaginator->items()),
+                    'pagination' => [
+                        'current_page' => $finishedPaginator->currentPage(),
+                        'per_page' => $finishedPaginator->perPage(),
+                        'total' => $finishedPaginator->total(),
+                        'last_page' => $finishedPaginator->lastPage(),
                     ]
                 ];
             }
@@ -656,6 +692,21 @@ class TaskController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->get();
 
+            // Also include finished tasks (approved completion)
+            $finished = (clone $baseQuery)
+                ->whereIn(DB::raw('LOWER(status)'), ['finished'])
+                ->where(function ($q) use ($currentEmployeeId) {
+                    $q->whereDoesntHave('assignments', function ($a) use ($currentEmployeeId) {
+                        $a->where('employee_id', $currentEmployeeId)
+                            ->whereIn('role', ['EXECUTOR', 'PIC'])
+                            ->where(function ($r) {
+                                $r->whereNull('is_receive')->orWhere('is_receive', false);
+                            });
+                    });
+                })
+                ->orderBy('updated_at', 'desc')
+                ->get();
+
             // LATE keep original grouping (overdue but not completed). We don't exclude pending so a user still sees overdue tasks even if not yet accepted.
             $late = (clone $baseQuery)
                 ->whereRaw('LOWER(status) <> ?', ['completed'])
@@ -680,6 +731,10 @@ class TaskController extends Controller
                 'completed' => [
                     'tasks' => $this->mapTasks($completed->all()),
                     'count' => $completed->count(),
+                ],
+                'finished' => [
+                    'tasks' => $this->mapTasks($finished->all()),
+                    'count' => $finished->count(),
                 ],
                 'late' => [
                     'tasks' => $this->mapTasks($late->all()),
@@ -979,6 +1034,17 @@ class TaskController extends Controller
                 $q->whereIn('status', ['new_request', 'new request', 'in_progress', 'in progress'])
                     ->orWhere(function ($cq) use ($today) {
                         $cq->where('status', 'completed')
+                            ->where(function ($w) use ($today) {
+                                $w->whereDate('complete_date', $today)
+                                    ->orWhere(function ($w2) use ($today) {
+                                        $w2->whereNull('complete_date')
+                                            ->whereDate('updated_at', $today);
+                                    });
+                            });
+                    })
+                    ->orWhere(function ($fq) use ($today) {
+                        // Include tasks that moved to 'finished' today (treat similarly to 'completed')
+                        $fq->where('status', 'finished')
                             ->where(function ($w) use ($today) {
                                 $w->whereDate('complete_date', $today)
                                     ->orWhere(function ($w2) use ($today) {
@@ -2487,13 +2553,17 @@ class TaskController extends Controller
                 }
             }
 
-            // Prefer DELETED; fall back to CANCELED if DELETED isn't supported by the enum
+            // Prefer uppercase DELETED/CANCELED if DB contains them; otherwise accept lowercase.
             $desired = 'DELETED';
             if (!in_array($desired, $allowedStatuses, true)) {
-                if (in_array('CANCELED', $allowedStatuses, true)) {
+                if (in_array('deleted', $allowedStatuses, true)) {
+                    $desired = 'deleted';
+                } elseif (in_array('CANCELED', $allowedStatuses, true)) {
                     $desired = 'CANCELED';
+                } elseif (in_array('canceled', $allowedStatuses, true)) {
+                    $desired = 'canceled';
                 } else {
-                    // If neither value exists, fail with an actionable error to run migrations
+                    // If none of the archived values exist, fail with an actionable error to run migrations
                     return response()->json([
                         'code' => 500,
                         'status' => 'error',
@@ -2658,7 +2728,8 @@ class TaskController extends Controller
             $task = Task::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'status' => 'required|in:new request,in progress,completed,rejected,new_request,in_progress,back_to_request',
+                // include 'finished' as a valid canonical status
+                'status' => 'required|in:new request,in progress,completed,rejected,finished,new_request,in_progress,back_to_request',
             ]);
 
             if ($validator->fails()) {
@@ -2675,6 +2746,7 @@ class TaskController extends Controller
                 'in progress' => 'in_progress',
                 'completed' => 'completed',
                 'rejected' => 'rejected',
+                'finished' => 'finished',
                 'new_request' => 'new_request',
                 'in_progress' => 'in_progress',
                 'back_to_request' => 'new_request',
@@ -2787,11 +2859,15 @@ class TaskController extends Controller
                     $update['complete_files'] = $uploadedCompleteFiles;
                 }
 
+            } elseif ($dbStatus === 'finished') {
+                // Approving a completed task to finished: keep or ensure a complete_date exists
+                // Do not require complete_note/files here because the completion was already submitted.
+                $update['complete_date'] = $task->complete_date ?: now()->toDateString();
             } else {
-                // Clear complete_date for non-completed statuses
+                // Clear complete_date for non-completed/finished statuses
                 $update['complete_date'] = null;
-                // Optionally clear complete fields when moving away from completed
-                // (leave as-is to preserve history) -- do nothing here
+                // Optionally clear complete fields when moving away from completed/finished
+                // (leave as-is to preserve history) -- do nothing here beyond clearing date
             }
 
             $oldStatus = $task->status;

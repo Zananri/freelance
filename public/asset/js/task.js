@@ -151,7 +151,7 @@
 
     // Listen for scroll on task containers to reinitialize tooltips
     document.addEventListener('DOMContentLoaded', function() {
-        const taskContainers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks'];
+        const taskContainers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks', 'finished-tasks'];
         taskContainers.forEach(containerId => {
             const container = document.getElementById(containerId);
             if (container) {
@@ -1084,99 +1084,82 @@
     }
 
     function loadProjects() {
-        const input = document.getElementById("task_project_input");
-        const dropdown = document.getElementById("task_project_dropdown");
-        const selectedContainer = document.getElementById("task_selected_project");
-        const hiddenInput = document.getElementById("task_project_id");
-
-        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+        // Support multiple Add Task modal variants that may exist on the page
+        // by binding per-instance handlers while fetching project list once.
+        const inputs = Array.from(document.querySelectorAll('#task_project_input'));
+        if (!inputs.length) return;
 
         let projects = [];
+        let fetched = false;
 
-        function renderDropdown(filter = "") {
-            dropdown.innerHTML = "";
-            let filtered = projects.filter((p) =>
-                p.title.toLowerCase().includes(filter.toLowerCase())
-            );
+        function fetchProjectsOnce() {
+            if (fetched) return;
+            fetched = true;
+            fetch(appUrl + '/project/index')
+                .then(res => res.json())
+                .then(payload => {
+                    projects = payload && (payload.data || payload.projects || payload) ? (payload.data || payload.projects || payload) : [];
+                    if (!Array.isArray(projects)) projects = [];
+                })
+                .catch(err => {
+                    console.error('Error loading projects:', err);
+                    projects = [];
+                });
+        }
 
-            filtered.forEach((p) => {
-                let avatarHtml = p.image
-                    ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>`
-                    : `<div class="rounded-circle d-flex align-items-center justify-content-center"
-                            style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">
-                            ${p.title.charAt(0).toUpperCase()}
-                    </div>`;
-
-                const item = document.createElement("div");
-                item.className = "dropdown-item d-flex align-items-center gap-2";
+        // render dropdown for a specific scope (modal/form)
+        function renderDropdownFor(scope, dropdown, filter) {
+            dropdown.innerHTML = '';
+            const q = String(filter || '').toLowerCase();
+            const filtered = projects.filter(p => (p.title || '').toLowerCase().includes(q));
+            if (!filtered.length) {
+                const note = document.createElement('div');
+                note.className = 'dropdown-item disabled text-muted';
+                note.textContent = 'No projects found';
+                dropdown.appendChild(note);
+                dropdown.style.display = 'block';
+                return;
+            }
+            filtered.forEach(p => {
+                const avatarHtml = p.image ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>` : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">${(p.title||'').charAt(0).toUpperCase()}</div>`;
+                const item = document.createElement('div');
+                item.className = 'dropdown-item d-flex align-items-center gap-2';
                 item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
-                item.addEventListener("click", () => {
-                    hiddenInput.value = p.id;
-                    input.value = p.title;
-                    dropdown.style.display = "none";
-                    showSelectedProject(p);
+                item.addEventListener('click', () => {
+                    try {
+                        const hiddenInput = scope.querySelector('#task_project_id');
+                        const input = scope.querySelector('#task_project_input');
+                        const selectedContainer = scope.querySelector('#task_selected_project');
+                        if (hiddenInput) hiddenInput.value = p.id;
+                        if (input) input.value = p.title;
+                        dropdown.style.display = 'none';
+                        if (selectedContainer) {
+                            selectedContainer.innerHTML = `\n                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">\n                                    ${p.image ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">${(p.title||'').charAt(0).toUpperCase()}</div>`}\n                                    <span class="flex-grow-1">${p.title}</span>\n                                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">\n                                        <span class="material-symbols-outlined">close</span>\n                                    </button>\n                                </div>`;
+                            const btn = selectedContainer.querySelector('.btn-remove-project');
+                            if (btn) btn.addEventListener('click', () => { if (hiddenInput) hiddenInput.value = ''; if (input) input.value = ''; selectedContainer.innerHTML = ''; const parentSel = document.getElementById('task_parent_id'); if (parentSel) parentSel.innerHTML = "<option value=''>No Parent</option>"; });
+                        }
+                        // Trigger loadRelatedTasks for this project
+                        try { loadRelatedTasks(p.id, 'task', null); } catch(_){}
+                    } catch (e) { console.warn('project select click err', e); }
                 });
                 dropdown.appendChild(item);
             });
-
-            dropdown.style.display = filtered.length ? "block" : "none";
+            dropdown.style.display = 'block';
         }
 
-        function showSelectedProject(p) {
-            selectedContainer.innerHTML = `
-                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
-                    ${
-                        p.image
-                            ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
-                            : `<div class="rounded-circle d-flex align-items-center justify-content-center"
-                                    style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">
-                                    ${p.title.charAt(0).toUpperCase()}
-                            </div>`
-                    }
-                    <span class="flex-grow-1">${p.title}</span>
-                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
-                        <span class="material-symbols-outlined">close</span>
-                    </button>
-                </div>
-            `;
+        // kick off initial fetch
+        fetchProjectsOnce();
 
-            selectedContainer
-                .querySelector(".btn-remove-project")
-                .addEventListener("click", () => {
-                    hiddenInput.value = "";
-                    input.value = "";
-                    selectedContainer.innerHTML = "";
-                    document.getElementById("task_parent_id").innerHTML = "<option value=''>No Parent</option>";
-                });
-
-            // 🔹 Trigger load related tasks
-            // Use prefix string and let loadRelatedTasks query DOM by prefix (consistent with schedule usage)
-            loadRelatedTasks(p.id, "task", null);
-        }
-
-    fetch(appUrl + "/project/index")
-            .then((res) => res.json())
-            .then((payload) => {
-                projects = (payload.data || [])
-                    .map((p) => ({
-                        id: p.id,
-                        title: p.title,
-                        image: p.image || "",
-                        project_type: p.project_type || 'public'
-                    }));
-            })
-            .catch((err) => console.error("Error loading projects:", err));
-
-        input.addEventListener("input", () => renderDropdown(input.value));
-        input.addEventListener("focus", () => renderDropdown(input.value));
-
-        document.addEventListener("click", (e) => {
-            if (!dropdown.contains(e.target) && e.target !== input) {
-                dropdown.style.display = "none";
-            }
+        inputs.forEach(input => {
+            const scope = input.closest('.modal') || input.closest('form') || document;
+            const dropdown = scope.querySelector('#task_project_dropdown');
+            if (!dropdown) return;
+            input.addEventListener('input', function(){ renderDropdownFor(scope, dropdown, this.value); });
+            input.addEventListener('focus', function(){ renderDropdownFor(scope, dropdown, this.value); });
+            // hide dropdown when click outside
+            document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
         });
     }
-
 
     function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
         try {
@@ -3260,13 +3243,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
     }
 
     function createTaskCard(task) {
-        // Early-safety: if this task is completed and older than threshold, register into
-        // client archive buffer and return an empty string so no card is rendered.
-        // Determine upfront whether we're rendering the archive modal so the
-        // template (later) can safely reference the flag without a ReferenceError.
         let inArchiveRender = !!(window.__renderingArchiveModal);
         try {
-            // If we're currently rendering the archive modal, allow cards to be created
             if (!inArchiveRender && __isCompletedOlderThanDaysGlobal(task, 90)) {
                 const idKey = String(task.id || task.task_id || '');
                 if (idKey) {
@@ -3278,9 +3256,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 return '';
             }
         } catch(_) {}
-        const userId = window.CurrentUserId;
 
-        const placeholderProjectImg = `${appUrl}/asset/img/avatar.png`;
+        console.log(task);
 
         function buildProjectInitialsAvatar(title) {
             const text = (title || '').trim();
@@ -3313,7 +3290,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') {
                     return null;
                 }
-                // If the backend already provided absolute URL, return it directly.
                 if (/^https?:\/\//i.test(val)) return val;
                 if (val.includes('/file/project/')) {
                     const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
@@ -3374,9 +3350,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 if (!imgSrc || imgSrc.toLowerCase() === 'null' || imgSrc.toLowerCase() === 'undefined') {
                     imgSrc = fallbackAvatar;
                 } else {
-                    // If executor.image is already absolute, keep it. If it looks like a local path, prefix appUrl.
                     if (!/^https?:\/\//i.test(imgSrc)) {
-                        // If value contains '/file/profile_picture/' or '/file/photo/' use as-is with appUrl
                         if (imgSrc.startsWith('/')) imgSrc = appUrl + imgSrc;
                         else if (imgSrc.indexOf('/') !== -1) imgSrc = appUrl + '/' + imgSrc;
                         else imgSrc = appUrl + '/file/profile_picture/' + imgSrc;
@@ -3413,7 +3387,13 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
 
         let statusBadge = '';
         if (task.status === 'rejected') {
-            statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
+            statusBadge = `
+                <div class="d-flex justify-content-end mt-1">
+                    <span class="badge bg-danger" style="font-size:10px; font-weight:500; color:#fff;">
+                        Rejected
+                    </span>
+                </div>
+            `;
         }
 
         let iconHtml = '';
@@ -3441,7 +3421,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             }
         }
 
-        const viewerPending = isViewerPendingExecutor(task);
+    const viewerPending = isViewerPendingExecutor(task);
         if (viewerPending) {
             iconHtml = '';
         }
@@ -3484,9 +3464,79 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             </div>
         `;
 
+        if (task.status === 'completed') {
+            return `
+            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
+                <div class="d-flex align-items-center mb-2 mt-2">
+                    ${(function(){
+                        const showInitials = !projectImg;
+                        const avatarHtml = showInitials
+                            ? `<div class="project-initial-avatar me-3" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
+                            : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
+                        return avatarHtml;
+                    })()}
+                    <div class="d-flex flex-column">
+                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${task.project_title}</small>` : ''}
+                        <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
+                    </div>
+                </div>
+                <div class="task-description-container">
+                    <p class="task-description" data-full-description="${task.description}">
+                        ${task.description ? task.description : ''}
+                    </p>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mt-1">
+                    <div style="font-size: 10px; font-weight: 400;">
+                        <span style="color: #797E91;">Priority: </span>
+                        <span style="color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${task.priority}</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="d-flex align-items-center position-relative">
+                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}" style="font-size:16px;">mode_comment</span>
+                            ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 11px;">${task.feedback_comments_count}</span>` : ""}
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <span class="material-symbols-outlined task-icon" style="font-size:16px;">attach_file</span>
+                            ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 11px;">${task.reference_files_count}</span>` : ""}
+                        </div>
+                    </div>
+                </div>
+                <hr class="task-separator rounded-4">
+                <div class="complete-note-container" 
+                    style="max-height: 3.6em; overflow-y: auto; font-size:12px; color:#4B4F5E; line-height:1.2em; display:-webkit-box; -webkit-box-orient:vertical;">
+                    ${task.complete_note || '<i>No completion note provided.</i>'}
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:10px; color:#797E91;">
+                    <div>Complete by: <span style="color:#4B4F5E;">${task.status_change.employee_name || '-'}</span></div>
+                    <div>at: <span style="color:#4B4F5E; font-size: 10px;">${formatDateENMedium(task.complete_date)}</span></div>
+                </div>
+                ${(viewerIsPic) ? `
+                <div class="d-flex align-items-center w-100 justify-content-between mt-3 gap-2">
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-sm btn-approve-complete me-2" data-task-id="${task.id}">Approve</button>
+                        <button class="btn btn-sm btn-reject-complete" data-task-id="${task.id}">Reject</button>
+                    </div>
+                    <div class="d-flex justify-content-end align-items-center">
+                        <div class="btn-attach-file-wrapper d-flex align-items-center position-relative"
+                            data-bs-toggle="modal" data-bs-target="#completedModal" style="cursor:pointer;">
+                            <span class="material-symbols-outlined task-icon playlist_add_check me-2" 
+                                data-task-id="${task.id}" 
+                                style="color: #454545; font-size: 24px;">
+                                playlist_add_check
+                            </span>
+                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" 
+                                data-task-id="${task.id}">
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+            </div>`;
+        }
+
     return `
-    <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
-                ${statusBadge}
+        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
                 ${dropdownHtml}
                 ${iconHtml}
 
@@ -3511,11 +3561,12 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                         <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
                     </div>
                 </div>
-                <div class="task-description-container">
+                <div class="task-description-container mb-1">
                     <p class="task-description" data-full-description="${task.description}">
                         ${task.description ? task.description : ''}
                     </p>
                 </div>
+                ${statusBadge || ''} 
                 <hr class="task-separator rounded-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div style="font-size: 10px; font-weight: 400; display:flex; flex-direction:column;">
@@ -3535,15 +3586,26 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
                 <div class="d-flex justify-content-between align-items-center mt-3">
                         ${viewerPending
-                            ? `
-                            <div class="d-flex align-items-center w-100 justify-content-between gap-1">
-                                <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
-                                <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
-                                    Accept Task
-                                </button>
-                            </div>
-                            `
-                        : `
+                                            ? `
+                                            <div class="d-flex align-items-center w-100 justify-content-between gap-1">
+                                                <button class="btn btn-secondary btn-cancel-invite" data-task-id="${task.id}" style="flex:1 1 0;">Reject</button>
+                                                <button class="btn btn-submit-black btn-accept-invite" data-task-id="${task.id}" style="padding:8px 12px; font-size:12px; flex:1 1 0;">
+                                                    Accept Task
+                                                </button>
+                                            </div>
+                                            `
+                                        : (
+                                            // Special case: PIC viewing a Completed task should be able to Approve or Reject the completion
+                                            (viewerIsPic && (String(task.status).toLowerCase() === 'completed'))
+                                            ? `
+                                                <div class="d-flex align-items-center w-100 justify-content-between gap-1">
+                                                    <button class="btn btn-secondary btn-reject-complete" data-task-id="${task.id}" style="height: 40px; font-size: 12px; flex:1 1 0;">Reject</button>
+                                                    <button class="btn btn-submit-black btn-approve-complete" data-task-id="${task.id}" style="height: 40px; font-size:12px; flex:1 1 0;">
+                                                        Approve Task
+                                                    </button>
+                                                </div>
+                                              `
+                                            : `
                         <div class="d-flex align-items-center pic-executor-container">${executorsHtml}</div>
                         <div class="d-flex align-items-center">
                             <div class="latest-feedback-snippet d-none align-items-center me-1" data-task-id="${task.id}" style="cursor:pointer; max-width: 160px;">
@@ -3582,8 +3644,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                                 </div>
                                 `
                             }
-                        </div>
-                        `}
+                 </div>
+            `)}
                 </div>
             </div>
         `;
@@ -3624,13 +3686,15 @@ const allTasksCache = window.allTasksCache;
 const loaderMap = {
   new_request: "#newTaskLoading",
   in_progress: "#progressTaskLoading",
-  completed: "#completedTaskLoading"
+  completed: "#completedTaskLoading",
+  finished: "#finishedTaskLoading",
 };
 
 const sectionMap = {
   new_request: "new-request-tasks",
   in_progress: "in-progress-tasks",
-  completed: "completed-tasks"
+  completed: "completed-tasks",
+  finished: "finished-tasks"
 };
 
 let taskFetchSeq = 0
@@ -3672,7 +3736,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
           const rejT = data.rejected.tasks || []
           data.in_progress.tasks = [...inPT, ...rejT]
         }
-        ;["new_request", "in_progress", "completed"].forEach(sk => {
+        ;["new_request", "in_progress", "completed", "finished"].forEach(sk => {
           if (!desktopState[sk]) desktopState[sk] = { page: 1, last: 1, loading: false }
           desktopState[sk].last = data[sk]?.pagination?.last_page || 1
           desktopState[sk].page = data[sk]?.pagination?.current_page || 1
@@ -3741,6 +3805,7 @@ function renderTasks(data) {
   renderSingleSection("new_request", data.new_request?.tasks || [], false)
   renderSingleSection("in_progress", [...(data.in_progress?.tasks || []), ...(data.rejected?.tasks || [])], false)
   renderSingleSection("completed", data.completed?.tasks || [], false)
+  renderSingleSection("finished", data.finished?.tasks || [], false)
   ensureRejectedCardsPlaced()
   try {
     applyCurrentSearchFilter()
@@ -3899,7 +3964,7 @@ function injectRejectedIfMissing(rawData) {
     if (!rawData) return
     const inProgressCol = document.getElementById("in-progress-tasks")
     if (!inProgressCol) return
-    const buckets = ["new_request", "in_progress", "completed", "rejected"]
+    const buckets = ["new_request", "in_progress", "completed", "rejected", "finished"]
     const collected = []
     buckets.forEach(b => {
       const arr = rawData[b]?.tasks
@@ -3923,7 +3988,7 @@ function injectRejectedIfMissing(rawData) {
 
 function initDesktopInfiniteScroll(query = "") {
   try { window.__taskCurrentSearchQuery = String(query || '') } catch(_) {}
-  ;["new_request", "in_progress", "completed"].forEach(status => {
+  ;["new_request", "in_progress", "completed", "finished"].forEach(status => {
     const containerId = sectionMap[status]
     const el = document.getElementById(containerId)
     if (!el) return
@@ -3948,7 +4013,7 @@ function initDesktopInfiniteScroll(query = "") {
 function filterVisibleTasks(queryRaw) {
     try {
         const q = String(queryRaw || '').trim().toLowerCase();
-        const containers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks'];
+        const containers = ['new-request-tasks', 'in-progress-tasks', 'completed-tasks', 'filteredTasks'];
         containers.forEach(id => {
             const c = document.getElementById(id);
             if (!c) return;
@@ -4038,9 +4103,9 @@ function getAllTasksFlatFromCache() {
         const prog = (buckets.in_progress && buckets.in_progress.tasks) ? buckets.in_progress.tasks : [];
         const rej = (buckets.rejected && buckets.rejected.tasks) ? buckets.rejected.tasks : [];
         const comp = (buckets.completed && buckets.completed.tasks) ? buckets.completed.tasks : [];
-        // Merge rejected into in_progress visually similar to grid
+        const fin = (buckets.finished && buckets.finished.tasks) ? buckets.finished.tasks : [];
         const inProgressMerged = [...prog, ...rej];
-        return [...newReq, ...inProgressMerged, ...comp];
+        return [...newReq, ...inProgressMerged, ...comp, ...fin];
     } catch(_) { return []; }
 }
 
@@ -4078,6 +4143,7 @@ function createExecutorsCellHtml(task) {
 
 function statusLabel(statusRaw) {
     const s = String(statusRaw || '').toLowerCase().replace(/\s+/g,'_');
+    if (s.includes('finish')) return '<span class="badge bg-finish text-dark">Finished</span>';
     if (s.includes('new')) return '<span class="badge bg-secondary text-dark" style="background:#ecedf5 !important;">New</span>';
     if (s.includes('progress')) return '<span class="badge bg-info text-dark" style="background:#edebdf !important; color:#5b4b00;">In Progress</span>';
     if (s.includes('completed')) return '<span class="badge bg-success">Completed</span>';
@@ -4945,6 +5011,34 @@ function filterTaskTableRows(queryRaw) {
             });
             document._taskPendingInviteHandlerBound = true;
         }
+
+            // Approve/Reject buttons for PIC on Completed tasks (bind once globally)
+            if (!document._taskCompletedApproveRejectHandlerBound) {
+                document.addEventListener('click', function(e) {
+                    const approveBtn = e.target.closest('.btn-approve-complete');
+                    if (approveBtn) {
+                        e.preventDefault();
+                        const tId = approveBtn.getAttribute('data-task-id');
+                        if (!tId) return;
+                        const taskCard = approveBtn.closest('.custom-card') || document.querySelector('.custom-card[data-task-id="' + tId + '"]');
+                        // Confirm and set status to finished (Approve)
+                        showStatusModal(tId, taskCard, 'finished', 'Approve Task', 'Finished', 'Approve this task?');
+                        return;
+                    }
+
+                    const rejBtn = e.target.closest('.btn-reject-complete');
+                    if (rejBtn) {
+                        e.preventDefault();
+                        const tId = rejBtn.getAttribute('data-task-id');
+                        if (!tId) return;
+                        const taskCard = rejBtn.closest('.custom-card') || document.querySelector('.custom-card[data-task-id="' + tId + '"]');
+                        // Confirm and set status to rejected (Reject)
+                        showStatusModal(tId, taskCard, 'rejected', 'Reject', 'Rejected', 'Task has been rejected');
+                        return;
+                    }
+                });
+                document._taskCompletedApproveRejectHandlerBound = true;
+            }
     }
 
     function handleTaskProgress(taskId, taskCard) {
@@ -5286,7 +5380,8 @@ function filterTaskTableRows(queryRaw) {
         const colToStatus = {
             'new-request-tasks': 'new_request',
             'in-progress-tasks': 'in_progress',
-            'completed-tasks': 'completed'
+            'completed-tasks': 'completed',
+            'finished-tasks': 'finished',
         };
 
         const SCALE = 1;
@@ -5296,7 +5391,7 @@ function filterTaskTableRows(queryRaw) {
         }
 
         $(function() {
-            $('#new-request-tasks, #in-progress-tasks, #completed-tasks').addClass('kanban-droppable');
+            $('#new-request-tasks, #in-progress-tasks, #completed-tasks, #finished-tasks').addClass('kanban-droppable');
         });
 
         let kanbanDrag = null;
@@ -5310,6 +5405,7 @@ function filterTaskTableRows(queryRaw) {
             s = String(s || '').toLowerCase();
             if (s === 'in progress') return 'in_progress';
             if (s === 'new request') return 'new_request';
+            if (s === 'finished') return 'finished';
             return s;
         }
 
@@ -5332,6 +5428,7 @@ function filterTaskTableRows(queryRaw) {
             }
             if (fromStatus === 'completed') {
                 if (toStatus === 'in_progress') return { allowed: true, newStatus: 'rejected' };
+                if (toStatus === 'finished') return { allowed: true, newStatus: 'finished' }
                 return { allowed: false };
             }
             return { allowed: false };
@@ -10003,9 +10100,11 @@ function filterTaskTableRows(queryRaw) {
                 const newEl = document.getElementById("new-request-tasks");
                 const progEl = document.getElementById("in-progress-tasks");
                 const compEl = document.getElementById("completed-tasks");
+                const finishEl = document.getElementById("finished-tasks");
                 if (newEl) newEl.innerHTML = "";
                 if (progEl) progEl.innerHTML = "";
                 if (compEl) compEl.innerHTML = "";
+                if (finishEl) finishEl.innerHTML = "";
 
                 // Helper to read tasks from a bucket that could be an array or {tasks:[]}
                 const getTasks = (section) => {
@@ -10018,6 +10117,7 @@ function filterTaskTableRows(queryRaw) {
                 let newTasks = getTasks(payload.new_request);
                 let progTasks = getTasks(payload.in_progress);
                 let compTasks = getTasks(payload.completed);
+                let finishTasks = getTasks(payload.finished);
                 let rejTasks = getTasks(payload.rejected);
 
                 // When filtering by status=in_progress, backend may already merge rejected; keep extra merge safe
@@ -10029,6 +10129,7 @@ function filterTaskTableRows(queryRaw) {
                 newTasks.forEach(t => { if (newEl) newEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
                 progTasks.forEach(t => { if (progEl) progEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
                 compTasks.forEach(t => { if (compEl) compEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
+                finishTasks.forEach(t => { if (finishEl) finishEl.insertAdjacentHTML("beforeend", createTaskCard(t)); });
 
                 // Dropdown listeners are bound once globally; avoid rebinding here
                 addAttachFileIconListeners();
@@ -10049,6 +10150,7 @@ function filterTaskTableRows(queryRaw) {
                     allTasksCache.new_request = { tasks: Array.isArray(payload.new_request) ? payload.new_request : (payload.new_request?.tasks || []), pagination: payload.new_request?.pagination || {} };
                     allTasksCache.in_progress = { tasks: inProgressMergedForCache, pagination: payload.in_progress?.pagination || {} };
                     allTasksCache.completed = { tasks: Array.isArray(payload.completed) ? payload.completed : (payload.completed?.tasks || []), pagination: payload.completed?.pagination || {} };
+                    allTasksCache.finished = { tasks: Array.isArray(payload.finished) ? payload.finished : (payload.finished?.tasks || []), pagination: payload.finished?.pagination || {} };
                 } catch (_) {}
 
                 // Refresh the List/Table view to reflect current filters
@@ -10239,6 +10341,8 @@ function filterTaskTableRows(queryRaw) {
             container.addClass("bg-progress");
         } else if (status === "completed") {
             container.addClass("bg-completed");
+        } else if (status === 'finished') {
+            container.addClass('bg-finish')
         }
 
         if (!append) list.empty();
@@ -10383,7 +10487,6 @@ function filterTaskTableRows(queryRaw) {
 
         $("#taskFilterDropdownMobile").hide();
 
-        console.log("✅ Filter reset ke default:", currentTaskFilters);
     });
 
 
@@ -10395,6 +10498,7 @@ function filterTaskTableRows(queryRaw) {
                 <option value="new_request">New</option>
                 <option value="in_progress">In Progress</option>
                 <option value="completed">Completed</option>
+                <option value="finished">Finished</option>
                 </select>
             </div>
             <div class="task-mobile-actions d-flex justify-content-between align-items-center">
@@ -10610,7 +10714,7 @@ function filterTaskTableRows(queryRaw) {
                 if ((!arr || !arr.length) && data) {
                     // fallback: flatten buckets and filter by status canceled/deleted
                     const collected = [];
-                    const buckets = ['new_request','in_progress','completed','rejected','canceled','deleted','CANCELED','DELETED'];
+                    const buckets = ['new_request','in_progress','completed', 'finished','rejected','canceled','deleted','CANCELED','DELETED'];
                     buckets.forEach(key => {
                         const section = data[key];
                         if (!section) return;
@@ -10633,7 +10737,7 @@ function filterTaskTableRows(queryRaw) {
             tasks = tasks.concat(tasksCanceled || [], tasksDeleted || []);
             if (!tasks || tasks.length === 0) {
                 let collected = [];
-                const buckets = ['new_request', 'in_progress', 'completed', 'rejected', 'canceled', 'CANCELED'];
+                const buckets = ['new_request', 'in_progress', 'completed', 'finished', 'rejected', 'canceled', 'CANCELED'];
                 buckets.forEach(key => {
                     const section = data[key];
                     if (!section) return;
