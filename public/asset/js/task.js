@@ -3387,7 +3387,13 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
 
         let statusBadge = '';
         if (task.status === 'rejected') {
-            statusBadge = '<span class="badge bg-danger position-absolute" style="font-size: 10px; font-weight: 500; top: 25%; right: 18px;">REJECTED</span>';
+            statusBadge = `
+                <div class="d-flex justify-content-end mt-1">
+                    <span class="badge bg-danger" style="font-size:10px; font-weight:500; color:#fff;">
+                        Rejected
+                    </span>
+                </div>
+            `;
         }
 
         let iconHtml = '';
@@ -3531,7 +3537,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
 
     return `
         <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
-                ${statusBadge}
                 ${dropdownHtml}
                 ${iconHtml}
 
@@ -3556,11 +3561,12 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                         <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
                     </div>
                 </div>
-                <div class="task-description-container">
+                <div class="task-description-container mb-1">
                     <p class="task-description" data-full-description="${task.description}">
                         ${task.description ? task.description : ''}
                     </p>
                 </div>
+                ${statusBadge || ''} 
                 <hr class="task-separator rounded-4">
                 <div class="d-flex justify-content-between align-items-center">
                     <div style="font-size: 10px; font-weight: 400; display:flex; flex-direction:column;">
