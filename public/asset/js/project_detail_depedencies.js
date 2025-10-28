@@ -188,6 +188,7 @@ function normalizeStatus(status) {
         "in progress": "in-progress",
         "not-started": "not-started",
         "in-progress": "in-progress",
+        "finished": "finished",
     };
     return (
         statusMap[status.toLowerCase()] ||
@@ -204,6 +205,7 @@ function renderTaskNode(task, $template) {
     const s = String(task.status || "").toLowerCase();
     if (["new_request", "new request", "new-request"].includes(s)) visual = "not-started";
     else if (["in_progress", "in progress", "in-progress"].includes(s)) visual = "in-progress";
+    else if (["finished", "finish"].includes(s)) visual = "finished";
     else if (["complete", "completed"].includes(s)) visual = "complete";
     else if (["rejected"].includes(s)) visual = "rejected";
     else visual = normalizedStatus || "not-started";
@@ -294,6 +296,7 @@ function renderTaskNode(task, $template) {
 
     if (visual === "complete") $card.css("background-color", "#B2EECD");
     else if (visual === "in-progress" || visual === "rejected") $card.css("background-color", "#F5EFCE");
+    else if (visual === "finished") $card.css("background-color", "#BACBEE40");
     else if (visual === "late") $card.css("background-color", "#EBA5A5");
     else $card.css("background-color", "#DDE4E8");
 
@@ -2106,6 +2109,7 @@ function initProjectTaskDetailModal() {
                 break;
             case "completed":
                 extraButtons = `<button type="button" class="status-rejected-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#ff6600;cursor:pointer;">Rejected</button>`;
+                extraButtons = `<button type="button" class="status-finished-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#444;cursor:pointer;">Finished</button>`;
                 break;
             case "rejected":
                 extraButtons = `<button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>`;
@@ -2156,6 +2160,7 @@ function initProjectTaskDetailModal() {
         if ($btn.hasClass("status-newrequest-action")) newStatus = "new_request";
         if ($btn.hasClass("status-completed-action")) newStatus = "completed";
         if ($btn.hasClass("status-rejected-action")) newStatus = "rejected";
+        if ($btn.hasClass("status-finished-action")) newStatus = "finished";
         if (!newStatus) return;
 
         if (newStatus === "completed") {
