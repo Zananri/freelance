@@ -1388,6 +1388,12 @@ p {
         margin-right: -20px;
     }
 
+    .bg-finish {
+        background: #BACBEE40;
+        margin-left: -20px;
+        margin-right: -20px;
+    }
+
     .task-mobile-card-header {
         display: flex;
         align-items: center;
