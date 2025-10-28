@@ -2553,13 +2553,17 @@ class TaskController extends Controller
                 }
             }
 
-            // Prefer DELETED; fall back to CANCELED if DELETED isn't supported by the enum
+            // Prefer uppercase DELETED/CANCELED if DB contains them; otherwise accept lowercase.
             $desired = 'DELETED';
             if (!in_array($desired, $allowedStatuses, true)) {
-                if (in_array('CANCELED', $allowedStatuses, true)) {
+                if (in_array('deleted', $allowedStatuses, true)) {
+                    $desired = 'deleted';
+                } elseif (in_array('CANCELED', $allowedStatuses, true)) {
                     $desired = 'CANCELED';
+                } elseif (in_array('canceled', $allowedStatuses, true)) {
+                    $desired = 'canceled';
                 } else {
-                    // If neither value exists, fail with an actionable error to run migrations
+                    // If none of the archived values exist, fail with an actionable error to run migrations
                     return response()->json([
                         'code' => 500,
                         'status' => 'error',
