@@ -71,6 +71,9 @@
                 <a href="{{ route('employee.create') }}" id="btnAddData" class="btn btn-icon-toggle border-dddd add-btn">
                     <span class="material-symbols-outlined icon">add</span><span class="text-btn">Add Data</span>
                 </a>
+                <a href="{{ url('/employee/export-employee-active')}}" target="_blank" class="btn btn-icon-toggle border-dddd add-btn" style="width: auto; min-width: 20px;">
+                    <span class="material-symbols-outlined icon">download</span>
+                </a>
             </div>
         </div>
 

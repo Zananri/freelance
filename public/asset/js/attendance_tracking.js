@@ -291,39 +291,64 @@ async function setAttendanceDetail(){
     let attendance = CURRENT_ATTENDANCE;
     let employee = CURRENT_EMPLOYEE;
 
-    let employeeShift = formatTimeShort(attendance.shift_time_start)+' - '+formatTimeShort(attendance.shift_time_end);
-
-    $('#modalAttendance .attendance-date,#modalAttendanceEdit .attendance-date').text(formateDateFull(attendance.date_attendance));
+    let attendanceId = '';
+    let employeeShift = '';
+    let attendanceDate = '';
+    let attendanceTimelate = '';
+    let attendanceStatus = 'ABSENT';
+    let attendanceNote = '';
+    let attendanceTotalWorkDuration = '';
     
-    $('#modalAttendance .employee-name,#modalAttendanceEdit .employee-name').text(employee.name);
+    let attendanceTimeIn = '';
+    let attendanceTimeOut = '';
+
+    if(CURRENT_ATTENDANCE){
+        attendanceId = attendance.id;
+        attendanceNote = attendance.note;
+        attendanceStatus = attendance.status;
+        employeeShift = formatTimeShort(attendance.shift_time_start)+' - '+formatTimeShort(attendance.shift_time_end);
+        attendanceDate = attendance.date_attendance;
+        attendanceTimelate = formatTimeShort(attendance.time_late);
+
+        attendanceTotalWorkDuration = attendance.total_work_duration;
+
+        attendanceTimeIn = attendance.time_in;
+        attendanceTimeOut = attendance.time_out;
+    }
+    
+
+    $('#modalAttendance .attendance-date,#modalAttendanceEdit .attendance-date').text(formateDateFull(attendanceDate));
     $('#modalAttendance .employee-shift,#modalAttendanceEdit .employee-shift').text(employeeShift);
 
-    $('#modalAttendance .attendance-late,#modalAttendanceEdit .attendance-late').text(formatTimeShort(attendance.time_late)).removeClass('text-danger');
+    $('#modalAttendance .attendance-late,#modalAttendanceEdit .attendance-late').text(attendanceTimelate).removeClass('text-danger');
 
-    if(attendance.time_late != null && attendance.time_late != '00:00:00'){
-        $('#modalAttendance .attendance-late').addClass('text-danger');   
+    if(CURRENT_ATTENDANCE){
+        if(attendance.time_late != null && attendance.time_late != '00:00:00'){
+            $('#modalAttendance .attendance-late').addClass('text-danger');   
+        }
     }
     
     
+    $('#modalAttendance .employee-name,#modalAttendanceEdit .employee-name').text(employee.name);
     $('#modalAttendance [name="employee_id"],#modalAttendanceEdit [name="employee_id"]').val(employee.id);
-    $('#modalAttendance [name="attendance_date"],#modalAttendanceEdit [name="attendance_date"]').val(attendance.date_attendance);
-    $('#modalAttendance [name="attendance_id"],#modalAttendanceEdit [name="attendance_id"]').val(attendance.id);
 
-    $('#modalAttendance .attendance-status').text(attendance.status);
-    $('#modalAttendance .attendance-checkin').text(formatTimeShort(attendance.time_in));
-    $('#modalAttendance .attendance-checkout').text(formatTimeShort(attendance.time_out));
-    $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendance.total_work_duration));
+    $('#modalAttendance [name="attendance_date"],#modalAttendanceEdit [name="attendance_date"]').val(attendanceDate);
+    $('#modalAttendance [name="attendance_id"],#modalAttendanceEdit [name="attendance_id"]').val(attendanceId);
+
+    $('#modalAttendance .attendance-status').text(attendanceStatus);
+    $('#modalAttendance .attendance-checkin').text(formatTimeShort(attendanceTimeIn));
+    $('#modalAttendance .attendance-checkout').text(formatTimeShort(attendanceTimeOut));
+    $('#modalAttendance .attendance-work-duration').text(formatTimeShort(attendanceTotalWorkDuration));
 
     $('#modalAttendance .attendance-note').text('-');
 
-    $('#modalAttendanceEdit [name="attendance_time_in"]').val(attendance.time_in);
-    $('#modalAttendanceEdit [name="attendance_time_out"]').val(attendance.time_out);
-    $('#modalAttendanceEdit [name="attendance_note"]').val(attendance.note);
-    $('#modalAttendanceEdit [name="attendance_status"]').val(attendance.status);
+    $('#modalAttendanceEdit [name="attendance_time_in"]').val(attendanceTimeIn);
+    $('#modalAttendanceEdit [name="attendance_time_out"]').val(attendanceTimeOut);
+    $('#modalAttendanceEdit [name="attendance_note"]').val(attendanceNote);
+    $('#modalAttendanceEdit [name="attendance_status"]').val(attendanceStatus);
     
-    
-    if(attendance.note != null && attendance.note != '' && attendance.note != 'null'){
-        $('#modalAttendance .attendance-note').text(attendance.note);
+    if(attendanceNote != null && attendanceNote != '' && attendanceNote != 'null'){
+        $('#modalAttendance .attendance-note').text(attendanceNote);
     }
     
     return true;
