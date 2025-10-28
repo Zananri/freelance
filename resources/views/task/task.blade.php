@@ -108,7 +108,7 @@
 
     <div id="task-cards-container" class="task-container container">
         <div class="row">
-            <div class="col-md-4 new-request-container">
+            <div class="col-md-3 new-request-container">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h4 class="task-section-title mb-0">New</h4>
                     <div class="d-flex align-items-center gap-2">
@@ -133,7 +133,7 @@
                 </div>
                 <div id="new-request-tasks" class="task-list"></div>
             </div>
-            <div class="col-md-4 in-progress-container">
+            <div class="col-md-3 in-progress-container">
                 <h4 class="task-section-title">In Progress</h4>
                 <div id="progressTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
@@ -142,7 +142,7 @@
                 </div>
                 <div id="in-progress-tasks" class="task-list"></div>
             </div>
-            <div class="col-md-4 completed-container">
+            <div class="col-md-3 completed-container">
                 <h4 class="task-section-title">Completed</h4>
                 <div id="completedTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
@@ -150,6 +150,15 @@
                     </div>
                 </div>
                 <div id="completed-tasks" class="task-list"></div>
+            </div>
+            <div class="col-md-3 finished-container">
+                <h4 class="task-section-title">Finish</h4>
+                <div id="finishedTaskLoading" class="d-flex justify-content-center mt-3 d-none">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+                <div id="finished-tasks" class="task-list"></div>
             </div>
         </div>
     </div>

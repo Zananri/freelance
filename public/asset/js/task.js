@@ -1161,7 +1161,6 @@
         });
     }
 
-
     function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
         try {
             // If prefix is a DOM element (e.g., a select), derive prefix from its id
@@ -2732,112 +2731,84 @@
 
     // Function to setup executor input for edit modal
     function setupEditExecutorInput() {
-        // Support pages that may have duplicate IDs (incorrect HTML) by
-        // attaching handlers to every matching input and scoping the preview
-        // rendering to the parent modal/container where the input lives.
-        const inputs = Array.from(document.querySelectorAll('#edit_task_reference_files'));
-        if (!inputs || inputs.length === 0) return;
+        const input = document.getElementById("edit_executor_input");
+        const dropdown = document.getElementById("edit_executor_dropdown");
+        const selectedContainer = document.getElementById("edit_selected_executors");
+        const hiddenInput = document.getElementById("edit_executors");
 
-        inputs.forEach((inputEl, instanceIndex) => {
-            // find preview and existing containers within same modal/body scope
-            const scope = inputEl.closest('.modal') || inputEl.closest('form') || document;
-            const preview = scope.querySelector('#edit_reference_files_preview');
-            const existing = scope.querySelector('#existing_reference_files');
-            if (!preview) return; // nothing to attach to
-
-            // keep selected files per-input instance
-            inputEl._editSelectedFiles = inputEl._editSelectedFiles || [];
-
-            inputEl.addEventListener('change', function () {
-                try {
-                    const files = Array.from(this.files || []);
-                    inputEl._editSelectedFiles = [...inputEl._editSelectedFiles, ...files];
-                    renderEditSelectedFilesFor(inputEl, preview);
-                } catch (e) { console.warn('edit reference files change err', e); }
-                // clear input to allow re-select of same files later
-                try { this.value = ''; } catch(_) {}
-            });
-
-            // render function scoped to this input & preview
-            function renderEditSelectedFilesFor(inputElInner, previewEl) {
-                try {
-                    previewEl.innerHTML = '';
-                    const arr = inputElInner._editSelectedFiles || [];
-                    if (!arr.length) return;
-
-                    const fileList = document.createElement('div');
-                    fileList.className = 'selected-files-list mt-2';
-
-                    arr.forEach((file, idx) => {
-                        const fileItem = document.createElement('div');
-                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
-
-                        if (file && file.type && file.type.indexOf('image') === 0) {
-                            const img = document.createElement('img');
-                            const url = URL.createObjectURL(file);
-                            img.src = url; img.width = 28; img.height = 28; img.style.objectFit = 'cover'; img.style.borderRadius = '50%'; img.alt = file.name;
-                            img.onload = function(){ try{ URL.revokeObjectURL(url); } catch(_){} };
-                            fileItem.appendChild(img);
-                        } else {
-                            const badge = document.createElement('div');
-                            fileItem.appendChild(badge);
-                        }
-
-                        const title = document.createElement('span'); title.className = 'flex-grow-1'; title.textContent = file.name; fileItem.appendChild(title);
-
-                        const removeBtn = document.createElement('button');
-                        removeBtn.type = 'button'; removeBtn.className = 'btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight = '1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                        removeBtn.addEventListener('click', function () {
-                            inputElInner._editSelectedFiles.splice(idx, 1);
-                            renderEditSelectedFilesFor(inputElInner, previewEl);
-                        });
-                        fileItem.appendChild(removeBtn);
-                        fileList.appendChild(fileItem);
-                    });
-
-                    previewEl.appendChild(fileList);
-                } catch (e) { console.warn('renderEditSelectedFilesFor error', e); }
-            }
-
-            // expose a safe per-instance display function for other code if needed
-            try { inputEl.displayEditSelectedFiles = function(){ renderEditSelectedFilesFor(inputEl, preview); }; } catch(_){}
-
-            // If there are initial existing files displayed server-side, try to keep hidden input updated when user removes via existing container
-            if (existing) {
-                existing.addEventListener('click', function(e){
-                    if (e.target && (e.target.matches('button.btn-remove-task') || e.target.closest('button.btn-remove-task') || e.target.matches('button.remove-task') || e.target.closest('button.remove-task'))) {
-                        setTimeout(function(){ updateExistingFilesInScope(scope); }, 10);
-                    }
-                });
-            }
-
-        });
-
-        // helper to update hidden input for existing files within a scope
-        function updateExistingFilesInScope(scope) {
-            try {
-                const existingItems = scope.querySelectorAll('#existing_reference_files .existing-file-item, #existing_reference_files .selected-task');
-                const existingFiles = [];
-                existingItems.forEach((item) => {
-                    let fileName = '';
-                    const sp = item.querySelector('span.flex-grow-1');
-                    if (sp && sp.getAttribute) fileName = sp.getAttribute('data-filename') || sp.textContent.trim();
-                    if (fileName) existingFiles.push(fileName);
-                });
-
-                let existingFilesInput = scope.querySelector('#existing_reference_files_input');
-                if (!existingFilesInput) {
-                    existingFilesInput = document.createElement('input');
-                    existingFilesInput.type = 'hidden';
-                    existingFilesInput.id = 'existing_reference_files_input';
-                    existingFilesInput.name = 'existing_reference_files';
-                    const form = scope.querySelector('form') || document.getElementById('editTaskForm') || document.body;
-                    try { form.appendChild(existingFilesInput); } catch(_) {}
-                }
-                existingFilesInput.value = JSON.stringify(existingFiles);
-            } catch (e) { console.warn('updateExistingFilesInScope error', e); }
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) {
+            return; // Elements not found, skip setup
         }
-        
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        function fetchEmployees(query = "") {
+            return fetchEmployeesForExecutorCached(query)
+                .then(function(data) {
+                    employees = (data && (data.data || data)) || [];
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filteredEmployees = employees;
+                    renderDropdown();
+                })
+                .catch(function() {
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) {}
+                });
+        }
+
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML =
+                    '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = "block";
+                return;
+            }
+
+            const html = filteredEmployees
+                .map((emp) => {
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                    return `
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <div class="d-flex flex-column">
+                                    <span class="executor-name">${emp.name}</span>
+                                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                                </div>
+                            </div>
+                            <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                        </label>
+                    `;
+                })
+                .join("");
+            dropdown.innerHTML = html;
+            dropdown.style.display = "block";
+
+            dropdown.querySelectorAll(".executor-checkbox").forEach((checkbox) => {
+                checkbox.addEventListener("change", function () {
+                    const id = parseInt(this.getAttribute("data-id"));
+                    const name = this.getAttribute("data-name");
+                    const employeeObj = employees.find(emp => emp.id === id);
+
+                    if (this.checked) {
+                        if (!selectedEmployees.some((e) => e.id === id)) {
+                            selectedEmployees.push({
+                                id,
+                                name,
+                                user_photo: employeeObj ? employeeObj.user_photo : null,
+                                division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
+                            });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                });
+            });
+        }
 
         function renderSelected() {
             selectedContainer.innerHTML = "";
@@ -3636,13 +3607,15 @@ const allTasksCache = window.allTasksCache;
 const loaderMap = {
   new_request: "#newTaskLoading",
   in_progress: "#progressTaskLoading",
-  completed: "#completedTaskLoading"
+  completed: "#completedTaskLoading",
+  finished: "#finishedTaskLoading",
 };
 
 const sectionMap = {
   new_request: "new-request-tasks",
   in_progress: "in-progress-tasks",
-  completed: "completed-tasks"
+  completed: "completed-tasks",
+  finished: "finished-tasks"
 };
 
 let taskFetchSeq = 0
