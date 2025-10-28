@@ -2599,6 +2599,29 @@ $(function () {
                     );
                     if (submitBtn) submitBtn.disabled = true;
 
+                    // Additional description content validation (strip HTML tags from Quill content)
+                    try {
+                        var descTa = document.getElementById('task_description');
+                        if (descTa) {
+                            var raw = descTa.value || '';
+                            // Remove HTML tags and &nbsp; entities, then trim
+                            var stripped = raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ').trim();
+                            if (stripped.length === 0) {
+                                // restore submit button state
+                                try { if (loader) loader.classList.add('d-none'); } catch(_) {}
+                                if (submitBtn) submitBtn.disabled = false;
+                                try {
+                                    if (typeof showFloatingAlert === 'function') showFloatingAlert('Description is required.', 'warning', 2500);
+                                    else alert('Description is required.');
+                                } catch(_) { alert('Description is required.'); }
+                                addTaskForm.classList.add('was-validated');
+                                // focus quill editor if exists
+                                try { if (window.__quillTaskAdd && window.__quillTaskAdd.focus) window.__quillTaskAdd.focus(); } catch(_) {}
+                                return;
+                            }
+                        }
+                    } catch (_) {}
+
                     // Assemble FormData (respect existing form structure)
                     var fd = new FormData(addTaskForm);
 
