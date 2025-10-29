@@ -210,7 +210,7 @@ function renderTaskNode(task, $template) {
     else if (["rejected"].includes(s)) visual = "rejected";
     else visual = normalizedStatus || "not-started";
 
-    if (task.due_date && !["complete", "rejected"].includes(visual)) {
+    if (task.due_date && !["complete", "rejected", "finished"].includes(visual)) {
         const due = new Date(task.due_date), today = new Date();
         due.setHours(0, 0, 0, 0); today.setHours(0, 0, 0, 0);
         if (!isNaN(due.getTime()) && today > due) visual = "late";
