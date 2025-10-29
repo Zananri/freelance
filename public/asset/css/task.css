@@ -128,19 +128,24 @@
 
 .table-transparent {
     width: 100%;
+    max-height: 40vh;
     border-collapse: separate;
     border-spacing: 0;
+    overflow-y: auto;
 }
 
 .table-transparent td {
     padding: 10px;
     text-align: left;
     border: 1px solid #dae3ed;
-    white-space: nowrap;
+    white-space: normal;
+    word-wrap: break-word;
+    word-break: break-word;
     font-weight: 400;
     font-size: 12px;
     color: #42484f;
     z-index: 0;
+    max-width: 210px;
 }
 
 .table-transparent thead th {
@@ -1494,24 +1499,42 @@ p {
         min-width: 87%;
     }
 
-    .table-transparent {
+    .table-wrapper-mobile {
+        width: 100%;
+        max-height: 50vh;
+        overflow: auto;
+    }
+
+    .table-wrapper-mobile table {
+        border-collapse: collapse;
         width: 300%;
+    }
+
+    .table-transparent th,
+    .table-transparent td {
+        border: 1px solid #dae3ed;
+        padding: 8px 12px;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .table-transparent thead th {
+        position: sticky;
+        top: 0;
+        background: #f0f1f8;
+        z-index: 2;
     }
 
     .table-transparent th:first-child,
     .table-transparent td:first-child {
         position: sticky;
-        left: -25px;
-        max-width: 150px !important;
-        width: 150px !important;
+        left: 0;
+        background: #f0f1f8;
+        z-index: 3;
     }
 
-    .executor-wrapper,
-    .task-name-wrapper {
-        max-width: 80px !important;
-        width: 80px !important;
-        padding: 2px !important;
-        gap: 2px !important;
+    .table-transparent thead th:first-child {
+        z-index: 4;
     }
 }
 

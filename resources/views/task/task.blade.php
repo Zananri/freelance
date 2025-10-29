@@ -164,7 +164,7 @@
     </div>
 
     <div id="task-table-section" class="task-table-section d-none">
-        <div class="body-content scrollable-container table-container rounded-4 px-4 py-3">
+        <div class="body-content table-container rounded-4 px-4 py-3">
             <table class="table table-borderless align-middle table-transparent">
                 <thead>
                     <tr>
