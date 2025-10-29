@@ -296,7 +296,7 @@ function renderTaskNode(task, $template) {
 
     if (visual === "complete") $card.css("background-color", "#B2EECD");
     else if (visual === "in-progress" || visual === "rejected") $card.css("background-color", "#F5EFCE");
-    else if (visual === "finished") $card.css("background-color", "#BACBEE40");
+    else if (visual === "finished") $card.css("background-color", "#A5C6F1");
     else if (visual === "late") $card.css("background-color", "#EBA5A5");
     else $card.css("background-color", "#DDE4E8");
 
