@@ -260,10 +260,18 @@ function renderTaskNode(task, $template) {
         const showMenu = !!isPrivileged;
 
         try {
-            if (visual === "complete") {
-                // avoid duplicate
+            if (["complete", "finished"].includes(visual)) {
                 if ($card.find('.playlist_add_check').length === 0) {
-                    const $icon = $(`<span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" role="button" tabindex="0" aria-label="Lihat task selesai" style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:pointer; z-index:2000;">playlist_add_check</span>`);
+                    const $icon = $(`
+                        <span class="material-symbols-outlined task-icon playlist_add_check" 
+                            data-task-id="${task.id}" 
+                            role="button" 
+                            tabindex="0" 
+                            aria-label="Lihat task selesai" 
+                            style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:pointer; z-index:2000;">
+                            playlist_add_check
+                        </span>
+                    `);
                     $card.append($icon);
                 }
             }
