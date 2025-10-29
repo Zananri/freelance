@@ -51,7 +51,7 @@
                     <span class="material-symbols-outlined">box</span>
                 </button>
 
-                <button class="btn btn-icon-toggle toggle-filter" type="button" id="openTaskFilterBtn">
+                <button class="btn btn-icon-toggle toggle-filter align-items-center" type="button" id="openTaskFilterBtn">
                     <span class="material-symbols-outlined icon">filter_list</span> <span
                         class="btn-text-filter">Filter</span>
                 </button>
@@ -164,7 +164,7 @@
     </div>
 
     <div id="task-table-section" class="task-table-section d-none">
-        <div class="body-content scrollable-container table-container rounded-4 px-4 py-3">
+        <div class="body-content table-container rounded-4 px-4 py-3">
             <table class="table table-borderless align-middle table-transparent">
                 <thead>
                     <tr>
