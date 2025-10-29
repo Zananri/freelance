@@ -4170,146 +4170,157 @@ function statusLabel(statusRaw) {
 
 function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { return ''; } }
 
-function renderTaskTableFromCache() {
-    try {
-        const sections = [
-            document.getElementById('task-table-section'),
-            document.getElementById('task-table-section-mobile')
-        ].filter(Boolean);
+    function renderTaskTableFromCache() {
+        try {
+            const sections = [
+                document.getElementById('task-table-section'),
+                document.getElementById('task-table-section-mobile')
+            ].filter(Boolean);
 
-        if (!sections.length) return;
-        const tasks = getAllTasksFlatFromCache();
-        if (!Array.isArray(tasks)) return;
+            if (!sections.length) return;
+            const tasks = getAllTasksFlatFromCache();
+            if (!Array.isArray(tasks)) return;
 
-        const parseDate = d => { 
-            try { const x = new Date(d); return isNaN(x) ? null : x.getTime(); } 
-            catch(_) { return null; } 
-        };
+            const parseDate = d => { 
+                try { const x = new Date(d); return isNaN(x) ? null : x.getTime(); } 
+                catch(_) { return null; } 
+            };
 
-        const sorted = tasks.slice().sort((a,b) => {
-            const ad = parseDate(a?.due_date); 
-            const bd = parseDate(b?.due_date);
-            if (ad !== bd) return (ad||Infinity) - (bd||Infinity);
-            const as = parseDate(a?.start_date); 
-            const bs = parseDate(b?.start_date);
-            return (as||Infinity) - (bs||Infinity);
-        });
-
-        let html = '';
-        sorted.forEach(t => {
-            const taskTitle = safeText(t.title);
-            const projectTitle = safeText(t.project_title || (t.project && t.project.title));
-            const pic = t.pic || null;
-            const picName = pic ? safeText(pic.name) : '-';
-            const execCell = createExecutorsCellHtml(t);
-            const startStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.start_date) : safeText(t.start_date);
-            const dueStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.due_date) : safeText(t.due_date);
-            const st = statusLabel(t.status);
-
-            const titleForInitials = taskTitle || projectTitle || 'NA';
-            const initials = (() => {
-                const s = String(titleForInitials).trim();
-                if (!s) return 'NA';
-                const parts = s.split(/\s+/).filter(Boolean);
-                if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
-                return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
-            })();
-
-            const colors = ['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
-            const bgColor = (() => {
-                let hash=0; for (let i=0;i<titleForInitials.length;i++){ hash = (hash*31 + titleForInitials.charCodeAt(i))>>>0; }
-                return colors[hash % colors.length];
-            })();
-
-            const projectImg = (() => {
-                try {
-                    const raw = (t && t.project_image);
-                    if (!raw) return null;
-                    const val = String(raw || '').trim();
-                    if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') return null;
-                    if (/^https?:\/\//i.test(val)) return val;
-                    if (val.includes('/file/project/')) {
-                        const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
-                        if (!fname) return null;
-                        return `${appUrl}/file/project/${fname}`;
-                    }
-                    if (val.includes('/asset/')) {
-                        const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
-                        return `${appUrl}/asset/${suffix}`;
-                    }
-                    if (val.startsWith('/asset/')) {
-                        const suffix = val.replace(/^\/+/, '');
-                        return `${appUrl}/${suffix}`;
-                    }
-                    if (val.startsWith('/')) return `${appUrl}${val}`;
-                    return `${appUrl}/file/project/${val}`;
-                } catch(_) { return null; }
-            })();
-
-            const taskImgHtml = projectImg
-                ? `<div style="flex-shrink:0;">
-                        <img src="${projectImg}" alt="Project Image" class="rounded-circle" width="40" height="40" style="object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
-                </div>`
-                : `<div style="flex-shrink:0;">
-                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:${bgColor};color:#fff;font-size:12px;font-weight:600;">
-                            ${initials}
-                        </div>
-                </div>`;
-
-            html += `
-            <tr data-task-id="${t.id}">
-                <td>
-                    <div style="display:flex;gap:0.5rem;align-items:flex-start;">
-                        ${taskImgHtml}
-                        <div>
-                            <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
-                            <div class="task-name-wrapper fw-semibold task-title" style="font-size: 14px; cursor: pointer;">${taskTitle}</div>
-                        </div>
-                    </div>
-                </td>
-                <td style="white-space:normal;">${picName}</td>
-                <td style="white-space:normal;">${execCell}</td>
-                <td>${startStr || '-'}</td>
-                <td>${dueStr || '-'}</td>
-                <td>${st}</td>
-            </tr>
-            `;
-        });
-
-        // render ke semua section (desktop + mobile)
-        sections.forEach(section => {
-            const tbody = section.querySelector('tbody');
-            if (!tbody) return;
-            tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">No tasks found</td></tr>';
-            try { initBootstrapTooltips(section); } catch(_) {}
-            try { 
-                const q = (document.getElementById('search_filter')?.value) 
-                    || (document.getElementById('search_filter_mobile')?.value) 
-                    || ''; 
-                filterTaskTableRows(q, section); 
-            } catch(_) {}
-        });
-    } catch(e) { /* noop */ }
-}
-
-function filterTaskTableRows(queryRaw, targetSection = null) {
-    try {
-        const q = String(queryRaw || '').trim().toLowerCase();
-        const sections = targetSection ? [targetSection] : [
-            document.getElementById('task-table-section'),
-            document.getElementById('task-table-section-mobile')
-        ].filter(Boolean);
-
-        sections.forEach(section => {
-            const rows = section.querySelectorAll('tbody tr');
-            rows.forEach(tr => {
-                const colsText = Array.from(tr.querySelectorAll('td')).map(td => (td.textContent||'').toLowerCase()).join(' ');
-                const match = !q || colsText.includes(q);
-                tr.style.display = match ? '' : 'none';
+            const sorted = tasks.slice().sort((a,b) => {
+                const ad = parseDate(a?.due_date); 
+                const bd = parseDate(b?.due_date);
+                if (ad !== bd) return (ad||Infinity) - (bd||Infinity);
+                const as = parseDate(a?.start_date); 
+                const bs = parseDate(b?.start_date);
+                return (as||Infinity) - (bs||Infinity);
             });
-        });
-    } catch(_) { /* noop */ }
-}
+
+            let html = '';
+            sorted.forEach(t => {
+                const taskTitle = safeText(t.title);
+                const projectTitle = safeText(t.project_title || (t.project && t.project.title));
+                const pic = t.pic || null;
+                const picName = pic ? safeText(pic.name) : '-';
+                const execCell = createExecutorsCellHtml(t);
+                const startStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.start_date) : safeText(t.start_date);
+                const dueStr = (typeof formatDateWithSlash === 'function') ? formatDateWithSlash(t.due_date) : safeText(t.due_date);
+                const st = statusLabel(t.status);
+
+                const titleForInitials = taskTitle || projectTitle || 'NA';
+                const initials = (() => {
+                    const s = String(titleForInitials).trim();
+                    if (!s) return 'NA';
+                    const parts = s.split(/\s+/).filter(Boolean);
+                    if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+                    return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+                })();
+
+                const colors = ['#6A5AE0','#FF8A3C','#00A881','#D4526E','#3E8EDE','#546E7A','#8E44AD','#2E7D32','#AD1457','#EF6C00'];
+                const bgColor = (() => {
+                    let hash=0; for (let i=0;i<titleForInitials.length;i++){ hash = (hash*31 + titleForInitials.charCodeAt(i))>>>0; }
+                    return colors[hash % colors.length];
+                })();
+
+                const projectImg = (() => {
+                    try {
+                        const raw = (t && t.project_image);
+                        if (!raw) return null;
+                        const val = String(raw || '').trim();
+                        if (!val || val.toLowerCase() === 'null' || val.toLowerCase() === 'undefined') return null;
+                        if (/^https?:\/\//i.test(val)) return val;
+                        if (val.includes('/file/project/')) {
+                            const fname = val.split('/file/project/').pop().split(/[?#]/)[0];
+                            if (!fname) return null;
+                            return `${appUrl}/file/project/${fname}`;
+                        }
+                        if (val.includes('/asset/')) {
+                            const suffix = val.split('/asset/').pop().replace(/^\/+/, '');
+                            return `${appUrl}/asset/${suffix}`;
+                        }
+                        if (val.startsWith('/asset/')) {
+                            const suffix = val.replace(/^\/+/, '');
+                            return `${appUrl}/${suffix}`;
+                        }
+                        if (val.startsWith('/')) return `${appUrl}${val}`;
+                        return `${appUrl}/file/project/${val}`;
+                    } catch(_) { return null; }
+                })();
+
+                const taskImgHtml = projectImg
+                    ? `<div style="flex-shrink:0;">
+                            <img src="${projectImg}" alt="Project Image" class="rounded-circle" width="40" height="40" style="object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">
+                    </div>`
+                    : `<div style="flex-shrink:0;">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center" style="width:40px;height:40px;background:${bgColor};color:#fff;font-size:12px;font-weight:600;">
+                                ${initials}
+                            </div>
+                    </div>`;
+
+                html += `
+                <tr data-task-id="${t.id}" data-project-id="${t.project_id || ''}" data-priority="${t.priority || ''}" data-status="${t.status || ''}" data-due-date="${t.due_date || ''}">
+                    <td>
+                        <div style="display:flex;gap:0.5rem;align-items:flex-start;">
+                            ${taskImgHtml}
+                            <div>
+                                <div style="font-size: 10px; color: #6c757d;">${projectTitle || taskTitle}</div>
+                                <div class="task-name-wrapper fw-semibold task-title" style="font-size: 14px; cursor: pointer;">${taskTitle}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td style="white-space:normal;">${picName}</td>
+                    <td style="white-space:normal;">${execCell}</td>
+                    <td>${startStr || '-'}</td>
+                    <td>${dueStr || '-'}</td>
+                    <td>${st}</td>
+                </tr>
+                `;
+            });
+
+            sections.forEach(section => {
+                const tbody = section.querySelector('tbody');
+                if (!tbody) return;
+                tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted">No tasks found</td></tr>';
+                try { initBootstrapTooltips(section); } catch(_) {}
+                try { 
+                    const q = (document.getElementById('search_filter')?.value) 
+                        || (document.getElementById('search_filter_mobile')?.value) 
+                        || ''; 
+                    filterTaskTableRows(q, section); 
+                } catch(_) {}
+            });
+        } catch(_) {}
+    }
+
+    function filterTaskTableRows(queryRaw = '', targetSection = null) {
+        try {
+            const q = String(queryRaw || '').trim().toLowerCase();
+            const sections = targetSection ? [targetSection] : [
+                document.getElementById('task-table-section'),
+                document.getElementById('task-table-section-mobile')
+            ].filter(Boolean);
+
+            sections.forEach(section => {
+                const rows = section.querySelectorAll('tbody tr');
+                rows.forEach(tr => {
+                    const projectCell = tr.dataset.projectId || '';
+                    const statusCell = tr.dataset.status || '';
+                    const priorityCell = tr.dataset.priority || '';
+                    const dueDateCell = tr.dataset.dueDate || '';
+
+                    const colsText = Array.from(tr.querySelectorAll('td')).map(td => (td.textContent||'').toLowerCase()).join(' ');
+
+                    let match = true;
+                    if (q && !colsText.includes(q)) match = false;
+                    if (currentTaskFilters.project && projectCell !== currentTaskFilters.project) match = false;
+                    if (currentTaskFilters.status && statusCell !== currentTaskFilters.status) match = false;
+                    if (currentTaskFilters.priority && priorityCell !== currentTaskFilters.priority) match = false;
+                    if (currentTaskFilters.date && dueDateCell !== currentTaskFilters.date) match = false;
+
+                    tr.style.display = match ? '' : 'none';
+                });
+            });
+        } catch(_) {}
+    }
 
     (function initTaskSearchFilter() {
         let lastSearchAt = 0;
@@ -9913,37 +9924,33 @@ function filterTaskTableRows(queryRaw, targetSection = null) {
     const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
 
     function loadProjectsForFilterMobile() {
-
-        const filterTaskProjectSelectMobile = document.getElementById("filterTaskProjectMobile");
-        if (!filterTaskProjectSelectMobile) {
-            console.warn("❌ Element #filterTaskProjectMobile not found");
-            return;
-        }
+        const selectIds = ["filterTaskProjectMobileCard", "filterTaskProjectMobileTable"];
 
         $.ajax({
             url: appUrl + "/project/index?task_scope=all",
             type: "GET",
             dataType: "json",
             success: function (response) {
-
-                const projects = Array.isArray(response)
-                    ? response
-                    : Array.isArray(response.data)
-                    ? response.data
-                    : [];
-
+                const projects = Array.isArray(response.data) ? response.data : [];
 
                 let options = '<option value="">All Projects</option>';
                 projects.forEach(function (project) {
                     options += `<option value="${project.id}">${project.title || project.name}</option>`;
                 });
 
-                filterTaskProjectSelectMobile.innerHTML = options;
+                selectIds.forEach(id => {
+                    const selectEl = document.getElementById(id);
+                    if (selectEl) {
+                        selectEl.innerHTML = options;
+                    }
+                });
             },
             error: function (xhr, status, error) {
+                console.error("Error loading projects:", error);
             }
         });
     }
+
 
     // Desktop: Apply filter handler (missing previously)
     if (applyTaskFilterBtn && !applyTaskFilterBtn._bound) {
@@ -9961,12 +9968,14 @@ function filterTaskTableRows(queryRaw, targetSection = null) {
 
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape") {
-            const dropdown = document.getElementById("taskFilterDropdownMobile");
-            if (dropdown) {
-                dropdown.style.display = "none";
-            }
+            const cardDropdown = document.getElementById("taskFilterDropdownMobileCard");
+            const tableDropdown = document.getElementById("taskFilterDropdownMobileTable");
+
+            if(cardDropdown) cardDropdown.style.display = "none";
+            if(tableDropdown) tableDropdown.style.display = "none";
         }
     });
+
     // Function to update project filter display
     function updateProjectFilterDisplay() {
         const displayElement = document.getElementById('projectFilterDisplay');
@@ -10450,13 +10459,14 @@ function filterTaskTableRows(queryRaw, targetSection = null) {
         fetchMobileTasks(st, 1, false, { loadAll: st === "in_progress" });
     });
 
-    // Toggle filter mobile
     $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
         e.stopPropagation();
-        const $dropdown = $("#taskFilterDropdownMobile");
+        const isCard = $(this).closest(".mobile-task-container").length > 0;
+        const dropdownId = isCard ? "#taskFilterDropdownMobileCard" : "#taskFilterDropdownMobileTable";
+        const $dropdown = $(dropdownId);
 
+        loadProjectsForFilterMobile();
         if ($dropdown.css("display") === "none") {
-            loadProjectsForFilterMobile();
             $dropdown.css("display", "block");
         } else {
             $dropdown.css("display", "none");
@@ -10464,42 +10474,51 @@ function filterTaskTableRows(queryRaw, targetSection = null) {
     });
 
     $(document).on("click", "#applyTaskFilterBtnMobile", function () {
-        const projectId = $("#filterTaskProjectMobile").val() || "";
-        const priority = $("#filterTaskPriorityMobile").val() || "";
-        const date = $("#filterByDateMobile").val() || "";
+        const isCard = $(this).closest(".mobile-task-container").length > 0;
+        const $container = $(this).closest(".mobile-task-container, #task-table-section-mobile");
 
-        currentTaskFilters.project = projectId;
-        currentTaskFilters.priority = priority;
-        currentTaskFilters.date = date;
+        currentTaskFilters.project = $container.find(isCard ? "#filterTaskProjectMobileCard" : "#filterTaskProjectMobileTable").val() || '';
+        currentTaskFilters.priority = $container.find(isCard ? "#filterTaskPriorityMobileCard" : "#filterTaskPriorityMobileTable").val() || '';
+        currentTaskFilters.status = $container.find(isCard ? "#filterTaskStatusMobileCard" : "#filterTaskStatusMobileTable").val() || '';
+        currentTaskFilters.date = $container.find(isCard ? "#filterByDateMobileCard" : "#filterByDateMobileTable").val() || '';
 
-        delete currentTaskFilters.status;
+        const activeStatus = $container.find("#taskStatusTabs .tab-item.active").data("status") || "new_request";
 
-        const activeStatus = $("#taskStatusTabs .tab-item.active").data("status") || "new_request";
+        if (isCard) {
+            mobileState.page = 1;
+            mobileState.last = 1;
+            fetchMobileTasks(activeStatus, 1, false, { loadAll: false });
+        } else {
+            renderTaskTableFromCache();
+            filterTaskTableRows('', $container[0]);
+        }
 
-        mobileState.page = 1;
-        mobileState.last = 1;
-        fetchMobileTasks(activeStatus, 1, false, { loadAll: false });
-
-        $("#taskFilterDropdownMobile").hide();
+        const $dropdown = $(isCard ? "#taskFilterDropdownMobileCard" : "#taskFilterDropdownMobileTable");
+        $dropdown.hide();
     });
 
     $(document).on("click", "#resetTaskFilterBtnMobile", function() {
-        currentTaskFilters = {
-            project: "",
-            priority: "",
-            date: "",
-        };
+        const isCard = $(this).closest(".mobile-task-container").length > 0;
+        const $container = $(this).closest(".mobile-task-container, #task-table-section-mobile");
 
-        $("#filterTaskProjectMobile").val("");
-        $("#filterTaskPriorityMobile").val("");
-        $("#filterByDateMobile").val("");
+        currentTaskFilters = { project:'', priority:'', status:'', date:'' };
 
-        fetchAndRenderTasks();
+        $container.find(isCard ? "#filterTaskProjectMobileCard" : "#filterTaskProjectMobileTable").val('');
+        $container.find(isCard ? "#filterTaskPriorityMobileCard" : "#filterTaskPriorityMobileTable").val('');
+        $container.find(isCard ? "#filterTaskStatusMobileCard" : "#filterTaskStatusMobileTable").val('');
+        $container.find(isCard ? "#filterByDateMobileCard" : "#filterByDateMobileTable").val('');
 
-        updateProjectFilterDisplay();
+        if (isCard) {
+            mobileState.page = 1;
+            mobileState.last = 1;
+            fetchMobileTasks('new_request', 1, false, { loadAll: false });
+        } else {
+            renderTaskTableFromCache();
+            filterTaskTableRows('', $container[0]);
+        }
 
-        $("#taskFilterDropdownMobile").hide();
-
+        const $dropdown = $(isCard ? "#taskFilterDropdownMobileCard" : "#taskFilterDropdownMobileTable");
+        $dropdown.hide();
     });
 
     $(document).ready(function () {
@@ -10530,7 +10549,7 @@ function filterTaskTableRows(queryRaw, targetSection = null) {
                     <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
                         <span class="material-symbols-outlined">box</span>
                     </button>
-                    <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+                    <button class="btn btn-sm toggle-filter align-items-center" type="button" id="openTaskFilterBtnMobile">
                         <span class="material-symbols-outlined">filter_list</span>
                     </button>
                 </div>
@@ -10545,11 +10564,11 @@ function filterTaskTableRows(queryRaw, targetSection = null) {
                         <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAllMobile" aria-label="Select all pending new tasks" />
                     </label>
                 </div>
-                <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
+                <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobileCard" style="display: none;">
                     <div class="dropdown-filter-body">
                         <div class="mb-3">
-                            <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                            <select id="filterTaskProjectMobile" class="form-select">
+                            <label for="filterTaskProjectMobileCard" class="form-label">Project</label>
+                            <select id="filterTaskProjectMobileCard" class="form-select">
                                 <option value="">All Projects</option>
                             </select>
                         </div>
@@ -10597,15 +10616,15 @@ function filterTaskTableRows(queryRaw, targetSection = null) {
                         <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
                             <span class="material-symbols-outlined">box</span>
                         </button>
-                        <button class="btn btn-sm toggle-filter" type="button" id="openTaskFilterBtnMobile">
+                        <button class="btn btn-sm toggle-filter align-items-center" type="button" id="openTaskFilterBtnMobile">
                             <span class="material-symbols-outlined">filter_list</span>
                         </button>
                     </div>
-                    <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobile" style="display: none;">
+                    <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobileTable" style="display: none;">
                         <div class="dropdown-filter-body">
                             <div class="mb-3">
-                                <label for="filterTaskProjectMobile" class="form-label">Project</label>
-                                <select id="filterTaskProjectMobile" class="form-select">
+                                <label for="filterTaskProjectMobileTable" class="form-label">Project</label>
+                                <select id="filterTaskProjectMobileTable" class="form-select">
                                     <option value="">All Projects</option>
                                 </select>
                             </div>

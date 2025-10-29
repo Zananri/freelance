@@ -1314,11 +1314,21 @@ p {
         min-height: 40px;
     }
 
-    #taskFilterDropdownMobile {
+    #taskFilterDropdownMobileCard {
         width: 200px;
         height: 375px;
         border: none;
         left: 130px;
+        top: 275px;
+        padding: 5px;
+        background: #f0f1f8;
+    }
+
+    #taskFilterDropdownMobileTable {
+        width: 200px;
+        height: 375px;
+        border: none;
+        left: 100px;
         top: 275px;
         padding: 5px;
         background: #f0f1f8;
@@ -1947,6 +1957,10 @@ p {
     border-radius: 10px;
     color: #3c404b;
     height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 .toggle-timeline:hover,

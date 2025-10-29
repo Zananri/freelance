@@ -51,7 +51,7 @@
                     <span class="material-symbols-outlined">box</span>
                 </button>
 
-                <button class="btn btn-icon-toggle toggle-filter" type="button" id="openTaskFilterBtn">
+                <button class="btn btn-icon-toggle toggle-filter align-items-center" type="button" id="openTaskFilterBtn">
                     <span class="material-symbols-outlined icon">filter_list</span> <span
                         class="btn-text-filter">Filter</span>
                 </button>
