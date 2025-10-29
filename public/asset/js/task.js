@@ -3257,8 +3257,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             }
         } catch(_) {}
 
-        console.log(task);
-
         function buildProjectInitialsAvatar(title) {
             const text = (title || '').trim();
             if (!text) return 'NA';
@@ -3464,6 +3462,9 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             </div>
         `;
 
+        console.log(task);
+        
+
         if (task.status === 'finished') {
 
             return `
@@ -3494,7 +3495,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
                 <hr class="task-separator rounded-4">
                 <div class="d-flex justify-content-between align-items-center" style="font-size:8px; color:#797E91;">
-                    <div>Finish at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
+                    <div>Finish at: <span style="color: #797E91; font-size: 8px;">${formatDateTimeENMedium(task.finished_date)}</span></div>
 
                     <div class="d-flex align-items-center gap-2">
                         <div class="d-flex align-items-center position-relative"
@@ -3515,69 +3516,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                         <div class="d-flex align-items-center">
                             <span class="material-symbols-outlined task-icon" style="font-size:18px; cursor: pointer;">attach_file</span>
                             ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #797E91; font-size: 11px;">${task.reference_files_count}</span>` : ""}
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-        }
-      
-        if (task.status === 'completed') {
-            
-            let completeBy = '-';
-
-            if(task.status_change){
-                completeBy = task.status_change.employee_name;
-            }
-
-            return `
-            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
-                <div class="d-flex align-items-center mb-2 mt-2">
-                    ${(function(){
-                        const showInitials = !projectImg;
-                        const avatarHtml = showInitials
-                            ? `<div class="project-initial-avatar me-3" style="width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;color:#fff;background:${initialsColor};">${buildProjectInitialsAvatar(avatarTitle)}</div>`
-                            : `<img src="${projectImg}" alt="Project Image" class="project-image me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`;
-                        return avatarHtml;
-                    })()}
-                    <div class="d-flex flex-column">
-                        ${task.project_id ? `<small class="text-muted" style="line-height:1; font-size: 10px;">${task.project_title}</small>` : ''}
-                        <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title}</h5>
-                    </div>
-                </div>
-                <div class="task-description-container">
-                    <p class="task-description" data-full-description="${task.description}">
-                        ${task.description ? task.description : ''}
-                    </p>
-                </div>
-                <div class="d-flex align-items-center justify-content-between mt-1">
-                    <div style="font-size: 8px; font-weight: 400;">
-                        <span style="color: #797E91;">Priority: </span>
-                        <span style="font-size: 8px; color: ${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${task.priority}</span>
-                    </div>
-                </div>
-                <hr class="task-separator rounded-4">
-                <div class="d-flex justify-content-between align-items-center" style="font-size:8px; color:#797E91;">
-                    <div>Finish at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
-
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="d-flex align-items-center position-relative">
-                            <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}" style="font-size:18px;">mode_comment</span>
-                            ${task.feedback_comments_count > 0 ? `<span class="feedback-comments-count ms-1" style="color: #797E91; font-size: 11px;">${task.feedback_comments_count}</span>` : ""}
-                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
-                        </div>
-
-                        <div class="d-flex align-items-center">
-                            <span class="material-symbols-outlined task-icon" style="font-size:18px;">attach_file</span>
-                            ${task.reference_files_count > 0 ? `<span class="reference-files-count ms-1" style="color: #797E91; font-size: 11px;">${task.reference_files_count}</span>` : ""}
-                        </div>
-
-                        <div class="d-flex align-items-center position-relative"
-                            data-bs-toggle="modal" data-bs-target="#completedModal" style="cursor:pointer;">
-                            <span class="material-symbols-outlined task-icon playlist_add_check me-2"
-                                data-task-id="${task.id}" style="color: #797E91; font-size: 18px;">
-                                playlist_add_check
-                            </span>
-                            <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
                         </div>
                     </div>
                 </div>
@@ -3635,8 +3573,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
                 
                 <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:8px; color:#797E91;">
-                    <div>Complete by: <span style="color: #797E91; font-size: 8px;">${completeBy}</span></div>
-                    <div>at: <span style="color: #797E91; font-size: 8px;">${formatDateENMedium(task.complete_date)}</span></div>
+                    <div>Complete by: <span style="color: #797E91; font-size: 8px;">${completedBy}</span></div>
+                    <div>at: <span style="color: #797E91; font-size: 8px;">${formatDateTimeENMedium(task.complete_date)}</span></div>
                 </div>
                 ${
                 (() => {
@@ -5277,9 +5215,7 @@ function filterTaskTableRows(queryRaw) {
                 url: appUrl + "/task/" + taskId + "/status",
                 type: "PUT",
                 headers: {
-                    "X-CSRF-TOKEN": document
-                        .querySelector('meta[name="csrf-token"]')
-                        .getAttribute("content"),
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                 },
                 data: { status: newStatus },
                 success: function (response) {
@@ -5295,10 +5231,7 @@ function filterTaskTableRows(queryRaw) {
                         }
                     } catch(_) {}
 
-                    if (bulkStatusSuppressRefresh) {
-                        // Nothing else to do here for intermediate items
-                    } else {
-
+                    if (!bulkStatusSuppressRefresh) {
                         (function insertUpdatedTask() {
                             $.ajax({
                                 url: appUrl + '/task/' + taskId,
@@ -5306,52 +5239,35 @@ function filterTaskTableRows(queryRaw) {
                                 dataType: 'json'
                             }).done(function(res) {
                                 const t = (res && (res.data || res)) || null;
-                                if (!t) {
-                                    // fallback to full refresh
-                                    try { fetchAndRenderTasks(); } catch(_) {}
-                                    return;
-                                }
-                                // Normalize destination mapping: rejected tasks should appear in in_progress column
+                                if (!t) { try { fetchAndRenderTasks(); } catch(_) {} return; }
+
                                 const destKey = (String(newStatus || '').toLowerCase().includes('reject')) ? 'in_progress' : String(newStatus || '').toLowerCase();
                                 const destContainerId = sectionMap[destKey] || sectionMap['in_progress'];
                                 const destContainer = document.getElementById(destContainerId);
 
-                                // Remove any existing duplicate card in DOM
                                 try { document.querySelectorAll('.custom-card[data-task-id="' + taskId + '"]').forEach(n => n.remove()); } catch(_) {}
 
                                 if (destContainer) {
                                     try {
-                                        // Normalize the API show() response to the shape expected by createTaskCard
                                         const normalized = Object.assign({}, t);
-                                        try {
-                                            normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
-                                            normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
-                                            normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
-                                            // ensure pic/executors objects are present (show() already returns compatible shape)
-                                            normalized.pic = t.pic || normalized.pic || null;
-                                            normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
-                                            // counts fallback
-                                            normalized.feedback_comments_count = t.feedback_comments_count || normalized.feedback_comments_count || 0;
-                                            normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
-                                        } catch (_) {}
+                                        normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                                        normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                                        normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+                                        normalized.pic = t.pic || normalized.pic || null;
+                                        normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
+                                        normalized.feedback_comments_count = t.feedback_comments_count || normalized.feedback_comments_count || 0;
+                                        normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
 
-
-                                        try {
-                                            const clientMap = window.__clientArchivedTasks || new Map();
-                                            const idKey = String(normalized.id || normalized.task_id || '');
-                                            if (idKey && clientMap && clientMap.has(idKey)) {
-                                                try {
-                                                    // if not older than 90 days anymore, delete
-                                                    if (!(__isCompletedOlderThanDaysGlobal(normalized, 90))) {
-                                                        clientMap.delete(idKey);
-                                                        console.debug('[archive-client] removed id from buffer before single-insert:', idKey);
-                                                    }
-                                                } catch(_) {}
+                                        const clientMap = window.__clientArchivedTasks || new Map();
+                                        const idKey = String(normalized.id || normalized.task_id || '');
+                                        if (idKey && clientMap && clientMap.has(idKey)) {
+                                            if (!(__isCompletedOlderThanDaysGlobal(normalized, 90))) {
+                                                clientMap.delete(idKey);
                                             }
-                                        } catch(_) {}
+                                        }
+
                                         destContainer.insertAdjacentHTML('afterbegin', createTaskCard(normalized));
                                     } catch (e) {
-                                        // If insertion fails, fallback to full refresh
                                         try { fetchAndRenderTasks(); } catch(_) {}
                                         return;
                                     }
@@ -5360,30 +5276,26 @@ function filterTaskTableRows(queryRaw) {
                                     return;
                                 }
 
-                                // Update client-side cache: remove from old bucket and add to destination at front
                                 try {
-                                    ['new_request','in_progress','completed'].forEach(k => {
+                                    ['new_request','in_progress','completed','finished'].forEach(k => {
                                         if (allTasksCache[k] && Array.isArray(allTasksCache[k].tasks)) {
                                             allTasksCache[k].tasks = allTasksCache[k].tasks.filter(x => String(x.id) !== String(taskId));
                                         }
                                     });
                                     if (!allTasksCache[destKey]) allTasksCache[destKey] = { tasks: [], pagination: {} };
-                                    // Prepend updated task to cache
                                     if (allTasksCache[destKey] && Array.isArray(allTasksCache[destKey].tasks)) {
                                         allTasksCache[destKey].tasks.unshift(t);
                                     }
                                 } catch(_) {}
 
-                                // Ensure rejected cards get badge & placement
                                 try { ensureRejectedCardsPlaced(); } catch(_) {}
-                                // Re-init tooltips and other handlers for newly-inserted card
                                 try { initBootstrapTooltips(destContainer); addAttachFileIconListeners(); scheduleRefreshLatestFeedbackSnippets(); } catch(_) {}
-                            }).fail(function(){
-                                // On failure, do full refresh to keep UI consistent
+                            }).fail(function() {
                                 try { fetchAndRenderTasks(); } catch(_) {}
                             });
                         })();
                     }
+
                     try {
                         const mobileStatusSel = document.getElementById('taskStatusSelect');
                         if (mobileStatusSel) {
@@ -5403,11 +5315,11 @@ function filterTaskTableRows(queryRaw) {
                             });
                             if (typeof mobileState !== 'undefined') mobileState.status = currentMobileStatus;
                             if (needsRefreshCurrent) {
-                                // Ensure currently viewed list reflects new data (already fetched above) and scroll stays at top
                                 try { const list = document.getElementById('mobile-task-list'); if (list) list.scrollTop = 0; } catch(_) {}
                             }
                         }
                     } catch(_) {}
+
                     if (bulkStatusOperationActive) {
                         bulkStatusCompletedCount++;
                         if (!bulkFinalStatusMessage) bulkFinalStatusMessage = response.message || 'Task status updated successfully';
@@ -5424,6 +5336,7 @@ function filterTaskTableRows(queryRaw) {
                     } else {
                         showFloatingAlert(response.message || 'Task status updated successfully', 'success');
                     }
+
                     resolve();
                 },
                 error: function (xhr) {
