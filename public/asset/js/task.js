@@ -10206,7 +10206,7 @@ function filterTaskTableRows(queryRaw) {
         searchQueryMobile = this.value.trim();
 
         searchTimeout = setTimeout(() => {
-            const status = $("#taskStatusSelect").val();
+            const status = $("#taskStatusTabs .tab-item.active").data("status");
             mobileState.page = 1;
             mobileState.last = 1;
             fetchMobileTasks(status, 1, false);
@@ -10406,29 +10406,20 @@ function filterTaskTableRows(queryRaw) {
     }, { passive: true });
     }
 
-    $(document).ready(function () {
+    $(document).on("click", "#taskStatusTabs .tab-item", function () {
+        const st = $(this).data("status");
+        mobileState.status = st;
         mobileState.page = 1;
-        mobileState.status = "new_request";
+        mobileState.last = 1;
+        mobileAutoFullLoad = false;
 
-        fetchMobileTasks(mobileState.status, 1, false, { loadAll: false });
-        initMobileInfiniteScroll();
-
-        $("#taskStatusSelect").on("change", function () {
-            const st = $(this).val();
-            mobileState.status = st;
-            mobileState.page = 1; mobileState.last = 1; mobileAutoFullLoad = false;
-
-            // Clear existing tooltips before status change to prevent placement issues
-            const existingTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-            existingTooltips.forEach(el => {
-                const tooltip = bootstrap.Tooltip.getInstance(el);
-                if (tooltip) {
-                    tooltip.dispose();
-                }
-            });
-
-            fetchMobileTasks(st, 1, false, { loadAll: st === 'in_progress' });
+        const existingTooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+        existingTooltips.forEach(el => {
+            const tooltip = bootstrap.Tooltip.getInstance(el);
+            if (tooltip) tooltip.dispose();
         });
+
+        fetchMobileTasks(st, 1, false, { loadAll: st === "in_progress" });
     });
 
     // Toggle filter mobile
@@ -10455,7 +10446,11 @@ function filterTaskTableRows(queryRaw) {
 
         delete currentTaskFilters.status;
 
-        fetchAndRenderFilteredTasks(currentTaskFilters);
+        const activeStatus = $("#taskStatusTabs .tab-item.active").data("status") || "new_request";
+
+        mobileState.page = 1;
+        mobileState.last = 1;
+        fetchMobileTasks(activeStatus, 1, false, { loadAll: false });
 
         $("#taskFilterDropdownMobile").hide();
     });
@@ -10478,7 +10473,6 @@ function filterTaskTableRows(queryRaw) {
         $("#taskFilterDropdownMobile").hide();
 
     });
-
 
     $(document).ready(function () {
         const mobileCardHtml = `
