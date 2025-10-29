@@ -3398,9 +3398,11 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         `;
 
         if (task.status === 'finished') {
+            const dropdownHtmlFinal = viewerIsPic ? dropdownHtml : '';
 
             return `
             <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
+                ${dropdownHtmlFinal}
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
                         const showInitials = !projectImg;
@@ -3453,6 +3455,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
             </div>`;
         }
+
         
         if (task.status === 'completed') {
             let completedBy = '-';
@@ -3461,8 +3464,11 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 completedBy = task.status_change.employee_name;
             }
 
+            const dropdownHtmlFinal = viewerIsPic ? dropdownHtml : '';
+
             return `
             <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
+                ${dropdownHtmlFinal}
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
                         const showInitials = !projectImg;
