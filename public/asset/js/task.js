@@ -11457,7 +11457,9 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 else if (isRefPath) absUrl = appUrl.replace(/\/+$/, '') + '/' + raw.replace(/^\/+/, '');
                 else absUrl = appUrl.replace(/\/+$/, '') + '/file/task_complete_files/' + raw.replace(/^\/+/, '');
 
-                const fileName = `TASK_FILE_${idx + 1}`;
+                const extMatch = raw.match(/\.[^/.]+$/);
+                const ext = extMatch ? extMatch[0] : "";
+                const fileName = `TASK_FILE_${idx + 1}${ext}`;
 
                 const lower = absUrl.toLowerCase();
                 const isPreviewable =
@@ -11469,8 +11471,9 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 const fileLinkHtml = `
                     <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
                         <a href="${absUrl}" target="_blank" ${!isPreviewable ? `download="${fileName}"` : ''} 
-                        class="text-decoration-none flex-grow-1" style="color:#444;">
-                            ${fileName}
+                        class="text-decoration-none flex-grow-1" 
+                        style="color:#444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display:block; width:100%;">
+                        ${fileName}
                         </a>
                     </div>`;
                 $filesContainer.append(fileLinkHtml);
