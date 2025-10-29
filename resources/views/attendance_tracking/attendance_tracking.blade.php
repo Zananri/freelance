@@ -205,63 +205,69 @@
 
                             </div>
 
-                            <div class="mb-2">
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Late</div>
-                                    </div>
-                                    <div>
-                                        <div class="attendance-late  fs-14 fw-normal"></div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="mb-2">
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Check In</div>
-                                    </div>
-                                    <div>
-                                        <div class="attendance-checkin  fs-14 fw-normal"></div>
+                            <div class="attendance-box">
+                            
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Late</div>
+                                        </div>
+                                        <div>
+                                            <div class="attendance-late  fs-14 fw-normal"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="mb-2">
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Check Out</div>
-                                    </div>
-                                    <div>
-                                        <div class="attendance-checkout  fs-14 fw-normal"></div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Check In</div>
+                                        </div>
+                                        <div>
+                                            <div class="attendance-checkin  fs-14 fw-normal"></div>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Work Duration</div>
-                                    </div>
-                                    <div>
-                                        <div class="attendance-work-duration  fs-14 fw-normal">00 : 00</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                        
-
-                            <div class="mb-3">
-                                <div class="d-flex justify-content-between gap-3 align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Note</div>
-                                    </div>
-                                    <div>
-                                        <div class="attendance-note  fs-14 fw-normal">-</div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Check Out</div>
+                                        </div>
+                                        <div>
+                                            <div class="attendance-checkout  fs-14 fw-normal"></div>
+                                        </div>
                                     </div>
                                 </div>
+
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Work Duration</div>
+                                        </div>
+                                        <div>
+                                            <div class="attendance-work-duration  fs-14 fw-normal">00 : 00</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            
+
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between gap-3 align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Note</div>
+                                        </div>
+                                        <div>
+                                            <div class="attendance-note  fs-14 fw-normal">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
 
+                            
+                            
                             
                             
                             <div class="mt-5">
@@ -349,62 +355,61 @@
                                         <select class="form-select border-0 fs-14" name="attendance_status" id="attendance_status">
                                             <option value="PRESENT">Present</option>
                                             <option value="ABSENT">Absent</option>
-                                            <option value="LATE">Late</option>
-                                            <option value="SICK">Sick</option>
-                                            <option value="LEAVE">Leave</option>
                                         </select>
                                     </div>
                                 </div>
                                 
                             </div>
 
-                            <div class="mb-2">
+                            <div class="form-block-present">
 
-                                <div class="row">
-                                    <div class="col-6">
-                                        <label for="attendance_time_in" class="fs-14 text-secondary fw-normal">
-                                            Check In
-                                        </label>
-                                    </div>
-                                    <div class="col-6">
-                                        <input type="time" class="form-control  border-0 fs-14" name="attendance_time_in" id="attendance_time_in">
-                                    </div>
-                                </div>
-                                
-                            </div>
+                                <div class="mb-2">
 
-                            <div class="mb-2">
-
-                                <div class="row">
-                                    <div class="col-6">
-                                        <label for="attendance_time_out" class="fs-14 text-secondary fw-normal">
-                                            Check Out
-                                        </label>
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="attendance_time_in" class="fs-14 text-secondary fw-normal">
+                                                Check In
+                                            </label>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="time" class="form-control  border-0 fs-14" name="attendance_time_in" id="attendance_time_in">
+                                        </div>
                                     </div>
-                                    <div class="col-6">
-                                        <input type="time" class="form-control border-0 fs-14" name="attendance_time_out" id="attendance_time_out">
-                                    </div>
-                                </div>
-                                
-                            </div>
-
-                            <div class="mb-2">
-
-                                <div class="row">
-                                    <div class="col-12  col-md-6">
-                                        <label for="attendance_note" class="fs-14 text-secondary fw-normal">
-                                            Note
-                                        </label>
-                                    </div>
-                                    <div class="col-12  col-md-6">
-                                        <textarea class="form-control border-0" name="attendance_note" id="attendance_note" cols="3" rows="3"></textarea>
                                     
-                                    </div>
                                 </div>
-                                
-                            </div>
 
-                            
+                                <div class="mb-2">
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="attendance_time_out" class="fs-14 text-secondary fw-normal">
+                                                Check Out
+                                            </label>
+                                        </div>
+                                        <div class="col-6">
+                                            <input type="time" class="form-control border-0 fs-14" name="attendance_time_out" id="attendance_time_out">
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="mb-2">
+
+                                    <div class="row">
+                                        <div class="col-12  col-md-6">
+                                            <label for="attendance_note" class="fs-14 text-secondary fw-normal">
+                                                Note
+                                            </label>
+                                        </div>
+                                        <div class="col-12  col-md-6">
+                                            <textarea class="form-control border-0" name="attendance_note" id="attendance_note" cols="3" rows="3"></textarea>
+                                        
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+
+                            </div>
                             
                             <div class="mt-5">
                                 <div class="row">
@@ -438,7 +443,43 @@
                 </div>
             </div>
         </div>
-        
+        <!-- Modal Edit -->
+        <div class="modal fade" id="modalLeave" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalLeaveLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+
+                    <div class="modal-body p-4 position-relative">
+                        
+                        <div class="box-data-leave"></div>
+
+                        <div class="mt-5">
+                            <div class="row">
+                                <div class="col-12">
+                                    <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-leave">Close</div>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                            <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                                <div>
+                                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="fs-14">Loading...</div>
+                                </div>
+                                
+                            </div>
+                            
+                        </div> 
+                    </div>
+
+                </div>
+            </div>
+        </div>
         
     </x-slot>
 

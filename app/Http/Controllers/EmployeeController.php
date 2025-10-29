@@ -686,6 +686,11 @@ class EmployeeController extends Controller
     public function exportEmployeeActive(){
         
 
+        $userRole = auth()->user()->user_role;
+
+        if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER','CEO','GENERAL_MANAGER'])){
+            return redirect('/employee');
+        }
 
         $employee = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')

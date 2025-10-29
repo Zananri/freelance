@@ -857,7 +857,7 @@
                     .then(function (data) {
                         if (!data.data || data.data.length === 0) {
                             feedbackListEl.innerHTML =
-                                '<p class="text-center text-muted">No feedback available for this project.</p>';
+                                '<p class="text-center text-muted fs-12 mt-4 ">No feedback available for this project.</p>';
                             return;
                         }
 

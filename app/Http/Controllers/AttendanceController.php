@@ -398,16 +398,12 @@ class AttendanceController extends Controller
                 throw new \Exception('Work outside, please add photo');
             }
 
-            $statusAttendance = 'INCOMPLETE_CHECK';
+            $statusAttendance = 'PRESENT';
             $timeLate = '00:00:00';
 
             if($now > $timeStart){
                 $timeLate = $now->diff($timeStart)->format('%H:%I:%S');
             }
-
-            if($timeLate != '00:00:00'){
-                $statusAttendance = 'LATE';
-            };
 
 
             $attendanceExist = Attendance::where('employee_id',$employee->id)->where('date_attendance',$now->toDateString())->first();
