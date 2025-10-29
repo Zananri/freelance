@@ -621,10 +621,10 @@
             <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
 
-                    <div class="d-flex align-items-center mb-2">
+                    <div class="d-flex align-items-center mb-2" style="flex-direction: row; justify-content: flex-start; text-align: left;">
                         <img id="completed_task_image" src="" alt="Project Image"
                             class="rounded-circle me-2" width="34" height="34">
-                        <div>
+                        <div class="d-flex flex-column">
                             <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;"></h6>
                             <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
                         </div>
@@ -651,6 +651,7 @@
                             <label class="fw-normal text-muted d-block mb-1">Files:</label>
                             <div id="completed_task_files"></div>
                         </div>
+
                     </div>
 
                     <div class="modal-footer modal-footer-custom">

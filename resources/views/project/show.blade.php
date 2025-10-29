@@ -154,6 +154,10 @@
                                 <span class="complete" data-bs-toggle="tooltip" data-bs-title="Complete"><span
                                         class="text-legend">Complete</span></span>
                             </div>
+                            <div class="legend-item d-flex align-items-start">
+                                <span class="finish" data-bs-toggle="tooltip" data-bs-title="Finish"><span
+                                        class="text-legend">Finish</span></span>
+                            </div>
                         </div>
 
                         <div id="task-template" class="d-none task-item">

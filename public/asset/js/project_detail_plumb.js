@@ -498,23 +498,26 @@
     }
 
     function init(tasks) {
-        try {
-            clearAll();
-        } catch (_) {}
+        try { clearAll(); } catch (_) {}
         var inst = ensureInstance();
         if (!inst) return;
+
         try { currentTasks = Array.isArray(tasks) ? tasks.slice() : []; } catch(_) { currentTasks = []; }
+
         try {
             (tasks || []).forEach(function (t) {
                 var $el = $("#" + getElId(t.id));
                 if ($el.length) makeSourceAndTarget($el[0]);
             });
         } catch (_) {}
-        layConnections(tasks);
-        attachEvents();
-        try {
-            inst.repaintEverything && inst.repaintEverything();
-        } catch (_) {}
+
+        setTimeout(function () {
+            layConnections(tasks);
+            attachEvents();
+            try {
+                inst.repaintEverything && inst.repaintEverything();
+            } catch (_) {}
+        }, 150);
     }
 
     window.initTaskPlumb = function (tasks) {
