@@ -70,7 +70,7 @@
 }
 
 .finished-container {
-    background: #BACBEE40;
+    background: #bacbee40;
     margin-bottom: 100px;
 }
 
@@ -187,7 +187,7 @@
     width: 210px;
 }
 
-.custom-card{
+.custom-card {
     height: auto !important;
     min-height: 100px;
     background-color: #f0f1f8;
@@ -1370,26 +1370,55 @@ p {
         flex-direction: column;
     }
 
+    .status-tabs .tab-item {
+        cursor: pointer;
+        font-weight: 400;
+        color: #2A3542;
+        transition: color 0.2s ease;
+    }
+    .status-tabs .tab-item.active {
+        color: #2A3542;
+        font-weight: 400;
+    }
+    .status-tabs .tab-item.active::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 25%;
+        width: 50%;
+        height: 3px;
+        border-radius: 3px;
+    }
+    .tab-item[data-status="new_request"].active::after {
+        background-color: #6b6b6b;
+    }
+    .tab-item[data-status="in_progress"].active::after {
+        background-color: #d4b106;
+    }
+    .tab-item[data-status="completed"].active::after {
+        background-color: #3cb371;
+    }
+    .tab-item[data-status="finished"].active::after {
+        background-color: #1e90ff;
+    }
+
     .bg-new {
-        background: #a1a3a60d;
+        background: transparent;
         margin-left: -20px;
         margin-right: -20px;
     }
-
     .bg-progress {
         background: #edebdf5c;
         margin-left: -20px;
         margin-right: -20px;
     }
-
     .bg-completed {
         background: #baeed340;
         margin-left: -20px;
         margin-right: -20px;
     }
-
     .bg-finish {
-        background: #BACBEE40;
+        background: #bacbee40;
         margin-left: -20px;
         margin-right: -20px;
     }
@@ -1636,7 +1665,7 @@ p {
 
 /* Badge style for Finished status (used in List/Table view) */
 .badge.bg-finish {
-    background: #BACBEE40 !important; /* translucent blue as requested */
+    background: #bacbee40 !important; /* translucent blue as requested */
     color: #454545 !important; /* darker text, not white */
     border: none !important;
 }
@@ -2353,7 +2382,7 @@ input[type="file"]::file-selector-button {
 }
 
 .btn-approve-complete {
-    background-color: #D8DBFF;
+    background-color: #d8dbff;
     font-size: 10px;
     font-weight: 400;
     border-radius: 5px;
@@ -2362,11 +2391,11 @@ input[type="file"]::file-selector-button {
     height: fit-content;
 }
 .btn-approve-complete:hover {
-    background-color: #D8DBFF;
+    background-color: #d8dbff;
     color: #454545;
 }
 .btn-reject-complete {
-    background-color: #FFD4D9;
+    background-color: #ffd4d9;
     font-size: 10px;
     font-weight: 400;
     border-radius: 5px;
@@ -2376,16 +2405,16 @@ input[type="file"]::file-selector-button {
     height: fit-content;
 }
 .btn-reject-complete:hover {
-    background-color: #FFD4D9;
+    background-color: #ffd4d9;
     color: #454545;
 }
 .complete-note-container::-webkit-scrollbar {
-  width: 4px;
+    width: 4px;
 }
 .complete-note-container::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 2px;
+    background: #ccc;
+    border-radius: 2px;
 }
 .complete-note-container:hover::-webkit-scrollbar-thumb {
-  background: #888;
+    background: #888;
 }
