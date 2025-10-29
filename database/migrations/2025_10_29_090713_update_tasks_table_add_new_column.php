@@ -23,8 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tasks', function (Blueprint $table) {
-            $table->dateTime('complete_date')->change();
-            $table->dropColumn('complete_date');
+            $table->date('complete_date')->change();
         });
     }
 };
