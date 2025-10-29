@@ -2977,16 +2977,11 @@ document.addEventListener("click", function (e) {
 
 // Show modal to collect completion note/urls/files before marking completed
 function showConfirmationToCompleteModal(taskId, taskCard) {
-    // Fetch task for context display (optional)
     $.ajax({ url: appUrl + '/task/' + taskId, type: 'GET', dataType: 'json' })
     .done(function(res){
         const t = (res && (res.data || res)) || {};
-        const title = t.title || 'Confirm Complete';
-
         const modalId = 'confirmation-to-complete';
-        // If modal already exists, remove it to re-create fresh
         try { const existing = document.getElementById(modalId); if (existing) existing.remove(); } catch(_){}
-
         const modalHtml = `
         <div class="modal fade" id="${modalId}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
@@ -3003,9 +2998,8 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                             <div class="mb-3 custom-input">
                                 <label class="form-label label-custom">Complete Note (required)</label>
                                 <div id="complete_note_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
-                                <textarea class="form-control input-text d-none" id="complete_note" name="complete_note" rows="4" style="display:none;"></textarea>
+                                <textarea class="form-control input-text d-none" id="complete_note" name="complete_note" rows="4"></textarea>
                             </div>
-
                             <div class="mb-3 custom-input">
                                 <label class="form-label label-custom">Complete URLs (optional)</label>
                                 <div id="complete_reference_urls_container" class="d-flex flex-column gap-2">
@@ -3017,14 +3011,12 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                                     </div>
                                 </div>
                             </div>
-
                             <div class="mb-3 custom-input">
                                 <label class="form-label label-custom" for="complete_files">Complete Files (optional)</label>
                                 <input type="file" class="form-control input-text" id="complete_files" name="complete_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
                                 <div class="form-text">Multiple files supported.</div>
                                 <div id="complete_files_preview" class="mt-2"></div>
                             </div>
-
                         </div>
                         <div class="modal-footer modal-footer-custom">
                             <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
@@ -3034,79 +3026,12 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
                 </div>
             </div>
         </div>`;
-
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         const mEl = document.getElementById(modalId);
         const modal = new bootstrap.Modal(mEl);
         modal.show();
-
-        // Remove modal from DOM when hidden
         mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); try { mEl.remove(); } catch(_){} });
-
-        // Initialize Quill (disable toolbar for this modal)
-        try {
-            window.__quillComplete = new Quill('#complete_note_editor', {
-                theme: 'snow',
-                modules: { toolbar: false }
-            });
-            try {
-                var Delta = Quill.import && Quill.import('delta');
-                if (window.__quillComplete && window.__quillComplete.clipboard && typeof window.__quillComplete.clipboard.addMatcher === 'function') {
-                    window.__quillComplete.clipboard.addMatcher('IMG', function(node, delta){ try { return new Delta(); } catch(_) { return delta; } });
-                }
-                try {
-                    if (window.__quillComplete && typeof window.__quillComplete.on === 'function') {
-                        window.__quillComplete.on('text-change', function(delta, oldDelta, source){
-                            try {
-                                setTimeout(function(){
-                                    try { var imgs = window.__quillComplete.root.querySelectorAll('img'); imgs.forEach(function(i){ i.remove(); }); } catch(_){}
-                                }, 0);
-                            } catch(_){}
-                        });
-                    }
-                } catch(_){}
-            } catch(_) {}
-            // prevent images via drop/paste for this editor
-            try {
-                (function preventImageDropAndPaste(quill, selector){
-                    try {
-                        var editor = document.querySelector(selector);
-                        if (!editor || !quill) return;
-                        try { editor.addEventListener('dragover', function(e){ try{ e.preventDefault(); e.stopImmediatePropagation(); }catch(_){} }, true); } catch(_){}
-                        try {
-                            editor.addEventListener('drop', function(e){
-                                try {
-                                    if (!e.dataTransfer) return;
-                                    var hasFiles = e.dataTransfer.files && e.dataTransfer.files.length > 0;
-                                    var html = '';
-                                    try { html = e.dataTransfer.getData && e.dataTransfer.getData('text/html') || ''; } catch(_) {}
-                                    if (hasFiles || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
-                                } catch(_) {}
-                            }, true);
-                        } catch(_) {}
-                        try {
-                            editor.addEventListener('paste', function(e){
-                                try {
-                                    var clipboard = (e.clipboardData || window.clipboardData);
-                                    if (!clipboard) return;
-                                    var items = clipboard.items || [];
-                                    var hasImage = false;
-                                    for (var i = 0; i < items.length; i++) {
-                                        var t = items[i].type || '';
-                                        if (t.indexOf && t.indexOf('image') === 0) { hasImage = true; break; }
-                                    }
-                                    var html = '';
-                                    try { html = clipboard.getData && clipboard.getData('text/html') || ''; } catch(_) {}
-                                    if (hasImage || /<img\s*/i.test(html)) { e.preventDefault(); e.stopImmediatePropagation(); return; }
-                                } catch(_) {}
-                            }, true);
-                        } catch(_) {}
-                    } catch(_) {}
-                })(window.__quillComplete, '#complete_note_editor');
-            } catch(_) {}
-        } catch (e) { console.warn('Quill init failed', e); }
-
-        // Dynamic URL rows (add/remove) - reuse add-ref-url/remove-ref-url style
+        window.__quillComplete = new Quill('#complete_note_editor', { theme: 'snow', modules: { toolbar: false } });
         mEl.addEventListener('click', function(ev){
             const addBtn = ev.target.closest('.add-ref-url');
             if (addBtn) {
@@ -3127,76 +3052,86 @@ function showConfirmationToCompleteModal(taskId, taskCard) {
             }
         });
 
-        // File input preview
         const fileInput = mEl.querySelector('#complete_files');
         const preview = mEl.querySelector('#complete_files_preview');
-        if (fileInput && preview) {
-            fileInput.addEventListener('change', function(e){
-                const files = Array.from(e.target.files || []);
-                if (!files.length) { preview.innerHTML = ''; return; }
-                preview.innerHTML = files.map(f => `<div>${escapeHtml(f.name)} <small class="text-muted">(${formatBytes(f.size)})</small></div>`).join('');
-            });
-        }
-
-        // Submit handler
         const submitBtn = mEl.querySelector('#confirmCompleteBtn');
-        submitBtn.addEventListener('click', function(){
-            // Validate complete_note required
-            let noteHtml = '';
-            try { noteHtml = (window.__quillComplete && typeof window.__quillComplete.root !== 'undefined') ? window.__quillComplete.root.innerHTML.trim() : ''; } catch(_) { noteHtml = ''; }
-            const plain = (noteHtml || '').replace(/<(.|\n)*?>/g, '').trim();
-            if (!plain) {
-                showFloatingAlert('Complete note is required.', 'warning');
-                try { window.__quillComplete.focus(); } catch(_){}
-                return;
+        let selectedFiles = [];
+
+        if (fileInput && preview) {
+            fileInput.addEventListener('change', function (e) {
+                const newFiles = Array.from(e.target.files || []);
+                selectedFiles = selectedFiles.concat(newFiles);
+                renderFilePreview();
+                fileInput.value = '';
+            });
+
+            function renderFilePreview() {
+                preview.innerHTML = '';
+                if (!selectedFiles.length) {
+                    preview.innerHTML = '<div class="text-muted small"><em>No files selected</em></div>';
+                    return;
+                }
+                selectedFiles.forEach((file, idx) => {
+                    const div = document.createElement('div');
+                    div.className = 'd-flex align-items-center justify-content-between bg-light rounded px-2 py-1 mb-1';
+                    div.style.fontSize = '12px';
+                    div.innerHTML = `
+                        <div class="text-truncate me-2">
+                            ${escapeHtml(file.name)} 
+                            <small class="text-muted">(${formatBytes(file.size)})</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-link text-secondary p-0 remove-file" data-index="${idx}">
+                            <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+                        </button>
+                    `;
+                    preview.appendChild(div);
+                });
+                preview.querySelectorAll('.remove-file').forEach(btn => {
+                    btn.addEventListener('click', function () {
+                        const idx = parseInt(this.dataset.index);
+                        selectedFiles.splice(idx, 1);
+                        renderFilePreview();
+                    });
+                });
             }
 
-            // Disable button
-            submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
-
-            const fd = new FormData();
-            fd.append('_method','PUT');
-            fd.append('status','completed');
-            fd.append('complete_note', noteHtml);
-
-            // collect urls
-            try {
+            submitBtn.addEventListener('click', function () {
+                let noteHtml = '';
+                try { noteHtml = (window.__quillComplete && typeof window.__quillComplete.root !== 'undefined') ? window.__quillComplete.root.innerHTML.trim() : ''; } catch(_) { noteHtml = ''; }
+                const plain = (noteHtml || '').replace(/<(.|\n)*?>/g, '').trim();
+                if (!plain) {
+                    showFloatingAlert('Complete note is required.', 'warning');
+                    try { window.__quillComplete.focus(); } catch(_){}
+                    return;
+                }
+                submitBtn.disabled = true; submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+                const fd = new FormData();
+                fd.append('_method','PUT');
+                fd.append('status','completed');
+                fd.append('complete_note', noteHtml);
                 const urlInputs = Array.from(mEl.querySelectorAll('input[name="complete_urls[]"]'));
                 const urls = urlInputs.map(i => (i.value||'').trim()).filter(Boolean);
                 if (urls.length) fd.append('complete_urls', JSON.stringify(urls));
-            } catch(_){}
-
-            // append files
-            try {
-                const fl = mEl.querySelector('#complete_files');
-                if (fl && fl.files && fl.files.length) {
-                    Array.from(fl.files).forEach(f => fd.append('complete_files[]', f));
-                }
-            } catch(_){}
-
-            // Send as multipart POST with _method=PUT to match server expectations
-            fetch(appUrl + '/task/' + taskId + '/status', {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                body: fd,
-                credentials: 'same-origin'
-            }).then(function(r){
-                return r.ok ? r.json() : r.json().then(Promise.reject);
-            }).then(function(json){
-                // On success: close modal, show alert, and refresh/insert updated task
-                try { modal.hide(); } catch(_){}
-                try { showFloatingAlert(json.message || 'Task marked as completed.', 'success'); } catch(_){}
-                // Remove original card if present
-                try { if (taskCard && taskCard.parentNode) taskCard.parentNode.removeChild(taskCard); } catch(_){}
-                // Fetch updated task and insert
-                try { fetchAndInsertTask(taskId); } catch(_) { try { fetchAndRenderTasks(); } catch(_){} }
-            }).catch(function(err){
-                let msg = 'Failed to mark task as completed.';
-                try { if (err && err.message) msg = err.message; } catch(_){}
-                showFloatingAlert(msg, 'danger');
-            }).finally(function(){ submitBtn.disabled = false; submitBtn.innerHTML = 'Submit'; });
-        });
-
+                selectedFiles.forEach(f => fd.append('complete_files[]', f));
+                fetch(appUrl + '/task/' + taskId + '/status', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                    body: fd,
+                    credentials: 'same-origin'
+                }).then(function(r){
+                    return r.ok ? r.json() : r.json().then(Promise.reject);
+                }).then(function(json){
+                    try { modal.hide(); } catch(_){}
+                    try { showFloatingAlert(json.message || 'Task marked as completed.', 'success'); } catch(_){}
+                    try { if (taskCard && taskCard.parentNode) taskCard.parentNode.removeChild(taskCard); } catch(_){}
+                    try { fetchAndInsertTask(taskId); } catch(_) { try { fetchAndRenderTasks(); } catch(_){} }
+                }).catch(function(err){
+                    let msg = 'Failed to mark task as completed.';
+                    try { if (err && err.message) msg = err.message; } catch(_){}
+                    showFloatingAlert(msg, 'danger');
+                }).finally(function(){ submitBtn.disabled = false; submitBtn.innerHTML = 'Submit'; });
+            });
+        }
     }).fail(function(){
         showFloatingAlert('Failed to load task details.', 'danger');
     });
@@ -3461,9 +3396,6 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                 </div>
             </div>
         `;
-
-        console.log(task);
-        
 
         if (task.status === 'finished') {
 
@@ -11333,98 +11265,102 @@ function filterTaskTableRows(queryRaw) {
             }
         })();
 
-        const img = task.image || '/asset/img/avatar.png';
+        const $img = $("#completed_task_image");
+        const $imgParent = $img.parent();
+        const title = task.title || "No Title";
 
-        $("#completed_task_image").attr("src", img);
+        $imgParent.find(".completed-task-initial-avatar").remove();
+
+        if (task.image) {
+            $img.attr("src", task.image).show();
+        } else {
+            $img.hide();
+            const initials = getTaskInitials(title);
+            const bgColor = getRandomColorFromText(title);
+            const initialsEl = $(`
+                <div class="completed-task-initial-avatar d-flex align-items-center justify-content-center me-2"
+                    style="width:34px;height:34px;border-radius:50%;font-weight:600;
+                        font-size:12px;color:#fff;background:${bgColor};flex-shrink:0;">
+                    ${initials}
+                </div>
+            `);
+            $imgParent.prepend(initialsEl);
+        }
+
         $("#completed_task_title").text(task.title || "-");
         $("#completed_project_title").text(task.project_title || "-");
-        $("#completed_task_note").html(task.complete_note || "<em>No note</em>");
-        $("#completed_priority").text(task.priority || "-");
-        $("#completed_date").text(task.complete_date || "-");
+        $("#completed_task_note").html(task.complete_note || task.finished_note || "<em>No note</em>");
+        $("#completed_date").text(formatDateENMedium(task.complete_date || task.finished_date || "-"));
 
         const $priority = $("#completed_priority");
         $priority.text(task.priority || "-").css({ "color": "", "font-weight": "500" });
+        if (task.priority === "HIGH") $priority.css("color", "#d9534f");
+        else if (task.priority === "MEDIUM") $priority.css("color", "#f0ad4e");
+        else if (task.priority === "LOW") $priority.css("color", "#5cb85c");
 
-        if (task.priority === "HIGH") {
-            $priority.css("color", "#d9534f");
-        } else if (task.priority === "MEDIUM") {
-            $priority.css("color", "#f0ad4e");
-        } else if (task.priority === "LOW") {
-            $priority.css("color", "#5cb85c");
-        }
+        const $urlsContainer = $("#completed_task_urls").empty();
+        const urls = task.complete_urls || task.finished_urls || [];
 
-        $("#completed_date").text(formatDateENMedium(task.complete_date || "-"));
-
-        // Links
-        const $urlsContainer = $("#completed_task_urls");
-        $urlsContainer.empty();
-        if ($.isArray(task.complete_urls) && task.complete_urls.length) {
-            task.complete_urls.forEach((u, idx) => {
+        if ($.isArray(urls) && urls.length) {
+            urls.forEach((u, idx) => {
                 const absUrl = u.startsWith("http")
                     ? u
                     : `${appUrl.replace(/\/+$/, '')}/${u.replace(/^\/+/, '')}`;
-                const link = $("<a>")
-                    .attr("href", absUrl)
-                    .attr("target", "_blank")
-                    .text(`link_${idx + 1}`);
-                $urlsContainer.append(link).append("<br>");
+                const linkHtml = `
+                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                        <a href="${absUrl}" target="_blank" class="text-decoration-none flex-grow-1" style="color:#444;">
+                            LINK_${idx + 1}
+                        </a>
+                    </div>`;
+                $urlsContainer.append(linkHtml);
             });
         } else {
-            $urlsContainer.html("<em>-</em>");
+            $urlsContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
         }
 
-        // Files
-        const $filesContainer = $("#completed_task_files");
-        $filesContainer.empty();
-        if ($.isArray(task.complete_files) && task.complete_files.length) {
-            task.complete_files.forEach((f, idx) => {
-                let raw = f.url || f;
+        const $filesContainer = $("#completed_task_files").empty();
+        const files = task.complete_files || task.finished_files || [];
 
+        if ($.isArray(files) && files.length) {
+            files.forEach((f, idx) => {
+                let raw = f.url || f;
                 let absUrl = "";
                 const isAbs = raw.startsWith("http://") || raw.startsWith("https://");
                 const isRefPath = raw.startsWith("/file/") || raw.startsWith("file/");
-                if (isAbs) {
-                    absUrl = raw;
-                } else if (isRefPath) {
-                    absUrl = appUrl.replace(/\/+$/, '') + '/' + raw.replace(/^\/+/, '');
-                } else {
-                    absUrl = appUrl.replace(/\/+$/, '') + '/file/task_complete_files/' + raw.replace(/^\/+/, '');
-                }
+                if (isAbs) absUrl = raw;
+                else if (isRefPath) absUrl = appUrl.replace(/\/+$/, '') + '/' + raw.replace(/^\/+/, '');
+                else absUrl = appUrl.replace(/\/+$/, '') + '/file/task_complete_files/' + raw.replace(/^\/+/, '');
 
-                const fileName = (() => {
-                    try {
-                        const u = new URL(absUrl, window.location.origin);
-                        return decodeURIComponent(u.pathname.split('/').pop());
-                    } catch(e) {
-                        const parts = String(raw).split('/');
-                        return decodeURIComponent(parts[parts.length-1] || raw);
-                    }
-                })();
+                const fileName = `TASK_FILE_${idx + 1}`;
 
                 const lower = absUrl.toLowerCase();
-                const isPreviewable = lower.endsWith(".pdf") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".png");
+                const isPreviewable =
+                    lower.endsWith(".pdf") ||
+                    lower.endsWith(".jpg") ||
+                    lower.endsWith(".jpeg") ||
+                    lower.endsWith(".png");
 
-                // Build link
-                const fileLink = $("<a>")
-                    .attr("href", absUrl)
-                    .attr("target", "_blank")
-                    .text(fileName);
-
-                if (!isPreviewable) {
-                    fileLink.attr("download", fileName);
-                }
-
-                $filesContainer.append(fileLink).append("<br>");
+                const fileLinkHtml = `
+                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                        <a href="${absUrl}" target="_blank" ${!isPreviewable ? `download="${fileName}"` : ''} 
+                        class="text-decoration-none flex-grow-1" style="color:#444;">
+                            ${fileName}
+                        </a>
+                    </div>`;
+                $filesContainer.append(fileLinkHtml);
             });
         } else {
-            $filesContainer.html("<em>-</em>");
+            $filesContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
         }
-    }
 
+    }
 
     $(document).on("click", ".playlist_add_check", function () {
         const taskId = $(this).data("task-id");
-        const task = (allTasksCache?.completed?.tasks || []).find(t => t.id == taskId);
+
+        const task =
+            (allTasksCache?.completed?.tasks || []).find(t => t.id == taskId) ||
+            (allTasksCache?.finished?.tasks || []).find(t => t.id == taskId);
 
         if (task) {
             showCompletedModal(task);
