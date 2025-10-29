@@ -8,6 +8,19 @@ const modalAttendanceEdit = new bootstrap.Modal('#modalAttendanceEdit', {
   keyboard: false
 });
 
+const modalLeave = new bootstrap.Modal('#modalLeave', {
+  keyboard: false
+});
+
+function capitalizeFirstLetter(str) {
+    const formattedStr = str
+    .toLowerCase()
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+
+    return formattedStr;
+}
 
 
 $('.input-search-query').on('keyup',function(){
@@ -154,6 +167,10 @@ function getAttendanceTrackingData(month,year)
             $('.table-attendance .col-day').removeClass('is-late');
             $('.table-attendance .col-day').removeClass('annual_leave');
             $('.table-attendance .col-day').removeClass('sick');
+            $('.table-attendance .col-day').removeClass('absent');
+            $('.table-attendance .col-day').removeClass('present');
+
+            $('.col-day .description-leave').text('');
 
             for (let i = 0; i < dtAttendance.length; i++) {
                 const attendance = dtAttendance[i];
@@ -174,9 +191,24 @@ function getAttendanceTrackingData(month,year)
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text(timeIn);
                 $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text(timeOut);
                 
+                if(attendance.status == 'ABSENT'){
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text('');
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text('');
+                    
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .description-leave').text('ABSENT');
+                }
+
+                if(attendance.status == 'SICK'){
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-in').text('');
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .time-out').text('');
+                    
+                    $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"] .description-leave').text('SICK');
+                }
+
+                $('[data-employee-id="'+attendance.employee_id+'"] [data-day="'+dayOfMonth+'"]').addClass(attendance.status.toLowerCase());
             }
 
-            $('.col-day .description-leave').text('');
+            
             
             for (let i = 0; i < employeeLeave.length; i++) {
                 const employeeLeaveRequest = employeeLeave[i];
@@ -233,23 +265,27 @@ function getAttendanceTrackingData(month,year)
 
 $(document).on('click','tbody .col-day',function(){
 
-    let dayCalendar = $(this).attr('data-day');
-    let employeeId = $(this).closest('.employee-row').attr('data-employee-id');
-    
-    let dateAttendance = CURRENT_DATE.getFullYear()+'-'+(CURRENT_DATE.getMonth()+1)+'-'+dayCalendar;
+    if($(this).hasClass('off-day')){
+        showAlertMsg('Employee day off','error',5000);
+    }else{
+        let dayCalendar = $(this).attr('data-day');
+        let employeeId = $(this).closest('.employee-row').attr('data-employee-id');
+        
+        let dateAttendance = CURRENT_DATE.getFullYear()+'-'+(CURRENT_DATE.getMonth()+1)+'-'+dayCalendar;
 
 
-    $('#modalAttendance [name="employee_id"]').text(employeeId);
-    $('#modalAttendance [name="attendance_date"]').val(dateAttendance);
-    
-    getAttendanceDetail(employeeId,dateAttendance)
-    
+        $('#modalAttendance [name="employee_id"]').text(employeeId);
+        $('#modalAttendance [name="attendance_date"],#modalAttendanceEdit [name="attendance_date"]').val(dateAttendance);
+        $('#modalAttendance .attendance-date,#modalAttendanceEdit .attendance-date').text(formateDateFull(dateAttendance));
+
+        getAttendanceDetail(employeeId,dateAttendance);
+    }
     
 });
 
 let CURRENT_ATTENDANCE = [];
 let CURRENT_EMPLOYEE = [];
-
+let CURRENT_LEAVE = [];
 
 async function getAttendanceDetail(employeeId,dateAttendance)
 {
@@ -274,11 +310,17 @@ async function getAttendanceDetail(employeeId,dateAttendance)
             
             CURRENT_ATTENDANCE = resData.attendance;
             CURRENT_EMPLOYEE = resData.employee;
+            CURRENT_LEAVE = resData.leave;
 
             setAttendanceDetail();
             //attendance-checkin attendance-checkout attendance-work-duration
 
-            modalAttendance.show();
+            if(CURRENT_LEAVE){
+                modalLeave.show();
+            }else{
+                modalAttendance.show();
+            }
+            
         
         }
          
@@ -286,10 +328,129 @@ async function getAttendanceDetail(employeeId,dateAttendance)
 
 }
 
+function htmlDataRequestTimeOff(dataRow){
+
+    let leaveType = capitalizeFirstLetter(dataRow.leave_type);
+    
+    let file1 = '';
+    let file2 = '';
+
+    let file1Name = '';
+    let file2Name = '';
+
+    if(dataRow.file_1){
+        file1Name = dataRow.file_1.split('/').pop();
+        file1Name = file1Name.split('_').pop();
+
+        file1 = `
+            <div class="">
+                <a class="btn btn-action" target="_blank" href="${appUrl}/${dataRow.file_1}">
+                    <span class="material-symbols-outlined check-icon">attach_file</span>
+                    ${file1Name}
+                </a>
+            </div>
+            `;
+    }
+
+    if(dataRow.file_2){
+        file2Name = dataRow.file_2.split('/').pop();
+        file2Name = file2Name.split('_').pop();
+
+        file2 = `
+            <div class="">
+                <a class="btn btn-action" target="_blank" href="${appUrl}/${dataRow.file_2}">
+                    <span class="material-symbols-outlined check-icon">attach_file</span>
+                    ${file2Name}
+                </a>
+            </div>
+            `;
+    }
+
+    let actionButton = '';
+
+    var rowItem = `
+        <div class="item-time-off mb-3" data-time-off="${dataRow.id}">
+            <div class="item-header mb-2">
+                <div class="mb-0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="col-employee">
+                            <div class="box-employee">
+                                <div class="d-flex align-items-center">
+                                    <div class="col-photo">
+                                        <div class="employee-photo">
+                                            <img src="${appUrl}/${dataRow.employee.photo}" class="rounded-circle w-100 h-100 object-fit-cover" alt="">
+                                        </div>
+                                    </div>
+                                    <div class="col-name w-100">
+                                        <div class="employee-name">
+                                            ${dataRow.employee.name}
+                                        </div>
+                                        <div class="item-date">
+                                            ${formatDateENMedium(dataRow.start_date)} - ${formatDateENMedium(dataRow.end_date)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-day-type">
+                            <div class="item-status ${dataRow.status.toLowerCase()}">${capitalizeFirstLetter(dataRow.status)}</div>
+                            
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-line my-2"></div>
+                
+                <div class="">
+
+                    <div class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                        <div class=" w-100">
+                            <div class="item-type">${leaveType}</div>
+                        </div>
+                        <div class="">
+                            <div class="item-day">${dataRow.day_amount} Day</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-start justify-content-between gap-3">
+                        <div class="col-desciption w-100">
+                            <div class="item-description">
+                                ${dataRow.reason}
+                            </div>
+                        </div>
+                        <div class="col-status">
+                            
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+            <div class="item-footer ">
+                <div class="d-flex align-items-center justify-content-between mt-2">
+                    <div class="col-item-action mb-2">
+                        <div class="item-action d-flex gap-3 justify-content-end ">
+                            ${file1}
+                            ${file2}
+                        </div>
+                    </div>                     
+                    <div class="col-item-action mb-2">
+                        <div class="item-action d-flex gap-3 justify-content-end ">
+                            ${actionButton}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    return rowItem;
+}
+
 async function setAttendanceDetail(){
 
     let attendance = CURRENT_ATTENDANCE;
     let employee = CURRENT_EMPLOYEE;
+    let leave = CURRENT_LEAVE;
 
     let attendanceId = '';
     let employeeShift = '';
@@ -301,6 +462,12 @@ async function setAttendanceDetail(){
     
     let attendanceTimeIn = '';
     let attendanceTimeOut = '';
+
+    if(CURRENT_EMPLOYEE){
+        if(employee.shift){
+            employeeShift = formatTimeShort(employee.shift.time_start)+' - '+formatTimeShort(employee.shift.time_end);
+        }
+    }
 
     if(CURRENT_ATTENDANCE){
         attendanceId = attendance.id;
@@ -314,10 +481,30 @@ async function setAttendanceDetail(){
 
         attendanceTimeIn = attendance.time_in;
         attendanceTimeOut = attendance.time_out;
+
     }
+
+
+    $('#modalLeave .box-data-leave').html('');
+        
+    if(CURRENT_LEAVE){
+        // ${appUrl}/${dataRow.employee.photo}
+
+        let htmlLeave =  htmlDataRequestTimeOff(leave);
+        $('#modalLeave .box-data-leave').html(htmlLeave);
+    
+    }
+
+    if(attendanceStatus == 'ABSENT'){
+        $('#modalAttendanceEdit .form-block-present').addClass('d-none');
+    }else{
+        $('#modalAttendanceEdit .form-block-present').removeClass('d-none');
+    }
+
+
     
 
-    $('#modalAttendance .attendance-date,#modalAttendanceEdit .attendance-date').text(formateDateFull(attendanceDate));
+    
     $('#modalAttendance .employee-shift,#modalAttendanceEdit .employee-shift').text(employeeShift);
 
     $('#modalAttendance .attendance-late,#modalAttendanceEdit .attendance-late').text(attendanceTimelate).removeClass('text-danger');
@@ -332,7 +519,6 @@ async function setAttendanceDetail(){
     $('#modalAttendance .employee-name,#modalAttendanceEdit .employee-name').text(employee.name);
     $('#modalAttendance [name="employee_id"],#modalAttendanceEdit [name="employee_id"]').val(employee.id);
 
-    $('#modalAttendance [name="attendance_date"],#modalAttendanceEdit [name="attendance_date"]').val(attendanceDate);
     $('#modalAttendance [name="attendance_id"],#modalAttendanceEdit [name="attendance_id"]').val(attendanceId);
 
     $('#modalAttendance .attendance-status').text(attendanceStatus);
@@ -353,6 +539,18 @@ async function setAttendanceDetail(){
     
     return true;
 }
+
+$('#modalAttendanceEdit [name="attendance_status"]').on('change',function(){
+    let attendanceStatus = $(this).val();
+
+    if(attendanceStatus == 'ABSENT'){
+        $('#modalAttendanceEdit .form-block-present').addClass('d-none');
+    }else{
+        $('#modalAttendanceEdit .form-block-present').removeClass('d-none');
+    }
+
+});
+
 
 $('#btn-download-xlsx').on('click',function(){
     
@@ -452,8 +650,25 @@ $('#modalAttendance .btn-submit-note').on('click',function(){
 });
 
 $('#modalAttendance .btn-edit-attendance').on('click',function(){
-    modalAttendance.hide();
-    modalAttendanceEdit.show();
+    
+    let attendanceDate = $('#modalAttendanceEdit [name="attendance_date"]').val();
+
+    let dateNow = new Date();
+    dateNow.setHours(0, 0, 0, 0);
+
+    let attendanceDateObject = new Date(attendanceDate);
+    attendanceDateObject.setHours(0, 0, 0, 0);
+
+    let days = daysBetween(dateNow,attendanceDateObject);
+
+    if(attendanceDateObject < dateNow){
+        modalAttendance.hide();
+        modalAttendanceEdit.show();
+    }else{
+        showAlertMsg('Attendance Not Complete Yet','error',5000);
+    }
+
+
 });
 
 $('#modalAttendanceEdit .btn-close-modal-edit').on('click',function(){
@@ -492,7 +707,7 @@ function submitEditAttendance(){
             modalAttendance.show();
 
             $('#modalAttendanceEdit .box-loader').fadeOut();
-            $('#form-edit-attendance')[0].reset();
+            //$('#form-edit-attendance')[0].reset();
             showAlertMsg(res.message,'success',3000);
             renderCalendar(CURRENT_DATE.getFullYear(), CURRENT_DATE.getMonth());
         },
@@ -501,3 +716,14 @@ function submitEditAttendance(){
         }
     });
 }
+
+
+
+$('#modalLeave .btn-back-modal-leave').on('click',function(){
+    modalLeave.hide();
+    modalAttendance.show();
+});
+
+$('#modalLeave .btn-close-modal-leave').on('click',function(){
+    modalLeave.hide();
+});

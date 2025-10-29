@@ -1684,7 +1684,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <a class="project-link text-decoration-none d-flex flex-column justify-content-center"
                                             data-project-id="${project.id}"
                                             href="${fullProjectUrl}">
-                                                <h6 class="mb-0 title-project" style="font-size:14px; font-weight:600; cursor:pointer;">
+                                                <h6 class="mb-0 title-project" style="font-size:12px; font-weight:600; cursor:pointer;">
                                                     ${project.title}
                                                 </h6>
                                                 ${dateProject}

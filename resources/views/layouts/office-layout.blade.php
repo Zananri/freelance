@@ -330,9 +330,10 @@
 
                     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER']))
                     <li>
-                        <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}">
+                        <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}  menu-employee ">
                             <span class="material-symbols-outlined">groups</span>
                             <span class="text-menu">Employee</span>
+                            <div class="pill-new-request d-none"></div>
                         </a>
                     </li>
                     <li>

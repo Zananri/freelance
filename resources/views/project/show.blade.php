@@ -949,7 +949,7 @@
                                         <small class="text-muted" style="font-size: 11px;"
                                             id="projectTaskProjectTitle"></small>
                                         <h5 class="mb-0" id="projectTaskTitle"
-                                            style="font-size:16px;font-weight:600;">-
+                                            style="font-size:14px;font-weight:600;">-
                                         </h5>
                                     </div>
                                 </div>
@@ -973,21 +973,20 @@
                                 </button>
                             </div>
 
-                            <div id="referenceUrlsList" class="d-flex flex-column gap-2">
+                            <div id="referenceUrlsList" class="d-flex flex-column gap-2 mb-2">
                                 <!-- Reference URLs will be inserted here -->
                             </div>
 
-                            <div id="referenceFilesList" class="d-flex flex-column gap-2">
+                            <div id="referenceFilesList" class="d-flex flex-column gap-2 mb-2">
                                 <!-- Reference files links will be inserted here -->
                             </div>
 
                             <!-- Collaborators -->
-                            <div class="collab-section mt-3" style="font-size: 12px;">
+                            <div class="collab-section mt-3 mb-3" style="font-size: 12px;">
                                 <div id="projectTaskCollaborators"></div>
                             </div>
 
-                            <!-- Status Changes -->
-                            <div id="projectTaskStatusChanges" class="mt-3"></div>
+                            
 
                             <!-- Meta Info -->
                             <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
@@ -1002,10 +1001,13 @@
                                 <span id="projectTaskDepartment">-</span>
                             </div>
 
-                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                            <div class="d-flex justify-content-between mb-4" style="font-size:12px;">
                                 <span class="text-muted">Division:</span>
                                 <span id="projectTaskDivision">-</span>
                             </div>
+
+                            <!-- Status Changes -->
+                            <div id="projectTaskStatusChanges" class="mt-3"></div>
 
                         </div>
                     </div>

@@ -37,12 +37,21 @@ class HRInfoController extends Controller
         $employeeOvertime = EmployeeOvertime::whereIn('employee_id',$employeeIds)
             ->where('status','REQUEST_SUBMIT')
             ->where('date_overtime','<',$today)
-            ->count();
+        ->count();
 
         $employeeLave = EmployeeLeaveRequest::whereIn('employee_id',$employeeIds)
             ->where('status','REQUEST')
-            ->count();
-            
+        ->count();
+
+        $firstDayOfMonth = Carbon::now()->startOfMonth()->toDateString();
+        $lastDayOfMonth = Carbon::now()->endOfMonth()->toDateString();
+
+        $employeeEndContract = Employee::whereIn('id',$employeeIds)
+            ->where('status','ACTIVE')
+            ->where('contract_end_date','<=',$lastDayOfMonth)
+        ->count();
+    
+
 
         return response()->json([
                 'code' => 200,
@@ -50,6 +59,7 @@ class HRInfoController extends Controller
                 'data' => [
                     'employee_overtime' => $employeeOvertime,
                     'employee_leave' => $employeeLave,
+                    'employee_end_contract' => $employeeEndContract,
                 ],
                 'message' => 'Get count employee overtime request'
         ]);

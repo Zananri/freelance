@@ -114,6 +114,13 @@ class AttendanceTrackingController extends Controller
             $attendance = Attendance::where('employee_id', $employeeId)
                 ->where('date_attendance', $dateAttendance)
             ->first();
+
+            $leave = EmployeeLeaveRequest::with('employee')
+                ->where('employee_id', $employeeId)
+                ->where('status', 'APPROVED')
+                ->where('start_date','<=', $dateAttendance)
+                ->where('end_date','>=', $dateAttendance)
+            ->first();
  
 
             $employee = Employee::with('department','division','job','grade','shift')
@@ -136,6 +143,7 @@ class AttendanceTrackingController extends Controller
                     'status' => 'success',
                     'data' => [
                         'employee'  => $employee,
+                        'leave'  => $leave,
                         'attendance' => $attendance,
                         'attendance_tracking' => $attendanceTracking
                     ],
@@ -350,6 +358,22 @@ class AttendanceTrackingController extends Controller
 
                     $activeWorksheet->setCellValue($column.$row, 1);
 
+                    if($attendance->status == 'ABSENT'){
+                        $activeWorksheet->setCellValue($column.$row, 'ABSENT');
+                        $activeWorksheet->getStyle($column.$row)
+                            ->getFill()
+                            ->setFillType(Fill::FILL_SOLID)
+                            ->getStartColor()
+                        ->setARGB('ffff2b2f');
+                    }elseif($attendance->status == 'SICK'){
+                        $activeWorksheet->setCellValue($column.$row, 'SICK');
+                    }
+                    elseif($attendance->status == 'ANNUAL_LEAVE'){
+                        $activeWorksheet->setCellValue($column.$row, 'LEAVE');
+                    }
+                    else{
+                        $activeWorksheet->setCellValue($column.$row, 1);
+                    }
                     //$activeWorksheet->setCellValue($column.$row, $timeIn.chr(10).$timeOut);// $timeIn." \n ".$timeOut
                     
                     
@@ -452,7 +476,6 @@ class AttendanceTrackingController extends Controller
             $request->validate([
                 'employee_id' => 'required|integer',
                 'attendance_date' => 'required',
-                'attendance_id' => 'required',
                 'attendance_date' => 'required|date'
             ]);
 
@@ -464,9 +487,48 @@ class AttendanceTrackingController extends Controller
 
             $userId = auth()->user()->id;
             $employeeId = $request->employee_id;
+            $employee = Employee::with('shift')->where('id', $employeeId)->first();
+
             $statusAttendance = $request->attendance_status;
-            $timeIn = Carbon::parse($request->attendance_time_in)->format('H:i');
-            $timeOut = Carbon::parse($request->attendance_time_out)->format('H:i');
+            $timeIn = '00:00:00';
+            $timeOut = '00:00:00';
+            $timeLate = '00:00:00';
+
+            if($employee){
+                $shift = $employee->shift;
+
+                if($shift){
+                    $timeIn = $shift->time_start;
+                    $timeOut = $shift->time_end;
+
+                    if($request->attendance_time_in){
+                        $shiftStartTime = Carbon::parse($shift->time_start);
+                        $timeStart = Carbon::parse($request->attendance_time_in);
+
+                        if($timeStart > $shiftStartTime){
+                            $timeLate = $timeStart->diff($shiftStartTime)->format('%H:%I:%S');
+                        }
+                        
+                    }
+                    
+                    
+
+                }
+            }
+
+            if($request->attendance_time_in){
+                $timeIn =Carbon::parse($request->attendance_time_in)->format('H:i');
+            }
+            
+            if($request->attendance_time_out){
+                $timeOut = Carbon::parse($request->attendance_time_out)->format('H:i');
+            }
+            
+
+            if($statusAttendance =='ABSENT'){
+                $timeIn = '00:00:00';
+                $timeOut = '00:00:00';
+            }
 
             $note = $request->attendance_note;
 
@@ -477,10 +539,9 @@ class AttendanceTrackingController extends Controller
                 ->where('date_attendance', $dateAttendance)
             ->first();
 
-            $timeLate = '00:00:00';
+            
 
-            $employee = Employee::with('shift')->where('id', $employeeId)->first();
-
+            
 
             if($attendance){
 
@@ -489,6 +550,7 @@ class AttendanceTrackingController extends Controller
                     ->update([
                         'time_in' => $timeIn,
                         'time_out' => $timeOut,
+                        'time_late' => $timeLate,
                         'note' => $note,
                         'status' => $statusAttendance,
                         'updated_by' => $userId
@@ -515,6 +577,7 @@ class AttendanceTrackingController extends Controller
                 ]);
 
             }
+            
 
             $attendanceData = Attendance::where('employee_id', $employeeId)
                 ->where('date_attendance', $dateAttendance)
