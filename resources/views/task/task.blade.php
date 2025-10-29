@@ -72,6 +72,7 @@
                                     <option value="new_request">New Request</option>
                                     <option value="in_progress">In Progress</option>
                                     <option value="completed">Completed</option>
+                                    <option value="finished">Finished</option>
                                     <option value="rejected">Rejected</option>
                                 </select>
                             </div>

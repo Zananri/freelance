@@ -210,7 +210,7 @@ function renderTaskNode(task, $template) {
     else if (["rejected"].includes(s)) visual = "rejected";
     else visual = normalizedStatus || "not-started";
 
-    if (task.due_date && !["complete", "rejected"].includes(visual)) {
+    if (task.due_date && !["complete", "rejected", "finished"].includes(visual)) {
         const due = new Date(task.due_date), today = new Date();
         due.setHours(0, 0, 0, 0); today.setHours(0, 0, 0, 0);
         if (!isNaN(due.getTime()) && today > due) visual = "late";
@@ -260,10 +260,18 @@ function renderTaskNode(task, $template) {
         const showMenu = !!isPrivileged;
 
         try {
-            if (visual === "complete") {
-                // avoid duplicate
+            if (["complete", "finished"].includes(visual)) {
                 if ($card.find('.playlist_add_check').length === 0) {
-                    const $icon = $(`<span class="material-symbols-outlined task-icon playlist_add_check" data-task-id="${task.id}" role="button" tabindex="0" aria-label="Lihat task selesai" style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:pointer; z-index:2000;">playlist_add_check</span>`);
+                    const $icon = $(`
+                        <span class="material-symbols-outlined task-icon playlist_add_check" 
+                            data-task-id="${task.id}" 
+                            role="button" 
+                            tabindex="0" 
+                            aria-label="Lihat task selesai" 
+                            style="font-size:16px; color:#828282; position:absolute; top:8px; right:8px; cursor:pointer; z-index:2000;">
+                            playlist_add_check
+                        </span>
+                    `);
                     $card.append($icon);
                 }
             }
