@@ -11417,16 +11417,27 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
         const urls = task.complete_urls || task.finished_urls || [];
 
         if ($.isArray(urls) && urls.length) {
-            urls.forEach((u, idx) => {
+            urls.forEach((u) => {
                 const absUrl = u.startsWith("http")
                     ? u
                     : `${appUrl.replace(/\/+$/, '')}/${u.replace(/^\/+/, '')}`;
+                const linkName = absUrl.split('/').pop() || absUrl;
+
                 const linkHtml = `
-                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
-                        <a href="${absUrl}" target="_blank" class="text-decoration-none flex-grow-1" style="color:#444;">
-                            LINK_${idx + 1}
-                        </a>
-                    </div>`;
+                <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                    <a href="${absUrl}" target="_blank" class="text-decoration-none"
+                    style="
+                        color:#444;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        display: block;
+                        width: 100%;
+                    ">
+                    ${absUrl}
+                    </a>
+                </div>`;
+
                 $urlsContainer.append(linkHtml);
             });
         } else {
