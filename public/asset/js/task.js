@@ -5087,8 +5087,6 @@ function filterTaskTableRows(queryRaw) {
                 const taskTitle = task.title || "Untitled Task";
                 const taskDescription = task.description || "No description available";
                 const taskProject = task.project.title || "No Project";
-
-                // Avatar
                 const taskImage = task.image ? `${appUrl}/file/task/${task.image}` : null;
 
                 const initials = !taskImage ? getTaskInitials(task.title) : "";
@@ -5101,7 +5099,6 @@ function filterTaskTableRows(queryRaw) {
                             ${initials}
                     </div>`;
 
-                // Set modal content
                 document.getElementById("statusModalAvatar").innerHTML = avatarHtml;
                 document.getElementById("statusModalPartofProject").innerHTML = taskProject;
                 document.getElementById("statusModalTitle").textContent = taskTitle;
@@ -5111,14 +5108,15 @@ function filterTaskTableRows(queryRaw) {
                 if (newStatus === "in_progress") confirmText = "Are you sure want to move the task to Progress?";
                 if (newStatus === "completed") confirmText = "Are you sure want to move the task to Completed?";
                 if (newStatus === "rejected") confirmText = "Are you sure want to Reject this task?";
+                if (newStatus === "finished") confirmText = "Are you sure want to Approve this task?";
                 document.getElementById("statusModalConfirmText").textContent = confirmText;
 
-                // Show modal
+                const confirmBtn = document.getElementById("statusModalConfirmBtn");
+                confirmBtn.textContent = newStatus === "finished" ? "Approve" : "Confirm";
+
                 const modalEl = new bootstrap.Modal(document.getElementById("statusConfirmModal"));
                 modalEl.show();
 
-                // Confirm button
-                const confirmBtn = document.getElementById("statusModalConfirmBtn");
                 confirmBtn.onclick = function () {
                     updateTaskStatus(taskId, newStatus, taskCard);
                     modalEl.hide();
