@@ -907,6 +907,7 @@ class TaskController extends Controller
                 'complete_files' => $task->complete_files,
                 'due_date' => $task->due_date,
                 'complete_date' => $task->complete_date,
+                'finished_date' => $task->finished_date,
                 'updated_at' => $task->updated_at,
                 'priority' => $task->priority,
                 'pic' => $picData,
@@ -1114,6 +1115,7 @@ class TaskController extends Controller
                     '' => $task->due_date,
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
+                    'finished_date' => $task->finished_date,
                     'project_title' => $task->project?->title, // added for dashboard avatar initials
                     // counts for dashboard badges
                     'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
@@ -1254,6 +1256,7 @@ class TaskController extends Controller
                     'status' => $task->status,
                     'due_date' => $task->due_date,
                     'complete_date' => $task->complete_date,
+                    'finished_date' => $task->finished_date,
                     'start_date' => $task->start_date,
                     'project_title' => $task->project?->title,
                     'feedback_comments_count' => (int) ($task->feedback_comments_count ?? 0),
@@ -1458,6 +1461,7 @@ class TaskController extends Controller
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
                 'complete_date' => 'nullable|date|after_or_equal:start_date',
+                'finished_date' => 'nullable|date|after_or_equal:complete_date',
             ]);
 
             if ($validator->fails()) {
@@ -1797,6 +1801,7 @@ class TaskController extends Controller
                 'project_title' => $task->project?->title ?? '',
                 'project_id' => $task->project_id,
                 'complete_date' => $task->complete_date,
+                'finished_date' => $task->finished_date,
                 'complete_note' => $task->complete_note,
                 'complete_urls' => $task->complete_urls,
                 'complete_files' => $task->complete_files,
@@ -2728,7 +2733,6 @@ class TaskController extends Controller
             $task = Task::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                // include 'finished' as a valid canonical status
                 'status' => 'required|in:new request,in progress,completed,rejected,finished,new_request,in_progress,back_to_request',
             ]);
 
@@ -2753,21 +2757,19 @@ class TaskController extends Controller
             ];
 
             $dbStatus = $statusMap[$request->status] ?? $request->status;
-
-            // Prepare update payload: status and manage complete_date consistently
+            $oldStatus = $task->status;
             $update = ['status' => $dbStatus];
+
             if ($dbStatus === 'completed') {
-                // Additional validation when completing a task
                 $completeRules = [
                     'complete_note' => 'required|string',
-                    'complete_urls' => 'nullable', // can be JSON string or array
+                    'complete_urls' => 'nullable',
                     'complete_files' => 'nullable|array',
                     'complete_files.*' => [
                         'file',
                         'max:102400',
                         function ($attribute, $value, $fail) {
-                            if (!($value instanceof \Illuminate\Http\UploadedFile))
-                                return;
+                            if (!($value instanceof \Illuminate\Http\UploadedFile)) return;
                             $ext = strtolower($value->getClientOriginalExtension() ?? '');
                             $mime = strtolower($value->getClientMimeType() ?? '');
                             $allowedExt = ['jpeg', 'png', 'jpg', 'gif', 'svg', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'csv'];
@@ -2784,6 +2786,7 @@ class TaskController extends Controller
                         }
                     ],
                 ];
+
                 $completeValidator = Validator::make($request->all(), $completeRules);
                 if ($completeValidator->fails()) {
                     return response()->json([
@@ -2794,89 +2797,64 @@ class TaskController extends Controller
                     ], 422);
                 }
 
-                // Set complete_date to today when marking as completed
-                $update['complete_date'] = now()->toDateString();
-
-                // Normalize and persist complete_note
+                $update['complete_date'] = now();
+                $update['finished_date'] = now();
                 $update['complete_note'] = $request->input('complete_note');
 
-                // Normalize complete_urls: accept JSON string or array or single value
                 $completeUrls = [];
                 if ($request->has('complete_urls')) {
                     $incoming = $request->input('complete_urls');
                     if (is_string($incoming)) {
                         $decoded = json_decode($incoming, true);
-                        if (is_array($decoded)) {
-                            $incoming = $decoded;
-                        } else {
-                            // single string possibly not JSON
-                            $incoming = [$incoming];
-                        }
+                        if (is_array($decoded)) $incoming = $decoded;
+                        else $incoming = [$incoming];
                     }
                     if (is_array($incoming)) {
                         foreach ($incoming as $u) {
-                            if (is_string($u) && trim($u) !== '')
-                                $completeUrls[] = trim($u);
+                            if (is_string($u) && trim($u) !== '') $completeUrls[] = trim($u);
                         }
                     }
                 } elseif ($request->has('complete_url')) {
                     $val = $request->input('complete_url');
-                    if (is_string($val) && trim($val) !== '')
-                        $completeUrls[] = trim($val);
+                    if (is_string($val) && trim($val) !== '') $completeUrls[] = trim($val);
                 }
+
                 if (!empty($completeUrls)) {
                     $update['complete_urls'] = $completeUrls;
                 } else {
-                    // allow explicit clearing if client sent empty array/string
-                    if ($request->has('complete_urls'))
-                        $update['complete_urls'] = [];
+                    if ($request->has('complete_urls')) $update['complete_urls'] = [];
                 }
 
-                // Handle complete_files upload (store under public/file/task_complete_files)
                 $uploadedCompleteFiles = [];
                 if ($request->hasFile('complete_files')) {
                     $taskCompleteDir = public_path('file/task_complete_files');
-                    if (!is_dir($taskCompleteDir))
-                        @mkdir($taskCompleteDir, 0775, true);
+                    if (!is_dir($taskCompleteDir)) @mkdir($taskCompleteDir, 0775, true);
                     foreach ($request->file('complete_files') as $idx => $file) {
-                        if (!$file)
-                            continue;
+                        if (!$file) continue;
                         $ext = $file->getClientOriginalExtension();
                         $name = 'TASK_COMPLETE_' . time() . '_' . $idx . '.' . $ext;
-                        try {
-                            $file->move($taskCompleteDir, $name);
-                            $uploadedCompleteFiles[] = $name;
-                        } catch (\Exception $e) {
-                            return response()->json([
-                                'code' => 500,
-                                'status' => 'error',
-                                'message' => 'Failed to store one of the complete files: ' . $e->getMessage(),
-                            ], 500);
-                        }
+                        $file->move($taskCompleteDir, $name);
+                        $uploadedCompleteFiles[] = $name;
                     }
                 }
-                if (!empty($uploadedCompleteFiles)) {
-                    $update['complete_files'] = $uploadedCompleteFiles;
-                }
+
+                if (!empty($uploadedCompleteFiles)) $update['complete_files'] = $uploadedCompleteFiles;
 
             } elseif ($dbStatus === 'finished') {
-                // Approving a completed task to finished: keep or ensure a complete_date exists
-                // Do not require complete_note/files here because the completion was already submitted.
-                $update['complete_date'] = $task->complete_date ?: now()->toDateString();
+                if (empty($task->complete_date)) {
+                    $update['complete_date'] = now();
+                } else {
+                    $update['complete_date'] = \Carbon\Carbon::parse($task->complete_date)->toDateTimeString();
+                }
+                $update['finished_date'] = now();
             } else {
-                // Clear complete_date for non-completed/finished statuses
-                $update['complete_date'] = null;
-                // Optionally clear complete fields when moving away from completed/finished
-                // (leave as-is to preserve history) -- do nothing here beyond clearing date
+                unset($update['complete_date']);
+                unset($update['finished_date']);
             }
 
-            $oldStatus = $task->status;
-
             $task->update($update);
+            $task->refresh();
 
-            // If user completing the task has an assignment record but hasn't accepted (is_receive false/null),
-            // mark their assignment as accepted so the task will be visible in index() queries that exclude
-            // tasks for users who haven't accepted assignments.
             try {
                 $user = $request->user();
                 $employeeId = $user && $user->employee ? $user->employee->id : null;
@@ -2892,26 +2870,19 @@ class TaskController extends Controller
                             $assignment->save();
                         }
                     } else {
-                        // Create assignment for completer so they can see the completed task after refresh
-                        try {
-                            TaskAssignment::create([
-                                'task_id' => $task->id,
-                                'employee_id' => $employeeId,
-                                'role' => 'EXECUTOR',
-                                'is_receive' => true,
-                                'date_receive' => now(),
-                                'created_by' => $user->id ?? null,
-                                'updated_by' => $user->id ?? null,
-                            ]);
-                        } catch (\Throwable $_) { /* non-fatal */
-                        }
+                        TaskAssignment::create([
+                            'task_id' => $task->id,
+                            'employee_id' => $employeeId,
+                            'role' => 'EXECUTOR',
+                            'is_receive' => true,
+                            'date_receive' => now(),
+                            'created_by' => $user->id ?? null,
+                            'updated_by' => $user->id ?? null,
+                        ]);
                     }
                 }
-            } catch (\Throwable $_) {
-                // non-fatal: do not break the status update if assignment update fails
-            }
+            } catch (\Throwable $_) {}
 
-            // Record status change log if status actually changed
             try {
                 $user = $request->user();
                 $employeeId = $user && $user->employee ? $user->employee->id : null;
@@ -2924,7 +2895,6 @@ class TaskController extends Controller
                     ]);
                 }
             } catch (\Throwable $t) {
-                // do not fail the whole request if logging fails
                 \Log::error('Failed to write TaskStatusLog: ' . $t->getMessage());
             }
 
@@ -2935,11 +2905,10 @@ class TaskController extends Controller
                 'status' => 'success',
                 'message' => 'Task status updated successfully',
                 'data' => [
-                    'task' => $task,
+                    'task' => $task->fresh(),
                     'updated_status' => $dbStatus
                 ]
             ]);
-
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

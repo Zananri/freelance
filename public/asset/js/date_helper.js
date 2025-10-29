@@ -145,6 +145,22 @@ const formatDateENMedium = (date) => {
   
 };
 
+const formatDateTimeENMedium = (date) => {
+  const monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  const newDate = new Date(date);
+  const d = newDate.getDate();
+  const m = monthNames[newDate.getMonth()];
+  const y = newDate.getFullYear();
+
+  const hh = String(newDate.getHours()).padStart(2, '0');
+  const mm = String(newDate.getMinutes()).padStart(2, '0');
+
+  return `${d} ${m} ${y} - ${hh} : ${mm}`;
+};
+
 const formatDateENMediumDayMonth = (date) => {
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const monthNames = [
