@@ -2124,29 +2124,36 @@ function initProjectTaskDetailModal() {
         let baseButtons = "";
         if (privileged) {
             baseButtons = `
-                <button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button>
-                <button type="button" class="edit-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit</button>
-                <button type="button" class="delete-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete</button>
+                <button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#333;cursor:pointer;">Clear Parent</button>
+                <button type="button" class="edit-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#333;cursor:pointer;">Edit</button>
+                <button type="button" class="delete-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#d33;cursor:pointer;">Delete</button>
             `;
         }
 
         let extraButtons = "";
         switch ((status || "").trim()) {
             case "new_request":
-                extraButtons = `<button type="button" class="status-progress-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">Progress</button>`;
+                extraButtons = `<button type="button" class="status-progress-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#0066cc;cursor:pointer;">Progress</button>`;
                 break;
             case "in_progress":
                 extraButtons = `
-                    <button type="button" class="status-newrequest-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">New Request</button>
-                    <button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>`;
+                    <button type="button" class="status-newrequest-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#0066cc;cursor:pointer;">Back to New Request</button>
+                    <button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#00aa44;cursor:pointer;">Completed</button>`;
                 break;
             case "completed":
-                extraButtons = `<button type="button" class="status-rejected-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#ff6600;cursor:pointer;">Rejected</button>`;
-                extraButtons = `<button type="button" class="status-finished-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#444;cursor:pointer;">Finished</button>`;
+                extraButtons = `
+                    <button type="button" class="status-rejected-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#ff6600;cursor:pointer;">Rejected</button>
+                    <button type="button" class="status-finished-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#444;cursor:pointer;">Finished</button>`;
                 break;
             case "rejected":
-                extraButtons = `<button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>`;
+                extraButtons = `<button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#00aa44;cursor:pointer;">Completed</button>`;
                 break;
+            case "finished":
+                extraButtons = `
+                    <button type="button" class="status-rejected-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#ff6600;cursor:pointer;">Rejected</button>
+                    <button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#444;cursor:pointer;">Back to Completed</button>`;
+                break;
+
         }
         return extraButtons + baseButtons;
     }
