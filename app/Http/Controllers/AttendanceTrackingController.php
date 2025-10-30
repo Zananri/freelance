@@ -447,10 +447,11 @@ class AttendanceTrackingController extends Controller
 
 
                 $hireDate = Carbon::parse($employeeItem->hire_date);
+                $yearHireDate = Carbon::parse($employeeItem->hire_date)->format('Y');
                 $monthHireDate = Carbon::parse($employeeItem->hire_date)->format('n');
                 $dayHireDate = $hireDate->day;
                 
-                if($i+1 == $dayHireDate && $month == $monthHireDate ){
+                if($i+1 == ($dayHireDate-1) && $month == $monthHireDate && $yearHireDate == date('Y') ){
                     $activeWorksheet->getStyle('X'.$row)
                         ->getFill()
                         ->setFillType(Fill::FILL_SOLID)
