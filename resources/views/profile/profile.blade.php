@@ -19,7 +19,8 @@
                     <div class=" bg-card-1 rounded-4 p-5 pt-4 text-center position-relative">
 
                         
-
+                        @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER']))
+                        
                         @php
                             $data_to_encrypt = Auth::user()->id.','.Auth::user()->email; // The string you want to encrypt
                             $cipher_method = "aes-256-cbc"; // Choose a strong cipher method '37,gio.ginanjar@nsaperformance.id'; //
@@ -46,7 +47,6 @@
                                 Link Auth
                             </div>
                         </div>  
-                         @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER']))
                                                
                         @endif
 
