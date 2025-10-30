@@ -2432,6 +2432,28 @@ $(function () {
 
         $dropdown.html('<div class="dropdown-item text-muted">Loading tasks...</div>').show();
 
+        function getInitialAvatar(name) {
+            const colors = [
+                "#F44336", "#E91E63", "#9C27B0", "#673AB7",
+                "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
+                "#009688", "#4CAF50", "#8BC34A", "#FFC107",
+                "#FF9800", "#FF5722", "#795548"
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const initial = (name || "?").charAt(0).toUpperCase();
+            return `<div style="
+                width:28px;height:28px;
+                border-radius:50%;
+                background:${color};
+                color:#fff;
+                font-size:13px;
+                font-weight:bold;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+            ">${initial}</div>`;
+        }
+
         $.ajax({
             url: (window.APP_URL || "") + `/projects/${projectId}/tasks`,
             type: "GET",
@@ -2445,23 +2467,41 @@ $(function () {
 
                 $dropdown.empty();
                 $.each(data, function (_, task) {
-                    var $item = $("<div>")
-                        .addClass("dropdown-item")
-                        .css("cursor", "pointer")
-                        .text(task.title || "Task #" + task.id)
-                        .on("click", function () {
-                            $id.val(task.id);
-                            $input.val(task.title || "Task #" + task.id);
-                            $selected.html(`
-                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                    let avatarHtml = task.image
+                        ? `<img src="${appUrl}/file/task/${task.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`
+                        : getInitialAvatar(task.title);
+
+                    let startDate = task.start_date ? task.start_date : "-";
+                    let dueDate = task.due_date ? task.due_date : "-";
+
+                    var $item = $(`
+                        <div class="dropdown-item d-flex align-items-start gap-2 py-2" style="cursor:pointer;">
+                            ${avatarHtml}
+                            <div class="d-flex flex-column">
+                                <span class="fw-semibold">${task.title || "Task #" + task.id}</span>
+                                <small class="text-muted fs-8">${formatDateENMediumDayMonth(startDate)} - ${formatDateENMediumDayMonth(dueDate)}</small>
+                            </div>
+                        </div>
+                    `);
+
+                    $item.on("click", function () {
+                        $id.val(task.id);
+                        $input.val(task.title || "Task #" + task.id);
+                        $selected.html(`
+                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                                ${avatarHtml}
+                                <div class="d-flex flex-column">
                                     <span class="flex-grow-1">${task.title || "Task #" + task.id}</span>
-                                    <button type="button" class="btn btn-sm btn-remove-task remove-task">
-                                        <span class="material-symbols-outlined">close</span>
-                                    </button>
+                                    <small class="text-muted fs-8">${formatDateENMediumDayMonth(startDate)} - ${formatDateENMediumDayMonth(dueDate)}</small>
                                 </div>
-                            `);
-                            $dropdown.hide();
-                        });
+                                <button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        `);
+                        $dropdown.hide();
+                    });
+
                     $dropdown.append($item);
                 });
 
