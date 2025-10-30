@@ -2806,14 +2806,37 @@ $(function () {
     }
 })();
 
-    $(document).on("click", ".feedback-detail-task", function () {
-        const taskId = $(this).data("data-task-id");
-        if (!taskId) {
-            console.warn("⚠️ Task ID not found on clicked element.");
-            return;
-        }
+    function timeAgo(createdAt){
+        try {
+            const time = new Date(createdAt);
+            const now = new Date();
+            const diff = (now.getTime() - time.getTime()) / 1000;
 
-        handleProjectTaskFeedback(taskId);
+            if(diff < 60){
+                return 'just now';
+            }else if(diff < 3600){
+                return Math.round(diff/60)+' minute ago';
+            }else if(diff < 86400){
+                return Math.round(diff/3600)+' hour ago';
+            }else if(diff < 604800){
+                return Math.round(diff/86400)+' day ago';
+            }else if(diff < 2592000){
+                return Math.round(diff/604800)+' week ago';
+            }else if(diff < 31526000){
+                return Math.round(diff/2592000)+' month ago';
+            }else if(diff < 63072000){
+                return Math.round(diff/31536000)+' year ago';
+            }
+
+            return time.toDateString();
+        } catch (e) { return String(createdAt || ''); }
+    }
+
+    $(document).on("click", "#projectTaskFeedbackBtn", function() {
+        const modal = document.getElementById("projectTaskDetailModal");
+        const taskId = modal?.dataset?.taskId;
+
+        loadProjectTaskFeedbackData(taskId);
     });
 
     function setupProjectTaskInlineFeedbackEditor(taskId) {
@@ -4045,7 +4068,8 @@ $(function () {
                 if (icon && icon.parentNode) {
                     icon.parentNode.appendChild(span);
                 } else {
-                    return;
+                    const header = card.querySelector('.card-header') || card;
+                    header.appendChild(span);
                 }
             }
             span.textContent = String(count);
@@ -4056,18 +4080,13 @@ $(function () {
         }
         function extractCountFromResponse(resp) {
             if (!resp) return null;
-            const candidates = [
-                resp.count,
-                resp.total,
-                resp?.data?.count,
-                resp?.data?.total,
-            ];
+            const candidates = [resp.count, resp.total, resp?.data?.count, resp?.data?.total];
             const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
-            return (typeof val === 'number') ? val : null;
+            return typeof val === 'number' ? val : null;
         }
+
         const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
         const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
-
         if (submitBtn) {
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             submitBtn.disabled = true;
@@ -4077,17 +4096,17 @@ $(function () {
             const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
             const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
             if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
-                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning');
                 if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
                 return;
             }
-            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            const totalCheck = validateTotalUploadSize({ imageFile: imageFile, extraFiles: selectedFiles });
             if (!totalCheck.ok) {
-                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning');
                 if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
                 return;
             }
-        } catch(_) {}
+        } catch (_) {}
 
         const formData = new FormData(form);
         try {
@@ -4097,6 +4116,8 @@ $(function () {
         } catch (_) {}
         formData.append("task_id", taskId);
 
+        optimisticIncrementFeedbackCount(taskId);
+
         $.ajax({
             url: appUrl + "/task-feedbacks",
             type: "POST",
@@ -4104,75 +4125,54 @@ $(function () {
             contentType: false,
             processData: false,
             headers: {
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
             },
             success: function (response) {
                 const msg = (response && response.message) || 'Feedback submitted successfully!';
-                if (typeof window.showAlertMsg === 'function') {
-                    window.showAlertMsg(String(msg), 'light', 2000);
-                } else if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(msg, 'light', 2000);
-                }
-
-                try {
-                    const feedbackModalEl = document.getElementById("projectTaskFeedbackModal");
-                    const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
-                    if (titleEl) titleEl.textContent = 'Task Feedback';
-                    let footer = feedbackModalEl.querySelector('.feedback-modal-footer')
-                                || feedbackModalEl.querySelector('.modal-footer')
-                                || feedbackModalEl.querySelector('.modal-footer-custom');
-                    if (!footer) {
-                        const maybeBtn = feedbackModalEl.querySelector('#addFeedbackButton');
-                        if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
-                    }
-                    if (footer) {
-                        let addBtn = footer.querySelector('#addFeedbackButton');
-                        if (!addBtn) {
-                            addBtn = document.createElement('button');
-                            addBtn.type = 'button';
-                            addBtn.className = 'btn btn-submit-black w-100';
-                            addBtn.id = 'addFeedbackButton';
-                            addBtn.textContent = 'Add Feedback';
-                            footer.innerHTML = '';
-                            footer.appendChild(addBtn);
-                        } else {
-                            addBtn.textContent = 'Add Feedback';
-                            const fresh = addBtn.cloneNode(true);
-                            addBtn.parentNode.replaceChild(fresh, addBtn);
-                            addBtn = fresh;
-                        }
-                        addBtn.disabled = false;
-                        addBtn.removeAttribute('disabled');
-                        addBtn.addEventListener('click', () => showAddFeedbackTaskForm(taskId));
-                    }
-                    const closeBtn = document.getElementById('replyCloseButton');
-                    if (closeBtn && closeBtn.parentNode) {
-                        closeBtn.parentNode.removeChild(closeBtn);
-                    }
-                    try { loadProjectTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
-                } catch (e) { /* noop */ }
-
+                if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'light', 2000);
                 try {
                     selectedFiles = [];
                     const preview = document.getElementById('feedback_reference_files_preview') || document.getElementById('reference_files_preview');
                     if (preview) preview.innerHTML = '';
                 } catch (_) {}
 
-                optimisticIncrementFeedbackCount(taskId);
                 $.ajax({
                     url: appUrl + "/task-feedbacks/count/" + taskId,
                     type: "GET",
                     dataType: "json",
                     success: function (countResponse) {
                         const serverCount = extractCountFromResponse(countResponse);
-                        if (typeof serverCount === 'number' && serverCount > 0) {
-                            setFeedbackCount(taskId, serverCount);
+                        if (typeof serverCount === 'number' && serverCount > 0) setFeedbackCount(taskId, serverCount);
+                        if (typeof loadProjectTaskFeedbackData === 'function') {
+                            try { loadProjectTaskFeedbackData(taskId); } catch (_) {}
+                        } else {
+                            const ev = new CustomEvent('taskFeedbacksUpdated', { detail: { taskId } });
+                            window.dispatchEvent(ev);
+                            const container = document.querySelector(`#task-feedback-list-${taskId}, #task-feedbacks-${taskId}`);
+                            if (container) {
+                                const fragUrl = appUrl + "/task-feedbacks?task_id=" + encodeURIComponent(taskId);
+                                fetch(fragUrl, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                                    .then(r => { if (!r.ok) throw new Error('no fragment'); return r.text(); })
+                                    .then(html => { container.innerHTML = html; })
+                                    .catch(() => { if (typeof refreshTaskFeedbacks === 'function') try { refreshTaskFeedbacks(taskId); } catch (_) {} });
+                            }
+                        }
+                    },
+                    error: function () {
+                        if (typeof loadProjectTaskFeedbackData === 'function') {
+                            try { setTimeout(() => loadProjectTaskFeedbackData(taskId), 1000); } catch (_) {}
+                        } else {
+                            window.dispatchEvent(new CustomEvent('taskFeedbacksUpdated', { detail: { taskId } }));
                         }
                     }
                 });
-                try { feedbackSubmitted = false; } catch(_) {}
+
+                if (typeof loadProjectTaskFeedbackData === 'function') {
+                    loadProjectTaskFeedbackData(taskId);
+                }
+
+                if (form) form.reset();
+                $("#addFeedbackTaskFormContainer").slideUp(200);
             },
             error: function (xhr) {
                 let errorMessage = "Failed to submit feedback. Please try again.";
@@ -4181,11 +4181,19 @@ $(function () {
                 } else if (xhr.responseJSON && xhr.responseJSON.message) {
                     errorMessage = xhr.responseJSON.message;
                 }
-                if (typeof showFloatingAlert === 'function') {
-                    showFloatingAlert(errorMessage, "danger");
-                } else {
-                    alert(errorMessage);
-                }
+                if (typeof showFloatingAlert === 'function') showFloatingAlert(errorMessage, "danger");
+                else alert(errorMessage);
+                try {
+                    $.ajax({
+                        url: appUrl + "/task-feedbacks/count/" + taskId,
+                        type: "GET",
+                        dataType: "json",
+                        success: function (countResponse) {
+                            const serverCount = extractCountFromResponse(countResponse);
+                            if (typeof serverCount === 'number') setFeedbackCount(taskId, serverCount);
+                        }
+                    });
+                } catch (_) {}
             },
             complete: function () {
                 if (submitBtn) {
