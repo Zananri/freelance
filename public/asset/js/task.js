@@ -3304,6 +3304,9 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
         } else if (task.status === 'completed') {
             statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
+        } else if (task.status === 'finished') {
+            // For finished tasks, allow PIC to send back to completed or reject from dropdown
+            statusMenuItem = '<div class="dropdown-item">Back to Completed</div><div class="dropdown-item">Reject</div>';
         } else if (task.status === 'rejected') {
             statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div>';
         }
@@ -3400,8 +3403,9 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         if (task.status === 'finished') {
             const dropdownHtmlFinal = viewerIsPic ? dropdownHtml : '';
 
+            // make finished cards draggable so user can drag to Completed or In Progress
             return `
-            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
+            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;" draggable="true">
                 ${dropdownHtmlFinal}
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
@@ -3456,6 +3460,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             </div>`;
         }
 
+
         
         if (task.status === 'completed') {
             let completedBy = '-';
@@ -3467,7 +3472,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             const dropdownHtmlFinal = viewerIsPic ? dropdownHtml : '';
 
             return `
-            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
+            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;">
                 ${dropdownHtmlFinal}
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
@@ -3559,7 +3564,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         }
 
     return `
-        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
+        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}">
                 ${dropdownHtml}
                 ${iconHtml}
 
@@ -5024,6 +5029,10 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                         case "Back to Request":
                             handleTaskBackToRequest(taskId, taskCard);
                             break;
+                        case "Back to Completed":
+                            // From finished card dropdown: move back to completed
+                            showStatusModal(taskId, taskCard, 'completed');
+                            break;
                         case "Cancel":
                             handleTaskCancel(taskId, taskCard);
                             break;
@@ -5094,6 +5103,80 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
             }
     }
 
+    // Setup drag & drop for finished cards → allow moving to Completed or In Progress
+    function setupFinishedDragAndDrop() {
+        if (document._finishedDragDropBound) return;
+
+        const completedContainer = document.getElementById('completed-tasks');
+        const inProgressContainer = document.getElementById('in-progress-tasks');
+
+        const bindDrop = function(container) {
+            if (!container) return;
+            container.addEventListener('dragover', function(e){
+                try { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; container.classList.add('drop-target-active'); } catch(_) {}
+            });
+            container.addEventListener('dragleave', function(e){ try { container.classList.remove('drop-target-active'); } catch(_) {} });
+            container.addEventListener('drop', function(e){
+                try {
+                    e.preventDefault();
+                    container.classList.remove('drop-target-active');
+                    const taskId = e.dataTransfer.getData('text/plain') || e.dataTransfer.getData('text/task-id');
+                    if (!taskId) return;
+                    const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                    if (!card) return;
+                    // Determine destination status: dropping into Completed -> 'completed'; into In Progress -> 'rejected'
+                    const destStatus = (container.id === 'completed-tasks') ? 'completed' : 'rejected';
+                    // If moving a finished card back to completed, fetch existing complete_note and include it
+                    try {
+                        const currentStatus = (card.getAttribute('data-task-status') || '').toLowerCase();
+                        if (currentStatus === 'finished' && destStatus === 'completed') {
+                            $.ajax({ url: appUrl + '/task/' + taskId, type: 'GET', dataType: 'json' })
+                                .done(function(resp){
+                                    const t = (resp && (resp.data || resp)) || {};
+                                    const payload = { complete_note: t.complete_note || '' };
+                                    updateTaskStatus(taskId, destStatus, card, payload);
+                                }).fail(function(){
+                                    // fallback to normal update if fetch fails
+                                    updateTaskStatus(taskId, destStatus, card);
+                                });
+                        } else {
+                            // Use unified update function
+                            updateTaskStatus(taskId, destStatus, card);
+                        }
+                    } catch (err) {
+                        updateTaskStatus(taskId, destStatus, card);
+                    }
+                } catch (err) { console.warn('drop handler error', err); }
+            });
+        };
+
+        bindDrop(completedContainer);
+        bindDrop(inProgressContainer);
+
+        // dragstart/drageend via delegation
+        document.addEventListener('dragstart', function(e){
+            try {
+                const card = e.target.closest('.custom-card[data-task-status="finished"]');
+                if (!card) return;
+                const taskId = card.getAttribute('data-task-id');
+                if (!taskId) return;
+                try { e.dataTransfer.setData('text/task-id', taskId); } catch(_) {}
+                try { e.dataTransfer.setData('text/plain', taskId); } catch(_) {}
+                e.dataTransfer.effectAllowed = 'move';
+                card.classList.add('dragging');
+            } catch(_) {}
+        });
+
+        document.addEventListener('dragend', function(e){
+            try { document.querySelectorAll('.custom-card.dragging').forEach(n=>n.classList.remove('dragging')); document.querySelectorAll('.drop-target-active').forEach(n=>n.classList.remove('drop-target-active')); } catch(_) {}
+        });
+
+        document._finishedDragDropBound = true;
+    }
+
+    // Ensure drag & drop listeners are available after initial setup
+    try { setupFinishedDragAndDrop(); } catch(_) {}
+
     function handleTaskProgress(taskId, taskCard) {
         showStatusModal(taskId, taskCard, 'in_progress', 'Progress', 'In Progress', 'Task is being worked on');
     }
@@ -5154,8 +5237,18 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 modalEl.show();
 
                 confirmBtn.onclick = function () {
-                    updateTaskStatus(taskId, newStatus, taskCard);
-                    modalEl.hide();
+                    try {
+                        // If we're moving from finished -> completed, include the previous complete_note
+                        if (String(newStatus).toLowerCase() === 'completed' && String(task.status).toLowerCase() === 'finished') {
+                            const payload = { complete_note: task.complete_note || '' };
+                            updateTaskStatus(taskId, newStatus, taskCard, payload).finally(function(){ try { modalEl.hide(); } catch(_) {} });
+                        } else {
+                            updateTaskStatus(taskId, newStatus, taskCard).finally(function(){ try { modalEl.hide(); } catch(_) {} });
+                        }
+                    } catch (e) {
+                        try { updateTaskStatus(taskId, newStatus, taskCard); } catch(_) {}
+                        try { modalEl.hide(); } catch(_) {}
+                    }
                 };
             },
             error: function () {
@@ -5174,7 +5267,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
     let bulkFinalAlertShown = false;
 
     // Universal update function
-    function updateTaskStatus(taskId, newStatus, taskCard) {
+    // Accepts optional payload object (extraFields) to send along with status update
+    function updateTaskStatus(taskId, newStatus, taskCard, extraFields) {
         if (bulkStatusOperationActive) bulkStatusPendingCount++;
         return new Promise((resolve, reject) => {
             $.ajax({
@@ -5183,7 +5277,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 headers: {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                 },
-                data: { status: newStatus },
+                data: Object.assign({ status: newStatus }, (extraFields || {})),
                 success: function (response) {
                     const oldStatus = (taskCard && taskCard.getAttribute('data-task-status')) || null;
                     try {
@@ -5457,12 +5551,17 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 if (toStatus === 'finished') return { allowed: true, newStatus: 'finished' }
                 return { allowed: false };
             }
+            if (fromStatus === 'finished') {
+                if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
+                if (toStatus === 'in_progress') return { allowed: true, newStatus: 'rejected' };
+                return { allowed: false };
+            }
             return { allowed: false };
         }
 
         function clearDropHighlights() {
             $('.kanban-droppable').removeClass('kanban-allowed kanban-denied kanban-over');
-            $('#custom-card').removeClass('dragging');
+            $('.custom-card').removeClass('dragging');
         }
 
         function refreshDropHighlights() {
@@ -5477,7 +5576,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
         }
 
         // === MOUSE EVENTS ===
-        $(document).on('mousedown', '#custom-card', function(e) {
+    $(document).on('mousedown', '.custom-card', function(e) {
             if (e.which !== 1) return; // kiri mouse
 
             // Do not initialize kanban drag when the card is inside a modal (e.g. archive modal)

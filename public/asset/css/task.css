@@ -2356,7 +2356,7 @@ input[type="file"]::file-selector-button {
     user-select: none;
 }
 
-#custom-card.dragging {
+.custom-card.dragging {
     opacity: 1;
     transition: opacity 0.15s ease;
 }
