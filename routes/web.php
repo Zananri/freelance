@@ -40,6 +40,8 @@ Route::get('/', function () {
     return redirect('dashboard');
 });
 
+Route::get('/auth_url', [UserController::class, 'authUrl'])->name('authUrl');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', function () {
         return view('auth.login');

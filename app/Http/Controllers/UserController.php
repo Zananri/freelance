@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+
+use App\Models\User;
 use App\Models\Employee;
 use App\Models\Attendance;
 use App\Models\EmployeeShift;
@@ -17,6 +19,46 @@ use App\Helpers\ActivityHelper;
 
 class UserController extends Controller
 {
+
+    public function authUrl(Request $request){
+
+        try{
+            $received_encrypted_data = $request->input('token_data');
+            $received_iv = $request->input('iv');
+
+            // Decode from URL and Base64
+            
+            $decoded_encrypted_data = base64_decode(urldecode($received_encrypted_data));
+            $decoded_iv = base64_decode(urldecode($received_iv));
+            $key = env('APP_KEY');
+            $cipher_method = "aes-256-cbc"; // Choose a strong cipher method
+                                
+            $decrypted_data = openssl_decrypt($decoded_encrypted_data, $cipher_method, $key, 0, $decoded_iv);
+
+            if($decrypted_data){
+                $explodeData = explode(',', $decrypted_data);
+                
+                $user = User::where('id',$explodeData[0])
+                    ->where('email',$explodeData[1])
+                ->first();
+
+                if($user){
+                    Auth::login($user);
+                    return redirect('/project');
+                    //echo Auth::check(). $user->name.'<br>'.$user->email.'<br><hr><br>';
+                }
+            }
+
+            return redirect('/login');
+            
+        }catch(\Exception $e){
+            return redirect('/login');
+        }
+
+        
+    
+        
+    }
 
     public function showUserPage()
     {

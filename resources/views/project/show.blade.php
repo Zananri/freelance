@@ -1034,12 +1034,12 @@
                             <div>
                                 <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;">
                                 </h6>
-                                <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
+                                <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:14px;"></h6>
                             </div>
                         </div>
 
                         <div class="mb-4 task-description-container">
-                            <div id="completed_task_note" style="font-size: 14px" class="text-muted task-description"><em>No note</em></div>
+                            <div id="completed_task_note" style="font-size: 12px" class="text-muted task-description"><em>No note</em></div>
                         </div>
 
                         <div class="row mb-4 link-file-task">

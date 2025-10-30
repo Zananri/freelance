@@ -18,6 +18,38 @@
 
                     <div class=" bg-card-1 rounded-4 p-5 pt-4 text-center position-relative">
 
+                        
+
+                        @php
+                            $data_to_encrypt = Auth::user()->id.','.Auth::user()->email; // The string you want to encrypt
+                            $cipher_method = "aes-256-cbc"; // Choose a strong cipher method '37,gio.ginanjar@nsaperformance.id'; //
+                            $key = env('APP_KEY'); // A strong, securely generated key
+                            $iv_length = openssl_cipher_iv_length($cipher_method);
+                            $iv = openssl_random_pseudo_bytes($iv_length); // Generate a random IV
+
+                            $encrypted_data = openssl_encrypt($data_to_encrypt, $cipher_method, $key, 0, $iv);
+
+                            // Encode the IV and encrypted data for URL safety
+                            $encoded_iv = urlencode(base64_encode($iv));
+                            $encoded_encrypted_data = urlencode(base64_encode($encrypted_data));
+
+                            $encrypted_url_string = "auth_url?token_data=" . $encoded_encrypted_data . "&iv=" . $encoded_iv;
+                            $linkCopied = url($encrypted_url_string);
+                            
+                        @endphp
+                        
+                        <div class="btn-copy-link-auth z-3" data-copied-link="{{ $linkCopied }}" data-bs-toggle="tooltip" data-bs-trigger="focus" data-bs-title="Link Copied !">
+                            <div>
+                                <span class="material-symbols-outlined fs-14 cursor-pointer">content_copy</span>
+                            </div>
+                            <div class="fs-10">
+                                Link Auth
+                            </div>
+                        </div>  
+                         @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER']))
+                                               
+                        @endif
+
                         <input type="hidden" class="d-none" id="old_profile_photo" value="{{ asset($employee->profile_picture) }}" />
 
                         <form id="formPhotoProfile" class="needs-validation position-relative" enctype="multipart/form-data" novalidate>
@@ -87,6 +119,9 @@
                             </div>
                         </form>
                         
+                        
+
+
                         <div class="loader" >
                             <div class="box-loader rounded-20" >
                                 <div class="text-center">
@@ -105,6 +140,8 @@
                     <div class="personal-info bg-card-1 rounded-4 p-5 pt-4 pe-3">
 
                         <h5 class="fw-light fs-24 mb-4">Personal Info</h5>
+
+                        
 
                         <div class="info-item d-flex align-items-center gap-3 mb-4">
                             <div class="icon-circle email">

@@ -80,3 +80,14 @@ $('.box-btn-change-photo-profil .btn-save').click(function(){
         }
     });
 });
+
+$('.btn-copy-link-auth').click(function(){
+    navigator.clipboard.writeText($(this).attr('data-copied-link'));
+    $(this).tooltip('show');
+});
+
+$('.btn-copy-link-auth').on('shown.bs.tooltip', function () {
+    setTimeout(function () {
+     $('.btn-copy-link-auth').tooltip('hide');
+    }, 1000);
+});

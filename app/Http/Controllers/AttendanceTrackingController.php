@@ -337,17 +337,30 @@ class AttendanceTrackingController extends Controller
             
             for ($i = 0; $i < $daysInMonth; $i++) {
 
+                $column = Coordinate::stringFromColumnIndex($i + 24); // Mengubah indeks menjadi huruf kolom (1=A, 2=B, ...)
+
                 $newAddDate = Carbon::parse($firstDayOfMonth)->copy()->addDays($i);
                 $weekdayIndex = $newAddDate->format('N');
 
-                $column = Coordinate::stringFromColumnIndex($i + 24); // Mengubah indeks menjadi huruf kolom (1=A, 2=B, ...)
+                if($employeeItem->weekday_off){
+                    if(str_contains($employeeItem->weekday_off,$weekdayIndex)){
 
+                        $activeWorksheet->setCellValue($column.$row, '#');
+
+                        $activeWorksheet->getStyle($column.$row)
+                            ->getFill()
+                            ->setFillType(Fill::FILL_SOLID)
+                            ->getStartColor()
+                        ->setARGB('ffd74e51');
+                    }
+                }
+                
                 $attendance = Attendance::where('employee_id', $employeeItem->id)
                     ->where('date_attendance', $newAddDate->toDateString())
                 ->first();
                 
                 if($attendance){
-                    
+
                     
                     $timeIn = Carbon::parse($attendance->time_in)->format('H:i');
                     $timeOut = Carbon::parse($attendance->time_out)->format('H:i');
@@ -359,17 +372,15 @@ class AttendanceTrackingController extends Controller
                     $activeWorksheet->setCellValue($column.$row, 1);
 
                     if($attendance->status == 'ABSENT'){
-                        $activeWorksheet->setCellValue($column.$row, 'ABSENT');
+                        $activeWorksheet->setCellValue($column.$row, 'A');
+
                         $activeWorksheet->getStyle($column.$row)
-                            ->getFill()
-                            ->setFillType(Fill::FILL_SOLID)
-                            ->getStartColor()
-                        ->setARGB('ffff2b2f');
-                    }elseif($attendance->status == 'SICK'){
-                        $activeWorksheet->setCellValue($column.$row, 'SICK');
-                    }
-                    elseif($attendance->status == 'ANNUAL_LEAVE'){
-                        $activeWorksheet->setCellValue($column.$row, 'LEAVE');
+                            ->getFont()
+                            ->getColor()
+                        ->setARGB('ffff0000');
+
+                        $activeWorksheet->getStyle($column.$row)
+                        ->getFill()->setFillType(Fill::FILL_NONE);
                     }
                     else{
                         $activeWorksheet->setCellValue($column.$row, 1);
@@ -385,8 +396,25 @@ class AttendanceTrackingController extends Controller
                     // }
                     
                 }else{
-                    //$activeWorksheet->setCellValue($column.$row, $employeeItem->id.' '.$newAddDate->toDateString());
+
                     $activeWorksheet->setCellValue($column.$row, '');
+
+                    // if($employeeItem->weekday_off){
+                    //     if(str_contains($employeeItem->weekday_off,$weekdayIndex)){
+                            
+                    //     }else{
+                    //         $activeWorksheet->setCellValue($column.$row, '!');
+                            
+                    //         $activeWorksheet->getStyle($column.$row)
+                    //             ->getFill()
+                    //             ->setFillType(Fill::FILL_SOLID)
+                    //             ->getStartColor()
+                    //         ->setARGB('ffffcb35');
+                    //     }
+                    // }
+                    //$activeWorksheet->setCellValue($column.$row, $employeeItem->id.' '.$newAddDate->toDateString());
+                    
+
                 }
                 
                 $employeeLeave = EmployeeLeaveRequest::where('employee_id',$employeeItem->id)
@@ -399,29 +427,43 @@ class AttendanceTrackingController extends Controller
                     $leaveType = '';
 
                     if($employeeLeave->leave_type == 'SICK'){
-                        $leaveType = 'SICK';
+                        $leaveType = 'S';
+                        
+                        $activeWorksheet->getStyle($column.$row)
+                            ->getFill()
+                            ->setFillType(Fill::FILL_SOLID)
+                            ->getStartColor()
+                        ->setARGB('ffffcb35');
                     }
 
                     if($employeeLeave->leave_type == 'ANNUAL_LEAVE'){
-                        $leaveType = 'LEAVE';
+                        $leaveType = 'C';
+
+                        
                     }
                     
                     $activeWorksheet->setCellValue($column.$row, $leaveType);
                 }
 
-                
-                
 
+                $hireDate = Carbon::parse($employeeItem->hire_date);
+                $monthHireDate = Carbon::parse($employeeItem->hire_date)->format('n');
+                $dayHireDate = $hireDate->day;
+                
+                if($i+1 == $dayHireDate && $month == $monthHireDate ){
+                    $activeWorksheet->getStyle('X'.$row)
+                        ->getFill()
+                        ->setFillType(Fill::FILL_SOLID)
+                        ->getStartColor()
+                    ->setARGB('ff00ff00');
 
-                if($employeeItem->weekday_off){
-                    if(str_contains($employeeItem->weekday_off,$weekdayIndex)){
-                        $activeWorksheet->getStyle($column.$row)
-                            ->getFill()
-                            ->setFillType(Fill::FILL_SOLID)
-                            ->getStartColor()
-                        ->setARGB('ffd74e51');
-                    }
+                    $activeWorksheet->setCellValue('X'.$row, 'NEW EMPLOYEE');
+
+                    $activeWorksheet->mergeCells('X'.$row.':'.$column.$row);
                 }
+
+
+                
             }
             
             

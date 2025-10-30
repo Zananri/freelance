@@ -9329,10 +9329,10 @@ function handleProjectTaskDelete(taskId) {
                     ${imgUrl}
                     <div class="d-flex flex-column">
                         ${project.id ? `<p class="text-muted mb-1" style="font-size:10px;">${project.title || '-'}</p>` : ""}
-                        <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title || 'Untitled Task'}</h5>
+                        <h5 class="mb-0 task-title fs-14" style="line-height:1.2;">${task.title || 'Untitled Task'}</h5>
                    </div>
                 </div>
-                <p class="task-description mb-2" style="font-size:14px;">${task.description || ''}</p>
+                <p class="task-description mb-2" style="font-size:12px;">${task.description || ''}</p>
                 <hr class="task-separator rounded-4">
                 <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
                     <span><span style="color:#797E91;">Priority:</span>
