@@ -5126,8 +5126,26 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                     if (!card) return;
                     // Determine destination status: dropping into Completed -> 'completed'; into In Progress -> 'rejected'
                     const destStatus = (container.id === 'completed-tasks') ? 'completed' : 'rejected';
-                    // Use unified update function
-                    updateTaskStatus(taskId, destStatus, card);
+                    // If moving a finished card back to completed, fetch existing complete_note and include it
+                    try {
+                        const currentStatus = (card.getAttribute('data-task-status') || '').toLowerCase();
+                        if (currentStatus === 'finished' && destStatus === 'completed') {
+                            $.ajax({ url: appUrl + '/task/' + taskId, type: 'GET', dataType: 'json' })
+                                .done(function(resp){
+                                    const t = (resp && (resp.data || resp)) || {};
+                                    const payload = { complete_note: t.complete_note || '' };
+                                    updateTaskStatus(taskId, destStatus, card, payload);
+                                }).fail(function(){
+                                    // fallback to normal update if fetch fails
+                                    updateTaskStatus(taskId, destStatus, card);
+                                });
+                        } else {
+                            // Use unified update function
+                            updateTaskStatus(taskId, destStatus, card);
+                        }
+                    } catch (err) {
+                        updateTaskStatus(taskId, destStatus, card);
+                    }
                 } catch (err) { console.warn('drop handler error', err); }
             });
         };
@@ -5219,8 +5237,18 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 modalEl.show();
 
                 confirmBtn.onclick = function () {
-                    updateTaskStatus(taskId, newStatus, taskCard);
-                    modalEl.hide();
+                    try {
+                        // If we're moving from finished -> completed, include the previous complete_note
+                        if (String(newStatus).toLowerCase() === 'completed' && String(task.status).toLowerCase() === 'finished') {
+                            const payload = { complete_note: task.complete_note || '' };
+                            updateTaskStatus(taskId, newStatus, taskCard, payload).finally(function(){ try { modalEl.hide(); } catch(_) {} });
+                        } else {
+                            updateTaskStatus(taskId, newStatus, taskCard).finally(function(){ try { modalEl.hide(); } catch(_) {} });
+                        }
+                    } catch (e) {
+                        try { updateTaskStatus(taskId, newStatus, taskCard); } catch(_) {}
+                        try { modalEl.hide(); } catch(_) {}
+                    }
                 };
             },
             error: function () {
@@ -5239,7 +5267,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
     let bulkFinalAlertShown = false;
 
     // Universal update function
-    function updateTaskStatus(taskId, newStatus, taskCard) {
+    // Accepts optional payload object (extraFields) to send along with status update
+    function updateTaskStatus(taskId, newStatus, taskCard, extraFields) {
         if (bulkStatusOperationActive) bulkStatusPendingCount++;
         return new Promise((resolve, reject) => {
             $.ajax({
@@ -5248,7 +5277,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 headers: {
                     "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
                 },
-                data: { status: newStatus },
+                data: Object.assign({ status: newStatus }, (extraFields || {})),
                 success: function (response) {
                     const oldStatus = (taskCard && taskCard.getAttribute('data-task-status')) || null;
                     try {
