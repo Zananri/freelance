@@ -3801,7 +3801,7 @@ class TaskController extends Controller
             ])
                 ->where('project_id', $projectId)
                 ->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
-                ->orderBy('start_date', 'asc')
+                ->orderBy('start_date', 'desc')
                 ->get();
 
             $formattedTasks = $tasks->map(function ($task) {
