@@ -3405,7 +3405,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
 
             // make finished cards draggable so user can drag to Completed or In Progress
             return `
-            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;" id="custom-card" draggable="true">
+            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: grab;" draggable="true">
                 ${dropdownHtmlFinal}
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
@@ -3472,7 +3472,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
             const dropdownHtmlFinal = viewerIsPic ? dropdownHtml : '';
 
             return `
-            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;" id="custom-card">
+            <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;">
                 ${dropdownHtmlFinal}
                 <div class="d-flex align-items-center mb-2 mt-2">
                     ${(function(){
@@ -3564,7 +3564,7 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         }
 
     return `
-        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}" id="custom-card">
+        <div class="custom-card mb-3 rounded-4 position-relative${viewerPending ? ' pending-executor-card' : ''}" data-task-id="${task.id}" data-task-status="${task.status}" style="${inArchiveRender ? 'cursor: default;' : 'cursor: grab;'}">
                 ${dropdownHtml}
                 ${iconHtml}
 
@@ -5551,12 +5551,17 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 if (toStatus === 'finished') return { allowed: true, newStatus: 'finished' }
                 return { allowed: false };
             }
+            if (fromStatus === 'finished') {
+                if (toStatus === 'completed') return { allowed: true, newStatus: 'completed' };
+                if (toStatus === 'in_progress') return { allowed: true, newStatus: 'rejected' };
+                return { allowed: false };
+            }
             return { allowed: false };
         }
 
         function clearDropHighlights() {
             $('.kanban-droppable').removeClass('kanban-allowed kanban-denied kanban-over');
-            $('#custom-card').removeClass('dragging');
+            $('.custom-card').removeClass('dragging');
         }
 
         function refreshDropHighlights() {
@@ -5571,7 +5576,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
         }
 
         // === MOUSE EVENTS ===
-        $(document).on('mousedown', '#custom-card', function(e) {
+    $(document).on('mousedown', '.custom-card', function(e) {
             if (e.which !== 1) return; // kiri mouse
 
             // Do not initialize kanban drag when the card is inside a modal (e.g. archive modal)
