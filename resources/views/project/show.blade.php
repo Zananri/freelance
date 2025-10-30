@@ -73,7 +73,7 @@
                         <div class="description-container mb-1">
                             <p id="project-description" class="description-detail">-</p>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div id="ref-files-container">
                             </div>
                             <div class="d-flex" id="project-actions">
