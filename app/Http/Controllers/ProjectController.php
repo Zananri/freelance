@@ -3314,12 +3314,30 @@ class ProjectController extends Controller
     {
         try {
             // Current employee context (filter results to only their assignments)
-            $employeeId = auth()->user()?->employee?->id;
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
 
             // Get active projects with relationships, filtered by employee assignment when available
             $projects = Project::where('status', '!=', 'DELETED')
-                // Only include projects where this employee is assigned (when employee context exists)
-                ->when($employeeId, function ($q) use ($employeeId) {
+                
+                ->when(!$canSeeAll && $employeeId, function ($q) use ($employeeId) {
                     $q->whereHas('projectAssignments', function ($qa) use ($employeeId) {
                         $qa->where('employee_id', $employeeId);
                     });
@@ -3328,9 +3346,9 @@ class ProjectController extends Controller
                     'department',
                     'division',
                     // Only include tasks assigned to this employee and not canceled/deleted
-                    'tasks' => function($query) use ($employeeId) {
+                    'tasks' => function($query) use ($employeeId, $canSeeAll) {
                         $query->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
-                              ->when($employeeId, function ($q) use ($employeeId) {
+                              ->when(!$canSeeAll && $employeeId, function ($q) use ($employeeId) {
                                   $q->whereHas('assignments', function ($a) use ($employeeId) {
                                       $a->where('employee_id', $employeeId);
                                   });
@@ -3341,27 +3359,27 @@ class ProjectController extends Controller
                 ])
                 ->withCount([
                     // Count only this employee's active tasks within the project
-                    'tasks as total_tasks' => function ($q) use ($employeeId) {
+                    'tasks as total_tasks' => function ($q) use ($employeeId, $canSeeAll) {
                         $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
-                          ->when($employeeId, function ($q2) use ($employeeId) {
+                          ->when(!$canSeeAll && $employeeId, function ($q2) use ($employeeId) {
                               $q2->whereHas('assignments', function ($a) use ($employeeId) {
                                   $a->where('employee_id', $employeeId);
                               });
                           });
                     },
                     // Completed tasks for this employee
-                    'tasks as completed_tasks' => function($q) use ($employeeId) {
+                    'tasks as completed_tasks' => function($q) use ($employeeId, $canSeeAll) {
                         $q->whereIn(DB::raw('LOWER(status)'), ['completed'])
-                          ->when($employeeId, function ($q2) use ($employeeId) {
+                          ->when(!$canSeeAll && $employeeId, function ($q2) use ($employeeId) {
                               $q2->whereHas('assignments', function ($a) use ($employeeId) {
                                   $a->where('employee_id', $employeeId);
                               });
                           });
                     },
                     // In progress-like tasks for this employee
-                    'tasks as in_progress_tasks' => function($q) use ($employeeId) {
+                    'tasks as in_progress_tasks' => function($q) use ($employeeId, $canSeeAll) {
                         $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
-                          ->when($employeeId, function ($q2) use ($employeeId) {
+                          ->when(!$canSeeAll && $employeeId, function ($q2) use ($employeeId) {
                               $q2->whereHas('assignments', function ($a) use ($employeeId) {
                                   $a->where('employee_id', $employeeId);
                               });
@@ -3639,12 +3657,31 @@ class ProjectController extends Controller
     public function exportProjectExcelSingle(Request $request, string $id)
     {
         try {
-            $employeeId = auth()->user()?->employee?->id;
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
 
             // Load the single project with relationships; filter tasks to active and to this employee when present
             $project = Project::where('status', '!=', 'DELETED')
                 ->where('id', $id)
-                ->when($employeeId, function ($q) use ($employeeId) {
+                // Only restrict by assignment when the user is NOT a privileged role
+                ->when(!$canSeeAll && $employeeId, function ($q) use ($employeeId) {
                     $q->whereHas('projectAssignments', function ($qa) use ($employeeId) {
                         $qa->where('employee_id', $employeeId);
                     });
@@ -3652,9 +3689,9 @@ class ProjectController extends Controller
                 ->with([
                     'department',
                     'division',
-                    'tasks' => function ($query) use ($employeeId) {
+                    'tasks' => function ($query) use ($employeeId, $canSeeAll) {
                         $query->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
-                              ->when($employeeId, function ($q) use ($employeeId) {
+                              ->when(!$canSeeAll && $employeeId, function ($q) use ($employeeId) {
                                   $q->whereHas('assignments', function ($a) use ($employeeId) {
                                       $a->where('employee_id', $employeeId);
                                   });
@@ -3664,25 +3701,25 @@ class ProjectController extends Controller
                     'projectAssignments.employee'
                 ])
                 ->withCount([
-                    'tasks as total_tasks' => function ($q) use ($employeeId) {
+                    'tasks as total_tasks' => function ($q) use ($employeeId, $canSeeAll) {
                         $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted'])
-                          ->when($employeeId, function ($q2) use ($employeeId) {
+                          ->when(!$canSeeAll && $employeeId, function ($q2) use ($employeeId) {
                               $q2->whereHas('assignments', function ($a) use ($employeeId) {
                                   $a->where('employee_id', $employeeId);
                               });
                           });
                     },
-                    'tasks as completed_tasks' => function ($q) use ($employeeId) {
+                    'tasks as completed_tasks' => function ($q) use ($employeeId, $canSeeAll) {
                         $q->whereIn(DB::raw('LOWER(status)'), ['completed'])
-                          ->when($employeeId, function ($q2) use ($employeeId) {
+                          ->when(!$canSeeAll && $employeeId, function ($q2) use ($employeeId) {
                               $q2->whereHas('assignments', function ($a) use ($employeeId) {
                                   $a->where('employee_id', $employeeId);
                               });
                           });
                     },
-                    'tasks as in_progress_tasks' => function ($q) use ($employeeId) {
+                    'tasks as in_progress_tasks' => function ($q) use ($employeeId, $canSeeAll) {
                         $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'in progress', 'rejected'])
-                          ->when($employeeId, function ($q2) use ($employeeId) {
+                          ->when(!$canSeeAll && $employeeId, function ($q2) use ($employeeId) {
                               $q2->whereHas('assignments', function ($a) use ($employeeId) {
                                   $a->where('employee_id', $employeeId);
                               });
