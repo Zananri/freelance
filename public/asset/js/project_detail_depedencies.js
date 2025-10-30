@@ -2610,27 +2610,58 @@ $(function () {
                     );
                     if (submitBtn) submitBtn.disabled = true;
 
-                    // Additional description content validation (strip HTML tags from Quill content)
+                    // Additional description content validation (robust: check Quill, textarea and editor text)
                     try {
                         var descTa = document.getElementById('task_description');
-                        if (descTa) {
-                            var raw = descTa.value || '';
-                            // Remove HTML tags and &nbsp; entities, then trim
-                            var stripped = raw.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ').trim();
-                            if (stripped.length === 0) {
-                                // restore submit button state
-                                try { if (loader) loader.classList.add('d-none'); } catch(_) {}
-                                if (submitBtn) submitBtn.disabled = false;
-                                try {
-                                    if (typeof showFloatingAlert === 'function') showFloatingAlert('Description is required.', 'warning', 2500);
-                                    else alert('Description is required.');
-                                } catch(_) { alert('Description is required.'); }
-                                addTaskForm.classList.add('was-validated');
-                                // focus quill editor if exists
-                                try { if (window.__quillTaskAdd && window.__quillTaskAdd.focus) window.__quillTaskAdd.focus(); } catch(_) {}
-                                return;
+                        var plainText = '';
+                        var htmlContent = '';
+
+                        // 1) Prefer Quill plain-text if available
+                        try {
+                            if (window.__quillTaskAdd && typeof window.__quillTaskAdd.getText === 'function') {
+                                plainText = (window.__quillTaskAdd.getText() || '').replace(/\uFEFF/g, '').trim();
+                                htmlContent = (window.__quillTaskAdd.root && window.__quillTaskAdd.root.innerHTML) ? window.__quillTaskAdd.root.innerHTML : '';
                             }
+                        } catch (_) {}
+
+                        // 2) Fallback to canonical textarea value
+                        try {
+                            if ((!plainText || plainText.length === 0) && descTa) {
+                                htmlContent = descTa.value || '';
+                                plainText = (htmlContent || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').replace(/\u00A0/g, ' ').replace(/\uFEFF/g, '').trim();
+                            }
+                        } catch (_) {}
+
+                        // 3) Fallback to editor container visible text
+                        try {
+                            var editorEl = document.getElementById('task_description_editor');
+                            if ((!plainText || plainText.length === 0) && editorEl) {
+                                plainText = (editorEl.innerText || '').replace(/\u00A0/g, ' ').replace(/\uFEFF/g, '').trim();
+                                htmlContent = htmlContent || (editorEl.innerHTML || '');
+                            }
+                        } catch (_) {}
+
+                        if (!plainText || plainText.length === 0) {
+                            // restore submit button state
+                            try { if (loader) loader.classList.add('d-none'); } catch(_) {}
+                            if (submitBtn) submitBtn.disabled = false;
+                            try {
+                                if (typeof showFloatingAlert === 'function') showFloatingAlert('Description is required.', 'warning', 2500);
+                                else alert('Description is required.');
+                            } catch(_) { alert('Description is required.'); }
+                            addTaskForm.classList.add('was-validated');
+                            // focus quill editor if exists
+                            try { if (window.__quillTaskAdd && window.__quillTaskAdd.focus) window.__quillTaskAdd.focus(); } catch(_) {}
+                            return;
                         }
+
+                        // Ensure canonical textarea contains HTML (backend expects description field)
+                        try {
+                            if (descTa && (!descTa.value || descTa.value.trim() === '')) {
+                                // prefer HTML content but fallback to plain text
+                                descTa.value = htmlContent && htmlContent.trim() !== '' ? htmlContent : plainText;
+                            }
+                        } catch (_) {}
                     } catch (_) {}
 
                     // Assemble FormData (respect existing form structure)
