@@ -1483,7 +1483,7 @@
 
                         var addToolbarEl = document.getElementById('task_description_toolbar');
                         var addToolbarConfig = addToolbarEl ? '#task_description_toolbar' : false;
-                        window.__quillTaskAdd = new Quill('#project_description_editor', {
+                        window.__quillProjectAdd = new Quill('#project_description_editor', {
                             modules: {
                                 toolbar: addToolbarConfig
                             },
@@ -1491,9 +1491,9 @@
                         });
                         try {
                             var Delta = Quill.import && Quill.import('delta');
-                            if (window.__quillTaskAdd && window.__quillTaskAdd.clipboard && typeof window.__quillTaskAdd
+                            if (window.__quillProjectAdd && window.__quillProjectAdd.clipboard && typeof window.__quillProjectAdd
                                 .clipboard.addMatcher === 'function') {
-                                window.__quillTaskAdd.clipboard.addMatcher('IMG', function(node, delta) {
+                                window.__quillProjectAdd.clipboard.addMatcher('IMG', function(node, delta) {
                                     try {
                                         return new Delta();
                                     } catch (_) {
@@ -1503,12 +1503,12 @@
                             }
                             // Safety: remove any <img> elements after any text-change (Edge may still insert blobs)
                             try {
-                                window.__quillTaskAdd.on && window.__quillTaskAdd.on('text-change', function(delta,
+                                window.__quillProjectAdd.on && window.__quillProjectAdd.on('text-change', function(delta,
                                     oldDelta, source) {
                                     try {
                                         setTimeout(function() {
                                             try {
-                                                var imgs = window.__quillTaskAdd.root.querySelectorAll(
+                                                var imgs = window.__quillProjectAdd.root.querySelectorAll(
                                                     'img');
                                                 imgs.forEach(function(i) {
                                                     i.remove();
@@ -1521,7 +1521,7 @@
                         } catch (_) {}
                         // prevent images via drop/paste
                         try {
-                            preventImageDropAndPaste(window.__quillTaskAdd, '#project_description_editor');
+                            preventImageDropAndPaste(window.__quillProjectAdd, '#project_description_editor');
                         } catch (_) {}
                     }
                 } catch (_) {
