@@ -498,54 +498,76 @@ $(document).on('click', '.playlist_add_check', function () {
             $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
             $('#completed_task_note').html(task.complete_note || '<em>No note</em>');
             $('#completed_priority').text(task.priority || '-');
-            $('#completed_date').text(task.complete_date || '-');
+            $('#completed_date').text(formatDateENMedium(task.complete_date) || '-');
 
-            const $urls = $('#completed_task_urls').empty();
-            if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
-                task.complete_urls.forEach((u, idx) => {
-                    const href = u.startsWith('http') ? u : '/' + String(u).replace(/^\/+/, '');
-                    const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
-                    const $link = $('<a>', { href, target: '_blank', class: 'flex-grow-1 text-truncate text-decoration-none', text: `COMPLETED_LINK_${idx+1}` }).css({ fontSize:'10px', color:'#444' });
-                    $item.append($link);
-                    $urls.append($item);
+            const $urlsContainer = $("#completed_task_urls").empty();
+            const urls = task.complete_urls || task.finished_urls || [];
+
+            if ($.isArray(urls) && urls.length) {
+                urls.forEach((u) => {
+                    const absUrl = u.startsWith("http")
+                        ? u
+                        : `${appUrl.replace(/\/+$/, '')}/${u.replace(/^\/+/, '')}`;
+                    const linkName = absUrl.split('/').pop() || absUrl;
+
+                    const linkHtml = `
+                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                        <a href="${absUrl}" target="_blank" class="text-decoration-none"
+                        style="
+                            color:#444;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            display: block;
+                            width: 100%;
+                        ">
+                        ${absUrl}
+                        </a>
+                    </div>`;
+
+                    $urlsContainer.append(linkHtml);
                 });
-            } else $urls.html('<em>-</em>');
+            } else {
+                $urlsContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
+            }
 
-            const $files = $('#completed_task_files').empty();
-            if (Array.isArray(task.complete_files) && task.complete_files.length) {
-                task.complete_files.forEach((f, idx) => {
-                    const raw = f && (f.url || f) || '';
-                    const fileName = String(raw).replace(/^\/+/, '');
-                    const url = `/file/task_complete_files/${fileName}`;
+            const $filesContainer = $("#completed_task_files").empty();
+            const files = task.complete_files || task.finished_files || [];
 
-                    const ext = (fileName.split('.').pop() || '').toLowerCase();
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(ext);
-                    const isPDF = ext === 'pdf';
-                    const isDownloadable = /^(docx?|xlsx?|pptx?)$/i.test(ext);
+            if ($.isArray(files) && files.length) {
+                files.forEach((f, idx) => {
+                    let raw = f.url || f;
+                    let absUrl = "";
+                    const isAbs = raw.startsWith("http://") || raw.startsWith("https://");
+                    const isRefPath = raw.startsWith("/file/") || raw.startsWith("file/");
+                    if (isAbs) absUrl = raw;
+                    else if (isRefPath) absUrl = appUrl.replace(/\/+$/, '') + '/' + raw.replace(/^\/+/, '');
+                    else absUrl = appUrl.replace(/\/+$/, '') + '/file/task_complete_files/' + raw.replace(/^\/+/, '');
 
-                    const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
+                    const extMatch = raw.match(/\.[^/.]+$/);
+                    const ext = extMatch ? extMatch[0] : "";
+                    const fileName = `TASK_FILE_${idx + 1}${ext}`;
 
-                    if (isImage) {
-                        const $img = $('<img>', { src: url, width: 28, height: 28, alt: raw });
-                        $img.css({ objectFit: 'cover', borderRadius: '50%' });
-                        $item.append($img);
-                    }
+                    const lower = absUrl.toLowerCase();
+                    const isPreviewable =
+                        lower.endsWith(".pdf") ||
+                        lower.endsWith(".jpg") ||
+                        lower.endsWith(".jpeg") ||
+                        lower.endsWith(".png");
 
-                    const $name = $('<a>')
-                        .text(`COMPLETED_FILES_${idx + 1}`)
-                        .css({ fontSize: '10px', cursor: 'pointer', color: '#444', textDecoration: 'none' })
-                        .attr('href', url);
-
-                    if (isPDF) {
-                        $name.attr('target', '_blank');
-                    } else if (isDownloadable) {
-                        $name.attr('download', '');
-                    }
-
-                    $item.append($name);
-                    $files.append($item);
+                    const fileLinkHtml = `
+                        <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                            <a href="${absUrl}" target="_blank" ${!isPreviewable ? `download="${fileName}"` : ''} 
+                            class="text-decoration-none flex-grow-1" 
+                            style="color:#444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display:block; width:100%;">
+                            ${fileName}
+                            </a>
+                        </div>`;
+                    $filesContainer.append(fileLinkHtml);
                 });
-            } else $files.html('<em>-</em>');
+            } else {
+                $filesContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
+            }
 
             const modal = new bootstrap.Modal(document.getElementById('completedModal'));
             modal.show();
