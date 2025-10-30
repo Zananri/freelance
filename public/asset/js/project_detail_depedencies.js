@@ -1730,7 +1730,10 @@ function renderProjectTaskDetail(res) {
     }
 
     const $checkBtn = $("#projectTaskDetailModal .playlist-add-check").closest("button");
-    if (task.status?.toLowerCase() === "completed") $checkBtn.show();
+    const isAbleShowIcon = ["completed", "finished"]
+    if (isAbleShowIcon.includes(task.status?.toLowerCase())) {
+        $checkBtn.show();
+    }
     else $checkBtn.hide();
 
     showReferenceUrlsForTask(task.id);
@@ -2771,3 +2774,2314 @@ $(function () {
         console.warn("AddTask fallback install failed", e);
     }
 })();
+
+    $(document).on("click", ".feedback-detail-task", function () {
+        const taskId = $(this).data("data-task-id");
+        if (!taskId) {
+            console.warn("⚠️ Task ID not found on clicked element.");
+            return;
+        }
+
+        handleProjectTaskFeedback(taskId);
+    });
+
+    function setupProjectTaskInlineFeedbackEditor(taskId) {
+        try {
+            const modal = document.getElementById('projectTaskFeedbackModal');
+            if (!modal) return;
+
+            let footer = modal.querySelector('.modal-footer') || modal.querySelector('.modal-footer-custom');
+            if (!footer) return;
+
+            footer.innerHTML = `
+                <div class="feedback-form w-100">
+                <div id="inline_task_feedback_files_preview"></div>
+                <div id="inline_existing_files_preview"></div>
+                    <div id="inline_task_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
+                        <div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div>
+                    </div>
+
+                    <textarea id="inline_task_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+                    <input type="hidden" id="inline_edit_task_feedback_input" value="">
+                    <input type="hidden" id="inline_parent_id_input" name="parent_id" value="">
+
+                    <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                        <div class="d-flex-justify-content-start">
+                            <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackPhotoBtn" title="Upload photo">
+                                <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                            </button>
+                            <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackFileBtn" title="Attach file">
+                                <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                            </button>
+                            <input type="file" id="inline_task_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                            <input type="file" id="inline_task_feedback_files_input" name="reference_files[]" multiple="" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                        </div>
+                        <div class="d-flex justify-content-end submit-feedback">
+                            <button type="button" class="btn btn-submit-black" id="inlineTaskFeedbackSendBtn">
+                                <span class="material-symbols-outlined">send</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+
+            try { window.__quillTaskFeedbackInline = null; } catch(_) {}
+            initProjectTaskInlineFeedbackEditor(taskId);
+
+            try {
+                const editor = document.getElementById('inline_task_feedback_editor');
+                if (editor) {
+                    const editorRoot = editor.querySelector('.ql-editor');
+                    if (editorRoot && !editorRoot.dataset.placeholderHandlerAttached) {
+                        const togglePlaceholder = function () {
+                            try {
+                                const txt = (editorRoot.textContent || '').replace(/\uFEFF/g, '').trim();
+                                if (txt.length > 0) {
+                                    editorRoot.classList.remove('ql-blank');
+                                } else {
+                                    if (!editorRoot.classList.contains('ql-blank')) editorRoot.classList.add('ql-blank');
+                                }
+                            } catch (_) {}
+                        };
+                        editorRoot.addEventListener('input', togglePlaceholder);
+                        editorRoot.addEventListener('keydown', function () { setTimeout(togglePlaceholder, 0); });
+                        editorRoot.dataset.placeholderHandlerAttached = '1';
+                    }
+                }
+            } catch(_) {}
+
+        } catch (e) {
+            console.warn('Failed to setup inline task feedback editor:', e);
+        }
+    }
+
+    function setupInlineProjectTaskFeedbackButtons(taskId, quill) {
+        try {
+            const photoBtn = document.getElementById("inlineTaskFeedbackPhotoBtn");
+            const fileBtn = document.getElementById("inlineTaskFeedbackFileBtn");
+            const sendBtn = document.getElementById("inlineTaskFeedbackSendBtn");
+            const imageInput = document.getElementById("inline_task_feedback_image_input");
+            const filesInput = document.getElementById("inline_task_feedback_files_input");
+            const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+            if (photoBtn && imageInput) {
+                photoBtn.addEventListener("click", () => imageInput.click());
+            }
+
+            if (fileBtn && filesInput) {
+                fileBtn.addEventListener("click", () => filesInput.click());
+            }
+
+            if (imageInput) {
+                imageInput.addEventListener("change", function () {
+                    const file = this.files && this.files[0];
+                    if (!file) return;
+                    if (file.size > MAX_IMAGE_BYTES) {
+                        if (typeof showFloatingAlert === "function")
+                            showFloatingAlert("Image must be smaller than 10 MB.", "warning");
+                        this.value = "";
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = e => showProjectTaskInlineImagePreviewSmall(file, e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            if (filesInput) {
+                filesInput.addEventListener("change", function () {
+                    const files = Array.from(this.files || []);
+                    if (!files.length) return;
+                    if (!window.inlineTaskFeedbackSelectedFiles)
+                        window.inlineTaskFeedbackSelectedFiles = [];
+                    window.inlineTaskFeedbackSelectedFiles = [
+                        ...window.inlineTaskFeedbackSelectedFiles,
+                        ...files
+                    ];
+                    renderInlineTaskFeedbackFilesPreview();
+                    this.value = "";
+                });
+            }
+
+            if (sendBtn && quill) {
+                sendBtn.addEventListener("click", function () {
+                    submitInlineProjectTaskFeedback(taskId, quill);
+                });
+            }
+        } catch (e) {
+            console.warn("Failed to setup inline task feedback buttons:", e);
+        }
+    }
+
+    function showProjectTaskInlineImagePreviewSmall(fileObj, dataUrl) {
+        try {
+            let previewContainer = document.getElementById("inline_task_feedback_image_preview");
+            if (!previewContainer) {
+                previewContainer = document.createElement("div");
+                previewContainer.id = "inline_task_feedback_image_preview";
+                previewContainer.style.cssText = "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+                const fileBtn = document.getElementById("inlineTaskFeedbackFileBtn");
+                if (fileBtn && fileBtn.parentNode) {
+                    fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                }
+            }
+
+            previewContainer.innerHTML = "";
+
+            const imageLabel = document.createElement("div");
+            imageLabel.className = "custom-image-upload position-relative";
+            imageLabel.style.cssText =
+                "width: 32px; height: 32px; " +
+                "background-image: url('" + dataUrl + "'); " +
+                "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
+                "border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; " +
+                "opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: visible;";
+
+            const clearBtn = document.createElement("span");
+            clearBtn.className = "image-clear-btn";
+            clearBtn.innerHTML = "&times;";
+            clearBtn.title = "Remove image";
+            clearBtn.style.cssText =
+                "position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; " +
+                "border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; " +
+                "text-align: center; cursor: pointer; font-weight: 700; border: none; " +
+                "box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30; opacity: 1;";
+
+            window.__taskInlineFeedbackImageFile = fileObj;
+
+            clearBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    const inp = document.getElementById("inline_task_feedback_image_input");
+                    if (inp) inp.value = "";
+                    window.__taskInlineFeedbackImageFile = null;
+                    if (previewContainer && previewContainer.parentNode) {
+                        previewContainer.parentNode.removeChild(previewContainer);
+                    }
+                } catch (_) {}
+            });
+
+            imageLabel.appendChild(clearBtn);
+            previewContainer.appendChild(imageLabel);
+        } catch (e) {
+            console.warn("Failed to show inline task image preview:", e);
+        }
+    }
+
+    function showInlineFeedbackImagePreviewSmall(fileObj, dataUrl) {
+        try {
+            var previewContainer = document.getElementById("inline_feedback_image_preview");
+            if (!previewContainer) {
+                previewContainer = document.createElement("div");
+                previewContainer.id = "inline_feedback_image_preview";
+                previewContainer.style.cssText =
+                    "display:inline-flex;align-items:center;margin-left:8px;opacity:1;background:transparent;";
+                var fileBtn = document.getElementById("inlineFeedbackFileBtn");
+                if (fileBtn && fileBtn.parentNode) {
+                    fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                }
+            }
+
+            previewContainer.innerHTML = "";
+
+            var imageLabel = document.createElement("div");
+            imageLabel.className = "custom-image-upload position-relative";
+            imageLabel.style.cssText =
+                "width:32px;height:32px;background-image:url('" + dataUrl +
+                "');background-size:cover;background-position:center;background-repeat:no-repeat;" +
+                "border-radius:6px;cursor:pointer;border:1px solid #ddd;margin-right:4px;opacity:1;" +
+                "background-color:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.12);overflow:visible;";
+
+            var clearBtn = document.createElement("span");
+            clearBtn.className = "image-clear-btn";
+            clearBtn.innerHTML = "&times;";
+            clearBtn.title = "Remove image";
+            clearBtn.style.cssText =
+                "position:absolute;top:-6px;right:-6px;background:#ff4444;color:#fff;border-radius:50%;" +
+                "width:16px;height:16px;font-size:12px;line-height:16px;text-align:center;cursor:pointer;" +
+                "font-weight:700;border:none;box-shadow:0 2px 6px rgba(0,0,0,0.25);z-index:30;opacity:1;";
+
+            window.__inlineFeedbackImageFile = fileObj;
+
+            clearBtn.addEventListener("click", function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    var inp = document.getElementById("inline_feedback_image_input");
+                    if (inp) inp.value = "";
+                    window.__inlineFeedbackImageFile = null;
+                    if (previewContainer && previewContainer.parentNode) {
+                        previewContainer.parentNode.removeChild(previewContainer);
+                    }
+                } catch (_) {}
+            });
+
+            imageLabel.addEventListener("click", function (e) {
+                e.preventDefault();
+                try {
+                    showInlineFeedbackImagePreview(fileObj, dataUrl);
+                } catch (_) {}
+            });
+
+            imageLabel.appendChild(clearBtn);
+            previewContainer.appendChild(imageLabel);
+        } catch (e) {
+            console.warn("Failed to show image preview:", e);
+        }
+    }
+
+    function showInlineFeedbackImagePreview(fileObj, dataUrl) {
+        try {
+            if (document.getElementById("inlineImagePreviewOverlay")) return;
+
+            function cleanup() {
+                try {
+                    const inp = document.getElementById("inline_feedback_image_input");
+                    if (inp) inp.value = "";
+                } catch (_) {}
+                try {
+                    if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+                } catch (_) {}
+                try {
+                    window.__inlineFeedbackImageFile = null;
+                    const previewContainer = document.getElementById("inline_feedback_image_preview");
+                    if (previewContainer && previewContainer.parentNode) {
+                        previewContainer.parentNode.removeChild(previewContainer);
+                    }
+                } catch (_) {}
+            }
+
+            cancelBtn.addEventListener("click", cleanup);
+
+            sendBtn.addEventListener("click", function () {
+                try {
+                    const fd = new FormData();
+                    fd.append("project_id", getMeta("project-id") || "");
+                    fd.append(
+                        "employee_id",
+                        document
+                            .getElementById("projectFeedbackModal")
+                            ?.getAttribute("data-employee-id") || ""
+                    );
+
+                    const imageFileToUse = window.__inlineFeedbackImageFile || fileObj;
+                    if (imageFileToUse) fd.append("feedback_image", imageFileToUse);
+
+                    const origText = sendBtn.innerHTML;
+                    sendBtn.disabled = true;
+                    sendBtn.innerHTML =
+                        '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+                    fetch(getMeta("app-url").replace(/\/$/, "") + "/project-feedbacks", {
+                        method: "POST",
+                        headers: {
+                            "X-CSRF-TOKEN": document
+                                .querySelector('meta[name="csrf-token"]')
+                                .getAttribute("content"),
+                        },
+                        body: fd,
+                    })
+                        .then((res) => {
+                            if (!res.ok) return res.json().then((j) => Promise.reject(j));
+                            return res.json();
+                        })
+                        .then((data) => {
+                            window.showFloatingAlert &&
+                                window.showFloatingAlert("Feedback submitted", "success", 2000);
+                            try {
+                                loadFeedbackData(getMeta("project-id"));
+                            } catch (_) {}
+                            cleanup();
+                        })
+                        .catch((err) => {
+                            let msg = "Failed to submit feedback";
+                            if (err?.errors) msg = Object.values(err.errors).join("\n");
+                            else if (err?.message) msg = err.message;
+                            window.showFloatingAlert &&
+                                window.showFloatingAlert(msg, "warning", 4000);
+                        })
+                        .finally(() => {
+                            sendBtn.disabled = false;
+                            sendBtn.innerHTML = origText;
+                        });
+                } catch (_) {}
+            });
+        } catch (_) {}
+    }
+
+    function renderProjectTaskFeedbackFilesPreview() {
+        try {
+            var preview = document.getElementById("task_feedback_files_preview");
+            if (!preview) {
+                var form = document.getElementById("addFeedbackForm");
+                if (form) {
+                    preview = document.createElement("div");
+                    preview.id = "task_feedback_files_preview";
+                    preview.className = "mt-2";
+                    form.appendChild(preview);
+                }
+            }
+            if (!preview) return;
+
+            var sel = window.taskFeedbackSelectedFiles || [];
+            preview.innerHTML = "";
+
+            if (!sel.length) return;
+
+            var listWrap = document.createElement("div");
+            listWrap.className = "selected-files-list mt-2";
+
+            sel.forEach(function (f, idx) {
+                try {
+                    var item = document.createElement("div");
+                    item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                    var iconWrap = document.createElement("div");
+                    var iconName = getFileTypeIcon(f.name || '');
+                    iconWrap.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span>';
+                    iconWrap.style.fontSize = "10px";
+                    iconWrap.style.textAlign = "center";
+
+                    var name = document.createElement("span");
+                    name.className = "flex-grow-1";
+                    name.style.fontSize = "10px";
+                    var sizeMb = (f.size || 0) / 1024 / 1024;
+                    name.textContent = (f.name || "") + (isFinite(sizeMb) ? " (" + sizeMb.toFixed(2) + " MB)" : "");
+
+                    var rm = document.createElement("button");
+                    rm.type = "button";
+                    rm.className = "btn btn-sm btn-remove-task remove-task";
+                    rm.style.lineHeight = "1";
+                    rm.style.fontSize = "10px";
+                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                    rm.addEventListener("click", function () {
+                        try {
+                            window.taskFeedbackSelectedFiles.splice(idx, 1);
+                            renderProjectTaskFeedbackFilesPreview();
+                        } catch (_) {}
+                    });
+
+                    item.appendChild(iconWrap);
+                    item.appendChild(name);
+                    item.appendChild(rm);
+                    listWrap.appendChild(item);
+                } catch (_) {}
+            });
+
+            preview.appendChild(listWrap);
+        } catch (e) {}
+    }
+
+    function renderTaskProjectEditFeedbackFilesPreview() {
+        try {
+            var preview = document.getElementById("task_edit_feedback_files_preview");
+            if (!preview) return;
+
+            var sel = window.taskEditFeedbackSelectedFiles || [];
+            preview.innerHTML = "";
+
+            if (!sel.length) return;
+
+            var listWrap = document.createElement("div");
+            listWrap.className = "selected-files-list mt-2";
+
+            sel.forEach(function (f, idx) {
+                try {
+                    var item = document.createElement("div");
+                    item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                    var iconWrap = document.createElement("div");
+                    var iconName = getFileTypeIcon(f.name || '');
+                    iconWrap.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span>';
+                    iconWrap.style.fontSize = "10px";
+                    iconWrap.style.textAlign = "center";
+
+                    var name = document.createElement("span");
+                    name.className = "flex-grow-1";
+                    name.style.fontSize = "10px";
+                    var sizeMb = (f.size || 0) / 1024 / 1024;
+                    name.textContent = (f.name || "") + (isFinite(sizeMb) ? " (" + sizeMb.toFixed(2) + " MB)" : "");
+
+                    var rm = document.createElement("button");
+                    rm.type = "button";
+                    rm.className = "btn btn-sm btn-remove-task remove-task";
+                    rm.style.lineHeight = "1";
+                    rm.style.fontSize = "10px";
+                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                    rm.addEventListener("click", function () {
+                        try {
+                            window.taskEditFeedbackSelectedFiles.splice(idx, 1);
+                            renderTaskProjectEditFeedbackFilesPreview();
+                        } catch (_) {}
+                    });
+
+                    item.appendChild(iconWrap);
+                    item.appendChild(name);
+                    item.appendChild(rm);
+                    listWrap.appendChild(item);
+                } catch (_) {}
+            });
+
+            preview.appendChild(listWrap);
+        } catch (e) {}
+    }
+
+    function loadProjectTaskFeedbackData(taskId) {
+        const modalBody = document.getElementById("projectTaskFeedbackList");
+        modalBody.innerHTML =
+            '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + taskId,
+            type: "GET",
+            dataType: "json",
+            cache: false,
+            success: function (response) {
+                if (response.data && response.data.length > 0) {
+                    let feedbackHtml = "";
+                    response.data.forEach(function (feedback) {
+                        const feedbackModalEl = document.getElementById("projectTaskFeedbackModal");
+                        const currentEmployeeId = parseInt(
+                            (feedbackModalEl?.dataset?.employeeId || feedbackModalEl?.getAttribute('data-employee-id') || '0'),
+                            10
+                        ) || 0;
+
+                        let formattedDate = "";
+                        if (feedback.created_at) {
+                            formattedDate = timeAgo(feedback.created_at);
+                        }
+
+                                                let topImageUrl = feedback.image || '';
+                                                if (topImageUrl) {
+                                                    const isAbs = typeof topImageUrl === 'string' && (topImageUrl.startsWith('http://') || topImageUrl.startsWith('https://'));
+                                                    const isFileTask = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/file/task/') || topImageUrl.startsWith('file/task/'));
+                                                    const isStorage = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/storage/') || topImageUrl.startsWith('storage/'));
+                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                        topImageUrl = appUrl + '/file/task/' + topImageUrl;
+                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                        topImageUrl = topImageUrl.startsWith('/') ? (appUrl + topImageUrl) : (appUrl + '/' + topImageUrl);
+                                                    }
+                                                }
+                                                let topRefFiles = [];
+                                                let topRfVal = feedback.reference_files;
+                                                if (!Array.isArray(topRfVal) && typeof topRfVal === 'string') {
+                                                    try { const parsed = JSON.parse(topRfVal); if (Array.isArray(parsed)) topRfVal = parsed; } catch(_) { /* noop */ }
+                                                }
+                                                if (Array.isArray(topRfVal) && topRfVal.length > 0) {
+                                                    topRefFiles = topRfVal.map((f) => {
+                                                        if (!f) return null;
+                                                        const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                        const isRefPath = typeof f === 'string' && (f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                                                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                        return f;
+                                                    }).filter(Boolean);
+                                                } else {
+                                                    let singleTop = feedback.reference_file || '';
+                                                    if (singleTop) {
+                                                        const isAbs2 = typeof singleTop === 'string' && (singleTop.startsWith('http://') || singleTop.startsWith('https://'));
+                                                        const isRefPath2 = typeof singleTop === 'string' && (singleTop.startsWith('/file/task_reference_files/') || singleTop.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs2 && !isRefPath2) singleTop = appUrl + '/file/task_reference_files/' + singleTop;
+                                                        else if (!isAbs2 && isRefPath2) singleTop = singleTop.startsWith('/') ? (appUrl + singleTop) : (appUrl + '/' + singleTop);
+                                                        topRefFiles = [singleTop];
+                                                    }
+                                                }
+
+                                                let topRefUrls = [];
+                                                let topRuVal = feedback.reference_urls;
+                                                if (!Array.isArray(topRuVal) && typeof topRuVal === 'string') {
+                                                    try { const parsed2 = JSON.parse(topRuVal); if (Array.isArray(parsed2)) topRuVal = parsed2; } catch(_) { /* noop */ }
+                                                }
+                                                if (Array.isArray(topRuVal) && topRuVal.length > 0) {
+                                                    topRefUrls = topRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                                                } else if (feedback.reference_url) {
+                                                    topRefUrls = [feedback.reference_url];
+                                                }
+
+                                                const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
+                                                const canEditTop = String(topAuthorId) === String(currentEmployeeId);
+                                                const topCanEdit = canEditTop;
+
+                                    let repliesHtml = '';
+                                    let viewRepliesBtnHtml = '';
+                                    let repliesContainerHtml = '';
+                                    if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                        const repliesCount = feedback.replies.length;
+                                        const repliesContent = feedback.replies.map(function (rep) {
+                                let rDate = '';
+                                if (rep.created_at) {
+                                    rDate = timeAgo(rep.created_at);
+                                }
+                                                                let repImageUrl = rep.image || '';
+                                                                if (repImageUrl) {
+                                                                    const isAbs = typeof repImageUrl === 'string' && (repImageUrl.startsWith('http://') || repImageUrl.startsWith('https://'));
+                                                                    const isFileTask = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/file/task/') || repImageUrl.startsWith('file/task/'));
+                                                                    const isStorage = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/storage/') || repImageUrl.startsWith('storage/'));
+                                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                                        repImageUrl = appUrl + '/file/task/' + repImageUrl;
+                                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                                        repImageUrl = repImageUrl.startsWith('/') ? (appUrl + repImageUrl) : (appUrl + '/' + repImageUrl);
+                                                                    }
+                                                                }
+                                                                let repRefFiles = [];
+                                                                let repRfVal = rep.reference_files;
+                                                                if (!Array.isArray(repRfVal) && typeof repRfVal === 'string') {
+                                                                    try { const parsed = JSON.parse(repRfVal); if (Array.isArray(parsed)) repRfVal = parsed; } catch(_) { /* noop */ }
+                                                                }
+                                                                if (Array.isArray(repRfVal) && repRfVal.length > 0) {
+                                                                    repRefFiles = repRfVal.map((f) => {
+                                                                        if (!f) return null;
+                                                                        const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                                        const isRefPath = typeof f === 'string' && (f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/'));
+                                                                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                                                                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                                        return f;
+                                                                    }).filter(Boolean);
+                                                                } else {
+                                                                    let singleRep = rep.reference_file || '';
+                                                                    if (singleRep) {
+                                                                        const isAbs2 = typeof singleRep === 'string' && (singleRep.startsWith('http://') || singleRep.startsWith('https://'));
+                                                                        const isRefPath = typeof singleRep === 'string' && (singleRep.startsWith('/file/task_reference_files/') || singleRep.startsWith('file/task_reference_files/'));
+                                                                        if (!isAbs2 && !isRefPath) singleRep = appUrl + '/file/task_reference_files/' + singleRep;
+                                                                        else if (!isAbs2 && isRefPath) singleRep = singleRep.startsWith('/') ? (appUrl + singleRep) : (appUrl + '/' + singleRep);
+                                                                        repRefFiles = [singleRep];
+                                                                    }
+                                                                }
+                                                                let repRefUrls = [];
+                                                                let repRuVal = rep.reference_urls;
+                                                                if (!Array.isArray(repRuVal) && typeof repRuVal === 'string') {
+                                                                    try { const parsed = JSON.parse(repRuVal); if (Array.isArray(parsed)) repRuVal = parsed; } catch(_) { /* noop */ }
+                                                                }
+                                                                if (Array.isArray(repRuVal) && repRuVal.length > 0) {
+                                                                    repRefUrls = repRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                                                                } else if (rep.reference_url) {
+                                                                    repRefUrls = [rep.reference_url];
+                                                                }
+                                                                const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                                                                const canEditReply = String(repAuthorId) === String(currentEmployeeId);
+                                                                const canEditRep = canEditReply;
+
+                                                                return `
+                                                                            <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background: rgb(240, 241, 248);">
+                                                                                <div class="d-flex align-items-start mb-1">
+                                                                                    <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-3" style="width: 24px; height: 24px; object-fit: cover;">
+                                                                                    <div class="flex-grow-1">
+                                                                                        <div>
+                                                                                            <strong style="font-size:12px; font-weight:600;">${rep.employee.name}</strong>
+                                                                                            <div><small class="text-muted d-block" style="font-size:9px;">${rDate}</small></div>
+                                                                                        </div>
+
+                                                                                        <div class="feedback-comment mt-2">
+                                                                                            <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
+
+                                                                                            ${
+                                                                                                ((Array.isArray(repRefUrls) && repRefUrls.length > 0) || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
+                                                                                                    ? `
+                                                                                                        <div class="feedback-reference-container mb-1">
+                                                                                                        ${Array.isArray(repRefUrls) && repRefUrls.length > 0
+                                                                                                            ? repRefUrls.map((u) => {
+                                                                                                                const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                                                                                                return `<a href="${u}" target="_blank" class="feedback-reference-url me-2">
+                                                                                                                            <span class="material-symbols-outlined">link</span> ${shortUrl}
+                                                                                                                        </a>`;
+                                                                                                            }).join('')
+                                                                                                            : ''}
+
+                                                                                                        ${Array.isArray(repRefFiles) && repRefFiles.length > 0
+                                                                                                            ? repRefFiles.map((u) => {
+                                                                                                                const fileName = u.split('/').pop();
+                                                                                                                return `<a href="${u}" download class="feedback-reference-file ms-2">
+                                                                                                                            <span class="material-symbols-outlined">draft</span> ${fileName}
+                                                                                                                        </a>`;
+                                                                                                            }).join('')
+                                                                                                            : ''}
+                                                                                                        </div>
+                                                                                                    `
+                                                                                                    : ''
+                                                                                            }
+
+                                                                                            ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+
+                                                                                                                            <div class="reply-actions mt-2 d-flex gap-4">
+                                                                                                                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-delete-trigger" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
+                                                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                `;
+                                                        }).join('');
+
+                                                        viewRepliesBtnHtml = `<button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all (${repliesCount})</button>`;
+                                                        repliesContainerHtml = `<div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>`;
+                                                }
+                                                feedbackHtml += `
+                                                <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
+                                                    <div class="d-flex align-items-start mb-2">
+                                                        <img src="${feedback.employee.photo}" alt="${feedback.employee.name}" class="rounded-circle me-3" style="width: 32px; height: 32px; object-fit: cover;">
+                                                        <div class="flex-grow-1">
+                                                            <div>
+                                                                <strong style="font-size:14px; font-weight:600;">${feedback.employee.name}</strong>
+                                                                <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
+                                                            </div>
+
+                                                            <div class="feedback-comment mt-2">
+                                                                <p class="mb-2" style="font-size:13px;">${feedback.feedback_comment}</p>
+
+                                                                ${
+                                ((Array.isArray(topRefUrls) && topRefUrls.length > 0) || (Array.isArray(topRefFiles) && topRefFiles.length > 0))
+                                    ? `
+                                <div class="feedback-reference-container mb-2">
+                                    ${Array.isArray(topRefUrls) && topRefUrls.length > 0
+                                    ? topRefUrls.map((u) => {
+                                        const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                        return `<a href="${u}" target="_blank" class="feedback-reference-url bg-light rounded-2">
+                                                    <span class="material-symbols-outlined" style="color: #444444;">link</span> ${shortUrl}
+                                                </a>`;
+                                        }).join('')
+                                    : ''}
+
+                                    ${Array.isArray(topRefFiles) && topRefFiles.length > 0
+                                    ? topRefFiles.map((u) => {
+                                        const fileName = u.split('/').pop();
+                                        return `<a href="${u}" class="feedback-reference-file bg-light rounded-2">
+                                                    <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}
+                                                </a>`;
+                                        }).join('')
+                                    : ''}
+                                </div>
+                            `
+                                    : ""
+                            }
+
+                                                                ${
+                                topImageUrl
+                                    ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
+                                    : ""
+                            }
+
+                                                                <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
+                                                                    <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-delete-trigger" data-feedback-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
+                                                                    ${viewRepliesBtnHtml}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ${repliesContainerHtml}
+                                                </div>
+                                            `;
+                    });
+                    modalBody.innerHTML = feedbackHtml;
+
+                    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const parentId = this.getAttribute('data-feedback-id');
+                            const tId = this.getAttribute('data-task-id');
+                            showReplyFeedbackTaskForm(tId, parentId);
+                        });
+                    });
+
+                    modalBody.querySelectorAll('.feedback-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const fid = this.getAttribute('data-feedback-id');
+                            const payload = {
+                                id: fid,
+                                parent_id: null,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-urls') || '[]')); } catch(e){ return []; } }).call(this),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+
+                            const inlineEditor = document.getElementById("inline_task_feedback_editor");
+                            if (inlineEditor && typeof window.startInlineProjectTaskEditFeedback === "function") {
+                                try {
+                                    window.startInlineProjectTaskEditFeedback(payload);
+                                    try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                    return;
+                                } catch (_) {}
+                            }
+                            showEditFeedbackTaskForm(tId, payload, false);
+                        });
+                    });
+
+                    modalBody.querySelectorAll('.reply-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const rid = this.getAttribute('data-reply-id');
+                            const pid = this.getAttribute('data-parent-id');
+                            const payload = {
+                                id: rid,
+                                parent_id: pid,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-urls') || '[]')); } catch(e){ return []; } }).call(this),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+
+                            const inlineEditor = document.getElementById("inline_task_feedback_editor");
+                            if (inlineEditor && typeof window.startInlineProjectTaskEditFeedback === "function") {
+                                try {
+                                    window.startInlineProjectTaskEditFeedback(payload);
+                                    try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                    return;
+                                } catch (_) {}
+                            }
+                            showEditFeedbackTaskForm(tId, payload, true);
+                        });
+                    });
+
+                    modalBody.querySelectorAll('.view-replies-toggle').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const fid = this.getAttribute('data-feedback-id');
+                            const count = this.getAttribute('data-replies-count');
+                            const container = modalBody.querySelector('#replies-' + fid);
+                            if (!container) return;
+                            const hidden = container.classList.contains('d-none');
+                            if (hidden) {
+                                container.classList.remove('d-none');
+                                this.textContent = 'Hide';
+                            } else {
+                                container.classList.add('d-none');
+                                this.textContent = `View all (${count})`;
+                            }
+                            this.style.textDecoration = 'none';
+                            this.style.color = '#555';
+                        });
+                    });
+
+                    (function(){
+                        function ensureImagePreviewModalExists() {
+                            if (document.getElementById('taskImagePreviewModal')) return;
+                            const html = `
+                                <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
+                                        <div class="modal-content modal-content-custom bg-light border-0">
+                                            <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                                                <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
+                                            </div>
+                                            <div class="modal-footer modal-footer-custom border-0 justify-content-center">
+                                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>`;
+
+                                $(document).on('click', '.feedback-image', function(e) {
+                                    e.preventDefault()
+                                    const imgSrc = $(this).attr('src') || $(this).data('img')
+                                    const $img = $('#taskImagePreviewModalImg')
+                                    const $dialog = $('#taskImageDialog')
+                                    $img.off('load')
+                                    $img.attr('src', imgSrc)
+                                    $('#taskImagePreviewModal').modal('show')
+                                    $img.on('load', function() {
+                                        try {
+                                            const naturalW = this.naturalWidth || 0
+                                            const naturalH = this.naturalHeight || 0
+                                            const viewportW = window.innerWidth * 0.8
+                                            const viewportH = window.innerHeight * 0.7
+                                            const ratio = Math.min(viewportW / Math.max(naturalW,1), viewportH / Math.max(naturalH,1), 0.9)
+                                            const modalWidth = Math.round(naturalW * ratio)
+                                            $dialog.css({ 'max-width': modalWidth + 'px' })
+                                        } catch(_) {}
+                                    })
+                                })
+                            try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){ }
+                        }
+
+                        function showImageInModal(src, filename) {
+                            try {
+                                ensureImagePreviewModalExists();
+                                const modalEl = document.getElementById('taskImagePreviewModal');
+                                const imgEl = document.getElementById('taskImagePreviewModalImg');
+                                const dlEl = document.getElementById('taskImagePreviewDownload');
+                                if (imgEl) imgEl.src = src;
+
+                                const parentIds = ['projectTaskFeedbackModal', 'taskDetailModal', 'projectTaskDetailModal', 'projectDetailModal'];
+                                let parentModalEl = null;
+                                let parentWasOpen = false;
+                                try {
+                                    for (let i = 0; i < parentIds.length; i++) {
+                                        const id = parentIds[i];
+                                        const el = document.getElementById(id);
+                                        if (el && el.classList && el.classList.contains('show')) {
+                                            parentModalEl = el;
+                                            parentWasOpen = true;
+                                            break;
+                                        }
+                                    }
+                                } catch(_) {}
+
+                                try {
+                                    if (parentWasOpen && parentModalEl) {
+                                        try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                                        const pmInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                        try { pmInst.hide(); } catch(_) {}
+                                    }
+                                } catch(_) {}
+
+                                const inst = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+                                const onPreviewHidden = function() {
+                                    try { inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                    try {
+                                        if (parentWasOpen && parentModalEl) {
+                                            try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                                            const pm2 = bootstrap.Modal.getOrCreateInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                            try { pm2.show(); } catch(_) {}
+                                        }
+                                    } catch(_) {}
+                                };
+                                try { inst._element.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                inst.show();
+                            } catch (e) { try { window.open(src, '_blank'); } catch(_) {} }
+                        }
+
+                        modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                            try { img.replaceWith(img.cloneNode(true)); } catch(_) {}
+                        });
+                        modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                            img.addEventListener('click', function (ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const src = this.getAttribute('src') || this.dataset.src;
+                                if (!src) return;
+                                let filename = (src.split('/').pop() || '').split('?')[0];
+                                showImageInModal(src, filename);
+                            });
+                        });
+                    })();
+
+                        modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                const fid = this.getAttribute('data-feedback-id');
+                                if (!fid) return;
+                                const authorName = (this.closest('.feedback-item')?.querySelector('strong')?.textContent) || '';
+                                const content = (this.closest('.feedback-item')?.querySelector('.task-description, p, .task-description-container p, .task-description')?.textContent) || '';
+                                const avatarUrl = (this.closest('.feedback-item')?.querySelector('img')?.getAttribute('src')) || '';
+                                showDeleteConfirmModal({ type: 'feedback', id: fid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                    const url = appUrl + '/task-feedbacks/' + fid;
+                                    $.ajax({
+                                        url: url,
+                                        type: 'DELETE',
+                                        headers: {
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                        },
+                                        success: function (res) {
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Feedback deleted', 'success'); } catch(_){ }
+                                            const el = modalBody.querySelector(`.feedback-item[data-feedback-id="${fid}"]`);
+                                            if (el && el.parentNode) el.parentNode.removeChild(el);
+                                            try { $.ajax({ url: appUrl + '/task-feedbacks/count/' + (modalBody.closest('#projectTaskFeedbackModal')?.dataset?.taskId || '') , type: 'GET', success: function(c){ if (c && c.data && typeof c.data.count === 'number') { const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#projectTaskFeedbackModal')?.dataset?.taskId || '') + '"]'); if (card) { let span = card.querySelector('.feedback-comments-count'); if (span) { span.textContent = String(c.data.count); } } } } }); } catch(_){ }
+                                            done(true);
+                                        },
+                                        error: function (xhr) {
+                                            let msg = 'Failed to delete feedback';
+                                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                            done(false);
+                                        }
+                                    });
+                                }});
+                            });
+                        });
+
+                        modalBody.querySelectorAll('.reply-delete-trigger').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                const rid = this.getAttribute('data-reply-id');
+                                const pid = this.getAttribute('data-parent-id');
+                                if (!rid) return;
+                                const authorName = (this.closest('.feedback-reply')?.querySelector('strong')?.textContent) || '';
+                                const content = (this.closest('.feedback-reply')?.querySelector('p')?.textContent) || '';
+                                const avatarUrl = (this.closest('.feedback-reply')?.querySelector('img')?.getAttribute('src')) || '';
+                                showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                    const url = appUrl + '/task-feedbacks/' + rid;
+                                    $.ajax({
+                                        url: url,
+                                        type: 'DELETE',
+                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                        success: function (res) {
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reply deleted', 'success'); } catch(_){}
+
+                                            const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"][data-parent-id="${pid}"]`);
+                                            if (el && el.parentNode) el.parentNode.removeChild(el);
+
+                                            const repliesContainer = modalBody.querySelector(`#replies-${pid}`);
+                                            const viewAllBtn = modalBody.querySelector(`.view-replies-toggle[data-feedback-id="${pid}"]`);
+
+                                            if (repliesContainer && viewAllBtn) {
+                                                const remainingReplies = repliesContainer.querySelectorAll('.feedback-reply');
+                                                const remainingCount = remainingReplies.length;
+
+                                                if (remainingCount === 0) {
+                                                    viewAllBtn.remove();
+                                                    repliesContainer.remove();
+                                                } else {
+                                                    viewAllBtn.setAttribute('data-replies-count'    , remainingCount);
+                                                    const isVisible = !repliesContainer.classList.contains('d-none');
+                                                    if (isVisible) {
+                                                        viewAllBtn.textContent = 'Hide';
+                                                    } else {
+                                                        viewAllBtn.textContent = `View all (${remainingCount})`;
+                                                    }
+                                                }
+                                            }
+
+                                            try {
+                                                $.ajax({
+                                                    url: appUrl + "/task-feedbacks/count/" + (modalBody.closest('#projectTaskFeedbackModal')?.dataset?.taskId || ''),
+                                                    type: 'GET',
+                                                    success: function(c){
+                                                        if (c && c.data && typeof c.data.count === 'number') {
+                                                            const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#projectTaskFeedbackModal')?.dataset?.taskId || '') + '"]');
+                                                            if (card) {
+                                                                let span = card.querySelector('.feedback-comments-count');
+                                                                if (span) {
+                                                                    span.textContent = String(c.data.count);
+                                                                    if (c.data.count === 0) {
+                                                                        span.style.display = 'none';
+                                                                    } else {
+                                                                        span.style.display = '';
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            } catch(_) {}
+
+                                            done(true);
+                                        },
+                                        error: function (xhr) {
+                                            let msg = 'Failed to delete reply';
+                                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                            done(false);
+                                        }
+                                    });
+                                }});
+                            });
+                        });
+
+                    try {
+                        const target = (window.__taskLatestTarget && window.__taskLatestTarget[String(taskId)]) || null;
+                        if (target && target.id) {
+                            if (target.parent_id) {
+                                const wrap = modalBody.querySelector(`.feedback-replies-wrap .feedback-toggle-replies[data-feedback-id="${target.parent_id}"]`);
+                                if (wrap) {
+                                    const container = modalBody.querySelector('#replies-' + target.parent_id);
+                                    if (container && container.classList.contains('d-none')) {
+                                        container.classList.remove('d-none');
+                                    }
+                                    wrap.textContent = 'Hide';
+                                }
+                                const replyEl = modalBody.querySelector(`.feedback-reply[data-reply-id="${target.id}"][data-parent-id="${target.parent_id}"]`);
+                                if (replyEl) {
+                                    replyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    replyEl.style.transition = 'background-color 0.3s ease';
+                                    const old = replyEl.style.backgroundColor;
+                                    replyEl.style.backgroundColor = '#fff3cd';
+                                    setTimeout(() => { replyEl.style.backgroundColor = old || '#fafafa'; }, 1200);
+                                }
+                            } else {
+                                const topEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.id}"]`);
+                                if (topEl) {
+                                    topEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    topEl.style.transition = 'background-color 0.3s ease';
+                                    const old = topEl.style.backgroundColor;
+                                    topEl.style.backgroundColor = '#fff3cd';
+                                    setTimeout(() => { topEl.style.backgroundColor = old || ''; }, 1200);
+                                }
+                            }
+                        }
+                        if (window.__taskLatestTarget) delete window.__taskLatestTarget[String(taskId)];
+                    } catch (_) {}
+                } else {
+                    modalBody.innerHTML =
+                        '<p class="text-center text-muted">No feedback available for this task.</p>';
+                }
+
+                try {
+                    if (typeof initTaskFeedbackQuillEditors === 'function') {
+                        initTaskFeedbackQuillEditors(modalBody);
+                    }
+                } catch (_) {}
+
+                try {
+                    setupProjectTaskInlineFeedbackEditor(taskId);
+                } catch (_) {}
+            },
+            error: function () {
+                modalBody.innerHTML =
+                    '<p class="text-center text-danger">Failed to load feedback.</p>';
+            },
+        });
+    }
+
+    function showAddFeedbackTaskForm(taskId) {
+        const modalTitle = document.getElementById("projectTaskFeedbackModalLabel");
+        const modalBody = document.getElementById("projectTaskFeedbackList");
+
+        modalTitle.textContent = "Add Feedback";
+        modalBody.innerHTML = "";
+
+        const form = document.createElement("form");
+        form.id = "addFeedbackForm";
+        form.enctype = "multipart/form-data";
+
+        const taskIdInput = document.createElement("input");
+        taskIdInput.type = "hidden";
+        taskIdInput.name = "task_id";
+        taskIdInput.value = taskId;
+
+        const employeeIdInput = document.createElement("input");
+        employeeIdInput.type = "hidden";
+        employeeIdInput.name = "employee_id";
+        employeeIdInput.value =
+            document
+                .getElementById("projectTaskFeedbackModal")
+                .getAttribute("data-employee-id") || "";
+
+        form.appendChild(taskIdInput);
+        form.appendChild(employeeIdInput);
+
+        const commentDiv = document.createElement("div");
+        commentDiv.className = "mb-3 custom-input";
+
+        const commentLabel = document.createElement("label");
+        commentLabel.htmlFor = "feedback_comment";
+        commentLabel.className = "form-label label-custom";
+        commentLabel.textContent = "Comment";
+        commentDiv.appendChild(commentLabel);
+
+        const commentTextarea = document.createElement("textarea");
+        commentTextarea.className = "form-control input-text";
+        commentTextarea.id = "feedback_comment";
+        commentTextarea.name = "feedback_comment";
+        commentTextarea.rows = 3;
+        commentTextarea.required = true;
+        commentDiv.appendChild(commentTextarea);
+
+        form.appendChild(commentDiv);
+
+        const attachmentDiv = document.createElement("div");
+        attachmentDiv.className = "d-flex align-items-center gap-2 mb-3";
+
+        const photoBtn = document.createElement("button");
+        photoBtn.type = "button";
+        photoBtn.className = "btn btn-outline-secondary d-flex align-items-center";
+        photoBtn.id = "taskFeedbackPhotoBtn";
+        photoBtn.innerHTML = '<span class="material-symbols-outlined me-1">photo_camera</span>Photo';
+
+        const fileBtn = document.createElement("button");
+        fileBtn.type = "button";
+        fileBtn.className = "btn btn-outline-secondary d-flex align-items-center ms-2";
+        fileBtn.id = "taskFeedbackFileBtn";
+        fileBtn.innerHTML = '<span class="material-symbols-outlined me-1">attach_file</span>File';
+
+        const imageInput = document.createElement("input");
+        imageInput.type = "file";
+        imageInput.id = "task_feedback_image_input";
+        imageInput.name = "feedback_image";
+        imageInput.accept = "image/*";
+        imageInput.hidden = true;
+
+        const filesInput = document.createElement("input");
+        filesInput.type = "file";
+        filesInput.id = "task_feedback_files_input";
+        filesInput.name = "reference_files[]";
+        filesInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+        filesInput.multiple = true;
+        filesInput.hidden = true;
+
+        attachmentDiv.appendChild(photoBtn);
+        attachmentDiv.appendChild(fileBtn);
+        form.appendChild(attachmentDiv);
+        form.appendChild(imageInput);
+        form.appendChild(filesInput);
+
+        window.taskFeedbackSelectedFiles = window.taskFeedbackSelectedFiles || [];
+
+        photoBtn.addEventListener('click', function() {
+            imageInput.click();
+        });
+
+        fileBtn.addEventListener('click', function() {
+            filesInput.click();
+        });
+
+        imageInput.addEventListener('change', function(ev) {
+            try {
+                var f = (this.files && this.files[0]) || null;
+                if (!f) return;
+                if (!f.type || f.type.indexOf("image/") !== 0) return;
+                if (f.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                    this.value = '';
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        showInlineFeedbackImagePreviewSmall(f, e.target.result);
+                    } catch (_) {}
+                };
+                reader.readAsDataURL(f);
+            } catch (_) {}
+        });
+
+        filesInput.addEventListener('change', function(ev) {
+            try {
+                var files = Array.from(this.files || []);
+                if (!files.length) return;
+                window.taskFeedbackSelectedFiles = (window.taskFeedbackSelectedFiles || []).concat(files);
+                renderProjectTaskFeedbackFilesPreview();
+                try { this.value = ""; } catch (_) {}
+            } catch (_) {}
+        });
+
+        const refUrlDiv = document.createElement("div");
+        refUrlDiv.className = "mb-3 custom-input";
+
+        const refUrlLabel = document.createElement("label");
+        refUrlLabel.className = "form-label label-custom";
+        refUrlLabel.textContent = "Reference URLs (Optional)";
+        refUrlDiv.appendChild(refUrlLabel);
+
+        const refUrlContainer = document.createElement("div");
+        refUrlContainer.id = "task_feedback_reference_urls_container";
+        refUrlContainer.className = "d-flex flex-column gap-2";
+
+        const initialUrlRow = document.createElement("div");
+        initialUrlRow.className = "d-flex gap-2 align-items-center";
+        initialUrlRow.innerHTML = '<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">' +
+            '<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>';
+        refUrlContainer.appendChild(initialUrlRow);
+
+        refUrlDiv.appendChild(refUrlContainer);
+        form.appendChild(refUrlDiv);
+
+    modalBody.appendChild(form);
+
+        setupImageInput(imageInput, imageLabel, imageClearBtn);
+
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            submitFeedbackTaskForm(this, taskId);
+        });
+
+        setUnifiedProjectTaskFeedbackFooter(taskId, 'Submit', function(){
+            const form = document.getElementById('addFeedbackForm');
+            if (form) submitFeedbackTaskForm(form, taskId);
+        });
+
+        try {
+            if (typeof initTaskFeedbackQuillEditors === 'function') {
+                initTaskFeedbackQuillEditors(modalBody);
+            }
+        } catch (_) {}
+    }
+
+    function submitFeedbackTaskForm(form, taskId) {
+        function getExistingFeedbackCount(taskId) {
+            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            const span = card ? card.querySelector('.feedback-comments-count') : null;
+            const n = span ? parseInt(span.textContent, 10) : NaN;
+            return Number.isFinite(n) ? n : 0;
+        }
+        function setFeedbackCount(taskId, count) {
+            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            if (!card) return;
+            let span = card.querySelector('.feedback-comments-count');
+            if (!span) {
+                span = document.createElement('span');
+                span.className = 'feedback-comments-count ms-1';
+                span.style.color = '#555';
+                const icon = card.querySelector('.task-icon.mode_comment');
+                if (icon && icon.parentNode) {
+                    icon.parentNode.appendChild(span);
+                } else {
+                    return;
+                }
+            }
+            span.textContent = String(count);
+        }
+        function optimisticIncrementFeedbackCount(taskId) {
+            const prev = getExistingFeedbackCount(taskId);
+            setFeedbackCount(taskId, Math.max(prev + 1, 1));
+        }
+        function extractCountFromResponse(resp) {
+            if (!resp) return null;
+            const candidates = [
+                resp.count,
+                resp.total,
+                resp?.data?.count,
+                resp?.data?.total,
+            ];
+            const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
+            return (typeof val === 'number') ? val : null;
+        }
+        const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
+
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            submitBtn.disabled = true;
+        }
+
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
+
+        const formData = new FormData(form);
+        try {
+            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
+        formData.append("task_id", taskId);
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            success: function (response) {
+                const msg = (response && response.message) || 'Feedback submitted successfully!';
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(String(msg), 'light', 2000);
+                } else if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(msg, 'light', 2000);
+                }
+
+                try {
+                    const feedbackModalEl = document.getElementById("projectTaskFeedbackModal");
+                    const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
+                    if (titleEl) titleEl.textContent = 'Task Feedback';
+                    let footer = feedbackModalEl.querySelector('.feedback-modal-footer')
+                                || feedbackModalEl.querySelector('.modal-footer')
+                                || feedbackModalEl.querySelector('.modal-footer-custom');
+                    if (!footer) {
+                        const maybeBtn = feedbackModalEl.querySelector('#addFeedbackButton');
+                        if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                    }
+                    if (footer) {
+                        let addBtn = footer.querySelector('#addFeedbackButton');
+                        if (!addBtn) {
+                            addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                            addBtn.className = 'btn btn-submit-black w-100';
+                            addBtn.id = 'addFeedbackButton';
+                            addBtn.textContent = 'Add Feedback';
+                            footer.innerHTML = '';
+                            footer.appendChild(addBtn);
+                        } else {
+                            addBtn.textContent = 'Add Feedback';
+                            const fresh = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(fresh, addBtn);
+                            addBtn = fresh;
+                        }
+                        addBtn.disabled = false;
+                        addBtn.removeAttribute('disabled');
+                        addBtn.addEventListener('click', () => showAddFeedbackTaskForm(taskId));
+                    }
+                    const closeBtn = document.getElementById('replyCloseButton');
+                    if (closeBtn && closeBtn.parentNode) {
+                        closeBtn.parentNode.removeChild(closeBtn);
+                    }
+                    try { loadProjectTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
+                } catch (e) { /* noop */ }
+
+                try {
+                    selectedFiles = [];
+                    const preview = document.getElementById('feedback_reference_files_preview') || document.getElementById('reference_files_preview');
+                    if (preview) preview.innerHTML = '';
+                } catch (_) {}
+
+                optimisticIncrementFeedbackCount(taskId);
+                $.ajax({
+                    url: appUrl + "/task-feedbacks/count/" + taskId,
+                    type: "GET",
+                    dataType: "json",
+                    success: function (countResponse) {
+                        const serverCount = extractCountFromResponse(countResponse);
+                        if (typeof serverCount === 'number' && serverCount > 0) {
+                            setFeedbackCount(taskId, serverCount);
+                        }
+                    }
+                });
+                try { feedbackSubmitted = false; } catch(_) {}
+            },
+            error: function (xhr) {
+                let errorMessage = "Failed to submit feedback. Please try again.";
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, "danger");
+                } else {
+                    alert(errorMessage);
+                }
+            },
+            complete: function () {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnHtml;
+                    submitBtn.disabled = false;
+                }
+                try { selectedFiles = []; } catch (_) {}
+            },
+        });
+    }
+
+    function handleProjectTaskFeedback(taskId) {
+        const detailEl = document.getElementById("projectTaskDetailModal");
+        if (detailEl) {
+            detailEl.setAttribute('data-child-opened', '1');
+
+            if (detailEl._timelineHiddenHandler) {
+                detailEl.removeEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                detailEl._timelineHiddenHandlerBackup = detailEl._timelineHiddenHandler;
+                detailEl._timelineHiddenHandler = null;
+            }
+
+            const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+            detailModal.hide();
+        }
+
+        const feedbackModalEl = document.getElementById("projectTaskFeedbackModal");
+        if (!feedbackModalEl) {
+            console.warn('projectTaskFeedbackModal element not found');
+            return;
+        }
+        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+
+        feedbackModalEl.dataset.taskId = taskId;
+
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("projectTaskFeedbackModalLabel");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("projectTaskFeedbackList");
+        if (modalTitle) modalTitle.textContent = "Task Feedback";
+        if (modalBody) modalBody.innerHTML = "";
+
+        try { loadProjectTaskFeedbackData(taskId); } catch(_) {}
+
+        feedbackModal.show();
+
+        document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+            if (idx < arr.length - 1) el.remove();
+        });
+    }
+
+    function clearReply() {
+        try {
+            const pid = document.getElementById('inline_parent_id_input');
+            if (pid) pid.value = '';
+            const previewContainer = document.getElementById('reply_parent_preview_inline');
+            if (previewContainer) previewContainer.remove();
+        } catch(_) {}
+    }
+
+    function showReplyFeedbackTaskForm(taskId, parentId) {
+        try {
+            const feedbackModalEl = document.getElementById("projectTaskFeedbackModal");
+            const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+            const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+
+            const inlineForm = feedbackModalEl.querySelector('.feedback-form');
+            if (inlineForm) {
+                let inlinePid = inlineForm.querySelector('#inline_parent_id_input');
+                if (!inlinePid) {
+                    inlinePid = document.createElement('input');
+                    inlinePid.type = 'hidden';
+                    inlinePid.id = 'inline_parent_id_input';
+                    inlinePid.name = 'parent_id';
+                    inlineForm.appendChild(inlinePid);
+                }
+                inlinePid.value = parentId || '';
+
+                let previewContainer = inlineForm.querySelector('#reply_parent_preview_inline');
+                if (!previewContainer) {
+                    previewContainer = document.createElement('div');
+                    previewContainer.id = 'reply_parent_preview_inline';
+                    previewContainer.className = 'mt-2';
+                }
+
+                previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Loading...</div><div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
+
+                try {
+                    fetch(appUrl + '/task-feedbacks/' + taskId)
+                        .then(function (res) {
+                            if (!res.ok) return res.json().then(Promise.reject);
+                            return res.json();
+                        })
+                        .then(function (json) {
+                            const payload = json && json.data ? json.data : json;
+                            let fb = null;
+
+                            function findById(node, id) {
+                                if (!node) return null;
+                                if (Array.isArray(node)) {
+                                    for (let k = 0; k < node.length; k++) {
+                                        const r = findById(node[k], id);
+                                        if (r) return r;
+                                    }
+                                    return null;
+                                }
+                                try {
+                                    if (node && String(node.id) === String(id)) return node;
+                                    if (node && node.replies && Array.isArray(node.replies)) {
+                                        const rr = findById(node.replies, id);
+                                        if (rr) return rr;
+                                    }
+                                } catch (_) {}
+                                return null;
+                            }
+
+                            fb = findById(payload, parentId);
+
+                            const title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) ||
+                                         (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
+                            const commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
+
+                            try {
+                                const empRaw = (fb && fb.employee) || {};
+                                let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                                const avatarUrl = (typeof buildPhotoUrl === 'function') ?
+                                    buildPhotoUrl(avatarRaw, empRaw.profile_picture, empRaw.profile_picture_url) :
+                                    (avatarRaw ? appUrl + '/file/profile_picture/' + avatarRaw : appUrl + '/asset/img/avatar.png');
+
+                                let plain = '';
+                                try {
+                                    plain = (commentRaw || '').replace(/<[^>]+>/g, '');
+                                } catch (_) {
+                                    plain = (commentRaw || '') + '';
+                                }
+                                if (plain && plain.length > 120) plain = plain.substring(0, 120).trim() + '...';
+
+                                let html = '';
+                                html += '<div class="selected-files-list mt-2">';
+                                html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                                html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                                html += '<img src="' + avatarUrl + '" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src=\'' + appUrl + '/asset/img/avatar.png\';">';
+                                html += '</div>';
+                                html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                                html += '<div style="font-weight:500;font-size:11px">' + (title || 'Unknown') + '</div>';
+                                html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">' + (plain || '') + '</div>';
+                                html += '</div>';
+                                html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                                html += '</div></div>';
+                                previewContainer.innerHTML = html;
+                            } catch (_) {}
+
+                            try {
+                                const btn = previewContainer.querySelector('.remove-task');
+                                if (btn) btn.addEventListener('click', function () {
+                                    try {
+                                        previewContainer.remove();
+                                        inlinePid.value = '';
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        })
+                        .catch(function () {
+                            try {
+                                const btn = previewContainer.querySelector('.remove-task');
+                                if (btn) btn.addEventListener('click', function () {
+                                    try {
+                                        previewContainer.remove();
+                                        inlinePid.value = '';
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        });
+                } catch (_) {}
+
+                try {
+                    const filesPreview = inlineForm.querySelector('#inline_feedback_files_preview');
+                    const editor = inlineForm.querySelector('#inline_feedback_editor');
+                    if (filesPreview && filesPreview.parentNode) {
+                        filesPreview.parentNode.insertBefore(previewContainer, filesPreview);
+                    } else if (editor && editor.parentNode) {
+                        editor.parentNode.insertBefore(previewContainer, editor);
+                    } else {
+                        inlineForm.insertBefore(previewContainer, inlineForm.firstChild);
+                    }
+                } catch(_) {}
+
+                try {
+                    const editorEl = document.querySelector('#inline_feedback_editor .ql-editor');
+                    if (editorEl) {
+                        editorEl.focus();
+                        editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } catch(_) {}
+
+                return;
+            }
+
+            try {
+                showFloatingAlert('Reply functionality requires inline feedback form.', 'warning', 3000);
+            } catch (_) {
+                console.warn('No inline feedback form found for reply');
+            }
+
+        } catch (e) {
+            console.warn("showReplyFeedbackTaskForm error", e);
+        }
+    }
+
+    function showEditFeedbackTaskForm(taskId, data, isReply) {
+        const feedbackModalEl = document.getElementById("projectTaskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("projectTaskFeedbackModalLabel");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("projectTaskFeedbackList");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        if (modalTitle) modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
+
+        const existingImg = data.image_url || '';
+        const bgImage = existingImg ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;` : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+        const clearBtnClass = existingImg ? '' : 'd-none';
+
+        modalBody.innerHTML = `
+            <form id="editFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                ${data.parent_id ? `<input type=\"hidden\" name=\"parent_id\" value=\"${data.parent_id}\">` : ''}
+
+                <!-- Attachment buttons (Photo & File) -->
+                <div class="mb-3">
+                    <label class="form-label">Attachment</label>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-outline-secondary d-flex align-items-center" id="taskEditFeedbackPhotoBtn">
+                            <span class="material-symbols-outlined me-1">photo_camera</span>Photo
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary d-flex align-items-center ms-2" id="taskEditFeedbackFileBtn">
+                            <span class="material-symbols-outlined me-1">attach_file</span>File
+                        </button>
+                    </div>
+                    <!-- Hidden inputs -->
+                    <input type="file" id="task_edit_feedback_image_input" ${isReply ? 'name="image"' : 'name="feedback_image"'} accept="image/*" hidden>
+                    <input type="file" id="task_edit_feedback_files_input" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple hidden>
+                </div>
+
+                <div class="mb-3 custom-input">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+
+                    <!-- Quill toolbar + editor (visual) -->
+                    <div id="task_edit_feedback_toolbar">
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                        </span>
+                    </div>
+
+                    <div id="task_edit_feedback_editor"
+                        style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+
+                    <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" required style="display:none;">${data.feedback_comment || ''}</textarea>
+                </div>
+
+                <div class="mb-3 custom-input">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
+                </div>
+
+                <div class="mb-3 custom-input">
+                    <label class="form-label">Reference Files (Optional)</label>
+                    <div id="task_edit_feedback_files_preview" class="mt-2"></div>
+                    <div id="existing_feedback_reference_files" class="mt-2"></div>
+                    <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                </div>
+            </form>
+        `;
+
+        (function(){
+            try {
+                const imageInput = modalBody.querySelector('#feedback_image');
+                const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
+                const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+
+                if (imageInput) {
+                    imageInput.addEventListener('change', function () {
+                        if (this.files && this.files[0]) {
+                            const file = this.files[0];
+                            if (file.size > MAX_IMAGE_BYTES) {
+                                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                                this.value = '';
+                                return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                try {
+                                    if (imageLabel) {
+                                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                                        imageLabel.classList.add('has-image');
+                                        imageLabel.style.backgroundSize = 'cover';
+                                        imageLabel.style.opacity = '1';
+                                    }
+                                    if (imageClearBtn) imageClearBtn.classList.remove('d-none');
+                                } catch (_) {}
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+
+                if (imageClearBtn) {
+                    imageClearBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        try {
+                            if (imageInput) imageInput.value = '';
+                            if (imageLabel) {
+                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                imageLabel.style.backgroundPosition = 'center center';
+                                imageLabel.style.backgroundRepeat = 'no-repeat';
+                                imageLabel.style.backgroundSize = '50%';
+                                imageLabel.classList.remove('has-image');
+                                imageLabel.style.opacity = '0.5';
+                            }
+                            imageClearBtn.classList.add('d-none');
+                        } catch (_) {}
+                    });
+                }
+            } catch (_) {}
+        })();
+
+        (function() {
+            const container = modalBody.querySelector('#feedback_reference_urls_container');
+            if (!container) return;
+            let urls = [];
+            if (Array.isArray(data.reference_urls) && data.reference_urls.length > 0) {
+                urls = data.reference_urls;
+            } else if (data.reference_url) {
+                urls = [data.reference_url];
+            }
+            if (urls.length === 0) {
+                const row = document.createElement('div');
+                row.className = 'd-flex gap-2 align-items-center';
+                row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">` +
+                    `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`;
+                container.appendChild(row);
+            } else {
+                urls.forEach((u, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'd-flex gap-2 align-items-center';
+                    const controls = (idx === 0)
+                        ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                        : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                    row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" value="${u}" placeholder="https://example.com">${controls}`;
+                    container.appendChild(row);
+                });
+            }
+        })();
+
+        (function() {
+            const container = document.getElementById('existing_feedback_reference_files');
+            const hidden = document.getElementById('existing_feedback_reference_files_input');
+            if (!container || !hidden) return;
+            let files = Array.isArray(data.reference_files_urls) ? data.reference_files_urls.slice() : [];
+            if (files.length === 0 && data.reference_file_url) files = [data.reference_file_url];
+            let kept = files.slice();
+            hidden.value = JSON.stringify(kept);
+
+            container.innerHTML = '';
+            if (files.length > 0) {
+                files.forEach((url, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                    const info = document.createElement('div');
+                    info.className = 'd-flex align-items-center flex-grow-1';
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined me-2';
+                    icon.textContent = 'description';
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    const fileName = (function(){
+                        try { const u = new URL(url, window.location.origin); return decodeURIComponent(u.pathname.split('/').pop()); } catch(e) {
+                            const parts = String(url).split('/'); return decodeURIComponent(parts[parts.length-1] || String(url));
+                        }
+                    })();
+                    link.textContent = fileName;
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'btn btn-sm btn-outline-danger ms-2';
+                    remove.innerHTML = '&times;';
+                    remove.addEventListener('click', function(){
+                        const indexInKept = kept.indexOf(url);
+                        if (indexInKept !== -1) { kept.splice(indexInKept, 1); hidden.value = JSON.stringify(kept); }
+                        item.remove();
+                    });
+                    info.appendChild(icon);
+                    info.appendChild(link);
+                    item.appendChild(info);
+                    item.appendChild(remove);
+                    container.appendChild(item);
+                });
+            }
+        })();
+
+        try {
+            selectedFiles = [];
+            const refInput = modalBody.querySelector('#reference_files');
+            if (refInput) {
+                refInput.addEventListener('change', function () {
+                    const files = Array.from(this.files || []);
+                    if (files.length) {
+                        selectedFiles = [...selectedFiles, ...files];
+                        if (typeof displaySelectedFiles === 'function') {
+                            displaySelectedFiles();
+                        }
+                    }
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
+
+        try {
+            const photoBtn = document.getElementById('taskEditFeedbackPhotoBtn');
+            const fileBtn = document.getElementById('taskEditFeedbackFileBtn');
+            const imageInput = document.getElementById('task_edit_feedback_image_input');
+            const filesInput = document.getElementById('task_edit_feedback_files_input');
+
+            if (photoBtn && imageInput) {
+                photoBtn.addEventListener('click', function() {
+                    imageInput.click();
+                });
+            }
+
+            if (fileBtn && filesInput) {
+                fileBtn.addEventListener('click', function() {
+                    filesInput.click();
+                });
+            }
+
+            if (imageInput) {
+                imageInput.addEventListener('change', function() {
+                    const file = this.files && this.files[0];
+                    if (!file) return;
+
+                    // Size validation
+                    if (file.size > MAX_IMAGE_BYTES) {
+                        if (typeof showFloatingAlert === 'function') {
+                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning');
+                        }
+                        this.value = '';
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        showInlineFeedbackImagePreviewSmall(file, e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            if (filesInput) {
+                filesInput.addEventListener('change', function() {
+                    const files = Array.from(this.files || []);
+                    if (!files.length) return;
+
+                    if (!window.taskEditFeedbackSelectedFiles) window.taskEditFeedbackSelectedFiles = [];
+                    window.taskEditFeedbackSelectedFiles = [...window.taskEditFeedbackSelectedFiles, ...files];
+
+                    renderTaskProjectEditFeedbackFilesPreview();
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
+
+        setUnifiedProjectTaskFeedbackFooter(taskId, 'Save', function(){
+            const form = document.getElementById('editFeedbackForm');
+            if (!form) return; submitEditFeedbackTaskForm(form, taskId, data.id, isReply);
+        });
+
+        try {
+            if (typeof initTaskFeedbackQuillEditors === 'function') {
+                initTaskFeedbackQuillEditors(modalBody);
+                if (window.__quillTaskFeedbackEdit && data.feedback_comment) {
+                    window.__quillTaskFeedbackEdit.root.innerHTML = data.feedback_comment || '';
+                }
+            }
+        } catch (_) {}
+    }
+
+    function setUnifiedProjectTaskFeedbackFooter(taskId, submitLabel, onSubmit){
+        const modal = document.getElementById('projectTaskFeedbackModal');
+        if (!modal) return;
+        let footer = modal.querySelector('.feedback-modal-footer')
+                  || modal.querySelector('.modal-footer')
+                  || modal.querySelector('.modal-footer-custom');
+        if (!footer) {
+            const addBtn = modal.querySelector('#addFeedbackButton');
+            if (addBtn && addBtn.parentElement) footer = addBtn.parentElement;
+        }
+        const titleEl = modal.querySelector('.feedback-modal-title');
+        if (!footer) return;
+        footer.innerHTML = '';
+        const wrapper = document.createElement('div');
+        wrapper.id = 'taskFeedbackFormButtonsWrapper';
+        wrapper.className = 'd-flex gap-2 w-100';
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-close-reply flex-grow-1';
+        closeBtn.textContent = 'Close';
+        closeBtn.addEventListener('click', function(){
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            loadProjectTaskFeedbackData(taskId);
+        });
+        const submitBtn = document.createElement('button');
+        submitBtn.type = 'button';
+        submitBtn.className = 'btn btn-submit-black flex-grow-1';
+        submitBtn.textContent = submitLabel;
+        submitBtn.addEventListener('click', function(e){ e.preventDefault(); onSubmit && onSubmit(); });
+        wrapper.appendChild(closeBtn);
+        wrapper.appendChild(submitBtn);
+        footer.appendChild(wrapper);
+    }
+
+    function submitEditFeedbackTaskForm(form, taskId, id, isReply) {
+        const submitBtn = document.getElementById('addFeedbackButton');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            submitBtn.disabled = true;
+        }
+
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
+
+        const formData = new FormData(form);
+        formData.append('_method', 'PUT');
+        try {
+            const editSelectedFiles = window.taskEditFeedbackSelectedFiles || selectedFiles || [];
+            if (Array.isArray(editSelectedFiles) && editSelectedFiles.length > 0) {
+                editSelectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + id,
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            success: function (response) {
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || 'Feedback updated successfully!', 'success');
+                }
+                const titleEl = document.querySelector('#projectTaskFeedbackModal .feedback-modal-title') || document.getElementById('projectTaskFeedbackModalLabel');
+                if (titleEl) titleEl.textContent = 'Task Feedback';
+                const feedbackModalEl = document.getElementById('projectTaskFeedbackModal');
+                let footer = feedbackModalEl?.querySelector('.feedback-modal-footer')
+                          || feedbackModalEl?.querySelector('.modal-footer')
+                          || feedbackModalEl?.querySelector('.modal-footer-custom');
+                if (!footer) {
+                    const maybeBtn = feedbackModalEl?.querySelector('#addFeedbackButton');
+                    if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                }
+                if (footer) {
+                    let addBtn = footer.querySelector('#addFeedbackButton');
+                    footer.innerHTML = '';
+                    if (!addBtn) {
+                        addBtn = document.createElement('button');
+                        addBtn.type = 'button';
+                        addBtn.className = 'btn btn-submit-black w-100';
+                        addBtn.id = 'addFeedbackButton';
+                        addBtn.textContent = 'Add Feedback';
+                        footer.appendChild(addBtn);
+                    } else {
+                        addBtn.textContent = 'Add Feedback';
+                        const fresh = addBtn.cloneNode(true);
+                        addBtn.parentNode.replaceChild(fresh, addBtn);
+                        addBtn = fresh;
+                        footer.appendChild(addBtn);
+                    }
+                    addBtn.disabled = false;
+                    addBtn.removeAttribute('disabled');
+                    addBtn.addEventListener('click', () => showAddFeedbackTaskForm(taskId));
+                }
+                loadProjectTaskFeedbackData(taskId);
+                try { scheduleRefreshLatestFeedbackSnippets(10); } catch(_) {}
+                try { fetchAndRenderTasks(); } catch(_) {}
+            },
+            error: function (xhr) {
+                let errorMessage = 'Failed to update feedback. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, 'danger');
+                } else {
+                    alert(errorMessage);
+                }
+            },
+            complete: function () {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnHtml || 'Save';
+                    submitBtn.disabled = false;
+                }
+                try { selectedFiles = []; const preview = document.getElementById('feedback_reference_files_preview'); if (preview) preview.innerHTML = ''; } catch(_) {}
+            }
+        });
+    }
+
+    function initProjectTaskInlineFeedbackEditor(taskId) {
+    try {
+        if (typeof Quill === "undefined") return;
+        if (window.__quillTaskFeedbackInline) return window.__quillTaskFeedbackInline;
+
+        const editorEl = document.getElementById("inline_task_feedback_editor");
+        if (!editorEl) return null;
+
+        const q = new Quill("#inline_task_feedback_editor", {
+            modules: { toolbar: false, clipboard: { matchVisual: false } },
+            theme: "snow",
+            placeholder: "Write feedback..."
+        });
+
+        try {
+            const Delta = Quill.import && Quill.import("delta");
+            if (q && q.clipboard && typeof q.clipboard.addMatcher === "function") {
+                q.clipboard.addMatcher("IMG", function (node, delta) {
+                    try { return new Delta(); } catch (_) { return delta; }
+                });
+            }
+        } catch (_) {}
+
+        try {
+            q.on && q.on("text-change", function () {
+                try {
+                    const imgs = q.root.querySelectorAll("img");
+                    imgs.forEach(i => i.remove());
+                } catch (_) {}
+                try {
+                    const plain = typeof q.getText === "function"
+                        ? (q.getText() || "").trim()
+                        : (q.root.textContent || "").replace(/\s+/g, "").trim();
+                    if (plain && plain.length > 0) {
+                        q.root.classList.remove("ql-blank");
+                    } else {
+                        if (!q.root.classList.contains("ql-blank"))
+                            q.root.classList.add("ql-blank");
+                    }
+                } catch (_) {}
+            });
+        } catch (_) {}
+
+        window.__quillTaskFeedbackInline = q;
+
+        try {
+            const editorRoot = editorEl.querySelector(".ql-editor");
+            if (editorRoot) {
+                const togglePlaceholder = function () {
+                    try {
+                        const txt = (editorRoot.textContent || "").replace(/\uFEFF/g, "").trim();
+                        if (txt.length > 0) {
+                            editorRoot.classList.remove("ql-blank");
+                        } else {
+                            if (!editorRoot.classList.contains("ql-blank"))
+                                editorRoot.classList.add("ql-blank");
+                        }
+                    } catch (_) {}
+                };
+                editorRoot.addEventListener("input", togglePlaceholder);
+                editorRoot.addEventListener("keydown", () => setTimeout(togglePlaceholder, 0));
+            }
+        } catch (_) {}
+
+        if (!window.inlineTaskFeedbackSelectedFiles) {
+            window.inlineTaskFeedbackSelectedFiles = [];
+        }
+
+        setupInlineProjectTaskFeedbackButtons(taskId, q);
+        return q;
+    } catch (e) {
+        console.warn("Failed to init inline task feedback editor:", e);
+        return null;
+    }
+    }
+
+    function submitInlineProjectTaskFeedback(taskId, quill) {
+        const appUrl = (() => {
+            try {
+                const meta = document.querySelector('meta[name="app-url"]');
+                let v = (meta && meta.getAttribute("content")) || "";
+                if (v) {
+                    v = new URL(v, window.location.origin).href.replace(/\/+$/, "");
+                    return v;
+                }
+                const parts = (window.location.pathname || "").split("/").filter(Boolean);
+                const baseSeg = parts.length > 0 ? "/" + parts[0] : "";
+                return (window.location.origin + baseSeg).replace(/\/+$/, "");
+            } catch (_) {
+                return (window.location.origin || "").replace(/\/+$/, "");
+            }
+        })();
+
+        try {
+            const html = quill.root.innerHTML || "";
+            let hasImage = false,
+                hasRefFiles = false;
+
+            try {
+                if (window.__taskInlineFeedbackImageFile) hasImage = true;
+                else {
+                    const pi = document.getElementById("inline_task_feedback_image_input");
+                    if (pi && pi.files && pi.files.length) hasImage = true;
+                }
+            } catch (_) {}
+
+            try {
+                if (window.inlineTaskFeedbackSelectedFiles?.length) hasRefFiles = true;
+                else {
+                    const fi = document.getElementById("inline_task_feedback_files_input");
+                    if (fi && fi.files && fi.files.length) hasRefFiles = true;
+                }
+            } catch (_) {}
+
+            const plainText = String(html || "").replace(/<[^>]+>/g, "").trim();
+            if (!plainText && !hasImage && !hasRefFiles) {
+                if (typeof showFloatingAlert === "function")
+                    showFloatingAlert("Please write feedback or attach a file", "warning");
+                return;
+            }
+
+            const feedbackModalEl = document.getElementById("projectTaskFeedbackModal");
+            const employeeId = feedbackModalEl?.getAttribute("data-employee-id") || "";
+            const fd = new FormData();
+
+            fd.append("feedback_comment", html);
+            fd.append("task_id", taskId);
+            fd.append("employee_id", employeeId);
+
+            try {
+                const pid = document.getElementById("inline_parent_id_input");
+                if (pid && pid.value) fd.append("parent_id", pid.value);
+            } catch (_) {}
+
+            const imageFile = window.__taskInlineFeedbackImageFile;
+            if (imageFile) fd.append("feedback_image", imageFile);
+
+            const selectedFiles = window.inlineTaskFeedbackSelectedFiles || [];
+            selectedFiles.forEach(f => fd.append("reference_files[]", f));
+
+            const editId = (document.getElementById("inline_edit_task_feedback_input") || {}).value || "";
+            const isEdit = String(editId).trim() !== "";
+
+            if (isEdit) {
+                try {
+                    const keepList = window.inlineTaskExistingFilesKeep || [];
+                    fd.set("existing_reference_files", JSON.stringify(keepList));
+                } catch (_) {}
+                try {
+                    if (typeof window.__inlineTaskRemoveImage !== "undefined") {
+                        fd.set("remove_image", window.__inlineTaskRemoveImage ? "1" : "0");
+                    }
+                } catch (_) {}
+                fd.append("_method", "PUT");
+            }
+
+            const sendBtn = $("#inlineTaskFeedbackSendBtn");
+            const origText = sendBtn.html();
+            sendBtn.prop("disabled", true)
+                .html('<i class="fas fa-spinner fa-spin me-1"></i>' + (isEdit ? "Updating..." : "Sending..."));
+
+            $.ajax({
+                url: isEdit ? appUrl + "/task-feedbacks/" + editId : appUrl + "/task-feedbacks",
+                type: "POST",
+                data: fd,
+                processData: false,
+                contentType: false,
+                headers: { "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content") },
+                success: function (res) {
+                    const msg = (res && res.message) ||
+                        (isEdit ? "Feedback updated successfully!" : "Feedback submitted successfully!");
+                    if (typeof showFloatingAlert === "function")
+                        showFloatingAlert(msg, "light", 2000);
+
+                    quill.root.innerHTML = "";
+                    window.inlineTaskFeedbackSelectedFiles = [];
+                    window.__taskInlineFeedbackImageFile = null;
+
+                    $("#inline_task_feedback_image_preview, #inline_task_feedback_files_preview, #inline_existing_files_preview").empty();
+
+                    clearReplyState();
+
+                    if (isEdit && typeof window.cancelInlineTaskEditFeedback === "function") {
+                        window.cancelInlineTaskEditFeedback();
+                    }
+
+                    setTimeout(() => {
+                        try {
+                            loadTaskFeedbackData(taskId + "?t=" + Date.now());
+                        } catch (e) {
+                            console.warn("Failed to reload feedback list", e);
+                        }
+                    }, 300);
+                },
+                error: function (xhr) {
+                    let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
+                    if (xhr.responseJSON?.errors) {
+                        msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                    } else if (xhr.responseJSON?.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    if (typeof showFloatingAlert === "function")
+                        showFloatingAlert(msg, "danger", 4000);
+                    else alert(msg);
+                },
+                complete: function () {
+                    sendBtn.prop("disabled", false).html(origText);
+                }
+            });
+        } catch (e) {
+            console.warn("Failed to submit inline task feedback:", e);
+            if (typeof showFloatingAlert === "function")
+                showFloatingAlert("Failed to submit feedback", "warning");
+        }
+    }
+
+    window.startInlineProjectTaskEditFeedback = function(data) {
+        try {
+            const hiddenInput = document.getElementById("inline_edit_task_feedback_input");
+            if (hiddenInput) hiddenInput.value = data.id || "";
+
+            try {
+                const inlinePid = document.getElementById('inline_parent_id_input');
+                if (inlinePid) inlinePid.value = data.parent_id || '';
+            } catch(_) {}
+
+            try {
+                if (!window.__quillTaskFeedbackInline) {
+                    initProjectTaskInlineFeedbackEditor((document.getElementById('projectTaskFeedbackModal')||{}).dataset?.taskId || '');
+                }
+            } catch(_) {}
+
+            try {
+                if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
+                    setTimeout(function(){
+                        try { window.__quillTaskFeedbackInline.root.innerHTML = data.feedback_comment || ""; } catch(_) {}
+                        try {
+                            if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
+                                try { window.__quillTaskFeedbackInline.setSelection(0, 0); } catch(_) {}
+                            }
+                        } catch(_) {}
+                    }, 0);
+                }
+            } catch(_) {}
+
+            try {
+                const rawImg = data.image_url || data.image || "";
+                if (rawImg) {
+                    let url = rawImg;
+                    if (url.indexOf('http') !== 0) {
+                        url = (url.indexOf('/') === 0) ? appUrl.replace(/\/$/, "") + url : appUrl.replace(/\/$/, "") + "/file/task_feedback/" + url;
+                    }
+                    showTaskInlineImagePreviewFromUrl(url);
+                }
+            } catch(_) {}
+
+            try {
+                let files = [];
+                if (Array.isArray(data.reference_files_urls)) {
+                    files = data.reference_files_urls;
+                } else if (Array.isArray(data.reference_files)) {
+                    files = data.reference_files;
+                } else if (data.reference_file_url) {
+                    files = [data.reference_file_url];
+                } else if (data.reference_file) {
+                    files = [data.reference_file];
+                }
+                renderInlineTaskExistingFiles(files);
+            } catch(_) {}
+
+            const sendBtn = document.getElementById("inlineTaskFeedbackSendBtn");
+            if (sendBtn) {
+                sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
+                try {
+                    sendBtn.innerHTML = `
+                        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">send</span>
+                    `;
+                } catch(_) {
+                    sendBtn.textContent = 'Update';
+                }
+            }
+
+            const actions = document.querySelector('.btn-actions-feedback .submit-feedback');
+            if (actions && !document.getElementById('inlineTaskFeedbackCancelBtn')) {
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.id = 'inlineTaskFeedbackCancelBtn';
+                cancel.className = 'btn btn-custom-close me-2 d-flex align-items-center gap-1';
+                cancel.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">cancel</span>';
+                cancel.addEventListener('click', function() {
+                    try {
+                        window.cancelInlineTaskEditFeedback();
+                    } catch(_) {}
+                });
+                actions.insertBefore(cancel, actions.firstChild);
+            }
+        } catch(_) {}
+    };

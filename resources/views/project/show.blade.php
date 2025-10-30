@@ -963,30 +963,35 @@
 
                             <hr>
 
-                            
-
-                            <div class="d-flex justify-content-end">
-                                <button class="btn border-0 playlist-add-check" data-bs-target="#completedModal"
-                                    data-bs-toggle="modal">
-                                    <span style="font-size: 18px; color: #444;"
-                                        class="material-symbols-outlined">playlist_add_check</span>
-                                </button>
-                            </div>
-
+                            <!-- Ref Urls -->
                             <div id="referenceUrlsList" class="d-flex flex-column gap-2 mb-2">
-                                <!-- Reference URLs will be inserted here -->
+
                             </div>
 
+                            <!-- Ref Files -->
                             <div id="referenceFilesList" class="d-flex flex-column gap-2 mb-2">
-                                <!-- Reference files links will be inserted here -->
+
                             </div>
 
-                            <!-- Collaborators -->
-                            <div class="collab-section mt-3 mb-3" style="font-size: 12px;">
-                                <div id="projectTaskCollaborators"></div>
-                            </div>
+                            <div class="d-flex justify-content-between align-items-start">
+                                <!-- Collaborators -->
+                                <div class="collab-section mt-3 mb-3" style="font-size: 12px;">
+                                    <div id="projectTaskCollaborators"></div>
+                                </div>
 
-                            
+                                <!-- Action Icon -->
+                                <div class="d-flex justify-content-end">
+                                    <button class="btn border-0 playlist-add-check" data-bs-target="#completedModal"
+                                        data-bs-toggle="modal">
+                                        <span style="font-size: 18px; color: #444;"
+                                            class="material-symbols-outlined">playlist_add_check</span>
+                                    </button>
+                                    <button class="btn border-0 feedback-detail-task" id="projectTaskFeedbackBtn" data-task-id="{{ $taskId ?? '' }}" data-bs-target="#projectTaskFeedbackModal" data-bs-toggle="modal">
+                                        <span style="font-size: 18px; color: #444;"
+                                            class="material-symbols-outlined">mode_comment</span>
+                                    </button>
+                                </div>
+                            </div>
 
                             <!-- Meta Info -->
                             <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
@@ -1747,14 +1752,61 @@
             </div>
         </div>
 
+        <!-- Task Feedback Modal -->
+        <div class="modal fade" id="projectTaskFeedbackModal" tabindex="-1" aria-labelledby="projectTaskFeedbackModalLabel"
+            aria-hidden="true" data-task-id="{{ $taskId ?? '' }}"
+            data-employee-id="{{ auth()->user()->employee->id ?? '' }}"
+            data-employee-department-id="{{ auth()->user()->employee->department_id ?? '' }}">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
+                <div class="modal-content modal-content-custom">
+                    <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                        <h5 class="modal-title feedback-modal-title flex-grow-1 fs-5 fw-normal"
+                            id="projectTaskFeedbackModalLabel">Task Feedback</h5>
+                        <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                    </div>
+
+                    <div class="modal-body feedback-modal-body" id="projectTaskFeedbackList">
+                    </div>
+                    <div class="modal-footer modal-footer-custom">
+                        <div class="feedback-form w-100">
+                            <div id="inline_feedback_editor" class="border-0 ql-container ql-snow"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
+
+                            <textarea id="inline_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+
+                            <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                                <div class="d-flex-justify-content-start">
+                                    <button type="button" class="btn btn-sm border-0" id="inlineFeedbackPhotoBtn" title="Upload photo">
+                                        <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                    </button>
+                                    <button type="button" class="btn btn-sm border-0" id="inlineFeedbackFileBtn" title="Attach file">
+                                        <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                    </button>
+                                    <input type="file" id="inline_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                                    <input type="file" id="inline_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                                    <input type="text" id="inline_edit_feedback_input" name="edit_feedback" class="d-none">
+                                </div>
+                                <div class="d-flex justify-content-end submit-feedback">
+                                    <button type="button" class="btn btn-submit-black" id="inlineFeedbackSendBtn">
+                                        <span class="material-symbols-outlined">send</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert-container mt-2"></div>
+            </div>
+        </div>
+
         <x-slot name="script_slot">
             <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
             <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"></script>
+            <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_timeline.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/task.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_depedencies.js') }}?v={{ time() }}"></script>
-            <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
             <script src="{{ asset('asset/js/project_detail_plumb.js') }}?v={{ time() }}"></script>
             <script>
                 window.APP_URL = document.querySelector('meta[name="app-url"]').getAttribute('content');
