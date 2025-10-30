@@ -73,7 +73,7 @@
                         <div class="description-container mb-1">
                             <p id="project-description" class="description-detail">-</p>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex justify-content-between align-items-start">
                             <div id="ref-files-container">
                             </div>
                             <div class="d-flex" id="project-actions">
@@ -1043,23 +1043,23 @@
                         </div>
 
                         <div class="row mb-4 link-file-task">
+
+                            <div class="col-6 d-flex align-items-center mb-3" style="font-size: 12px;">
+                                <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
+                                <span id="completed_priority">-</span>
+                            </div>
+                            <div class="col-6 d-flex align-items-center mb-3" style="font-size: 12px;">
+                                <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
+                                <span id="completed_date">-</span>
+                            </div>
                             
                             <div class="col-12 mb-3" style="font-size: 12px;">
                                 <label class="fw-normal text-muted d-block mb-1">Links:</label>
                                 <div id="completed_task_urls"><em>-</em></div>
                             </div>
-                            <div class="col-12 mb-5" style="font-size: 12px;">
+                            <div class="col-12 mb-3" style="font-size: 12px;">
                                 <label class="fw-normal text-muted d-block mb-1">Files:</label>
                                 <div id="completed_task_files"><em>-</em></div>
-                            </div>
-
-                            <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
-                                <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
-                                <span id="completed_priority">-</span>
-                            </div>
-                            <div class="col-6 d-flex align-items-center" style="font-size: 12px;">
-                                <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
-                                <span id="completed_date">-</span>
                             </div>
 
                         </div>

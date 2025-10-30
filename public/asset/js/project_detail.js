@@ -8746,9 +8746,8 @@ function statusLabel(statusRaw) {
     return '<span class="badge bg-light text-dark">' + (statusRaw || 'Unknown') + '</span>';
 }
 
-    function loadRelatedTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
+    function loadRelatedProjectTasks(projectId, prefix = "task", selectedParentId = null, selectedParentTitle = "") {
         try {
-            // If prefix is a DOM element (e.g., a select), derive prefix from its id
             if (prefix && typeof prefix !== 'string' && prefix.id) {
                 var match = String(prefix.id).match(/^(.+)_parent_id$/) || String(prefix.id).match(/^(.+)_parent_input$/);
                 if (match) prefix = match[1];
@@ -8756,14 +8755,12 @@ function statusLabel(statusRaw) {
         } catch (_) {}
 
         try {
-            // If selectedParentId is actually a DOM element (e.g., passed accidentally), extract its value
             if (selectedParentId && typeof selectedParentId !== 'string' && typeof selectedParentId !== 'number') {
                 if (selectedParentId.id && String(selectedParentId.id).match(/_parent_id$/) && typeof selectedParentId.value !== 'undefined') {
                     selectedParentId = selectedParentId.value;
                 } else if (selectedParentId.getAttribute && selectedParentId.getAttribute('data-parent-id')) {
                     selectedParentId = selectedParentId.getAttribute('data-parent-id');
                 } else {
-                    // fallback: not a usable value
                     selectedParentId = selectedParentId || null;
                 }
             }
@@ -8801,17 +8798,20 @@ function statusLabel(statusRaw) {
         }
 
         function showSelectedTask(task) {
-            try {
-                if (window.__debugLoadRelatedTasks) console.debug('loadRelatedTasks.showSelectedTask', { prefix: prefix, taskId: task && task.id, taskTitle: task && task.title });
-            } catch(_) {}
             let avatarHtml = task.image
                 ? `<img src="${appUrl}/file/task/${task.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
                 : getInitialAvatar(task.title);
 
+            const start = task.start_date || "-";
+            const end = task.due_date || "-";
+
             selectedContainer.innerHTML = `
                 <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
                     ${avatarHtml}
-                    <span class="flex-grow-1">${task.title}</span>
+                    <div class="d-flex flex-column flex-grow-1">
+                        <span class="fw-semibold">${task.title}</span>
+                        <small class="text-muted fs-8">${formatDateENMediumDayMonth(start)} - ${formatDateENMediumDayMonth(end)}</small>
+                    </div>
                     <button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1">
                         <span class="material-symbols-outlined">close</span>
                     </button>
@@ -8836,9 +8836,19 @@ function statusLabel(statusRaw) {
                     ? `<img src="${appUrl}/file/task/${t.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`
                     : getInitialAvatar(t.title);
 
+                const start = t.start_date || "-";
+                const end = t.due_date || "-";
+
                 const item = document.createElement("div");
-                item.className = "dropdown-item d-flex align-items-center gap-2";
-                item.innerHTML = `${avatarHtml}<span>${t.title}</span>`;
+                item.className = "dropdown-item d-flex align-items-start gap-2 py-2";
+                item.innerHTML = `
+                    ${avatarHtml}
+                    <div class="d-flex flex-column">
+                        <span class="fw-semibold">${t.title}</span>
+                        <small class="text-muted fs-8">${formatDateENMediumDayMonth(start)} - ${formatDateENMediumDayMonth(end)}</small>
+                    </div>
+                `;
+
                 item.addEventListener("click", () => {
                     hiddenInput.value = t.id;
                     input.value = t.title;
@@ -8857,7 +8867,9 @@ function statusLabel(statusRaw) {
                 tasks = (payload.data || []).map(t => ({
                     id: t.id,
                     title: t.title,
-                    image: t.image || ""
+                    image: t.image || "",
+                    start_date: t.start_date || "",
+                    due_date: t.due_date || ""
                 }));
 
                 if (selectedParentId) {
@@ -8869,7 +8881,13 @@ function statusLabel(statusRaw) {
                     } else if (selectedParentTitle) {
                         hiddenInput.value = selectedParentId;
                         input.value = selectedParentTitle;
-                        showSelectedTask({ id: selectedParentId, title: selectedParentTitle, image: "" });
+                        showSelectedTask({
+                            id: selectedParentId,
+                            title: selectedParentTitle,
+                            image: "",
+                            start_date: "",
+                            due_date: ""
+                        });
                     }
                 }
             })
@@ -8942,7 +8960,7 @@ function statusLabel(statusRaw) {
                     input.value = p.title;
                     dropdown.style.display = "none";
                     showSelectedProject(p);
-                    loadRelatedTasks(p.id, "edit_task", null);
+                    loadRelatedProjectTasks(p.id, "edit_task", null);
                 });
                 dropdown.appendChild(item);
             });
@@ -9093,7 +9111,7 @@ function handleProjectTaskEdit(taskId) {
             (function() {
                 const cb = function() {
                     try {
-                        loadRelatedTasks(projectId, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
+                        loadRelatedProjectTasks(projectId, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
                     } catch(_) {}
                     try { ensureParentOption(document.getElementById("edit_task_parent_id"), t.parent_id); } catch(_) {}
                 };
@@ -9130,10 +9148,9 @@ function handleProjectTaskEdit(taskId) {
                             });
                         }
 
-                        // 🔥 Tambahan fix — reload parent task setelah project tampil
                         setTimeout(() => {
                             try {
-                                loadRelatedTasks(p.id, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
+                                loadRelatedProjectTasks(p.id, "edit_task", t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
                             } catch (e) {
                                 console.error('Failed to reload related tasks after project render', e);
                             }

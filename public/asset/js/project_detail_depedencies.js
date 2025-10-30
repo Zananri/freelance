@@ -498,54 +498,76 @@ $(document).on('click', '.playlist_add_check', function () {
             $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
             $('#completed_task_note').html(task.complete_note || '<em>No note</em>');
             $('#completed_priority').text(task.priority || '-');
-            $('#completed_date').text(task.complete_date || '-');
+            $('#completed_date').text(formatDateENMedium(task.complete_date) || '-');
 
-            const $urls = $('#completed_task_urls').empty();
-            if (Array.isArray(task.complete_urls) && task.complete_urls.length) {
-                task.complete_urls.forEach((u, idx) => {
-                    const href = u.startsWith('http') ? u : '/' + String(u).replace(/^\/+/, '');
-                    const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
-                    const $link = $('<a>', { href, target: '_blank', class: 'flex-grow-1 text-truncate text-decoration-none', text: `COMPLETED_LINK_${idx+1}` }).css({ fontSize:'10px', color:'#444' });
-                    $item.append($link);
-                    $urls.append($item);
+            const $urlsContainer = $("#completed_task_urls").empty();
+            const urls = task.complete_urls || task.finished_urls || [];
+
+            if ($.isArray(urls) && urls.length) {
+                urls.forEach((u) => {
+                    const absUrl = u.startsWith("http")
+                        ? u
+                        : `${appUrl.replace(/\/+$/, '')}/${u.replace(/^\/+/, '')}`;
+                    const linkName = absUrl.split('/').pop() || absUrl;
+
+                    const linkHtml = `
+                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                        <a href="${absUrl}" target="_blank" class="text-decoration-none"
+                        style="
+                            color:#444;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            display: block;
+                            width: 100%;
+                        ">
+                        ${absUrl}
+                        </a>
+                    </div>`;
+
+                    $urlsContainer.append(linkHtml);
                 });
-            } else $urls.html('<em>-</em>');
+            } else {
+                $urlsContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
+            }
 
-            const $files = $('#completed_task_files').empty();
-            if (Array.isArray(task.complete_files) && task.complete_files.length) {
-                task.complete_files.forEach((f, idx) => {
-                    const raw = f && (f.url || f) || '';
-                    const fileName = String(raw).replace(/^\/+/, '');
-                    const url = `/file/task_complete_files/${fileName}`;
+            const $filesContainer = $("#completed_task_files").empty();
+            const files = task.complete_files || task.finished_files || [];
 
-                    const ext = (fileName.split('.').pop() || '').toLowerCase();
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(ext);
-                    const isPDF = ext === 'pdf';
-                    const isDownloadable = /^(docx?|xlsx?|pptx?)$/i.test(ext);
+            if ($.isArray(files) && files.length) {
+                files.forEach((f, idx) => {
+                    let raw = f.url || f;
+                    let absUrl = "";
+                    const isAbs = raw.startsWith("http://") || raw.startsWith("https://");
+                    const isRefPath = raw.startsWith("/file/") || raw.startsWith("file/");
+                    if (isAbs) absUrl = raw;
+                    else if (isRefPath) absUrl = appUrl.replace(/\/+$/, '') + '/' + raw.replace(/^\/+/, '');
+                    else absUrl = appUrl.replace(/\/+$/, '') + '/file/task_complete_files/' + raw.replace(/^\/+/, '');
 
-                    const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
+                    const extMatch = raw.match(/\.[^/.]+$/);
+                    const ext = extMatch ? extMatch[0] : "";
+                    const fileName = `TASK_FILE_${idx + 1}${ext}`;
 
-                    if (isImage) {
-                        const $img = $('<img>', { src: url, width: 28, height: 28, alt: raw });
-                        $img.css({ objectFit: 'cover', borderRadius: '50%' });
-                        $item.append($img);
-                    }
+                    const lower = absUrl.toLowerCase();
+                    const isPreviewable =
+                        lower.endsWith(".pdf") ||
+                        lower.endsWith(".jpg") ||
+                        lower.endsWith(".jpeg") ||
+                        lower.endsWith(".png");
 
-                    const $name = $('<a>')
-                        .text(`COMPLETED_FILES_${idx + 1}`)
-                        .css({ fontSize: '10px', cursor: 'pointer', color: '#444', textDecoration: 'none' })
-                        .attr('href', url);
-
-                    if (isPDF) {
-                        $name.attr('target', '_blank');
-                    } else if (isDownloadable) {
-                        $name.attr('download', '');
-                    }
-
-                    $item.append($name);
-                    $files.append($item);
+                    const fileLinkHtml = `
+                        <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                            <a href="${absUrl}" target="_blank" ${!isPreviewable ? `download="${fileName}"` : ''} 
+                            class="text-decoration-none flex-grow-1" 
+                            style="color:#444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display:block; width:100%;">
+                            ${fileName}
+                            </a>
+                        </div>`;
+                    $filesContainer.append(fileLinkHtml);
                 });
-            } else $files.html('<em>-</em>');
+            } else {
+                $filesContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
+            }
 
             const modal = new bootstrap.Modal(document.getElementById('completedModal'));
             modal.show();
@@ -2102,29 +2124,36 @@ function initProjectTaskDetailModal() {
         let baseButtons = "";
         if (privileged) {
             baseButtons = `
-                <button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button>
-                <button type="button" class="edit-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit</button>
-                <button type="button" class="delete-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete</button>
+                <button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#333;cursor:pointer;">Clear Parent</button>
+                <button type="button" class="edit-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#333;cursor:pointer;">Edit</button>
+                <button type="button" class="delete-task-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#d33;cursor:pointer;">Delete</button>
             `;
         }
 
         let extraButtons = "";
         switch ((status || "").trim()) {
             case "new_request":
-                extraButtons = `<button type="button" class="status-progress-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">Progress</button>`;
+                extraButtons = `<button type="button" class="status-progress-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#0066cc;cursor:pointer;">Progress</button>`;
                 break;
             case "in_progress":
                 extraButtons = `
-                    <button type="button" class="status-newrequest-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#0066cc;cursor:pointer;">New Request</button>
-                    <button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>`;
+                    <button type="button" class="status-newrequest-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#0066cc;cursor:pointer;">Back to New Request</button>
+                    <button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#00aa44;cursor:pointer;">Completed</button>`;
                 break;
             case "completed":
-                extraButtons = `<button type="button" class="status-rejected-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#ff6600;cursor:pointer;">Rejected</button>`;
-                extraButtons = `<button type="button" class="status-finished-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#444;cursor:pointer;">Finished</button>`;
+                extraButtons = `
+                    <button type="button" class="status-rejected-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#ff6600;cursor:pointer;">Rejected</button>
+                    <button type="button" class="status-finished-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#444;cursor:pointer;">Finished</button>`;
                 break;
             case "rejected":
-                extraButtons = `<button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#00aa44;cursor:pointer;">Completed</button>`;
+                extraButtons = `<button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#00aa44;cursor:pointer;">Completed</button>`;
                 break;
+            case "finished":
+                extraButtons = `
+                    <button type="button" class="status-rejected-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#ff6600;cursor:pointer;">Rejected</button>
+                    <button type="button" class="status-completed-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:10px;color:#444;cursor:pointer;">Back to Completed</button>`;
+                break;
+
         }
         return extraButtons + baseButtons;
     }
@@ -2410,6 +2439,28 @@ $(function () {
 
         $dropdown.html('<div class="dropdown-item text-muted">Loading tasks...</div>').show();
 
+        function getInitialAvatar(name) {
+            const colors = [
+                "#F44336", "#E91E63", "#9C27B0", "#673AB7",
+                "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
+                "#009688", "#4CAF50", "#8BC34A", "#FFC107",
+                "#FF9800", "#FF5722", "#795548"
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const initial = (name || "?").charAt(0).toUpperCase();
+            return `<div style="
+                width:28px;height:28px;
+                border-radius:50%;
+                background:${color};
+                color:#fff;
+                font-size:13px;
+                font-weight:bold;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+            ">${initial}</div>`;
+        }
+
         $.ajax({
             url: (window.APP_URL || "") + `/projects/${projectId}/tasks`,
             type: "GET",
@@ -2423,23 +2474,41 @@ $(function () {
 
                 $dropdown.empty();
                 $.each(data, function (_, task) {
-                    var $item = $("<div>")
-                        .addClass("dropdown-item")
-                        .css("cursor", "pointer")
-                        .text(task.title || "Task #" + task.id)
-                        .on("click", function () {
-                            $id.val(task.id);
-                            $input.val(task.title || "Task #" + task.id);
-                            $selected.html(`
-                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                    let avatarHtml = task.image
+                        ? `<img src="${appUrl}/file/task/${task.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`
+                        : getInitialAvatar(task.title);
+
+                    let startDate = task.start_date ? task.start_date : "-";
+                    let dueDate = task.due_date ? task.due_date : "-";
+
+                    var $item = $(`
+                        <div class="dropdown-item d-flex align-items-start gap-2 py-2" style="cursor:pointer;">
+                            ${avatarHtml}
+                            <div class="d-flex flex-column">
+                                <span class="fw-semibold">${task.title || "Task #" + task.id}</span>
+                                <small class="text-muted fs-8">${formatDateENMediumDayMonth(startDate)} - ${formatDateENMediumDayMonth(dueDate)}</small>
+                            </div>
+                        </div>
+                    `);
+
+                    $item.on("click", function () {
+                        $id.val(task.id);
+                        $input.val(task.title || "Task #" + task.id);
+                        $selected.html(`
+                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                                ${avatarHtml}
+                                <div class="d-flex flex-column">
                                     <span class="flex-grow-1">${task.title || "Task #" + task.id}</span>
-                                    <button type="button" class="btn btn-sm btn-remove-task remove-task">
-                                        <span class="material-symbols-outlined">close</span>
-                                    </button>
+                                    <small class="text-muted fs-8">${formatDateENMediumDayMonth(startDate)} - ${formatDateENMediumDayMonth(dueDate)}</small>
                                 </div>
-                            `);
-                            $dropdown.hide();
-                        });
+                                <button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1">
+                                    <span class="material-symbols-outlined">close</span>
+                                </button>
+                            </div>
+                        `);
+                        $dropdown.hide();
+                    });
+
                     $dropdown.append($item);
                 });
 
