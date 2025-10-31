@@ -1308,12 +1308,13 @@ class ProjectController extends Controller
                             ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "new_request" THEN 1 ELSE 0 END)');
                     });
             } elseif ($filter === 'completed') {
+                // Complete: Project dimana SEMUA task berstatus completed
                 $query->whereIn('projects.id', function ($subquery) {
                     $subquery->from('tasks')
                         ->selectRaw('project_id')
                         ->groupBy('project_id')
-                        ->havingRaw('COUNT(*) = SUM(CASE WHEN status IN ("completed", "finished") THEN 1 ELSE 0 END)')
-                        ->havingRaw('COUNT(*) > 0');
+                        ->havingRaw('COUNT(*) = SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END)')
+                        ->havingRaw('COUNT(*) > 0'); // Pastikan ada task
                 });
             }
 
