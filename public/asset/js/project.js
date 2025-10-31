@@ -1616,12 +1616,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             const inProgress = counts.in_progress || 0;
                             const late = counts.late || 0;
 
+                            console.log(project.task_counts);
+                            
+
                             if (total === 0) return "not_started";
                             if (notStarted === total) return "not_started";
                             if (inProgress > 0) return "in_progress";
                             if (completed === total) return "completed";
                             if (late > 0) return "late";
-                            return "in_progress";
+                            // return "not_started";
                         }
 
                         function renderProjectStatus(status) {
