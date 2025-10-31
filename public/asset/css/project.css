@@ -2002,6 +2002,10 @@
     background-color: #ed3500;
 }
 
+.status-finished {
+    background-color: #B2CCEE;
+}
+
 /* PIC and Executor image styling for task modal */
 .pic-executor-image {
     /* Make PIC/Executor images in Task Detail match Project Detail collaborator size */

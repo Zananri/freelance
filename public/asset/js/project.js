@@ -11013,6 +11013,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     "status-badge status-rejected";
                                                 statusText = "Rejected";
                                                 break;
+                                            case "finished":
+                                                statusClass =
+                                                    "status-badge status-finished";
+                                                statusText = "Finished";
+                                                break;
                                         }
 
                                         html += `
