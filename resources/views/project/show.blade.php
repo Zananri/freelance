@@ -266,6 +266,10 @@
                                 <span class="legend-dot legend-green"></span>
                                 <span class="legend-text" id="completedCount">0 Task</span>
                             </div>
+                            <div class="legend-item d-flex align-items-center gap-2">
+                                <span class="legend-dot legend-finish"></span>
+                                <span class="legend-text" id="finishedCount">0 Task</span>
+                            </div>
                         </div>
                     </div>
                 </div>
