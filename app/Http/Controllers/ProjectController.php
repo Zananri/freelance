@@ -1349,7 +1349,7 @@ class ProjectController extends Controller
                         $q->where('status', 'new_request');
                     },
                     'tasks as completed_tasks' => function ($q) {
-                        $q->where('status', 'completed');
+                        $q->whereIn('status', ['completed', 'finished']);
                     },
                     'tasks as late_tasks' => fn($q) =>
                         $q->whereRaw('LOWER(status) <> ?', ['completed'])
