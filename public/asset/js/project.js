@@ -1410,10 +1410,69 @@ document.addEventListener("DOMContentLoaded", function () {
                         } catch(_) { return ''; }
                     })();
 
+                    // Date line: start - due (use formatDateENMedium helper)
+                    let dateLine = '';
+                    try {
+                        const s = project.start_date;
+                        const d = project.due_date;
+                        if (s && d && d !== '' && d !== null && d !== 'null') {
+                            dateLine = `<div class="project-list-date text-muted small">${formatDateENMedium(s)} - ${formatDateENMedium(d)}</div>`;
+                        } else if (s) {
+                            dateLine = `<div class="project-list-date text-muted small">${formatDateENMedium(s)}</div>`;
+                        } else {
+                            dateLine = '';
+                        }
+                    } catch (e) { dateLine = ''; }
+
+                    // Determine visual status for badge (complete / in_progress / not_started / late)
+                    function determineProjectVisualStatus(proj) {
+                        try {
+                            const counts = proj.task_counts || {};
+                            const total = Number(counts.total || counts.total_tasks || 0);
+                            const newReq = Number(counts.new_request || counts.new_reques_tasks || 0);
+                            const completed = Number(counts.completed || counts.completed_tasks || 0);
+                            const inProgress = Number(counts.in_progress || counts.in_progress_tasks || 0);
+                            const late = Number(counts.late || counts.late_tasks || 0);
+
+                            // If no tasks or all new_request => not_started
+                            if (total === 0) return 'not_started';
+                            if (newReq === total) return 'not_started';
+
+                            // If any in_progress -> in_progress
+                            if (inProgress > 0) return 'in_progress';
+
+                            // If all completed
+                            if (completed === total && total > 0) return 'completed';
+
+                            // If has late tasks or project due_date past
+                            try {
+                                const due = proj.due_date;
+                                const isPastDue = due && (new Date().toISOString().slice(0,10) > (new Date(due).toISOString().slice(0,10)));
+                                if (late > 0 || isPastDue) return 'late';
+                            } catch(_) {}
+
+                            // default
+                            return 'in_progress';
+                        } catch (e) {
+                            return 'not_started';
+                        }
+                    }
+
+                    const visualStatus = determineProjectVisualStatus(project);
+                    const statusLabelMap = {
+                        'completed': 'Complete',
+                        'in_progress': 'In Progress',
+                        'not_started': 'Not Started',
+                        'late': 'Late'
+                    };
+                    const badgeHtml = `<div class="project-status-badge status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
+
                     wrapper.innerHTML = `
+                        ${badgeHtml}
                         <div class="flex-shrink-0">${avatarHtml}</div>
                         <div class="flex-grow-1">
                             <div class="project-list-title">${escapeHtml(project.title || 'Untitled Project')}</div>
+                            ${dateLine}
                             ${desc ? `<div class="project-list-desc">${escapeHtml(desc)}</div>` : ''}
                         </div>
                     `;
