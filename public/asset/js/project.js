@@ -1440,9 +1440,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         const s = project.start_date;
                         const d = project.due_date;
                         if (s && d && d !== '' && d !== null && d !== 'null') {
-                            dateLine = `<div class="project-list-date text-muted small">${formatDateENMedium(s)} - ${formatDateENMedium(d)}</div>`;
+                            dateLine = `<div class="project-list-date text-muted fs-8">${formatDateENMedium(s)} - ${formatDateENMedium(d)}</div>`;
                         } else if (s) {
-                            dateLine = `<div class="project-list-date text-muted small">${formatDateENMedium(s)}</div>`;
+                            dateLine = `<div class="project-list-date text-muted fs-8">${formatDateENMedium(s)}</div>`;
                         } else {
                             dateLine = '';
                         }
