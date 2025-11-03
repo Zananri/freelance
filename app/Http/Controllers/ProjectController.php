@@ -2017,6 +2017,200 @@ class ProjectController extends Controller
         }
     }
 
+    /**
+     * Get children projects of a specific parent project.
+     * Returns projects that have this project as their parent (via part_of_project or project_parents table).
+     */
+    public function getChildren(Request $request, string $id)
+    {
+        try {
+            $parentId = (int) $id;
+            if (!$parentId) {
+                return response()->json([
+                    'code' => 400,
+                    'status' => 'error',
+                    'message' => 'Invalid parent project ID'
+                ], 400);
+            }
+
+            // Get current user for authorization
+            $user = auth()->user();
+            $employeeId = $user && $user->employee ? $user->employee->id : null;
+
+            // Check if user is special role (GENERAL_MANAGER, CEO, or ADMINISTRATOR)
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
+
+            // Find all children: combine legacy part_of_project and multi-parent project_parents
+            $childrenIds = [];
+
+            // Legacy: projects.part_of_project = $parentId
+            try {
+                $legacyChildren = DB::table('projects')
+                    ->where('part_of_project', $parentId)
+                    ->pluck('id')
+                    ->toArray();
+                $childrenIds = array_merge($childrenIds, $legacyChildren);
+            } catch (\Throwable $_) {}
+
+            // Multi-parent: project_parents where project_parent_ids JSON contains $parentId
+            try {
+                $multiParentRows = DB::table('project_parents')->get(['project_id', 'project_parent_ids']);
+                foreach ($multiParentRows as $row) {
+                    $child = (int) ($row->project_id ?? 0);
+                    if (!$child) continue;
+                    $parents = [];
+                    if ($row->project_parent_ids) {
+                        $decoded = null;
+                        if (is_string($row->project_parent_ids)) {
+                            $decoded = json_decode($row->project_parent_ids, true);
+                            if (!is_array($decoded) && strpos($row->project_parent_ids, ',') !== false) {
+                                $decoded = array_map('intval', array_map('trim', explode(',', $row->project_parent_ids)));
+                            }
+                        } elseif (is_array($row->project_parent_ids)) {
+                            $decoded = $row->project_parent_ids;
+                        }
+                        $parents = array_values(array_filter(array_map('intval', (array) $decoded)));
+                    }
+                    if (in_array($parentId, $parents, true)) {
+                        $childrenIds[] = $child;
+                    }
+                }
+            } catch (\Throwable $_) {}
+
+            // De-duplicate
+            $childrenIds = array_values(array_unique(array_filter(array_map('intval', $childrenIds))));
+
+            if (empty($childrenIds)) {
+                return response()->json([
+                    'code' => 200,
+                    'status' => 'success',
+                    'data' => []
+                ]);
+            }
+
+            // Fetch the children projects with task counts (same approach as getAllProjects)
+            $projects = Project::with(['department', 'division', 'projectAssignments.employee.user'])
+                ->whereIn('id', $childrenIds)
+                ->where('status', '!=', 'DELETED')
+                ->withCount([
+                    'tasks as total_tasks' => function ($q) {
+                        $q->whereRaw('LOWER(status) NOT IN (?, ?)', ['canceled', 'deleted']);
+                    },
+                    'tasks as in_progress_tasks' => function ($q) {
+                        $q->whereIn(DB::raw('LOWER(status)'), ['in_progress', 'rejected']);
+                    },
+                    'tasks as new_reques_tasks' => function ($q) {
+                        $q->where('status', 'new_request');
+                    },
+                    'tasks as completed_tasks' => function ($q) {
+                        $q->whereIn('status', ['completed', 'finished']);
+                    },
+                    'tasks as late_tasks' => fn($q) =>
+                        $q->whereRaw('LOWER(status) <> ?', ['completed'])
+                            ->whereNotNull('due_date')
+                            ->where('due_date', '<', now()),
+                ])
+                ->get();
+
+            // Compute children counts for all retrieved projects
+            $projectIds = $projects->pluck('id')->toArray();
+            $childrenCounts = $this->computeChildrenCountsFor($projectIds);
+
+            // Transform projects (similar to getAllProjects)
+            $transformed = [];
+            foreach ($projects as $project) {
+                // Enforce visibility: if project is private, only the author may see it (unless special role)
+                if (!$canSeeAll) {
+                    $pt = $project->project_type ?? null;
+                    if (strtolower((string) $pt) === 'private') {
+                        $isAuthor = false;
+                        if ($employeeId) {
+                            $isAuthor = $project->projectAssignments->contains(function ($a) use ($employeeId) {
+                                return isset($a->employee_id) && (int)$a->employee_id === (int)$employeeId && ($a->role === 'author');
+                            });
+                        }
+                        if (!$isAuthor) {
+                            continue; // hide private project
+                        }
+                    }
+                }
+
+                $projectAssignments = $project->projectAssignments->map(function ($a) {
+                    $employee = $a->employee;
+                    $avatar = $this->resolveEmployeeAvatar($employee);
+                    return [
+                        'id' => $a->id,
+                        'role' => $a->role,
+                        'employee_id' => $a->employee_id,
+                        'employee_name' => $employee?->name,
+                        'user_photo' => $avatar,
+                        'profile_picture' => $avatar,
+                        'profile_picture_url' => $avatar,
+                    ];
+                });
+
+                $author = $projectAssignments->firstWhere('role', 'author');
+                $coAuthors = $projectAssignments->where('role', 'co_author')->values();
+                $contributors = $projectAssignments->where('role', 'contributor')->values();
+
+                $base = [
+                    'id' => $project->id,
+                    'title' => $project->title,
+                    'description' => $project->description,
+                    'image' => $project->image,
+                    'status' => $project->status,
+                    'department' => $project->department,
+                    'division' => $project->division,
+                    'author' => $author,
+                    'co_authors' => $coAuthors,
+                    'contributors' => $contributors,
+                    'project_assignments' => $projectAssignments,
+                    'start_date' => $project->start_date,
+                    'due_date' => $project->due_date,
+                    'task_counts' => [
+                        'total' => $project->total_tasks,
+                        'in_progress' => $project->in_progress_tasks,
+                        'new_request' => $project->new_reques_tasks,
+                        'completed' => $project->completed_tasks,
+                        'late' => $project->late_tasks,
+                    ],
+                    'children_count' => $childrenCounts[$project->id] ?? 0,
+                ];
+
+                $transformed[] = $base;
+            }
+
+            return response()->json([
+                'code' => 200,
+                'status' => 'success',
+                'data' => $transformed
+            ]);
+
+        } catch (\Exception $e) {
+            $status = $this->deriveHttpStatusFromException($e);
+            return response()->json([
+                'code' => $status,
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $status);
+        }
+    }
+
     public function getProjectsIds(Request $request)
     {
         $ids = $request->query('ids');

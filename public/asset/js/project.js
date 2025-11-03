@@ -1369,11 +1369,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Render the compact project list in the table's left column (initial showcase only)
-    function loadProjectTableList() {
+    // Navigation state for drill-down
+    let projectNavigationState = {
+        currentParentId: null,
+        currentParentTitle: null
+    };
+
+    function loadProjectTableList(parentProjectId = null, parentProjectTitle = null) {
         const container = document.getElementById('projectList');
         if (!container) return;
 
-        fetch(appUrl + '/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1')
+        // Update navigation state
+        projectNavigationState.currentParentId = parentProjectId;
+        projectNavigationState.currentParentTitle = parentProjectTitle;
+
+        // Update UI elements: breadcrumb and back button
+        updateProjectNavigationUI();
+
+        // Determine API endpoint based on whether we're drilling down
+        let apiUrl;
+        if (parentProjectId) {
+            // Fetch children of specific parent project
+            apiUrl = `${appUrl}/project/${parentProjectId}/children`;
+        } else {
+            // Fetch all projects (root view)
+            apiUrl = `${appUrl}/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1`;
+        }
+
+        fetch(apiUrl)
             .then(res => res.json())
             .then(payload => {
                 const projects = Array.isArray(payload) ? payload : (payload.data || []);
@@ -1389,6 +1412,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 projects.slice(0, 10).forEach(project => {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'project-list-item';
+                    wrapper.dataset.projectId = project.id;
 
                     // Avatar or initials
                     let avatarHtml = '';
@@ -1467,10 +1491,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     };
                     const badgeHtml = `<div class="project-status-badge status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
 
-                    // Stats line: "X Project • Y Task"
+                    // Stats line: "X Project • Y Task" - make children count clickable if > 0
                     const childCount = Number(project.children_count || 0);
                     const totalTasks = Number((project.task_counts && project.task_counts.total) || 0);
-                    const statsHtml = `<div class="project-list-stats text-muted small">${childCount} Project • ${totalTasks} Task</div>`;
+                    const childrenText = childCount > 0 
+                        ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${childCount} Project</span>`
+                        : `${childCount} Project`;
+                    const statsHtml = `<div class="project-list-stats text-muted small">${childrenText} • ${totalTasks} Task</div>`;
 
                     wrapper.innerHTML = `
                         ${badgeHtml}
@@ -1486,10 +1513,103 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
 
                 container.appendChild(frag);
+
+                // Attach click handlers to children links
+                attachChildrenLinkHandlers();
             })
             .catch(() => {
                 try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
             });
+    }
+
+    function updateProjectNavigationUI() {
+        try {
+            // Update breadcrumb
+            const breadcrumbTitle = document.querySelector('.table-project-title');
+            const breadcrumbArrow = document.querySelector('.arrow-toggle');
+            const backButton = document.querySelector('.back-toggle');
+
+            if (projectNavigationState.currentParentId && projectNavigationState.currentParentTitle) {
+                // Drilling down - show parent name with arrow
+                if (breadcrumbTitle) {
+                    breadcrumbTitle.textContent = `Project`;
+                }
+                if (breadcrumbArrow) {
+                    breadcrumbArrow.style.display = 'inline-block';
+                    // Add parent project name after arrow
+                    const parentNameEl = document.querySelector('.breadcrumb-parent-name') || (() => {
+                        const span = document.createElement('span');
+                        span.className = 'breadcrumb-parent-name ms-2';
+                        breadcrumbArrow.parentNode.insertBefore(span, breadcrumbArrow.nextSibling);
+                        return span;
+                    })();
+                    parentNameEl.textContent = projectNavigationState.currentParentTitle;
+                }
+                if (backButton) {
+                    backButton.closest('button').style.display = 'inline-block';
+                }
+            } else {
+                // Root view - hide back button, remove parent name
+                if (breadcrumbTitle) {
+                    breadcrumbTitle.textContent = 'Project';
+                }
+                if (breadcrumbArrow) {
+                    breadcrumbArrow.style.display = 'none';
+                }
+                const parentNameEl = document.querySelector('.breadcrumb-parent-name');
+                if (parentNameEl) {
+                    parentNameEl.remove();
+                }
+                if (backButton) {
+                    backButton.closest('button').style.display = 'none';
+                }
+            }
+        } catch (e) {
+            console.warn('updateProjectNavigationUI error:', e);
+        }
+    }
+
+    function attachChildrenLinkHandlers() {
+        try {
+            const links = document.querySelectorAll('.project-children-link');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const projectId = this.dataset.projectId;
+                    const projectTitle = this.dataset.projectTitle;
+                    if (projectId) {
+                        loadProjectTableList(projectId, projectTitle);
+                    }
+                });
+            });
+        } catch (e) {
+            console.warn('attachChildrenLinkHandlers error:', e);
+        }
+    }
+
+    function initProjectBackButton() {
+        try {
+            const backButton = document.querySelector('.back-toggle');
+            const breadcrumbArrow = document.querySelector('.arrow-toggle');
+            
+            // Hide back button and arrow initially
+            if (backButton && backButton.closest('button')) {
+                backButton.closest('button').style.display = 'none';
+            }
+            if (breadcrumbArrow) {
+                breadcrumbArrow.style.display = 'none';
+            }
+            
+            // Wire up back button click handler
+            if (backButton) {
+                backButton.closest('button').addEventListener('click', function() {
+                    // Return to root view
+                    loadProjectTableList(null, null);
+                });
+            }
+        } catch (e) {
+            console.warn('initProjectBackButton error:', e);
+        }
     }
 
     // Load project card data and generate cards dynamically
@@ -1926,7 +2046,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex justify-content-start align-items-center mt-1 mb-2">
-                                            <span class="text-muted fs-8 me-4">${Number(project.children_count || 0)} Project</span>
+                                            ${Number(project.children_count || 0) > 0 
+                                                ? `<span class="text-muted fs-8 me-4 project-card-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${Number(project.children_count || 0)} Project</span>`
+                                                : `<span class="text-muted fs-8 me-4">${Number(project.children_count || 0)} Project</span>`
+                                            }
                                             <span class="text-muted fs-8">${
                                                 project.task_counts.total
                                             } Task</span>
@@ -1982,6 +2105,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     rowHtml += "</div>";
                     container.innerHTML = rowHtml;
+
+                    // Attach click handlers to card children links
+                    try {
+                        const cardChildrenLinks = container.querySelectorAll('.project-card-children-link');
+                        cardChildrenLinks.forEach(link => {
+                            link.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                const projectId = this.dataset.projectId;
+                                const projectTitle = this.dataset.projectTitle;
+                                if (projectId) {
+                                    loadProjectTableList(projectId, projectTitle);
+                                }
+                            });
+                        });
+                    } catch (e) {
+                        console.warn('Failed to attach card children link handlers:', e);
+                    }
 
                     // Initialize Bootstrap tooltips for newly injected collaborator images and +N badges
                     try {
@@ -12236,6 +12377,8 @@ document.addEventListener("DOMContentLoaded", function () {
     loadProjectCardData();
     // Also populate the small project list (top table left column)
     try { loadProjectTableList(); } catch(e) { /* ignore */ }
+    // Initialize back button for drill-down navigation
+    try { initProjectBackButton(); } catch(e) { /* ignore */ }
     loadTimelineProjects();
     // If department select already has selected value (derived from logged-in employee), skip full departments load and just load divisions for that department
     try {
