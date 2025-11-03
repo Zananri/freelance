@@ -1369,11 +1369,34 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Render the compact project list in the table's left column (initial showcase only)
-    function loadProjectTableList() {
+    // Navigation state for drill-down
+    let projectNavigationState = {
+        currentParentId: null,
+        currentParentTitle: null
+    };
+
+    function loadProjectTableList(parentProjectId = null, parentProjectTitle = null) {
         const container = document.getElementById('projectList');
         if (!container) return;
 
-        fetch(appUrl + '/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1')
+        // Update navigation state
+        projectNavigationState.currentParentId = parentProjectId;
+        projectNavigationState.currentParentTitle = parentProjectTitle;
+
+        // Update UI elements: breadcrumb and back button
+        updateProjectNavigationUI();
+
+        // Determine API endpoint based on whether we're drilling down
+        let apiUrl;
+        if (parentProjectId) {
+            // Fetch children of specific parent project
+            apiUrl = `${appUrl}/project/${parentProjectId}/children`;
+        } else {
+            // Fetch all projects (root view)
+            apiUrl = `${appUrl}/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1`;
+        }
+
+        fetch(apiUrl)
             .then(res => res.json())
             .then(payload => {
                 const projects = Array.isArray(payload) ? payload : (payload.data || []);
@@ -1389,6 +1412,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 projects.slice(0, 10).forEach(project => {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'project-list-item';
+                    wrapper.dataset.projectId = project.id;
 
                     // Avatar or initials
                     let avatarHtml = '';
@@ -1410,21 +1434,182 @@ document.addEventListener("DOMContentLoaded", function () {
                         } catch(_) { return ''; }
                     })();
 
+                    // Date line: start - due (use formatDateENMedium helper)
+                    let dateLine = '';
+                    try {
+                        const s = project.start_date;
+                        const d = project.due_date;
+                        if (s && d && d !== '' && d !== null && d !== 'null') {
+                            dateLine = `<div class="project-list-date text-muted small">${formatDateENMedium(s)} - ${formatDateENMedium(d)}</div>`;
+                        } else if (s) {
+                            dateLine = `<div class="project-list-date text-muted small">${formatDateENMedium(s)}</div>`;
+                        } else {
+                            dateLine = '';
+                        }
+                    } catch (e) { dateLine = ''; }
+
+                    // Determine visual status for badge (complete / in_progress / not_started / late)
+                    function determineProjectVisualStatus(proj) {
+                        try {
+                            const counts = proj.task_counts || {};
+                            const total = Number(counts.total || counts.total_tasks || 0);
+                            const newReq = Number(counts.new_request || counts.new_reques_tasks || 0);
+                            const completed = Number(counts.completed || counts.completed_tasks || 0);
+                            const inProgress = Number(counts.in_progress || counts.in_progress_tasks || 0);
+                            const late = Number(counts.late || counts.late_tasks || 0);
+
+                            // If no tasks or all new_request => not_started
+                            if (total === 0) return 'not_started';
+                            if (newReq === total) return 'not_started';
+
+                            // If any in_progress -> in_progress
+                            if (inProgress > 0) return 'in_progress';
+
+                            // If all completed
+                            if (completed === total && total > 0) return 'completed';
+
+                            // If has late tasks or project due_date past
+                            try {
+                                const due = proj.due_date;
+                                const isPastDue = due && (new Date().toISOString().slice(0,10) > (new Date(due).toISOString().slice(0,10)));
+                                if (late > 0 || isPastDue) return 'late';
+                            } catch(_) {}
+
+                            // default
+                            return 'in_progress';
+                        } catch (e) {
+                            return 'not_started';
+                        }
+                    }
+
+                    const visualStatus = determineProjectVisualStatus(project);
+                    const statusLabelMap = {
+                        'completed': 'Complete',
+                        'in_progress': 'In Progress',
+                        'not_started': 'Not Started',
+                        'late': 'Late'
+                    };
+                    const badgeHtml = `<div class="project-status-badge status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
+
+                    // Stats line: "X Project • Y Task" - make children count clickable if > 0
+                    const childCount = Number(project.children_count || 0);
+                    const totalTasks = Number((project.task_counts && project.task_counts.total) || 0);
+                    const childrenText = childCount > 0 
+                        ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${childCount} Project</span>`
+                        : `${childCount} Project`;
+                    const statsHtml = `<div class="project-list-stats text-muted small">${childrenText} • ${totalTasks} Task</div>`;
+
                     wrapper.innerHTML = `
+                        ${badgeHtml}
                         <div class="flex-shrink-0">${avatarHtml}</div>
                         <div class="flex-grow-1">
                             <div class="project-list-title">${escapeHtml(project.title || 'Untitled Project')}</div>
+                            ${dateLine}
                             ${desc ? `<div class="project-list-desc">${escapeHtml(desc)}</div>` : ''}
+                            ${statsHtml}
                         </div>
                     `;
                     frag.appendChild(wrapper);
                 });
 
                 container.appendChild(frag);
+
+                // Attach click handlers to children links
+                attachChildrenLinkHandlers();
             })
             .catch(() => {
                 try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
             });
+    }
+
+    function updateProjectNavigationUI() {
+        try {
+            // Update breadcrumb
+            const breadcrumbTitle = document.querySelector('.table-project-title');
+            const breadcrumbArrow = document.querySelector('.arrow-toggle');
+            const backButton = document.querySelector('.back-toggle');
+
+            if (projectNavigationState.currentParentId && projectNavigationState.currentParentTitle) {
+                // Drilling down - show parent name with arrow
+                if (breadcrumbTitle) {
+                    breadcrumbTitle.textContent = `Project`;
+                }
+                if (breadcrumbArrow) {
+                    breadcrumbArrow.style.display = 'inline-block';
+                    // Add parent project name after arrow
+                    const parentNameEl = document.querySelector('.breadcrumb-parent-name') || (() => {
+                        const span = document.createElement('span');
+                        span.className = 'breadcrumb-parent-name ms-2';
+                        breadcrumbArrow.parentNode.insertBefore(span, breadcrumbArrow.nextSibling);
+                        return span;
+                    })();
+                    parentNameEl.textContent = projectNavigationState.currentParentTitle;
+                }
+                if (backButton) {
+                    backButton.closest('button').style.display = 'inline-block';
+                }
+            } else {
+                // Root view - hide back button, remove parent name
+                if (breadcrumbTitle) {
+                    breadcrumbTitle.textContent = 'Project';
+                }
+                if (breadcrumbArrow) {
+                    breadcrumbArrow.style.display = 'none';
+                }
+                const parentNameEl = document.querySelector('.breadcrumb-parent-name');
+                if (parentNameEl) {
+                    parentNameEl.remove();
+                }
+                if (backButton) {
+                    backButton.closest('button').style.display = 'none';
+                }
+            }
+        } catch (e) {
+            console.warn('updateProjectNavigationUI error:', e);
+        }
+    }
+
+    function attachChildrenLinkHandlers() {
+        try {
+            const links = document.querySelectorAll('.project-children-link');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const projectId = this.dataset.projectId;
+                    const projectTitle = this.dataset.projectTitle;
+                    if (projectId) {
+                        loadProjectTableList(projectId, projectTitle);
+                    }
+                });
+            });
+        } catch (e) {
+            console.warn('attachChildrenLinkHandlers error:', e);
+        }
+    }
+
+    function initProjectBackButton() {
+        try {
+            const backButton = document.querySelector('.back-toggle');
+            const breadcrumbArrow = document.querySelector('.arrow-toggle');
+            
+            // Hide back button and arrow initially
+            if (backButton && backButton.closest('button')) {
+                backButton.closest('button').style.display = 'none';
+            }
+            if (breadcrumbArrow) {
+                breadcrumbArrow.style.display = 'none';
+            }
+            
+            // Wire up back button click handler
+            if (backButton) {
+                backButton.closest('button').addEventListener('click', function() {
+                    // Return to root view
+                    loadProjectTableList(null, null);
+                });
+            }
+        } catch (e) {
+            console.warn('initProjectBackButton error:', e);
+        }
     }
 
     // Load project card data and generate cards dynamically
@@ -1861,6 +2046,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex justify-content-start align-items-center mt-1 mb-2">
+                                            ${Number(project.children_count || 0) > 0 
+                                                ? `<span class="text-muted fs-8 me-4 project-card-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${Number(project.children_count || 0)} Project</span>`
+                                                : `<span class="text-muted fs-8 me-4">${Number(project.children_count || 0)} Project</span>`
+                                            }
                                             <span class="text-muted fs-8">${
                                                 project.task_counts.total
                                             } Task</span>
@@ -1916,6 +2105,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     rowHtml += "</div>";
                     container.innerHTML = rowHtml;
+
+                    // Attach click handlers to card children links
+                    try {
+                        const cardChildrenLinks = container.querySelectorAll('.project-card-children-link');
+                        cardChildrenLinks.forEach(link => {
+                            link.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                const projectId = this.dataset.projectId;
+                                const projectTitle = this.dataset.projectTitle;
+                                if (projectId) {
+                                    loadProjectTableList(projectId, projectTitle);
+                                }
+                            });
+                        });
+                    } catch (e) {
+                        console.warn('Failed to attach card children link handlers:', e);
+                    }
 
                     // Initialize Bootstrap tooltips for newly injected collaborator images and +N badges
                     try {
@@ -12170,6 +12377,8 @@ document.addEventListener("DOMContentLoaded", function () {
     loadProjectCardData();
     // Also populate the small project list (top table left column)
     try { loadProjectTableList(); } catch(e) { /* ignore */ }
+    // Initialize back button for drill-down navigation
+    try { initProjectBackButton(); } catch(e) { /* ignore */ }
     loadTimelineProjects();
     // If department select already has selected value (derived from logged-in employee), skip full departments load and just load divisions for that department
     try {

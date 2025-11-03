@@ -281,6 +281,10 @@
     align-items: flex-start;
 }
 
+.project-list-item {
+    position: relative; /* allow absolute badge inside */
+}
+
 .project-list-avatar {
     width: 34px;
     height: 34px;
@@ -319,6 +323,51 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     max-width: 100%;
+}
+
+.project-list-date {
+    color: #6b7280; /* muted */
+    font-size: 10px;
+    margin-top: 2px;
+    margin-bottom: 6px;
+}
+
+/* Compact stats line under description in left list (e.g., "3 Project • 10 Task") */
+.project-list-stats {
+    color: #6b7280;
+    font-size: 10px;
+    margin-top: 6px;
+}
+
+
+.project-status-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    background: transparent;
+    line-height: 1;
+    box-shadow: none;
+    border: none;
+}
+.project-status-badge.status-completed {
+    color: #28a745;
+    background-color: transparent !important;
+}
+.project-status-badge.status-in_progress {
+    color: #BAA349;
+    background-color: transparent !important;
+}
+.project-status-badge.status-not_started {
+    color: #6c757d; /* muted gray */
+    background-color: transparent !important;
+}
+.project-status-badge.status-late {
+    color: #dc3545;
+    background-color: transparent !important;
 }
 
 .timeline-section {
