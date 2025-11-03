@@ -193,6 +193,69 @@
     margin: 0 auto;
 }
 
+.table-project {
+    min-height: 45vh;
+}
+
+.table-project-title {
+    font-size: 16px;
+    font-weight: 400;
+    color: #3B3D42;
+}
+
+.table-project-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #3B3D42;
+    max-width: 100px;
+}
+
+.table-project-status {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.fullscreen-toggle {
+    font-size: 24px;
+    color: #00000073;
+}
+
+.back-toggle {
+    font-size: 14px;
+    color: #3B3D42;
+}
+
+.menu-toggle {
+    font-size: 18px;
+    color: #3B3D42;
+}
+
+.table-total-task {
+    font-size: 10px;
+    font-weight: 400;
+    color: #797E91;
+}
+
+.table-search-input,
+.table-search-input:hover,
+.table-search-input:focus {
+    height: 18px;
+    width: 100px;
+    border: none;
+    box-shadow: none;
+}
+
+.table-transparent,
+.table-transparent thead,
+.table-transparent tbody,
+.table-transparent tr,
+.table-transparent th,
+.table-transparent td {
+  background-color: transparent !important;
+  border: 1px solid #DAE3ED;
+  vertical-align: middle !important;
+}
+
 .timeline-section {
     min-height: 44vh;
     border-radius: 20px;
