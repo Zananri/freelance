@@ -85,40 +85,63 @@
                 </div>
             </div>
             <div class="col-md-8">
-                {{-- timeline project --}}
-                <div class="body-content timeline-section p-4">
-                    <div class="project-timeline-card">
-                        <div class="timeline-card h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">
-                                    Aug week 1
-                                </h5>
-                                <div>
-                                    <button class="btn btn-sm me-2" id="prevTimeline">
-                                        <span class="material-symbols-outlined">chevron_left</span>
-                                    </button>
-                                    <button class="btn btn-sm me-2" id="nextTimeline">
-                                        <span class="material-symbols-outlined">chevron_right</span>
-                                    </button>
-                                    <button data-bs-toggle="modal" data-bs-target="#timelineModal"
-                                        class="btn btn-sm border-0 bg-transparent">
-                                        <span id="timelineFullscreenIcon"
-                                            class="material-symbols-outlined">fullscreen</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Timeline pakai table -->
-                            <div class="timeline-wrapper">
-                                <table class="timeline-table">
-                                    <thead>
-                                        <tr id="timelineHeader"></tr>
-                                    </thead>
-                                    <tbody id="timelineRows"></tbody>
-                                </table>
-                            </div>
+                {{-- table project --}}
+                <div class="body-content table-project rounded-4 p-4">
+                    <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-start align-items-center">
+                            <h1 class="table-project-title mb-0">Project</h1>
+                            <span class="material-symbols-outlined arrow-toggle ms-3">arrow_forward_ios</span>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-sm border-0">
+                                <span class="material-symbols-outlined fullscreen-toggle">fullscreen</span>
+                            </button>
                         </div>
                     </div>
+
+                    <table class="table table-transparent">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-start align-self-center">
+                                            <button class="btn btn-sm border-0">
+                                                <span class="material-symbols-outlined back-toggle">arrow_back</span>
+                                            </button>
+                                            <div class="ms-2">
+                                                <p class="mb-0 table-project-name">Project Name</p>
+                                                <span class="table-project-status">In Progress</span>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center">
+                                            <input type="text" class="form-control input-text table-search-input mb-0">
+                                            <button class="btn btn-sm border-0 p-2">
+                                                <span class="material-symbols-outlined menu-toggle">more_vert</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="align-middle">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-start align-items-center mb-0">
+                                            <p class="table-total-task mb-0">30 Total tasks</p>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center">
+                                            <input type="text" class="form-control input-text table-search-input mb-0">
+                                            <button class="btn btn-sm border-0 p-2">
+                                                <span class="material-symbols-outlined menu-toggle">more_vert</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -191,15 +214,14 @@
                         <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown">
                             <div class="dropdown-filter-body">
                                 <div class="mb-2">
-                                    <label for="filterProjectDivision" class="form-label label-custom-filter">Filter by
-                                        Status</label>
+                                    <label for="filterProjectDivision" class="form-label label-custom-filter">Division</label>
                                     <select id="filterProjectDivision" class="form-select label-custom-filter">
                                         <option value="">All Division</option>
                                     </select>
                                 </div>
 
                                 <div class="mb-2">
-                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by
+                                    <label for="filterProjectStatus" class="form-label label-custom-filter">
                                         Status</label>
                                     <select id="filterProjectStatus" class="form-select label-custom-filter">
                                         <option value="">All Status</option>
