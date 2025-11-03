@@ -1467,6 +1467,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     };
                     const badgeHtml = `<div class="project-status-badge status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
 
+                    // Stats line: "X Project • Y Task"
+                    const childCount = Number(project.children_count || 0);
+                    const totalTasks = Number((project.task_counts && project.task_counts.total) || 0);
+                    const statsHtml = `<div class="project-list-stats text-muted small">${childCount} Project • ${totalTasks} Task</div>`;
+
                     wrapper.innerHTML = `
                         ${badgeHtml}
                         <div class="flex-shrink-0">${avatarHtml}</div>
@@ -1474,6 +1479,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             <div class="project-list-title">${escapeHtml(project.title || 'Untitled Project')}</div>
                             ${dateLine}
                             ${desc ? `<div class="project-list-desc">${escapeHtml(desc)}</div>` : ''}
+                            ${statsHtml}
                         </div>
                     `;
                     frag.appendChild(wrapper);
@@ -1920,6 +1926,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex justify-content-start align-items-center mt-1 mb-2">
+                                            <span class="text-muted fs-8 me-4">${Number(project.children_count || 0)} Project</span>
                                             <span class="text-muted fs-8">${
                                                 project.task_counts.total
                                             } Task</span>

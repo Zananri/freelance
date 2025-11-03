@@ -332,6 +332,13 @@
     margin-bottom: 6px;
 }
 
+/* Compact stats line under description in left list (e.g., "3 Project • 10 Task") */
+.project-list-stats {
+    color: #6b7280;
+    font-size: 10px;
+    margin-top: 6px;
+}
+
 
 .project-status-badge {
     position: absolute;

@@ -27,6 +27,70 @@ use Carbon\Carbon;
 class ProjectController extends Controller
 {
     /**
+     * Build a map of parent project id => number of unique child projects.
+     * Children are derived from two sources:
+     *  - legacy single parent link: projects.part_of_project
+     *  - multi-parent link: project_parents.project_parent_ids (JSON array)
+     * De-duplicates same child referenced by both sources.
+     */
+    private function computeChildrenCountsFor(array $projectIds): array
+    {
+        $projectIds = array_values(array_filter(array_map('intval', $projectIds)));
+        if (empty($projectIds)) return [];
+
+        // Use associative arrays as sets to avoid duplicates per parent
+        $parentToChildren = [];
+
+        // Legacy: projects.part_of_project
+        try {
+            $rows = DB::table('projects')
+                ->select('id', 'part_of_project')
+                ->whereIn('part_of_project', $projectIds)
+                ->get();
+            foreach ($rows as $r) {
+                $parent = (int) ($r->part_of_project ?? 0);
+                $child = (int) ($r->id ?? 0);
+                if (!$parent || !$child) continue;
+                if (!isset($parentToChildren[$parent])) $parentToChildren[$parent] = [];
+                $parentToChildren[$parent][$child] = true;
+            }
+        } catch (\Throwable $_) {}
+
+        // Multi-parent: project_parents (JSON array in project_parent_ids)
+        try {
+            $rows = DB::table('project_parents')->get(['project_id', 'project_parent_ids']);
+            foreach ($rows as $row) {
+                $child = (int) ($row->project_id ?? 0);
+                if (!$child) continue;
+                $parents = [];
+                if ($row->project_parent_ids) {
+                    $decoded = null;
+                    if (is_string($row->project_parent_ids)) {
+                        $decoded = json_decode($row->project_parent_ids, true);
+                        if (!is_array($decoded) && strpos($row->project_parent_ids, ',') !== false) {
+                            $decoded = array_map('intval', array_map('trim', explode(',', $row->project_parent_ids)));
+                        }
+                    } elseif (is_array($row->project_parent_ids)) {
+                        $decoded = $row->project_parent_ids;
+                    }
+                    $parents = array_values(array_filter(array_map('intval', (array) $decoded)));
+                }
+                foreach ($parents as $pid) {
+                    if (!in_array($pid, $projectIds, true)) continue; // only count for requested parents
+                    if (!isset($parentToChildren[$pid])) $parentToChildren[$pid] = [];
+                    $parentToChildren[$pid][$child] = true;
+                }
+            }
+        } catch (\Throwable $_) {}
+
+        // Produce counts for requested ids only
+        $out = [];
+        foreach ($projectIds as $pid) {
+            $out[$pid] = isset($parentToChildren[$pid]) ? count($parentToChildren[$pid]) : 0;
+        }
+        return $out;
+    }
+    /**
      * Recursively delete a project feedback and its replies, including attached files.
      */
     private function deleteProjectFeedbackCascade(ProjectFeedback $feedback): void
@@ -488,7 +552,14 @@ class ProjectController extends Controller
                     ->withMax('tasks', 'due_date')
                     ->get();
 
-                $projectsTransformed = $projects->map(fn($project) => $this->transformProject($project));
+                // Compute children counts for these projects (parent side)
+                $childrenCounts = $this->computeChildrenCountsFor($projects->pluck('id')->toArray());
+
+                $projectsTransformed = $projects->map(function($project) use ($childrenCounts) {
+                    $arr = $this->transformProject($project);
+                    $arr['children_count'] = $childrenCounts[$project->id] ?? 0;
+                    return $arr;
+                });
 
                 return response()->json([
                     'code' => 200,
@@ -606,7 +677,12 @@ class ProjectController extends Controller
                 ->withMax('tasks', 'due_date')
                 ->get();
 
-            $projectsTransformed = $projects->map(fn($project) => $this->transformProject($project));
+            $childrenCounts = $this->computeChildrenCountsFor($projects->pluck('id')->toArray());
+            $projectsTransformed = $projects->map(function($project) use ($childrenCounts) {
+                $arr = $this->transformProject($project);
+                $arr['children_count'] = $childrenCounts[$project->id] ?? 0;
+                return $arr;
+            });
 
             return response()->json([
                 'code' => 200,
@@ -1357,7 +1433,8 @@ class ProjectController extends Controller
                 ])
                 ->paginate(27);
 
-            $projectsTransformed = $projects->map(function ($project) {
+            $childrenCounts = $this->computeChildrenCountsFor($projects->pluck('id')->toArray());
+            $projectsTransformed = $projects->map(function ($project) use ($childrenCounts) {
                 $projectAssignments = $project->projectAssignments->map(function ($a) {
                     $employee = $a->employee;
                     $avatar = $this->resolveEmployeeAvatar($employee);
@@ -1376,7 +1453,7 @@ class ProjectController extends Controller
                 $coAuthors = $projectAssignments->where('role', 'co_author')->values();
                 $contributors = $projectAssignments->where('role', 'contributor')->values();
 
-                return [
+                $base = [
                     'id' => $project->id,
                     'title' => $project->title,
                     'description' => $project->description,
@@ -1398,6 +1475,9 @@ class ProjectController extends Controller
                         'late' => $project->late_tasks,
                     ]
                 ];
+                // Attach children count computed for current page set
+                $base['children_count'] = $childrenCounts[$project->id] ?? 0;
+                return $base;
             });
 
             return response()->json([
@@ -1887,6 +1967,13 @@ class ProjectController extends Controller
                 $parentIds = [];
             }
 
+            // Children count for this single project (for detail views)
+            $singleChildrenCount = 0;
+            try {
+                $cc = $this->computeChildrenCountsFor([$project->id]);
+                $singleChildrenCount = (int) ($cc[$project->id] ?? 0);
+            } catch (\Throwable $_) { $singleChildrenCount = 0; }
+
             $response = [
                 'id' => $project->id,
                 'title' => $project->title,
@@ -1910,6 +1997,8 @@ class ProjectController extends Controller
                 'parent_project_ids' => $parentIds,
                 // legacy single-parent for backward compatibility
                 'part_of_project' => $project->part_of_project ?? null,
+                // expose computed children count
+                'children_count' => $singleChildrenCount,
             ];
 
             return response()->json([
