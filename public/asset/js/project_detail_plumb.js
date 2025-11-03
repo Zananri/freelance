@@ -22,6 +22,7 @@
     var instance = null;
     var endpoints = {};
     var currentTasks = [];
+    var eventsAttached = false;
     function getElId(taskId) {
         return "task-node-" + String(taskId);
     }
@@ -268,14 +269,20 @@
         if (!inst) return;
         try {
             inst.deleteEveryConnection();
-            inst.reset();
+            // Remove all endpoints but don't reset the instance
+            inst.deleteEveryEndpoint();
         } catch (_) {}
-        instance = null;
+        // Don't null the instance - keep it for reuse
     }
 
     function attachEvents() {
         var inst = ensureInstance();
         if (!inst) return;
+        
+        // Prevent attaching events multiple times
+        if (eventsAttached) return;
+        eventsAttached = true;
+        
         try {
             inst.bind("connection", function (info, originalEvent) {
                 try {
@@ -331,12 +338,8 @@
                     } catch (_) {}
                     if (!parentId || !childId || parentId === childId) return;
                     
-                    // Immediately remove the temporary connection to avoid odd visuals
-                    try {
-                        if (info && info.connection) {
-                            inst.deleteConnection(info.connection);
-                        }
-                    } catch (_) {}
+                    // Store the temporary connection so we can remove it later if needed
+                    var tempConnection = info.connection;
                     
                     // Add parent to the child's parent_ids array (multi-parent support)
                     $.ajax({
@@ -359,6 +362,12 @@
                                 res && (res.status === "success" || res.code === 200)
                             );
                             if (!ok) {
+                                // If failed, remove the temporary connection
+                                try {
+                                    if (tempConnection) {
+                                        inst.deleteConnection(tempConnection, { fireEvent: false });
+                                    }
+                                } catch (_) {}
                                 try {
                                     window.showFloatingAlert &&
                                         window.showFloatingAlert(
@@ -381,7 +390,12 @@
                             }
                         })
                         .fail(function () {
-                            // Connection already deleted, just notify
+                            // If failed, remove the temporary connection
+                            try {
+                                if (tempConnection) {
+                                    inst.deleteConnection(tempConnection, { fireEvent: false });
+                                }
+                            } catch (_) {}
                             try {
                                 window.showFloatingAlert &&
                                     window.showFloatingAlert(
@@ -513,7 +527,10 @@
 
         setTimeout(function () {
             layConnections(tasks);
-            attachEvents();
+            // Only attach events once
+            if (!eventsAttached) {
+                attachEvents();
+            }
             try {
                 inst.repaintEverything && inst.repaintEverything();
             } catch (_) {}
