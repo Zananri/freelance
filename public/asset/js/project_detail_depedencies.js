@@ -623,28 +623,41 @@ $(document).on("click", "#projectTaskDetailModal .playlist-add-check", function 
         });
     } else $urls.html('<em>-</em>');
 
-
     // Completed Files
     const $files = $('#completed_task_files').empty();
     if (Array.isArray(task.complete_files) && task.complete_files.length) {
         task.complete_files.forEach((f, idx) => {
-            const raw = f && (f.url || f) || '';
-            const url = raw.startsWith('http') ? raw : '/' + String(raw).replace(/^\/+/, '');
+            let fileUrl = f && (f.url || f) || '';
+            const lower = fileUrl.toLowerCase();
 
-            const ext = (raw.split('.').pop() || '').toLowerCase();
+            const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
+            const isRefPath = fileUrl.startsWith('/file/task_complete_files/') || fileUrl.startsWith('file/task_complete_files/') ||
+                            fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
+
+            if (!isAbs && !isRefPath) fileUrl = appUrl + '/file/task_complete_files/' + fileUrl;
+            else if (!isAbs && fileUrl.startsWith('/')) fileUrl = appUrl + fileUrl;
+
+            const ext = (fileUrl.split('.').pop() || '').toLowerCase();
             const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(ext);
 
             const $item = $('<div>').addClass('d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2');
 
             if (isImage) {
-                const $img = $('<img>', { src: url, width: 28, height: 28, alt: raw });
+                const $img = $('<img>', { src: fileUrl, width: 28, height: 28, alt: fileUrl });
                 $img.css({ objectFit: 'cover', borderRadius: '50%' });
                 $item.append($img);
             }
 
-            const $name = $('<span>').text(`COMPLETED_FILES_${idx + 1}`).css({ fontSize: '10px' });
-            $item.append($name);
+            const $link = $('<a>')
+                .attr({
+                    href: fileUrl,
+                    target: '_blank',
+                    class: 'text-decoration-none flex-grow-1 text-truncate'
+                })
+                .css({ fontSize: '10px', color: '#444444' })
+                .text(`COMPLETED_FILE_${idx + 1}`);
 
+            $item.append($link);
             $files.append($item);
         });
     } else {
