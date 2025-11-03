@@ -88,8 +88,9 @@
                 {{-- table project --}}
                 <div class="body-content table-project rounded-4 p-4">
                     <div class="d-flex justify-content-between">
-                        <div class="d-flex justify-content-start">
-                            <h1 class="table-project-title">Project > </h1>
+                        <div class="d-flex justify-content-start align-items-center">
+                            <h1 class="table-project-title mb-0">Project</h1>
+                            <span class="material-symbols-outlined arrow-toggle ms-3">arrow_forward_ios</span>
                         </div>
                         <div class="d-flex justify-content-end">
                             <button class="btn btn-sm border-0">
@@ -108,8 +109,8 @@
                                                 <span class="material-symbols-outlined back-toggle">arrow_back</span>
                                             </button>
                                             <div class="ms-2">
-                                                <p class="mb-0 fw-semibold">Project Name</p>
-                                                <small class="table-project-status">In Progress</small>
+                                                <p class="mb-0 table-project-name">Project Name</p>
+                                                <span class="table-project-status">In Progress</span>
                                             </div>
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">

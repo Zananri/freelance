@@ -208,6 +208,7 @@
     font-weight: 500;
     color: #3B3D42;
     max-width: 100px;
+    line-height: 1;
 }
 
 .table-project-status {
@@ -220,7 +221,8 @@
     color: #00000073;
 }
 
-.back-toggle {
+.back-toggle,
+.arrow-toggle {
     font-size: 14px;
     color: #3B3D42;
 }
