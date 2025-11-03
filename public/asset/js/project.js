@@ -1368,6 +1368,65 @@ document.addEventListener("DOMContentLoaded", function () {
         return colors[hash % colors.length];
     }
 
+    // Render the compact project list in the table's left column (initial showcase only)
+    function loadProjectTableList() {
+        const container = document.getElementById('projectList');
+        if (!container) return;
+
+        fetch(appUrl + '/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1')
+            .then(res => res.json())
+            .then(payload => {
+                const projects = Array.isArray(payload) ? payload : (payload.data || []);
+                container.innerHTML = '';
+
+                if (!projects.length) {
+                    container.innerHTML = '<div class="text-muted small">No projects to display.</div>';
+                    return;
+                }
+
+                const frag = document.createDocumentFragment();
+
+                projects.slice(0, 10).forEach(project => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'project-list-item';
+
+                    // Avatar or initials
+                    let avatarHtml = '';
+                    if (project.image) {
+                        const imgUrl = appUrl + '/file/project/' + project.image;
+                        avatarHtml = `<img class="project-list-avatar" src="${imgUrl}" alt="${(project.title||'Project')}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/background/add-image.png'">`;
+                    } else {
+                        const init = getInitials(project.title);
+                        const bg = getInitialsColor(project.title);
+                        avatarHtml = `<div class="project-list-initials" style="background:${bg}">${init}</div>`;
+                    }
+
+                    // Description snippet (plain text, 3 lines)
+                    const desc = (function(){
+                        try {
+                            const div = document.createElement('div');
+                            div.innerHTML = String(project.description||'');
+                            return (div.textContent || div.innerText || '').trim();
+                        } catch(_) { return ''; }
+                    })();
+
+                    wrapper.innerHTML = `
+                        <div class="flex-shrink-0">${avatarHtml}</div>
+                        <div class="flex-grow-1">
+                            <div class="project-list-title">${escapeHtml(project.title || 'Untitled Project')}</div>
+                            ${desc ? `<div class="project-list-desc">${escapeHtml(desc)}</div>` : ''}
+                        </div>
+                    `;
+                    frag.appendChild(wrapper);
+                });
+
+                container.appendChild(frag);
+            })
+            .catch(() => {
+                try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
+            });
+    }
+
     // Load project card data and generate cards dynamically
     // Accepts optional filter (status grouping), page, and search text
     // Keep a local state mirrored to window.currentSearch for cross-scope access
@@ -12109,6 +12168,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load departments and projects on page load
     loadProjectCardData();
+    // Also populate the small project list (top table left column)
+    try { loadProjectTableList(); } catch(e) { /* ignore */ }
     loadTimelineProjects();
     // If department select already has selected value (derived from logged-in employee), skip full departments load and just load divisions for that department
     try {
