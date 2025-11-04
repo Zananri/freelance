@@ -71,11 +71,15 @@
                     </li>
                 </ul>
             </div>
+
+            @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER']))
             <button class="btn btn-icon-toggle config-shift-btn border-dddd" type="button" data-bs-toggle="modal"
                 data-bs-target="#shiftConfigModal">
                 <span class="material-symbols-outlined icon" type="button">settings</span><span
                     class="icon-text">Config</span>
             </button>
+            @endif
+
         </div>
     </div>
 

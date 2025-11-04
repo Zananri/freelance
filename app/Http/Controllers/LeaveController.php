@@ -16,13 +16,26 @@ class LeaveController extends Controller
 {
     public function showLeavePage()
     {
+        $user = auth()->user();        
+        $currentEmployee = Employee::where('user_id', $user->id)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
+
         $employee = Employee::select('employees.id','employees.user_id','employees.department_id','employees.division_id','employees.name','employees.status','employees.photo',
             'job_list.job_name'
         )
         ->join('job_list','employees.job_id','=','job_list.id')
         ->join('users','employees.user_id','=','users.id')
-        ->where('employees.status',"ACTIVE")
-        ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+        ->where('employees.status',"ACTIVE");
+
+        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+        }else{
+            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        }
+
+        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
         ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 
@@ -33,6 +46,13 @@ class LeaveController extends Controller
 
     public function getEmployeeLeaveByYear(Request $request)
     {
+        $user = auth()->user();
+        $userId = auth()->user()->id;
+        
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
 
         $year = Carbon::today()->format('Y');
 
@@ -42,8 +62,15 @@ class LeaveController extends Controller
 
         $employee = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')
-            ->where('employees.status',"ACTIVE")
-            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+            ->where('employees.status',"ACTIVE");
+
+        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+        }else{
+            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        }
+
+        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
             ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 
@@ -63,6 +90,13 @@ class LeaveController extends Controller
 
     public function allEmployeeLeaveRequest(Request $request){
 
+        $user = auth()->user();
+        $userId = auth()->user()->id;
+        
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
 
         $qrySearch = '';
 
@@ -72,8 +106,15 @@ class LeaveController extends Controller
 
         $employeeActive = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')
-            ->whereIn('employees.status',["ACTIVE","RESIGN"])
-            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+            ->whereIn('employees.status',["ACTIVE","RESIGN"]);
+
+        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+        }else{
+            $employeeActive = $employeeActive->where('employees.department_id',$currentEmployee->department_id);
+        }
+
+        $employeeActive = $employeeActive->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
             ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 

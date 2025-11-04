@@ -44,25 +44,36 @@ function populateFilterDepartmentDropdown(departments) {
     });
 }
 
-// Load departments data and populate filterDepartment dropdown
-async function loadDepartments() {
-    try {
-        const basePath = window.location.pathname.split("/").slice(0, -1).join("/") || "";
-        const endpoint = `${basePath}/departments-for-projects`;
+const filterDepartmentSelect = document.getElementById("filterDepartment");
+const filterDivisionSelect = document.getElementById("filterDivision");
 
-        const res = await fetch(endpoint);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const json = await res.json();
-        if (json.status === 'success' && Array.isArray(json.data)) {
-            populateFilterDepartmentDropdown(json.data);
-        } else {
-            console.warn("Failed to load departments data");
-        }
-    } catch (e) {
-        console.error("Error loading departments:", e);
-    }
+// Load departments for filter select
+function loadDepartments() {
+    $.ajax({
+        url: $('meta[name="app-url"]').attr('content') + "/department/index",
+        method: "GET",
+        dataType: "json",
+        success: function (response) {
+            const data = response.data || response;
+            filterDepartmentSelect.innerHTML =
+                '<option value="">Department</option>';
+            data.forEach((dept) => {
+                const option = document.createElement("option");
+                option.value = dept.id;
+                option.textContent = dept.name_department;
+                filterDepartmentSelect.appendChild(option);
+            });
+            filterDivisionSelect.innerHTML =
+                '<option value="">Division</option>';
+            filterDivisionSelect.disabled = true;
+        },
+        error: function () {
+            showFloatingAlert("Failed to load departments.", 'warning', 3000);
+        },
+    });
 }
+
+loadDepartments();
 
 // Populate filterDivision dropdown
 function populateFilterDivisionDropdown(divisions) {

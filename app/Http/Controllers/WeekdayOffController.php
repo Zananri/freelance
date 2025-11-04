@@ -26,6 +26,14 @@ class WeekdayOffController extends Controller
 {
     public function showWeekdayOffPage()
     {
+        $user = auth()->user();
+        $userId = auth()->user()->id;
+        
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
+
         $employee = Employee::select('employees.id','employees.user_id',
             'employees.department_id',
             'employees.division_id',
@@ -37,13 +45,30 @@ class WeekdayOffController extends Controller
         )
         ->join('job_list','employees.job_id','=','job_list.id')
         ->join('users','employees.user_id','=','users.id')
-        ->where('employees.status',"ACTIVE")
-        ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+        ->where('employees.status',"ACTIVE");
+
+        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+            
+            $department = Department::where('status','ACTIVE')->get();
+            $division = Division::where('status','ACTIVE')->get();
+        }else{
+
+            $employee = $employee->where('employees.department_id', $currentEmployee->department_id);
+            
+            $department = Department::where('status','ACTIVE')
+            ->where('id',$currentEmployee->department_id)
+            ->get();
+
+            $division = Division::where('status','ACTIVE')
+            ->where('department_id',$currentEmployee->department_id)
+            ->get();
+        }
+
+        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
         ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 
-        $department = Department::where('status','ACTIVE')->get();
-        $division = Division::where('status','ACTIVE')->get();
 
         return view('weekday_off.weekday_off',[
             'employee'      => $employee,

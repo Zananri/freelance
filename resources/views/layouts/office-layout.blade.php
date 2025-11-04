@@ -245,7 +245,17 @@
 
                     @endif
 
-                    @if (auth()->user()->employee->department_id == 3 && auth()->user()->employee->division_id == 26 )
+                    @php
+                        $employeeDivision = strtoupper(auth()->user()->employee->division->name_division);
+                        $accessManagementTHD = false;
+                        
+                        //Management HR
+                        if(auth()->user()->employee->department_id == 3 && auth()->user()->employee->division_id == 26){
+                            $accessManagementTHD = true;
+                        }
+                    @endphp
+
+                    @if ($accessManagementTHD)
                         <li>
                             <a href="{{ route('bi_dashboard_mtd') }}" class="{{ $menu_active == 'bi_dashboard_mtd' ? 'active' : '' }}">
                                 <span class="material-symbols-outlined">area_chart</span>
@@ -254,10 +264,8 @@
                         </li>
                     @endif
 
-                    
 
-
-                    @if (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE','PERSONAL_ASSISTANT']))
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE','PERSONAL_ASSISTANT'])) )
 
                     <li>
                         <a href="{{ url('attendance') }}"
@@ -323,9 +331,7 @@
                     </li>
                     
 
-                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
-
-
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
                     <li>
                         <a href="{{ route('shift') }}" class="{{ $menu_active == 'shift' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">schedule</span>
@@ -340,7 +346,7 @@
                     </li>
                     @endif
 
-                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER']))
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
                     <li>
                         <a href="{{ route('employee') }}" class="{{ $menu_active == 'employee' ? 'active' : '' }}  menu-employee ">
                             <span class="material-symbols-outlined">groups</span>
@@ -356,7 +362,7 @@
                     </li>
                     @endif
 
-                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
+                    @if ($accessManagementTHD ||(in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER'])))
                     <li>
                         <a href="{{ route('leave') }}" class="{{ $menu_active == 'leave' ? 'active' : '' }} menu-leave">
                             <span class="material-symbols-outlined">free_cancellation</span>
@@ -377,7 +383,11 @@
                             <span class="notification-badge">4</span>
                         </a>
                     </li> --}}
+                    
+                    @endif
 
+                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
+                    
                     <li>
                         <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">database</span>

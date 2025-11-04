@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use App\Models\Department;
 use Illuminate\Support\Facades\Storage;
+
+use App\Models\Department;
+use App\Models\Employee;
+
 
 class DepartmentController extends Controller
 {
@@ -20,6 +23,14 @@ public function showDepartmentPage()
 
 public function index(Request $request)
 {
+    $user = auth()->user();
+    $userId = auth()->user()->id;
+    
+    $currentEmployee = Employee::where('user_id', $userId)->first();
+    
+    $userType = strtoupper((string) ($user->user_type ?? ''));
+    $userRole = strtoupper((string) ($user->user_role ?? ''));
+    
     $query = $request->input('query');
     $status = $request->input('status');
 
@@ -39,6 +50,12 @@ public function index(Request $request)
     $departmentsQuery->where('status', '!=', 'DELETED');
     }
 
+    if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+        //show all
+    }else{
+        $departmentsQuery->where('id', $currentEmployee->department_id);
+    }
+    
     $departments = $departmentsQuery->get();
 
     $departments = $departments->map(function ($department) {

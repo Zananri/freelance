@@ -16,13 +16,26 @@ class OvertimeController extends Controller
 {
     public function showOvertimePage()
     {
+        $user = auth()->user();        
+        $currentEmployee = Employee::where('user_id', $user->id)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
+
         $employee = Employee::select('employees.id','employees.user_id','employees.department_id','employees.division_id','employees.name','employees.status','employees.photo',
             'job_list.job_name'
         )
         ->join('job_list','employees.job_id','=','job_list.id')
         ->join('users','employees.user_id','=','users.id')
-        ->where('employees.status',"ACTIVE")
-        ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+        ->where('employees.status',"ACTIVE");
+
+        if(in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+        }else{
+            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        }
+
+        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
         ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 
@@ -35,9 +48,13 @@ class OvertimeController extends Controller
 
     public function employeeOvertimeRequest(Request $request)
     {
+        $user = auth()->user();        
+        $currentEmployee = Employee::where('user_id', $user->id)->first();
         
-        $today = Carbon::today()->toDateString();
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
 
+        $today = Carbon::today()->toDateString();
 
         $searchQuery = '';
 
@@ -49,8 +66,15 @@ class OvertimeController extends Controller
         
         $employeeIds = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')
-            ->where('employees.status',"ACTIVE")
-            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+        ->where('employees.status',"ACTIVE");
+        
+        if(in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+        }else{
+            $employeeIds = $employeeIds->where('employees.department_id',$currentEmployee->department_id);
+        }
+
+        $employeeIds = $employeeIds->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
             ->whereNotIn('users.user_type',["ADMINISTRATOR"])
             ->orderBy('id','DESC')
         ->pluck('id');

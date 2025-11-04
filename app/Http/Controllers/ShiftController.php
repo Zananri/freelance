@@ -21,6 +21,14 @@ class ShiftController extends Controller
      */
     public function getEmployeesBasic(Request $request)
     {
+        $user = auth()->user();
+        $userId = auth()->user()->id;
+        
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
+        
         $month = $request->input('month', date('m'));
         $year = $request->input('year', date('Y'));
         $search = $request->input('search', '');
@@ -31,34 +39,34 @@ class ShiftController extends Controller
         $startDate = Carbon::create($year, $month, 1)->startOfMonth();
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
 
-    $query = Employee::select(
-            'employees.id',
-            'employees.name',
-            'employees.email',
-            'employees.photo',
-            'employees.profile_picture',
-            'employees.department_id',
-            'employees.division_id',
-            // base shift fields
-            'employees.shift_id as base_shift_id',
-            'base_shifts.title as base_title',
-            'base_shifts.description as base_description',
-            'base_shifts.time_start as base_time_start',
-            'base_shifts.time_end as base_time_end',
-            // per-date shift fields
-            'employee_shifts.shift_id as shift_id',
-            'employee_shifts.date_shift',
-            'shifts.title as title',
-            'shifts.description as description',
-            'shifts.time_start',
-            'shifts.time_end',
-            'shifts.total_hour',
-            'shifts.created_by as shift_created_by',
-            'shifts.updated_by as shift_updated_by',
-            'shifts.deleted_by as shift_deleted_by',
-            'shifts.created_at as shift_created_at',
-            'shifts.updated_at as shift_updated_at'
-        )
+        $query = Employee::select(
+                'employees.id',
+                'employees.name',
+                'employees.email',
+                'employees.photo',
+                'employees.profile_picture',
+                'employees.department_id',
+                'employees.division_id',
+                // base shift fields
+                'employees.shift_id as base_shift_id',
+                'base_shifts.title as base_title',
+                'base_shifts.description as base_description',
+                'base_shifts.time_start as base_time_start',
+                'base_shifts.time_end as base_time_end',
+                // per-date shift fields
+                'employee_shifts.shift_id as shift_id',
+                'employee_shifts.date_shift',
+                'shifts.title as title',
+                'shifts.description as description',
+                'shifts.time_start',
+                'shifts.time_end',
+                'shifts.total_hour',
+                'shifts.created_by as shift_created_by',
+                'shifts.updated_by as shift_updated_by',
+                'shifts.deleted_by as shift_deleted_by',
+                'shifts.created_at as shift_created_at',
+                'shifts.updated_at as shift_updated_at'
+            )
             ->leftJoin('employee_shifts', function ($join) use ($startDate, $endDate) {
                 $join->on('employees.id', '=', 'employee_shifts.employee_id')
                     ->whereBetween('employee_shifts.date_shift', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')]);
@@ -70,8 +78,16 @@ class ShiftController extends Controller
             ->leftJoin('shifts as base_shifts', function ($join) {
                 $join->on('employees.shift_id', '=', 'base_shifts.id')
                     ->whereNull('base_shifts.deleted_by');
-            })
-            ->where('employees.status', 'active')
+            });
+
+
+            if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+                //show all
+            }else{
+                $query = $query->where('employees.department_id', $currentEmployee->department_id);
+            }
+            
+            $query = $query->where('employees.status', 'active')
             ->whereNull('employees.deleted_by')
             // Exclude employees whose related user has user_type = 'ADMINISTRATOR'
             ->where(function($q) {

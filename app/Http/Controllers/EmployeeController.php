@@ -60,6 +60,14 @@ class EmployeeController extends Controller
     }
     public function index(Request $request)
     {
+        $user = auth()->user();
+        $userId = auth()->user()->id;
+        
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
+
         $query = $request->input('query', '');
         $departmentIds = $request->input('department', []);
         $divisionIds = $request->input('division', []);
@@ -69,8 +77,15 @@ class EmployeeController extends Controller
             $excludeEmployeeId = $request->input('exclude_employee_id', null);
 
             $employees = Employee::with(['department', 'division', 'job', 'user', 'grade', 'officeModel'])
-                ->where('status', '!=', 'DELETED')
-                ->when($query, function ($q) use ($query) {
+                ->where('status', '!=', 'DELETED');
+            
+            if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+                //show all
+            }else{
+                $employees = $employees->where('department_id',$currentEmployee->department_id);
+            }
+
+            $employees = $employees->when($query, function ($q) use ($query) {
                     $q->where(function ($q2) use ($query) {
                         $q2->where('name', 'like', '%' . $query . '%')
                             ->orWhere('email', 'like', '%' . $query . '%')
@@ -123,21 +138,30 @@ class EmployeeController extends Controller
             return response()->json(['data' => $employees]);
         }
 
+
         $employees = Employee::with(['department', 'division', 'job'])
-            ->where('status', '!=', 'DELETED')
-            ->whereHas('user', function ($q) {
+            ->where('status', '!=', 'DELETED');
+        
+        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+        }else{
+            $employees = $employees->where('department_id',$currentEmployee->department_id);
+        }
+
+        $employees = $employees->whereHas('user', function ($q) {
                 $q->where('user_type', '!=', 'ADMINISTRATOR')
                 ->whereNotIn('user_role', ['ADMINISTRATOR']);
             })
-            ->get();
+        ->get();
     }
 
     public function show($id)
     {
         $employee = Employee::with(['department', 'division', 'job', 'grade', 'officeModel', 'user'])->find($id);
-            if (!$employee) {
-                return response()->json(['message' => 'Employee not found'], 404);
-            }
+
+        if (!$employee) {
+            return response()->json(['message' => 'Employee not found'], 404);
+        }
         // Map office and grade to display values for UI compatibility
         $employee->office = $employee->officeModel ? $employee->officeModel->name : null;
         $employee->grade = $employee->grade ? $employee->grade->title : null;
@@ -581,7 +605,23 @@ class EmployeeController extends Controller
 
     public function edit($id)
     {
+        $user = auth()->user();
+        $userId = auth()->user()->id;
+        
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
+        
         $employee = Employee::find($id);
+
+        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+        }else{
+            $employee = Employee::where('department_id',$currentEmployee->department_id)->find($id);
+        }
+        
+
         if (!$employee) {
             abort(404, 'Employee not found');
         }
@@ -686,16 +726,37 @@ class EmployeeController extends Controller
     public function exportEmployeeActive(){
         
 
+        $user = auth()->user();
+        $userId = auth()->user()->id;
+        
+        $currentEmployee = Employee::where('user_id', $userId)->first();
+        
+        $userType = strtoupper((string) ($user->user_type ?? ''));
+        $userRole = strtoupper((string) ($user->user_role ?? ''));
+
+
         $userRole = auth()->user()->user_role;
 
-        if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER','CEO','GENERAL_MANAGER'])){
-            return redirect('/employee');
-        }
+        // if(!in_array($userRole,['ADMINISTRATOR','HR_MANAGER','CEO','GENERAL_MANAGER'])){
+        //     return redirect('/employee');
+        // }
 
         $employee = Employee::select('employees.id')
             ->join('users','employees.user_id','=','users.id')
-            ->where('employees.status',"ACTIVE")
-            ->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
+            ->where('employees.status',"ACTIVE");
+
+        if (in_array($userType, ['ADMINISTRATOR','MANAGEMENT']) && in_array($userRole, ['ADMINISTRATOR','GENERAL_MANAGER', 'CEO','HR_MANAGER'])) {
+            //show all
+        }else{
+
+            if($currentEmployee->department_id == 1){
+                return redirect('/employee');
+            }
+            
+            $employee = $employee->where('employees.department_id',$currentEmployee->department_id);
+        }
+
+        $employee = $employee->whereNotIn('users.user_role',["GENERAL_MANAGER","CEO"])
             ->whereNotIn('users.user_type',["ADMINISTRATOR"])
         ->get();
 

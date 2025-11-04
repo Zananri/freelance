@@ -3,7 +3,7 @@
         {{ __('employee') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/employee.css') }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/employee.css') }}?v={{ date('YmdHi') }}" rel="stylesheet">
     </x-slot>
 
       <!-- SVG Symbols -->
@@ -42,12 +42,14 @@
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end border-0" aria-labelledby="filterDropdownBtn" style="min-width: 300px; padding: 15px;">
                         <form id="filterForm">
+                            
                             <div class="mb-3 custom-input">
                                 <label for="filterDepartment" class="form-label small">Department</label>
                                 <select id="filterDepartment" class="form-select form-select-sm">
                                     <option value="">Select Department</option>
                                 </select>
                             </div>
+
                             <div class="mb-3 custom-input">
                                 <label for="filterDivision" class="form-label small">Division</label>
                                 <select id="filterDivision" class="form-select form-select-sm" disabled>
