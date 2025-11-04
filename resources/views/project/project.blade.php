@@ -124,7 +124,7 @@
                                 <th class="align-middle">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="d-flex justify-content-start align-items-center mb-0">
-                                            <p class="table-total-task mb-0">30 Total tasks</p>
+                                            <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">
                                             <input type="text" class="form-control input-text table-search-input mb-0">
@@ -144,7 +144,7 @@
                                     </div>
                                 </td>
                                 <td class="align-top" style="width: 55%;">
-                                    <div class="table-tasks-placeholder text-muted small text-center py-4">
+                                    <div id="projectTasksPane" class="table-tasks-placeholder text-muted small text-center py-4">
                                         Select a project to view tasks here.
                                     </div>
                                 </td>
