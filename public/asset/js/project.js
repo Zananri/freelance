@@ -1504,13 +1504,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                 role="button"
                                 tabindex="0"
                                 style="cursor:pointer;text-decoration:underline;">
-                            ${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}
+                            ${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}  
                         </span>`
                         : `${totalTasks} Task`;
-                    const statsHtml = `<div class="project-list-stats text-muted small">${childrenText} • ${tasksText}</div>`;
+                    const statsHtml = `<div class="d-flex project-list-stats text-muted small">
+                            <span class="material-symbols-outlined me-2 flow-icon">
+                                flowchart
+                            </span>
+                            ${childrenText} &nbsp; ${tasksText}
+                        </div>`;
 
                     wrapper.innerHTML = `
-                        ${badgeHtml}
+                            ${badgeHtml}
                         <div class="flex-shrink-0">${avatarHtml}</div>
                         <div class="flex-grow-1">
                             <div class="project-list-title">${escapeHtml(project.title || 'Untitled Project')}</div>
@@ -1524,9 +1529,49 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 container.appendChild(frag);
 
-                // Attach click handlers to children links and task count links
                 attachChildrenLinkHandlers();
                 attachTasksLinkHandlers();
+
+                container.querySelectorAll('.project-list-item').forEach(card => {
+                    card.addEventListener('click', function (e) {
+                        if (e.target.closest('.project-children-link, .project-tasks-link, .project-more-btn')) return;
+
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const projectId = this.dataset.projectId;
+                        const projectTitleEl = this.querySelector('.project-list-title');
+                        const projectName = projectTitleEl ? projectTitleEl.textContent.trim() : 'Project';
+
+                        if (projectId) {
+                            renderProjectTasksToPane(projectId);
+
+                            const projectNameEl = document.getElementById('project-table-name');
+                            if (projectNameEl) {
+                                projectNameEl.style.opacity = 0;
+                                setTimeout(() => {
+                                    projectNameEl.textContent = projectName;
+                                    projectNameEl.style.opacity = 1;
+                                }, 150);
+                            }
+
+                            const backBtn = document.querySelector('.back-toggle');
+                            if (backBtn) {
+                                const btnWrapper = backBtn.closest('button') || backBtn;
+                                btnWrapper.style.display = 'inline-block';
+                            }
+
+                            window.projectNavigationState = window.projectNavigationState || {};
+                            projectNavigationState.currentParentId = projectId;
+                            projectNavigationState.currentParentTitle = projectName;
+
+                            if (typeof updateProjectNavigationUI === 'function') {
+                                updateProjectNavigationUI();
+                            }
+                        }
+                    });
+                });
+
             })
             .catch(() => {
                 try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
@@ -1536,6 +1581,8 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateProjectNavigationUI() {
         try {
             const breadcrumbTitle = document.querySelector('.table-project-title');
+            const breadcrumbSubTitle = document.querySelector('.table-project-name');
+            const breadcrumbStatus = document.querySelector('.table-project-status');
             const breadcrumbArrow = document.querySelector('.arrow-toggle');
             const backButton = document.querySelector('.back-toggle');
 
@@ -1557,11 +1604,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     backButton.closest('button').style.display = 'inline-block';
                 }
             } else {
-                if (breadcrumbTitle) {
-                    breadcrumbTitle.textContent = 'All Project';
-                }
                 if (breadcrumbArrow) {
                     breadcrumbArrow.style.display = 'none';
+                }
+                if (breadcrumbSubTitle) {
+                    breadcrumbSubTitle.style.display = 'none';
+                }
+                if (breadcrumbStatus) {
+                    breadcrumbStatus.style.display = 'none';
                 }
                 const parentNameEl = document.querySelector('.breadcrumb-parent-name');
                 if (parentNameEl) parentNameEl.remove();
@@ -2178,9 +2228,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             const inProgress = counts.in_progress || 0;
                             const late = counts.late || 0;
 
-                            console.log(project.task_counts);
-                            
-
                             if (total === 0) return "not_started";
                             if (notStarted === total) return "not_started";
                             if (inProgress > 0) return "in_progress";
@@ -2217,9 +2264,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </p>`;
                         }
                         
-
-                        //console.log(project);
-
                         rowHtml += `
                             <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
@@ -13889,6 +13933,7 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             cache: false,
             success: function (response) {
+                
                 if (response.data && response.data.length > 0) {
                     let feedbackHtml = "";
                     response.data.forEach(function (feedback) {
@@ -14532,6 +14577,506 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<p class="text-center text-danger">Failed to load feedback.</p>';
             },
         });
+    }
+
+    function setupTaskInlineFeedbackEditor(taskId) {
+        try {
+            const modal = document.getElementById('taskFeedbackModal');
+            if (!modal) return;
+
+            // Find modal footer
+            let footer = modal.querySelector('.modal-footer') || modal.querySelector('.modal-footer-custom');
+            if (!footer) return;
+
+            // Replace footer content with inline feedback editor
+            footer.innerHTML = `
+                <div class="feedback-form w-100">
+                <div id="inline_task_feedback_files_preview"></div>
+                <div id="inline_existing_files_preview"></div>
+                    <div id="inline_task_feedback_editor" class="border-0 ql-container ql-snow" style="min-height:40px; max-height:160px; overflow:auto; background:transparent; padding:8px 10px; border-radius:6px;">
+                        <div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div>
+                    </div>
+
+                    <textarea id="inline_task_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+                    <input type="hidden" id="inline_edit_task_feedback_input" value="">
+                    <input type="hidden" id="inline_parent_id_input" name="parent_id" value="">
+
+                    <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                        <div class="d-flex-justify-content-start">
+                            <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackPhotoBtn" title="Upload photo">
+                                <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                            </button>
+                            <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackFileBtn" title="Attach file">
+                                <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                            </button>
+                            <input type="file" id="inline_task_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                            <input type="file" id="inline_task_feedback_files_input" name="reference_files[]" multiple="" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                        </div>
+                        <div class="d-flex justify-content-end submit-feedback">
+                            <button type="button" class="btn btn-submit-black" id="inlineTaskFeedbackSendBtn">
+                                <span class="material-symbols-outlined">send</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+
+            try { window.__quillTaskFeedbackInline = null; } catch(_) {}
+            initTaskInlineFeedbackEditor(taskId);
+
+            // Ensure placeholder toggling is attached for contenteditable fallback
+            try {
+                const editor = document.getElementById('inline_task_feedback_editor');
+                if (editor) {
+                    const editorRoot = editor.querySelector('.ql-editor');
+                    if (editorRoot && !editorRoot.dataset.placeholderHandlerAttached) {
+                        const togglePlaceholder = function () {
+                            try {
+                                const txt = (editorRoot.textContent || '').replace(/\uFEFF/g, '').trim();
+                                if (txt.length > 0) {
+                                    editorRoot.classList.remove('ql-blank');
+                                } else {
+                                    if (!editorRoot.classList.contains('ql-blank')) editorRoot.classList.add('ql-blank');
+                                }
+                            } catch (_) {}
+                        };
+                        editorRoot.addEventListener('input', togglePlaceholder);
+                        editorRoot.addEventListener('keydown', function () { setTimeout(togglePlaceholder, 0); });
+                        // Mark as attached so we don't double-bind
+                        editorRoot.dataset.placeholderHandlerAttached = '1';
+                    }
+                }
+            } catch(_) {}
+
+        } catch (e) {
+            console.warn('Failed to setup inline task feedback editor:', e);
+        }
+    }
+
+    window.startInlineTaskEditFeedback = function(data) {
+        try {
+            const hiddenInput = document.getElementById("inline_edit_task_feedback_input");
+            if (hiddenInput) hiddenInput.value = data.id || "";
+
+            // Set parent_id for replies
+            try {
+                const inlinePid = document.getElementById('inline_parent_id_input');
+                if (inlinePid) inlinePid.value = data.parent_id || '';
+            } catch(_) {}
+
+            // Ensure inline editor exists; initialize if not
+            try {
+                if (!window.__quillTaskFeedbackInline) {
+                    // Attempt to create it synchronously
+                    initTaskInlineFeedbackEditor((document.getElementById('taskFeedbackModal')||{}).dataset?.taskId || '');
+                }
+            } catch(_) {}
+
+            // Fill editor with existing content (guarded)
+            try {
+                if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
+                    // Use setTimeout(0) to ensure DOM is painted and Quill has attached
+                    setTimeout(function(){
+                        try { window.__quillTaskFeedbackInline.root.innerHTML = data.feedback_comment || ""; } catch(_) {}
+                        try {
+                            if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
+                                try { window.__quillTaskFeedbackInline.setSelection(0, 0); } catch(_) {}
+                            }
+                        } catch(_) {}
+                    }, 0);
+                }
+            } catch(_) {}
+
+            // Show existing image if available
+            try {
+                const rawImg = data.image_url || data.image || "";
+                if (rawImg) {
+                    let url = rawImg;
+                    if (url.indexOf('http') !== 0) {
+                        url = (url.indexOf('/') === 0) ? appUrl.replace(/\/$/, "") + url : appUrl.replace(/\/$/, "") + "/file/task_feedback/" + url;
+                    }
+                    showTaskInlineImagePreviewFromUrl(url);
+                }
+            } catch(_) {}
+
+            // Show existing files if available
+            try {
+                let files = [];
+                if (Array.isArray(data.reference_files_urls)) {
+                    files = data.reference_files_urls;
+                } else if (Array.isArray(data.reference_files)) {
+                    files = data.reference_files;
+                } else if (data.reference_file_url) {
+                    files = [data.reference_file_url];
+                } else if (data.reference_file) {
+                    files = [data.reference_file];
+                }
+                renderInlineTaskExistingFiles(files);
+            } catch(_) {}
+
+            // Change Send button to Update
+            const sendBtn = document.getElementById("inlineTaskFeedbackSendBtn");
+            if (sendBtn) {
+                sendBtn._origHTML = sendBtn._origHTML || sendBtn.innerHTML;
+                try {
+                    sendBtn.innerHTML = `
+                        <span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">send</span>
+                    `;
+                } catch(_) {
+                    sendBtn.textContent = 'Update';
+                }
+            }
+
+            // Add Cancel button
+            const actions = document.querySelector('.btn-actions-feedback .submit-feedback');
+            if (actions && !document.getElementById('inlineTaskFeedbackCancelBtn')) {
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.id = 'inlineTaskFeedbackCancelBtn';
+                cancel.className = 'btn btn-custom-close me-2 d-flex align-items-center gap-1';
+                cancel.innerHTML = '<span class="material-symbols-outlined" style="font-size:18px;vertical-align:middle;">cancel</span>';
+                cancel.addEventListener('click', function() {
+                    try {
+                        window.cancelInlineTaskEditFeedback();
+                    } catch(_) {}
+                });
+                actions.insertBefore(cancel, actions.firstChild);
+            }
+        } catch(_) {}
+    };
+
+    // Exit inline EDIT mode for task feedback
+    window.cancelInlineTaskEditFeedback = function() {
+        try {
+            // Clear edit marker
+            const hiddenInput = document.getElementById('inline_edit_task_feedback_input');
+            if (hiddenInput) hiddenInput.value = '';
+
+            // Clear parent_id
+            const inlinePid = document.getElementById('inline_parent_id_input');
+            if (inlinePid) inlinePid.value = '';
+
+            // Clear existing files keep list and remove preview
+            window.inlineTaskExistingFilesKeep = [];
+            try {
+                const existingPreview = document.getElementById('inline_existing_files_preview');
+                if (existingPreview && existingPreview.parentNode) {
+                    existingPreview.parentNode.removeChild(existingPreview);
+                }
+            } catch(_) {}
+
+            // Remove image preview and clear stored image file
+            try {
+                const imagePreview = document.getElementById('inline_task_feedback_image_preview');
+                if (imagePreview && imagePreview.parentNode) {
+                    imagePreview.parentNode.removeChild(imagePreview);
+                }
+            } catch(_) {}
+            window.__taskInlineFeedbackImageFile = null;
+
+            // Clear native file inputs
+            try {
+                const imgInput = document.getElementById('inline_task_feedback_image_input');
+                if (imgInput) imgInput.value = '';
+            } catch(_) {}
+            try {
+                const filesInput = document.getElementById('inline_task_feedback_files_input');
+                if (filesInput) filesInput.value = '';
+            } catch(_) {}
+
+            // Clear selected files array and file previews
+            try {
+                window.inlineTaskFeedbackSelectedFiles = [];
+                renderInlineTaskFeedbackFilesPreview();
+            } catch(_) {}
+
+            // Clear Quill editor
+            try {
+                if (window.__quillTaskFeedbackInline && window.__quillTaskFeedbackInline.root) {
+                    window.__quillTaskFeedbackInline.root.innerHTML = '';
+                    if (typeof window.__quillTaskFeedbackInline.setSelection === 'function') {
+                        try {
+                            window.__quillTaskFeedbackInline.setSelection(0);
+                        } catch(_) {}
+                    }
+                }
+            } catch(_) {}
+
+            // Clear fallback textarea
+            try {
+                const textarea = document.getElementById('inline_task_feedback_comment');
+                if (textarea) textarea.value = '';
+            } catch(_) {}
+
+            // Restore send button text
+            try {
+                const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
+                if (sendBtn) {
+                    if (sendBtn._origHTML) {
+                        try {
+                            sendBtn.innerHTML = sendBtn._origHTML;
+                        } catch(_) {
+                            sendBtn.textContent = sendBtn._origHTML;
+                        }
+                    } else {
+                        try {
+                            sendBtn.innerHTML = '<span class="material-symbols-outlined">send</span>';
+                        } catch(_) {
+                            sendBtn.textContent = 'Send';
+                        }
+                    }
+                }
+            } catch(_) {}
+
+            // Remove cancel button
+            try {
+                const cancelBtn = document.getElementById('inlineTaskFeedbackCancelBtn');
+                if (cancelBtn && cancelBtn.parentNode) {
+                    cancelBtn.parentNode.removeChild(cancelBtn);
+                }
+            } catch(_) {}
+
+            // Reset remove-image flag
+            window.__inlineTaskRemoveImage = false;
+        } catch(_) {}
+    };
+
+    // Show inline image preview from URL for existing image
+    window.showTaskInlineImagePreviewFromUrl = function(imageUrl) {
+        try {
+            // Create preview container if not exists
+            let previewContainer = document.getElementById("inline_task_feedback_image_preview");
+            if (!previewContainer) {
+                previewContainer = document.createElement("div");
+                previewContainer.id = "inline_task_feedback_image_preview";
+                previewContainer.style.cssText = "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+
+                const fileBtn = document.getElementById("inlineTaskFeedbackFileBtn");
+                if (fileBtn && fileBtn.parentNode) {
+                    fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                }
+            }
+
+            previewContainer.innerHTML = "";
+
+            const imageLabel = document.createElement("div");
+            imageLabel.className = "custom-image-upload position-relative";
+            imageLabel.style.cssText =
+                "width: 32px; height: 32px; " +
+                "background-image: url('" + imageUrl + "'); " +
+                "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
+                "border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; " +
+                "opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: visible;";
+
+            const clearBtn = document.createElement("span");
+            clearBtn.className = "image-clear-btn";
+            clearBtn.innerHTML = "&times;";
+            clearBtn.title = "Remove image";
+            clearBtn.style.cssText =
+                "position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; " +
+                "border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; " +
+                "text-align: center; cursor: pointer; font-weight: 700; border: none; " +
+                "box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30; opacity: 1;";
+
+            clearBtn.addEventListener("click", function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    // Set remove flag for existing image
+                    window.__inlineTaskRemoveImage = true;
+                    // Clear any new image input
+                    const inp = document.getElementById("inline_task_feedback_image_input");
+                    if (inp) inp.value = "";
+                    // Clear stored new image
+                    window.__taskInlineFeedbackImageFile = null;
+                    // Remove preview
+                    if (previewContainer && previewContainer.parentNode) {
+                        previewContainer.parentNode.removeChild(previewContainer);
+                    }
+                } catch(_) {}
+            });
+
+            imageLabel.appendChild(clearBtn);
+            previewContainer.appendChild(imageLabel);
+        } catch(e) {
+            console.warn("Failed to show inline image preview from URL:", e);
+        }
+    };
+
+    // Render existing files for inline edit mode
+    window.renderInlineTaskExistingFiles = function(files) {
+        try {
+            const container = document.getElementById('inline_existing_files_preview');
+            let existingContainer = container;
+
+            if (!existingContainer) {
+                existingContainer = document.createElement('div');
+                existingContainer.id = 'inline_existing_files_preview';
+                existingContainer.className = 'mb-2';
+
+                // Insert before the editor
+                const editor = document.getElementById('inline_task_feedback_editor');
+                if (editor && editor.parentNode) {
+                    editor.parentNode.insertBefore(existingContainer, editor);
+                }
+            }
+
+            existingContainer.innerHTML = '';
+
+            if (!Array.isArray(files) || files.length === 0) return;
+
+            // Initialize keep list
+            if (!window.inlineTaskExistingFilesKeep) {
+                window.inlineTaskExistingFilesKeep = files.slice();
+            }
+
+            files.forEach(function(fileUrl, idx) {
+                if (!fileUrl) return;
+
+                const item = document.createElement('div');
+                item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-1 p-2 bg-transparent border-0 rounded';
+
+                const info = document.createElement('div');
+                info.className = 'd-flex align-items-center flex-grow-1';
+
+                const icon = document.createElement('span');
+                icon.className = 'material-symbols-outlined me-2';
+                icon.textContent = 'description';
+                icon.style.fontSize = '16px';
+
+                const link = document.createElement('a');
+                link.href = fileUrl;
+                link.target = '_blank';
+                link.style.textDecoration = 'none';
+                link.style.color = '#444';
+
+                const fileName = (function() {
+                    try {
+                        const url = new URL(fileUrl, window.location.origin);
+                        return decodeURIComponent(url.pathname.split('/').pop());
+                    } catch(e) {
+                        const parts = String(fileUrl).split('/');
+                        return decodeURIComponent(parts[parts.length - 1] || String(fileUrl));
+                    }
+                })();
+                link.textContent = fileName;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm ms-2';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.title = 'Remove file';
+                removeBtn.addEventListener('click', function() {
+                    // Remove from keep list
+                    const keepList = window.inlineTaskExistingFilesKeep || [];
+                    const indexInKeep = keepList.indexOf(fileUrl);
+                    if (indexInKeep !== -1) {
+                        keepList.splice(indexInKeep, 1);
+                    }
+                    // Remove from DOM
+                    item.remove();
+                });
+
+                info.appendChild(icon);
+                info.appendChild(link);
+                item.appendChild(info);
+                item.appendChild(removeBtn);
+                existingContainer.appendChild(item);
+            });
+        } catch(e) {
+            console.warn('Failed to render existing files:', e);
+        }
+    };
+
+    // Initialize inline Quill editor for task feedback
+    function initTaskInlineFeedbackEditor(taskId) {
+        try {
+            if (typeof Quill === "undefined") return;
+            if (window.__quillTaskFeedbackInline) return window.__quillTaskFeedbackInline;
+
+            const editorEl = document.getElementById("inline_task_feedback_editor");
+            if (!editorEl) return null;
+
+            // Create Quill with minimal toolbar (no visible toolbar)
+            const q = new Quill("#inline_task_feedback_editor", {
+                modules: {
+                    toolbar: false, // No toolbar for inline editor
+                    clipboard: { matchVisual: false },
+                },
+                theme: "snow",
+                placeholder: "Write feedback...",
+            });
+
+            // Remove images if pasted
+            try {
+                const Delta = Quill.import && Quill.import("delta");
+                if (q && q.clipboard && typeof q.clipboard.addMatcher === "function") {
+                    q.clipboard.addMatcher("IMG", function (node, delta) {
+                        try {
+                            return new Delta();
+                        } catch (_) {
+                            return delta;
+                        }
+                    });
+                }
+            } catch (_) {}
+
+            try {
+                q.on && q.on("text-change", function () {
+                    try {
+                        const imgs = q.root.querySelectorAll("img");
+                        imgs.forEach(function (i) {
+                            i.remove();
+                        });
+                    } catch (_) {}
+
+                    // Toggle placeholder state immediately when user types or removes content.
+                    try {
+                        const plain = (typeof q.getText === 'function') ? (q.getText() || '').trim() : (q.root.textContent || '').replace(/\s+/g, '').trim();
+                        if (plain && String(plain).length > 0) {
+                            q.root.classList.remove('ql-blank');
+                        } else {
+                            if (!q.root.classList.contains('ql-blank')) q.root.classList.add('ql-blank');
+                        }
+                    } catch (_) {}
+                });
+            } catch (_) {}
+
+            window.__quillTaskFeedbackInline = q;
+
+            // Ensure contenteditable root toggles placeholder on native input as well
+            try {
+                const editorRoot = editorEl.querySelector('.ql-editor');
+                if (editorRoot) {
+                    const togglePlaceholder = function () {
+                        try {
+                            const txt = (editorRoot.textContent || '').replace(/\uFEFF/g, '').trim();
+                            if (txt.length > 0) {
+                                editorRoot.classList.remove('ql-blank');
+                            } else {
+                                if (!editorRoot.classList.contains('ql-blank')) editorRoot.classList.add('ql-blank');
+                            }
+                        } catch (_) {}
+                    };
+                    editorRoot.addEventListener('input', togglePlaceholder);
+                    editorRoot.addEventListener('keydown', function () { setTimeout(togglePlaceholder, 0); });
+                }
+            } catch (_) {}
+
+            // Initialize selected files array
+            if (!window.inlineTaskFeedbackSelectedFiles) {
+                window.inlineTaskFeedbackSelectedFiles = [];
+            }
+
+            // Setup button handlers
+            setupInlineTaskFeedbackButtons(taskId, q);
+
+            return q;
+        } catch (e) {
+            console.warn('Failed to init inline task feedback editor:', e);
+            return null;
+        }
     }
 
     // Function to show add task feedback form
@@ -15780,6 +16325,271 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
             console.warn('Failed to setup inline task feedback buttons:', e);
         }
+    }
+
+    function renderInlineTaskFeedbackFilesPreview() {
+        try {
+            let preview = document.getElementById("inline_task_feedback_files_preview");
+            if (!preview) {
+                // Create preview container if it doesn't exist
+                const form = document.querySelector(".feedback-form");
+                if (form) {
+                    preview = document.createElement("div");
+                    preview.id = "inline_task_feedback_files_preview";
+                    preview.className = "mt-2";
+                    form.appendChild(preview);
+                }
+            }
+            if (!preview) return;
+
+            const sel = window.inlineTaskFeedbackSelectedFiles || [];
+            preview.innerHTML = "";
+
+            if (!sel.length) return;
+
+            const listWrap = document.createElement("div");
+            listWrap.className = "selected-files-list mt-2";
+
+            sel.forEach(function (f, idx) {
+                try {
+                    const item = document.createElement("div");
+                    item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                    const iconWrap = document.createElement("div");
+                    const iconName = getFileTypeIcon(f.name || '');
+                    iconWrap.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span>';
+                    iconWrap.style.fontSize = "10px";
+                    iconWrap.style.textAlign = "center";
+
+                    const name = document.createElement("span");
+                    name.className = "flex-grow-1";
+                    name.style.fontSize = "10px";
+                    const sizeMb = (f.size || 0) / 1024 / 1024;
+                    name.textContent = (f.name || "") + (isFinite(sizeMb) ? " (" + sizeMb.toFixed(2) + " MB)" : "");
+
+                    const rm = document.createElement("button");
+                    rm.type = "button";
+                    rm.className = "btn btn-sm btn-remove-task remove-task";
+                    rm.style.lineHeight = "1";
+                    rm.style.fontSize = "10px";
+                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                    rm.addEventListener("click", function () {
+                        try {
+                            window.inlineTaskFeedbackSelectedFiles.splice(idx, 1);
+                            renderInlineTaskFeedbackFilesPreview();
+                        } catch (_) {}
+                    });
+
+                    item.appendChild(iconWrap);
+                    item.appendChild(name);
+                    item.appendChild(rm);
+                    listWrap.appendChild(item);
+                } catch (_) {}
+            });
+
+            preview.appendChild(listWrap);
+        } catch (e) {}
+    }
+
+    function submitInlineTaskFeedback(taskId, quill) {
+        const appUrl = (function(){
+            try {
+                const meta = document.querySelector('meta[name="app-url"]');
+                let v = (meta && meta.getAttribute('content')) || '';
+                if (v) {
+                    v = new URL(v, window.location.origin).href.replace(/\/+$/, '');
+                    return v;
+                }
+                const parts = (window.location.pathname || '').split('/').filter(Boolean);
+                const baseSeg = parts.length > 0 ? ('/' + parts[0]) : '';
+                return (window.location.origin + baseSeg).replace(/\/+$/, '');
+            } catch(_) {
+                return (window.location.origin || '').replace(/\/+$/, '');
+            }
+        })();
+
+        try {
+            const html = quill.root.innerHTML || '';
+            let hasImage = false, hasRefFiles = false;
+
+            try {
+                if (window.__taskInlineFeedbackImageFile) hasImage = true;
+                else {
+                    const pi = document.getElementById("inline_task_feedback_image_input");
+                    if (pi && pi.files && pi.files.length) hasImage = true;
+                }
+            } catch(_) {}
+
+            try {
+                if (window.inlineTaskFeedbackSelectedFiles && window.inlineTaskFeedbackSelectedFiles.length) hasRefFiles = true;
+                else {
+                    const fi = document.getElementById("inline_task_feedback_files_input");
+                    if (fi && fi.files && fi.files.length) hasRefFiles = true;
+                }
+            } catch(_) {}
+
+            const plainText = String(html || '').replace(/<[^>]+>/g, '').trim();
+            if (!plainText && !hasImage && !hasRefFiles) {
+                if (typeof showFloatingAlert === 'function')
+                    showFloatingAlert('Please write feedback or attach a file', 'warning');
+                return;
+            }
+
+            const feedbackModalEl = document.getElementById('taskFeedbackModal');
+            const employeeId = feedbackModalEl?.getAttribute('data-employee-id') || '';
+
+            const fd = new FormData();
+            fd.append('feedback_comment', html);
+            fd.append('task_id', taskId);
+            fd.append('employee_id', employeeId);
+
+            try {
+                const pid = document.getElementById('inline_parent_id_input');
+                if (pid && pid.value) fd.append('parent_id', pid.value);
+            } catch(_) {}
+
+            const imageFile = window.__taskInlineFeedbackImageFile;
+            if (imageFile) fd.append('feedback_image', imageFile);
+
+            const selectedFiles = window.inlineTaskFeedbackSelectedFiles || [];
+            selectedFiles.forEach(f => fd.append('reference_files[]', f));
+
+            const editId = (document.getElementById('inline_edit_task_feedback_input') || {}).value || '';
+            const isEdit = String(editId).trim() !== '';
+            if (isEdit) {
+                try {
+                    const keepList = window.inlineTaskExistingFilesKeep || [];
+                    fd.set('existing_reference_files', JSON.stringify(keepList));
+                } catch(_) {}
+                try {
+                    if (typeof window.__inlineTaskRemoveImage !== 'undefined') {
+                        fd.set('remove_image', window.__inlineTaskRemoveImage ? '1' : '0');
+                    }
+                } catch(_) {}
+                fd.append('_method', 'PUT');
+            }
+
+            const sendBtn = $("#inlineTaskFeedbackSendBtn");
+            const origText = sendBtn.html();
+            sendBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>' + (isEdit ? 'Updating...' : 'Sending...'));
+
+            $.ajax({
+                url: isEdit ? appUrl + '/task-feedbacks/' + editId : appUrl + '/task-feedbacks',
+                type: 'POST',
+                data: fd,
+                processData: false,
+                contentType: false,
+                headers: {
+                    "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
+                },
+                success: function (res) {
+                    const msg = (res && res.message) || (isEdit ? 'Feedback updated successfully!' : 'Feedback submitted successfully!');
+                    if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'light', 2000);
+
+                    // Reset editor dan file
+                    quill.root.innerHTML = '';
+                    window.inlineTaskFeedbackSelectedFiles = [];
+                    window.__taskInlineFeedbackImageFile = null;
+
+                    $('#inline_task_feedback_image_preview, #inline_task_feedback_files_preview, #inline_existing_files_preview').empty();
+
+                    // Clear reply state
+                    clearReplyState();
+
+                    if (isEdit && typeof window.cancelInlineTaskEditFeedback === 'function') {
+                        window.cancelInlineTaskEditFeedback();
+                    }
+
+                    setTimeout(() => {
+                        try {
+                            loadTaskFeedbackData(taskId + '?t=' + Date.now());
+                        } catch (e) {
+                            console.warn('Failed to reload feedback list', e);
+                        }
+                    }, 300);
+                },
+                error: function (xhr) {
+                    let msg = isEdit ? "Failed to update feedback" : "Failed to submit feedback";
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        msg = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        msg = xhr.responseJSON.message;
+                    }
+                    if (typeof showFloatingAlert === 'function')
+                        showFloatingAlert(msg, "danger", 4000);
+                    else alert(msg);
+                },
+                complete: function () {
+                    sendBtn.prop('disabled', false).html(origText);
+                }
+            });
+
+        } catch (e) {
+            console.warn('Failed to submit inline task feedback:', e);
+            if (typeof showFloatingAlert === 'function')
+                showFloatingAlert("Failed to submit feedback", "warning");
+        }
+    }
+
+    function showTaskInlineImagePreviewSmall(fileObj, dataUrl) {
+            try {
+                // Create or get the preview container
+                let previewContainer = document.getElementById("inline_task_feedback_image_preview");
+                if (!previewContainer) {
+                    previewContainer = document.createElement("div");
+                    previewContainer.id = "inline_task_feedback_image_preview";
+                    previewContainer.style.cssText = "display: inline-flex; align-items: center; margin-left: 8px; opacity: 1; background: transparent;";
+    
+                    // Insert after the file button
+                    const fileBtn = document.getElementById("inlineTaskFeedbackFileBtn");
+                    if (fileBtn && fileBtn.parentNode) {
+                        fileBtn.parentNode.insertBefore(previewContainer, fileBtn.nextSibling);
+                    }
+                }
+    
+                // Create the image preview
+                previewContainer.innerHTML = "";
+    
+                const imageLabel = document.createElement("div");
+                imageLabel.className = "custom-image-upload position-relative";
+                imageLabel.style.cssText =
+                    "width: 32px; height: 32px; " +
+                    "background-image: url('" + dataUrl + "'); " +
+                    "background-size: cover; background-position: center center; background-repeat: no-repeat; " +
+                    "border-radius: 6px; cursor: pointer; border: 1px solid #ddd; margin-right: 4px; " +
+                    "opacity: 1; background-color: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow: visible;";
+    
+                const clearBtn = document.createElement("span");
+                clearBtn.className = "image-clear-btn";
+                clearBtn.innerHTML = "&times;";
+                clearBtn.title = "Remove image";
+                clearBtn.style.cssText =
+                    "position: absolute; top: -6px; right: -6px; background: #ff4444; color: #ffffff; " +
+                    "border-radius: 50%; width: 16px; height: 16px; font-size: 12px; line-height: 16px; " +
+                    "text-align: center; cursor: pointer; font-weight: 700; border: none; " +
+                    "box-shadow: 0 2px 6px rgba(0,0,0,0.25); z-index: 30; opacity: 1;";
+    
+                // Store the file object for later use
+                window.__taskInlineFeedbackImageFile = fileObj;
+    
+                clearBtn.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    try {
+                        const inp = document.getElementById("inline_task_feedback_image_input");
+                        if (inp) inp.value = "";
+                        window.__taskInlineFeedbackImageFile = null;
+                        if (previewContainer && previewContainer.parentNode) {
+                            previewContainer.parentNode.removeChild(previewContainer);
+                        }
+                    } catch (_) {}
+                });
+    
+                imageLabel.appendChild(clearBtn);
+                previewContainer.appendChild(imageLabel);
+            } catch (e) {
+                console.warn("Failed to show inline task image preview:", e);
+            }
     }
 
     // Show reference files for a TASK (reuses the projectFilesModal UI)
@@ -17282,58 +18092,7 @@ function renderTimeline(
 
         rowsContainer.appendChild(tr);
     });
-
-    const titleEl = document.getElementById("timelineTitle");
-    if (titleEl) {
-        const monthShort = months[month];
-        titleEl.textContent = `${monthShort} Week ${weekIndex + 1}`;
-    }
 }
-
-document.getElementById("prevTimeline").addEventListener("click", () => {
-    if (currentWeek > 0) {
-        currentWeek--;
-    } else {
-        currentMonth--;
-        if (currentMonth < 0) {
-            currentMonth = 11;
-            currentYear--;
-        }
-        const weeks = getCalendarWeeks(currentYear, currentMonth);
-        currentWeek = weeks.length > 0 ? weeks.length - 1 : 0;
-    }
-    renderTimeline(
-        "#timelineHeader",
-        "#timelineRows",
-        "week",
-        currentMonth,
-        currentYear,
-        currentWeek
-    );
-});
-
-document.getElementById("nextTimeline").addEventListener("click", () => {
-    const weeks = getCalendarWeeks(currentYear, currentMonth);
-    const maxWeek = weeks.length - 1;
-    if (currentWeek < maxWeek) {
-        currentWeek++;
-    } else {
-        currentMonth++;
-        if (currentMonth > 11) {
-            currentMonth = 0;
-            currentYear++;
-        }
-        currentWeek = 0;
-    }
-    renderTimeline(
-        "#timelineHeader",
-        "#timelineRows",
-        "week",
-        currentMonth,
-        currentYear,
-        currentWeek
-    );
-});
 
 const modalTitle = document.getElementById("timelineModalTitle");
 const prevBtn = document.getElementById("prevTimelineModal");
