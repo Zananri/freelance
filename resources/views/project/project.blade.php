@@ -104,7 +104,7 @@
                             <tr>
                                 <th>
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <div class="d-flex justify-content-start align-self-center">
+                                        <div class="d-flex justify-content-start align-self-center ms-2">
                                             <button class="btn btn-sm border-0">
                                                 <span class="material-symbols-outlined back-toggle">arrow_back</span>
                                             </button>
@@ -123,7 +123,7 @@
                                 </th>
                                 <th class="align-middle">
                                     <div class="d-flex justify-content-between align-items-center">
-                                        <div class="d-flex justify-content-start align-items-center mb-0">
+                                        <div class="d-flex justify-content-start align-items-center mb-0 ms-2">
                                             <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">
