@@ -369,6 +369,8 @@ class AttendanceTrackingController extends Controller
                     //     $activeWorksheet->setCellValue($column.$row, 1);// $timeIn." \n ".$timeOut
                     // }
 
+                    $presentValue = '1';
+
                     $activeWorksheet->setCellValue($column.$row, 1);
 
                     if($attendance->status == 'ABSENT'){
@@ -381,9 +383,16 @@ class AttendanceTrackingController extends Controller
 
                         $activeWorksheet->getStyle($column.$row)
                         ->getFill()->setFillType(Fill::FILL_NONE);
-                    }
+                    }  
                     else{
-                        $activeWorksheet->setCellValue($column.$row, 1);
+
+                        
+                        if($attendance->time_out == null || $attendance->time_out == '00:00:00' ){
+                            $presentValue = '0,5';
+                        }
+                        
+
+                        $activeWorksheet->setCellValue($column.$row, $presentValue);
                     }
                     //$activeWorksheet->setCellValue($column.$row, $timeIn.chr(10).$timeOut);// $timeIn." \n ".$timeOut
                     

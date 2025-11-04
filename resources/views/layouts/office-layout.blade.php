@@ -245,6 +245,18 @@
 
                     @endif
 
+                    @if (auth()->user()->employee->department_id == 3 && auth()->user()->employee->division_id == 26 )
+                        <li>
+                            <a href="{{ route('bi_dashboard_mtd') }}" class="{{ $menu_active == 'bi_dashboard_mtd' ? 'active' : '' }}">
+                                <span class="material-symbols-outlined">area_chart</span>
+                                <span class="text-menu">BI Dashboard MTD</span>
+                            </a>
+                        </li>
+                    @endif
+
+                    
+
+
                     @if (in_array(Auth::user()->user_type,['REGULAR']) && in_array(Auth::user()->user_role,['EMPLOYEE','PERSONAL_ASSISTANT']))
 
                     <li>

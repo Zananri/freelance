@@ -18,10 +18,27 @@ use App\Helpers\ActivityHelper;
 
 class DashboardController extends Controller
 {
+    public function biDashboardMtd(){
+
+        $userId = auth()->user()->id;
+
+        $employee = Employee::where('user_id',$userId)->first();
+        
+        if($employee->department_id != 3){
+            return redirect('dashboard');
+        }
+
+        if($employee->division_id != 26){
+            return redirect('dashboard');
+        }
+
+        return view('bi_dashboard_mtd');
+    }
+    
     public function biDashboard(){
         return view('bi_dashboard');
     }
-
+    
     public function dashboard()
     {
         $user = auth()->user();
