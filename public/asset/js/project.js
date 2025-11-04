@@ -1768,7 +1768,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const showCheckIcon = /complete|finish/.test(String(status || '').toLowerCase());
                     const actionsHtml = `
                         <div class="project-task-actions">
-                            ${showCheckIcon ? `<button class="project-task-action-btn project-task-check-btn" title="Checklist">
+                            ${showCheckIcon ? `<button class="project-task-action-btn project-task-check-btn" title="Checklist" data-task-id="${task.id}">
                                 <span class="material-symbols-outlined">playlist_add_check</span>
                             </button>` : ''}
                             <button class="project-task-action-btn" title="Comments" disabled>
@@ -13663,6 +13663,122 @@ document.addEventListener("DOMContentLoaded", function () {
             const taskId = btn.getAttribute("data-task-id") || btn.dataset.taskId;
             if (taskId && window.showTaskFiles) window.showTaskFiles(taskId);
         } catch (_) {}
+    });
+
+    // Delegated handler for task checklist (completed) buttons
+    document.addEventListener('click', function (e) {
+        try {
+            const btn = e.target.closest && e.target.closest('.project-task-check-btn');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const taskId = btn.getAttribute('data-task-id') || btn.dataset.taskId;
+            if (!taskId) return;
+
+            // Fetch task data then show completed modal (use existing showCompletedModal if available)
+            $.ajax({
+                url: appUrl + '/task/' + taskId,
+                method: 'GET',
+                dataType: 'json',
+                success: function (resp) {
+                    const task = resp && resp.data ? resp.data : resp;
+                    if (!task) return;
+
+                    // Populate modal fields (compatible with task.blade.php/completedModal)
+                    try {
+                        const modalEl = document.getElementById('completedModal');
+                        if (!modalEl) {
+                            console.warn('completedModal not found');
+                            return;
+                        }
+
+                        const $img = $('#completed_task_image');
+                        const $imgParent = $img.parent();
+                        $imgParent.find('.completed-task-initial-avatar').remove();
+
+                        const title = task.title || 'No Title';
+                        // choose initials helpers if available (use project.js functions)
+                        const initials = (typeof getInitials === 'function') ? getInitials(title) : (title.slice(0,2).toUpperCase());
+                        const bgColor = (typeof getInitialsColor === 'function') ? getInitialsColor(title) : '#6A5AE0';
+
+                        if (task.image) {
+                            $img.attr('src', task.image).show();
+                        } else {
+                            $img.hide();
+                            const initialsEl = $(`
+                                <div class="completed-task-initial-avatar d-flex align-items-center justify-content-center me-2"
+                                    style="width:34px;height:34px;border-radius:50%;font-weight:600; font-size:12px;color:#fff;background:${bgColor};flex-shrink:0;">
+                                    ${initials}
+                                </div>
+                            `);
+                            $imgParent.prepend(initialsEl);
+                        }
+
+                        $('#completed_task_title').text(task.title || '-');
+                        $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
+                        $('#completed_task_note').html(task.complete_note || task.finished_note || '<em>No note</em>');
+                        const dateText = (typeof formatDateENMedium === 'function') ? formatDateENMedium(task.complete_date || task.finished_date || '-') : (task.complete_date || task.finished_date || '-');
+                        $('#completed_date').text(dateText);
+
+                        const $priority = $('#completed_priority');
+                        $priority.text((task.priority || '-')).css({ 'color': '', 'font-weight': '500' });
+                        if (task.priority === 'HIGH') $priority.css('color', '#d9534f');
+                        else if (task.priority === 'MEDIUM') $priority.css('color', '#f0ad4e');
+                        else if (task.priority === 'LOW') $priority.css('color', '#5cb85c');
+
+                        const $urlsContainer = $('#completed_task_urls').empty();
+                        const urls = task.complete_urls || task.finished_urls || task.complete_url || task.finished_url || [];
+                        if (Array.isArray(urls) && urls.length) {
+                            urls.forEach(u => {
+                                const absUrl = (typeof u === 'string' && u.startsWith('http')) ? u : ((appUrl ? appUrl.replace(/\/+$/, '') + '/' : '') + String(u || '').replace(/^\/+/, ''));
+                                const linkHtml = `
+                                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                                        <a href="${absUrl}" target="_blank" class="text-decoration-none" style="color:#444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%;">${absUrl}</a>
+                                    </div>`;
+                                $urlsContainer.append(linkHtml);
+                            });
+                        } else {
+                            $urlsContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
+                        }
+
+                        const $filesContainer = $('#completed_task_files').empty();
+                        const files = task.complete_files || task.finished_files || task.complete_file || task.finished_file || [];
+                        if (Array.isArray(files) && files.length) {
+                            files.forEach((f, idx) => {
+                                let raw = (f && (f.url || f)) || '';
+                                let absUrl = '';
+                                const isAbs = raw.startsWith('http://') || raw.startsWith('https://');
+                                const isRefPath = raw.startsWith('/file/') || raw.startsWith('file/');
+                                if (isAbs) absUrl = raw;
+                                else if (isRefPath) absUrl = (appUrl ? appUrl.replace(/\/+$/, '') + '/' : '') + raw.replace(/^\/+/, '');
+                                else absUrl = (appUrl ? appUrl.replace(/\/+$/, '') + '/' : '') + 'file/task_complete_files/' + raw.replace(/^\/+/, '');
+
+                                const extMatch = String(raw).match(/\.[^/.]+$/);
+                                const ext = extMatch ? extMatch[0] : '';
+                                const fileName = `TASK_FILE_${idx + 1}${ext}`;
+                                const lower = String(absUrl || '').toLowerCase();
+                                const isPreviewable = lower.endsWith('.pdf') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png');
+                                const fileLinkHtml = `
+                                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                                        <a href="${absUrl}" target="_blank" ${!isPreviewable ? `download="${fileName}"` : ''} class="text-decoration-none flex-grow-1" style="color:#444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display:block; width:100%;">${fileName}</a>
+                                    </div>`;
+                                $filesContainer.append(fileLinkHtml);
+                            });
+                        } else {
+                            $filesContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
+                        }
+
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    } catch (e) {
+                        console.warn('show completed fallback error', e);
+                    }
+                },
+                error: function () {
+                    try { showFloatingAlert('Failed to load task data.', 'warning', 3000); } catch (_) {}
+                }
+            });
+        } catch (e) {}
     });
 
     // Show reference files for a TASK (reuses the projectFilesModal UI)

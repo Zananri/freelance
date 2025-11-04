@@ -5,6 +5,7 @@
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
         <link rel="stylesheet" href="{{ asset('asset/css/project-tree.css') }}?v={{ time() }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/task.css') }}?v={{ time() }}">
         <!-- Quill editor styles (only for Project page) -->
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
@@ -854,6 +855,54 @@
                             <div class="task-date"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Completed Task Modal --}}
+    <div class="modal fade" id="completedModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-body modal-body-custom">
+
+                    <div class="d-flex align-items-center mb-2" style="flex-direction: row; justify-content: flex-start; text-align: left;">
+                        <img id="completed_task_image" src="" alt="Task Image"
+                            class="rounded-circle me-2" width="34" height="34" style="display:none;">
+                        <div class="d-flex flex-column">
+                            <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;"></h6>
+                            <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 task-description-container">
+                        <div id="completed_task_note" class="text-muted task-description"></div>
+                    </div>
+
+                    <div class="row mb-4 link-file-task">
+                        <div class="col-6 d-flex align-items-center">
+                            <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
+                            <span id="completed_priority"></span>
+                        </div>
+                        <div class="col-6 d-flex align-items-center">
+                            <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
+                            <span id="completed_date"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="fw-normal text-muted d-block mb-1">Links:</label>
+                            <div id="completed_task_urls"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="fw-normal text-muted d-block mb-1">Files:</label>
+                            <div id="completed_task_files"></div>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                    </div>
+
                 </div>
             </div>
         </div>
