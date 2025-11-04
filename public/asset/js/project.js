@@ -1771,7 +1771,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             ${showCheckIcon ? `<button class="project-task-action-btn project-task-check-btn" title="Checklist" data-task-id="${task.id}">
                                 <span class="material-symbols-outlined">playlist_add_check</span>
                             </button>` : ''}
-                            <button class="project-task-action-btn" title="Comments" disabled>
+                            <button id="taskFeedbackBtn" class="project-task-action-btn project-task-feedback-btn" title="Comments" data-task-id="${task.id}">
                                 <span class="material-symbols-outlined">mode_comment</span>
                             </button>
                             <button class="project-task-action-btn project-task-attach-btn" title="Attachments" data-task-id="${task.id}">
@@ -13665,6 +13665,17 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (_) {}
     });
 
+    document.addEventListener("click", function (e) {
+        try {
+            const btn = e.target.closest && e.target.closest(".project-task-feedback-btn");
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const taskId = btn.getAttribute("data-task-id") || btn.dataset.taskId;
+            if (taskId && window.handleTaskFeedback) window.handleTaskFeedback(taskId);
+        } catch (_) {}
+    });
+
     // Delegated handler for task checklist (completed) buttons
     document.addEventListener('click', function (e) {
         try {
@@ -13780,6 +13791,1938 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         } catch (e) {}
     });
+
+    // timeAgo helper (human readable relative time)
+    function timeAgo(createdAt){
+        try {
+            const time = new Date(createdAt);
+            const now = new Date();
+            const diff = (now.getTime() - time.getTime()) / 1000;
+
+            if(diff < 60){
+                return 'just now';
+            }else if(diff < 3600){
+                return Math.round(diff/60)+' minute ago';
+            }else if(diff < 86400){
+                return Math.round(diff/3600)+' hour ago';
+            }else if(diff < 604800){
+                return Math.round(diff/86400)+' day ago';
+            }else if(diff < 2592000){
+                return Math.round(diff/604800)+' week ago';
+            }else if(diff < 31526000){
+                return Math.round(diff/2592000)+' month ago';
+            }else if(diff < 63072000){
+                return Math.round(diff/31536000)+' year ago';
+            }
+
+            return time.toDateString();
+        } catch (e) { return String(createdAt || ''); }
+    }
+
+    // Fungsi untuk memuat data feedback
+    function loadTaskFeedbackData(taskId) {
+        const modalBody = document.getElementById("taskFeedbackList");
+        modalBody.innerHTML =
+            '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + taskId,
+            type: "GET",
+            dataType: "json",
+            cache: false,
+            success: function (response) {
+                if (response.data && response.data.length > 0) {
+                    let feedbackHtml = "";
+                    response.data.forEach(function (feedback) {
+                        // Who is the current employee (to decide edit permission)
+                        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                        const currentEmployeeId = parseInt(
+                            (feedbackModalEl?.dataset?.employeeId || feedbackModalEl?.getAttribute('data-employee-id') || '0'),
+                            10
+                        ) || 0;
+
+                        // Format the date using timeAgo helper
+                        let formattedDate = "";
+                        if (feedback.created_at) {
+                            formattedDate = timeAgo(feedback.created_at);
+                        }
+
+                                                // Build top-level feedback block
+                                                // Normalize top-level image & ref file URLs for reliable preview
+                                                let topImageUrl = feedback.image || '';
+                                                if (topImageUrl) {
+                                                    const isAbs = typeof topImageUrl === 'string' && (topImageUrl.startsWith('http://') || topImageUrl.startsWith('https://'));
+                                                    const isFileTask = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/file/task/') || topImageUrl.startsWith('file/task/'));
+                                                    const isStorage = typeof topImageUrl === 'string' && (topImageUrl.startsWith('/storage/') || topImageUrl.startsWith('storage/'));
+                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                        topImageUrl = appUrl + '/file/task/' + topImageUrl;
+                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                        topImageUrl = topImageUrl.startsWith('/') ? (appUrl + topImageUrl) : (appUrl + '/' + topImageUrl);
+                                                    }
+                                                }
+                                                // Build top-level reference files list (array-first, fallback to single)
+                                                let topRefFiles = [];
+                                                // Coerce to array if backend sends JSON string
+                                                let topRfVal = feedback.reference_files;
+                                                if (!Array.isArray(topRfVal) && typeof topRfVal === 'string') {
+                                                    try { const parsed = JSON.parse(topRfVal); if (Array.isArray(parsed)) topRfVal = parsed; } catch(_) { /* noop */ }
+                                                }
+                                                if (Array.isArray(topRfVal) && topRfVal.length > 0) {
+                                                    topRefFiles = topRfVal.map((f) => {
+                                                        if (!f) return null;
+                                                        const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                        const isRefPath = typeof f === 'string' && (f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                                                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                        return f;
+                                                    }).filter(Boolean);
+                                                } else {
+                                                    let singleTop = feedback.reference_file || '';
+                                                    if (singleTop) {
+                                                        const isAbs2 = typeof singleTop === 'string' && (singleTop.startsWith('http://') || singleTop.startsWith('https://'));
+                                                        const isRefPath2 = typeof singleTop === 'string' && (singleTop.startsWith('/file/task_reference_files/') || singleTop.startsWith('file/task_reference_files/'));
+                                                        if (!isAbs2 && !isRefPath2) singleTop = appUrl + '/file/task_reference_files/' + singleTop;
+                                                        else if (!isAbs2 && isRefPath2) singleTop = singleTop.startsWith('/') ? (appUrl + singleTop) : (appUrl + '/' + singleTop);
+                                                        topRefFiles = [singleTop];
+                                                    }
+                                                }
+
+                                                // Build top-level reference URLs list (array-first, fallback to single)
+                                                let topRefUrls = [];
+                                                let topRuVal = feedback.reference_urls;
+                                                if (!Array.isArray(topRuVal) && typeof topRuVal === 'string') {
+                                                    try { const parsed2 = JSON.parse(topRuVal); if (Array.isArray(parsed2)) topRuVal = parsed2; } catch(_) { /* noop */ }
+                                                }
+                                                if (Array.isArray(topRuVal) && topRuVal.length > 0) {
+                                                    topRefUrls = topRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                                                } else if (feedback.reference_url) {
+                                                    topRefUrls = [feedback.reference_url];
+                                                }
+
+                                                // Determine if current user is the author of the top-level feedback
+                                                const topAuthorId = (feedback.employee && (feedback.employee.id || feedback.employee.employee_id)) || feedback.employee_id || 0;
+                                                const canEditTop = String(topAuthorId) === String(currentEmployeeId);
+                                                const topCanEdit = canEditTop; // keep flag for actions row
+
+                                    let repliesHtml = '';
+                                    let viewRepliesBtnHtml = '';
+                                    let repliesContainerHtml = '';
+                                    if (Array.isArray(feedback.replies) && feedback.replies.length > 0) {
+                                        const repliesCount = feedback.replies.length;
+                                        const repliesContent = feedback.replies.map(function (rep) {
+                                // reply date formatting (relative)
+                                let rDate = '';
+                                if (rep.created_at) {
+                                    rDate = timeAgo(rep.created_at);
+                                }
+                                                                // Normalize image URL if backend returns filename/relative
+                                                                let repImageUrl = rep.image || '';
+                                                                if (repImageUrl) {
+                                                                    const isAbs = typeof repImageUrl === 'string' && (repImageUrl.startsWith('http://') || repImageUrl.startsWith('https://'));
+                                                                    const isFileTask = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/file/task/') || repImageUrl.startsWith('file/task/'));
+                                                                    const isStorage = typeof repImageUrl === 'string' && (repImageUrl.startsWith('/storage/') || repImageUrl.startsWith('storage/'));
+                                                                    if (!isAbs && !isFileTask && !isStorage) {
+                                                                        repImageUrl = appUrl + '/file/task/' + repImageUrl;
+                                                                    } else if (!isAbs && (isFileTask || isStorage)) {
+                                                                        repImageUrl = repImageUrl.startsWith('/') ? (appUrl + repImageUrl) : (appUrl + '/' + repImageUrl);
+                                                                    }
+                                                                }
+                                                                // Build reply reference files list
+                                                                let repRefFiles = [];
+                                                                let repRfVal = rep.reference_files;
+                                                                if (!Array.isArray(repRfVal) && typeof repRfVal === 'string') {
+                                                                    try { const parsed = JSON.parse(repRfVal); if (Array.isArray(parsed)) repRfVal = parsed; } catch(_) { /* noop */ }
+                                                                }
+                                                                if (Array.isArray(repRfVal) && repRfVal.length > 0) {
+                                                                    repRefFiles = repRfVal.map((f) => {
+                                                                        if (!f) return null;
+                                                                        const isAbs = typeof f === 'string' && (f.startsWith('http://') || f.startsWith('https://'));
+                                                                        const isRefPath = typeof f === 'string' && (f.startsWith('/file/task_reference_files/') || f.startsWith('file/task_reference_files/'));
+                                                                        if (!isAbs && !isRefPath) return appUrl + '/file/task_reference_files/' + f;
+                                                                        if (!isAbs && isRefPath) return f.startsWith('/') ? (appUrl + f) : (appUrl + '/' + f);
+                                                                        return f;
+                                                                    }).filter(Boolean);
+                                                                } else {
+                                                                    let singleRep = rep.reference_file || '';
+                                                                    if (singleRep) {
+                                                                        const isAbs2 = typeof singleRep === 'string' && (singleRep.startsWith('http://') || singleRep.startsWith('https://'));
+                                                                        const isRefPath = typeof singleRep === 'string' && (singleRep.startsWith('/file/task_reference_files/') || singleRep.startsWith('file/task_reference_files/'));
+                                                                        if (!isAbs2 && !isRefPath) singleRep = appUrl + '/file/task_reference_files/' + singleRep;
+                                                                        else if (!isAbs2 && isRefPath) singleRep = singleRep.startsWith('/') ? (appUrl + singleRep) : (appUrl + '/' + singleRep);
+                                                                        repRefFiles = [singleRep];
+                                                                    }
+                                                                }
+                                                                // Build reply reference URL list (array-first, fallback to single)
+                                                                let repRefUrls = [];
+                                                                let repRuVal = rep.reference_urls;
+                                                                if (!Array.isArray(repRuVal) && typeof repRuVal === 'string') {
+                                                                    try { const parsed = JSON.parse(repRuVal); if (Array.isArray(parsed)) repRuVal = parsed; } catch(_) { /* noop */ }
+                                                                }
+                                                                if (Array.isArray(repRuVal) && repRuVal.length > 0) {
+                                                                    repRefUrls = repRuVal.filter((u) => typeof u === 'string' && u.trim() !== '');
+                                                                } else if (rep.reference_url) {
+                                                                    repRefUrls = [rep.reference_url];
+                                                                }
+                                                                // Determine if current user can edit this reply
+                                                                const repAuthorId = (rep.employee && (rep.employee.id || rep.employee.employee_id)) || rep.employee_id || 0;
+                                                                const canEditReply = String(repAuthorId) === String(currentEmployeeId);
+                                                                const canEditRep = canEditReply; // used in actions row
+
+                                                                return `
+                                                                            <div class="feedback-reply ms-4 mt-2 p-2 rounded" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="background: rgb(240, 241, 248);">
+                                                                                <div class="d-flex align-items-start mb-1">
+                                                                                    <img src="${rep.employee.photo}" alt="${rep.employee.name}" class="rounded-circle me-3" style="width: 24px; height: 24px; object-fit: cover;">
+                                                                                    <div class="flex-grow-1">
+                                                                                        <div>
+                                                                                            <strong style="font-size:12px; font-weight:600;">${rep.employee.name}</strong>
+                                                                                            <div><small class="text-muted d-block" style="font-size:9px;">${rDate}</small></div>
+                                                                                        </div>
+
+                                                                                        <div class="feedback-comment mt-2">
+                                                                                            <p class="mb-1" style="font-size: 13px;">${rep.feedback_comment || ''}</p>
+
+                                                                                            ${
+                                                                                                ((Array.isArray(repRefUrls) && repRefUrls.length > 0) || (Array.isArray(repRefFiles) && repRefFiles.length > 0))
+                                                                                                    ? `
+                                                                                                        <div class="feedback-reference-container mb-1">
+                                                                                                        ${Array.isArray(repRefUrls) && repRefUrls.length > 0
+                                                                                                            ? repRefUrls.map((u) => {
+                                                                                                                const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                                                                                                return `<a href="${u}" target="_blank" class="feedback-reference-url me-2">
+                                                                                                                            <span class="material-symbols-outlined">link</span> ${shortUrl}
+                                                                                                                        </a>`;
+                                                                                                            }).join('')
+                                                                                                            : ''}
+
+                                                                                                        ${Array.isArray(repRefFiles) && repRefFiles.length > 0
+                                                                                                            ? repRefFiles.map((u) => {
+                                                                                                                const fileName = u.split('/').pop();
+                                                                                                                return `<a href="${u}" download class="feedback-reference-file ms-2">
+                                                                                                                            <span class="material-symbols-outlined">draft</span> ${fileName}
+                                                                                                                        </a>`;
+                                                                                                            }).join('')
+                                                                                                            : ''}
+                                                                                                        </div>
+                                                                                                    `
+                                                                                                    : ''
+                                                                                            }
+
+                                                                                            ${repImageUrl ? `<img src="${repImageUrl}" class="img-fluid rounded reply-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">` : ''}
+
+                                                                                                                            <div class="reply-actions mt-2 d-flex gap-4">
+                                                                                                                                <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-edit-trigger" data-task-id="${taskId}" data-parent-id="${feedback.id}" data-reply-id="${rep.id}" data-comment="${encodeURIComponent(rep.feedback_comment || '')}" data-ref-url="${encodeURIComponent(rep.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(repRefUrls || []))}" data-ref-file="${encodeURIComponent((repRefFiles && repRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(repRefFiles || []))}" data-image="${encodeURIComponent(repImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                                                                                ${canEditRep ? `<span class="d-flex align-items-center reply-delete-trigger" data-reply-id="${rep.id}" data-parent-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
+                                                                                                                            </div>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                `;
+                                                        }).join('');
+
+                                                        // Keep the "View all" button separate so it can be aligned inline
+                                                        viewRepliesBtnHtml = `<button type="button" class="btn btn-link p-0 view-replies-toggle feedback-toggle-replies" data-feedback-id="${feedback.id}" data-replies-count="${repliesCount}" style="font-size: 13px; color:#555; text-decoration: none;">View all (${repliesCount})</button>`;
+                                                        repliesContainerHtml = `<div class="feedback-replies d-none" id="replies-${feedback.id}">${repliesContent}</div>`;
+                                                }
+                                                feedbackHtml += `
+                                                <div class="feedback-item mb-3 p-3" data-feedback-id="${feedback.id}">
+                                                    <div class="d-flex align-items-start mb-2">
+                                                        <img src="${feedback.employee.photo}" alt="${feedback.employee.name}" class="rounded-circle me-3" style="width: 32px; height: 32px; object-fit: cover;">
+                                                        <div class="flex-grow-1">
+                                                            <div>
+                                                                <strong style="font-size:14px; font-weight:600;">${feedback.employee.name}</strong>
+                                                                <div><small class="text-muted d-block" style="font-size: 10px;">${formattedDate}</small></div>
+                                                            </div>
+
+                                                            <div class="feedback-comment mt-2">
+                                                                <p class="mb-2" style="font-size:13px;">${feedback.feedback_comment}</p>
+
+                                                                ${
+                                ((Array.isArray(topRefUrls) && topRefUrls.length > 0) || (Array.isArray(topRefFiles) && topRefFiles.length > 0))
+                                    ? `
+                                <div class="feedback-reference-container mb-2">
+                                    ${Array.isArray(topRefUrls) && topRefUrls.length > 0
+                                    ? topRefUrls.map((u) => {
+                                        // Buat tampilan URL lebih pendek biar gak kepanjangan
+                                        const shortUrl = u.replace(/^https?:\/\//, '').replace(/\/$/, '');
+                                        return `<a href="${u}" target="_blank" class="feedback-reference-url bg-light rounded-2">
+                                                    <span class="material-symbols-outlined" style="color: #444444;">link</span> ${shortUrl}
+                                                </a>`;
+                                        }).join('')
+                                    : ''}
+
+                                    ${Array.isArray(topRefFiles) && topRefFiles.length > 0
+                                    ? topRefFiles.map((u) => {
+                                        // Ambil nama file dari URL
+                                        const fileName = u.split('/').pop();
+                                        return `<a href="${u}" class="feedback-reference-file bg-light rounded-2">
+                                                    <span class="material-symbols-outlined" style="color: #444444;">draft</span> ${fileName}
+                                                </a>`;
+                                        }).join('')
+                                    : ''}
+                                </div>
+                            `
+                                    : ""
+                            }
+
+                                                                ${
+                                topImageUrl
+                                    ? `<img src="${topImageUrl}" class="img-fluid rounded mb-2 feedback-image" style="width: 70px; height: auto; border-radius: 8px; cursor: pointer;">`
+                                    : ""
+                            }
+
+                                                                <div class="feedback-actions mt-2 d-flex gap-4 align-items-center">
+                                                                    <span class="d-flex align-items-center feedback-reply-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">reply</span><span>Reply</span></span>
+                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-edit-trigger" data-feedback-id="${feedback.id}" data-task-id="${taskId}" data-comment="${encodeURIComponent(feedback.feedback_comment || '')}" data-ref-url="${encodeURIComponent(feedback.reference_url || '')}" data-ref-urls="${encodeURIComponent(JSON.stringify(topRefUrls || []))}" data-ref-file="${encodeURIComponent((topRefFiles && topRefFiles[0]) || '')}" data-ref-files="${encodeURIComponent(JSON.stringify(topRefFiles || []))}" data-image="${encodeURIComponent(topImageUrl || '')}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">edit</span><span>Edit</span></span>` : ''}
+                                                                    ${topCanEdit ? `<span class="d-flex align-items-center feedback-delete-trigger" data-feedback-id="${feedback.id}" style="cursor:pointer; color:#555; font-size:12px;"><span class="material-symbols-outlined" style="font-size:18px; line-height:1; margin-right:5px;">delete</span><span>Delete</span></span>` : ''}
+                                                                    ${viewRepliesBtnHtml}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ${repliesContainerHtml}
+                                                </div>
+                                            `;
+                    });
+                    modalBody.innerHTML = feedbackHtml;
+
+                    // Bind reply icon click
+                    modalBody.querySelectorAll('.feedback-reply-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const parentId = this.getAttribute('data-feedback-id');
+                            const tId = this.getAttribute('data-task-id');
+                            showReplyFeedbackForm(tId, parentId);
+                        });
+                    });
+
+                    // Bind edit (top-level) icon click
+                    modalBody.querySelectorAll('.feedback-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const fid = this.getAttribute('data-feedback-id');
+                            const payload = {
+                                id: fid,
+                                parent_id: null,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-urls') || '[]')); } catch(e){ return []; } }).call(this),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+
+                            // Prefer inline edit in the footer panel (similar to project feedback)
+                            const inlineEditor = document.getElementById("inline_task_feedback_editor");
+                            if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
+                                try {
+                                    window.startInlineTaskEditFeedback(payload);
+                                    try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                    return;
+                                } catch (_) {}
+                            }
+                            // Fallback to modal-based edit if inline not available
+                            showEditFeedbackForm(tId, payload, false);
+                        });
+                    });
+
+                    // Bind edit (reply) icon click
+                    modalBody.querySelectorAll('.reply-edit-trigger').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const tId = this.getAttribute('data-task-id');
+                            const rid = this.getAttribute('data-reply-id');
+                            const pid = this.getAttribute('data-parent-id');
+                            const payload = {
+                                id: rid,
+                                parent_id: pid,
+                                feedback_comment: decodeURIComponent(this.getAttribute('data-comment') || ''),
+                                reference_url: decodeURIComponent(this.getAttribute('data-ref-url') || ''),
+                                reference_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-urls') || '[]')); } catch(e){ return []; } }).call(this),
+                                reference_file_url: decodeURIComponent(this.getAttribute('data-ref-file') || ''),
+                                reference_files_urls: (function(){ try { return JSON.parse(decodeURIComponent(this.getAttribute('data-ref-files') || '[]')); } catch(e){ return []; } }).call(this),
+                                image_url: decodeURIComponent(this.getAttribute('data-image') || ''),
+                            };
+
+                            // Prefer inline edit for replies too
+                            const inlineEditor = document.getElementById("inline_task_feedback_editor");
+                            if (inlineEditor && typeof window.startInlineTaskEditFeedback === "function") {
+                                try {
+                                    window.startInlineTaskEditFeedback(payload);
+                                    try { inlineEditor.scrollIntoView({ behavior: "smooth", block: "center" }); } catch (_) {}
+                                    return;
+                                } catch (_) {}
+                            }
+                            // Fallback to modal-based edit
+                            showEditFeedbackForm(tId, payload, true);
+                        });
+                    });
+
+                    // Bind view replies toggle per feedback
+                    modalBody.querySelectorAll('.view-replies-toggle').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            const fid = this.getAttribute('data-feedback-id');
+                            const count = this.getAttribute('data-replies-count');
+                            const container = modalBody.querySelector('#replies-' + fid);
+                            if (!container) return;
+                            const hidden = container.classList.contains('d-none');
+                            if (hidden) {
+                                container.classList.remove('d-none');
+                                this.textContent = 'Hide';
+                            } else {
+                                container.classList.add('d-none');
+                                this.textContent = `View all (${count})`;
+                            }
+                            // Enforce style: no underline and #555 color
+                            this.style.textDecoration = 'none';
+                            this.style.color = '#555';
+                        });
+                    });
+
+                    // Open feedback/reply images in an in-page modal preview (do not open new tab)
+                    (function(){
+                        // Ensure modal exists only once
+                        function ensureImagePreviewModalExists() {
+                            if (document.getElementById('taskImagePreviewModal')) return;
+                            const html = `
+                                <div class="modal fade" id="taskImagePreviewModal" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered" id="taskImageDialog">
+                                        <div class="modal-content modal-content-custom bg-light border-0">
+                                            <div class="modal-body p-0 d-flex align-items-center justify-content-center" style="max-height:80vh;">
+                                                <img id="taskImagePreviewModalImg" src="" alt="Preview image" style="display:block; max-width:100%; max-height:80vh; object-fit:contain;">
+                                            </div>
+                                            <div class="modal-footer modal-footer-custom border-0 justify-content-center">
+                                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>`;
+
+                                // Use delegated click for feedback images as before but with slightly smaller sizing
+                                $(document).on('click', '.feedback-image', function(e) {
+                                    e.preventDefault()
+                                    const imgSrc = $(this).attr('src') || $(this).data('img')
+                                    const $img = $('#taskImagePreviewModalImg')
+                                    const $dialog = $('#taskImageDialog')
+                                    $img.off('load')
+                                    $img.attr('src', imgSrc)
+                                    $('#taskImagePreviewModal').modal('show')
+                                    $img.on('load', function() {
+                                        try {
+                                            const naturalW = this.naturalWidth || 0
+                                            const naturalH = this.naturalHeight || 0
+                                            // Tighter viewport multipliers to avoid overly large previews
+                                            const viewportW = window.innerWidth * 0.8
+                                            const viewportH = window.innerHeight * 0.7
+                                            // Cap scale so very large images don't become huge modals
+                                            const ratio = Math.min(viewportW / Math.max(naturalW,1), viewportH / Math.max(naturalH,1), 0.9)
+                                            const modalWidth = Math.round(naturalW * ratio)
+                                            $dialog.css({ 'max-width': modalWidth + 'px' })
+                                        } catch(_) {}
+                                    })
+                                })
+                            try { document.body.insertAdjacentHTML('beforeend', html); } catch(_){ }
+                        }
+
+                        function showImageInModal(src, filename) {
+                            try {
+                                ensureImagePreviewModalExists();
+                                const modalEl = document.getElementById('taskImagePreviewModal');
+                                const imgEl = document.getElementById('taskImagePreviewModalImg');
+                                const dlEl = document.getElementById('taskImagePreviewDownload');
+                                if (imgEl) imgEl.src = src;
+                                // No download button per UX request; preview only
+
+                                // If certain parent modals are open (feedback/detail/project), hide them first and remember to restore later
+                                const parentIds = ['taskFeedbackModal', 'taskDetailModal', 'projectTaskDetailModal', 'projectDetailModal'];
+                                let parentModalEl = null;
+                                let parentWasOpen = false;
+                                try {
+                                    for (let i = 0; i < parentIds.length; i++) {
+                                        const id = parentIds[i];
+                                        const el = document.getElementById(id);
+                                        if (el && el.classList && el.classList.contains('show')) {
+                                            parentModalEl = el;
+                                            parentWasOpen = true;
+                                            break;
+                                        }
+                                    }
+                                } catch(_) {}
+
+                                try {
+                                    if (parentWasOpen && parentModalEl) {
+                                        // Suppress any backdrop removal logic used elsewhere
+                                        try { window.__suppressFeedbackBackdropRemoval = true; } catch(_) {}
+                                        const pmInst = bootstrap.Modal.getInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                        try { pmInst.hide(); } catch(_) {}
+                                    }
+                                } catch(_) {}
+
+                                const inst = bootstrap.Modal.getOrCreateInstance(modalEl) || new bootstrap.Modal(modalEl);
+
+                                // When preview modal hides, restore parent modal if it was previously open
+                                const onPreviewHidden = function() {
+                                    try { inst._element.removeEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                    try {
+                                        if (parentWasOpen && parentModalEl) {
+                                            try { window.__suppressFeedbackBackdropRemoval = false; } catch(_) {}
+                                            const pm2 = bootstrap.Modal.getOrCreateInstance(parentModalEl) || new bootstrap.Modal(parentModalEl);
+                                            try { pm2.show(); } catch(_) {}
+                                        }
+                                    } catch(_) {}
+                                };
+                                try { inst._element.addEventListener('hidden.bs.modal', onPreviewHidden); } catch(_) {}
+                                inst.show();
+                            } catch (e) { try { window.open(src, '_blank'); } catch(_) {} }
+                        }
+
+                        modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                            // Remove any previous click handlers to avoid duplicates
+                            try { img.replaceWith(img.cloneNode(true)); } catch(_) {}
+                        });
+                        // Re-query after clone
+                        modalBody.querySelectorAll('.feedback-image, .reply-image').forEach(function (img) {
+                            img.addEventListener('click', function (ev) {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const src = this.getAttribute('src') || this.dataset.src;
+                                if (!src) return;
+                                // Derive filename fallback
+                                let filename = (src.split('/').pop() || '').split('?')[0];
+                                showImageInModal(src, filename);
+                            });
+                        });
+                    })();
+
+                        // Bind delete triggers for feedback and replies
+                        modalBody.querySelectorAll('.feedback-delete-trigger').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                const fid = this.getAttribute('data-feedback-id');
+                                if (!fid) return;
+                                const authorName = (this.closest('.feedback-item')?.querySelector('strong')?.textContent) || '';
+                                const content = (this.closest('.feedback-item')?.querySelector('.task-description, p, .task-description-container p, .task-description')?.textContent) || '';
+                                const avatarUrl = (this.closest('.feedback-item')?.querySelector('img')?.getAttribute('src')) || '';
+                                showDeleteConfirmModal({ type: 'feedback', id: fid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                    const url = appUrl + '/task-feedbacks/' + fid;
+                                    $.ajax({
+                                        url: url,
+                                        type: 'DELETE',
+                                        headers: {
+                                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                                        },
+                                        success: function (res) {
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Feedback deleted', 'success'); } catch(_){ }
+                                            // Remove feedback DOM
+                                            const el = modalBody.querySelector(`.feedback-item[data-feedback-id="${fid}"]`);
+                                            if (el && el.parentNode) el.parentNode.removeChild(el);
+                                            // Refresh feedback count on task card
+                                            try { $.ajax({ url: appUrl + '/task-feedbacks/count/' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') , type: 'GET', success: function(c){ if (c && c.data && typeof c.data.count === 'number') { const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') + '"]'); if (card) { let span = card.querySelector('.feedback-comments-count'); if (span) { span.textContent = String(c.data.count); } } } } }); } catch(_){ }
+                                            done(true);
+                                        },
+                                        error: function (xhr) {
+                                            let msg = 'Failed to delete feedback';
+                                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                            done(false);
+                                        }
+                                    });
+                                }});
+                            });
+                        });
+
+                        modalBody.querySelectorAll('.reply-delete-trigger').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                const rid = this.getAttribute('data-reply-id');
+                                const pid = this.getAttribute('data-parent-id');
+                                if (!rid) return;
+                                const authorName = (this.closest('.feedback-reply')?.querySelector('strong')?.textContent) || '';
+                                const content = (this.closest('.feedback-reply')?.querySelector('p')?.textContent) || '';
+                                const avatarUrl = (this.closest('.feedback-reply')?.querySelector('img')?.getAttribute('src')) || '';
+                                showDeleteConfirmModal({ type: 'reply', id: rid, parentId: pid, authorName: authorName, content: content, avatarUrl: avatarUrl, onConfirm: function(done){
+                                    const url = appUrl + '/task-feedbacks/' + rid;
+                                    $.ajax({
+                                        url: url,
+                                        type: 'DELETE',
+                                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                                        success: function (res) {
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(res.message || 'Reply deleted', 'success'); } catch(_){}
+
+                                            // Remove the reply element
+                                            const el = modalBody.querySelector(`.feedback-reply[data-reply-id="${rid}"][data-parent-id="${pid}"]`);
+                                            if (el && el.parentNode) el.parentNode.removeChild(el);
+
+                                            // Update the "View all" button and replies count
+                                            const repliesContainer = modalBody.querySelector(`#replies-${pid}`);
+                                            const viewAllBtn = modalBody.querySelector(`.view-replies-toggle[data-feedback-id="${pid}"]`);
+
+                                            if (repliesContainer && viewAllBtn) {
+                                                // Count remaining replies in the container
+                                                const remainingReplies = repliesContainer.querySelectorAll('.feedback-reply');
+                                                const remainingCount = remainingReplies.length;
+
+                                                if (remainingCount === 0) {
+                                                    // No replies left, remove the View all button and replies container
+                                                    viewAllBtn.remove();
+                                                    repliesContainer.remove();
+                                                } else {
+                                                    // Update the count in the View all button
+                                                    viewAllBtn.setAttribute('data-replies-count'    , remainingCount);
+                                                    const isVisible = !repliesContainer.classList.contains('d-none');
+                                                    if (isVisible) {
+                                                        viewAllBtn.textContent = 'Hide';
+                                                    } else {
+                                                        viewAllBtn.textContent = `View all (${remainingCount})`;
+                                                    }
+                                                }
+                                            }
+
+                                            // Refresh feedback count on task card after reply deletion
+                                            try {
+                                                $.ajax({
+                                                    url: appUrl + "/task-feedbacks/count/" + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || ''),
+                                                    type: 'GET',
+                                                    success: function(c){
+                                                        if (c && c.data && typeof c.data.count === 'number') {
+                                                            const card = document.querySelector('.custom-card[data-task-id="' + (modalBody.closest('#taskFeedbackModal')?.dataset?.taskId || '') + '"]');
+                                                            if (card) {
+                                                                let span = card.querySelector('.feedback-comments-count');
+                                                                if (span) {
+                                                                    span.textContent = String(c.data.count);
+                                                                    // Hide the span if count is 0
+                                                                    if (c.data.count === 0) {
+                                                                        span.style.display = 'none';
+                                                                    } else {
+                                                                        span.style.display = '';
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                            } catch(_) {}
+
+                                            done(true);
+                                        },
+                                        error: function (xhr) {
+                                            let msg = 'Failed to delete reply';
+                                            if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                            try { if (typeof showFloatingAlert === 'function') showFloatingAlert(msg, 'danger'); } catch(_) { alert(msg); }
+                                            done(false);
+                                        }
+                                    });
+                                }});
+                            });
+                        });
+
+                    // Deep-link scroll/highlight if a target is set for this task
+                    try {
+                        const target = (window.__taskLatestTarget && window.__taskLatestTarget[String(taskId)]) || null;
+                        if (target && target.id) {
+                            // If it's a reply (parent_id present), expand its parent replies first
+                            if (target.parent_id) {
+                                const wrap = modalBody.querySelector(`.feedback-replies-wrap .feedback-toggle-replies[data-feedback-id="${target.parent_id}"]`);
+                                if (wrap) {
+                                    // Ensure container is expanded
+                                    const container = modalBody.querySelector('#replies-' + target.parent_id);
+                                    if (container && container.classList.contains('d-none')) {
+                                        container.classList.remove('d-none');
+                                    }
+                                    // Update toggle text to Hide
+                                    wrap.textContent = 'Hide';
+                                }
+                                const replyEl = modalBody.querySelector(`.feedback-reply[data-reply-id="${target.id}"][data-parent-id="${target.parent_id}"]`);
+                                if (replyEl) {
+                                    replyEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    replyEl.style.transition = 'background-color 0.3s ease';
+                                    const old = replyEl.style.backgroundColor;
+                                    replyEl.style.backgroundColor = '#fff3cd';
+                                    setTimeout(() => { replyEl.style.backgroundColor = old || '#fafafa'; }, 1200);
+                                }
+                            } else {
+                                // Top-level feedback
+                                const topEl = modalBody.querySelector(`.feedback-item[data-feedback-id="${target.id}"]`);
+                                if (topEl) {
+                                    topEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                    topEl.style.transition = 'background-color 0.3s ease';
+                                    const old = topEl.style.backgroundColor;
+                                    topEl.style.backgroundColor = '#fff3cd';
+                                    setTimeout(() => { topEl.style.backgroundColor = old || ''; }, 1200);
+                                }
+                            }
+                        }
+                        // Clear target after using it
+                        if (window.__taskLatestTarget) delete window.__taskLatestTarget[String(taskId)];
+                    } catch (_) {}
+                } else {
+                    modalBody.innerHTML =
+                        '<p class="text-center text-muted">No feedback available for this task.</p>';
+                }
+
+                // Initialize Quill editors after modal content is loaded
+                try {
+                    if (typeof initTaskFeedbackQuillEditors === 'function') {
+                        initTaskFeedbackQuillEditors(modalBody);
+                    }
+                } catch (_) {}
+
+                // Setup inline feedback editor in footer
+                try {
+                    setupTaskInlineFeedbackEditor(taskId);
+                } catch (_) {}
+            },
+            error: function () {
+                modalBody.innerHTML =
+                    '<p class="text-center text-danger">Failed to load feedback.</p>';
+            },
+        });
+    }
+
+    // Function to show add task feedback form
+    function showAddFeedbackForm(taskId) {
+        const modalTitle = document.getElementById("taskFeedbackModalLabel");
+        const modalBody = document.getElementById("taskFeedbackList");
+
+        modalTitle.textContent = "Add Feedback";
+        modalBody.innerHTML = "";
+
+        const form = document.createElement("form");
+        form.id = "addFeedbackForm";
+        form.enctype = "multipart/form-data";
+
+        const taskIdInput = document.createElement("input");
+        taskIdInput.type = "hidden";
+        taskIdInput.name = "task_id";
+        taskIdInput.value = taskId;
+
+        const employeeIdInput = document.createElement("input");
+        employeeIdInput.type = "hidden";
+        employeeIdInput.name = "employee_id";
+        employeeIdInput.value =
+            document
+                .getElementById("taskFeedbackModal")
+                .getAttribute("data-employee-id") || "";
+
+        form.appendChild(taskIdInput);
+        form.appendChild(employeeIdInput);
+
+        // Comment field
+        const commentDiv = document.createElement("div");
+        commentDiv.className = "mb-3 custom-input";
+
+        const commentLabel = document.createElement("label");
+        commentLabel.htmlFor = "feedback_comment";
+        commentLabel.className = "form-label label-custom";
+        commentLabel.textContent = "Comment";
+        commentDiv.appendChild(commentLabel);
+
+        const commentTextarea = document.createElement("textarea");
+        commentTextarea.className = "form-control input-text";
+        commentTextarea.id = "feedback_comment";
+        commentTextarea.name = "feedback_comment";
+        commentTextarea.rows = 3;
+        commentTextarea.required = true;
+        commentDiv.appendChild(commentTextarea);
+
+        form.appendChild(commentDiv);
+
+        // Attachment buttons (Photo & File) like project feedback
+        const attachmentDiv = document.createElement("div");
+        attachmentDiv.className = "d-flex align-items-center gap-2 mb-3";
+
+        const photoBtn = document.createElement("button");
+        photoBtn.type = "button";
+        photoBtn.className = "btn btn-outline-secondary d-flex align-items-center";
+        photoBtn.id = "taskFeedbackPhotoBtn";
+        photoBtn.innerHTML = '<span class="material-symbols-outlined me-1">photo_camera</span>Photo';
+
+        const fileBtn = document.createElement("button");
+        fileBtn.type = "button";
+        fileBtn.className = "btn btn-outline-secondary d-flex align-items-center ms-2";
+        fileBtn.id = "taskFeedbackFileBtn";
+        fileBtn.innerHTML = '<span class="material-symbols-outlined me-1">attach_file</span>File';
+
+        // Hidden inputs for image and files
+        const imageInput = document.createElement("input");
+        imageInput.type = "file";
+        imageInput.id = "task_feedback_image_input";
+        imageInput.name = "feedback_image";
+        imageInput.accept = "image/*";
+        imageInput.hidden = true;
+
+        const filesInput = document.createElement("input");
+        filesInput.type = "file";
+        filesInput.id = "task_feedback_files_input";
+        filesInput.name = "reference_files[]";
+        filesInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+        filesInput.multiple = true;
+        filesInput.hidden = true;
+
+        attachmentDiv.appendChild(photoBtn);
+        attachmentDiv.appendChild(fileBtn);
+        form.appendChild(attachmentDiv);
+        form.appendChild(imageInput);
+        form.appendChild(filesInput);
+
+        // Initialize selected files array and setup handlers
+        window.taskFeedbackSelectedFiles = window.taskFeedbackSelectedFiles || [];
+
+        photoBtn.addEventListener('click', function() {
+            imageInput.click();
+        });
+
+        fileBtn.addEventListener('click', function() {
+            filesInput.click();
+        });
+
+        // Handle image preview (show small preview like project)
+        imageInput.addEventListener('change', function(ev) {
+            try {
+                var f = (this.files && this.files[0]) || null;
+                if (!f) return;
+                if (!f.type || f.type.indexOf("image/") !== 0) return;
+                if (f.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                    this.value = '';
+                    return;
+                }
+
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        showInlineImagePreviewSmall(f, e.target.result);
+                    } catch (_) {}
+                };
+                reader.readAsDataURL(f);
+            } catch (_) {}
+        });
+
+        // Handle file attachments preview
+        filesInput.addEventListener('change', function(ev) {
+            try {
+                var files = Array.from(this.files || []);
+                if (!files.length) return;
+                window.taskFeedbackSelectedFiles = (window.taskFeedbackSelectedFiles || []).concat(files);
+                renderTaskFeedbackFilesPreview();
+                try { this.value = ""; } catch (_) {}
+            } catch (_) {}
+        });
+
+        // Reference URLs (Multiple URLs like project)
+        const refUrlDiv = document.createElement("div");
+        refUrlDiv.className = "mb-3 custom-input";
+
+        const refUrlLabel = document.createElement("label");
+        refUrlLabel.className = "form-label label-custom";
+        refUrlLabel.textContent = "Reference URLs (Optional)";
+        refUrlDiv.appendChild(refUrlLabel);
+
+        const refUrlContainer = document.createElement("div");
+        refUrlContainer.id = "task_feedback_reference_urls_container";
+        refUrlContainer.className = "d-flex flex-column gap-2";
+
+        // Add initial URL row
+        const initialUrlRow = document.createElement("div");
+        initialUrlRow.className = "d-flex gap-2 align-items-center";
+        initialUrlRow.innerHTML = '<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">' +
+            '<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>';
+        refUrlContainer.appendChild(initialUrlRow);
+
+        refUrlDiv.appendChild(refUrlContainer);
+        form.appendChild(refUrlDiv);
+
+    modalBody.appendChild(form);
+
+        // Setup image preview
+        setupImageInput(imageInput, imageLabel, imageClearBtn);
+
+        // Form submission handler
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            submitTaskFeedbackForm(this, taskId);
+        });
+
+        // Use unified footer: Close + Submit
+        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
+            const form = document.getElementById('addFeedbackForm');
+            if (form) submitTaskFeedbackForm(form, taskId);
+        });
+
+        // Initialize Quill editors after modal content is set (first version)
+        try {
+            if (typeof initTaskFeedbackQuillEditors === 'function') {
+                initTaskFeedbackQuillEditors(modalBody);
+            }
+        } catch (_) {}
+    }
+
+    // Function to submit task feedback form (Task page legacy path) – use floating alert and keep modal open
+    function submitTaskFeedbackForm(form, taskId) {
+        // Helpers to manage feedback count badge
+        function getExistingFeedbackCount(taskId) {
+            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            const span = card ? card.querySelector('.feedback-comments-count') : null;
+            const n = span ? parseInt(span.textContent, 10) : NaN;
+            return Number.isFinite(n) ? n : 0;
+        }
+        function setFeedbackCount(taskId, count) {
+            const card = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+            if (!card) return;
+            let span = card.querySelector('.feedback-comments-count');
+            if (!span) {
+                span = document.createElement('span');
+                span.className = 'feedback-comments-count ms-1';
+                span.style.color = '#555';
+                const icon = card.querySelector('.task-icon.mode_comment');
+                if (icon && icon.parentNode) {
+                    icon.parentNode.appendChild(span);
+                } else {
+                    return; // no place to put it
+                }
+            }
+            span.textContent = String(count);
+        }
+        function optimisticIncrementFeedbackCount(taskId) {
+            const prev = getExistingFeedbackCount(taskId);
+            setFeedbackCount(taskId, Math.max(prev + 1, 1));
+        }
+        function extractCountFromResponse(resp) {
+            if (!resp) return null;
+            const candidates = [
+                resp.count,
+                resp.total,
+                resp?.data?.count,
+                resp?.data?.total,
+            ];
+            const val = candidates.find((v) => typeof v === 'number' && !isNaN(v));
+            return (typeof val === 'number') ? val : null;
+        }
+        const submitBtn = form.querySelector("button[type='submit']") || document.getElementById("addFeedbackButton");
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "";
+
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            submitBtn.disabled = true;
+        }
+
+        // Validate image and total sizes before creating FormData
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
+
+        const formData = new FormData(form);
+        // Append multi-selected files from preview buffer
+        try {
+            if (Array.isArray(selectedFiles) && selectedFiles.length > 0) {
+                selectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
+        formData.append("task_id", taskId);
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks",
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            success: function (response) {
+                // Use the app's white alert style (Settings/Project): showAlertMsg -> light
+                const msg = (response && response.message) || 'Feedback submitted successfully!';
+                if (typeof window.showAlertMsg === 'function') {
+                    window.showAlertMsg(String(msg), 'light', 2000);
+                } else if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(msg, 'light', 2000);
+                }
+
+                // Switch back to list view inside the modal (keep modal open)
+                try {
+                    const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                    const titleEl = feedbackModalEl?.querySelector('.feedback-modal-title');
+                    if (titleEl) titleEl.textContent = 'Task Feedback';
+                    // Restore Add Feedback button in footer if missing
+                    let footer = feedbackModalEl.querySelector('.feedback-modal-footer')
+                                || feedbackModalEl.querySelector('.modal-footer')
+                                || feedbackModalEl.querySelector('.modal-footer-custom');
+                    if (!footer) {
+                        const maybeBtn = feedbackModalEl.querySelector('#addFeedbackButton');
+                        if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                    }
+            if (footer) {
+                        let addBtn = footer.querySelector('#addFeedbackButton');
+                        if (!addBtn) {
+                            addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                addBtn.className = 'btn btn-submit-black w-100';
+                            addBtn.id = 'addFeedbackButton';
+                            addBtn.textContent = 'Add Feedback';
+                            footer.innerHTML = '';
+                            footer.appendChild(addBtn);
+                        } else {
+                            addBtn.textContent = 'Add Feedback';
+                            const fresh = addBtn.cloneNode(true);
+                            addBtn.parentNode.replaceChild(fresh, addBtn);
+                            addBtn = fresh;
+                        }
+                        addBtn.disabled = false;
+                        addBtn.removeAttribute('disabled');
+                        addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                    }
+                    // Remove reply close button if present
+                    const closeBtn = document.getElementById('replyCloseButton');
+                    if (closeBtn && closeBtn.parentNode) {
+                        closeBtn.parentNode.removeChild(closeBtn);
+                    }
+                    // Reload feedback list inside modal so newly created feedback appears without full page reload
+                    try { loadTaskFeedbackData(taskId); } catch (e) { console.warn('Failed to reload feedback list', e); }
+                } catch (e) { /* noop */ }
+
+                // Clear selected files buffer and preview
+                try {
+                    selectedFiles = [];
+                    const preview = document.getElementById('feedback_reference_files_preview') || document.getElementById('reference_files_preview');
+                    if (preview) preview.innerHTML = '';
+                } catch (_) {}
+
+                // Update feedback count dynamically on the task card
+                // 1) Optimistic UI increment
+                optimisticIncrementFeedbackCount(taskId);
+                // 2) Reconcile with server value (if provided and > 0)
+                $.ajax({
+                    url: appUrl + "/task-feedbacks/count/" + taskId,
+                    type: "GET",
+                    dataType: "json",
+                    success: function (countResponse) {
+                        const serverCount = extractCountFromResponse(countResponse);
+                        if (typeof serverCount === 'number' && serverCount > 0) {
+                            setFeedbackCount(taskId, serverCount);
+                        }
+                    }
+                });
+                // Refresh task cards so counts and other data reflect the latest changes
+                // try { fetchAndRenderTasks(); } catch(_) {}
+                // Avoid page reload when closing modal
+                try { feedbackSubmitted = false; } catch(_) {}
+            },
+            error: function (xhr) {
+                let errorMessage = "Failed to submit feedback. Please try again.";
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, "danger");
+                } else {
+                    alert(errorMessage);
+                }
+            },
+            complete: function () {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnHtml;
+                    submitBtn.disabled = false;
+                }
+                try { selectedFiles = []; } catch (_) {}
+            },
+        });
+    }
+
+    // Function to handle task feedback
+    window.handleTaskFeedback = function (taskId) {
+        // Show the feedback modal
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        if (!feedbackModalEl) {
+            console.warn('taskFeedbackModal element not found');
+            return;
+        }
+        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+
+        // Set task ID on modal
+        feedbackModalEl.dataset.taskId = taskId;
+
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("taskFeedbackModalLabel");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("taskFeedbackList");
+        // Reset modal
+        if (modalTitle) modalTitle.textContent = "Task Feedback";
+        if (modalBody) modalBody.innerHTML = "";
+
+        try { loadTaskFeedbackData(taskId); } catch(_) {}
+
+        feedbackModal.show();
+
+        // Clean up any duplicate modal backdrops
+        document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+            if (idx < arr.length - 1) el.remove();
+        });
+    }
+
+    // Function to show add feedback form in the modal
+    function showAddFeedbackForm(taskId) {
+        const modalTitle = document.getElementById("taskFeedbackModalLabel");
+        const modalBody = document.getElementById("taskFeedbackList");
+
+    modalTitle.textContent = "Add Feedback";
+        modalBody.innerHTML = "";
+
+        const form = document.createElement("form");
+        form.id = "addFeedbackForm";
+        form.enctype = "multipart/form-data";
+
+        const taskIdInput = document.createElement("input");
+        taskIdInput.type = "hidden";
+        taskIdInput.name = "task_id";
+        taskIdInput.value = taskId;
+
+        const employeeIdInput = document.createElement("input");
+        employeeIdInput.type = "hidden";
+        employeeIdInput.name = "employee_id";
+        employeeIdInput.value =
+            document
+                .getElementById("taskFeedbackModal")
+                .getAttribute("data-employee-id") || "";
+
+        form.appendChild(taskIdInput);
+        form.appendChild(employeeIdInput);
+
+                // Image upload
+        const imageDiv = document.createElement("div");
+        imageDiv.className = "mb-3";
+
+        const imageLabelTitle = document.createElement("div");
+        imageLabelTitle.className = "title-label-image";
+        imageLabelTitle.textContent = "Upload Image";
+        imageDiv.appendChild(imageLabelTitle);
+
+        const imageLabel = document.createElement("label");
+        imageLabel.className = "custom-image-upload position-relative";
+        imageLabel.style.backgroundPosition = "center center";
+        imageLabel.style.backgroundRepeat = "no-repeat";
+        imageLabel.style.backgroundSize = "50%";
+        imageLabel.style.backgroundImage =
+            "url('" + appUrl + "/asset/img/background/add-image.png')";
+        imageLabel.htmlFor = "feedback_image";
+
+        const imageInput = document.createElement("input");
+        imageInput.type = "file";
+        imageInput.className = "input-image";
+        imageInput.id = "feedback_image";
+        imageInput.name = "feedback_image";
+        imageInput.accept = "image/*";
+        imageInput.hidden = true;
+
+        const imageClearBtn = document.createElement("span");
+        imageClearBtn.className = "image-clear-btn d-none";
+        imageClearBtn.id = "feedbackImageClearBtn";
+        imageClearBtn.title = "Remove image";
+        imageClearBtn.textContent = "×";
+
+        imageLabel.appendChild(imageInput);
+        imageLabel.appendChild(imageClearBtn);
+        imageDiv.appendChild(imageLabel);
+
+        form.appendChild(imageDiv);
+
+        // Comment field
+        const commentDiv = document.createElement("div");
+        commentDiv.className = "mb-3 custom-input";
+
+        const commentLabel = document.createElement("label");
+        commentLabel.htmlFor = "feedback_comment";
+        commentLabel.className = "form-label label-custom";
+        commentLabel.textContent = "Comment";
+        commentDiv.appendChild(commentLabel);
+
+        const commentTextarea = document.createElement("textarea");
+        commentTextarea.className = "form-control input-text";
+        commentTextarea.id = "feedback_comment";
+        commentTextarea.name = "feedback_comment";
+        commentTextarea.rows = 3;
+        commentTextarea.required = true;
+        commentDiv.appendChild(commentTextarea);
+
+        form.appendChild(commentDiv);
+
+        // Reference URL
+        const refUrlDiv = document.createElement("div");
+        refUrlDiv.className = "mb-3 custom-input";
+
+        const refUrlLabel = document.createElement("label");
+        refUrlLabel.htmlFor = "reference_url";
+        refUrlLabel.className = "form-label label-custom";
+        refUrlLabel.textContent = "Reference URL";
+        refUrlDiv.appendChild(refUrlLabel);
+
+        const refUrlInput = document.createElement("input");
+        refUrlInput.type = "text";
+        refUrlInput.className = "form-control input-text";
+        refUrlInput.id = "reference_url";
+        refUrlInput.name = "reference_url";
+        refUrlDiv.appendChild(refUrlInput);
+
+        form.appendChild(refUrlDiv);
+
+    // Reference Files
+        const refFileDiv = document.createElement("div");
+        refFileDiv.className = "mb-3 custom-input";
+
+        const refFileLabel = document.createElement("label");
+    refFileLabel.htmlFor = "reference_files";
+        refFileLabel.className = "form-label label-custom";
+    refFileLabel.textContent = "Reference Files";
+        refFileDiv.appendChild(refFileLabel);
+
+        const refFileInput = document.createElement("input");
+        refFileInput.type = "file";
+        refFileInput.className = "form-control input-text";
+    refFileInput.id = "reference_files";
+    refFileInput.name = "reference_files[]";
+    refFileInput.accept = "image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+    refFileInput.multiple = true;
+        refFileDiv.appendChild(refFileInput);
+
+        form.appendChild(refFileDiv);
+
+        // Render form into body
+        modalBody.appendChild(form);
+
+        // Setup image preview
+        setupImageInput(imageInput, imageLabel, imageClearBtn);
+
+        // Form submission handler
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            submitTaskFeedbackForm(this, taskId);
+        });
+
+        // Use unified footer: Close + Submit
+        setUnifiedTaskFeedbackFooter(taskId, 'Submit', function(){
+            const form = document.getElementById('addFeedbackForm');
+            if (form) submitTaskFeedbackForm(form, taskId);
+        });
+
+        // Initialize Quill editors after modal content is set (second version)
+        try {
+            if (typeof initTaskFeedbackQuillEditors === 'function') {
+                initTaskFeedbackQuillEditors(modalBody);
+            }
+        } catch (_) {}
+    }
+
+    // Helper to clear reply state
+    function clearReplyState() {
+        try {
+            const pid = document.getElementById('inline_parent_id_input');
+            if (pid) pid.value = '';
+            const previewContainer = document.getElementById('reply_parent_preview_inline');
+            if (previewContainer) previewContainer.remove();
+        } catch(_) {}
+    }
+
+    // Show reply form (using inline approach like project.js)
+    function showReplyFeedbackForm(taskId, parentId) {
+        try {
+            const feedbackModalEl = document.getElementById("taskFeedbackModal");
+            const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title");
+            const modalBody = feedbackModalEl.querySelector(".feedback-modal-body");
+
+            // Look for the inline feedback form in the modal footer
+            const inlineForm = feedbackModalEl.querySelector('.feedback-form');
+            if (inlineForm) {
+                // Create or update hidden parent id input
+                let inlinePid = inlineForm.querySelector('#inline_parent_id_input');
+                if (!inlinePid) {
+                    inlinePid = document.createElement('input');
+                    inlinePid.type = 'hidden';
+                    inlinePid.id = 'inline_parent_id_input';
+                    inlinePid.name = 'parent_id';
+                    inlineForm.appendChild(inlinePid);
+                }
+                inlinePid.value = parentId || '';
+
+                // Prepare preview container inside inline form
+                let previewContainer = inlineForm.querySelector('#reply_parent_preview_inline');
+                if (!previewContainer) {
+                    previewContainer = document.createElement('div');
+                    previewContainer.id = 'reply_parent_preview_inline';
+                    previewContainer.className = 'mt-2';
+                }
+
+                // Default preview while fetching
+                previewContainer.innerHTML = '<div class="selected-files-list mt-2"><div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task"><div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;"><span class="material-symbols-outlined">person</span></div><div class="flex-grow-1" style="font-size: 10px;"><div style="font-weight:500;font-size:11px">Loading...</div><div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">&nbsp;</div></div><button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button></div></div>';
+
+                // Fetch feedback data to show preview
+                try {
+                    fetch(appUrl + '/task-feedbacks/' + taskId)
+                        .then(function (res) {
+                            if (!res.ok) return res.json().then(Promise.reject);
+                            return res.json();
+                        })
+                        .then(function (json) {
+                            const payload = json && json.data ? json.data : json;
+                            let fb = null;
+
+                            // Find feedback by parentId
+                            function findById(node, id) {
+                                if (!node) return null;
+                                if (Array.isArray(node)) {
+                                    for (let k = 0; k < node.length; k++) {
+                                        const r = findById(node[k], id);
+                                        if (r) return r;
+                                    }
+                                    return null;
+                                }
+                                try {
+                                    if (node && String(node.id) === String(id)) return node;
+                                    if (node && node.replies && Array.isArray(node.replies)) {
+                                        const rr = findById(node.replies, id);
+                                        if (rr) return rr;
+                                    }
+                                } catch (_) {}
+                                return null;
+                            }
+
+                            fb = findById(payload, parentId);
+
+                            const title = (fb && fb.employee && (fb.employee.name || fb.employee.fullname)) ||
+                                         (fb && (fb.employee_name || fb.employee_fullname)) || 'Unknown';
+                            const commentRaw = (fb && (fb.feedback_comment || fb.comment || fb.description)) || '';
+
+                            try {
+                                const empRaw = (fb && fb.employee) || {};
+                                let avatarRaw = empRaw.user_photo || empRaw.profile_picture || empRaw.photo || fb.employee_photo || '';
+                                // Use the same buildPhotoUrl helper from task.js if available
+                                const avatarUrl = (typeof buildPhotoUrl === 'function') ?
+                                    buildPhotoUrl(avatarRaw, empRaw.profile_picture, empRaw.profile_picture_url) :
+                                    (avatarRaw ? appUrl + '/file/profile_picture/' + avatarRaw : appUrl + '/asset/img/avatar.png');
+
+                                let plain = '';
+                                try {
+                                    plain = (commentRaw || '').replace(/<[^>]+>/g, '');
+                                } catch (_) {
+                                    plain = (commentRaw || '') + '';
+                                }
+                                if (plain && plain.length > 120) plain = plain.substring(0, 120).trim() + '...';
+
+                                let html = '';
+                                html += '<div class="selected-files-list mt-2">';
+                                html += '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">';
+                                html += '<div style="width:28px;height:28px;border-radius:50%;overflow:hidden;flex:0 0 28px;display:flex;align-items:center;justify-content:center;">';
+                                html += '<img src="' + avatarUrl + '" alt="avatar" style="width:28px;height:28px;object-fit:cover;display:block;" onerror="this.onerror=null;this.src=\'' + appUrl + '/asset/img/avatar.png\';">';
+                                html += '</div>';
+                                html += '<div class="flex-grow-1" style="font-size: 10px;">';
+                                html += '<div style="font-weight:500;font-size:11px">' + (title || 'Unknown') + '</div>';
+                                html += '<div style="font-size:10px;color:#6b6b6b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;">' + (plain || '') + '</div>';
+                                html += '</div>';
+                                html += '<button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height: 1; font-size: 10px;"><span class="material-symbols-outlined">close</span></button>';
+                                html += '</div></div>';
+                                previewContainer.innerHTML = html;
+                            } catch (_) {}
+
+                            try {
+                                const btn = previewContainer.querySelector('.remove-task');
+                                if (btn) btn.addEventListener('click', function () {
+                                    try {
+                                        previewContainer.remove();
+                                        inlinePid.value = '';
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        })
+                        .catch(function () {
+                            // Handle error with remove button
+                            try {
+                                const btn = previewContainer.querySelector('.remove-task');
+                                if (btn) btn.addEventListener('click', function () {
+                                    try {
+                                        previewContainer.remove();
+                                        inlinePid.value = '';
+                                    } catch (_) {}
+                                });
+                            } catch (_) {}
+                        });
+                } catch (_) {}
+
+                // Insert preview before inline files preview if present
+                try {
+                    const filesPreview = inlineForm.querySelector('#inline_feedback_files_preview');
+                    const editor = inlineForm.querySelector('#inline_feedback_editor');
+                    if (filesPreview && filesPreview.parentNode) {
+                        filesPreview.parentNode.insertBefore(previewContainer, filesPreview);
+                    } else if (editor && editor.parentNode) {
+                        editor.parentNode.insertBefore(previewContainer, editor);
+                    } else {
+                        inlineForm.insertBefore(previewContainer, inlineForm.firstChild);
+                    }
+                } catch(_) {}
+
+                // Focus inline editor
+                try {
+                    const editorEl = document.querySelector('#inline_feedback_editor .ql-editor');
+                    if (editorEl) {
+                        editorEl.focus();
+                        // Scroll into view smoothly
+                        editorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                } catch(_) {}
+
+                return; // handled via inline form
+            }
+
+            // Fallback: if no inline form found, show message
+            try {
+                showFloatingAlert('Reply functionality requires inline feedback form.', 'warning', 3000);
+            } catch (_) {
+                console.warn('No inline feedback form found for reply');
+            }
+
+        } catch (e) {
+            console.warn("showReplyFeedbackForm error", e);
+        }
+    }
+
+    // Show edit form (for feedback or reply) with prefilled data
+    function showEditFeedbackForm(taskId, data, isReply) {
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+        const modalTitle = feedbackModalEl.querySelector(".feedback-modal-title") || document.getElementById("taskFeedbackModalLabel");
+        const modalBody = feedbackModalEl.querySelector(".feedback-modal-body") || document.getElementById("taskFeedbackList");
+        const addFeedbackButton = document.getElementById("addFeedbackButton");
+
+        if (modalTitle) modalTitle.textContent = isReply ? "Edit Reply" : "Edit Feedback";
+
+        // Build form HTML
+        const existingImg = data.image_url || '';
+        const bgImage = existingImg ? `background-image: url('${existingImg}'); background-size: cover; opacity: 1;` : `background-image: url('${appUrl}/asset/img/background/add-image.png'); background-size: 50%; opacity: 0.5;`;
+        const clearBtnClass = existingImg ? '' : 'd-none';
+
+        modalBody.innerHTML = `
+            <form id="editFeedbackForm" enctype="multipart/form-data">
+                <input type="hidden" name="task_id" value="${taskId}">
+                ${data.parent_id ? `<input type=\"hidden\" name=\"parent_id\" value=\"${data.parent_id}\">` : ''}
+
+                <!-- Attachment buttons (Photo & File) -->
+                <div class="mb-3">
+                    <label class="form-label">Attachment</label>
+                    <div class="d-flex align-items-center">
+                        <button type="button" class="btn btn-outline-secondary d-flex align-items-center" id="taskEditFeedbackPhotoBtn">
+                            <span class="material-symbols-outlined me-1">photo_camera</span>Photo
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary d-flex align-items-center ms-2" id="taskEditFeedbackFileBtn">
+                            <span class="material-symbols-outlined me-1">attach_file</span>File
+                        </button>
+                    </div>
+                    <!-- Hidden inputs -->
+                    <input type="file" id="task_edit_feedback_image_input" ${isReply ? 'name="image"' : 'name="feedback_image"'} accept="image/*" hidden>
+                    <input type="file" id="task_edit_feedback_files_input" name="reference_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple hidden>
+                </div>
+
+                <div class="mb-3 custom-input">
+                    <label for="feedback_comment" class="form-label">Feedback Comment</label>
+
+                    <!-- Quill toolbar + editor (visual) -->
+                    <div id="task_edit_feedback_toolbar">
+                        <span class="ql-formats">
+                            <button class="ql-bold"></button>
+                            <button class="ql-italic"></button>
+                            <button class="ql-underline"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-list" value="ordered"></button>
+                            <button class="ql-list" value="bullet"></button>
+                        </span>
+                        <span class="ql-formats">
+                            <button class="ql-link"></button>
+                        </span>
+                    </div>
+
+                    <div id="task_edit_feedback_editor"
+                        style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+
+                    <!-- canonical hidden textarea so backend controllers keep receiving same payload -->
+                    <textarea class="form-control input-text d-none" id="feedback_comment" name="feedback_comment" rows="3" required style="display:none;">${data.feedback_comment || ''}</textarea>
+                </div>
+
+                <div class="mb-3 custom-input">
+                    <label class="form-label">Reference URLs (Optional)</label>
+                    <div id="feedback_reference_urls_container" class="d-flex flex-column gap-2"></div>
+                </div>
+
+                <div class="mb-3 custom-input">
+                    <label class="form-label">Reference Files (Optional)</label>
+                    <div id="task_edit_feedback_files_preview" class="mt-2"></div>
+                    <div id="existing_feedback_reference_files" class="mt-2"></div>
+                    <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                </div>
+            </form>
+        `;
+
+        // Wire image preview/clear
+        (function(){
+            try {
+                const imageInput = modalBody.querySelector('#feedback_image');
+                const imageLabel = modalBody.querySelector('#editFeedbackImageLabel');
+                const imageClearBtn = modalBody.querySelector('#editFeedbackImageClearBtn');
+
+                if (imageInput) {
+                    imageInput.addEventListener('change', function () {
+                        if (this.files && this.files[0]) {
+                            const file = this.files[0];
+                            if (file.size > MAX_IMAGE_BYTES) {
+                                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                                this.value = '';
+                                return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                try {
+                                    if (imageLabel) {
+                                        imageLabel.style.backgroundImage = `url('${e.target.result}')`;
+                                        imageLabel.classList.add('has-image');
+                                        imageLabel.style.backgroundSize = 'cover';
+                                        imageLabel.style.opacity = '1';
+                                    }
+                                    if (imageClearBtn) imageClearBtn.classList.remove('d-none');
+                                } catch (_) {}
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    });
+                }
+
+                if (imageClearBtn) {
+                    imageClearBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        try {
+                            if (imageInput) imageInput.value = '';
+                            if (imageLabel) {
+                                imageLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                                imageLabel.style.backgroundPosition = 'center center';
+                                imageLabel.style.backgroundRepeat = 'no-repeat';
+                                imageLabel.style.backgroundSize = '50%';
+                                imageLabel.classList.remove('has-image');
+                                imageLabel.style.opacity = '0.5';
+                            }
+                            imageClearBtn.classList.add('d-none');
+                        } catch (_) {}
+                    });
+                }
+            } catch (_) {}
+        })();
+
+        // Prefill multiple reference URLs for edit form
+        (function() {
+            const container = modalBody.querySelector('#feedback_reference_urls_container');
+            if (!container) return;
+            let urls = [];
+            if (Array.isArray(data.reference_urls) && data.reference_urls.length > 0) {
+                urls = data.reference_urls;
+            } else if (data.reference_url) {
+                urls = [data.reference_url];
+            }
+            if (urls.length === 0) {
+                // add one empty row
+                const row = document.createElement('div');
+                row.className = 'd-flex gap-2 align-items-center';
+                row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" placeholder="https://example.com">` +
+                    `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`;
+                container.appendChild(row);
+            } else {
+                urls.forEach((u, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'd-flex gap-2 align-items-center';
+                    const controls = (idx === 0)
+                        ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                        : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                    row.innerHTML = `<input type="url" class="form-control" name="reference_urls[]" value="${u}" placeholder="https://example.com">${controls}`;
+                    container.appendChild(row);
+                });
+            }
+        })();
+
+        // Prefill existing reference files as removable list
+        (function() {
+            const container = document.getElementById('existing_feedback_reference_files');
+            const hidden = document.getElementById('existing_feedback_reference_files_input');
+            if (!container || !hidden) return;
+            // data.reference_files_urls contains absolute URLs; we need display names while keeping URL for click
+            let files = Array.isArray(data.reference_files_urls) ? data.reference_files_urls.slice() : [];
+            // Fallback single
+            if (files.length === 0 && data.reference_file_url) files = [data.reference_file_url];
+            // Initialize state as array of URLs (server will derive file names if needed)
+            let kept = files.slice();
+            hidden.value = JSON.stringify(kept);
+
+            container.innerHTML = '';
+            if (files.length > 0) {
+                files.forEach((url, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border rounded';
+                    const info = document.createElement('div');
+                    info.className = 'd-flex align-items-center flex-grow-1';
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined me-2';
+                    icon.textContent = 'description';
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.target = '_blank';
+                    const fileName = (function(){
+                        try { const u = new URL(url, window.location.origin); return decodeURIComponent(u.pathname.split('/').pop()); } catch(e) {
+                            const parts = String(url).split('/'); return decodeURIComponent(parts[parts.length-1] || String(url));
+                        }
+                    })();
+                    link.textContent = fileName;
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'btn btn-sm btn-outline-danger ms-2';
+                    remove.innerHTML = '&times;';
+                    remove.addEventListener('click', function(){
+                        // remove from DOM and state
+                        const indexInKept = kept.indexOf(url);
+                        if (indexInKept !== -1) { kept.splice(indexInKept, 1); hidden.value = JSON.stringify(kept); }
+                        item.remove();
+                    });
+                    info.appendChild(icon);
+                    info.appendChild(link);
+                    item.appendChild(info);
+                    item.appendChild(remove);
+                    container.appendChild(item);
+                });
+            }
+        })();
+
+        // Setup selected-files preview for reference files (same UX as Add/Reply)
+        try {
+            selectedFiles = [];
+            const refInput = modalBody.querySelector('#reference_files');
+            if (refInput) {
+                refInput.addEventListener('change', function () {
+                    const files = Array.from(this.files || []);
+                    if (files.length) {
+                        selectedFiles = [...selectedFiles, ...files];
+                        if (typeof displaySelectedFiles === 'function') {
+                            displaySelectedFiles();
+                        }
+                    }
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
+
+        // Setup photo/file button handlers for edit form
+        try {
+            const photoBtn = document.getElementById('taskEditFeedbackPhotoBtn');
+            const fileBtn = document.getElementById('taskEditFeedbackFileBtn');
+            const imageInput = document.getElementById('task_edit_feedback_image_input');
+            const filesInput = document.getElementById('task_edit_feedback_files_input');
+
+            if (photoBtn && imageInput) {
+                photoBtn.addEventListener('click', function() {
+                    imageInput.click();
+                });
+            }
+
+            if (fileBtn && filesInput) {
+                fileBtn.addEventListener('click', function() {
+                    filesInput.click();
+                });
+            }
+
+            // Image input handler
+            if (imageInput) {
+                imageInput.addEventListener('change', function() {
+                    const file = this.files && this.files[0];
+                    if (!file) return;
+
+                    // Size validation
+                    if (file.size > MAX_IMAGE_BYTES) {
+                        if (typeof showFloatingAlert === 'function') {
+                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning');
+                        }
+                        this.value = '';
+                        return;
+                    }
+
+                    // Create preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        showInlineImagePreviewSmall(file, e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Files input handler
+            if (filesInput) {
+                filesInput.addEventListener('change', function() {
+                    const files = Array.from(this.files || []);
+                    if (!files.length) return;
+
+                    // Add to selection
+                    if (!window.taskEditFeedbackSelectedFiles) window.taskEditFeedbackSelectedFiles = [];
+                    window.taskEditFeedbackSelectedFiles = [...window.taskEditFeedbackSelectedFiles, ...files];
+
+                    // Render preview
+                    renderTaskEditFeedbackFilesPreview();
+                    this.value = '';
+                });
+            }
+        } catch (_) {}
+
+        setUnifiedTaskFeedbackFooter(taskId, 'Save', function(){
+            const form = document.getElementById('editFeedbackForm');
+            if (!form) return; submitEditFeedbackForm(form, taskId, data.id, isReply);
+        });
+
+        // Initialize Quill editors after modal content is set and pre-fill with existing content
+        try {
+            if (typeof initTaskFeedbackQuillEditors === 'function') {
+                initTaskFeedbackQuillEditors(modalBody);
+                // Set content for edit form
+                if (window.__quillTaskFeedbackEdit && data.feedback_comment) {
+                    window.__quillTaskFeedbackEdit.root.innerHTML = data.feedback_comment || '';
+                }
+            }
+        } catch (_) {}
+    }
+
+    // Helper to unify footer button styling (Close + Submit/Save) identical to Add Feedback modal
+    function setUnifiedTaskFeedbackFooter(taskId, submitLabel, onSubmit){
+        const modal = document.getElementById('taskFeedbackModal');
+        if (!modal) return;
+        // Be flexible: task modal footer may not have .feedback-modal-footer class
+        let footer = modal.querySelector('.feedback-modal-footer')
+                  || modal.querySelector('.modal-footer')
+                  || modal.querySelector('.modal-footer-custom');
+        if (!footer) {
+            const addBtn = modal.querySelector('#addFeedbackButton');
+            if (addBtn && addBtn.parentElement) footer = addBtn.parentElement;
+        }
+        const titleEl = modal.querySelector('.feedback-modal-title');
+        if (!footer) return;
+        footer.innerHTML = '';
+        const wrapper = document.createElement('div');
+        wrapper.id = 'taskFeedbackFormButtonsWrapper';
+        wrapper.className = 'd-flex gap-2 w-100';
+        const closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'btn btn-close-reply flex-grow-1';
+        closeBtn.textContent = 'Close';
+        closeBtn.addEventListener('click', function(){
+            if (titleEl) titleEl.textContent = 'Task Feedback';
+            loadTaskFeedbackData(taskId); // This will restore inline editor via setupTaskInlineFeedbackEditor
+        });
+        const submitBtn = document.createElement('button');
+        submitBtn.type = 'button';
+        submitBtn.className = 'btn btn-submit-black flex-grow-1';
+        submitBtn.textContent = submitLabel;
+        submitBtn.addEventListener('click', function(e){ e.preventDefault(); onSubmit && onSubmit(); });
+        wrapper.appendChild(closeBtn);
+        wrapper.appendChild(submitBtn);
+        footer.appendChild(wrapper);
+    }
+
+    function submitEditFeedbackForm(form, taskId, id, isReply) {
+        const submitBtn = document.getElementById('addFeedbackButton');
+        const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            submitBtn.disabled = true;
+        }
+
+        // Validate image and total sizes before creating FormData
+        try {
+            const imageEl = form.querySelector('#feedback_image') || document.getElementById('feedback_image');
+            const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+            if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Image must be smaller than 10 MB.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+            const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+            if (!totalCheck.ok) {
+                try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                if (submitBtn) { submitBtn.innerHTML = originalBtnHtml; submitBtn.disabled = false; }
+                return;
+            }
+        } catch(_) {}
+
+        const formData = new FormData(form);
+        formData.append('_method', 'PUT');
+        // Append any newly selected reference files from preview buffer
+        try {
+            const editSelectedFiles = window.taskEditFeedbackSelectedFiles || selectedFiles || [];
+            if (Array.isArray(editSelectedFiles) && editSelectedFiles.length > 0) {
+                editSelectedFiles.forEach(file => formData.append('reference_files[]', file));
+            }
+        } catch (_) {}
+        // Ensure correct image field name already set in form; nothing extra here
+
+        $.ajax({
+            url: appUrl + "/task-feedbacks/" + id,
+            type: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            headers: {
+                "X-CSRF-TOKEN": document
+                    .querySelector('meta[name="csrf-token"]')
+                    .getAttribute("content"),
+            },
+            success: function (response) {
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(response.message || 'Feedback updated successfully!', 'success');
+                }
+                // Return to list view
+                const titleEl = document.querySelector('#taskFeedbackModal .feedback-modal-title') || document.getElementById('taskFeedbackModalLabel');
+                if (titleEl) titleEl.textContent = 'Task Feedback';
+                // Restore Add Feedback button in footer (replace Save/Close)
+                const feedbackModalEl = document.getElementById('taskFeedbackModal');
+                let footer = feedbackModalEl?.querySelector('.feedback-modal-footer')
+                          || feedbackModalEl?.querySelector('.modal-footer')
+                          || feedbackModalEl?.querySelector('.modal-footer-custom');
+                if (!footer) {
+                    const maybeBtn = feedbackModalEl?.querySelector('#addFeedbackButton');
+                    if (maybeBtn && maybeBtn.parentElement) footer = maybeBtn.parentElement;
+                }
+                if (footer) {
+                    let addBtn = footer.querySelector('#addFeedbackButton');
+                    // Always clear footer to remove Save/Close wrapper
+                    footer.innerHTML = '';
+                    if (!addBtn) {
+                        addBtn = document.createElement('button');
+                        addBtn.type = 'button';
+                        addBtn.className = 'btn btn-submit-black w-100';
+                        addBtn.id = 'addFeedbackButton';
+                        addBtn.textContent = 'Add Feedback';
+                        footer.appendChild(addBtn);
+                    } else {
+                        addBtn.textContent = 'Add Feedback';
+                        const fresh = addBtn.cloneNode(true);
+                        addBtn.parentNode.replaceChild(fresh, addBtn);
+                        addBtn = fresh;
+                        footer.appendChild(addBtn);
+                    }
+                    addBtn.disabled = false;
+                    addBtn.removeAttribute('disabled');
+                    addBtn.addEventListener('click', () => showAddFeedbackForm(taskId));
+                }
+                loadTaskFeedbackData(taskId);
+                // Refresh snippets/badges best-effort
+                try { scheduleRefreshLatestFeedbackSnippets(10); } catch(_) {}
+                // Refresh task cards to update counts immediately
+                try { fetchAndRenderTasks(); } catch(_) {}
+            },
+            error: function (xhr) {
+                let errorMessage = 'Failed to update feedback. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMessage = Object.values(xhr.responseJSON.errors).flat().join("\n");
+                } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                }
+                if (typeof showFloatingAlert === 'function') {
+                    showFloatingAlert(errorMessage, 'danger');
+                } else {
+                    alert(errorMessage);
+                }
+            },
+            complete: function () {
+                if (submitBtn) {
+                    submitBtn.innerHTML = originalBtnHtml || 'Save';
+                    submitBtn.disabled = false;
+                }
+                // Clear preview buffer after save
+                try { selectedFiles = []; const preview = document.getElementById('feedback_reference_files_preview'); if (preview) preview.innerHTML = ''; } catch(_) {}
+            }
+        });
+    }
+
+    function setupInlineTaskFeedbackButtons(taskId, quill) {
+        try {
+            const photoBtn = document.getElementById('inlineTaskFeedbackPhotoBtn');
+            const fileBtn = document.getElementById('inlineTaskFeedbackFileBtn');
+            const sendBtn = document.getElementById('inlineTaskFeedbackSendBtn');
+            const imageInput = document.getElementById('inline_task_feedback_image_input');
+            const filesInput = document.getElementById('inline_task_feedback_files_input');
+            const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+            // Photo button handler
+            if (photoBtn && imageInput) {
+                photoBtn.addEventListener('click', function() {
+                    imageInput.click();
+                });
+            }
+
+            // File button handler
+            if (fileBtn && filesInput) {
+                fileBtn.addEventListener('click', function() {
+                    filesInput.click();
+                });
+            }
+
+            // Image input handler
+            if (imageInput) {
+                imageInput.addEventListener('change', function() {
+                    const file = this.files && this.files[0];
+                    if (!file) return;
+
+                    // Size validation
+                    if (file.size > MAX_IMAGE_BYTES) {
+                        if (typeof showFloatingAlert === 'function') {
+                            showFloatingAlert('Image must be smaller than 10 MB.', 'warning');
+                        }
+                        this.value = '';
+                        return;
+                    }
+
+                    // Create preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        showTaskInlineImagePreviewSmall(file, e.target.result);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            // Files input handler
+            if (filesInput) {
+                filesInput.addEventListener('change', function() {
+                    const files = Array.from(this.files || []);
+                    if (!files.length) return;
+
+                    // Add to selection
+                    if (!window.inlineTaskFeedbackSelectedFiles) window.inlineTaskFeedbackSelectedFiles = [];
+                    window.inlineTaskFeedbackSelectedFiles = [...window.inlineTaskFeedbackSelectedFiles, ...files];
+
+                    // Render preview
+                    renderInlineTaskFeedbackFilesPreview();
+                    this.value = '';
+                });
+            }
+
+            // Send button handler
+            if (sendBtn && quill) {
+                sendBtn.addEventListener('click', function() {
+                    submitInlineTaskFeedback(taskId, quill);
+                });
+            }
+
+        } catch (e) {
+            console.warn('Failed to setup inline task feedback buttons:', e);
+        }
+    }
 
     // Show reference files for a TASK (reuses the projectFilesModal UI)
     window.showTaskFiles = function (taskId) {
@@ -14676,6 +16619,7 @@ document.addEventListener("DOMContentLoaded", function () {
             window.clearSelectedCoAuthors();
         }
     });
+    
 });
 
 // Doughnut Chart Porject

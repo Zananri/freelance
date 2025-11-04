@@ -209,11 +209,13 @@
     color: #3b3d42;
     max-width: 100px;
     line-height: 1;
+    text-align: start;
 }
 
 .table-project-status {
     font-size: 12px;
     font-weight: 500;
+    text-align: start;
 }
 
 .fullscreen-toggle {
@@ -387,6 +389,8 @@
     line-height: 1.3;
     margin: 0 0 4px 0;
     word-wrap: break-word;
+    max-width: 150px;
+    text-align: start;
 }
 
 .project-task-menu {
@@ -438,16 +442,25 @@
     color: #4C5060;
     line-height: 1.4;
     margin-bottom: 10px;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
     max-height: calc(1.4em * 3);
+    max-width: 250px;
+    overflow-y: auto;
+    overflow-x: hidden;
     word-wrap: break-word;
-    /* margin-left: 45px; */
     text-align: start;
+    scrollbar-width: thin;
+    scrollbar-color: #ccc transparent;
+}
+
+.project-task-description::-webkit-scrollbar {
+    width: 4px;
+}
+.project-task-description::-webkit-scrollbar-thumb {
+    background: #bbb;
+    border-radius: 2px;
+}
+.project-task-description::-webkit-scrollbar-thumb:hover {
+    background: #999;
 }
 
 .project-task-priority {
@@ -2805,4 +2818,141 @@ input[type="file"]::file-selector-button {
     font-size: 12px;
     font-weight: 400;
     color: #3b3d42;
+}
+
+.feedback-modal-dialog {
+    max-width: 480px;
+    min-height: 600px;
+    display: flex;
+    flex-direction: column;
+}
+
+.feedback-modal-content {
+    background-color: #f7f7f8;
+    border-radius: 12px;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.feedback-modal-header {
+    background-color: #f7f7f8;
+    padding: 1rem 1.5rem;
+}
+
+.feedback-modal-title {
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: #333;
+}
+
+.feedback-modal-body {
+    padding: 8px;
+    max-height: 100%;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+.feedback-modal-body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.feedback-modal-body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.feedback-modal-body::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.feedback-item {
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+}
+
+.feedback-employee-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.feedback-comment,
+.feedback-comment * {
+    font-size: 13px;
+    color: #444;
+}
+
+.feedback-item img.feedback-image {
+    width: 70px;
+    height: auto;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    display: block;
+}
+
+.feedback-reference-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.feedback-reference-url,
+.feedback-reference-file {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #444444;
+    text-decoration: none;
+    white-space: nowrap;
+    max-width: 60%;
+    height: 28px;
+    overflow-x: auto;
+    font-size: 10px;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.feedback-reference-url::-webkit-scrollbar,
+.feedback-reference-file::-webkit-scrollbar {
+    display: none;
+}
+
+.feedback-reference-url:hover,
+.feedback-reference-file:hover {
+    text-decoration: underline;
+}
+
+.feedback-reference-url .material-symbols-outlined,
+.feedback-reference-file .material-symbols-outlined {
+    font-size: 18px;
+    vertical-align: middle;
+    align-items: center;
+    color: #444444;
+}
+
+.feedback-form {
+    background: #ffffff;
+    padding: 0 10px 10px 10px;
+    border-radius: 20px;
+}
+
+#inlineFeedbackPhotoBtn,
+#inlineFeedbackFileBtn,
+.submit-feedback button {
+    border-radius: 50%;
+    height: 40px;
+    width: 40px;
+}
+
+.feedback-photo-icon,
+.feedback-file-icon,
+.submit-feedback button span {
+    font-size: 20px;
 }
