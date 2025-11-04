@@ -1774,7 +1774,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             <button class="project-task-action-btn" title="Comments" disabled>
                                 <span class="material-symbols-outlined">mode_comment</span>
                             </button>
-                            <button class="project-task-action-btn" title="Attachments" disabled>
+                            <button class="project-task-action-btn project-task-attach-btn" title="Attachments" data-task-id="${task.id}">
                                 <span class="material-symbols-outlined">attach_file</span>
                             </button>
                         </div>
@@ -13651,6 +13651,177 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
         } catch (e) {}
+    };
+
+    // Delegated handler for task attach buttons rendered inside project tasks pane
+    document.addEventListener("click", function (e) {
+        try {
+            const btn = e.target.closest && e.target.closest(".project-task-attach-btn");
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const taskId = btn.getAttribute("data-task-id") || btn.dataset.taskId;
+            if (taskId && window.showTaskFiles) window.showTaskFiles(taskId);
+        } catch (_) {}
+    });
+
+    // Show reference files for a TASK (reuses the projectFilesModal UI)
+    window.showTaskFiles = function (taskId) {
+        const modalEl = document.getElementById("projectFilesModal");
+        const listEl = document.getElementById("projectReferenceFilesList");
+        if (!modalEl || !listEl) return;
+
+        try {
+            modalEl.dataset.taskId = taskId;
+            listEl.dataset.taskId = taskId;
+            const lbl = document.getElementById('projectFilesModalLabel');
+            if (lbl) lbl.textContent = 'Task Reference Files';
+        } catch (_) {}
+
+        listEl.innerHTML = `<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            method: "GET",
+            dataType: "json",
+            success: function (resp) {
+                const data = resp.data || resp;
+                const files = Array.isArray(data.reference_files)
+                    ? data.reference_files
+                    : Array.isArray(data.reference_file)
+                    ? data.reference_file
+                    : data.reference_file
+                    ? [data.reference_file]
+                    : [];
+
+                listEl.innerHTML = "";
+
+                if (files && files.length > 0) {
+                    files.forEach(function (fileName, idx) {
+                        if (!fileName) return;
+
+                        let fileUrl = String(fileName || "");
+                        const isAbs = fileUrl.startsWith("http://") || fileUrl.startsWith("https://");
+                        const isRefPath = fileUrl.startsWith("/file/task/") || fileUrl.startsWith("file/task/") || fileUrl.startsWith("/file/") || fileUrl.startsWith("file/");
+                        if (!isAbs && !isRefPath) {
+                            fileUrl = (appUrl ? appUrl : "") + "/file/task/" + fileUrl;
+                        } else if (!isAbs && fileUrl.startsWith("/")) {
+                            fileUrl = (appUrl ? appUrl : "") + fileUrl;
+                        }
+
+                        const item = document.createElement("div");
+                        item.className = "reference-files-list d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                        const lower = String(fileName || "").toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+
+                        if (isImage) {
+                            const img = document.createElement("img");
+                            img.src = fileUrl;
+                            img.width = 28;
+                            img.height = 28;
+                            img.style.objectFit = "cover";
+                            img.style.borderRadius = "50%";
+                            img.alt = fileName;
+                            item.appendChild(img);
+                        }
+
+                        const title = document.createElement("a");
+                        title.className = "flex-grow-1 text-decoration-none text-truncate";
+                        title.href = fileUrl;
+                        title.target = "_blank";
+                        try {
+                            var ext = (String(fileName || "").split('.').pop() || '').toLowerCase();
+                            if (!ext || ext === fileName) ext = '';
+                            var displayIndex = (typeof idx !== 'undefined') ? (Number(idx) + 1) : 1;
+                            if (ext) title.textContent = 'TASK_REF_FILE_' + displayIndex + '.' + ext;
+                            else title.textContent = 'TASK_REF_FILE_' + displayIndex;
+                        } catch (e) {
+                            title.textContent = fileName;
+                        }
+                        item.appendChild(title);
+
+                        const dlBtn = document.createElement("button");
+                        dlBtn.type = "button";
+                        dlBtn.className = "btn btn-sm btn-link p-0 ms-2";
+                        dlBtn.title = "Download";
+                        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                        dlBtn.addEventListener("click", function (ev) {
+                            try {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const a = document.createElement("a");
+                                a.style.display = "none";
+                                a.href = fileUrl;
+                                try { a.download = String(fileName || "").split("/").pop(); } catch (_) {}
+                                a.target = "_blank";
+                                document.body.appendChild(a);
+                                a.click();
+                                setTimeout(() => { try { document.body.removeChild(a); } catch (_) {} }, 100);
+                            } catch (e) { window.open(fileUrl, "_blank"); }
+                        });
+                        item.appendChild(dlBtn);
+
+                        // Delete (if allowed) - uses task endpoint
+                        const delBtn = document.createElement("button");
+                        delBtn.type = "button";
+                        delBtn.className = "btn btn-sm btn-link p-0 ms-2";
+                        delBtn.title = "Delete";
+                        delBtn.style.color = "#444444";
+                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                        delBtn.addEventListener("click", function (ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            try {
+                                const _parentModalEl = document.getElementById("projectFilesModal");
+                                showDeleteConfirmModal({
+                                    type: "reference_file",
+                                    id: fileName,
+                                    authorName: "",
+                                    content: (function(){ try { var e=(String(fileName||'').split('.').pop()||'').toLowerCase(); return e?('TASK_REF_FILE_1.'+e):'TASK_REF_FILE_1'; }catch(_){return fileName;} })(),
+                                    avatarUrl: "",
+                                    parentModalEl: _parentModalEl,
+                                    onConfirm: function (done) {
+                                        $.ajax({
+                                            url: appUrl + "/task/" + taskId + "/reference-file",
+                                            type: "DELETE",
+                                            data: { filename: fileName },
+                                            headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content") },
+                                            success: function (res) {
+                                                try { if (typeof showFloatingAlert === "function") showFloatingAlert(res.message || "Reference file deleted", "success"); } catch (_) {}
+                                                if (item && item.parentNode) item.parentNode.removeChild(item);
+                                                try { const idx2 = files.indexOf(fileName); if (idx2 !== -1) files.splice(idx2, 1); } catch (_) {}
+                                                try { if (!(Array.isArray(files) && files.length > 0)) { listEl.innerHTML = ""; listEl.textContent = "No reference files available."; } } catch (_) {}
+                                                done(true);
+                                            },
+                                            error: function (xhr) {
+                                                let msg = "Failed to delete reference file";
+                                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                                try { if (typeof showFloatingAlert === "function") showFloatingAlert(msg, "danger"); } catch (_) { alert(msg); }
+                                                done(false);
+                                            }
+                                        });
+                                    }
+                                });
+                            } catch (e) {}
+                        });
+                        item.appendChild(delBtn);
+
+                        listEl.appendChild(item);
+                    });
+                } else {
+                    listEl.textContent = "No reference files available.";
+                }
+
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            },
+            error: function () {
+                try { showFloatingAlert("Failed to load reference files.", "warning", 3000); } catch (_) {}
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        });
     };
 
     function bindCardInteractions(cardEl, pid) {
