@@ -1704,28 +1704,63 @@ document.addEventListener("DOMContentLoaded", function () {
                     })();
                     const datesHtml = dates ? `<div class="project-task-dates">${dates}</div>` : '';
                     
-                    // Assignees (avatars with +count if more than 3)
-                    const assignees = task.assignees || [];
-                    let assigneesHtml = '';
-                    if (assignees.length > 0) {
-                        assigneesHtml = '<div class="project-task-assignees">';
-                        const displayCount = Math.min(assignees.length, 3);
+                    // PIC and Executors/Assignees (avatars with +count if more than 3)
+                    // Support different API shapes: prefer `executors` (newer) then fallback to `assignees`.
+                    const executors = Array.isArray(task.executors)
+                        ? task.executors
+                        : Array.isArray(task.assignees)
+                        ? task.assignees
+                        : [];
+
+                    // Determine PIC object from common possible fields returned by the API
+                    const picObj = task.pic || task.pic_employee || task.pic_user || task.pic_data || null;
+
+                    // Helper: build single-pic HTML using existing helpers
+                    function buildPicHtml(pic) {
+                        try {
+                            if (!pic) return "";
+                            // If backend returned a plain string (filename or url)
+                            if (typeof pic === 'string' || typeof pic === 'number') {
+                                const src = window.buildAvatarUrl(String(pic));
+                                return `<img src="${src}" class="rounded-circle" style="width:30px;height:30px;object-fit:cover;" title="PIC" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                            }
+                            // Otherwise assume it's an employee-like object
+                            return resolvePhotoHtml(pic, 30, 0, 'pic');
+                        } catch (e) {
+                            return "";
+                        }
+                    }
+
+                    const picHtml = buildPicHtml(picObj);
+
+                    let executorsHtml = '';
+                    if (executors.length > 0) {
+                        executorsHtml = '<div class="project-task-assignees">';
+                        const displayCount = Math.min(executors.length, 3);
                         for (let i = 0; i < displayCount; i++) {
-                            const assignee = assignees[i];
-                            const name = assignee.name || assignee.employee_name || 'User';
-                            if (assignee.photo) {
-                                const photoUrl = appUrl + '/file/employee/' + assignee.photo;
-                                assigneesHtml += `<img class="project-task-assignee-avatar" src="${photoUrl}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" onerror="this.onerror=null;this.style.display='none';">`;
+                            const ex = executors[i];
+                            // Normalise name lookup
+                            const name = (ex && (ex.name || ex.employee_name || ex.full_name)) || 'User';
+                            // Prefer resolver when object-like; otherwise construct from known photo/filename
+                            if (ex && (ex.profile_picture || ex.profile_picture_url || ex.user_photo || ex.photo)) {
+                                executorsHtml += resolvePhotoHtml(ex, 28, i === 0 ? 0 : -8, 'executor');
+                            } else if (ex && ex.photo) {
+                                const photoUrl = appUrl + '/file/employee/' + ex.photo;
+                                executorsHtml += `<img class="project-task-assignee-avatar" src="${photoUrl}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" onerror="this.onerror=null;this.style.display='none';">`;
+                            } else if (typeof ex === 'string' || typeof ex === 'number') {
+                                // plain filename/url
+                                const src = window.buildAvatarUrl(String(ex));
+                                executorsHtml += `<img class="project-task-assignee-avatar" src="${src}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" onerror="this.onerror=null;this.style.display='none';">`;
                             } else {
                                 const init = getInitials(name);
                                 const bg = getInitialsColor(name);
-                                assigneesHtml += `<div class="project-task-assignee-initials" style="background:${bg}" title="${escapeHtml(name)}">${init}</div>`;
+                                executorsHtml += `<div class="project-task-assignee-initials" style="background:${bg}" title="${escapeHtml(name)}">${init}</div>`;
                             }
                         }
-                        if (assignees.length > 3) {
-                            assigneesHtml += `<div class="project-task-assignee-count">+${assignees.length - 3}</div>`;
+                        if (executors.length > 3) {
+                            executorsHtml += `<div class="project-task-assignee-count">+${executors.length - 3}</div>`;
                         }
-                        assigneesHtml += '</div>';
+                        executorsHtml += '</div>';
                     }
                     
                     // Action buttons (icons only, no functionality yet)
@@ -1775,8 +1810,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             </div>
 
                             <div class="d-flex justify-content-between mb-3">
-                                <div class="d-flex justify-content-start">
-                                    ${assigneesHtml}
+                                <div class="d-flex justify-content-start align-items-center">
+                                    ${picHtml ? `<div class="project-task-pic me-2">${picHtml}</div>` : ''}
+                                    ${executorsHtml}
                                 </div>
                                 <div class="d-flex justify-content-end">
                                     ${actionsHtml}
