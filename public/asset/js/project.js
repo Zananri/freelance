@@ -1780,37 +1780,34 @@ document.addEventListener("DOMContentLoaded", function () {
                     
                     // Build card
                     html += `
-                        <div class="project-task-card">
-                            <div class="project-task-card-header d-flex justify-content-between align-items-start w-100">
-                                <div class="d-flex justify-content-start align-items-center">
-                                    ${avatarHtml}
-                                    <div class="project-task-title ms-2">${title}</div>
-                                </div>
+                    <div class="project-task-card d-flex">
+                        <div class="flex-shrink-0">
+                            ${avatarHtml}
+                        </div>
 
-                                <div class="d-flex justify-content-end align-items-center position-relative">
+                        <div class="flex-grow-1 ms-2">
+                            <div class="d-flex justify-content-between align-items-start w-100">
+                                <div class="project-task-title">${title}</div>
+                                <div class="d-flex align-items-center position-relative">
                                     ${statusHtml}
                                     <button class="btn btn-sm p-0">
-                                        <span class="material-symbols-outlined project-task-menu">
-                                            more_vert
-                                        </span>
+                                        <span class="material-symbols-outlined project-task-menu">more_vert</span>
                                     </button>
                                 </div>
                             </div>
 
-                            ${description ? `<div class="project-task-description">${escapeHtml(description)}</div>` : ''}
+                            ${description ? `<div class="project-task-description mt-1">${escapeHtml(description)}</div>` : ''}
 
-                            <div class="d-flex justify-content-between mb-3">
-                                <div class="d-flex justify-content-start">
-                                    ${priorityHtml}
+                            <div class="d-flex justify-content-between mt-2 mb-2">
+                                <div class="project-task-priority">
+                                    <span class="project-task-priority-label">Priority :</span>
+                                    <span class="project-task-priority-value">${escapeHtml(priority)}</span>
                                 </div>
-
-                                <div class="d-flex justify-content-end">
-                                    ${datesHtml}
-                                </div>
+                                ${datesHtml}
                             </div>
 
-                            <div class="d-flex justify-content-between mb-3">
-                                <div class="d-flex justify-content-start align-items-center">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
                                     ${picHtml ? `<div class="project-task-pic me-2">${picHtml}</div>` : ''}
                                     ${executorsHtml}
                                 </div>
@@ -1819,6 +1816,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </div>
                             </div>
                         </div>
+                    </div>
                     `;
                 });
                 html += '</div>';
