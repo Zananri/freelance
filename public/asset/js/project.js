@@ -1392,8 +1392,8 @@ document.addEventListener("DOMContentLoaded", function () {
             // Fetch children of specific parent project
             apiUrl = `${appUrl}/project/${parentProjectId}/children`;
         } else {
-            // Fetch all projects (root view)
-            apiUrl = `${appUrl}/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1`;
+            // Fetch all top-level projects (root view). Use root_only=1 to request projects without parents.
+            apiUrl = `${appUrl}/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1&root_only=1`;
         }
 
         fetch(apiUrl)

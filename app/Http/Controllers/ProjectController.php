@@ -1407,6 +1407,29 @@ class ProjectController extends Controller
                 $query->whereDate('projects.start_date', $dateFilter);
             }
 
+            // Optional: only include root projects (projects without parent)
+            // This is used by the frontend when it needs to show top-level projects only.
+            $rootOnly = $request->input('root_only', false);
+            $rootOnly = in_array($rootOnly, [1, '1', true, 'true', 'on'], true);
+            if ($rootOnly) {
+                try {
+                    // Legacy single-parent field must be null
+                    $query->whereNull('projects.part_of_project');
+
+                    // Exclude projects that are present as children in project_parents table
+                    $childIds = DB::table('project_parents')
+                        ->whereNotNull('project_parent_ids')
+                        ->pluck('project_id')
+                        ->toArray();
+                    if (!empty($childIds)) {
+                        $query->whereNotIn('projects.id', $childIds);
+                    }
+                } catch (\Throwable $_) {
+                    // If anything goes wrong, fallback to only checking part_of_project
+                    $query->whereNull('projects.part_of_project');
+                }
+            }
+
             $projects = $query
                 ->with([
                     'department',
