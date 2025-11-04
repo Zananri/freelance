@@ -138,13 +138,13 @@
                         </thead>
                         <tbody>
                             <tr>
-                                <td class="align-top" style="width: 45%;">
+                                <td class="align-top">
                                     <div id="projectList" class="project-list-wrapper">
                                         <!-- Project items will be rendered here by JS -->
                                     </div>
                                 </td>
-                                <td class="align-top" style="width: 55%;">
-                                    <div id="projectTasksPane" class="table-tasks-placeholder text-muted small text-center py-4">
+                                <td class="align-top">
+                                    <div id="projectTasksPane" class="table-tasks-placeholder text-muted small text-center">
                                         Select a project to view tasks here.
                                     </div>
                                 </td>
