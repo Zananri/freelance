@@ -2412,6 +2412,7 @@
 
 .status-rejected {
     background-color: #ed3500;
+    color: #fff;
 }
 
 .status-finished {
