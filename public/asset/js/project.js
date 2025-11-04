@@ -1368,6 +1368,510 @@ document.addEventListener("DOMContentLoaded", function () {
         return colors[hash % colors.length];
     }
 
+    // Render the compact project list in the table's left column (initial showcase only)
+    // Navigation state for drill-down
+    let projectNavigationState = {
+        currentParentId: null,
+        currentParentTitle: null
+    };
+
+    function loadProjectTableList(parentProjectId = null, parentProjectTitle = null) {
+        const container = document.getElementById('projectList');
+        if (!container) return;
+
+        // Update navigation state
+        projectNavigationState.currentParentId = parentProjectId;
+        projectNavigationState.currentParentTitle = parentProjectTitle;
+
+        // Update UI elements: breadcrumb and back button
+        updateProjectNavigationUI();
+
+        // Determine API endpoint based on whether we're drilling down
+        let apiUrl;
+        if (parentProjectId) {
+            // Fetch children of specific parent project
+            apiUrl = `${appUrl}/project/${parentProjectId}/children`;
+        } else {
+            // Fetch all projects (root view)
+            apiUrl = `${appUrl}/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1`;
+        }
+
+        fetch(apiUrl)
+            .then(res => res.json())
+            .then(payload => {
+                const projects = Array.isArray(payload) ? payload : (payload.data || []);
+                container.innerHTML = '';
+
+                if (!projects.length) {
+                    container.innerHTML = '<div class="text-muted small">No projects to display.</div>';
+                    return;
+                }
+
+                const frag = document.createDocumentFragment();
+
+                projects.slice(0, 10).forEach(project => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'project-list-item';
+                    wrapper.dataset.projectId = project.id;
+
+                    // Avatar or initials
+                    let avatarHtml = '';
+                    if (project.image) {
+                        const imgUrl = appUrl + '/file/project/' + project.image;
+                        avatarHtml = `<img class="project-list-avatar" src="${imgUrl}" alt="${(project.title||'Project')}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/background/add-image.png'">`;
+                    } else {
+                        const init = getInitials(project.title);
+                        const bg = getInitialsColor(project.title);
+                        avatarHtml = `<div class="project-list-initials" style="background:${bg}">${init}</div>`;
+                    }
+
+                    // Description snippet (plain text, 3 lines)
+                    const desc = (function(){
+                        try {
+                            const div = document.createElement('div');
+                            div.innerHTML = String(project.description||'');
+                            return (div.textContent || div.innerText || '').trim();
+                        } catch(_) { return ''; }
+                    })();
+
+                    // Date line: start - due (use formatDateENMedium helper)
+                    let dateLine = '';
+                    try {
+                        const s = project.start_date;
+                        const d = project.due_date;
+                        if (s && d && d !== '' && d !== null && d !== 'null') {
+                            dateLine = `<div class="project-list-date text-muted fs-8">${formatDateENMedium(s)} - ${formatDateENMedium(d)}</div>`;
+                        } else if (s) {
+                            dateLine = `<div class="project-list-date text-muted fs-8">${formatDateENMedium(s)}</div>`;
+                        } else {
+                            dateLine = '';
+                        }
+                    } catch (e) { dateLine = ''; }
+
+                    // Determine visual status for badge (complete / in_progress / not_started / late)
+                    function determineProjectVisualStatus(proj) {
+                        try {
+                            const counts = proj.task_counts || {};
+                            const total = Number(counts.total || counts.total_tasks || 0);
+                            const newReq = Number(counts.new_request || counts.new_reques_tasks || 0);
+                            const completed = Number(counts.completed || counts.completed_tasks || 0);
+                            const inProgress = Number(counts.in_progress || counts.in_progress_tasks || 0);
+                            const late = Number(counts.late || counts.late_tasks || 0);
+
+                            // If no tasks or all new_request => not_started
+                            if (total === 0) return 'not_started';
+                            if (newReq === total) return 'not_started';
+
+                            // If any in_progress -> in_progress
+                            if (inProgress > 0) return 'in_progress';
+
+                            // If all completed
+                            if (completed === total && total > 0) return 'completed';
+
+                            // If has late tasks or project due_date past
+                            try {
+                                const due = proj.due_date;
+                                const isPastDue = due && (new Date().toISOString().slice(0,10) > (new Date(due).toISOString().slice(0,10)));
+                                if (late > 0 || isPastDue) return 'late';
+                            } catch(_) {}
+
+                            // default
+                            return 'in_progress';
+                        } catch (e) {
+                            return 'not_started';
+                        }
+                    }
+
+                    const visualStatus = determineProjectVisualStatus(project);
+                    const statusLabelMap = {
+                        'completed': 'Complete',
+                        'in_progress': 'In Progress',
+                        'not_started': 'Not Started',
+                        'late': 'Late'
+                    };
+                    const badgeHtml = `<div class="project-status-badge status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
+
+                    // Stats line: "X Project • Y Task" - make children count clickable if > 0
+                    const childCount = Number(project.children_count || 0);
+                    const totalTasks = Number((project.task_counts && project.task_counts.total) || 0);
+                    const childrenText = childCount > 0 
+                        ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${childCount} Project</span>`
+                        : `${childCount} Project`;
+                    const tasksText = totalTasks > 0 ? `<span class="project-tasks-link" data-project-id="${project.id}" role="button" tabindex="0" style="cursor:pointer;text-decoration:underline;">${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}</span>` : `${totalTasks} Task`;
+                    const statsHtml = `<div class="project-list-stats text-muted small">${childrenText} • ${tasksText}</div>`;
+
+                    wrapper.innerHTML = `
+                        ${badgeHtml}
+                        <div class="flex-shrink-0">${avatarHtml}</div>
+                        <div class="flex-grow-1">
+                            <div class="project-list-title">${escapeHtml(project.title || 'Untitled Project')}</div>
+                            ${dateLine}
+                            ${desc ? `<div class="project-list-desc">${escapeHtml(desc)}</div>` : ''}
+                            ${statsHtml}
+                        </div>
+                    `;
+                    frag.appendChild(wrapper);
+                });
+
+                container.appendChild(frag);
+
+                // Attach click handlers to children links and task count links
+                attachChildrenLinkHandlers();
+                attachTasksLinkHandlers();
+            })
+            .catch(() => {
+                try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
+            });
+    }
+
+    function updateProjectNavigationUI() {
+        try {
+            // Update breadcrumb
+            const breadcrumbTitle = document.querySelector('.table-project-title');
+            const breadcrumbArrow = document.querySelector('.arrow-toggle');
+            const backButton = document.querySelector('.back-toggle');
+
+            if (projectNavigationState.currentParentId && projectNavigationState.currentParentTitle) {
+                // Drilling down - show parent name with arrow
+                if (breadcrumbTitle) {
+                    breadcrumbTitle.textContent = `Project`;
+                }
+                if (breadcrumbArrow) {
+                    breadcrumbArrow.style.display = 'inline-block';
+                    // Add parent project name after arrow
+                    const parentNameEl = document.querySelector('.breadcrumb-parent-name') || (() => {
+                        const span = document.createElement('span');
+                        span.className = 'breadcrumb-parent-name ms-2';
+                        breadcrumbArrow.parentNode.insertBefore(span, breadcrumbArrow.nextSibling);
+                        return span;
+                    })();
+                    parentNameEl.textContent = projectNavigationState.currentParentTitle;
+                }
+                if (backButton) {
+                    backButton.closest('button').style.display = 'inline-block';
+                }
+            } else {
+                // Root view - hide back button, remove parent name
+                if (breadcrumbTitle) {
+                    breadcrumbTitle.textContent = 'Project';
+                }
+                if (breadcrumbArrow) {
+                    breadcrumbArrow.style.display = 'none';
+                }
+                const parentNameEl = document.querySelector('.breadcrumb-parent-name');
+                if (parentNameEl) {
+                    parentNameEl.remove();
+                }
+                if (backButton) {
+                    backButton.closest('button').style.display = 'none';
+                }
+            }
+        } catch (e) {
+            console.warn('updateProjectNavigationUI error:', e);
+        }
+    }
+
+    function attachChildrenLinkHandlers() {
+        try {
+            const links = document.querySelectorAll('.project-children-link');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const projectId = this.dataset.projectId;
+                    const projectTitle = this.dataset.projectTitle;
+                    if (projectId) {
+                        loadProjectTableList(projectId, projectTitle);
+                    }
+                });
+            });
+        } catch (e) {
+            console.warn('attachChildrenLinkHandlers error:', e);
+        }
+    }
+
+    function attachTasksLinkHandlers() {
+        try {
+            const links = document.querySelectorAll('.project-tasks-link');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const projectId = this.dataset.projectId;
+                    if (projectId) {
+                        renderProjectTasksToPane(projectId);
+                    }
+                });
+                link.addEventListener('keydown', function(e) {
+                    // Activate on Enter or Space
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const projectId = this.dataset.projectId;
+                        if (projectId) renderProjectTasksToPane(projectId);
+                    }
+                });
+            });
+        } catch (e) {
+            console.warn('attachTasksLinkHandlers error:', e);
+        }
+    }
+
+    function renderProjectTasksToPane(projectId) {
+        try {
+            const pane = document.getElementById('projectTasksPane');
+            const totalEl = document.getElementById('projects-total-tasks');
+            if (!pane) return;
+            pane.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            // Fetch tasks for the project
+            $.ajax({
+                url: appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks",
+                type: 'GET',
+                dataType: 'json'
+            }).done(function(response){
+                const tasks = (response && response.data) ? response.data : (Array.isArray(response) ? response : []);
+                // Update total tasks header
+                if (totalEl) {
+                    totalEl.textContent = `${tasks.length} Total ${tasks.length === 1 ? 'task' : 'tasks'}`;
+                    totalEl.classList.remove('d-none');
+                }
+                if (!tasks || tasks.length === 0) {
+                    pane.innerHTML = '<div class="text-center text-muted">No tasks found for this project.</div>';
+                    return;
+                }
+                
+                // Build task cards
+                let html = '<div class="project-tasks-list">';
+                tasks.forEach(task => {
+                    const title = task.title ? escapeHtml(task.title) : 'Untitled Task';
+                    
+                    // Description (strip HTML, max 3 lines)
+                    const description = (() => {
+                        try {
+                            const div = document.createElement('div');
+                            div.innerHTML = String(task.description || '');
+                            const text = (div.textContent || div.innerText || '').trim();
+                            return text || '';
+                        } catch(_) { return ''; }
+                    })();
+                    
+                    // Avatar or initials for task image
+                    let avatarHtml = '';
+                    if (task.image) {
+                        const imgUrl = appUrl + '/file/task/' + task.image;
+                        avatarHtml = `<img class="project-task-avatar" src="${imgUrl}" alt="${title}" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline-flex';">`;
+                        // Add fallback initials that will show if image fails
+                        const init = getInitials(title);
+                        const bg = getInitialsColor(title);
+                        avatarHtml += `<div class="project-task-initials" style="background:${bg};display:none;">${init}</div>`;
+                    } else {
+                        const init = getInitials(title);
+                        const bg = getInitialsColor(title);
+                        avatarHtml = `<div class="project-task-initials" style="background:${bg}">${init}</div>`;
+                    }
+                    
+                    // Status badge
+                    const status = (task.visual_status || task.status || 'not-started').toLowerCase().replace(/\s+/g, '-');
+                    const statusLabel = (() => {
+                        const s = String(status);
+                        if (s.includes('complete')) return 'Complete';
+                        if (s.includes('progress')) return 'In Progress';
+                        if (s.includes('late')) return 'Late';
+                        if (s.includes('finish')) return 'Finish';
+                        if (s.includes('reject')) return 'Rejected';
+                        return 'Not Started';
+                    })();
+                    const statusHtml = `<div class="project-task-status-badge status-${status}">${statusLabel}</div>`;
+                    
+                    // Priority
+                    const priority = task.priority || 'Normal';
+                    const priorityHtml = `<div class="project-task-priority"><span class="project-task-priority-label">Priority :</span> <span class="project-task-priority-value">${escapeHtml(priority)}</span></div>`;
+                    
+                    // Dates
+                    const dates = (() => {
+                        try {
+                            const s = task.start_date || '';
+                            const d = task.due_date || '';
+                            if (s && d) {
+                                const start = formatDateDDMMMYY(s);
+                                const due = formatDateDDMMMYY(d);
+                                return `${start} - ${due}`;
+                            }
+                            return s ? formatDateDDMMMYY(s) : (d ? formatDateDDMMMYY(d) : '');
+                        } catch(_) { return ''; }
+                    })();
+                    const datesHtml = dates ? `<div class="project-task-dates">${dates}</div>` : '';
+                    
+                    // PIC and Executors/Assignees (avatars with +count if more than 3)
+                    // Support different API shapes: prefer `executors` (newer) then fallback to `assignees`.
+                    const executors = Array.isArray(task.executors)
+                        ? task.executors
+                        : Array.isArray(task.assignees)
+                        ? task.assignees
+                        : [];
+
+                    // Determine PIC object from common possible fields returned by the API
+                    const picObj = task.pic || task.pic_employee || task.pic_user || task.pic_data || null;
+
+                    // Helper: build single-pic HTML using existing helpers
+                    function buildPicHtml(pic) {
+                        try {
+                            if (!pic) return "";
+                            // If backend returned a plain string (filename or url)
+                            if (typeof pic === 'string' || typeof pic === 'number') {
+                                const src = window.buildAvatarUrl(String(pic));
+                                return `<img src="${src}" class="rounded-circle" style="width:30px;height:30px;object-fit:cover;" title="PIC" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                            }
+                            // Otherwise assume it's an employee-like object
+                            return resolvePhotoHtml(pic, 30, 0, 'pic');
+                        } catch (e) {
+                            return "";
+                        }
+                    }
+
+                    const picHtml = buildPicHtml(picObj);
+
+                    let executorsHtml = '';
+                    if (executors.length > 0) {
+                        executorsHtml = '<div class="project-task-assignees">';
+                        const displayCount = Math.min(executors.length, 3);
+                        for (let i = 0; i < displayCount; i++) {
+                            const ex = executors[i];
+                            // Normalise name lookup
+                            const name = (ex && (ex.name || ex.employee_name || ex.full_name)) || 'User';
+                            // Prefer resolver when object-like; otherwise construct from known photo/filename
+                            if (ex && (ex.profile_picture || ex.profile_picture_url || ex.user_photo || ex.photo)) {
+                                executorsHtml += resolvePhotoHtml(ex, 28, i === 0 ? 0 : -8, 'executor');
+                            } else if (ex && ex.photo) {
+                                const photoUrl = appUrl + '/file/employee/' + ex.photo;
+                                executorsHtml += `<img class="project-task-assignee-avatar" src="${photoUrl}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" onerror="this.onerror=null;this.style.display='none';">`;
+                            } else if (typeof ex === 'string' || typeof ex === 'number') {
+                                // plain filename/url
+                                const src = window.buildAvatarUrl(String(ex));
+                                executorsHtml += `<img class="project-task-assignee-avatar" src="${src}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" onerror="this.onerror=null;this.style.display='none';">`;
+                            } else {
+                                const init = getInitials(name);
+                                const bg = getInitialsColor(name);
+                                executorsHtml += `<div class="project-task-assignee-initials" style="background:${bg}" title="${escapeHtml(name)}">${init}</div>`;
+                            }
+                        }
+                        if (executors.length > 3) {
+                            executorsHtml += `<div class="project-task-assignee-count">+${executors.length - 3}</div>`;
+                        }
+                        executorsHtml += '</div>';
+                    }
+                    
+                    // Action buttons (icons only). Show checklist icon only for completed/finished tasks.
+                    const showCheckIcon = /complete|finish/.test(String(status || '').toLowerCase());
+                    const actionsHtml = `
+                        <div class="project-task-actions">
+                            ${showCheckIcon ? `<button class="project-task-action-btn project-task-check-btn" title="Checklist" data-task-id="${task.id}">
+                                <span class="material-symbols-outlined">playlist_add_check</span>
+                            </button>` : ''}
+                            <button class="project-task-action-btn" title="Comments" disabled>
+                                <span class="material-symbols-outlined">mode_comment</span>
+                            </button>
+                            <button class="project-task-action-btn project-task-attach-btn" title="Attachments" data-task-id="${task.id}">
+                                <span class="material-symbols-outlined">attach_file</span>
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Build card
+                    html += `
+                    <div class="project-task-card d-flex">
+                        <div class="flex-shrink-0">
+                            ${avatarHtml}
+                        </div>
+
+                        <div class="flex-grow-1 ms-2">
+                            <div class="d-flex justify-content-between align-items-start w-100">
+                                <div class="project-task-title">${title}</div>
+                                <div class="d-flex align-items-center position-relative">
+                                    ${statusHtml}
+                                    <button class="btn btn-sm p-0">
+                                        <span class="material-symbols-outlined project-task-menu">more_vert</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            ${description ? `<div class="project-task-description mt-1">${escapeHtml(description)}</div>` : ''}
+
+                            <div class="d-flex justify-content-between mt-2 mb-2">
+                                <div class="project-task-priority">
+                                    <span class="project-task-priority-label">Priority :</span>
+                                    <span class="project-task-priority-value">${escapeHtml(priority)}</span>
+                                </div>
+                                ${datesHtml}
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    ${picHtml ? `<div class="project-task-pic me-2">${picHtml}</div>` : ''}
+                                    ${executorsHtml}
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    ${actionsHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    `;
+                });
+                html += '</div>';
+                pane.innerHTML = html;
+            }).fail(function(){
+                if (totalEl) totalEl.classList.add('d-none');
+                pane.innerHTML = '<div class="text-center text-danger">Failed to load tasks. Try again.</div>';
+            });
+        } catch (e) {
+            console.warn('renderProjectTasksToPane error', e);
+        }
+    }
+    
+    // Helper untuk format tanggal DD MMM YYYY (e.g., "1 Aug 2025")
+    function formatDateDDMMMYY(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return '';
+            const day = d.getDate();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[d.getMonth()];
+            const year = d.getFullYear();
+            // Ubah format jadi "DD Mon YYYY" misalnya "1 Aug 2025"
+            return `${day} ${month} ${year}`;
+        } catch(_) { return ''; }
+    }
+
+    function initProjectBackButton() {
+        try {
+            const backButton = document.querySelector('.back-toggle');
+            const breadcrumbArrow = document.querySelector('.arrow-toggle');
+            
+            // Hide back button and arrow initially
+            if (backButton && backButton.closest('button')) {
+                backButton.closest('button').style.display = 'none';
+            }
+            if (breadcrumbArrow) {
+                breadcrumbArrow.style.display = 'none';
+            }
+            
+            // Wire up back button click handler
+            if (backButton) {
+                backButton.closest('button').addEventListener('click', function() {
+                    // Return to root view
+                    loadProjectTableList(null, null);
+                });
+            }
+        } catch (e) {
+            console.warn('initProjectBackButton error:', e);
+        }
+    }
+
     // Load project card data and generate cards dynamically
     // Accepts optional filter (status grouping), page, and search text
     // Keep a local state mirrored to window.currentSearch for cross-scope access
@@ -1616,12 +2120,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             const inProgress = counts.in_progress || 0;
                             const late = counts.late || 0;
 
+                            console.log(project.task_counts);
+                            
+
                             if (total === 0) return "not_started";
                             if (notStarted === total) return "not_started";
                             if (inProgress > 0) return "in_progress";
                             if (completed === total) return "completed";
                             if (late > 0) return "late";
-                            return "in_progress";
+                            // return "not_started";
                         }
 
                         function renderProjectStatus(status) {
@@ -1799,6 +2306,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex justify-content-start align-items-center mt-1 mb-2">
+                                            ${Number(project.children_count || 0) > 0 
+                                                ? `<span class="text-muted fs-8 me-4 project-card-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${Number(project.children_count || 0)} Project</span>`
+                                                : `<span class="text-muted fs-8 me-4">${Number(project.children_count || 0)} Project</span>`
+                                            }
                                             <span class="text-muted fs-8">${
                                                 project.task_counts.total
                                             } Task</span>
@@ -1854,6 +2365,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     rowHtml += "</div>";
                     container.innerHTML = rowHtml;
+
+                    // Attach click handlers to card children links
+                    try {
+                        const cardChildrenLinks = container.querySelectorAll('.project-card-children-link');
+                        cardChildrenLinks.forEach(link => {
+                            link.addEventListener('click', function(e) {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                const projectId = this.dataset.projectId;
+                                const projectTitle = this.dataset.projectTitle;
+                                if (projectId) {
+                                    loadProjectTableList(projectId, projectTitle);
+                                }
+                            });
+                        });
+                    } catch (e) {
+                        console.warn('Failed to attach card children link handlers:', e);
+                    }
 
                     // Initialize Bootstrap tooltips for newly injected collaborator images and +N badges
                     try {
@@ -10740,7 +11269,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         const taskListContainer =
                             document.getElementById("taskListContainer");
                         taskListContainer.innerHTML = `
-                            <div class="text-center py-4">
+                            <div class="text-center">
                                 <div class="spinner-border" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
@@ -11013,6 +11542,11 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     "status-badge status-rejected";
                                                 statusText = "Rejected";
                                                 break;
+                                            case "finished":
+                                                statusClass =
+                                                    "status-badge status-finished";
+                                                statusText = "Finished";
+                                                break;
                                         }
 
                                         html += `
@@ -11040,12 +11574,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     initResponsiveTooltips(taskListContainer);
                                 } else {
                                     taskListContainer.innerHTML =
-                                        '<div class="text-center py-4 text-muted">No tasks found for this project.</div>';
+                                        '<div class="text-center text-muted">No tasks found for this project.</div>';
                                 }
                             },
                             error: function () {
                                 taskListContainer.innerHTML =
-                                    '<div class="text-center py-4 text-danger">Failed to load tasks. Please try again.</div>';
+                                    '<div class="text-center text-danger">Failed to load tasks. Please try again.</div>';
                             },
                         });
                     }
@@ -12101,6 +12635,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Load departments and projects on page load
     loadProjectCardData();
+    // Also populate the small project list (top table left column)
+    try { loadProjectTableList(); } catch(e) { /* ignore */ }
+    // Initialize back button for drill-down navigation
+    try { initProjectBackButton(); } catch(e) { /* ignore */ }
     loadTimelineProjects();
     // If department select already has selected value (derived from logged-in employee), skip full departments load and just load divisions for that department
     try {
@@ -12560,7 +13098,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (_) {}
 
         // loading state
-        listEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+        listEl.innerHTML = `<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
 
         $.ajax({
             url: appUrl + "/project/" + projectId,
@@ -13113,6 +13651,293 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 });
         } catch (e) {}
+    };
+
+    // Delegated handler for task attach buttons rendered inside project tasks pane
+    document.addEventListener("click", function (e) {
+        try {
+            const btn = e.target.closest && e.target.closest(".project-task-attach-btn");
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const taskId = btn.getAttribute("data-task-id") || btn.dataset.taskId;
+            if (taskId && window.showTaskFiles) window.showTaskFiles(taskId);
+        } catch (_) {}
+    });
+
+    // Delegated handler for task checklist (completed) buttons
+    document.addEventListener('click', function (e) {
+        try {
+            const btn = e.target.closest && e.target.closest('.project-task-check-btn');
+            if (!btn) return;
+            e.preventDefault();
+            e.stopPropagation();
+            const taskId = btn.getAttribute('data-task-id') || btn.dataset.taskId;
+            if (!taskId) return;
+
+            // Fetch task data then show completed modal (use existing showCompletedModal if available)
+            $.ajax({
+                url: appUrl + '/task/' + taskId,
+                method: 'GET',
+                dataType: 'json',
+                success: function (resp) {
+                    const task = resp && resp.data ? resp.data : resp;
+                    if (!task) return;
+
+                    // Populate modal fields (compatible with task.blade.php/completedModal)
+                    try {
+                        const modalEl = document.getElementById('completedModal');
+                        if (!modalEl) {
+                            console.warn('completedModal not found');
+                            return;
+                        }
+
+                        const $img = $('#completed_task_image');
+                        const $imgParent = $img.parent();
+                        $imgParent.find('.completed-task-initial-avatar').remove();
+
+                        const title = task.title || 'No Title';
+                        // choose initials helpers if available (use project.js functions)
+                        const initials = (typeof getInitials === 'function') ? getInitials(title) : (title.slice(0,2).toUpperCase());
+                        const bgColor = (typeof getInitialsColor === 'function') ? getInitialsColor(title) : '#6A5AE0';
+
+                        if (task.image) {
+                            $img.attr('src', task.image).show();
+                        } else {
+                            $img.hide();
+                            const initialsEl = $(`
+                                <div class="completed-task-initial-avatar d-flex align-items-center justify-content-center me-2"
+                                    style="width:34px;height:34px;border-radius:50%;font-weight:600; font-size:12px;color:#fff;background:${bgColor};flex-shrink:0;">
+                                    ${initials}
+                                </div>
+                            `);
+                            $imgParent.prepend(initialsEl);
+                        }
+
+                        $('#completed_task_title').text(task.title || '-');
+                        $('#completed_project_title').text(task.project_title || (task.project && task.project.title) || '-');
+                        $('#completed_task_note').html(task.complete_note || task.finished_note || '<em>No note</em>');
+                        const dateText = (typeof formatDateENMedium === 'function') ? formatDateENMedium(task.complete_date || task.finished_date || '-') : (task.complete_date || task.finished_date || '-');
+                        $('#completed_date').text(dateText);
+
+                        const $priority = $('#completed_priority');
+                        $priority.text((task.priority || '-')).css({ 'color': '', 'font-weight': '500' });
+                        if (task.priority === 'HIGH') $priority.css('color', '#d9534f');
+                        else if (task.priority === 'MEDIUM') $priority.css('color', '#f0ad4e');
+                        else if (task.priority === 'LOW') $priority.css('color', '#5cb85c');
+
+                        const $urlsContainer = $('#completed_task_urls').empty();
+                        const urls = task.complete_urls || task.finished_urls || task.complete_url || task.finished_url || [];
+                        if (Array.isArray(urls) && urls.length) {
+                            urls.forEach(u => {
+                                const absUrl = (typeof u === 'string' && u.startsWith('http')) ? u : ((appUrl ? appUrl.replace(/\/+$/, '') + '/' : '') + String(u || '').replace(/^\/+/, ''));
+                                const linkHtml = `
+                                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                                        <a href="${absUrl}" target="_blank" class="text-decoration-none" style="color:#444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%;">${absUrl}</a>
+                                    </div>`;
+                                $urlsContainer.append(linkHtml);
+                            });
+                        } else {
+                            $urlsContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
+                        }
+
+                        const $filesContainer = $('#completed_task_files').empty();
+                        const files = task.complete_files || task.finished_files || task.complete_file || task.finished_file || [];
+                        if (Array.isArray(files) && files.length) {
+                            files.forEach((f, idx) => {
+                                let raw = (f && (f.url || f)) || '';
+                                let absUrl = '';
+                                const isAbs = raw.startsWith('http://') || raw.startsWith('https://');
+                                const isRefPath = raw.startsWith('/file/') || raw.startsWith('file/');
+                                if (isAbs) absUrl = raw;
+                                else if (isRefPath) absUrl = (appUrl ? appUrl.replace(/\/+$/, '') + '/' : '') + raw.replace(/^\/+/, '');
+                                else absUrl = (appUrl ? appUrl.replace(/\/+$/, '') + '/' : '') + 'file/task_complete_files/' + raw.replace(/^\/+/, '');
+
+                                const extMatch = String(raw).match(/\.[^/.]+$/);
+                                const ext = extMatch ? extMatch[0] : '';
+                                const fileName = `TASK_FILE_${idx + 1}${ext}`;
+                                const lower = String(absUrl || '').toLowerCase();
+                                const isPreviewable = lower.endsWith('.pdf') || lower.endsWith('.jpg') || lower.endsWith('.jpeg') || lower.endsWith('.png');
+                                const fileLinkHtml = `
+                                    <div class="d-flex align-items-center p-2 rounded bg-light mb-2" style="font-size:12px;">
+                                        <a href="${absUrl}" target="_blank" ${!isPreviewable ? `download="${fileName}"` : ''} class="text-decoration-none flex-grow-1" style="color:#444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display:block; width:100%;">${fileName}</a>
+                                    </div>`;
+                                $filesContainer.append(fileLinkHtml);
+                            });
+                        } else {
+                            $filesContainer.html('<div class="text-center text-muted small"><em>-</em></div>');
+                        }
+
+                        const modal = new bootstrap.Modal(modalEl);
+                        modal.show();
+                    } catch (e) {
+                        console.warn('show completed fallback error', e);
+                    }
+                },
+                error: function () {
+                    try { showFloatingAlert('Failed to load task data.', 'warning', 3000); } catch (_) {}
+                }
+            });
+        } catch (e) {}
+    });
+
+    // Show reference files for a TASK (reuses the projectFilesModal UI)
+    window.showTaskFiles = function (taskId) {
+        const modalEl = document.getElementById("projectFilesModal");
+        const listEl = document.getElementById("projectReferenceFilesList");
+        if (!modalEl || !listEl) return;
+
+        try {
+            modalEl.dataset.taskId = taskId;
+            listEl.dataset.taskId = taskId;
+            const lbl = document.getElementById('projectFilesModalLabel');
+            if (lbl) lbl.textContent = 'Task Reference Files';
+        } catch (_) {}
+
+        listEl.innerHTML = `<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            method: "GET",
+            dataType: "json",
+            success: function (resp) {
+                const data = resp.data || resp;
+                const files = Array.isArray(data.reference_files)
+                    ? data.reference_files
+                    : Array.isArray(data.reference_file)
+                    ? data.reference_file
+                    : data.reference_file
+                    ? [data.reference_file]
+                    : [];
+
+                listEl.innerHTML = "";
+
+                if (files && files.length > 0) {
+                    files.forEach(function (fileName, idx) {
+                        if (!fileName) return;
+
+                        let fileUrl = String(fileName || "");
+                        const isAbs = fileUrl.startsWith("http://") || fileUrl.startsWith("https://");
+                        const isRefPath = fileUrl.startsWith("/file/task/") || fileUrl.startsWith("file/task/") || fileUrl.startsWith("/file/") || fileUrl.startsWith("file/");
+                        if (!isAbs && !isRefPath) {
+                            fileUrl = (appUrl ? appUrl : "") + "/file/task/" + fileUrl;
+                        } else if (!isAbs && fileUrl.startsWith("/")) {
+                            fileUrl = (appUrl ? appUrl : "") + fileUrl;
+                        }
+
+                        const item = document.createElement("div");
+                        item.className = "reference-files-list d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                        const lower = String(fileName || "").toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
+
+                        if (isImage) {
+                            const img = document.createElement("img");
+                            img.src = fileUrl;
+                            img.width = 28;
+                            img.height = 28;
+                            img.style.objectFit = "cover";
+                            img.style.borderRadius = "50%";
+                            img.alt = fileName;
+                            item.appendChild(img);
+                        }
+
+                        const title = document.createElement("a");
+                        title.className = "flex-grow-1 text-decoration-none text-truncate";
+                        title.href = fileUrl;
+                        title.target = "_blank";
+                        try {
+                            var ext = (String(fileName || "").split('.').pop() || '').toLowerCase();
+                            if (!ext || ext === fileName) ext = '';
+                            var displayIndex = (typeof idx !== 'undefined') ? (Number(idx) + 1) : 1;
+                            if (ext) title.textContent = 'TASK_REF_FILE_' + displayIndex + '.' + ext;
+                            else title.textContent = 'TASK_REF_FILE_' + displayIndex;
+                        } catch (e) {
+                            title.textContent = fileName;
+                        }
+                        item.appendChild(title);
+
+                        const dlBtn = document.createElement("button");
+                        dlBtn.type = "button";
+                        dlBtn.className = "btn btn-sm btn-link p-0 ms-2";
+                        dlBtn.title = "Download";
+                        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                        dlBtn.addEventListener("click", function (ev) {
+                            try {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                const a = document.createElement("a");
+                                a.style.display = "none";
+                                a.href = fileUrl;
+                                try { a.download = String(fileName || "").split("/").pop(); } catch (_) {}
+                                a.target = "_blank";
+                                document.body.appendChild(a);
+                                a.click();
+                                setTimeout(() => { try { document.body.removeChild(a); } catch (_) {} }, 100);
+                            } catch (e) { window.open(fileUrl, "_blank"); }
+                        });
+                        item.appendChild(dlBtn);
+
+                        // Delete (if allowed) - uses task endpoint
+                        const delBtn = document.createElement("button");
+                        delBtn.type = "button";
+                        delBtn.className = "btn btn-sm btn-link p-0 ms-2";
+                        delBtn.title = "Delete";
+                        delBtn.style.color = "#444444";
+                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                        delBtn.addEventListener("click", function (ev) {
+                            ev.preventDefault();
+                            ev.stopPropagation();
+                            try {
+                                const _parentModalEl = document.getElementById("projectFilesModal");
+                                showDeleteConfirmModal({
+                                    type: "reference_file",
+                                    id: fileName,
+                                    authorName: "",
+                                    content: (function(){ try { var e=(String(fileName||'').split('.').pop()||'').toLowerCase(); return e?('TASK_REF_FILE_1.'+e):'TASK_REF_FILE_1'; }catch(_){return fileName;} })(),
+                                    avatarUrl: "",
+                                    parentModalEl: _parentModalEl,
+                                    onConfirm: function (done) {
+                                        $.ajax({
+                                            url: appUrl + "/task/" + taskId + "/reference-file",
+                                            type: "DELETE",
+                                            data: { filename: fileName },
+                                            headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content") },
+                                            success: function (res) {
+                                                try { if (typeof showFloatingAlert === "function") showFloatingAlert(res.message || "Reference file deleted", "success"); } catch (_) {}
+                                                if (item && item.parentNode) item.parentNode.removeChild(item);
+                                                try { const idx2 = files.indexOf(fileName); if (idx2 !== -1) files.splice(idx2, 1); } catch (_) {}
+                                                try { if (!(Array.isArray(files) && files.length > 0)) { listEl.innerHTML = ""; listEl.textContent = "No reference files available."; } } catch (_) {}
+                                                done(true);
+                                            },
+                                            error: function (xhr) {
+                                                let msg = "Failed to delete reference file";
+                                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                                                try { if (typeof showFloatingAlert === "function") showFloatingAlert(msg, "danger"); } catch (_) { alert(msg); }
+                                                done(false);
+                                            }
+                                        });
+                                    }
+                                });
+                            } catch (e) {}
+                        });
+                        item.appendChild(delBtn);
+
+                        listEl.appendChild(item);
+                    });
+                } else {
+                    listEl.textContent = "No reference files available.";
+                }
+
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            },
+            error: function () {
+                try { showFloatingAlert("Failed to load reference files.", "warning", 3000); } catch (_) {}
+                const modal = new bootstrap.Modal(modalEl);
+                modal.show();
+            }
+        });
     };
 
     function bindCardInteractions(cardEl, pid) {

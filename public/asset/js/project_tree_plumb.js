@@ -193,6 +193,7 @@
             // Clear all endpoints and connections
             inst.deleteEveryEndpoint();
         } catch (_) {}
+        // Don't null the instance - keep it for reuse
     }
 
     function attachEvents() {

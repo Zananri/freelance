@@ -5,6 +5,7 @@
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
         <link rel="stylesheet" href="{{ asset('asset/css/project-tree.css') }}?v={{ time() }}">
+        <link rel="stylesheet" href="{{ asset('asset/css/task.css') }}?v={{ time() }}">
         <!-- Quill editor styles (only for Project page) -->
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
@@ -85,40 +86,72 @@
                 </div>
             </div>
             <div class="col-md-8">
-                {{-- timeline project --}}
-                <div class="body-content timeline-section p-4">
-                    <div class="project-timeline-card">
-                        <div class="timeline-card h-100">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 id="timelineTitle" class="fw-semibold" style="font-size: 16px; color: #454545;">
-                                    Aug week 1
-                                </h5>
-                                <div>
-                                    <button class="btn btn-sm me-2" id="prevTimeline">
-                                        <span class="material-symbols-outlined">chevron_left</span>
-                                    </button>
-                                    <button class="btn btn-sm me-2" id="nextTimeline">
-                                        <span class="material-symbols-outlined">chevron_right</span>
-                                    </button>
-                                    <button data-bs-toggle="modal" data-bs-target="#timelineModal"
-                                        class="btn btn-sm border-0 bg-transparent">
-                                        <span id="timelineFullscreenIcon"
-                                            class="material-symbols-outlined">fullscreen</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <!-- Timeline pakai table -->
-                            <div class="timeline-wrapper">
-                                <table class="timeline-table">
-                                    <thead>
-                                        <tr id="timelineHeader"></tr>
-                                    </thead>
-                                    <tbody id="timelineRows"></tbody>
-                                </table>
-                            </div>
+                {{-- table project --}}
+                <div class="body-content table-project rounded-4 p-4">
+                    <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-start align-items-center">
+                            <h1 class="table-project-title mb-0">Project</h1>
+                            <span class="material-symbols-outlined arrow-toggle ms-3">arrow_forward_ios</span>
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button class="btn btn-sm border-0">
+                                <span class="material-symbols-outlined fullscreen-toggle">fullscreen</span>
+                            </button>
                         </div>
                     </div>
+
+                    <table class="table table-transparent">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-start align-self-center ms-2">
+                                            <button class="btn btn-sm border-0">
+                                                <span class="material-symbols-outlined back-toggle">arrow_back</span>
+                                            </button>
+                                            <div class="ms-2">
+                                                <p class="mb-0 table-project-name">Project Name</p>
+                                                <span class="table-project-status">In Progress</span>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center">
+                                            <input type="text" class="form-control input-text table-search-input mb-0">
+                                            <button class="btn btn-sm border-0 p-2">
+                                                <span class="material-symbols-outlined menu-toggle">more_vert</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="align-middle">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-start align-items-center mb-0 ms-2">
+                                            <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
+                                        </div>
+                                        <div class="d-flex justify-content-end align-items-center">
+                                            <input type="text" class="form-control input-text table-search-input mb-0">
+                                            <button class="btn btn-sm border-0 p-2">
+                                                <span class="material-symbols-outlined menu-toggle">more_vert</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="align-top">
+                                    <div id="projectList" class="project-list-wrapper">
+                                        <!-- Project items will be rendered here by JS -->
+                                    </div>
+                                </td>
+                                <td class="align-top">
+                                    <div id="projectTasksPane" class="table-tasks-placeholder text-muted small text-center">
+                                        Select a project to view tasks here.
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -191,15 +224,14 @@
                         <div class="dropdown-menu dropdown-filter-menu" id="projectFilterDropdown">
                             <div class="dropdown-filter-body">
                                 <div class="mb-2">
-                                    <label for="filterProjectDivision" class="form-label label-custom-filter">Filter by
-                                        Status</label>
+                                    <label for="filterProjectDivision" class="form-label label-custom-filter">Division</label>
                                     <select id="filterProjectDivision" class="form-select label-custom-filter">
                                         <option value="">All Division</option>
                                     </select>
                                 </div>
 
                                 <div class="mb-2">
-                                    <label for="filterProjectStatus" class="form-label label-custom-filter">Filter by
+                                    <label for="filterProjectStatus" class="form-label label-custom-filter">
                                         Status</label>
                                     <select id="filterProjectStatus" class="form-select label-custom-filter">
                                         <option value="">All Status</option>
@@ -823,6 +855,54 @@
                             <div class="task-date"></div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Completed Task Modal --}}
+    <div class="modal fade" id="completedModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-body modal-body-custom">
+
+                    <div class="d-flex align-items-center mb-2" style="flex-direction: row; justify-content: flex-start; text-align: left;">
+                        <img id="completed_task_image" src="" alt="Task Image"
+                            class="rounded-circle me-2" width="34" height="34" style="display:none;">
+                        <div class="d-flex flex-column">
+                            <h6 id="completed_project_title" class="mb-1 text-muted" style="font-size:10px;"></h6>
+                            <h6 id="completed_task_title" class="mb-0 fw-normal" style="font-size:16px;"></h6>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 task-description-container">
+                        <div id="completed_task_note" class="text-muted task-description"></div>
+                    </div>
+
+                    <div class="row mb-4 link-file-task">
+                        <div class="col-6 d-flex align-items-center">
+                            <label class="fw-normal text-muted me-2 mb-0">Priority:</label>
+                            <span id="completed_priority"></span>
+                        </div>
+                        <div class="col-6 d-flex align-items-center">
+                            <label class="fw-normal text-muted me-2 mb-0">Complete Date:</label>
+                            <span id="completed_date"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="fw-normal text-muted d-block mb-1">Links:</label>
+                            <div id="completed_task_urls"></div>
+                        </div>
+                        <div class="col-12">
+                            <label class="fw-normal text-muted d-block mb-1">Files:</label>
+                            <div id="completed_task_files"></div>
+                        </div>
+
+                    </div>
+
+                    <div class="modal-footer modal-footer-custom">
+                        <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                    </div>
+
                 </div>
             </div>
         </div>

@@ -3,6 +3,7 @@ const BAR_COLOR_MAP = {
     new_request: "new",
     in_progress: "progress",
     completed: "completed",
+    finished: "finish",
     late: "late",
 };
 
@@ -29,6 +30,8 @@ function getTaskStatus(task) {
     due.setHours(0, 0, 0, 0);
     today.setHours(0, 0, 0, 0);
 
+    // finished is distinct from completed; handle explicitly
+    if (task.status === "finished") return "finished";
     if (task.status === "completed") return "completed";
 
     if (due < today) return "late";
@@ -60,7 +63,7 @@ function renderTimeline(tasks) {
     }
 
     const body = $("#timelineRows").empty();
-    const statusCounts = { new_request: 0, completed: 0, in_progress: 0, late: 0 };
+    const statusCounts = { new_request: 0, completed: 0, in_progress: 0, late: 0, finished: 0 };
 
     const tasksInMonth = tasks.filter(task => {
         const startDate = new Date(task.start_date);
@@ -89,7 +92,7 @@ function renderTimeline(tasks) {
             (d) => d.toDateString() === effectiveEnd.toDateString()
         );
 
-        const status = getTaskStatus(task);
+    const status = getTaskStatus(task);
         statusCounts[status]++;
 
         const barColorClass = BAR_COLOR_MAP[status] || "new";
@@ -123,6 +126,10 @@ function renderTimeline(tasks) {
     $("#inProgressCount").text(`${statusCounts.in_progress} Task`);
     $("#lateCount").text(`${statusCounts.late} Task`);
     $("#completedCount").text(`${statusCounts.completed} Task`);
+    // If a finishedCount element exists, update it (we add this to the view template)
+    if ($("#finishedCount").length) {
+        $("#finishedCount").text(`${statusCounts.finished} Task`);
+    }
 
 }
 

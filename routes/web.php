@@ -95,6 +95,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/project/{id}/export-excel', [ProjectController::class, 'exportProjectExcelSingle'])->name('project.export-excel.single');
     Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
+    // Get children of a specific project
+    Route::get('/project/{id}/children', [ProjectController::class, 'getChildren'])->name('project.children');
     // Accept optional slug segment for SEO-friendly URLs like /project/12/nama-project-permalink
     Route::get('/project/{id}/{slug?}', [ProjectController::class, 'show'])->name('project.show');
     Route::get('/projects', [ProjectController::class, 'getProjectsIds'])->name('projects.ids');
