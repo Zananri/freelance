@@ -1497,7 +1497,16 @@ document.addEventListener("DOMContentLoaded", function () {
                     const childrenText = childCount > 0 
                         ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${childCount} Project</span>`
                         : `${childCount} Project`;
-                    const tasksText = totalTasks > 0 ? `<span class="project-tasks-link" data-project-id="${project.id}" role="button" tabindex="0" style="cursor:pointer;text-decoration:underline;">${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}</span>` : `${totalTasks} Task`;
+                    const tasksText = totalTasks > 0
+                        ? `<span class="project-tasks-link"
+                                data-project-id="${project.id}"
+                                data-project-name="${project.title}"
+                                role="button"
+                                tabindex="0"
+                                style="cursor:pointer;text-decoration:underline;">
+                            ${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}
+                        </span>`
+                        : `${totalTasks} Task`;
                     const statsHtml = `<div class="project-list-stats text-muted small">${childrenText} • ${tasksText}</div>`;
 
                     wrapper.innerHTML = `
@@ -1593,24 +1602,47 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const links = document.querySelectorAll('.project-tasks-link');
             links.forEach(link => {
-                link.addEventListener('click', function(e) {
+                const handleAction = (e) => {
+                    if (e.type === 'keydown' && e.key !== 'Enter' && e.key !== ' ') return;
+                    e.preventDefault();
                     e.stopPropagation();
-                    const projectId = this.dataset.projectId;
+
+                    const projectId = link.dataset.projectId;
+                    const projectName = link.dataset.projectName || 'Project';
+
                     if (projectId) {
                         renderProjectTasksToPane(projectId);
+
+                        const projectNameEl = document.getElementById('project-table-name');
+                        if (projectNameEl) {
+                            projectNameEl.style.opacity = 0;
+                            setTimeout(() => {
+                                projectNameEl.textContent = projectName;
+                                projectNameEl.style.opacity = 1;
+                            }, 150);
+                        }
+
+                        const backBtn = document.querySelector('.back-toggle');
+                        if (backBtn) {
+                            const btnWrapper = backBtn.closest('button') || backBtn;
+                            btnWrapper.style.display = 'inline-block';
+                        }
+
+                        window.projectNavigationState = window.projectNavigationState || {};
+                        projectNavigationState.currentParentId = projectId;
+                        projectNavigationState.currentParentTitle = projectName;
+
+                        if (typeof updateProjectNavigationUI === 'function') {
+                            updateProjectNavigationUI();
+                        }
                     }
-                });
-                link.addEventListener('keydown', function(e) {
-                    // Activate on Enter or Space
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        const projectId = this.dataset.projectId;
-                        if (projectId) renderProjectTasksToPane(projectId);
-                    }
-                });
+                };
+
+                link.addEventListener('click', handleAction);
+                link.addEventListener('keydown', handleAction);
             });
-        } catch (e) {
-            console.warn('attachTasksLinkHandlers error:', e);
+        } catch (err) {
+            console.warn('attachTasksLinkHandlers error:', err);
         }
     }
 

@@ -110,8 +110,8 @@
                                                 <span class="material-symbols-outlined back-toggle">arrow_back</span>
                                             </button>
                                             <div class="ms-2">
-                                                <p class="mb-0 table-project-name">Project Name</p>
-                                                <span class="table-project-status">In Progress</span>
+                                                <p class="mb-0 table-project-name" id="project-table-name">All Project</p>
+                                                <span class="table-project-status" id="project-table-status">No Status</span>
                                             </div>
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">
