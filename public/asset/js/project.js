@@ -1681,6 +1681,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (s.includes('progress')) return 'In Progress';
                         if (s.includes('late')) return 'Late';
                         if (s.includes('finish')) return 'Finish';
+                        if (s.includes('reject')) return 'Rejected';
                         return 'Not Started';
                     })();
                     const statusHtml = `<div class="project-task-status-badge status-${status}">${statusLabel}</div>`;
