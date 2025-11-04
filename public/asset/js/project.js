@@ -1535,19 +1535,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function updateProjectNavigationUI() {
         try {
-            // Update breadcrumb
             const breadcrumbTitle = document.querySelector('.table-project-title');
             const breadcrumbArrow = document.querySelector('.arrow-toggle');
             const backButton = document.querySelector('.back-toggle');
 
             if (projectNavigationState.currentParentId && projectNavigationState.currentParentTitle) {
-                // Drilling down - show parent name with arrow
                 if (breadcrumbTitle) {
                     breadcrumbTitle.textContent = `Project`;
                 }
                 if (breadcrumbArrow) {
                     breadcrumbArrow.style.display = 'inline-block';
-                    // Add parent project name after arrow
                     const parentNameEl = document.querySelector('.breadcrumb-parent-name') || (() => {
                         const span = document.createElement('span');
                         span.className = 'breadcrumb-parent-name ms-2';
@@ -1560,17 +1557,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     backButton.closest('button').style.display = 'inline-block';
                 }
             } else {
-                // Root view - hide back button, remove parent name
                 if (breadcrumbTitle) {
-                    breadcrumbTitle.textContent = 'Project';
+                    breadcrumbTitle.textContent = 'All Project';
                 }
                 if (breadcrumbArrow) {
                     breadcrumbArrow.style.display = 'none';
                 }
                 const parentNameEl = document.querySelector('.breadcrumb-parent-name');
-                if (parentNameEl) {
-                    parentNameEl.remove();
-                }
+                if (parentNameEl) parentNameEl.remove();
                 if (backButton) {
                     backButton.closest('button').style.display = 'none';
                 }
@@ -1579,6 +1573,33 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn('updateProjectNavigationUI error:', e);
         }
     }
+
+    document.addEventListener('click', function(e) {
+        const backBtn = e.target.closest('.back-toggle');
+        if (!backBtn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        window.projectNavigationState = window.projectNavigationState || {};
+        projectNavigationState.currentParentId = null;
+        projectNavigationState.currentParentTitle = null;
+
+        loadProjectTableList(null, 'All Project');
+
+        if (typeof updateProjectNavigationUI === 'function') {
+            updateProjectNavigationUI();
+        }
+
+        const projectNameEl = document.getElementById('project-table-name');
+        if (projectNameEl) {
+            projectNameEl.style.opacity = 0;
+            setTimeout(() => {
+                projectNameEl.textContent = 'All Project';
+                projectNameEl.style.opacity = 1;
+            }, 150);
+        }
+    });
 
     function attachChildrenLinkHandlers() {
         try {
@@ -1611,8 +1632,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     const projectName = link.dataset.projectName || 'Project';
 
                     if (projectId) {
+                        // render tasks ke pane
                         renderProjectTasksToPane(projectId);
 
+                        // update nama project di header
                         const projectNameEl = document.getElementById('project-table-name');
                         if (projectNameEl) {
                             projectNameEl.style.opacity = 0;
@@ -1622,16 +1645,19 @@ document.addEventListener("DOMContentLoaded", function () {
                             }, 150);
                         }
 
+                        // tampilkan tombol back
                         const backBtn = document.querySelector('.back-toggle');
                         if (backBtn) {
                             const btnWrapper = backBtn.closest('button') || backBtn;
                             btnWrapper.style.display = 'inline-block';
                         }
 
+                        // update state navigasi
                         window.projectNavigationState = window.projectNavigationState || {};
                         projectNavigationState.currentParentId = projectId;
                         projectNavigationState.currentParentTitle = projectName;
 
+                        // update breadcrumb
                         if (typeof updateProjectNavigationUI === 'function') {
                             updateProjectNavigationUI();
                         }
