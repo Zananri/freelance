@@ -1497,7 +1497,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     const childrenText = childCount > 0 
                         ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${childCount} Project</span>`
                         : `${childCount} Project`;
-                    const statsHtml = `<div class="project-list-stats text-muted small">${childrenText} • ${totalTasks} Task</div>`;
+                    const tasksText = totalTasks > 0 ? `<span class="project-tasks-link" data-project-id="${project.id}" role="button" tabindex="0" style="cursor:pointer;text-decoration:underline;">${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}</span>` : `${totalTasks} Task`;
+                    const statsHtml = `<div class="project-list-stats text-muted small">${childrenText} • ${tasksText}</div>`;
 
                     wrapper.innerHTML = `
                         ${badgeHtml}
@@ -1514,8 +1515,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 container.appendChild(frag);
 
-                // Attach click handlers to children links
+                // Attach click handlers to children links and task count links
                 attachChildrenLinkHandlers();
+                attachTasksLinkHandlers();
             })
             .catch(() => {
                 try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
@@ -1585,6 +1587,208 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {
             console.warn('attachChildrenLinkHandlers error:', e);
         }
+    }
+
+    function attachTasksLinkHandlers() {
+        try {
+            const links = document.querySelectorAll('.project-tasks-link');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const projectId = this.dataset.projectId;
+                    if (projectId) {
+                        renderProjectTasksToPane(projectId);
+                    }
+                });
+                link.addEventListener('keydown', function(e) {
+                    // Activate on Enter or Space
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        const projectId = this.dataset.projectId;
+                        if (projectId) renderProjectTasksToPane(projectId);
+                    }
+                });
+            });
+        } catch (e) {
+            console.warn('attachTasksLinkHandlers error:', e);
+        }
+    }
+
+    function renderProjectTasksToPane(projectId) {
+        try {
+            const pane = document.getElementById('projectTasksPane');
+            const totalEl = document.getElementById('projects-total-tasks');
+            if (!pane) return;
+            pane.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            // Fetch tasks for the project
+            $.ajax({
+                url: appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks",
+                type: 'GET',
+                dataType: 'json'
+            }).done(function(response){
+                const tasks = (response && response.data) ? response.data : (Array.isArray(response) ? response : []);
+                // Update total tasks header
+                if (totalEl) {
+                    totalEl.textContent = `${tasks.length} Total ${tasks.length === 1 ? 'task' : 'tasks'}`;
+                    totalEl.classList.remove('d-none');
+                }
+                if (!tasks || tasks.length === 0) {
+                    pane.innerHTML = '<div class="text-center text-muted py-4">No tasks found for this project.</div>';
+                    return;
+                }
+                
+                // Build task cards
+                let html = '<div class="project-tasks-list">';
+                tasks.forEach(task => {
+                    const title = task.title ? escapeHtml(task.title) : 'Untitled Task';
+                    
+                    // Description (strip HTML, max 3 lines)
+                    const description = (() => {
+                        try {
+                            const div = document.createElement('div');
+                            div.innerHTML = String(task.description || '');
+                            const text = (div.textContent || div.innerText || '').trim();
+                            return text || '';
+                        } catch(_) { return ''; }
+                    })();
+                    
+                    // Avatar or initials for task image
+                    let avatarHtml = '';
+                    if (task.image) {
+                        const imgUrl = appUrl + '/file/task/' + task.image;
+                        avatarHtml = `<img class="project-task-avatar" src="${imgUrl}" alt="${title}" onerror="this.onerror=null;this.style.display='none';this.nextElementSibling.style.display='inline-flex';">`;
+                        // Add fallback initials that will show if image fails
+                        const init = getInitials(title);
+                        const bg = getInitialsColor(title);
+                        avatarHtml += `<div class="project-task-initials" style="background:${bg};display:none;">${init}</div>`;
+                    } else {
+                        const init = getInitials(title);
+                        const bg = getInitialsColor(title);
+                        avatarHtml = `<div class="project-task-initials" style="background:${bg}">${init}</div>`;
+                    }
+                    
+                    // Status badge
+                    const status = (task.visual_status || task.status || 'not-started').toLowerCase().replace(/\s+/g, '-');
+                    const statusLabel = (() => {
+                        const s = String(status);
+                        if (s.includes('complete')) return 'Complete';
+                        if (s.includes('progress')) return 'In Progress';
+                        if (s.includes('late')) return 'Late';
+                        if (s.includes('finish')) return 'Finish';
+                        return 'Not Started';
+                    })();
+                    const statusHtml = `<div class="project-task-status-badge status-${status}">${statusLabel}</div>`;
+                    
+                    // Priority
+                    const priority = task.priority || 'Normal';
+                    const priorityHtml = `<div class="project-task-priority"><span class="project-task-priority-label">Priority :</span> <span class="project-task-priority-value">${escapeHtml(priority)}</span></div>`;
+                    
+                    // Dates
+                    const dates = (() => {
+                        try {
+                            const s = task.start_date || '';
+                            const d = task.due_date || '';
+                            if (s && d) {
+                                const start = formatDateDDMMMYY(s);
+                                const due = formatDateDDMMMYY(d);
+                                return `${start} - ${due}`;
+                            }
+                            return s ? formatDateDDMMMYY(s) : (d ? formatDateDDMMMYY(d) : '');
+                        } catch(_) { return ''; }
+                    })();
+                    const datesHtml = dates ? `<div class="project-task-dates">${dates}</div>` : '';
+                    
+                    // Assignees (avatars with +count if more than 3)
+                    const assignees = task.assignees || [];
+                    let assigneesHtml = '';
+                    if (assignees.length > 0) {
+                        assigneesHtml = '<div class="project-task-assignees">';
+                        const displayCount = Math.min(assignees.length, 3);
+                        for (let i = 0; i < displayCount; i++) {
+                            const assignee = assignees[i];
+                            const name = assignee.name || assignee.employee_name || 'User';
+                            if (assignee.photo) {
+                                const photoUrl = appUrl + '/file/employee/' + assignee.photo;
+                                assigneesHtml += `<img class="project-task-assignee-avatar" src="${photoUrl}" alt="${escapeHtml(name)}" title="${escapeHtml(name)}" onerror="this.onerror=null;this.style.display='none';">`;
+                            } else {
+                                const init = getInitials(name);
+                                const bg = getInitialsColor(name);
+                                assigneesHtml += `<div class="project-task-assignee-initials" style="background:${bg}" title="${escapeHtml(name)}">${init}</div>`;
+                            }
+                        }
+                        if (assignees.length > 3) {
+                            assigneesHtml += `<div class="project-task-assignee-count">+${assignees.length - 3}</div>`;
+                        }
+                        assigneesHtml += '</div>';
+                    }
+                    
+                    // Action buttons (icons only, no functionality yet)
+                    const actionsHtml = `
+                        <div class="project-task-actions">
+                            <button class="project-task-action-btn" title="Checklist" disabled>
+                                <span class="material-symbols-outlined">playlist_add_check</span>
+                            </button>
+                            <button class="project-task-action-btn" title="Comments" disabled>
+                                <span class="material-symbols-outlined">mode_comment</span>
+                            </button>
+                            <button class="project-task-action-btn" title="Attachments" disabled>
+                                <span class="material-symbols-outlined">attach_file</span>
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Build card
+                    html += `
+                        <div class="project-task-card">
+                            ${statusHtml}
+                            <div class="project-task-card-header">
+                                ${avatarHtml}
+                                <div class="project-task-header-content">
+                                    <div class="project-task-title">${title}</div>
+                                </div>
+                            </div>
+                            ${description ? `<div class="project-task-description">${escapeHtml(description)}</div>` : ''}
+                            <div class="project-task-meta">
+                                ${priorityHtml}
+                                ${datesHtml}
+                            </div>
+                            <div class="project-task-footer">
+                                ${assigneesHtml}
+                                ${actionsHtml}
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                pane.innerHTML = html;
+            }).fail(function(){
+                if (totalEl) totalEl.classList.add('d-none');
+                pane.innerHTML = '<div class="text-center text-danger py-4">Failed to load tasks. Try again.</div>';
+            });
+        } catch (e) {
+            console.warn('renderProjectTasksToPane error', e);
+        }
+    }
+    
+    // Helper untuk format tanggal DD MMM YYYY (e.g., "1 Aug 2025")
+    function formatDateDDMMMYY(dateStr) {
+        if (!dateStr) return '';
+        try {
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return '';
+            const day = d.getDate();
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const month = months[d.getMonth()];
+            const year = d.getFullYear();
+            // Ubah format jadi "DD Mon YYYY" misalnya "1 Aug 2025"
+            return `${day} ${month} ${year}`;
+        } catch(_) { return ''; }
     }
 
     function initProjectBackButton() {
