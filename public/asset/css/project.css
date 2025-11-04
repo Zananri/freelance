@@ -200,13 +200,13 @@
 .table-project-title {
     font-size: 16px;
     font-weight: 400;
-    color: #3B3D42;
+    color: #3b3d42;
 }
 
 .table-project-name {
     font-size: 12px;
     font-weight: 500;
-    color: #3B3D42;
+    color: #3b3d42;
     max-width: 100px;
     line-height: 1;
 }
@@ -224,18 +224,18 @@
 .back-toggle,
 .arrow-toggle {
     font-size: 14px;
-    color: #3B3D42;
+    color: #3b3d42;
 }
 
 .menu-toggle {
     font-size: 18px;
-    color: #3B3D42;
+    color: #3b3d42;
 }
 
 .table-total-task {
     font-size: 10px;
     font-weight: 400;
-    color: #797E91;
+    color: #797e91;
 }
 
 .table-search-input,
@@ -253,15 +253,15 @@
 .table-transparent tr,
 .table-transparent th,
 .table-transparent td {
-  background-color: transparent !important;
-  border: 1px solid #DAE3ED;
+    background-color: transparent !important;
+    border: 1px solid #dae3ed;
     vertical-align: middle !important;
 }
 
-/* Ensure cells explicitly marked align-top really align to top */
-.table-transparent td.align-top { vertical-align: top !important; }
+.table-transparent td.align-top {
+    vertical-align: top !important;
+}
 
-/* Project list (left column of table) */
 .project-list-wrapper {
     max-height: 37vh;
     overflow-y: auto;
@@ -269,23 +269,25 @@
     padding-right: 6px;
 }
 
-.project-list-wrapper::-webkit-scrollbar { width: 4px; }
-.project-list-wrapper::-webkit-scrollbar-track { background: transparent; }
-.project-list-wrapper::-webkit-scrollbar-thumb { background-color: #cccccc; border-radius: 4px; }
-
-.project-list-item {
-    background: rgb(240, 241, 248);
-    border: 1px solid #DAE3ED;
-    border-radius: 12px;
-    padding: 10px 12px;
-    margin-bottom: 8px;
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
+.project-list-wrapper::-webkit-scrollbar {
+    width: 4px;
+}
+.project-list-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+.project-list-wrapper::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
 }
 
 .project-list-item {
-    position: relative; /* allow absolute badge inside */
+    background: rgb(240, 241, 248);
+    border-bottom: 1px solid #dae3ed;
+    padding: 10px 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    position: relative;
 }
 
 .project-list-avatar {
@@ -311,14 +313,14 @@
 .project-list-title {
     font-size: 12px;
     font-weight: 500;
-    color: #3B3D42;
+    color: #3b3d42;
     line-height: 1.2;
     margin: 0 0 2px 0;
 }
 
 .project-list-desc {
     font-size: 10px;
-    color: #4C5060;
+    color: #4c5060;
     font-weight: 400;
     line-height: 1.3;
     display: -webkit-box;
@@ -330,7 +332,7 @@
 }
 
 .project-list-date {
-    color: #797E91; /* muted */
+    color: #797e91; /* muted */
     font-size: 8px;
     margin-top: 2px;
     margin-bottom: 6px;
@@ -343,13 +345,10 @@
     margin-top: 6px;
 }
 
-/* Task Card in Right Pane */
 .project-task-card {
-    background: #F0F1F8;
-    border: 1px solid #DAE3ED;
-    border-radius: 12px;
-    padding: 12px 14px;
-    margin-bottom: 12px;
+    background: #f0f1f8;
+    border-bottom: 1px solid #dae3ed;
+    padding: 10px 12px;
     position: relative;
 }
 
@@ -381,24 +380,22 @@
     flex: 0 0 36px;
 }
 
-.project-task-header-content {
-    flex: 1;
-    min-width: 0;
-}
-
 .project-task-title {
-    font-size: 13px;
-    font-weight: 600;
-    color: #2C2E33;
+    font-size: 12px;
+    font-weight: 400;
+    color: #2c2e33;
     line-height: 1.3;
     margin: 0 0 4px 0;
     word-wrap: break-word;
 }
 
+.project-task-menu {
+    color: #80838d;
+    font-size: 18px;
+}
+
 .project-task-status-badge {
-    position: absolute;
-    top: 10px;
-    right: 10px;
+    position: static;
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 11px;
@@ -408,36 +405,37 @@
 
 .project-task-status-badge.status-complete,
 .project-task-status-badge.status-completed {
-    color: #4CAF50;
+    color: #4caf50;
     background-color: transparent;
 }
 
 .project-task-status-badge.status-in-progress,
 .project-task-status-badge.status-in_progress {
-    color: #BAA349;
+    color: #baa349;
     background-color: transparent;
 }
 
 .project-task-status-badge.status-not-started,
 .project-task-status-badge.status-not_started {
-    color: #9E9E9E;
+    color: #9e9e9e;
     background-color: transparent;
 }
 
 .project-task-status-badge.status-late {
-    color: #F44336;
+    color: #f44336;
     background-color: transparent;
 }
 
 .project-task-status-badge.status-finish,
 .project-task-status-badge.status-finished {
-    color: #2196F3;
+    color: #2196f3;
     background-color: transparent;
 }
 
 .project-task-description {
-    font-size: 11px;
-    color: #5A5E6E;
+    font-size: 10px;
+    font-weight: 400;
+    color: #4C5060;
     line-height: 1.4;
     margin-bottom: 10px;
     display: -webkit-box;
@@ -448,38 +446,26 @@
     text-overflow: ellipsis;
     max-height: calc(1.4em * 3);
     word-wrap: break-word;
-}
-
-.project-task-meta {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
+    text-align: start;
 }
 
 .project-task-priority {
-    font-size: 10px;
-    color: #6B7280;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    font-size: 8px;
+    color: #6b7280;
 }
 
 .project-task-priority-label {
-    font-weight: 500;
+    font-weight: 400;
 }
 
 .project-task-priority-value {
-    font-weight: 600;
-    color: #3B3D42;
+    font-weight: 400;
+    color: #454545;
 }
 
 .project-task-dates {
-    font-size: 10px;
+    font-size: 8px;
     color: #797E91;
-    text-align: right;
 }
 
 .project-task-footer {
@@ -533,8 +519,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #E0E0E0;
-    color: #5A5E6E;
+    background: #e0e0e0;
+    color: #5a5e6e;
     font-size: 9px;
     font-weight: 600;
     border: 2px solid #fff;
@@ -552,7 +538,7 @@
     border: none;
     padding: 4px;
     cursor: pointer;
-    color: #797E91;
+    color: #797e91;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -560,14 +546,16 @@
 }
 
 .project-task-action-btn:hover {
-    color: #4C5060;
+    color: #4c5060;
 }
 
 .project-task-action-btn .material-symbols-outlined {
     font-size: 18px;
 }
 
-.project-tasks-list { padding-right: 4px; }
+.project-tasks-list {
+    padding-right: 4px;
+}
 
 /* Right pane scroll behaves like left project list for consistent height */
 #projectTasksPane {
@@ -575,9 +563,16 @@
     overflow-y: auto;
 }
 
-#projectTasksPane::-webkit-scrollbar { width: 4px; }
-#projectTasksPane::-webkit-scrollbar-track { background: transparent; }
-#projectTasksPane::-webkit-scrollbar-thumb { background-color: #cccccc; border-radius: 4px; }
+#projectTasksPane::-webkit-scrollbar {
+    width: 4px;
+}
+#projectTasksPane::-webkit-scrollbar-track {
+    background: transparent;
+}
+#projectTasksPane::-webkit-scrollbar-thumb {
+    background-color: #cccccc;
+    border-radius: 4px;
+}
 
 .project-status-badge {
     position: absolute;
@@ -597,7 +592,7 @@
     background-color: transparent !important;
 }
 .project-status-badge.status-in_progress {
-    color: #BAA349;
+    color: #baa349;
     background-color: transparent !important;
 }
 .project-status-badge.status-not_started {
@@ -2154,13 +2149,13 @@
 }
 
 .ref-link {
-  width: 60%;
-  height: 28px;
-  color: #444;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
+    width: 60%;
+    height: 28px;
+    color: #444;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
 }
 
 /* Override Bootstrap modal backdrop opacity for lighter background */
@@ -2419,7 +2414,7 @@
 }
 
 .status-finished {
-    background-color: #B2CCEE;
+    background-color: #b2ccee;
 }
 
 /* PIC and Executor image styling for task modal */
@@ -2516,7 +2511,7 @@
     padding: 15px;
     font-size: 14px;
     display: flex;
-    color: #3C404B;
+    color: #3c404b;
     justify-content: center;
     align-items: center;
     gap: 4px;
@@ -2527,7 +2522,7 @@
     border: none;
     border-radius: 10px;
     background: #e9eef4;
-    color: #3C404B;
+    color: #3c404b;
     padding: 15px;
     font-size: 14px;
     display: flex;
@@ -2549,7 +2544,7 @@
 .btn-contributor-custom:hover,
 .btn-timeline-filter-custom:hover {
     background: #e9eef4;
-    color: #3C404B;
+    color: #3c404b;
 }
 
 .dropdown-filter-menu {
@@ -2777,7 +2772,6 @@ input[type="file"]::file-selector-button {
     font-size: 20px;
 }
 
-
 #addProjectModal .form-check,
 #editProjectModal .form-check {
     display: flex;
@@ -2808,5 +2802,5 @@ input[type="file"]::file-selector-button {
 .breadcrumb-parent-name {
     font-size: 12px;
     font-weight: 400;
-    color: #3B3D42;
+    color: #3b3d42;
 }

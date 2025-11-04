@@ -1620,7 +1620,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const totalEl = document.getElementById('projects-total-tasks');
             if (!pane) return;
             pane.innerHTML = `
-                <div class="text-center py-4">
+                <div class="text-center">
                     <div class="spinner-border" role="status">
                         <span class="visually-hidden">Loading...</span>
                     </div>
@@ -1639,7 +1639,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     totalEl.classList.remove('d-none');
                 }
                 if (!tasks || tasks.length === 0) {
-                    pane.innerHTML = '<div class="text-center text-muted py-4">No tasks found for this project.</div>';
+                    pane.innerHTML = '<div class="text-center text-muted">No tasks found for this project.</div>';
                     return;
                 }
                 
@@ -1746,21 +1746,41 @@ document.addEventListener("DOMContentLoaded", function () {
                     // Build card
                     html += `
                         <div class="project-task-card">
-                            ${statusHtml}
-                            <div class="project-task-card-header">
-                                ${avatarHtml}
-                                <div class="project-task-header-content">
-                                    <div class="project-task-title">${title}</div>
+                            <div class="project-task-card-header d-flex justify-content-between align-items-start w-100">
+                                <div class="d-flex justify-content-start align-items-center">
+                                    ${avatarHtml}
+                                    <div class="project-task-title ms-2">${title}</div>
+                                </div>
+
+                                <div class="d-flex justify-content-end align-items-center position-relative">
+                                    ${statusHtml}
+                                    <button class="btn btn-sm p-0">
+                                        <span class="material-symbols-outlined project-task-menu">
+                                            more_vert
+                                        </span>
+                                    </button>
                                 </div>
                             </div>
+
                             ${description ? `<div class="project-task-description">${escapeHtml(description)}</div>` : ''}
-                            <div class="project-task-meta">
-                                ${priorityHtml}
-                                ${datesHtml}
+
+                            <div class="d-flex justify-content-between mb-3">
+                                <div class="d-flex justify-content-start">
+                                    ${priorityHtml}
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    ${datesHtml}
+                                </div>
                             </div>
-                            <div class="project-task-footer">
-                                ${assigneesHtml}
-                                ${actionsHtml}
+
+                            <div class="d-flex justify-content-between mb-3">
+                                <div class="d-flex justify-content-start">
+                                    ${assigneesHtml}
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    ${actionsHtml}
+                                </div>
                             </div>
                         </div>
                     `;
@@ -1769,7 +1789,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 pane.innerHTML = html;
             }).fail(function(){
                 if (totalEl) totalEl.classList.add('d-none');
-                pane.innerHTML = '<div class="text-center text-danger py-4">Failed to load tasks. Try again.</div>';
+                pane.innerHTML = '<div class="text-center text-danger">Failed to load tasks. Try again.</div>';
             });
         } catch (e) {
             console.warn('renderProjectTasksToPane error', e);
@@ -11213,7 +11233,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         const taskListContainer =
                             document.getElementById("taskListContainer");
                         taskListContainer.innerHTML = `
-                            <div class="text-center py-4">
+                            <div class="text-center">
                                 <div class="spinner-border" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
@@ -11518,12 +11538,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     initResponsiveTooltips(taskListContainer);
                                 } else {
                                     taskListContainer.innerHTML =
-                                        '<div class="text-center py-4 text-muted">No tasks found for this project.</div>';
+                                        '<div class="text-center text-muted">No tasks found for this project.</div>';
                                 }
                             },
                             error: function () {
                                 taskListContainer.innerHTML =
-                                    '<div class="text-center py-4 text-danger">Failed to load tasks. Please try again.</div>';
+                                    '<div class="text-center text-danger">Failed to load tasks. Please try again.</div>';
                             },
                         });
                     }
@@ -13042,7 +13062,7 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (_) {}
 
         // loading state
-        listEl.innerHTML = `<div class="text-center py-4"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+        listEl.innerHTML = `<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
 
         $.ajax({
             url: appUrl + "/project/" + projectId,
