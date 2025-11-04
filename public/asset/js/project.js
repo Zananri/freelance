@@ -1763,12 +1763,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         executorsHtml += '</div>';
                     }
                     
-                    // Action buttons (icons only, no functionality yet)
+                    // Action buttons (icons only). Show checklist icon only for completed/finished tasks.
+                    const showCheckIcon = /complete|finish/.test(String(status || '').toLowerCase());
                     const actionsHtml = `
                         <div class="project-task-actions">
-                            <button class="project-task-action-btn" title="Checklist" disabled>
+                            ${showCheckIcon ? `<button class="project-task-action-btn project-task-check-btn" title="Checklist">
                                 <span class="material-symbols-outlined">playlist_add_check</span>
-                            </button>
+                            </button>` : ''}
                             <button class="project-task-action-btn" title="Comments" disabled>
                                 <span class="material-symbols-outlined">mode_comment</span>
                             </button>
