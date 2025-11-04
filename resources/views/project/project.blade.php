@@ -5,7 +5,7 @@
     <x-slot name="head_slot">
         <link rel="stylesheet" href="{{ asset('asset/css/project.css') }}?v={{ time() }}">
         <link rel="stylesheet" href="{{ asset('asset/css/project-tree.css') }}?v={{ time() }}">
-        <link rel="stylesheet" href="{{ asset('asset/css/task.css') }}?v={{ time() }}">
+        {{-- <link rel="stylesheet" href="{{ asset('asset/css/task.css') }}?v={{ time() }}"> --}}
         <!-- Quill editor styles (only for Project page) -->
         <link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
     </x-slot>
@@ -110,12 +110,12 @@
                                                 <span class="material-symbols-outlined back-toggle">arrow_back</span>
                                             </button>
                                             <div class="ms-2">
-                                                <p class="mb-0 table-project-name">Project Name</p>
-                                                <span class="table-project-status">In Progress</span>
+                                                <p class="mb-0 table-project-name" id="project-table-name">All Project</p>
+                                                <span class="table-project-status" id="project-table-status">No Status</span>
                                             </div>
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">
-                                            <input type="text" class="form-control input-text table-search-input mb-0">
+                                            <input type="text" class="form-control table-search-input mb-0">
                                             <button class="btn btn-sm border-0 p-2">
                                                 <span class="material-symbols-outlined menu-toggle">more_vert</span>
                                             </button>
@@ -128,7 +128,7 @@
                                             <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">
-                                            <input type="text" class="form-control input-text table-search-input mb-0">
+                                            <input type="text" class="form-control table-search-input mb-0">
                                             <button class="btn btn-sm border-0 p-2">
                                                 <span class="material-symbols-outlined menu-toggle">more_vert</span>
                                             </button>
@@ -908,16 +908,63 @@
         </div>
     </div>
 
+        <!-- Task Feedback Modal -->
+    <div class="modal fade" id="taskFeedbackModal" tabindex="-1" aria-labelledby="taskFeedbackModalLabel"
+        aria-hidden="true" data-task-id="{{ $taskId ?? '' }}"
+        data-employee-id="{{ auth()->user()->employee->id ?? '' }}"
+        data-employee-department-id="{{ auth()->user()->employee->department_id ?? '' }}">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable feedback-modal-dialog">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-header modal-header-custom d-flex align-items-center position-relative flex-nowrap">
+                    <h5 class="modal-title feedback-modal-title flex-grow-1 fs-5 fw-normal"
+                        id="taskFeedbackModalLabel">Task Feedback</h5>
+                    <button type="button" class="btn-close ms-3 flex-shrink-0" data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body feedback-modal-body" id="taskFeedbackList">
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <div class="feedback-form w-100">
+                        <div id="inline_task_feedback_editor" class="border-0 ql-container ql-snow"><div class="ql-editor ql-blank" contenteditable="true" data-placeholder="Write feedback..."><p><br></p></div></div>
+
+                        <textarea id="inline_task_feedback_comment" name="feedback_comment" class="d-none" style="display:none;"></textarea>
+
+                        <div class="d-flex justify-content-between btn-actions-feedback mt-2">
+                            <div class="d-flex-justify-content-start">
+                                <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackPhotoBtn" title="Upload photo">
+                                    <span class="material-symbols-outlined feedback-photo-icon">photo</span>
+                                </button>
+                                <button type="button" class="btn btn-sm border-0" id="inlineTaskFeedbackFileBtn" title="Attach file">
+                                    <span class="material-symbols-outlined feedback-file-icon">attach_file</span>
+                                </button>
+                                <input type="file" id="inline_task_feedback_image_input" name="feedback_image" accept="image/*" class="d-none">
+                                <input type="file" id="inline_task_feedback_files_input" name="reference_files[]" multiple accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" class="d-none">
+                                <input type="text" id="inline_task_edit_feedback_input" name="edit_feedback" class="d-none">
+                            </div>
+                            <div class="d-flex justify-content-end submit-feedback">
+                                <button type="button" class="btn btn-submit-black" id="inlineTaskFeedbackSendBtn">
+                                    <span class="material-symbols-outlined">send</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="alert-container mt-2"></div>
+        </div>
+    </div>
+
     <x-slot name="script_slot">
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/jsplumb@2.15.6/dist/js/jsplumb.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
         <script src="{{ asset('asset/js/project.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/project_tree.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/project_tree_plumb.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/contributions_project.js') }}?v={{ time() }}"></script>
         <script src="{{ asset('asset/js/date_helper.js') }}?v={{ time() }}"></script>
-        <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 
         <script>
             (function() {
