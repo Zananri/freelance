@@ -1508,10 +1508,10 @@ document.addEventListener("DOMContentLoaded", function () {
                         </span>`
                         : `${totalTasks} Task`;
                     const statsHtml = `<div class="d-flex project-list-stats text-muted small">
-                            <span class="material-symbols-outlined me-2">
+                            <span class="material-symbols-outlined me-2 flow-icon">
                                 flowchart
                             </span>
-                            ${childrenText} • ${tasksText}
+                            ${childrenText} &nbsp; ${tasksText}
                         </div>`;
 
                     wrapper.innerHTML = `
@@ -1529,9 +1529,49 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 container.appendChild(frag);
 
-                // Attach click handlers to children links and task count links
                 attachChildrenLinkHandlers();
                 attachTasksLinkHandlers();
+
+                container.querySelectorAll('.project-list-item').forEach(card => {
+                    card.addEventListener('click', function (e) {
+                        if (e.target.closest('.project-children-link, .project-tasks-link, .project-more-btn')) return;
+
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const projectId = this.dataset.projectId;
+                        const projectTitleEl = this.querySelector('.project-list-title');
+                        const projectName = projectTitleEl ? projectTitleEl.textContent.trim() : 'Project';
+
+                        if (projectId) {
+                            renderProjectTasksToPane(projectId);
+
+                            const projectNameEl = document.getElementById('project-table-name');
+                            if (projectNameEl) {
+                                projectNameEl.style.opacity = 0;
+                                setTimeout(() => {
+                                    projectNameEl.textContent = projectName;
+                                    projectNameEl.style.opacity = 1;
+                                }, 150);
+                            }
+
+                            const backBtn = document.querySelector('.back-toggle');
+                            if (backBtn) {
+                                const btnWrapper = backBtn.closest('button') || backBtn;
+                                btnWrapper.style.display = 'inline-block';
+                            }
+
+                            window.projectNavigationState = window.projectNavigationState || {};
+                            projectNavigationState.currentParentId = projectId;
+                            projectNavigationState.currentParentTitle = projectName;
+
+                            if (typeof updateProjectNavigationUI === 'function') {
+                                updateProjectNavigationUI();
+                            }
+                        }
+                    });
+                });
+
             })
             .catch(() => {
                 try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
