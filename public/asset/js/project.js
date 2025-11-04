@@ -1581,6 +1581,8 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateProjectNavigationUI() {
         try {
             const breadcrumbTitle = document.querySelector('.table-project-title');
+            const breadcrumbSubTitle = document.querySelector('.table-project-name');
+            const breadcrumbStatus = document.querySelector('.table-project-status');
             const breadcrumbArrow = document.querySelector('.arrow-toggle');
             const backButton = document.querySelector('.back-toggle');
 
@@ -1602,11 +1604,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     backButton.closest('button').style.display = 'inline-block';
                 }
             } else {
-                if (breadcrumbTitle) {
-                    breadcrumbTitle.textContent = 'All Project';
-                }
                 if (breadcrumbArrow) {
                     breadcrumbArrow.style.display = 'none';
+                }
+                if (breadcrumbSubTitle) {
+                    breadcrumbSubTitle.style.display = 'none';
+                }
+                if (breadcrumbStatus) {
+                    breadcrumbStatus.style.display = 'none';
                 }
                 const parentNameEl = document.querySelector('.breadcrumb-parent-name');
                 if (parentNameEl) parentNameEl.remove();
@@ -2223,9 +2228,6 @@ document.addEventListener("DOMContentLoaded", function () {
                             const inProgress = counts.in_progress || 0;
                             const late = counts.late || 0;
 
-                            console.log(project.task_counts);
-                            
-
                             if (total === 0) return "not_started";
                             if (notStarted === total) return "not_started";
                             if (inProgress > 0) return "in_progress";
@@ -2262,9 +2264,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                             </p>`;
                         }
                         
-
-                        //console.log(project);
-
                         rowHtml += `
                             <div class="col-md-4 project-bottom-cards mb-3 d-flex align-items-start position-relative" data-project-id="${
                                 project.id
@@ -13934,6 +13933,7 @@ document.addEventListener("DOMContentLoaded", function () {
             dataType: "json",
             cache: false,
             success: function (response) {
+                
                 if (response.data && response.data.length > 0) {
                     let feedbackHtml = "";
                     response.data.forEach(function (feedback) {
