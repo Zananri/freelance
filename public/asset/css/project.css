@@ -446,6 +446,7 @@
     text-overflow: ellipsis;
     max-height: calc(1.4em * 3);
     word-wrap: break-word;
+    /* margin-left: 45px; */
     text-align: start;
 }
 
