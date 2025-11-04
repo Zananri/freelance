@@ -1440,9 +1440,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         const s = project.start_date;
                         const d = project.due_date;
                         if (s && d && d !== '' && d !== null && d !== 'null') {
-                            dateLine = `<div class="project-list-date text-muted fs-8">${formatDateENMedium(s)} - ${formatDateENMedium(d)}</div>`;
+                            dateLine = `<div class="project-list-date text-muted fs-8 mb-2">${formatDateENMedium(s)} - ${formatDateENMedium(d)}</div>`;
                         } else if (s) {
-                            dateLine = `<div class="project-list-date text-muted fs-8">${formatDateENMedium(s)}</div>`;
+                            dateLine = `<div class="project-list-date text-muted fs-8 mb-2">${formatDateENMedium(s)}</div>`;
                         } else {
                             dateLine = '';
                         }
@@ -1507,7 +1507,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             ${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}  
                         </span>`
                         : `${totalTasks} Task`;
-                    const statsHtml = `<div class="d-flex project-list-stats text-muted small">
+                    const statsHtml = `<div class="d-flex project-list-stats text-muted small mb-2">
                             <span class="material-symbols-outlined me-2 flow-icon">
                                 flowchart
                             </span>
@@ -1520,7 +1520,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         <div class="flex-grow-1">
                             <div class="project-list-title">${escapeHtml(project.title || 'Untitled Project')}</div>
                             ${dateLine}
-                            ${desc ? `<div class="project-list-desc">${escapeHtml(desc)}</div>` : ''}
+                            ${desc ? `<div class="project-list-desc mb-2">${escapeHtml(desc)}</div>` : ''}
                             ${statsHtml}
                         </div>
                     `;
@@ -1578,6 +1578,8 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
+    let breadcrumbStack = [];
+
     function updateProjectNavigationUI() {
         try {
             const breadcrumbTitle = document.querySelector('.table-project-title');
@@ -1586,43 +1588,56 @@ document.addEventListener("DOMContentLoaded", function () {
             const breadcrumbArrow = document.querySelector('.arrow-toggle');
             const backButton = document.querySelector('.back-toggle');
 
-            if (projectNavigationState.currentParentId && projectNavigationState.currentParentTitle) {
-                if (breadcrumbTitle) {
-                    breadcrumbTitle.textContent = `Project`;
-                }
-                if (breadcrumbArrow) {
-                    breadcrumbArrow.style.display = 'inline-block';
-                    const parentNameEl = document.querySelector('.breadcrumb-parent-name') || (() => {
+            if (breadcrumbTitle) {
+                breadcrumbTitle.innerHTML = '';
+
+                const rootSpan = document.createElement('span');
+                rootSpan.textContent = 'Project';
+                rootSpan.className = 'breadcrumb-root';
+                breadcrumbTitle.appendChild(rootSpan);
+
+                if (projectNavigationState.currentParentId && projectNavigationState.currentParentTitle) {
+                    breadcrumbStack.push(projectNavigationState.currentParentTitle);
+
+                    const displayStack = breadcrumbStack.slice(-2);
+
+                    displayStack.forEach(name => {
+                        const icon = document.createElement('span');
+                        icon.className = 'material-symbols-outlined';
+                        icon.textContent = 'arrow_forward_ios';
+                        icon.style.fontSize = "18px"
+                        breadcrumbTitle.appendChild(icon);
+
                         const span = document.createElement('span');
-                        span.className = 'breadcrumb-parent-name ms-2';
-                        breadcrumbArrow.parentNode.insertBefore(span, breadcrumbArrow.nextSibling);
-                        return span;
-                    })();
-                    parentNameEl.textContent = projectNavigationState.currentParentTitle;
+                        span.textContent = name;
+                        span.className = 'breadcrumb-item';
+                        breadcrumbTitle.appendChild(span);
+                    });
+
+                    if (breadcrumbSubTitle) {
+                        breadcrumbSubTitle.textContent = projectNavigationState.currentParentTitle;
+                        breadcrumbSubTitle.style.display = 'flex';
+                    }
+
+                    if (breadcrumbStatus) breadcrumbStatus.style.display = 'flex';
+                    if (breadcrumbArrow) breadcrumbArrow.style.display = 'inline-block';
+                    if (backButton) backButton.closest('button').style.display = 'inline-block';
+                } else {
+                    breadcrumbStack = [];
+                    if (breadcrumbSubTitle) breadcrumbSubTitle.style.display = 'none';
+                    if (breadcrumbStatus) breadcrumbStatus.style.display = 'none';
+                    if (breadcrumbArrow) breadcrumbArrow.style.display = 'none';
+                    if (backButton) backButton.closest('button').style.display = 'none';
                 }
-                if (backButton) {
-                    backButton.closest('button').style.display = 'inline-block';
-                }
-            } else {
-                if (breadcrumbArrow) {
-                    breadcrumbArrow.style.display = 'none';
-                }
-                if (breadcrumbSubTitle) {
-                    breadcrumbSubTitle.style.display = 'none';
-                }
-                if (breadcrumbStatus) {
-                    breadcrumbStatus.style.display = 'none';
-                }
-                const parentNameEl = document.querySelector('.breadcrumb-parent-name');
-                if (parentNameEl) parentNameEl.remove();
-                if (backButton) {
-                    backButton.closest('button').style.display = 'none';
-                }
+
+                breadcrumbTitle.style.display = 'flex';
+                breadcrumbTitle.style.alignItems = 'center';
             }
         } catch (e) {
             console.warn('updateProjectNavigationUI error:', e);
         }
     }
+
 
     document.addEventListener('click', function(e) {
         const backBtn = e.target.closest('.back-toggle');
