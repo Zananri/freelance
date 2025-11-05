@@ -78,7 +78,7 @@
             </div>
 
             @if (auth()->user()->employee->department_id == 3)
-                <img src="{{ asset('asset/img/logo-mtd.png') }}?v={{time()}}" class="align-middle" width="50" alt="LOGO MTD">
+                <img src="{{ asset('asset/img/logo-mtd.png') }}?v={{time()}}" class="align-middle" width="70" alt="LOGO MTD">
             @else
                 <img src="{{ asset('asset/img/logo.png') }}?v={{time()}}" class="align-middle" width="50" alt="LOGO NSA Performance">
             @endif
