@@ -1413,6 +1413,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'project-list-item';
                     wrapper.dataset.projectId = project.id;
+                    wrapper.dataset.projectName = project.title || 'Untitled Project';
 
                     let avatarHtml = '';
                     if (project.image) {
@@ -1530,7 +1531,26 @@ document.addEventListener("DOMContentLoaded", function () {
                             </div>
                         </div>
                     `;
+
                     frag.appendChild(wrapper);
+
+                    const titleEl = wrapper.querySelector('.project-list-title');
+                    if (titleEl) {
+                        titleEl.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const parentItem = titleEl.closest('.project-list-item');
+                            if (!parentItem) return;
+                            const projectId = parentItem.dataset.projectId;
+                            const projectTitle = parentItem.dataset.projectName || titleEl.textContent.trim() || 'Untitled Project';
+                            if (projectId) {
+                                const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g, '-').toLowerCase());
+                                const url = `/project/${projectId}/${urlTitle}`;
+                                window.open(url, '_blank');
+                            }
+                            container.querySelectorAll('.project-list-item.active').forEach(item => item.classList.remove('active'));
+                            parentItem.classList.add('active');
+                        });
+                    }
                 });
 
                 container.appendChild(frag);
@@ -1539,12 +1559,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 container.querySelectorAll('.project-list-item').forEach(card => {
                     card.addEventListener('click', function (e) {
-                        if (e.target.closest('.project-children-link, .project-tasks-link, .project-more-btn')) return;
+                        if (e.target.closest('.project-children-link, .project-tasks-link, .project-more-btn, .project-list-title')) return;
                         e.preventDefault();
                         e.stopPropagation();
 
                         container.querySelectorAll('.project-list-item.active').forEach(item => item.classList.remove('active'));
-
                         this.classList.add('active');
 
                         const projectId = this.dataset.projectId;
@@ -1553,7 +1572,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
                         if (projectId) {
                             renderProjectTasksToPane(projectId);
-
                             const projectNameEl = document.getElementById('project-table-name');
                             if (projectNameEl) {
                                 projectNameEl.style.opacity = 0;
