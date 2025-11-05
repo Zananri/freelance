@@ -1649,6 +1649,7 @@ document.addEventListener("DOMContentLoaded", function () {
         projectNavigationState = { currentParentId: null, currentParentTitle: null, currentParentParentId: null };
         loadProjectTableList(null, 'All Project');
         updateProjectNavigationUI();
+        renderProjectTasksToPane()
         const projectNameEl = document.getElementById('project-table-name');
         if (projectNameEl) {
             projectNameEl.style.opacity = 0;
@@ -18233,7 +18234,6 @@ function stripTags(s) {
 
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
-            console.log("Filter button clicked ✅");
             menu.classList.toggle('d-none');
         });
 
