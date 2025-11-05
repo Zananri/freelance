@@ -1372,27 +1372,27 @@ document.addEventListener("DOMContentLoaded", function () {
     // Navigation state for drill-down
     let projectNavigationState = {
         currentParentId: null,
-        currentParentTitle: null
+        currentParentTitle: null,
+        currentParentParentId: null
     };
 
-    function loadProjectTableList(parentProjectId = null, parentProjectTitle = null) {
+    let breadcrumbStack = [];
+    const MAX_BREADCRUMB_LEVEL = 3;
+
+    function loadProjectTableList(parentProjectId = null, parentProjectTitle = null, parentParentId = null) {
         const container = document.getElementById('projectList');
         if (!container) return;
 
-        // Update navigation state
         projectNavigationState.currentParentId = parentProjectId;
         projectNavigationState.currentParentTitle = parentProjectTitle;
+        projectNavigationState.currentParentParentId = parentParentId;
 
-        // Update UI elements: breadcrumb and back button
         updateProjectNavigationUI();
 
-        // Determine API endpoint based on whether we're drilling down
         let apiUrl;
         if (parentProjectId) {
-            // Fetch children of specific parent project
             apiUrl = `${appUrl}/project/${parentProjectId}/children`;
         } else {
-            // Fetch all top-level projects (root view). Use root_only=1 to request projects without parents.
             apiUrl = `${appUrl}/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1&root_only=1`;
         }
 
@@ -1414,7 +1414,6 @@ document.addEventListener("DOMContentLoaded", function () {
                     wrapper.className = 'project-list-item';
                     wrapper.dataset.projectId = project.id;
 
-                    // Avatar or initials
                     let avatarHtml = '';
                     if (project.image) {
                         const imgUrl = appUrl + '/file/project/' + project.image;
@@ -1425,7 +1424,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         avatarHtml = `<div class="project-list-initials" style="background:${bg}">${init}</div>`;
                     }
 
-                    // Description snippet (plain text, 3 lines)
                     const desc = (function(){
                         try {
                             const div = document.createElement('div');
@@ -1434,7 +1432,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         } catch(_) { return ''; }
                     })();
 
-                    // Date line: start - due (use formatDateENMedium helper)
                     let dateLine = '';
                     try {
                         const s = project.start_date;
@@ -1448,7 +1445,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                     } catch (e) { dateLine = ''; }
 
-                    // Determine visual status for badge (complete / in_progress / not_started / late)
                     function determineProjectVisualStatus(proj) {
                         try {
                             const counts = proj.task_counts || {};
@@ -1457,25 +1453,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             const completed = Number(counts.completed || counts.completed_tasks || 0);
                             const inProgress = Number(counts.in_progress || counts.in_progress_tasks || 0);
                             const late = Number(counts.late || counts.late_tasks || 0);
-
-                            // If no tasks or all new_request => not_started
                             if (total === 0) return 'not_started';
                             if (newReq === total) return 'not_started';
-
-                            // If any in_progress -> in_progress
                             if (inProgress > 0) return 'in_progress';
-
-                            // If all completed
                             if (completed === total && total > 0) return 'completed';
-
-                            // If has late tasks or project due_date past
                             try {
                                 const due = proj.due_date;
                                 const isPastDue = due && (new Date().toISOString().slice(0,10) > (new Date(due).toISOString().slice(0,10)));
                                 if (late > 0 || isPastDue) return 'late';
                             } catch(_) {}
-
-                            // default
                             return 'in_progress';
                         } catch (e) {
                             return 'not_started';
@@ -1491,11 +1477,10 @@ document.addEventListener("DOMContentLoaded", function () {
                     };
                     const badgeHtml = `<div class="project-status-badge mb-3 status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
 
-                    // Stats line: "X Project • Y Task" - make children count clickable if > 0
                     const childCount = Number(project.children_count || 0);
                     const totalTasks = Number((project.task_counts && project.task_counts.total) || 0);
                     const childrenText = childCount > 0 
-                        ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${childCount} Project</span>`
+                        ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" data-project-parent-id="${parentProjectId || ''}" style="cursor: pointer; text-decoration: underline;">${childCount} Project</span>`
                         : `${childCount} Project`;
                     const tasksText = totalTasks > 0
                         ? `<span class="project-tasks-link"
@@ -1514,65 +1499,54 @@ document.addEventListener("DOMContentLoaded", function () {
                             ${childrenText} &nbsp; ${tasksText}
                         </div>`;
 
-                        wrapper.innerHTML = `
-                            <div class="d-flex align-items-start position-relative">
-                                <div class="flex-shrink-0 me-3">
-                                    ${avatarHtml}
-                                </div>
-
-                                <div class="flex-grow-1 d-flex flex-column w-100">
-                                    
-                                    <div class="d-flex justify-content-between align-items-start w-100 mb-1">
-                                        <div class="flex-grow-1 pe-3">
-                                            <div class="project-list-title fw-semibold mb-1">
-                                                ${escapeHtml(project.title || 'Untitled Project')}
-                                            </div>
-                                            ${badgeHtml}
+                    wrapper.innerHTML = `
+                        <div class="d-flex align-items-start position-relative">
+                            <div class="flex-shrink-0 me-3">
+                                ${avatarHtml}
+                            </div>
+                            <div class="flex-grow-1 d-flex flex-column w-100">
+                                <div class="d-flex justify-content-between align-items-start w-100 mb-1">
+                                    <div class="flex-grow-1 pe-3">
+                                        <div class="project-list-title fw-semibold mb-1">
+                                            ${escapeHtml(project.title || 'Untitled Project')}
                                         </div>
-
-                                        <div class="d-flex align-items-start" style="gap: 6px;">
-                                            <button class="btn btn-sm p-0 m-0">
-                                                <span class="material-symbols-outlined project-table-filter">more_vert</span>
-                                            </button>
-                                        </div>
+                                        ${badgeHtml}
                                     </div>
-
-                                    ${desc ? `<div class="project-list-desc text-muted small mb-2">${escapeHtml(desc)}</div>` : ''}
-
-                                    <div class="d-flex justify-content-between align-items-center w-100 mt-auto">
-                                        <div class="d-flex align-items-center">
-                                            ${statsHtml}
-                                        </div>
-                                        <div class="text-muted fs-8">
-                                            ${dateLine ? dateLine.replace(/<\/?div[^>]*>/g, '') : ''}
-                                        </div>
+                                    <div class="d-flex align-items-start" style="gap: 6px;">
+                                        <button class="btn btn-sm p-0 m-0">
+                                            <span class="material-symbols-outlined project-table-filter">more_vert</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                ${desc ? `<div class="project-list-desc text-muted small mb-2">${escapeHtml(desc)}</div>` : ''}
+                                <div class="d-flex justify-content-between align-items-center w-100 mt-auto">
+                                    <div class="d-flex align-items-center">
+                                        ${statsHtml}
+                                    </div>
+                                    <div class="text-muted fs-8">
+                                        ${dateLine ? dateLine.replace(/<\/?div[^>]*>/g, '') : ''}
                                     </div>
                                 </div>
                             </div>
-                        `;
-
+                        </div>
+                    `;
                     frag.appendChild(wrapper);
                 });
 
                 container.appendChild(frag);
-
                 attachChildrenLinkHandlers();
                 attachTasksLinkHandlers();
 
                 container.querySelectorAll('.project-list-item').forEach(card => {
                     card.addEventListener('click', function (e) {
                         if (e.target.closest('.project-children-link, .project-tasks-link, .project-more-btn')) return;
-
                         e.preventDefault();
                         e.stopPropagation();
-
                         const projectId = this.dataset.projectId;
                         const projectTitleEl = this.querySelector('.project-list-title');
                         const projectName = projectTitleEl ? projectTitleEl.textContent.trim() : 'Project';
-
                         if (projectId) {
                             renderProjectTasksToPane(projectId);
-
                             const projectNameEl = document.getElementById('project-table-name');
                             if (projectNameEl) {
                                 projectNameEl.style.opacity = 0;
@@ -1581,33 +1555,25 @@ document.addEventListener("DOMContentLoaded", function () {
                                     projectNameEl.style.opacity = 1;
                                 }, 150);
                             }
-
                             const backBtn = document.querySelector('.back-toggle');
                             if (backBtn) {
                                 const btnWrapper = backBtn.closest('button') || backBtn;
                                 btnWrapper.style.display = 'inline-block';
                             }
-
-                            window.projectNavigationState = window.projectNavigationState || {};
-                            projectNavigationState.currentParentId = projectId;
-                            projectNavigationState.currentParentTitle = projectName;
-
-                            if (typeof updateProjectNavigationUI === 'function') {
-                                updateProjectNavigationUI();
-                            }
+                            projectNavigationState = {
+                                currentParentId: projectId,
+                                currentParentTitle: projectName,
+                                currentParentParentId: parentProjectId || null
+                            };
+                            updateProjectNavigationUI();
                         }
                     });
                 });
-
             })
             .catch(() => {
                 try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
             });
     }
-
-    let breadcrumbStack = [];
-    let lastMenuId = null;
-    const MAX_BREADCRUMB_LEVEL = 3;
 
     function updateProjectNavigationUI() {
         try {
@@ -1616,58 +1582,49 @@ document.addEventListener("DOMContentLoaded", function () {
             const breadcrumbStatus = document.querySelector('.table-project-status');
             const breadcrumbArrow = document.querySelector('.arrow-toggle');
             const backButton = document.querySelector('.back-toggle');
-
             if (!breadcrumbTitle) return;
             breadcrumbTitle.innerHTML = '';
-
             const rootSpan = document.createElement('span');
             rootSpan.textContent = 'Project';
             rootSpan.className = 'breadcrumb-root';
             breadcrumbTitle.appendChild(rootSpan);
-
             const { currentParentId, currentParentTitle, currentParentParentId } = projectNavigationState || {};
-
+            const last = breadcrumbStack[breadcrumbStack.length - 1];
             if (currentParentId && currentParentTitle) {
                 const existingIndex = breadcrumbStack.findIndex(i => i.id === currentParentId);
-
                 if (existingIndex !== -1) {
                     breadcrumbStack = breadcrumbStack.slice(0, existingIndex + 1);
+                } else if (!last) {
+                    breadcrumbStack.push({ id: currentParentId, title: currentParentTitle, parentId: currentParentParentId || null });
+                } else if (currentParentParentId === last.id) {
+                    breadcrumbStack.push({ id: currentParentId, title: currentParentTitle, parentId: currentParentParentId || last.id });
+                    if (breadcrumbStack.length > MAX_BREADCRUMB_LEVEL) breadcrumbStack.shift();
+                } else if (currentParentParentId === last.parentId) {
+                    breadcrumbStack[breadcrumbStack.length - 1] = { id: currentParentId, title: currentParentTitle, parentId: currentParentParentId };
+                } else if (last.parentId && currentParentId === last.parentId) {
+                    const parentIndex = breadcrumbStack.findIndex(i => i.id === currentParentId);
+                    if (parentIndex !== -1) breadcrumbStack = breadcrumbStack.slice(0, parentIndex + 1);
                 } else {
-                    breadcrumbStack.push({
-                        id: currentParentId,
-                        title: currentParentTitle,
-                        parentId: currentParentParentId || null
-                    });
-
-                    if (breadcrumbStack.length > MAX_BREADCRUMB_LEVEL) {
-                        breadcrumbStack.shift();
-                    }
+                    breadcrumbStack = [{ id: currentParentId, title: currentParentTitle, parentId: currentParentParentId || null }];
                 }
-
-                lastMenuId = currentParentId;
-
                 breadcrumbStack.forEach(item => {
                     const icon = document.createElement('span');
                     icon.className = 'material-symbols-outlined';
                     icon.textContent = 'arrow_forward_ios';
                     icon.style.fontSize = '18px';
                     breadcrumbTitle.appendChild(icon);
-
                     const span = document.createElement('span');
                     span.textContent = item.title;
                     span.className = 'breadcrumb-item';
                     breadcrumbTitle.appendChild(span);
                 });
-
                 if (breadcrumbSubTitle) {
                     breadcrumbSubTitle.textContent = currentParentTitle;
                     breadcrumbSubTitle.style.display = 'flex';
                 }
-
                 if (breadcrumbStatus) breadcrumbStatus.style.display = 'flex';
                 if (breadcrumbArrow) breadcrumbArrow.style.display = 'inline-block';
                 if (backButton) backButton.closest('button').style.display = 'inline-block';
-
             } else {
                 breadcrumbStack = [];
                 if (breadcrumbSubTitle) breadcrumbSubTitle.style.display = 'none';
@@ -1675,10 +1632,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (breadcrumbArrow) breadcrumbArrow.style.display = 'none';
                 if (backButton) backButton.closest('button').style.display = 'none';
             }
-
             breadcrumbTitle.style.display = 'flex';
             breadcrumbTitle.style.alignItems = 'center';
-
         } catch (e) {
             console.warn('updateProjectNavigationUI error:', e);
         }
@@ -1687,20 +1642,11 @@ document.addEventListener("DOMContentLoaded", function () {
     document.addEventListener('click', function(e) {
         const backBtn = e.target.closest('.back-toggle');
         if (!backBtn) return;
-
         e.preventDefault();
         e.stopPropagation();
-
-        window.projectNavigationState = window.projectNavigationState || {};
-        projectNavigationState.currentParentId = null;
-        projectNavigationState.currentParentTitle = null;
-
+        projectNavigationState = { currentParentId: null, currentParentTitle: null, currentParentParentId: null };
         loadProjectTableList(null, 'All Project');
-
-        if (typeof updateProjectNavigationUI === 'function') {
-            updateProjectNavigationUI();
-        }
-
+        updateProjectNavigationUI();
         const projectNameEl = document.getElementById('project-table-name');
         if (projectNameEl) {
             projectNameEl.style.opacity = 0;
@@ -1715,12 +1661,19 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const links = document.querySelectorAll('.project-children-link');
             links.forEach(link => {
-                link.addEventListener('click', function(e) {
+                link.addEventListener('click', function (e) {
                     e.stopPropagation();
                     const projectId = this.dataset.projectId;
                     const projectTitle = this.dataset.projectTitle;
+                    const projectParentId = this.dataset.projectParentId || null;
                     if (projectId) {
-                        loadProjectTableList(projectId, projectTitle);
+                        projectNavigationState = {
+                            currentParentId: projectId,
+                            currentParentTitle: projectTitle,
+                            currentParentParentId: projectParentId
+                        };
+                        updateProjectNavigationUI();
+                        loadProjectTableList(projectId, projectTitle, projectParentId);
                     }
                 });
             });
