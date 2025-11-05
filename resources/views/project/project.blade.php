@@ -876,7 +876,7 @@
                     </div>
 
                     <div class="mb-4 task-description-container">
-                        <div id="completed_task_note" class="text-muted task-description"></div>
+                        <div id="completed_task_note" class="text-muted task-description" style="font-size: 13px;"></div>
                     </div>
 
                     <div class="row mb-4 link-file-task">

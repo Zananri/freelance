@@ -194,7 +194,8 @@
 }
 
 .table-project {
-    min-height: 45vh;
+    min-height: 50vh;
+    max-height: 50vh;
 }
 
 .table-project .table-transparent th,
@@ -283,7 +284,7 @@
 }
 
 .project-list-wrapper {
-    max-height: 37vh;
+    max-height: 30vh;
     overflow-y: auto;
     overflow-x: hidden;
     padding-right: 6px;
@@ -600,7 +601,8 @@
 }
 
 #projectTasksPane {
-    max-height: 37vh;
+    max-height: 31vh;
+    min-height: 31vh;
     overflow-y: auto;
 }
 
@@ -2448,8 +2450,9 @@
 }
 
 .status-rejected {
-    background-color: #ed3500;
-    color: #fff;
+    color: #ed3500;
+    font-size: 10px;
+    font-weight: 400;
 }
 
 .status-finished {
@@ -2960,3 +2963,7 @@ input[type="file"]::file-selector-button {
 .submit-feedback button span {
     font-size: 20px;
 }
+
+.link-file-task {
+    font-size: 10px;
+}   
