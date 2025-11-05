@@ -1489,7 +1489,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         'not_started': 'Not Started',
                         'late': 'Late'
                     };
-                    const badgeHtml = `<div class="project-status-badge status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
+                    const badgeHtml = `<div class="project-status-badge mb-3 status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
 
                     // Stats line: "X Project • Y Task" - make children count clickable if > 0
                     const childCount = Number(project.children_count || 0);
@@ -1514,16 +1514,43 @@ document.addEventListener("DOMContentLoaded", function () {
                             ${childrenText} &nbsp; ${tasksText}
                         </div>`;
 
-                    wrapper.innerHTML = `
-                            ${badgeHtml}
-                        <div class="flex-shrink-0">${avatarHtml}</div>
-                        <div class="flex-grow-1">
-                            <div class="project-list-title">${escapeHtml(project.title || 'Untitled Project')}</div>
-                            ${dateLine}
-                            ${desc ? `<div class="project-list-desc mb-2">${escapeHtml(desc)}</div>` : ''}
-                            ${statsHtml}
-                        </div>
-                    `;
+                        wrapper.innerHTML = `
+                            <div class="d-flex align-items-start position-relative">
+                                <div class="flex-shrink-0 me-3">
+                                    ${avatarHtml}
+                                </div>
+
+                                <div class="flex-grow-1 d-flex flex-column w-100">
+                                    
+                                    <div class="d-flex justify-content-between align-items-start w-100 mb-1">
+                                        <div class="flex-grow-1 pe-3">
+                                            <div class="project-list-title fw-semibold mb-1">
+                                                ${escapeHtml(project.title || 'Untitled Project')}
+                                            </div>
+                                            ${badgeHtml}
+                                        </div>
+
+                                        <div class="d-flex align-items-start" style="gap: 6px;">
+                                            <button class="btn btn-sm p-0 m-0">
+                                                <span class="material-symbols-outlined project-table-filter">more_vert</span>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    ${desc ? `<div class="project-list-desc text-muted small mb-2">${escapeHtml(desc)}</div>` : ''}
+
+                                    <div class="d-flex justify-content-between align-items-center w-100 mt-auto">
+                                        <div class="d-flex align-items-center">
+                                            ${statsHtml}
+                                        </div>
+                                        <div class="text-muted fs-8">
+                                            ${dateLine ? dateLine.replace(/<\/?div[^>]*>/g, '') : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+
                     frag.appendChild(wrapper);
                 });
 
@@ -1697,10 +1724,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     const projectName = link.dataset.projectName || 'Project';
 
                     if (projectId) {
-                        // render tasks ke pane
                         renderProjectTasksToPane(projectId);
 
-                        // update nama project di header
                         const projectNameEl = document.getElementById('project-table-name');
                         if (projectNameEl) {
                             projectNameEl.style.opacity = 0;
@@ -1710,19 +1735,16 @@ document.addEventListener("DOMContentLoaded", function () {
                             }, 150);
                         }
 
-                        // tampilkan tombol back
                         const backBtn = document.querySelector('.back-toggle');
                         if (backBtn) {
                             const btnWrapper = backBtn.closest('button') || backBtn;
                             btnWrapper.style.display = 'inline-block';
                         }
 
-                        // update state navigasi
                         window.projectNavigationState = window.projectNavigationState || {};
                         projectNavigationState.currentParentId = projectId;
                         projectNavigationState.currentParentTitle = projectName;
 
-                        // update breadcrumb
                         if (typeof updateProjectNavigationUI === 'function') {
                             updateProjectNavigationUI();
                         }

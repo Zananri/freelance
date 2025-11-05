@@ -304,9 +304,7 @@
     background: rgb(240, 241, 248);
     border-bottom: 1px solid #dae3ed;
     padding: 10px 12px;
-    display: flex;
     gap: 10px;
-    align-items: flex-start;
     position: relative;
     transition: 0.3s;
 }
@@ -617,33 +615,36 @@
 }
 
 .project-status-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    padding: 4px 8px;
+    position: static;
     border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 10px;
+    font-weight: 400;
     background: transparent;
     line-height: 1;
     box-shadow: none;
     border: none;
 }
 .project-status-badge.status-completed {
-    color: #28a745;
+    color: #1BC65F;
     background-color: transparent !important;
 }
 .project-status-badge.status-in_progress {
-    color: #baa349;
+    color: #E3BA32;
     background-color: transparent !important;
 }
 .project-status-badge.status-not_started {
-    color: #6c757d; /* muted gray */
+    color: #6c757d;
     background-color: transparent !important;
 }
 .project-status-badge.status-late {
     color: #dc3545;
     background-color: transparent !important;
+}
+
+.project-table-filter {
+    font-size: 20px;
+    color: #6c757d;
+    cursor: pointer;
 }
 
 .timeline-section {
