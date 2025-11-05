@@ -115,9 +115,9 @@
                                             </div>
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">
-                                            <input type="text" class="form-control table-search-input mb-0">
+                                            <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
                                             <div class="position-relative d-inline-block">
-                                                <button id="filterMenuBtnProjectList" class="btn btn-sm p-0 m-0">
+                                                <button id="filterMenuBtnProjectList" class="btn btn-sm border-0 p-0 m-0">
                                                     <span class="material-symbols-outlined project-table-filter">more_vert</span>
                                                 </button>
 
@@ -148,10 +148,34 @@
                                             <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">
-                                            <input type="text" class="form-control table-search-input mb-0">
-                                            <button class="btn btn-sm border-0 p-2">
-                                                <span class="material-symbols-outlined menu-toggle">more_vert</span>
-                                            </button>
+                                            <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
+                                            <div class="position-relative d-inline-block">
+                                                <button id="filterMenuBtnTaskList" class="btn btn-sm border-0 p-2">
+                                                    <span class="material-symbols-outlined menu-toggle">more_vert</span>
+                                                </button>
+
+                                                <div id="filterMenuTaskList" class="filter-menu shadow-sm rounded-2 p-2 d-none">
+                                                    <div class="mb-2">
+                                                        <label class="form-label mb-1 fw-semibold small">Status</label>
+                                                        <select id="filterStatusTaskList" class="form-select form-select-sm border-0">
+                                                            <option value="">All</option>
+                                                            <option value="ongoing">New Request</option>
+                                                            <option value="in_progress">In Progress</option>
+                                                            <option value="completed">Completed</option>
+                                                            <option value="finished">Finished</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label mb-1 fw-semibold small">Priority</label>
+                                                        <select id="filterPriorityTaskList" class="form-select form-select-sm border-0">
+                                                            <option value="">All</option>
+                                                            <option value="low">Low</option>
+                                                            <option value="medium">Medium</option>
+                                                            <option value="high">High</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </th>

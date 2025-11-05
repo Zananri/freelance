@@ -1501,7 +1501,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     wrapper.innerHTML = `
                         <div class="d-flex align-items-start position-relative">
-                            <div class="flex-shrink-0 me-3">
+                            <div class="flex-shrink-0 me-2">
                                 ${avatarHtml}
                             </div>
                             <div class="flex-grow-1 d-flex flex-column w-100">
@@ -1513,7 +1513,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                         ${badgeHtml}
                                     </div>
                                     <div class="d-flex align-items-start" style="gap: 6px;">
-                                        <button class="btn btn-sm p-0 m-0">
+                                        <button class="btn btn-sm border-0 p-0 m-0">
                                             <span class="material-symbols-outlined project-table-filter">more_vert</span>
                                         </button>
                                     </div>
@@ -1913,7 +1913,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </div>
 
                                 <div class="d-flex align-items-start ms-auto">
-                                    <button class="btn btn-sm p-0">
+                                    <button class="btn btn-sm border-0 p-0">
                                         <span class="material-symbols-outlined project-task-menu">more_vert</span>
                                     </button>
                                 </div>
@@ -18271,6 +18271,28 @@ function stripTags(s) {
             });
     });
 
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('filterMenuBtnTaskList');
+        const menu = document.getElementById('filterMenuTaskList');
+
+        if (!btn || !menu) return;
+
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menu.classList.toggle('d-none');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.add('d-none');
+            }
+        });
+
+        document.getElementById('filterStatusTaskList').addEventListener('change', applyFilters);
+        document.getElementById('filterPriorityTaskList').addEventListener('change', applyFilters);
+
+    });
+
 function hideProjectLatestFeedbackSnippet(projectId) {
     document
         .querySelectorAll(
@@ -18811,58 +18833,38 @@ document.addEventListener("DOMContentLoaded", function () {
         // Function to filter/search tasks
         function filterTasks(searchTerm) {
             searchTerm = searchTerm.toLowerCase().trim();
-            
+
             const taskItems = document.querySelectorAll('#projectTasksPane .project-task-card');
-            
-            if (!taskItems || taskItems.length === 0) return;
+            if (!taskItems.length) return;
 
             let visibleCount = 0;
-            
+
             taskItems.forEach(item => {
-                try {
-                    const titleEl = item.querySelector('.project-task-title');
-                    const descEl = item.querySelector('.project-task-description');
-                    
-                    const title = titleEl ? titleEl.textContent.toLowerCase() : '';
-                    const desc = descEl ? descEl.textContent.toLowerCase() : '';
-                    
-                    const matches = title.includes(searchTerm) || desc.includes(searchTerm);
-                    
-                    if (matches || searchTerm === '') {
-                        item.style.display = '';
-                        visibleCount++;
-                    } else {
-                        item.style.display = 'none';
-                    }
-                } catch (e) {
-                    console.warn('Error filtering task item:', e);
-                }
+                const title = item.querySelector('.project-task-title')?.textContent.toLowerCase() || '';
+                const desc = item.querySelector('.project-task-description')?.textContent.toLowerCase() || '';
+
+                // SEARCH based only on text
+                const matches = searchTerm === '' || title.includes(searchTerm) || desc.includes(searchTerm);
+
+                item.style.display = matches ? '' : 'none';
+                if (matches) visibleCount++;
             });
 
-            // Show "no results" message if needed
+            // handle "no results"
             const container = document.getElementById('projectTasksPane');
-            if (container) {
-                let noResultsMsg = container.querySelector('.no-task-results-message');
-                if (noResultsMsg) {
-                    noResultsMsg.remove();
-                }
-                
-                if (visibleCount === 0 && searchTerm !== '') {
-                    noResultsMsg = document.createElement('div');
-                    noResultsMsg.className = 'no-task-results-message text-muted small text-center py-3';
-                    noResultsMsg.textContent = 'No tasks found matching your search.';
-                    
-                    const tasksList = container.querySelector('.project-tasks-list');
-                    if (tasksList) {
-                        tasksList.appendChild(noResultsMsg);
-                    } else {
-                        container.appendChild(noResultsMsg);
-                    }
-                }
+            if (!container) return;
+
+            let noResultsMsg = container.querySelector('.no-task-results-message');
+            if (noResultsMsg) noResultsMsg.remove();
+
+            if (visibleCount === 0 && searchTerm !== '') {
+                noResultsMsg = document.createElement('div');
+                noResultsMsg.className = 'no-task-results-message text-muted small text-center py-3';
+                noResultsMsg.textContent = 'No tasks found matching your search.';
+                container.appendChild(noResultsMsg);
             }
         }
 
-        // Helpers to reliably find the correct search inputs by context
         function getTasksSearchInput() {
             const th = document.getElementById('projects-total-tasks')?.closest('th');
             return th ? th.querySelector('.table-search-input') : null;
@@ -18879,20 +18881,16 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (th.querySelector('#projects-total-tasks')) return 'tasks';
                 if (th.querySelector('#filterMenuProjectList')) return 'projects';
             }
-            // Fallbacks in case DOM structure changes
             const tasksInput = getTasksSearchInput();
             if (tasksInput && tasksInput === inputEl) return 'tasks';
             const projectInput = getProjectSearchInput();
             if (projectInput && projectInput === inputEl) return 'projects';
-            // Last-resort fallback to index (legacy assumption)
             const all = document.querySelectorAll('.table-search-input');
             const idx = Array.from(all).indexOf(inputEl);
             return idx === 1 ? 'tasks' : 'projects';
         }
 
-        // Use event delegation on document body for more reliability
         document.body.addEventListener('input', function(e) {
-            // Check if the event came from a table-search-input
             if (!e.target.matches('.table-search-input')) return;
             const context = detectSearchContext(e.target);
             if (context === 'projects') {
@@ -18908,7 +18906,6 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Handle Enter and Escape keys
         document.body.addEventListener('keydown', function(e) {
             if (!e.target.matches('.table-search-input')) return;
             const context = detectSearchContext(e.target);
@@ -18932,15 +18929,11 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
 
-        // Set placeholders on page load
         setTimeout(function() {
             const projectInput = getProjectSearchInput();
             const tasksInput = getTasksSearchInput();
-            if (projectInput && !projectInput.placeholder) projectInput.placeholder = 'Search projects...';
-            if (tasksInput && !tasksInput.placeholder) tasksInput.placeholder = 'Search tasks...';
         }, 500);
 
-        // Hook into renderProjectTasksToPane to re-apply task search after tasks load
         const originalRenderFunction = window.renderProjectTasksToPane;
         if (typeof originalRenderFunction === 'function') {
             window.renderProjectTasksToPane = function() {
@@ -18949,7 +18942,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 setTimeout(function() {
                     const tasksSearchInput = getTasksSearchInput();
                     if (tasksSearchInput) {
-                        if (!tasksSearchInput.placeholder) tasksSearchInput.placeholder = 'Search tasks...';
                         if (tasksSearchInput.value.trim() !== '') {
                             filterTasks(tasksSearchInput.value);
                         }

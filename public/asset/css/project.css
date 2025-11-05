@@ -329,22 +329,22 @@
 }
 
 .project-list-avatar {
-    width: 34px;
-    height: 34px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     object-fit: cover;
     flex: 0 0 34px;
 }
 
 .project-list-initials {
-    width: 34px;
-    height: 34px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 14px;
+    font-size: 10px;
     font-weight: 600;
 }
 
@@ -403,22 +403,22 @@
 }
 
 .project-task-avatar {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     object-fit: cover;
     flex: 0 0 36px;
 }
 
 .project-task-initials {
-    width: 36px;
-    height: 36px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     color: #fff;
-    font-size: 14px;
+    font-size: 10px;
     font-weight: 600;
     flex: 0 0 36px;
 }
