@@ -1475,7 +1475,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         'not_started': 'Not Started',
                         'late': 'Late'
                     };
-                    const badgeHtml = `<div class="project-status-badge mb-3 status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
+                    const badgeHtml = `<div class="project-status-badge mb-2 status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
 
                     const childCount = Number(project.children_count || 0);
                     const totalTasks = Number((project.task_counts && project.task_counts.total) || 0);
@@ -1492,7 +1492,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             ${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}  
                         </span>`
                         : `${totalTasks} Task`;
-                    const statsHtml = `<div class="d-flex project-list-stats text-muted small mb-2">
+                    const statsHtml = `<div class="d-flex project-list-stats text-muted small mb-2 gap-1">
                             <span class="material-symbols-outlined me-2 flow-icon">
                                 flowchart
                             </span>
@@ -1613,7 +1613,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const icon = document.createElement('span');
                     icon.className = 'material-symbols-outlined';
                     icon.textContent = 'arrow_forward_ios';
-                    icon.style.fontSize = '18px';
+                    icon.style.fontSize = '14px';
                     breadcrumbTitle.appendChild(icon);
                     const span = document.createElement('span');
                     span.textContent = item.title;
@@ -1719,9 +1719,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         projectNavigationState.currentParentId = projectId;
                         projectNavigationState.currentParentTitle = projectName;
 
-                        if (typeof updateProjectNavigationUI === 'function') {
-                            updateProjectNavigationUI();
-                        }
+                        // if (typeof updateProjectNavigationUI === 'function') {
+                        //     updateProjectNavigationUI();
+                        // }
                     }
                 };
 
@@ -1803,7 +1803,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         if (s.includes('reject')) return 'Rejected';
                         return 'Not Started';
                     })();
-                    const statusHtml = `<div class="project-task-status-badge mb-3 status-${status}">${statusLabel}</div>`;
+                    const statusHtml = `<div class="project-task-status-badge mb-2 status-${status}">${statusLabel}</div>`;
                     
                     // Priority
                     const priority = task.priority || 'Normal';
