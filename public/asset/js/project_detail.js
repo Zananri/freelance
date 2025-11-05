@@ -5747,17 +5747,55 @@
     // Populate edit project modal with project data
     window.populateEditProjectModal = function(data) {
         try {
+                // Accept both raw project object or a response wrapper { data: {...} }
+                data = (data && data.data) ? data.data : data || {};
             // Set project ID
             $("#edit_project_id").val(data.id);
 
             // Set title
             $("#edit_title").val(data.title || "");
 
-            // Set description (check if Quill editor exists)
-            if (window.__quillProjectEdit && window.__quillProjectEdit.root) {
-                window.__quillProjectEdit.root.innerHTML = data.description || "";
+            // Set description (robustly handle different Quill instances / element ids used across views)
+            try {
+                var descHtml = data.description || "";
+
+                // Try common global Quill instances in order of likelihood
+                var quillCandidates = [
+                    window.__quillEdit,
+                    window.__quillProjectEdit,
+                    window.__quillProjectAdd,
+                    window.__quillEdit,
+                    window.__quillProject,
+                ];
+
+                var setOnQuill = false;
+                for (var qi = 0; qi < quillCandidates.length; qi++) {
+                    var q = quillCandidates[qi];
+                    if (q && q.root) {
+                        try {
+                            q.root.innerHTML = descHtml;
+                            if (typeof q.setSelection === 'function') {
+                                try { q.setSelection(0, 0); } catch (_) {}
+                            }
+                            setOnQuill = true;
+                            break;
+                        } catch (_) {}
+                    }
+                }
+
+                // If no Quill instance available, try common editor container ids
+                if (!setOnQuill) {
+                    var editorEl = document.getElementById('edit_description_editor') || document.getElementById('project_description_editor') || document.getElementById('project_description_editor_edit') || document.getElementById('project_description_editor');
+                    if (editorEl) {
+                        try { editorEl.innerHTML = descHtml; setOnQuill = true; } catch (_) {}
+                    }
+                }
+
+                // Always set canonical hidden textarea so form submit works
+                try { $("#edit_description").val(descHtml); } catch (_) {}
+            } catch (e) {
+                try { $("#edit_description").val(data.description || ""); } catch (_) {}
             }
-            $("#edit_description").val(data.description || "");
 
             // Set image
             var editImageLabel = document.getElementById("editImageLabel");
@@ -8205,6 +8243,30 @@
                         }
                     }
                 } catch(_) {}
+
+                // Ensure WYSIWYG editor content is synced into hidden textarea fallback before building FormData
+                try {
+                    var descVal = null;
+                    var quills = [window.__quillEdit, window.__quillProjectEdit, window.__quillProjectAdd, window.__quillEdit, window.__quillProject];
+                    for (var qi = 0; qi < quills.length; qi++) {
+                        var q = quills[qi];
+                        if (q && q.root) {
+                            try {
+                                descVal = q.root.innerHTML || '';
+                                break;
+                            } catch (_) {}
+                        }
+                    }
+                    if (descVal === null) {
+                        // try editor container elements
+                        var editorEl = document.getElementById('edit_description_editor') || document.getElementById('project_description_editor') || document.getElementById('project_description_editor_edit');
+                        if (editorEl) {
+                            try { descVal = editorEl.innerHTML || ''; } catch (_) { descVal = '';} 
+                        }
+                    }
+                    if (descVal === null) descVal = document.getElementById('edit_description') ? document.getElementById('edit_description').value || '' : '';
+                    try { document.getElementById('edit_description').value = descVal; } catch (_) {}
+                } catch (_) {}
 
                 var formData = new FormData(formEl);
                 // map reference_urls[] to single reference_url
