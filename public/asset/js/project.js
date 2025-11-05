@@ -1480,7 +1480,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const childCount = Number(project.children_count || 0);
                     const totalTasks = Number((project.task_counts && project.task_counts.total) || 0);
                     const childrenText = childCount > 0 
-                        ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" data-project-parent-id="${parentProjectId || ''}" style="cursor: pointer; text-decoration: underline;">${childCount} Project</span>`
+                        ? `<span class="project-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" data-project-parent-id="${parentProjectId || ''}" style="cursor: pointer; text-decoration: none;">${childCount} Project</span>`
                         : `${childCount} Project`;
                     const tasksText = totalTasks > 0
                         ? `<span class="project-tasks-link"
@@ -1488,7 +1488,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 data-project-name="${project.title}"
                                 role="button"
                                 tabindex="0"
-                                style="cursor:pointer;text-decoration:underline;">
+                                style="cursor:pointer;text-decoration: none;">
                             ${totalTasks} ${totalTasks > 1 ? 'Tasks' : 'Task'}  
                         </span>`
                         : `${totalTasks} Task`;
@@ -1507,7 +1507,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             <div class="flex-grow-1 d-flex flex-column w-100">
                                 <div class="d-flex justify-content-between align-items-start w-100 mb-1">
                                     <div class="flex-grow-1 pe-3">
-                                        <div class="project-list-title fw-semibold mb-1">
+                                        <div class="project-list-title mb-1">
                                             ${escapeHtml(project.title || 'Untitled Project')}
                                         </div>
                                         ${badgeHtml}
@@ -1561,12 +1561,6 @@ document.addEventListener("DOMContentLoaded", function () {
                                     projectNameEl.textContent = projectName;
                                     projectNameEl.style.opacity = 1;
                                 }, 150);
-                            }
-
-                            const backBtn = document.querySelector('.back-toggle');
-                            if (backBtn) {
-                                const btnWrapper = backBtn.closest('button') || backBtn;
-                                btnWrapper.style.display = 'inline-block';
                             }
                         }
                     });
@@ -1709,19 +1703,15 @@ document.addEventListener("DOMContentLoaded", function () {
                             }, 150);
                         }
 
-                        const backBtn = document.querySelector('.back-toggle');
-                        if (backBtn) {
-                            const btnWrapper = backBtn.closest('button') || backBtn;
-                            btnWrapper.style.display = 'inline-block';
-                        }
-
                         window.projectNavigationState = window.projectNavigationState || {};
                         projectNavigationState.currentParentId = projectId;
                         projectNavigationState.currentParentTitle = projectName;
 
-                        // if (typeof updateProjectNavigationUI === 'function') {
-                        //     updateProjectNavigationUI();
-                        // }
+                        document.querySelectorAll('.project-list-item').forEach(item => {
+                            item.classList.remove('active');
+                        });
+                        const parentItem = link.closest('.project-list-item');
+                        if (parentItem) parentItem.classList.add('active');
                     }
                 };
 
