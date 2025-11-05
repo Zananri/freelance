@@ -310,7 +310,8 @@
     transition: 0.3s;
 }
 
-.project-list-item:hover {
+.project-list-item:hover,
+.project-list-item.active {
     background: #FCFCFE;
     cursor: pointer;
 }
