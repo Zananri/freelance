@@ -95,6 +95,9 @@
                         </div>
                         <div class="d-flex justify-content-end">
                             <button class="btn btn-sm border-0">
+                                <span class="material-symbols-outlined download-toggle">download</span>
+                            </button>
+                            <button class="btn btn-sm border-0">
                                 <span class="material-symbols-outlined fullscreen-toggle">fullscreen</span>
                             </button>
                         </div>
@@ -117,7 +120,7 @@
                                         <div class="d-flex justify-content-end align-items-center">
                                             <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
                                             <div class="position-relative d-inline-block">
-                                                <button id="filterMenuBtnProjectList" class="btn btn-sm border-0 p-0 m-0">
+                                                <button id="filterMenuBtnProjectList" class="btn btn-sm border-0 p-2">
                                                     <span class="material-symbols-outlined project-table-filter">more_vert</span>
                                                 </button>
 
