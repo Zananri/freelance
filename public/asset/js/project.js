@@ -18225,6 +18225,33 @@ function stripTags(s) {
     }
 }
 
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('filterMenuBtnProjectList');
+        const menu = document.getElementById('filterMenuProjectList');
+
+        if (!btn || !menu) return;
+
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            console.log("Filter button clicked ✅");
+            menu.classList.toggle('d-none');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.add('d-none');
+            }
+        });
+
+        document.getElementById('filterStatusProjectList').addEventListener('change', applyFilters);
+        document.getElementById('filterDivisionProjectList').addEventListener('change', applyFilters);
+
+        function applyFilters() {
+            const status = document.getElementById('filterStatusProjectList').value;
+            const division = document.getElementById('filterDivisionProjectList').value;
+        }
+    });
+
 function hideProjectLatestFeedbackSnippet(projectId) {
     document
         .querySelectorAll(

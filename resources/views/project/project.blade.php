@@ -116,9 +116,29 @@
                                         </div>
                                         <div class="d-flex justify-content-end align-items-center">
                                             <input type="text" class="form-control table-search-input mb-0">
-                                            <button class="btn btn-sm border-0 p-2">
-                                                <span class="material-symbols-outlined menu-toggle">more_vert</span>
-                                            </button>
+                                            <div class="position-relative d-inline-block">
+                                                <button id="filterMenuBtnProjectList" class="btn btn-sm p-0 m-0">
+                                                    <span class="material-symbols-outlined project-table-filter">more_vert</span>
+                                                </button>
+
+                                                <div id="filterMenuProjectList" class="filter-menu shadow-sm rounded-2 p-2 d-none">
+                                                    <div class="mb-2">
+                                                        <label class="form-label mb-1 fw-semibold small">Status</label>
+                                                        <select id="filterStatusProjectList" class="form-select form-select-sm border-0">
+                                                            <option value="">All</option>
+                                                            <option value="ongoing">New Request</option>
+                                                            <option value="in_progress">In Progress</option>
+                                                            <option value="completed">Completed</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label class="form-label mb-1 fw-semibold small">Division</label>
+                                                        <select id="filterDivisionProjectList" class="form-select form-select-sm border-0">
+                                                            <option value="">All</option>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </th>
