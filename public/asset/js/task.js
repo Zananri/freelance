@@ -3791,7 +3791,7 @@ function fetchAndRenderTasks(statusKey = null, page = 1, append = false, query =
   try {
     const reqKey = statusKey ? String(statusKey) : "all"
     const prev = window.__taskAjaxRequestsMap[reqKey]
-    if (prev && typeof prev.abort === "function") prev.abort()
+    if (prev && typeof prev.abort === "function") prev.abort
   } catch (_) {}
   const jq = $.ajax({
     url: appUrl + "/task/index",

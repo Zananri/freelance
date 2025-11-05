@@ -18247,9 +18247,28 @@ function stripTags(s) {
         document.getElementById('filterDivisionProjectList').addEventListener('change', applyFilters);
 
         function applyFilters() {
-            const status = document.getElementById('filterStatusProjectList').value;
-            const division = document.getElementById('filterDivisionProjectList').value;
+            // Simply trigger the main filter function which now handles both search and filters
+            if (typeof window.filterProjectList === 'function') {
+                window.filterProjectList();
+            }
         }
+
+        // Load divisions into filter dropdown
+        fetch(appUrl + '/divisions-for-projects')
+            .then(res => res.json())
+            .then(data => {
+                const selectEl = document.getElementById('filterDivisionProjectList');
+                if (selectEl && data && data.data) {
+                    let options = '<option value="">All</option>';
+                    data.data.forEach(div => {
+                        options += `<option value="${div.id}">${div.name_division || div.name}</option>`;
+                    });
+                    selectEl.innerHTML = options;
+                }
+            })
+            .catch(err => {
+                console.warn('Failed to load divisions for filter:', err);
+            });
     });
 
 function hideProjectLatestFeedbackSnippet(projectId) {
@@ -18704,3 +18723,269 @@ document.addEventListener("DOMContentLoaded", function () {
     const btn = document.querySelector(".btn-contributor-custom");
     new bootstrap.Tooltip(btn);
 });
+
+// Search functionality for project list in table
+(function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        let projectDebounceTimer;
+        let tasksDebounceTimer;
+
+        // Function to filter/search projects
+        function filterProjects(searchTerm) {
+            searchTerm = searchTerm.toLowerCase().trim();
+            const projectItems = document.querySelectorAll('.project-list-item');
+            
+            if (!projectItems || projectItems.length === 0) return;
+
+            // Get active filter values
+            const statusFilter = document.getElementById('filterStatusProjectList')?.value || '';
+            const divisionFilter = document.getElementById('filterDivisionProjectList')?.value || '';
+
+            let visibleCount = 0;
+            
+            projectItems.forEach(item => {
+                try {
+                    // Check search term match
+                    const titleEl = item.querySelector('.project-list-title');
+                    const descEl = item.querySelector('.project-list-desc');
+                    
+                    const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+                    const desc = descEl ? descEl.textContent.toLowerCase() : '';
+                    
+                    const searchMatches = (searchTerm === '') || title.includes(searchTerm) || desc.includes(searchTerm);
+                    
+                    // Check status filter match
+                    let statusMatches = true;
+                    if (statusFilter && statusFilter !== '') {
+                        const statusBadge = item.querySelector('.project-status-badge');
+                        if (statusBadge) {
+                            const itemStatus = statusBadge.className;
+                            const statusMap = {
+                                'ongoing': 'status-not_started',
+                                'in_progress': 'status-in_progress',
+                                'completed': 'status-completed'
+                            };
+                            statusMatches = statusMap[statusFilter] && itemStatus.includes(statusMap[statusFilter]);
+                        }
+                    }
+
+                    // Check division filter match
+                    let divisionMatches = true;
+                    if (divisionFilter && divisionFilter !== '') {
+                        const itemDivision = item.dataset.division || '';
+                        divisionMatches = (itemDivision === divisionFilter);
+                    }
+
+                    // Item is visible only if ALL conditions match
+                    const shouldShow = searchMatches && statusMatches && divisionMatches;
+                    
+                    if (shouldShow) {
+                        item.style.display = '';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.warn('Error filtering project item:', e);
+                }
+            });
+
+            // Show "no results" message if needed
+            const container = document.getElementById('projectList');
+            if (container) {
+                // Remove any existing no-results messages
+                const oldNoResultsMsg = container.querySelector('.no-results-message');
+                const oldNoFilterMsg = container.querySelector('.no-filter-results-message');
+                if (oldNoResultsMsg) oldNoResultsMsg.remove();
+                if (oldNoFilterMsg) oldNoFilterMsg.remove();
+                
+                if (visibleCount === 0 && (searchTerm !== '' || statusFilter !== '' || divisionFilter !== '')) {
+                    const noResultsMsg = document.createElement('div');
+                    noResultsMsg.className = 'no-results-message text-muted small text-center py-3';
+                    noResultsMsg.textContent = 'No projects found matching your criteria.';
+                    container.appendChild(noResultsMsg);
+                }
+            }
+        }
+
+        // Function to filter/search tasks
+        function filterTasks(searchTerm) {
+            searchTerm = searchTerm.toLowerCase().trim();
+            
+            const taskItems = document.querySelectorAll('#projectTasksPane .project-task-card');
+            
+            if (!taskItems || taskItems.length === 0) return;
+
+            let visibleCount = 0;
+            
+            taskItems.forEach(item => {
+                try {
+                    const titleEl = item.querySelector('.project-task-title');
+                    const descEl = item.querySelector('.project-task-description');
+                    
+                    const title = titleEl ? titleEl.textContent.toLowerCase() : '';
+                    const desc = descEl ? descEl.textContent.toLowerCase() : '';
+                    
+                    const matches = title.includes(searchTerm) || desc.includes(searchTerm);
+                    
+                    if (matches || searchTerm === '') {
+                        item.style.display = '';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.warn('Error filtering task item:', e);
+                }
+            });
+
+            // Show "no results" message if needed
+            const container = document.getElementById('projectTasksPane');
+            if (container) {
+                let noResultsMsg = container.querySelector('.no-task-results-message');
+                if (noResultsMsg) {
+                    noResultsMsg.remove();
+                }
+                
+                if (visibleCount === 0 && searchTerm !== '') {
+                    noResultsMsg = document.createElement('div');
+                    noResultsMsg.className = 'no-task-results-message text-muted small text-center py-3';
+                    noResultsMsg.textContent = 'No tasks found matching your search.';
+                    
+                    const tasksList = container.querySelector('.project-tasks-list');
+                    if (tasksList) {
+                        tasksList.appendChild(noResultsMsg);
+                    } else {
+                        container.appendChild(noResultsMsg);
+                    }
+                }
+            }
+        }
+
+        // Helpers to reliably find the correct search inputs by context
+        function getTasksSearchInput() {
+            const th = document.getElementById('projects-total-tasks')?.closest('th');
+            return th ? th.querySelector('.table-search-input') : null;
+        }
+
+        function getProjectSearchInput() {
+            const th = document.getElementById('filterMenuProjectList')?.closest('th');
+            return th ? th.querySelector('.table-search-input') : null;
+        }
+
+        function detectSearchContext(inputEl) {
+            const th = inputEl.closest('th');
+            if (th) {
+                if (th.querySelector('#projects-total-tasks')) return 'tasks';
+                if (th.querySelector('#filterMenuProjectList')) return 'projects';
+            }
+            // Fallbacks in case DOM structure changes
+            const tasksInput = getTasksSearchInput();
+            if (tasksInput && tasksInput === inputEl) return 'tasks';
+            const projectInput = getProjectSearchInput();
+            if (projectInput && projectInput === inputEl) return 'projects';
+            // Last-resort fallback to index (legacy assumption)
+            const all = document.querySelectorAll('.table-search-input');
+            const idx = Array.from(all).indexOf(inputEl);
+            return idx === 1 ? 'tasks' : 'projects';
+        }
+
+        // Use event delegation on document body for more reliability
+        document.body.addEventListener('input', function(e) {
+            // Check if the event came from a table-search-input
+            if (!e.target.matches('.table-search-input')) return;
+            const context = detectSearchContext(e.target);
+            if (context === 'projects') {
+                clearTimeout(projectDebounceTimer);
+                projectDebounceTimer = setTimeout(function() {
+                    filterProjects(e.target.value);
+                }, 300);
+            } else if (context === 'tasks') {
+                clearTimeout(tasksDebounceTimer);
+                tasksDebounceTimer = setTimeout(function() {
+                    filterTasks(e.target.value);
+                }, 300);
+            }
+        });
+
+        // Handle Enter and Escape keys
+        document.body.addEventListener('keydown', function(e) {
+            if (!e.target.matches('.table-search-input')) return;
+            const context = detectSearchContext(e.target);
+            
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (context === 'projects') {
+                    clearTimeout(projectDebounceTimer);
+                    filterProjects(e.target.value);
+                } else if (context === 'tasks') {
+                    clearTimeout(tasksDebounceTimer);
+                    filterTasks(e.target.value);
+                }
+            } else if (e.key === 'Escape') {
+                e.target.value = '';
+                if (context === 'projects') {
+                    filterProjects('');
+                } else if (context === 'tasks') {
+                    filterTasks('');
+                }
+            }
+        });
+
+        // Set placeholders on page load
+        setTimeout(function() {
+            const projectInput = getProjectSearchInput();
+            const tasksInput = getTasksSearchInput();
+            if (projectInput && !projectInput.placeholder) projectInput.placeholder = 'Search projects...';
+            if (tasksInput && !tasksInput.placeholder) tasksInput.placeholder = 'Search tasks...';
+        }, 500);
+
+        // Hook into renderProjectTasksToPane to re-apply task search after tasks load
+        const originalRenderFunction = window.renderProjectTasksToPane;
+        if (typeof originalRenderFunction === 'function') {
+            window.renderProjectTasksToPane = function() {
+                const result = originalRenderFunction.apply(this, arguments);
+                
+                setTimeout(function() {
+                    const tasksSearchInput = getTasksSearchInput();
+                    if (tasksSearchInput) {
+                        if (!tasksSearchInput.placeholder) tasksSearchInput.placeholder = 'Search tasks...';
+                        if (tasksSearchInput.value.trim() !== '') {
+                            filterTasks(tasksSearchInput.value);
+                        }
+                    }
+                }, 200);
+                
+                return result;
+            };
+        }
+
+        // Hook into loadProjectTableList to re-apply project search after projects load
+        const originalLoadFunction = window.loadProjectTableList;
+        if (typeof originalLoadFunction === 'function') {
+            window.loadProjectTableList = function() {
+                const result = originalLoadFunction.apply(this, arguments);
+                
+                setTimeout(function() {
+                    const projectSearchInput = getProjectSearchInput();
+                    if (projectSearchInput && projectSearchInput.value.trim() !== '') {
+                        filterProjects(projectSearchInput.value);
+                    }
+                }, 200);
+                
+                return result;
+            };
+        }
+
+        // Store filter functions globally
+        window.filterProjectList = function() {
+            const projectInput = getProjectSearchInput();
+            if (projectInput) filterProjects(projectInput.value);
+        };
+        
+        window.filterProjectTasks = function() {
+            const tasksInput = getTasksSearchInput();
+            if (tasksInput) filterTasks(tasksInput.value);
+        };
+    });
+})();
