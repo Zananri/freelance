@@ -3488,6 +3488,31 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
 
             const dropdownHtmlFinal = viewerIsPic ? dropdownHtml : '';
 
+            function formatStartDueRange(start, due) {
+                try {
+                    if (!start && !due) return '';
+                    var s = start ? new Date(start) : null;
+                    var d = due ? new Date(due) : null;
+                    if (s && isNaN(s.getTime())) s = null;
+                    if (d && isNaN(d.getTime())) d = null;
+                    // fallback single date
+                    if (!s && d) return (d.getDate ? (d.getDate()) : '') + ' ' + d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+                    if (s && !d) return (s.getDate ? (s.getDate()) : '') + ' ' + s.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+
+                    // both present
+                    var sDay = s.getDate();
+                    var dDay = d.getDate();
+                    var sMonth = s.toLocaleString('en-US', { month: 'short' });
+                    var dMonth = d.toLocaleString('en-US', { month: 'short' });
+                    var sYear = s.getFullYear();
+                    var dYear = d.getFullYear();
+                    if (sMonth === dMonth && sYear === dYear) {
+                        return sDay + ' - ' + dDay + ' ' + sMonth + ' ' + sYear;
+                    }
+                    return sDay + ' ' + sMonth + ' ' + sYear + ' - ' + dDay + ' ' + dMonth + ' ' + dYear;
+                } catch (_) { return ''; }
+            }
+
             return `
             <div class="custom-card mb-3 rounded-4 position-relative" data-task-id="${task.id}" data-task-status="${task.status}" style="cursor: default;">
                 ${dropdownHtmlFinal}
@@ -3532,9 +3557,14 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
                     ${task.complete_note || '<i>No completion note provided.</i>'}
                 </div>
                 
-                <div class="d-flex justify-content-between align-items-center mt-3" style="font-size:8px; color:#797E91;">
+                <div class="d-flex justify-content-between align-items-start mt-3" style="font-size:8px; color:#797E91;">
                     <div>Complete by: <span style="color: #797E91; font-size: 8px;">${completedBy}</span></div>
-                    <div>at: <span style="color: #797E91; font-size: 8px;">${formatDateTimeENMedium(task.complete_date)}</span></div>
+                    <div class="d-flex flex-column align-items-end">
+                        <div>at: <span style="color: #797E91; font-size: 8px;">${formatDateTimeENMedium(task.complete_date)}</span></div>
+                        <div style="margin-top:4px; font-size:8px; color:#797E91;">
+                            Duration: <span style="color: #797E91; font-size: 8px;">${formatStartDueRange(task.start_date, task.due_date)}</span>
+                        </div>
+                    </div>
                 </div>
                 ${
                 (() => {
