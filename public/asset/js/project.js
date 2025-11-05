@@ -16357,52 +16357,64 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             if (!preview) return;
 
+            // Revoke any previous blob URLs to avoid leaks
+            try {
+                preview.querySelectorAll('a[data-blob-url="1"]').forEach(function(a){
+                    try { URL.revokeObjectURL(a.href); } catch(_) {}
+                });
+            } catch(_) {}
+
             const sel = window.inlineTaskFeedbackSelectedFiles || [];
             preview.innerHTML = "";
 
             if (!sel.length) return;
 
-            const listWrap = document.createElement("div");
-            listWrap.className = "selected-files-list mt-2";
-
+            // Render using the same layout as existing files
             sel.forEach(function (f, idx) {
                 try {
-                    const item = document.createElement("div");
-                    item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+                    const item = document.createElement('div');
+                    item.className = 'existing-file-item d-flex align-items-center justify-content-between mb-1 p-2 bg-transparent border-0 rounded';
 
-                    const iconWrap = document.createElement("div");
-                    const iconName = getFileTypeIcon(f.name || '');
-                    iconWrap.innerHTML = '<span class="material-symbols-outlined">' + iconName + '</span>';
-                    iconWrap.style.fontSize = "10px";
-                    iconWrap.style.textAlign = "center";
+                    const info = document.createElement('div');
+                    info.className = 'd-flex align-items-center flex-grow-1';
 
-                    const name = document.createElement("span");
-                    name.className = "flex-grow-1";
-                    name.style.fontSize = "10px";
-                    const sizeMb = (f.size || 0) / 1024 / 1024;
-                    name.textContent = (f.name || "") + (isFinite(sizeMb) ? " (" + sizeMb.toFixed(2) + " MB)" : "");
+                    const icon = document.createElement('span');
+                    icon.className = 'material-symbols-outlined me-2';
+                    icon.textContent = 'description';
+                    icon.style.fontSize = '16px';
 
-                    const rm = document.createElement("button");
-                    rm.type = "button";
-                    rm.className = "btn btn-sm btn-remove-task remove-task";
-                    rm.style.lineHeight = "1";
-                    rm.style.fontSize = "10px";
-                    rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                    rm.addEventListener("click", function () {
+                    const link = document.createElement('a');
+                    const blobUrl = URL.createObjectURL(f);
+                    link.href = blobUrl;
+                    link.setAttribute('data-blob-url', '1');
+                    link.target = '_blank';
+                    link.style.textDecoration = 'none';
+                    link.style.color = '#444';
+                    link.textContent = f && f.name ? f.name : 'file';
+
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-sm ms-2';
+                    removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                    removeBtn.title = 'Remove file';
+                    removeBtn.addEventListener('click', function () {
                         try {
-                            window.inlineTaskFeedbackSelectedFiles.splice(idx, 1);
-                            renderInlineTaskFeedbackFilesPreview();
-                        } catch (_) {}
+                            // Remove from selection
+                            const arr = window.inlineTaskFeedbackSelectedFiles || [];
+                            arr.splice(idx, 1);
+                        } catch(_) {}
+                        try { URL.revokeObjectURL(blobUrl); } catch(_) {}
+                        // Re-render
+                        renderInlineTaskFeedbackFilesPreview();
                     });
 
-                    item.appendChild(iconWrap);
-                    item.appendChild(name);
-                    item.appendChild(rm);
-                    listWrap.appendChild(item);
+                    info.appendChild(icon);
+                    info.appendChild(link);
+                    item.appendChild(info);
+                    item.appendChild(removeBtn);
+                    preview.appendChild(item);
                 } catch (_) {}
             });
-
-            preview.appendChild(listWrap);
         } catch (e) {}
     }
 
