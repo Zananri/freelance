@@ -1594,23 +1594,34 @@ document.addEventListener("DOMContentLoaded", function () {
                             renderProjectTasksToPane(projectId);
                             const projectNameEl = document.getElementById('project-table-name');
                             if (projectNameEl) {
+                                projectNameEl.classList.remove('d-none');
+                                projectNameEl.style.display = 'block';
                                 projectNameEl.style.opacity = 0;
                                 setTimeout(() => {
                                     projectNameEl.textContent = projectName;
                                     projectNameEl.style.opacity = 1;
                                 }, 150);
                             }
-                            // Set header status from this item's badge and cache it
+
                             try {
                                 const badge = this.querySelector('.project-status-badge');
                                 if (badge) {
                                     setProjectHeaderStatusFromBadge(badge);
                                     const classes = Array.from(badge.classList || []);
                                     const statusClass = classes.find(c => /^status-/.test(c));
-                                    const key = statusClass ? statusClass.replace('status-','') : '';
+                                    const key = statusClass ? statusClass.replace('status-', '') : '';
                                     projectStatusCache[String(projectId)] = { key: key, label: (badge.textContent || '').trim() };
                                 }
-                            } catch(_) {}
+                            } catch (_) {}
+
+                            const projectNameElLink = document.getElementById('project-table-name');
+                            if (projectNameElLink) {
+                                projectNameElLink.style.cursor = 'pointer';
+                                projectNameElLink.onclick = function () {
+                                    const projectSlug = projectName.toLowerCase().replace(/\s+/g, '-');
+                                    window.location.href = appUrl + '/project/' + encodeURIComponent(projectId) + '/' + encodeURIComponent(projectSlug);
+                                };
+                            }
                         }
                     });
                 });
@@ -2280,7 +2291,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 const lmap = { completed: 'Completed', in_progress: 'In Progress', not_started: 'Not Started', late: 'Late' };
                 statusEl.textContent = lmap[key] || 'No Status';
             }
+
             statusEl.style.display = 'flex';
+            statusEl.classList.remove('d-none');
+            statusEl.style.opacity = 1;
         } catch(_) {}
     }
 
