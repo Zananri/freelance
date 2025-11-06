@@ -1557,8 +1557,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             const projectTitle = parentItem.dataset.projectName || titleEl.textContent.trim() || 'Untitled Project';
                             if (projectId) {
                                 const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g, '-').toLowerCase());
-                                const url = `/project/${projectId}/${urlTitle}`;
-                                window.open(url, '_blank');
+                                const url = appUrl + '/project/' + projectId + '/' + urlTitle;
+                                // Navigate in same tab
+                                window.location.href = url;
                             }
                             container.querySelectorAll('.project-list-item.active').forEach(item => item.classList.remove('active'));
                             parentItem.classList.add('active');
@@ -2338,7 +2339,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         const projectSlug =
                             project.slug ||
                             slugify(project.title || "unknown-project");
-                        const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
+                        // Build full project URL using appUrl meta so links work when app is served from a subpath
+                        const fullProjectUrl = appUrl + '/project/' + pid + '/' + projectSlug;
 
                         function deriveProjectStatusFromTasks(project) {
                             const counts = project.task_counts || {};
