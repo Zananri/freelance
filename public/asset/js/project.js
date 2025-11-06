@@ -3332,7 +3332,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 } catch(_) {}
 
                 const html = `
-                    <div class="custom-card rounded-4 position-relative p-3 border-0">
+                    <div class="rounded-4 position-relative p-3 border-0">
                         <div class="d-flex align-items-center mb-2">
                             ${avatarHtml}
                             <div class="d-flex flex-column">
@@ -21016,7 +21016,7 @@ function initAddProjectReferenceFilesModal() {
 (function () {
     try {
         function initProjectExport() {
-            const exportBtn = document.querySelector(".btn-export-custom");
+            const exportBtn = document.querySelector(".btn-export-custom, .download-project");
             if (exportBtn) {
                 exportBtn.addEventListener("click", function (e) {
                     e.preventDefault();
