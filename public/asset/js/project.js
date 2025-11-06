@@ -1514,9 +1514,22 @@ document.addEventListener("DOMContentLoaded", function () {
                                         ${badgeHtml}
                                     </div>
                                     <div class="d-flex align-items-start" style="gap: 6px;">
-                                        <button class="btn btn-sm border-0 p-0 m-0">
-                                            <span class="material-symbols-outlined project-table-filter">more_vert</span>
-                                        </button>
+                                        <div class="position-relative d-inline-block">
+                                            <button class="btn btn-sm border-0 p-0 project-menu-btn">
+                                                <span class="material-symbols-outlined project-table-menu">more_vert</span>
+                                            </button>
+                                            <div class="project-menu filter-menu shadow-sm rounded-2 d-none">
+                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1">
+                                                    <span class="material-symbols-outlined align-middle me-1">edit</span> Edit
+                                                </button>
+                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1">
+                                                    <span class="material-symbols-outlined align-middle me-1">info</span> Detail
+                                                </button>
+                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1 text-danger">
+                                                    <span class="material-symbols-outlined align-middle me-1">delete</span> Delete
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 ${desc ? `<div class="project-list-desc text-muted small mb-2">${escapeHtml(desc)}</div>` : ''}
@@ -1588,6 +1601,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 try { container.innerHTML = '<div class="text-muted small">Failed to load projects.</div>'; } catch(_){}
             });
     }
+
+    // Button Project Menu
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.querySelector('.project-menu-btn');
+        const menu = document.querySelector('.project-menu');
+
+        if (!btn || !menu) return;
+
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            menu.classList.toggle('d-none');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                menu.classList.add('d-none');
+            }
+        });
+    });
 
     function updateProjectNavigationUI() {
         try {
@@ -1967,6 +1999,19 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn('renderProjectTasksToPane error', e);
         }
     }
+
+    $('#fullscreenTableBtn').on('click', function () {
+        const icon = $(this).find('.material-symbols-outlined');
+        const table = $('.table-project');
+
+        if (icon.text().trim() === 'fullscreen') {
+            icon.text('fullscreen_exit');
+            table.addClass('fullscreen');
+        } else {
+            icon.text('fullscreen');
+            table.removeClass('fullscreen');
+        }
+    });
     
     // Helper untuk format tanggal DD MMM YYYY (e.g., "1 Aug 2025")
     function formatDateDDMMMYY(dateStr) {
@@ -18241,6 +18286,7 @@ function stripTags(s) {
     }
 }
 
+    // Button Project Filter
     document.addEventListener('DOMContentLoaded', function() {
         const btn = document.getElementById('filterMenuBtnProjectList');
         const menu = document.getElementById('filterMenuProjectList');
@@ -18286,6 +18332,7 @@ function stripTags(s) {
             });
     });
 
+    // Button Task Filter
     document.addEventListener('DOMContentLoaded', function() {
         const btn = document.getElementById('filterMenuBtnTaskList');
         const menu = document.getElementById('filterMenuTaskList');
