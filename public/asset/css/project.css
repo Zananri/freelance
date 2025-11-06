@@ -212,7 +212,8 @@
     height: calc(100vh - 210px);
 }
 
-.table-project.fullscreen .project-list-wrapper {
+.table-project.fullscreen .project-list-wrapper,
+.table-project.fullscreen #projectTasksPane {
     height: calc(100vh - 250px);
 }
 
@@ -456,6 +457,7 @@
     word-wrap: break-word;
     max-width: 250px;
     text-align: start;
+    cursor: pointer;
 }
 
 .project-task-menu,
@@ -640,8 +642,7 @@
 }
 
 #projectTasksPane {
-    max-height: 31vh;
-    min-height: 31vh;
+    height: 31vh;
     overflow-y: auto;
 }
 
@@ -687,12 +688,6 @@
     font-size: 20px;
     color: #6c757d;
     cursor: pointer;
-}
-
-.timeline-section {
-    min-height: 44vh;
-    border-radius: 20px;
-    min-height: 44vh;
 }
 
 .timeline-card {
@@ -1365,33 +1360,34 @@
     margin-top: 8px;
 }
 
-.modal-custom .modal-header-custom {
+.modal-header-custom {
     position: sticky;
     z-index: 1050;
     margin-bottom: 20px;
 }
 
-.modal-custom .modal-footer-custom {
+.modal-footer-custom {
     position: sticky;
     z-index: 1050;
     border-top: 1px solid #dee2e6;
 }
 
-.modal-custom .modal-body-custom {
+.modal-body-custom {
     max-height: calc(80vh - 120px);
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 8px;
 }
 
-.modal-custom .modal-body-custom::-webkit-scrollbar {
+.modal-body-custom::-webkit-scrollbar {
     width: 4px;
 }
 
-.modal-custom .modal-body-custom::-webkit-scrollbar-track {
+.modal-body-custom::-webkit-scrollbar-track {
     background: transparent;
 }
 
-.modal-custom .modal-body-custom::-webkit-scrollbar-thumb {
+.modal-body-custom::-webkit-scrollbar-thumb {
     background-color: #a0a0a0;
     border-radius: 4px;
 }
@@ -1428,7 +1424,10 @@
 }
 
 .modal-header-custom {
-    border: 0;
+    position: sticky;
+    margin-bottom: 20px;
+    z-index: 1050;
+    border: none;
 }
 
 .modal-title-custom {
@@ -1997,8 +1996,18 @@
         justify-content: center;
     }
 
-    .timeline-section {
-        display: none;
+    .table-project {
+        margin-top: 24px;
+    }
+
+    .table-responsive-mobile {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: block;
+    }
+
+    .table-responsive-mobile table {
+        width: 200%;
     }
 
     .timeline-wrapper::-webkit-scrollbar {
@@ -2012,26 +2021,6 @@
     .timeline-wrapper::-webkit-scrollbar-thumb {
         background-color: #cccccc;
         border-radius: 4px;
-    }
-
-    .timeline-card {
-        display: none;
-        position: fixed;
-        inset: 0;
-        margin: auto;
-        top: 0;
-        width: 90%;
-        max-width: 450px;
-        height: auto;
-        max-height: 70vh;
-        background: #f0f1f8;
-        border-radius: 16px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-        transform: scale(0.8);
-        opacity: 0;
-        transition: all 0.3s ease;
-        z-index: 1051;
-        overflow-y: auto;
     }
 
     .timeline-card.active {
@@ -3028,3 +3017,85 @@ input[type="file"]::file-selector-button {
 .link-file-task {
     font-size: 10px;
 }   
+
+.task-title {
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.task-detail-description-container {
+    max-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+}
+
+.task-description-container,
+.task-description,
+.task-description-container p,
+.task-description-container ul,
+.task-description-container ol,
+.task-description-container li,
+.task-description-container span {
+    color: #4c5060;
+    font-size: 12px;
+    font-weight: 400;
+    margin-top: 0.25rem;
+    line-height: 1.4;
+}
+
+.task-detail-description-container::-webkit-scrollbar {
+    width: 4px;
+}
+
+.task-detail-description-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.task-detail-description-container::-webkit-scrollbar-thumb {
+    background-color: #a0a0a0;
+    border-radius: 4px;
+}
+
+.task-description,
+.task-description p {
+    margin-top: 0.25rem;
+    color: #4c5060;
+    overflow: visible;
+    white-space: normal;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.task-separator {
+    border: none;
+    height: 3px;
+    background-color: #555;
+}
+
+#taskDetailModal .collab-name {
+    font-size: 14px;
+    color: #222;
+    line-height: 1.2;
+}
+
+#taskDetailModal .task-icon {
+    color: #555;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#taskDetailModal .collab-division {
+    font-size: 12px;
+    color: #777;
+}
+
+.task-card-header {
+    position: sticky;
+    top: -10px;
+    background: rgb(240, 241, 248);
+    z-index: 10;
+    padding: 8px 0;
+}
