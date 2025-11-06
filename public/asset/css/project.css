@@ -212,7 +212,8 @@
     height: calc(100vh - 210px);
 }
 
-.table-project.fullscreen .project-list-wrapper {
+.table-project.fullscreen .project-list-wrapper,
+.table-project.fullscreen #projectTasksPane {
     height: calc(100vh - 250px);
 }
 
@@ -641,8 +642,7 @@
 }
 
 #projectTasksPane {
-    max-height: 31vh;
-    min-height: 31vh;
+    height: 31vh;
     overflow-y: auto;
 }
 

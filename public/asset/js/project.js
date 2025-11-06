@@ -2608,7 +2608,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </div>
 
                                 <div class="d-flex align-items-start ms-auto">
-                                    <button class="btn btn-sm border-0 p-0">
+                                    <button class="btn btn-sm border-0 p-0 task-menu-btn" data-task-id="${task.id}" data-task-status="${task.status}">
                                         <span class="material-symbols-outlined project-task-menu">more_vert</span>
                                     </button>
                                 </div>
@@ -2654,6 +2654,88 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn('renderProjectTasksToPane error', e);
         }
     }
+
+    (function bindTaskMenuDelegation() {
+        document.addEventListener('click', function (e) {
+            try {
+                const btn = e.target.closest('.task-menu-btn');
+                if (!btn) return;
+                e.preventDefault();
+                e.stopPropagation();
+
+                document.querySelectorAll('.task-menu, .dropdown-task-portal').forEach(m => {
+                    if (m.classList.contains('dropdown-task-portal')) m.remove();
+                    else m.classList.add('d-none');
+                });
+
+                const taskEl = btn.closest('[data-task-id]');
+                const taskId = taskEl?.getAttribute('data-task-id');
+                const status = (taskEl?.getAttribute('data-task-status') || '').trim().toLowerCase();
+
+                const actions = [];
+                actions.push({ label: 'Edit', action: 'edit' });
+                actions.push({ label: 'Delete', action: 'delete', danger: true });
+
+                if (status === 'new_request') {
+                    actions.unshift({ label: 'In Progress', action: 'in_progress' });
+                } else if (status === 'in_progress') {
+                    actions.unshift({ label: 'Completed', action: 'completed' });
+                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request' });
+                } else if (status === 'completed') {
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
+                    actions.unshift({ label: 'Finished', action: 'finished' });
+                } else if (status === 'finished') {
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
+                }
+
+                const portal = document.createElement('div');
+                portal.className = 'filter-menu dropdown-task-portal shadow-sm rounded-2 p-2';
+                portal.style.position = 'fixed';
+                portal.style.zIndex = 9999;
+                portal.innerHTML = actions.map(a => `
+                    <button class="btn btn-sm w-100 text-start py-1 px-2 ${a.danger ? 'text-danger' : ''}" data-action="${a.action}" data-task-id="${taskId}">
+                        ${a.label}
+                    </button>
+                `).join('');
+
+                document.body.appendChild(portal);
+
+                const rect = btn.getBoundingClientRect();
+                const pad = 8;
+                let top = rect.bottom + pad;
+                let left = rect.left;
+                const width = 160;
+                const height = portal.offsetHeight || 180;
+
+                if (left + width > window.innerWidth - 8) left = window.innerWidth - width - 8;
+                if (top + height > window.innerHeight - 8) top = rect.top - height - pad;
+                if (top < 8) top = rect.bottom + pad;
+
+                portal.style.top = Math.round(top) + 'px';
+                portal.style.left = Math.round(left) + 'px';
+
+                portal.addEventListener('click', function (ev) {
+                    const btnAction = ev.target.closest('button[data-action]');
+                    if (!btnAction) return;
+                    const act = btnAction.getAttribute('data-action');
+                    const id = btnAction.getAttribute('data-task-id');
+                    if (window.handleTaskAction) window.handleTaskAction(id, act);
+                    portal.remove();
+                });
+            } catch (_) {}
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.dropdown-task-portal') && !e.target.closest('.task-menu-btn')) {
+                document.querySelectorAll('.dropdown-task-portal').forEach(m => m.remove());
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') document.querySelectorAll('.dropdown-task-portal').forEach(m => m.remove());
+        });
+    })();
 
     document.addEventListener('click', function (e) {
         const titleEl = e.target.closest('.project-task-title');
