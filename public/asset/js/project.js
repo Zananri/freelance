@@ -1743,13 +1743,13 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const item = e.target.closest('.dropdown-portal .dropdown-item');
             if (!item) return;
-            // stop propagation so other delegated handlers don't double-handle
-            e.stopPropagation();
             const portal = item.closest('.dropdown-portal');
             const sourceId = portal && (portal.getAttribute('data-source-id') || portal.dataset.sourceId);
             if (!sourceId) return;
             const text = (item.textContent || '').trim();
             if (text === 'Detail') {
+                // stop propagation so other delegated handlers don't double-handle
+                e.stopPropagation();
                 // try to obtain the project title from the original source element
                 const source = document.querySelector('[data-project-id="' + sourceId + '"]');
                 let projectTitle = 'Untitled Project';
@@ -1767,6 +1767,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 window.location.href = url;
                 try { portal.remove(); } catch(_) {}
             } else if (text === 'Task') {
+                e.stopPropagation();
                 try {
                     if (typeof loadProjectTasks === 'function') {
                         loadProjectTasks(sourceId);
@@ -1776,6 +1777,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 } catch(_) {}
                 try { portal.remove(); } catch(_) {}
             } else if (text === 'Feedback') {
+                e.stopPropagation();
                 try {
                     // mark feedbacks read and open modal similar to other handlers
                     const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
@@ -1791,6 +1793,9 @@ document.addEventListener("DOMContentLoaded", function () {
                     } catch(_) {}
                 } catch(_) {}
                 try { portal.remove(); } catch(_) {}
+            } else if (text === 'Edit') {
+                // Allow event to bubble to the global Edit handler which performs AJAX and opens modal.
+                // Do not stop propagation and do not remove portal here.
             }
         } catch(_) {}
     }, true);
@@ -3262,27 +3267,28 @@ document.addEventListener("DOMContentLoaded", function () {
                                     e.preventDefault();
                                     e.stopPropagation();
 
-                                    // Find the project card container from the clicked dropdown item
-                                    const card = e.target.closest(".col-md-4");
-                                    if (!card) {
-                                        showFloatingAlert(
-                                            "Project card not found.",
-                                            "warning",
-                                            3000
-                                        );
+                                    let projectId = null;
+                                    try {
+                                        const portal = e.target.closest('.dropdown-portal');
+                                        if (portal) projectId = portal.getAttribute('data-source-id') || portal.dataset.sourceId || null;
+                                    } catch(_) {}
+                                    if (!projectId) {
+                                        const byData = e.target.closest('[data-project-id]');
+                                        if (byData) projectId = byData.getAttribute('data-project-id');
+                                    }
+                                    if (!projectId) {
+                                        const card = e.target.closest('.col-md-4');
+                                        if (card) projectId = card.getAttribute('data-project-id');
+                                    }
+                                    if (!projectId) {
+                                        showFloatingAlert('Project ID not found.', 'warning', 3000);
                                         return;
                                     }
 
-                                    const projectId =
-                                        card.getAttribute("data-project-id");
-                                    if (!projectId) {
-                                        showFloatingAlert(
-                                            "Project ID not found.",
-                                            "warning",
-                                            3000
-                                        );
-                                        return;
-                                    }
+                                    // Close any open dropdown portals before opening modal to avoid overlay conflicts
+                                    try {
+                                        document.querySelectorAll('.dropdown-portal').forEach(function(p){ p.remove(); });
+                                    } catch(_) {}
 
                                     // Fetch project data for editing
                                     $.ajax({
