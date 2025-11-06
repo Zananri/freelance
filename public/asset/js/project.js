@@ -1624,9 +1624,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     e.preventDefault();
                     e.stopPropagation();
 
-                    // Close other open menus first (support both legacy .project-menu and dropdown-menu dropdown-action)
-                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action').forEach(function(m){
-                        if (!m.classList.contains('d-none')) m.classList.add('d-none');
+                    // Close other open menus first (support legacy .project-menu, dropdown-action, and any open dropdown portals)
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action, .dropdown-portal').forEach(function(m){
+                        try {
+                            if (m.classList && m.classList.contains('dropdown-portal')) {
+                                m.remove();
+                            } else if (m.classList) {
+                                if (!m.classList.contains('d-none')) m.classList.add('d-none');
+                            }
+                        } catch(_) {}
                     });
 
                     // Find the menu associated with this button (same position-relative wrapper)
@@ -1688,9 +1694,18 @@ document.addEventListener("DOMContentLoaded", function () {
                     return;
                 }
 
-                // If click is outside any project-menu / dropdown-action, close all open ones
-                if (!e.target.closest('.project-menu') && !e.target.closest('.dropdown-menu.dropdown-action')) {
-                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action').forEach(function(m){ m.classList.add('d-none'); });
+                // If click is outside any project-menu / dropdown-action / dropdown-portal, close all open ones
+                if (!e.target.closest('.project-menu') && !e.target.closest('.dropdown-menu.dropdown-action') && !e.target.closest('.dropdown-portal')) {
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action, .dropdown-portal').forEach(function(m){
+                        try {
+                            if (m.classList && m.classList.contains('dropdown-portal')) {
+                                // remove portal nodes appended to body
+                                m.remove();
+                            } else if (m.classList) {
+                                m.classList.add('d-none');
+                            }
+                        } catch(_) {}
+                    });
                 }
             } catch (err) { /* ignore */ }
         }, true);
@@ -1707,9 +1722,17 @@ document.addEventListener("DOMContentLoaded", function () {
                         btn.click();
                     }
                 }
-                // Close menus on Escape
+                // Close menus on Escape (including portals)
                 if (e.key === 'Escape') {
-                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action').forEach(function(m){ m.classList.add('d-none'); });
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action, .dropdown-portal').forEach(function(m){
+                        try {
+                            if (m.classList && m.classList.contains('dropdown-portal')) {
+                                m.remove();
+                            } else if (m.classList) {
+                                m.classList.add('d-none');
+                            }
+                        } catch(_) {}
+                    });
                 }
             } catch(_){}
         }, true);
