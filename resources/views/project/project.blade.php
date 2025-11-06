@@ -93,7 +93,7 @@
                             <h1 class="table-project-title mb-0">Project</h1>
                             {{-- <span class="material-symbols-outlined arrow-toggle ms-3">arrow_forward_ios</span> --}}
                         </div>
-                        <div class="d-flex justify-content-end">
+                        <div class="d-flex justify-content-end action-table-project">
                             <button class="btn btn-sm border-0">
                                 <span class="material-symbols-outlined download-toggle">download</span>
                             </button>
@@ -103,102 +103,104 @@
                         </div>
                     </div>
 
-                    <table class="table table-transparent">
-                        <thead>
-                            <tr>
-                                <th>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="d-flex justify-content-start align-self-center ms-2">
-                                            <button class="btn btn-sm border-0">
-                                                <span class="material-symbols-outlined back-toggle">arrow_back</span>
-                                            </button>
-                                            <div class="ms-2">
-                                                <p class="mb-0 table-project-name" id="project-table-name">All Project</p>
-                                                <span class="table-project-status" id="project-table-status">No Status</span>
-                                            </div>
-                                        </div>
-                                        <div class="d-flex justify-content-end align-items-center">
-                                            <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
-                                            <div class="position-relative d-inline-block">
-                                                <button id="filterMenuBtnProjectList" class="btn btn-sm border-0 p-2">
-                                                    <span class="material-symbols-outlined project-table-filter">more_vert</span>
+                    <div class="table-responsive-mobile">
+                        <table class="table table-transparent">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex justify-content-start align-self-center ms-2">
+                                                <button class="btn btn-sm border-0">
+                                                    <span class="material-symbols-outlined back-toggle">arrow_back</span>
                                                 </button>
-
-                                                <div id="filterMenuProjectList" class="filter-menu shadow-sm rounded-2 p-2 d-none">
-                                                    <div class="mb-2">
-                                                        <label class="form-label mb-1 fw-semibold small">Status</label>
-                                                        <select id="filterStatusProjectList" class="form-select form-select-sm border-0">
-                                                            <option value="">All</option>
-                                                            <option value="ongoing">New Request</option>
-                                                            <option value="in_progress">In Progress</option>
-                                                            <option value="completed">Completed</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label class="form-label mb-1 fw-semibold small">Division</label>
-                                                        <select id="filterDivisionProjectList" class="form-select form-select-sm border-0">
-                                                            <option value="">All</option>
-                                                        </select>
+                                                <div class="ms-2">
+                                                    <p class="mb-0 table-project-name" id="project-table-name">All Project</p>
+                                                    <span class="table-project-status" id="project-table-status">No Status</span>
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-end align-items-center">
+                                                <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
+                                                <div class="position-relative d-inline-block">
+                                                    <button id="filterMenuBtnProjectList" class="btn btn-sm border-0 p-2">
+                                                        <span class="material-symbols-outlined project-table-filter">more_vert</span>
+                                                    </button>
+    
+                                                    <div id="filterMenuProjectList" class="filter-menu shadow-sm rounded-2 p-2 d-none">
+                                                        <div class="mb-2">
+                                                            <label class="form-label mb-1 fw-semibold small">Status</label>
+                                                            <select id="filterStatusProjectList" class="form-select form-select-sm border-0">
+                                                                <option value="">All</option>
+                                                                <option value="ongoing">New Request</option>
+                                                                <option value="in_progress">In Progress</option>
+                                                                <option value="completed">Completed</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label class="form-label mb-1 fw-semibold small">Division</label>
+                                                            <select id="filterDivisionProjectList" class="form-select form-select-sm border-0">
+                                                                <option value="">All</option>
+                                                            </select>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </th>
-                                <th class="align-middle">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="d-flex justify-content-start align-items-center mb-0 ms-2">
-                                            <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
-                                        </div>
-                                        <div class="d-flex justify-content-end align-items-center">
-                                            <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
-                                            <div class="position-relative d-inline-block">
-                                                <button id="filterMenuBtnTaskList" class="btn btn-sm border-0 p-2">
-                                                    <span class="material-symbols-outlined menu-toggle">more_vert</span>
-                                                </button>
-
-                                                <div id="filterMenuTaskList" class="filter-menu shadow-sm rounded-2 p-2 d-none">
-                                                    <div class="mb-2">
-                                                        <label class="form-label mb-1 fw-semibold small">Status</label>
-                                                        <select id="filterStatusTaskList" class="form-select form-select-sm border-0">
-                                                            <option value="">All</option>
-                                                            <option value="ongoing">New Request</option>
-                                                            <option value="in_progress">In Progress</option>
-                                                            <option value="completed">Completed</option>
-                                                            <option value="finished">Finished</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label class="form-label mb-1 fw-semibold small">Priority</label>
-                                                        <select id="filterPriorityTaskList" class="form-select form-select-sm border-0">
-                                                            <option value="">All</option>
-                                                            <option value="low">Low</option>
-                                                            <option value="medium">Medium</option>
-                                                            <option value="high">High</option>
-                                                        </select>
+                                    </th>
+                                    <th class="align-middle">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="d-flex justify-content-start align-items-center mb-0 ms-2">
+                                                <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
+                                            </div>
+                                            <div class="d-flex justify-content-end align-items-center">
+                                                <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
+                                                <div class="position-relative d-inline-block">
+                                                    <button id="filterMenuBtnTaskList" class="btn btn-sm border-0 p-2">
+                                                        <span class="material-symbols-outlined menu-toggle">more_vert</span>
+                                                    </button>
+    
+                                                    <div id="filterMenuTaskList" class="filter-menu shadow-sm rounded-2 p-2 d-none">
+                                                        <div class="mb-2">
+                                                            <label class="form-label mb-1 fw-semibold small">Status</label>
+                                                            <select id="filterStatusTaskList" class="form-select form-select-sm border-0">
+                                                                <option value="">All</option>
+                                                                <option value="ongoing">New Request</option>
+                                                                <option value="in_progress">In Progress</option>
+                                                                <option value="completed">Completed</option>
+                                                                <option value="finished">Finished</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label class="form-label mb-1 fw-semibold small">Priority</label>
+                                                            <select id="filterPriorityTaskList" class="form-select form-select-sm border-0">
+                                                                <option value="">All</option>
+                                                                <option value="low">Low</option>
+                                                                <option value="medium">Medium</option>
+                                                                <option value="high">High</option>
+                                                            </select>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td class="align-top">
-                                    <div id="projectList" class="project-list-wrapper">
-                                        <!-- Project items will be rendered here by JS -->
-                                    </div>
-                                </td>
-                                <td class="align-top">
-                                    <div id="projectTasksPane" class="table-tasks-placeholder text-muted small text-center">
-                                        Select a project to view tasks here.
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="align-top">
+                                        <div id="projectList" class="project-list-wrapper">
+                                            <!-- Project items will be rendered here by JS -->
+                                        </div>
+                                    </td>
+                                    <td class="align-top">
+                                        <div id="projectTasksPane" class="table-tasks-placeholder text-muted small text-center">
+                                            Select a project to view tasks here.
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 

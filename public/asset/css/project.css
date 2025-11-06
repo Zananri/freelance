@@ -690,12 +690,6 @@
     cursor: pointer;
 }
 
-.timeline-section {
-    min-height: 44vh;
-    border-radius: 20px;
-    min-height: 44vh;
-}
-
 .timeline-card {
     background: transparent;
     display: block;
@@ -2002,8 +1996,18 @@
         justify-content: center;
     }
 
-    .timeline-section {
-        display: none;
+    .table-project {
+        margin-top: 24px;
+    }
+
+    .table-responsive-mobile {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        display: block;
+    }
+
+    .table-responsive-mobile table {
+        width: 200%;
     }
 
     .timeline-wrapper::-webkit-scrollbar {
@@ -2017,26 +2021,6 @@
     .timeline-wrapper::-webkit-scrollbar-thumb {
         background-color: #cccccc;
         border-radius: 4px;
-    }
-
-    .timeline-card {
-        display: none;
-        position: fixed;
-        inset: 0;
-        margin: auto;
-        top: 0;
-        width: 90%;
-        max-width: 450px;
-        height: auto;
-        max-height: 70vh;
-        background: #f0f1f8;
-        border-radius: 16px;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
-        transform: scale(0.8);
-        opacity: 0;
-        transition: all 0.3s ease;
-        z-index: 1051;
-        overflow-y: auto;
     }
 
     .timeline-card.active {
