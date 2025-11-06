@@ -1967,6 +1967,19 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn('renderProjectTasksToPane error', e);
         }
     }
+
+    $('#fullscreenTableBtn').on('click', function () {
+        const icon = $(this).find('.material-symbols-outlined');
+        const table = $('.table-project');
+
+        if (icon.text().trim() === 'fullscreen') {
+            icon.text('fullscreen_exit');
+            table.addClass('fullscreen');
+        } else {
+            icon.text('fullscreen');
+            table.removeClass('fullscreen');
+        }
+    });
     
     // Helper untuk format tanggal DD MMM YYYY (e.g., "1 Aug 2025")
     function formatDateDDMMMYY(dateStr) {

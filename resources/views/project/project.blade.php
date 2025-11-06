@@ -97,7 +97,7 @@
                             <button class="btn btn-sm border-0">
                                 <span class="material-symbols-outlined download-toggle">download</span>
                             </button>
-                            <button class="btn btn-sm border-0">
+                            <button class="btn btn-sm border-0" id="fullscreenTableBtn">
                                 <span class="material-symbols-outlined fullscreen-toggle">fullscreen</span>
                             </button>
                         </div>
