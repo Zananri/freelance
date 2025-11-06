@@ -1377,6 +1377,8 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     let breadcrumbStack = [];
+    // Cache project status by id for reliable header updates without DOM/network
+    const projectStatusCache = Object.create(null);
     const MAX_BREADCRUMB_LEVEL = 3;
 
     function loadProjectTableList(parentProjectId = null, parentProjectTitle = null, parentParentId = null) {
@@ -1476,6 +1478,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         'not_started': 'Not Started',
                         'late': 'Late'
                     };
+                    // cache status for this project id
+                    try { projectStatusCache[String(project.id)] = { key: visualStatus, label: statusLabelMap[visualStatus] || '' }; } catch(_) {}
                     const badgeHtml = `<div class="project-status-badge mb-2 status-${escapeHtml(visualStatus)}">${escapeHtml(statusLabelMap[visualStatus]||'')}</div>`;
 
                     const childCount = Number(project.children_count || 0);
@@ -1557,8 +1561,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             const projectTitle = parentItem.dataset.projectName || titleEl.textContent.trim() || 'Untitled Project';
                             if (projectId) {
                                 const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g, '-').toLowerCase());
-                                const url = `/project/${projectId}/${urlTitle}`;
-                                window.open(url, '_blank');
+                                const url = appUrl + '/project/' + projectId + '/' + urlTitle;
+                                // Navigate in same tab
+                                window.location.href = url;
                             }
                             container.querySelectorAll('.project-list-item.active').forEach(item => item.classList.remove('active'));
                             parentItem.classList.add('active');
@@ -1593,6 +1598,17 @@ document.addEventListener("DOMContentLoaded", function () {
                                     projectNameEl.style.opacity = 1;
                                 }, 150);
                             }
+                            // Set header status from this item's badge and cache it
+                            try {
+                                const badge = this.querySelector('.project-status-badge');
+                                if (badge) {
+                                    setProjectHeaderStatusFromBadge(badge);
+                                    const classes = Array.from(badge.classList || []);
+                                    const statusClass = classes.find(c => /^status-/.test(c));
+                                    const key = statusClass ? statusClass.replace('status-','') : '';
+                                    projectStatusCache[String(projectId)] = { key: key, label: (badge.textContent || '').trim() };
+                                }
+                            } catch(_) {}
                         }
                     });
                 });
@@ -1659,10 +1675,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     icon.textContent = 'arrow_forward_ios';
                     icon.style.fontSize = '14px';
                     breadcrumbTitle.appendChild(icon);
-                    const span = document.createElement('span');
-                    span.textContent = item.title;
-                    span.className = 'breadcrumb-item';
-                    breadcrumbTitle.appendChild(span);
+                        const span = document.createElement('span');
+                        span.textContent = item.title;
+                        span.className = 'breadcrumb-item';
+                        // expose project id and parent id for click handling
+                        try { span.dataset.projectId = String(item.id || ''); } catch(_) {}
+                        try { span.dataset.parentId = String(item.parentId || ''); } catch(_) {}
+                        // attach cached status if available for instant header update
+                        try {
+                            const info = projectStatusCache[String(item.id)];
+                            if (info) {
+                                if (info.key) span.dataset.statusKey = info.key;
+                                if (info.label) span.dataset.statusLabel = info.label;
+                            }
+                        } catch(_) {}
+                        span.style.cursor = 'pointer';
+                        breadcrumbTitle.appendChild(span);
                 });
                 if (breadcrumbSubTitle) {
                     breadcrumbSubTitle.textContent = currentParentTitle;
@@ -1682,6 +1710,196 @@ document.addEventListener("DOMContentLoaded", function () {
             breadcrumbTitle.style.alignItems = 'center';
         } catch (e) {
             console.warn('updateProjectNavigationUI error:', e);
+        }
+    }
+
+    // Breadcrumb click handler (delegated) - navigate to clicked breadcrumb level
+    if (!window.__breadcrumbClickBound) {
+        window.__breadcrumbClickBound = true;
+        document.addEventListener('click', function (ev) {
+            try {
+                const el = ev.target.closest('.breadcrumb-item, .breadcrumb-root');
+                if (!el) return;
+                ev.preventDefault();
+                ev.stopPropagation();
+
+                if (el.classList.contains('breadcrumb-root')) {
+                    // go to root
+                    projectNavigationState = { currentParentId: null, currentParentTitle: null, currentParentParentId: null };
+                    loadProjectTableList(null, 'All Project');
+                    updateProjectNavigationUI();
+                    // update header name
+                    const projectNameEl = document.getElementById('project-table-name');
+                    if (projectNameEl) projectNameEl.textContent = 'All Project';
+                    return;
+                }
+
+                const pid = el.dataset.projectId || '';
+                const title = el.textContent && el.textContent.trim() ? el.textContent.trim() : '';
+                // find parentId from dataset or breadcrumbStack
+                let parentId = el.dataset.parentId || null;
+                if ((!parentId || parentId === '') && Array.isArray(breadcrumbStack)) {
+                    const found = breadcrumbStack.find(b => String(b.id) === String(pid));
+                    if (found) parentId = found.parentId || null;
+                }
+
+                if (!pid) return;
+
+                // Update navigation state and load that project's children
+                projectNavigationState = { currentParentId: pid, currentParentTitle: title || null, currentParentParentId: parentId };
+                loadProjectTableList(pid, title || null, parentId || null);
+                updateProjectNavigationUI();
+
+                // update header project name quickly
+                const projectNameEl = document.getElementById('project-table-name');
+                if (projectNameEl && title) {
+                    projectNameEl.style.opacity = 0;
+                    setTimeout(() => { projectNameEl.textContent = title; projectNameEl.style.opacity = 1; }, 150);
+                }
+
+                // Try to set header status to match the clicked breadcrumb project's status.
+                (function trySetHeaderStatus() {
+                    try {
+                        // Prefer breadcrumb dataset (cached)
+                        const dsKey = el.dataset.statusKey || '';
+                        const dsLabel = el.dataset.statusLabel || '';
+                        let setFromDataset = false;
+                        if (dsKey || dsLabel) {
+                            setProjectHeaderStatus(dsKey, dsLabel);
+                            setFromDataset = true;
+                        }
+
+                        // 1) Look for existing rendered badge in containers that have a matching data-project-id
+                        // Use a strict search to avoid accidentally matching badges belonging to other elements
+                        let badgeEl = null;
+                        try {
+                            // Find all elements that carry data-project-id and filter by exact match.
+                            const candidates = Array.from(document.querySelectorAll('[data-project-id]')).filter(function(el){
+                                try { return String(el.getAttribute('data-project-id')) === String(pid); } catch(_) { return false; }
+                            });
+
+                            for (let i = 0; i < candidates.length && !badgeEl; i++) {
+                                const c = candidates[i];
+                                // prefer .project-status-badge inside this container
+                                badgeEl = c.querySelector('.project-status-badge');
+                                // fallback to any task-style status badge if present
+                                if (!badgeEl) badgeEl = c.querySelector('.project-task-status-badge') || c.querySelector('.project-task-status .project-task-status-badge');
+                                if (badgeEl) break;
+                            }
+                        } catch (_) {
+                            badgeEl = null;
+                        }
+
+                        if (!setFromDataset && badgeEl) {
+                            setProjectHeaderStatusFromBadge(badgeEl);
+                            return;
+                        }
+
+                        // 2) Not found in DOM: fetch project detail from server as fallback
+                        const url = appUrl + '/project/' + encodeURIComponent(pid);
+                        if (setFromDataset) return; // already set from dataset
+                        fetch(url, { headers: { Accept: 'application/json' } })
+                            .then(res => res.json())
+                            .then(data => {
+                                try {
+                                    const proj = (data && data.data) ? data.data : data;
+                                    if (!proj) {
+                                        // fallback to default
+                                        setProjectHeaderStatusFromBadge(null);
+                                        return;
+                                    }
+
+                                    // determine status string and class
+                                    let statusKey = '';
+                                    if (proj.visual_status) statusKey = String(proj.visual_status).toLowerCase().replace(/\s+/g, '_');
+                                    else if (proj.status) statusKey = String(proj.status).toLowerCase().replace(/\s+/g, '_');
+                                    else if (proj.task_counts) {
+                                        const counts = proj.task_counts || {};
+                                        const total = Number(counts.total || 0);
+                                        const inProg = Number(counts.in_progress || counts.in_progress_tasks || 0);
+                                        const completed = Number(counts.completed || counts.completed_tasks || 0);
+                                        const late = Number(counts.late || counts.late_tasks || 0);
+                                        if (total === 0) statusKey = 'not_started';
+                                        else if (inProg > 0) statusKey = 'in_progress';
+                                        else if (completed === total) statusKey = 'completed';
+                                        else if (late > 0) statusKey = 'late';
+                                        else statusKey = 'not_started';
+                                    } else {
+                                        statusKey = 'not_started';
+                                    }
+
+                                    const labelMap = {
+                                        completed: 'Completed',
+                                        in_progress: 'In Progress',
+                                        not_started: 'Not Started',
+                                        late: 'Late'
+                                    };
+
+                                    const span = document.createElement('span');
+                                    span.className = 'project-status-badge mb-2 ' + (statusKey ? 'status-' + statusKey : 'status-not_started');
+                                    span.textContent = labelMap[statusKey] || 'No Status';
+                                    setProjectHeaderStatusFromBadge(span);
+                                } catch (e) {
+                                    setProjectHeaderStatusFromBadge(null);
+                                }
+                            }).catch(() => {
+                                setProjectHeaderStatusFromBadge(null);
+                            });
+                    } catch (e) {
+                        try { setProjectHeaderStatusFromBadge(null); } catch(_){}
+                    }
+                })();
+            } catch (e) {
+                // ignore
+            }
+        });
+    }
+
+    // Helper: set header status directly by key/label
+    function setProjectHeaderStatus(statusKey, label) {
+        try {
+            const statusEl = document.getElementById('project-table-status');
+            if (!statusEl) return;
+            const key = (statusKey || '').trim();
+            const lbl = (label || '').trim();
+            const base = 'table-project-status project-status-badge';
+            statusEl.className = base + (key ? ' status-' + key : ' status-not_started');
+            if (lbl) statusEl.textContent = lbl;
+            else {
+                const lmap = { completed: 'Completed', in_progress: 'In Progress', not_started: 'Not Started', late: 'Late' };
+                statusEl.textContent = lmap[key] || 'No Status';
+            }
+            statusEl.style.display = 'flex';
+        } catch(_) {}
+    }
+
+    // Helper: set header status element text and status class (uses same classes as project-status-badge)
+    function setProjectHeaderStatusFromBadge(badgeEl) {
+        try {
+            const statusEl = document.getElementById('project-table-status');
+            if (!statusEl) return;
+
+            // Preserve base table class, ensure project-status-badge present
+            const base = 'table-project-status project-status-badge';
+
+            if (badgeEl && badgeEl.textContent && badgeEl.textContent.trim() !== '') {
+                const classes = Array.from(badgeEl.classList || []);
+                const statusClass = classes.find(c => /^status-/.test(c)) || '';
+                const key = statusClass ? statusClass.replace('status-','') : '';
+                setProjectHeaderStatus(key, badgeEl.textContent.trim());
+                return;
+            }
+
+            // fallback
+            setProjectHeaderStatus('not_started', 'No Status');
+        } catch (e) {
+            try {
+                const statusEl = document.getElementById('project-table-status');
+                if (statusEl) {
+                    statusEl.textContent = 'No Status';
+                    statusEl.style.display = 'flex';
+                }
+            } catch (_) {}
         }
     }
 
@@ -1719,6 +1937,19 @@ document.addEventListener("DOMContentLoaded", function () {
                             currentParentTitle: projectTitle,
                             currentParentParentId: projectParentId
                         };
+                        // Copy status (text + color class) from parent card badge if available
+                        try {
+                            const parentItem = this.closest('.project-list-item');
+                            const badge = parentItem && parentItem.querySelector('.project-status-badge');
+                            setProjectHeaderStatusFromBadge(badge);
+                            if (badge) {
+                                const classes = Array.from(badge.classList || []);
+                                const statusClass = classes.find(c => /^status-/.test(c));
+                                const key = statusClass ? statusClass.replace('status-','') : '';
+                                projectStatusCache[String(projectId)] = { key: key, label: (badge.textContent || '').trim() };
+                            }
+                        } catch (e) { /* ignore */ }
+
                         updateProjectNavigationUI();
                         loadProjectTableList(projectId, projectTitle, projectParentId);
                     }
@@ -1756,6 +1987,19 @@ document.addEventListener("DOMContentLoaded", function () {
                         window.projectNavigationState = window.projectNavigationState || {};
                         projectNavigationState.currentParentId = projectId;
                         projectNavigationState.currentParentTitle = projectName;
+
+                        // Copy status (text + color class) from parent card badge if available
+                        try {
+                            const parentItem = link.closest('.project-list-item');
+                            const badge = parentItem && parentItem.querySelector('.project-status-badge');
+                            setProjectHeaderStatusFromBadge(badge);
+                            if (badge) {
+                                const classes = Array.from(badge.classList || []);
+                                const statusClass = classes.find(c => /^status-/.test(c));
+                                const key = statusClass ? statusClass.replace('status-','') : '';
+                                projectStatusCache[String(projectId)] = { key: key, label: (badge.textContent || '').trim() };
+                            }
+                        } catch (_) {}
 
                         document.querySelectorAll('.project-list-item').forEach(item => {
                             item.classList.remove('active');
@@ -2291,7 +2535,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         const projectSlug =
                             project.slug ||
                             slugify(project.title || "unknown-project");
-                        const fullProjectUrl = `${appUrl}/project/${pid}/${projectSlug}`;
+                        // Build full project URL using appUrl meta so links work when app is served from a subpath
+                        const fullProjectUrl = appUrl + '/project/' + pid + '/' + projectSlug;
 
                         function deriveProjectStatusFromTasks(project) {
                             const counts = project.task_counts || {};
@@ -2328,8 +2573,14 @@ document.addEventListener("DOMContentLoaded", function () {
                             const s = map[status] || map["not_started"];
                             return `<span class="ms-1 fs-8 fw-semibold" style="color:${s.color};">${s.text}</span>`;
                         }
+                        // Cache status for this project from bottom cards too
+                        try {
+                            const skey = deriveProjectStatusFromTasks(project) || 'not_started';
+                            const slabelMap = { completed: 'Completed', in_progress: 'In Progress', not_started: 'Not Started', late: 'Late' };
+                            projectStatusCache[String(project.id)] = { key: skey, label: slabelMap[skey] };
+                        } catch(_) {}
 
-                        let dateProject = `<p class="text-muted fs-8 mb-0" style="line-height:1;">${formatDateENMedium(project.start_date)}</p>`;
+                        let dateProject = `<p class=\"text-muted fs-8 mb-0\" style=\"line-height:1;\">${formatDateENMedium(project.start_date)}</p>`;
                         
                         if(project.due_date != '' && project.due_date != null && project.due_date != 'null' && project.due_date != undefined){
                             dateProject = `<p class="text-muted fs-8 mb-0" style="line-height:1;">
