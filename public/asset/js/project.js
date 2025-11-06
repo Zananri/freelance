@@ -3263,49 +3263,126 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function handleTaskDelete(taskId) {
-        if (!confirm('Are you sure you want to delete this task?')) {
+        // Use the same Delete Task modal pattern as on the Task page
+        const deleteModalEl = document.getElementById("deleteTaskModal");
+        if (!deleteModalEl) {
+            // Fallback: if modal is not present, do nothing but notify
+            showFloatingAlert('Delete modal is not available on this page.', 'danger');
             return;
         }
 
+        const deleteModal = bootstrap.Modal.getOrCreateInstance(deleteModalEl);
+        deleteModalEl.dataset.taskId = taskId;
+
+        // Set labels: left button "Cancel", right action "Delete"
+        try {
+            const dismissBtn = deleteModalEl.querySelector('.btn.btn-custom-close[data-bs-dismiss="modal"]');
+            if (dismissBtn) dismissBtn.textContent = 'Cancel';
+            const confirmBtn = document.getElementById('confirmDeleteTaskBtn');
+            if (confirmBtn) confirmBtn.textContent = 'Delete';
+        } catch(_) {}
+
+        const body = deleteModalEl.querySelector('.modal-body');
+        if (body) body.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div></div>';
+
+        deleteModal.show();
+
+        // Load task info for preview
         $.ajax({
             url: appUrl + "/task/" + taskId,
-            type: "DELETE",
-            headers: {
-                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
-            },
-            success: function (response) {
-                showFloatingAlert(response.message || 'Task deleted successfully', 'success');
-                
-                // Remove task card from UI
-                const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
-                if (taskCard) {
-                    try {
-                        const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
-                        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
-                            const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
-                            if (tooltipInstance) tooltipInstance.dispose();
-                        });
-                        taskCard.remove();
-                    } catch(_) {}
-                }
-                
-                // Refresh task list
+            type: "GET",
+            dataType: "json",
+            success: function (data) {
+                const task = (data && (data.data || data)) || {};
+                let avatarHtml = "";
                 try {
-                    if (typeof renderProjectTasksToPane === 'function') {
-                        renderProjectTasksToPane();
+                    if (task.image) {
+                        let imgUrl = String(task.image);
+                        const isAbs = /^https?:\/\//i.test(imgUrl);
+                        const isFileTask = /^\/?(file\/task\/|storage\/)/i.test(imgUrl);
+                        if (!isAbs && !isFileTask) imgUrl = appUrl + '/file/task/' + imgUrl.replace(/^\/+/, '');
+                        else if (!isAbs) imgUrl = imgUrl.startsWith('/') ? (appUrl + imgUrl) : (appUrl + '/' + imgUrl);
+                        avatarHtml = `<img src="${imgUrl}" alt="Task Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                    } else {
+                        const initials = getTaskInitials(task.title || '');
+                        const bg = getRandomColorFromText(task.title || '');
+                        avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${bg};color:#fff;font-weight:600;font-size:11px;">${initials}</div>`;
                     }
                 } catch(_) {}
-            },
-            error: function (xhr) {
-                let errorMsg = "Failed to delete task.";
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg = xhr.responseJSON.message;
-                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
-                    errorMsg = Object.values(xhr.responseJSON.errors).join(", ");
-                }
-                showFloatingAlert(errorMsg, 'danger');
+
+                const html = `
+                    <div class="custom-card rounded-4 position-relative p-3 border-0">
+                        <div class="d-flex align-items-center mb-2">
+                            ${avatarHtml}
+                            <div class="d-flex flex-column">
+                                ${task.project && task.project.id ? `<p class="text-muted" style="line-height:1; font-size: 10px;">${task.project.title || '-'}</p>` : ''}
+                                <h5 class="mb-0 task-title" style="line-height:1.2;">${task.title || 'Untitled Task'}</h5>
+                            </div>
+                        </div>
+                        <div class="task-description-container mb-2">
+                            <p class="task-description mb-0" style="font-size:14px;">${task.description || ''}</p>
+                        </div>
+                        <hr class="task-separator rounded-4">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Priority: </span>
+                                <span style="color:${task.priority === 'HIGH' ? 'red' : '#4B4F5E'}">${task.priority || '-'}</span>
+                            </div>
+                            <div style="font-size:12px;">
+                                <span style="color:#797E91;">Deadline: </span>
+                                <span style="color:#4B4F5E;">${task.due_date || '-'}</span>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                            <span class="text-muted">Department:</span>
+                            <span>${(task.project && task.project.department) || '-'}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                            <span class="text-muted">Division:</span>
+                            <span>${(task.project && task.project.division) || '-'}</span>
+                        </div>
+                    </div>`;
+
+                if (body) body.innerHTML = html;
             }
         });
+
+        // Bind confirm button for soft delete
+        const confirmBtn = document.getElementById('confirmDeleteTaskBtn');
+        if (confirmBtn) {
+            confirmBtn.onclick = function () {
+                $.ajax({
+                    url: appUrl + "/task/" + taskId + "/soft-delete",
+                    type: "PUT",
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                    },
+                    success: function (response) {
+                        // Remove card if present
+                        try {
+                            let cardEl = document.querySelector('.project-task-title[data-task-id="' + taskId + '"]');
+                            cardEl = cardEl ? cardEl.closest('.project-task-card') : null;
+                            if (!cardEl) cardEl = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                            if (!cardEl) cardEl = document.querySelector('[data-task-id="' + taskId + '"]');
+                            if (cardEl) cardEl.remove();
+                        } catch (_) {}
+
+                        try { deleteModal.hide(); } catch(_) {}
+
+                        // Success message
+                        try { showFloatingAlert(response.message || 'Task deleted', 'success', 1500); } catch(_) {}
+
+                        // Refresh lists: right pane and left table
+                        try { if (typeof refreshTaskListUI === 'function') refreshTaskListUI(); else if (typeof window.refreshTaskListUI === 'function') window.refreshTaskListUI(); } catch(_) {}
+                    },
+                    error: function (xhr) {
+                        let msg = 'Failed to delete task';
+                        if (xhr && xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
+                        try { showFloatingAlert(msg, 'danger', 3000); } catch(_) { alert(msg); }
+                    }
+                });
+            };
+        }
     }
 
     function loadProjectsForEditTask(selectedProjectId = null, callback) {
