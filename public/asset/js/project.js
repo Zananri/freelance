@@ -1398,7 +1398,13 @@ document.addEventListener("DOMContentLoaded", function () {
             apiUrl = `${appUrl}/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1&root_only=1`;
         }
 
-        fetch(apiUrl)
+        // Append cache-busting query param and disable HTTP cache to ensure latest data after edits
+        try {
+            const ts = Date.now();
+            apiUrl += (apiUrl.indexOf('?') === -1 ? '?' : '&') + 'ts=' + ts;
+        } catch(_) {}
+
+        fetch(apiUrl, { cache: 'no-store' })
             .then(res => res.json())
             .then(payload => {
                 const projects = Array.isArray(payload) ? payload : (payload.data || []);
@@ -1522,16 +1528,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <button class="btn btn-sm border-0 p-0 project-menu-btn">
                                                 <span class="material-symbols-outlined project-table-menu">more_vert</span>
                                             </button>
-                                            <div class="project-menu filter-menu shadow-sm rounded-2 d-none">
-                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1">
-                                                    <span class="material-symbols-outlined align-middle me-1">edit</span> Edit
-                                                </button>
-                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1">
-                                                    <span class="material-symbols-outlined align-middle me-1">info</span> Detail
-                                                </button>
-                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1 text-danger">
-                                                    <span class="material-symbols-outlined align-middle me-1">delete</span> Delete
-                                                </button>
+                                            <div class="dropdown-menu dropdown-action d-none">
+                                                <div class="dropdown-item">Detail</div>
+                                                <div class="dropdown-item">Task</div>
+                                                <div class="dropdown-item">Feedback</div>
+                                                <div class="dropdown-item">Edit</div>
+                                                <div class="dropdown-item text-danger delete-project">Delete</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1618,24 +1620,433 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // Button Project Menu
-    document.addEventListener('DOMContentLoaded', function() {
-        const btn = document.querySelector('.project-menu-btn');
-        const menu = document.querySelector('.project-menu');
+    // Delegated Project Menu handling - works for dynamic list items
+    (function bindProjectMenuDelegation() {
+        // Toggle menu when clicking the menu button, or via keyboard (Enter/Space)
+        document.addEventListener('click', function (e) {
+            try {
+                const btn = e.target.closest('.project-menu-btn');
+                if (btn) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-        if (!btn || !menu) return;
+                    // Close other open menus first (support legacy .project-menu, dropdown-action, and any open dropdown portals)
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action, .dropdown-portal').forEach(function(m){
+                        try {
+                            if (m.classList && m.classList.contains('dropdown-portal')) {
+                                m.remove();
+                            } else if (m.classList) {
+                                if (!m.classList.contains('d-none')) m.classList.add('d-none');
+                            }
+                        } catch(_) {}
+                    });
 
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            menu.classList.toggle('d-none');
-        });
+                    // Find the menu associated with this button (same position-relative wrapper)
+                    const wrapper = btn.closest('.position-relative') || btn.parentElement;
+                    // Also resolve the actual project id from nearest ancestor carrying data-project-id
+                    const projectSourceEl = btn.closest('[data-project-id]');
+                    const resolvedProjectId = projectSourceEl && projectSourceEl.getAttribute('data-project-id') ? String(projectSourceEl.getAttribute('data-project-id')) : String((wrapper && wrapper.getAttribute('data-project-id')) || '');
+                    const menu = wrapper && (wrapper.querySelector('.project-menu') || wrapper.querySelector('.dropdown-menu.dropdown-action'));
+                    if (menu) {
+                        // Create a portal copy appended to body so dropdown doesn't enlarge/scroll the table container
+                        try {
+                            // If a portal for this button already exists, remove it (toggle off)
+                            const existing = document.querySelector('.dropdown-portal[data-source-id="' + resolvedProjectId + '"]');
+                            if (existing) {
+                                existing.remove();
+                                return;
+                            }
 
-        document.addEventListener('click', function(e) {
-            if (!menu.contains(e.target) && !btn.contains(e.target)) {
-                menu.classList.add('d-none');
+                            // Clone menu into portal
+                            const portal = menu.cloneNode(true);
+                            portal.classList.add('dropdown-portal');
+                            // mark source so we can remove specific portals later
+                            try { portal.setAttribute('data-source-id', resolvedProjectId); } catch(_) {}
+                            // reset any display classes and show
+                            portal.classList.remove('d-none');
+                            portal.style.position = 'fixed';
+                            portal.style.zIndex = 9999;
+                            portal.style.minWidth = menu.offsetWidth ? (menu.offsetWidth + 'px') : '';
+
+                            document.body.appendChild(portal);
+
+                            // position the portal under the button, adjust to viewport edges
+                            const rect = btn.getBoundingClientRect();
+                            const pad = 8;
+                            let top = rect.bottom + pad;
+                            let left = rect.left;
+                            // if portal would overflow right edge, shift left
+                            const portalRectApproxWidth = portal.offsetWidth || 200;
+                            if (left + portalRectApproxWidth > window.innerWidth - 8) {
+                                left = Math.max(8, window.innerWidth - portalRectApproxWidth - 8);
+                            }
+                            // if overflow bottom, try place above button
+                            const portalHeight = portal.offsetHeight || 180;
+                            if (top + portalHeight > window.innerHeight - 8) {
+                                top = rect.top - portalHeight - pad;
+                                if (top < 8) top = Math.max(8, rect.bottom + pad); // fallback
+                            }
+
+                            portal.style.top = Math.round(top) + 'px';
+                            portal.style.left = Math.round(left) + 'px';
+
+                            // focus the portal for keyboard users
+                            try { portal.setAttribute('tabindex', '-1'); portal.focus(); } catch(_){}
+                        } catch (e) {
+                            // fallback to in-place toggle if portal creation fails
+                            try { menu.classList.toggle('d-none'); } catch(_) {}
+                        }
+                    }
+                    return;
+                }
+
+                // If click is outside any project-menu / dropdown-action / dropdown-portal, close all open ones
+                if (!e.target.closest('.project-menu') && !e.target.closest('.dropdown-menu.dropdown-action') && !e.target.closest('.dropdown-portal')) {
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action, .dropdown-portal').forEach(function(m){
+                        try {
+                            if (m.classList && m.classList.contains('dropdown-portal')) {
+                                // remove portal nodes appended to body
+                                m.remove();
+                            } else if (m.classList) {
+                                m.classList.add('d-none');
+                            }
+                        } catch(_) {}
+                    });
+                }
+            } catch (err) { /* ignore */ }
+        }, true);
+
+        // Keyboard support: toggle menu when focused button receives Enter or Space
+        document.addEventListener('keydown', function (e) {
+            try {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const btn = document.activeElement && document.activeElement.closest && document.activeElement.closest('.project-menu-btn');
+                    if (btn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // reuse click handler logic by dispatching a click event
+                        btn.click();
+                    }
+                }
+                // Close menus on Escape (including portals)
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action, .dropdown-portal').forEach(function(m){
+                        try {
+                            if (m.classList && m.classList.contains('dropdown-portal')) {
+                                m.remove();
+                            } else if (m.classList) {
+                                m.classList.add('d-none');
+                            }
+                        } catch(_) {}
+                    });
+                }
+            } catch(_){}
+        }, true);
+    })();
+
+    // Handle clicks inside portal dropdown actions (e.g., Detail)
+    document.addEventListener('click', function(e){
+        try {
+            const item = e.target.closest('.dropdown-portal .dropdown-item');
+            if (!item) return;
+            const portal = item.closest('.dropdown-portal');
+            const sourceId = portal && (portal.getAttribute('data-source-id') || portal.dataset.sourceId);
+            if (!sourceId) return;
+            const text = (item.textContent || '').trim();
+            if (text === 'Detail') {
+                // stop propagation so other delegated handlers don't double-handle
+                e.stopPropagation();
+                // try to obtain the project title from the original source element
+                const source = document.querySelector('[data-project-id="' + sourceId + '"]');
+                let projectTitle = 'Untitled Project';
+                try {
+                    if (source) {
+                        const titleEl = source.querySelector('.project-list-title');
+                        if (titleEl && titleEl.textContent) projectTitle = titleEl.textContent.trim();
+                    }
+                } catch(_) {}
+
+                const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g,'-').toLowerCase());
+                const base = (typeof appUrl !== 'undefined' ? appUrl : '');
+                const url = base + '/project/' + sourceId + '/' + urlTitle;
+                // Navigate to project detail in same tab
+                window.location.href = url;
+                try { portal.remove(); } catch(_) {}
+            } else if (text === 'Task') {
+                e.stopPropagation();
+                try {
+                    if (typeof loadProjectTasks === 'function') {
+                        loadProjectTasks(sourceId);
+                    } else if (typeof window.loadProjectTasks === 'function') {
+                        window.loadProjectTasks(sourceId);
+                    }
+                } catch(_) {}
+                try { portal.remove(); } catch(_) {}
+            } else if (text === 'Feedback') {
+                e.stopPropagation();
+                try {
+                    // mark feedbacks read and open modal similar to other handlers
+                    const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                    if (projectFeedbackModalEl) projectFeedbackModalEl.setAttribute('data-project-id', sourceId);
+                    if (typeof loadFeedbackData === 'function') {
+                        loadFeedbackData(sourceId);
+                    } else if (typeof window.loadFeedbackData === 'function') {
+                        window.loadFeedbackData(sourceId);
+                    }
+                    try {
+                        const m = new bootstrap.Modal(projectFeedbackModalEl);
+                        m.show();
+                    } catch(_) {}
+                } catch(_) {}
+                try { portal.remove(); } catch(_) {}
+            } else if (text === 'Delete') {
+                // stop propagation so other delegated handlers don't double-handle
+                e.stopPropagation();
+                try {
+                    const deleteModalEl = document.getElementById('deleteProjectModal');
+                    if (!deleteModalEl) return;
+                    const deleteModal = new bootstrap.Modal(deleteModalEl);
+
+                    // store project id on modal
+                    try { deleteModalEl.dataset.projectId = sourceId; } catch(_) {}
+                    try { deleteModalEl.dataset.cardId = sourceId; } catch(_) {}
+
+                    // Attempt to fetch project details for richer preview; fallback to title from source element
+                    $.ajax({
+                        url: appUrl + '/project/' + sourceId,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            try {
+                                const project = response && response.data ? response.data : {};
+                                if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                    window.setDeleteProjectModalPreview(project);
+                                } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                    setDeleteProjectModalPreview(project);
+                                } else {
+                                    // fallback: render a minimal preview into modal if helper not available
+                                    try {
+                                        const deleteModalElFallback = document.getElementById('deleteProjectModal');
+                                        if (deleteModalElFallback) {
+                                            const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent');
+                                            if (contentElFallback) {
+                                                contentElFallback.innerHTML = '<div class="p-3"><h5>' + (project.title || 'Untitled Project') + '</h5></div>';
+                                            }
+                                        }
+                                    } catch(_) {}
+                                }
+                            } catch(_) {
+                                const sourceEl = document.querySelector('[data-project-id="' + sourceId + '"]');
+                                const titleEl = sourceEl ? sourceEl.querySelector('.title-project, .project-list-title') : null;
+                                const title = titleEl ? titleEl.textContent : '';
+                                if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                    window.setDeleteProjectModalPreview({ title: title });
+                                } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                    setDeleteProjectModalPreview({ title: title });
+                                } else {
+                                    try {
+                                        const deleteModalElFallback = document.getElementById('deleteProjectModal');
+                                        if (deleteModalElFallback) {
+                                            const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent');
+                                            if (contentElFallback) contentElFallback.innerHTML = '<div class="p-3"><h5>' + (title || 'Untitled Project') + '</h5></div>';
+                                        }
+                                    } catch(_) {}
+                                }
+                            }
+                            deleteModal.show();
+                            try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                        },
+                        error: function() {
+                            const sourceEl = document.querySelector('[data-project-id="' + sourceId + '"]');
+                            const titleEl = sourceEl ? sourceEl.querySelector('.title-project, .project-list-title') : null;
+                            const title = titleEl ? titleEl.textContent : '';
+                            if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                window.setDeleteProjectModalPreview({ title: title });
+                            } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                setDeleteProjectModalPreview({ title: title });
+                            } else {
+                                try {
+                                    const deleteModalElFallback = document.getElementById('deleteProjectModal');
+                                    if (deleteModalElFallback) {
+                                        const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent');
+                                        if (contentElFallback) contentElFallback.innerHTML = '<div class="p-3"><h5>' + (title || 'Untitled Project') + '</h5></div>';
+                                    }
+                                } catch(_) {}
+                            }
+                            deleteModal.show();
+                            try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                        }
+                    });
+
+                    const confirmDeleteBtn = document.getElementById('confirmDeleteProjectBtn');
+                    if (confirmDeleteBtn) {
+                        confirmDeleteBtn.onclick = function () {
+                            $.ajax({
+                                url: appUrl + '/project/' + sourceId,
+                                type: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                success: function(response) {
+                                    // Remove card if present, otherwise refresh UI
+                                    try {
+                                        const cardEl = document.querySelector('[data-project-id="' + sourceId + '"]');
+                                        if (cardEl && cardEl.remove) cardEl.remove();
+                                    } catch(_) {}
+
+                                    try { deleteModal.hide(); } catch(_) {}
+
+                                    try { showFloatingAlert(response.message || 'Project deleted successfully', 'success', 2000); } catch(_) {}
+
+                                    try {
+                                        if (typeof refreshProjectListUI === 'function') {
+                                            refreshProjectListUI();
+                                        } else if (typeof window.refreshProjectListUI === 'function') {
+                                            window.refreshProjectListUI();
+                                        }
+                                    } catch(_) {}
+                                },
+                                error: function(xhr) {
+                                    console.error('Delete error:', xhr);
+                                    try { showFloatingAlert('Failed to delete project: ' + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000); } catch(_) {}
+                                }
+                            });
+                        };
+                    }
+                } catch(_) {}
+                try { portal.remove(); } catch(_) {}
+            } else if (text === 'Edit') {
+                // Allow event to bubble to the global Edit handler which performs AJAX and opens modal.
+                // Do not stop propagation and do not remove portal here.
             }
-        });
-    });
+        } catch(_) {}
+    }, true);
+
+    // Fallback: handle clicks on non-portal inline dropdown (if portal creation fails)
+    document.addEventListener('click', function(e){
+        try {
+            const item = e.target.closest('.dropdown-menu.dropdown-action .dropdown-item');
+            if (!item) return;
+            const text = (item.textContent || '').trim();
+
+            // Resolve project element/id first
+            const root = item.closest('[data-project-id]') || item.closest('.position-relative') || item.parentElement;
+            let sourceEl = root && (root.closest ? root.closest('[data-project-id]') : null);
+            if (!sourceEl && root && root.getAttribute && root.getAttribute('data-project-id')) sourceEl = root;
+            const sourceId = sourceEl && sourceEl.getAttribute ? sourceEl.getAttribute('data-project-id') : null;
+
+            if (text === 'Task') {
+                e.stopPropagation();
+                if (!sourceId) return;
+                try {
+                    if (typeof loadProjectTasks === 'function') {
+                        loadProjectTasks(sourceId);
+                    } else if (typeof window.loadProjectTasks === 'function') {
+                        window.loadProjectTasks(sourceId);
+                    }
+                } catch(_) {}
+                return;
+            } else if (text === 'Feedback') {
+                e.stopPropagation();
+                if (!sourceId) return;
+                try {
+                    const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                    if (projectFeedbackModalEl) projectFeedbackModalEl.setAttribute('data-project-id', sourceId);
+                    if (typeof loadFeedbackData === 'function') {
+                        loadFeedbackData(sourceId);
+                    } else if (typeof window.loadFeedbackData === 'function') {
+                        window.loadFeedbackData(sourceId);
+                    }
+                    try { const m = new bootstrap.Modal(projectFeedbackModalEl); m.show(); } catch(_) {}
+                } catch(_) {}
+                return;
+            } else if (text === 'Delete') {
+                e.stopPropagation();
+                if (!sourceId) return;
+                try {
+                    const deleteModalEl = document.getElementById('deleteProjectModal');
+                    if (!deleteModalEl) return;
+                    const deleteModal = new bootstrap.Modal(deleteModalEl);
+                    try { deleteModalEl.dataset.projectId = sourceId; } catch(_) {}
+                    try { deleteModalEl.dataset.cardId = sourceId; } catch(_) {}
+
+                    $.ajax({
+                        url: appUrl + '/project/' + sourceId,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            try {
+                                const project = response && response.data ? response.data : {};
+                                if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                    window.setDeleteProjectModalPreview(project);
+                                } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                    setDeleteProjectModalPreview(project);
+                                } else {
+                                    try {
+                                        const deleteModalElFallback = document.getElementById('deleteProjectModal');
+                                        if (deleteModalElFallback) {
+                                            const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent');
+                                            if (contentElFallback) contentElFallback.innerHTML = '<div class="p-3"><h5>' + (project.title || 'Untitled Project') + '</h5></div>';
+                                        }
+                                    } catch(_) {}
+                                }
+                            } catch(_) {}
+                            deleteModal.show();
+                            try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                        },
+                        error: function() {
+                            try {
+                                const titleEl = sourceEl ? sourceEl.querySelector('.title-project, .project-list-title') : null;
+                                const title = titleEl ? titleEl.textContent : '';
+                                if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                    window.setDeleteProjectModalPreview({ title: title });
+                                } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                    setDeleteProjectModalPreview({ title: title });
+                                } else {
+                                    try { const deleteModalElFallback = document.getElementById('deleteProjectModal'); if (deleteModalElFallback) { const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent'); if (contentElFallback) contentElFallback.innerHTML = '<div class="p-3"><h5>' + (title || 'Untitled Project') + '</h5></div>'; } } catch(_) {}
+                                }
+                            } catch(_) {}
+                            deleteModal.show();
+                        }
+                    });
+
+                    const confirmDeleteBtn = document.getElementById('confirmDeleteProjectBtn');
+                    if (confirmDeleteBtn) {
+                        confirmDeleteBtn.onclick = function () {
+                            $.ajax({
+                                url: appUrl + '/project/' + sourceId,
+                                type: 'DELETE',
+                                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                                success: function(response) {
+                                    try { const cardEl = document.querySelector('[data-project-id="' + sourceId + '"]'); if (cardEl && cardEl.remove) cardEl.remove(); } catch(_) {}
+                                    try { deleteModal.hide(); } catch(_) {}
+                                    try { showFloatingAlert(response.message || 'Project deleted successfully', 'success', 2000); } catch(_) {}
+                                    try { if (typeof refreshProjectListUI === 'function') { refreshProjectListUI(); } else if (typeof window.refreshProjectListUI === 'function') { window.refreshProjectListUI(); } } catch(_) {}
+                                },
+                                error: function(xhr) { console.error('Delete error:', xhr); try { showFloatingAlert('Failed to delete project: ' + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000); } catch(_) {} }
+                            });
+                        };
+                    }
+
+                } catch(_) {}
+                return;
+            }
+            if (text !== 'Detail') return;
+
+            // existing Detail handling below
+            e.stopPropagation();
+            if (!sourceId) return;
+            let projectTitle = 'Untitled Project';
+            try {
+                const titleEl = sourceEl.querySelector('.project-list-title');
+                if (titleEl && titleEl.textContent) projectTitle = titleEl.textContent.trim();
+            } catch(_) {}
+            const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g,'-').toLowerCase());
+            const base = (typeof appUrl !== 'undefined' ? appUrl : '');
+            const url = base + '/project/' + sourceId + '/' + urlTitle;
+            window.location.href = url;
+        } catch(_) {}
+    }, true);
 
     function updateProjectNavigationUI() {
         try {
@@ -2331,6 +2742,7 @@ document.addEventListener("DOMContentLoaded", function () {
             page: page,
             sort_by: sortBy,
             division_id: divisionId,
+            _ts: Date.now(), // cache-buster to ensure fresh data after edits
         };
         if (currentSearch && currentSearch.trim() !== "") {
             params.search = currentSearch.trim();
@@ -3048,27 +3460,28 @@ document.addEventListener("DOMContentLoaded", function () {
                                     e.preventDefault();
                                     e.stopPropagation();
 
-                                    // Find the project card container from the clicked dropdown item
-                                    const card = e.target.closest(".col-md-4");
-                                    if (!card) {
-                                        showFloatingAlert(
-                                            "Project card not found.",
-                                            "warning",
-                                            3000
-                                        );
+                                    let projectId = null;
+                                    try {
+                                        const portal = e.target.closest('.dropdown-portal');
+                                        if (portal) projectId = portal.getAttribute('data-source-id') || portal.dataset.sourceId || null;
+                                    } catch(_) {}
+                                    if (!projectId) {
+                                        const byData = e.target.closest('[data-project-id]');
+                                        if (byData) projectId = byData.getAttribute('data-project-id');
+                                    }
+                                    if (!projectId) {
+                                        const card = e.target.closest('.col-md-4');
+                                        if (card) projectId = card.getAttribute('data-project-id');
+                                    }
+                                    if (!projectId) {
+                                        showFloatingAlert('Project ID not found.', 'warning', 3000);
                                         return;
                                     }
 
-                                    const projectId =
-                                        card.getAttribute("data-project-id");
-                                    if (!projectId) {
-                                        showFloatingAlert(
-                                            "Project ID not found.",
-                                            "warning",
-                                            3000
-                                        );
-                                        return;
-                                    }
+                                    // Close any open dropdown portals before opening modal to avoid overlay conflicts
+                                    try {
+                                        document.querySelectorAll('.dropdown-portal').forEach(function(p){ p.remove(); });
+                                    } catch(_) {}
 
                                     // Fetch project data for editing
                                     $.ajax({
@@ -4013,6 +4426,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                         1500
                                     );
 
+                                    // Optimistically update titles in currently rendered UI (table list and cards)
+                                    try {
+                                        const newTitle = (document.getElementById('edit_title') && document.getElementById('edit_title').value) || '';
+                                        if (newTitle) {
+                                            // Update left table list items
+                                            document.querySelectorAll('[data-project-id="' + projectId + '"]').forEach(function(node){
+                                                try {
+                                                    // update list title text if present
+                                                    const t1 = node.querySelector('.project-list-title');
+                                                    if (t1) t1.textContent = newTitle;
+                                                    // update bottom cards title if present
+                                                    const t2 = node.querySelector('h6.title-project');
+                                                    if (t2) t2.textContent = newTitle;
+                                                    // update data attribute often used elsewhere
+                                                    try { node.setAttribute('data-project-title', newTitle); } catch(_) {}
+                                                    try { if (node.classList && node.classList.contains('project-list-item')) node.dataset.projectName = newTitle; } catch(_) {}
+                                                } catch(_) {}
+                                            });
+                                        }
+                                    } catch(_) {}
+
                                     // Close modal after short delay
                                     setTimeout(() => {
                                         var editProjectModalEl =
@@ -4025,7 +4459,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                             );
                                         if (editProjectModal)
                                             editProjectModal.hide();
-                                        loadProjectCardData(); // refresh project cards
+                                        try {
+                                            // Refresh whichever list is visible (table or cards)
+                                            if (typeof refreshProjectListUI === 'function') {
+                                                refreshProjectListUI();
+                                            } else if (typeof window.refreshProjectListUI === 'function') {
+                                                window.refreshProjectListUI();
+                                            } else {
+                                                loadProjectCardData(); // fallback
+                                            }
+                                        } catch(_) {
+                                            try { loadProjectCardData(); } catch(_) {}
+                                        }
                                         // Refresh project tree after update
                                         if (
                                             typeof window.refreshProjectTreePartial ===
@@ -7625,6 +8070,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             window.__inlineFeedbackImageFile = null;
                         } catch (_) {}
                     }
+
+                    // Expose to global so menu handlers can invoke it
+                    try { window.loadFeedbackData = loadFeedbackData; } catch(_) {}
 
                     // Function to show add feedback form
                     function showAddFeedbackForm(projectId) {
@@ -12009,6 +12457,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             },
                         });
                     }
+
+                    // Expose to global so other delegated handlers (outside this scope) can invoke it
+                    try { window.loadProjectTasks = loadProjectTasks; } catch(_) {}
 
                     // Reset footer button text and remove submit handler when modal is closed
                     const feedbackModalEl = document.getElementById(
@@ -18225,6 +18676,47 @@ function loadTimelineProjects(filter = null) {
         },
     });
 }
+
+// Expose table loader globally so other code can call it
+try { window.loadProjectTableList = loadProjectTableList; } catch(_) {}
+
+// Utility: refresh currently visible project list (cards or table)
+function refreshProjectListUI() {
+    try {
+        // If table list container is visible, refresh table
+        const tableContainer = document.getElementById('projectList');
+        if (tableContainer && tableContainer.offsetParent !== null) {
+            try {
+                // use current navigation parent if available
+                const parentId = (typeof projectNavigationState !== 'undefined' && projectNavigationState && projectNavigationState.currentParentId) ? projectNavigationState.currentParentId : null;
+                if (typeof loadProjectTableList === 'function') {
+                    loadProjectTableList(parentId, null, null);
+                    return;
+                } else if (typeof window.loadProjectTableList === 'function') {
+                    window.loadProjectTableList(parentId, null, null);
+                    return;
+                }
+            } catch(_) {}
+        }
+
+        // Fallback: refresh card view if visible
+        const cardsContainer = document.getElementById('all-cards-container') || document.getElementById('project-cards-container');
+        if (cardsContainer && cardsContainer.offsetParent !== null) {
+            if (typeof loadProjectCardData === 'function') {
+                loadProjectCardData();
+                return;
+            } else if (typeof window.loadProjectCardData === 'function') {
+                window.loadProjectCardData();
+                return;
+            }
+        }
+
+        // Last resort: try both
+        try { if (typeof loadProjectCardData === 'function') loadProjectCardData(); } catch(_) {}
+        try { if (typeof loadProjectTableList === 'function') loadProjectTableList(); } catch(_) {}
+    } catch (e) { console.warn('refreshProjectListUI error', e); }
+}
+try { window.refreshProjectListUI = refreshProjectListUI; } catch(_) {}
 
 function buildTimelineFromProjects(projects) {
     timelineData = [];
