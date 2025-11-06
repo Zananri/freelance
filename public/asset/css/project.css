@@ -375,6 +375,7 @@
     color: #3b3d42;
     line-height: 1.2;
     margin: 0 0 2px 0;
+    cursor: pointer;
 }
 
 .project-list-desc {
@@ -2479,10 +2480,6 @@
     display: inline-block;
     text-align: center;
     line-height: 1;
-}
-
-.status-new-request {
-    background-color: #ff9b2f;
 }
 
 .status-in-progress {
