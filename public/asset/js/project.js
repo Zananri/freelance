@@ -1594,23 +1594,34 @@ document.addEventListener("DOMContentLoaded", function () {
                             renderProjectTasksToPane(projectId);
                             const projectNameEl = document.getElementById('project-table-name');
                             if (projectNameEl) {
+                                projectNameEl.classList.remove('d-none');
+                                projectNameEl.style.display = 'block';
                                 projectNameEl.style.opacity = 0;
                                 setTimeout(() => {
                                     projectNameEl.textContent = projectName;
                                     projectNameEl.style.opacity = 1;
                                 }, 150);
                             }
-                            // Set header status from this item's badge and cache it
+
                             try {
                                 const badge = this.querySelector('.project-status-badge');
                                 if (badge) {
                                     setProjectHeaderStatusFromBadge(badge);
                                     const classes = Array.from(badge.classList || []);
                                     const statusClass = classes.find(c => /^status-/.test(c));
-                                    const key = statusClass ? statusClass.replace('status-','') : '';
+                                    const key = statusClass ? statusClass.replace('status-', '') : '';
                                     projectStatusCache[String(projectId)] = { key: key, label: (badge.textContent || '').trim() };
                                 }
-                            } catch(_) {}
+                            } catch (_) {}
+
+                            const projectNameElLink = document.getElementById('project-table-name');
+                            if (projectNameElLink) {
+                                projectNameElLink.style.cursor = 'pointer';
+                                projectNameElLink.onclick = function () {
+                                    const projectSlug = projectName.toLowerCase().replace(/\s+/g, '-');
+                                    window.location.href = appUrl + '/project/' + encodeURIComponent(projectId) + '/' + encodeURIComponent(projectSlug);
+                                };
+                            }
                         }
                     });
                 });
@@ -2280,7 +2291,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 const lmap = { completed: 'Completed', in_progress: 'In Progress', not_started: 'Not Started', late: 'Late' };
                 statusEl.textContent = lmap[key] || 'No Status';
             }
+
             statusEl.style.display = 'flex';
+            statusEl.classList.remove('d-none');
+            statusEl.style.opacity = 1;
         } catch(_) {}
     }
 
@@ -2687,6 +2701,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else if (status === 'finished') {
                     actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
                     actions.unshift({ label: 'Completed', action: 'completed' });
+                } else if (status === 'rejected') {
+                    actions.unshift({ label: 'Completed', action: 'completed' });
                 }
 
                 const portal = document.createElement('div');
@@ -2737,10 +2753,362 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     })();
 
+    const sectionMap = {
+        new_request: "new-request-tasks",
+        in_progress: "in-progress-tasks",
+        completed: "completed-tasks",
+        finished: "finished-tasks"
+    };
+
+    let bulkStatusOperationActive = false;
+    let bulkStatusSuppressRefresh = false;
+    let bulkStatusPendingCount = 0;
+    let bulkStatusCompletedCount = 0;
+    let bulkStatusExpectedCount = 0;
+    let bulkFinalStatusMessage = null;
+    let bulkFinalAlertShown = false;
+
+    function updateTaskStatus(taskId, newStatus, taskCard, extraFields) {
+        if (bulkStatusOperationActive) bulkStatusPendingCount++;
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: appUrl + "/task/" + taskId + "/status",
+                type: "PUT",
+                headers: {
+                    "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                },
+                data: Object.assign({ status: newStatus }, (extraFields || {})),
+                success: function (response) {
+                    const oldStatus = (taskCard && taskCard.getAttribute('data-task-status')) || null;
+                    try {
+                        if (taskCard) {
+                            const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                                const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                                if (tooltipInstance) tooltipInstance.dispose();
+                            });
+                            taskCard.remove();
+                        }
+                    } catch(_) {}
+
+                    if (!bulkStatusSuppressRefresh) {
+                        (function insertUpdatedTask() {
+                            $.ajax({
+                                url: appUrl + '/task/' + taskId,
+                                type: 'GET',
+                                dataType: 'json'
+                            }).done(function(res) {
+                                const t = (res && (res.data || res)) || null;
+                                if (!t) { try { renderProjectTasksToPane(); } catch(_) {} return; }
+
+                                const destKey = (String(newStatus || '').toLowerCase().includes('reject')) ? 'in_progress' : String(newStatus || '').toLowerCase();
+                                const destContainerId = sectionMap[destKey] || sectionMap['in_progress'];
+                                const destContainer = document.getElementById(destContainerId);
+
+                                try { document.querySelectorAll('.custom-card[data-task-id="' + taskId + '"]').forEach(n => n.remove()); } catch(_) {}
+
+                                if (destContainer) {
+                                    try {
+                                        const normalized = Object.assign({}, t);
+                                        normalized.project_title = (t.project && t.project.title) ? t.project.title : (t.project_title || '');
+                                        normalized.project_id = (t.project && t.project.id) ? t.project.id : (t.project_id || null);
+                                        normalized.project_image = (t.project && t.project.image) ? t.project.image : (t.project_image || null);
+                                        normalized.pic = t.pic || normalized.pic || null;
+                                        normalized.executors = Array.isArray(t.executors) ? t.executors : (normalized.executors || []);
+                                        normalized.feedback_comments_count = t.feedback_comments_count || normalized.feedback_comments_count || 0;
+                                        normalized.reference_files_count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0));
+
+                                        const clientMap = window.__clientArchivedTasks || new Map();
+                                        const idKey = String(normalized.id || normalized.task_id || '');
+                                        if (idKey && clientMap && clientMap.has(idKey)) {
+                                            if (!(__isCompletedOlderThanDaysGlobal(normalized, 90))) {
+                                                clientMap.delete(idKey);
+                                            }
+                                        }
+
+                                        destContainer.insertAdjacentHTML('afterbegin', createTaskCard(normalized));
+                                    } catch (e) {
+                                        try { renderProjectTasksToPane(); } catch(_) {}
+                                        return;
+                                    }
+                                } else {
+                                    try { renderProjectTasksToPane(); } catch(_) {}
+                                    return;
+                                }
+
+                                try {
+                                    ['new_request','in_progress','completed','finished'].forEach(k => {
+                                        if (allTasksCache[k] && Array.isArray(allTasksCache[k].tasks)) {
+                                            allTasksCache[k].tasks = allTasksCache[k].tasks.filter(x => String(x.id) !== String(taskId));
+                                        }
+                                    });
+                                    if (!allTasksCache[destKey]) allTasksCache[destKey] = { tasks: [], pagination: {} };
+                                    if (allTasksCache[destKey] && Array.isArray(allTasksCache[destKey].tasks)) {
+                                        allTasksCache[destKey].tasks.unshift(t);
+                                    }
+                                } catch(_) {}
+
+                                try { ensureRejectedCardsPlaced(); } catch(_) {}
+                                try { initBootstrapTooltips(destContainer); addAttachFileIconListeners(); scheduleRefreshLatestFeedbackSnippets(); } catch(_) {}
+                            }).fail(function() {
+                                try { renderProjectTasksToPane(); } catch(_) {}
+                            });
+                        })();
+                    }
+
+                    try {
+                        const mobileStatusSel = document.getElementById('taskStatusSelect');
+                        if (mobileStatusSel) {
+                            const currentMobileStatus = mobileStatusSel.value;
+                            const destStatus = String(newStatus);
+                            const sourceStatus = oldStatus ? String(oldStatus).toLowerCase() : null;
+                            const needsRefreshCurrent = (currentMobileStatus === destStatus) || (sourceStatus && currentMobileStatus === sourceStatus);
+                            const statusesToRefresh = new Set();
+                            if (sourceStatus) statusesToRefresh.add(sourceStatus);
+                            statusesToRefresh.add(destStatus);
+                            statusesToRefresh.forEach(st => {
+                                if (typeof mobileState !== 'undefined') {
+                                    const prevActive = (st === currentMobileStatus);
+                                    mobileState.page = 1; mobileState.last = 1; mobileState.status = prevActive ? currentMobileStatus : st;
+                                }
+                                try { fetchMobileTasks(st, 1, false, { prefetch: true }); } catch(_) {}
+                            });
+                            if (typeof mobileState !== 'undefined') mobileState.status = currentMobileStatus;
+                            if (needsRefreshCurrent) {
+                                try { const list = document.getElementById('mobile-task-list'); if (list) list.scrollTop = 0; } catch(_) {}
+                            }
+                        }
+                    } catch(_) {}
+
+                    if (bulkStatusOperationActive) {
+                        bulkStatusCompletedCount++;
+                        if (!bulkFinalStatusMessage) bulkFinalStatusMessage = response.message || 'Task status updated successfully';
+                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
+                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
+                            bulkFinalAlertShown = true;
+                            renderProjectTasksToPane();
+                            showFloatingAlert(bulkFinalStatusMessage, 'success');
+                            bulkStatusPendingCount = 0;
+                            bulkStatusCompletedCount = 0;
+                            bulkStatusExpectedCount = 0;
+                            bulkFinalStatusMessage = null;
+                        }
+                    } else {
+                        showFloatingAlert(response.message || 'Task status updated successfully', 'success');
+                    }
+
+                    resolve();
+                },
+                error: function (xhr) {
+                    let errorMessage = "Failed to update task status.";
+                    if (xhr.responseJSON && xhr.responseJSON.message) errorMessage = xhr.responseJSON.message;
+                    if (xhr.responseJSON && xhr.responseJSON.errors) errorMessage = Object.values(xhr.responseJSON.errors).join(", ");
+                    showFloatingAlert(errorMessage, "danger");
+                    if (bulkStatusOperationActive) {
+                        bulkStatusCompletedCount++;
+                        const totalExpected = bulkStatusExpectedCount || bulkStatusPendingCount;
+                        if (!bulkFinalAlertShown && totalExpected > 0 && bulkStatusCompletedCount === totalExpected) {
+                            bulkFinalAlertShown = true;
+                            if (!bulkFinalStatusMessage) bulkFinalStatusMessage = 'Bulk update finished (with some errors)';
+                            renderProjectTasksToPane();
+                        }
+                    }
+                    reject(errorMessage);
+                },
+            });
+        });
+    }
+
+    function showConfirmationToCompleteModal(taskId, taskCard) {
+        $.ajax({ url: appUrl + '/task/' + taskId, type: 'GET', dataType: 'json' })
+        .done(function(res){
+            const t = (res && (res.data || res)) || {};
+            const modalId = 'confirmation-to-complete';
+            try { const existing = document.getElementById(modalId); if (existing) existing.remove(); } catch(_){}
+            const modalHtml = `
+            <div class="modal fade" id="${modalId}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content modal-content-custom">
+                        <div class="modal-loading-overlay d-none" id="confirmationToCompleteLoader">
+                            <div class="loader-spinner"></div>
+                        </div>
+                        <div class="modal-header modal-header-custom">
+                            <h5 class="modal-title modal-title-custom" id="${modalId}Label">Complete Task</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <form id="confirmationToCompleteForm" enctype="multipart/form-data">
+                            <div class="modal-body modal-body-custom">
+                                <div class="mb-3 custom-input">
+                                    <label class="form-label label-custom">Complete Note (required)</label>
+                                    <div id="complete_note_editor" style="min-height:120px; background:#fff; border:1px solid #e3e6ee; border-radius:6px;"></div>
+                                    <textarea class="form-control input-text d-none" id="complete_note" name="complete_note" rows="4"></textarea>
+                                </div>
+                                <div class="mb-3 custom-input">
+                                    <label class="form-label label-custom">Complete URLs (optional)</label>
+                                    <div id="complete_reference_urls_container" class="d-flex flex-column gap-2">
+                                        <div class="input-group">
+                                            <input type="url" name="complete_urls[]" placeholder="https://example.com" class="form-control input-text">
+                                            <button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL">
+                                                <span class="material-symbols-outlined">add</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-3 custom-input">
+                                    <label class="form-label label-custom" for="complete_files">Complete Files (optional)</label>
+                                    <input type="file" class="form-control input-text" id="complete_files" name="complete_files[]" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                    <div class="form-text">Multiple files supported.</div>
+                                    <div id="complete_files_preview" class="mt-2"></div>
+                                </div>
+                            </div>
+                            <div class="modal-footer modal-footer-custom">
+                                <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                <button type="button" class="btn btn-submit-black" id="confirmCompleteBtn">Submit</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const mEl = document.getElementById(modalId);
+            const modal = new bootstrap.Modal(mEl);
+            modal.show();
+            mEl.addEventListener('hidden.bs.modal', function onHide(){ mEl.removeEventListener('hidden.bs.modal', onHide); try { mEl.remove(); } catch(_){} });
+            window.__quillComplete = new Quill('#complete_note_editor', { theme: 'snow', modules: { toolbar: false } });
+            mEl.addEventListener('click', function(ev){
+                const addBtn = ev.target.closest('.add-ref-url');
+                if (addBtn) {
+                    const container = document.getElementById('complete_reference_urls_container');
+                    if (!container) return;
+                    const row = document.createElement('div');
+                    row.className = 'input-group';
+                    const input = document.createElement('input'); input.type = 'url'; input.name = 'complete_urls[]'; input.placeholder = 'https://example.com'; input.className = 'form-control input-text';
+                    const rm = document.createElement('button'); rm.type = 'button'; rm.className = 'btn btn-remove-url remove-ref-url'; rm.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                    row.appendChild(input); row.appendChild(rm);
+                    addBtn.closest('.input-group').after(row);
+                    return;
+                }
+                const rmBtn = ev.target.closest('.remove-ref-url');
+                if (rmBtn) {
+                    const row = rmBtn.closest('.input-group'); if (row) row.remove();
+                    return;
+                }
+            });
+    
+            const fileInput = mEl.querySelector('#complete_files');
+            const preview = mEl.querySelector('#complete_files_preview');
+            const submitBtn = mEl.querySelector('#confirmCompleteBtn');
+            let selectedFiles = [];
+    
+            if (fileInput && preview) {
+                fileInput.addEventListener('change', function (e) {
+                    const newFiles = Array.from(e.target.files || []);
+                    selectedFiles = selectedFiles.concat(newFiles);
+                    renderFilePreview();
+                    fileInput.value = '';
+                });
+    
+                function renderFilePreview() {
+                    preview.innerHTML = '';
+                    if (!selectedFiles.length) {
+                        preview.innerHTML = '<div class="text-muted small"><em>No files selected</em></div>';
+                        return;
+                    }
+                    selectedFiles.forEach((file, idx) => {
+                        const div = document.createElement('div');
+                        div.className = 'd-flex align-items-center justify-content-between bg-light rounded px-2 py-1 mb-1';
+                        div.style.fontSize = '12px';
+                        div.innerHTML = `
+                            <div class="text-truncate me-2">
+                                ${escapeHtml(file.name)} 
+                                <small class="text-muted">(${formatBytes(file.size)})</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-link text-secondary p-0 remove-file" data-index="${idx}">
+                                <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+                            </button>
+                        `;
+                        preview.appendChild(div);
+                    });
+                    preview.querySelectorAll('.remove-file').forEach(btn => {
+                        btn.addEventListener('click', function () {
+                            const idx = parseInt(this.dataset.index);
+                            selectedFiles.splice(idx, 1);
+                            renderFilePreview();
+                        });
+                    });
+                }
+    
+                submitBtn.addEventListener('click', function () {
+                    let noteHtml = '';
+                    try { 
+                        noteHtml = (window.__quillComplete && typeof window.__quillComplete.root !== 'undefined') ? window.__quillComplete.root.innerHTML.trim() : ''; 
+                    } catch(_) { noteHtml = ''; }
+
+                    const plain = (noteHtml || '').replace(/<(.|\n)*?>/g, '').trim();
+                    if (!plain) {
+                        showFloatingAlert('Complete note is required.', 'warning');
+                        try { window.__quillComplete.focus(); } catch(_){}
+                        return;
+                    }
+
+                    submitBtn.disabled = true; 
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Submitting...';
+
+                    const fd = new FormData();
+                    fd.append('_method','PUT');
+                    fd.append('status','completed');
+                    fd.append('complete_note', noteHtml);
+
+                    const urlInputs = Array.from(mEl.querySelectorAll('input[name="complete_urls[]"]'));
+                    const urls = urlInputs.map(i => (i.value||'').trim()).filter(Boolean);
+                    if (urls.length) fd.append('complete_urls', JSON.stringify(urls));
+
+                    selectedFiles.forEach(f => fd.append('complete_files[]', f));
+
+                    fetch(appUrl + '/task/' + taskId + '/status', {
+                        method: 'POST',
+                        headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
+                        body: fd,
+                        credentials: 'same-origin'
+                    }).then(function(r){
+                        return r.ok ? r.json() : r.json().then(Promise.reject);
+                    }).then(function(json){
+                        try { modal.hide(); } catch(_){}
+                        showFloatingAlert(json.message || 'Task marked as completed.', 'success');
+                        try { if (taskCard && taskCard.parentNode) taskCard.parentNode.removeChild(taskCard); } catch(_){}
+                        
+                        // Refresh daftar task
+                        try { if (typeof renderProjectTasksToPane === 'function') renderProjectTasksToPane(); } catch(_){}
+                    }).catch(function(err){
+                        let msg = 'Failed to mark task as completed.';
+                        try { if (err && err.message) msg = err.message; } catch(_){}
+                        showFloatingAlert(msg, 'danger');
+                    }).finally(function(){ 
+                        submitBtn.disabled = false; 
+                        submitBtn.innerHTML = 'Submit'; 
+                    });
+                });
+
+            }
+        }).fail(function(){
+            showFloatingAlert('Failed to load task details.', 'danger');
+        });
+    }
+    
+    window.handleTaskAction = function(taskId, action) {
+        const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+
+        if (action === 'completed') {
+            showConfirmationToCompleteModal(taskId, taskCard);
+        } else {
+            updateTaskStatus(taskId, action, taskCard);
+        }
+    };
+
     document.addEventListener('click', function (e) {
         const titleEl = e.target.closest('.project-task-title');
         if (!titleEl) return;
-
+        
         e.stopPropagation();
 
         const taskId = titleEl.dataset.taskId || titleEl.getAttribute('data-task-id');
