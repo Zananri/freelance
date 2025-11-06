@@ -1597,6 +1597,8 @@ document.addEventListener("DOMContentLoaded", function () {
                                 projectNameEl.classList.remove('d-none');
                                 projectNameEl.style.display = 'block';
                                 projectNameEl.style.opacity = 0;
+                                // Store project ID in dataset for later retrieval
+                                projectNameEl.dataset.projectId = projectId;
                                 setTimeout(() => {
                                     projectNameEl.textContent = projectName;
                                     projectNameEl.style.opacity = 1;
@@ -2446,6 +2448,13 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const pane = document.getElementById('projectTasksPane');
             const totalEl = document.getElementById('projects-total-tasks');
+            const projectNameEl = document.getElementById('project-table-name');
+            
+            // Store current project ID for later retrieval (e.g., after edit task)
+            if (projectNameEl && projectId) {
+                projectNameEl.dataset.projectId = projectId;
+            }
+            
             if (!pane) return;
             pane.innerHTML = `
                 <div class="text-center">
@@ -2454,11 +2463,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     </div>
                 </div>
             `;
+            
+            // Add cache buster to ensure fresh data
+            const cacheBuster = '?_=' + new Date().getTime();
+            
             // Fetch tasks for the project
             $.ajax({
-                url: appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks",
+                url: appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks" + cacheBuster,
                 type: 'GET',
-                dataType: 'json'
+                dataType: 'json',
+                cache: false, // Disable jQuery cache
+                headers: {
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
+                }
             }).done(function(response){
                 const tasks = (response && response.data) ? response.data : (Array.isArray(response) ? response : []);
                 // Update total tasks header
@@ -20073,6 +20092,56 @@ function refreshProjectListUI() {
 }
 try { window.refreshProjectListUI = refreshProjectListUI; } catch(_) {}
 
+    // Utility: refresh currently visible task list for the selected project (parity with project refresh)
+    function refreshTaskListUI(projectIdHint) {
+        try {
+            // Prefer explicit hint if provided
+            let projectId = projectIdHint || null;
+
+            // Try to read from the header element where we persist selection
+            if (!projectId) {
+                const projectNameEl = document.getElementById('project-table-name');
+                if (projectNameEl && projectNameEl.dataset && projectNameEl.dataset.projectId) {
+                    projectId = projectNameEl.dataset.projectId;
+                }
+            }
+
+            // Fallback: detect active project in left list
+            if (!projectId) {
+                const active = document.querySelector('.project-list-item.active');
+                if (active) projectId = active.getAttribute('data-project-id') || active.dataset.projectId;
+            }
+
+            // If still unknown, abort silently
+            if (!projectId) return;
+
+            // If the tasks pane is visible, refresh it
+            const pane = document.getElementById('projectTasksPane');
+            if (pane && pane.offsetParent !== null) {
+                try {
+                    if (typeof renderProjectTasksToPane === 'function') {
+                        renderProjectTasksToPane(projectId);
+                    } else if (typeof window.renderProjectTasksToPane === 'function') {
+                        window.renderProjectTasksToPane(projectId);
+                    }
+                } catch (_) {}
+            }
+
+            // Also refresh the left project list to keep task counts/status in sync
+            try {
+                const parentId = (typeof projectNavigationState !== 'undefined' && projectNavigationState && projectNavigationState.currentParentId) ? projectNavigationState.currentParentId : null;
+                if (typeof loadProjectTableList === 'function') {
+                    loadProjectTableList(parentId, null, null);
+                } else if (typeof window.loadProjectTableList === 'function') {
+                    window.loadProjectTableList(parentId, null, null);
+                }
+            } catch (_) {}
+        } catch (e) {
+            console.warn('refreshTaskListUI error', e);
+        }
+    }
+    try { window.refreshTaskListUI = refreshTaskListUI; } catch(_) {}
+
 function buildTimelineFromProjects(projects) {
     timelineData = [];
     if (!Array.isArray(projects)) return;
@@ -21199,21 +21268,73 @@ document.addEventListener("DOMContentLoaded", function () {
                 success: function(response) {
                     if (loader) loader.classList.add('d-none');
                     
+                    console.log('Task update response:', response);
+                    
                     showFloatingAlert(response.message || 'Task updated successfully', 'success');
                     
-                    // Close modal
+                    // Optimistically update any visible task card fields in place for immediate feedback
+                    try {
+                        const tId = String(document.getElementById('edit_task_id')?.value || '');
+                        if (tId) {
+                            const cardTitle = document.querySelector('.project-task-title[data-task-id="' + tId + '"]');
+                            const cardRoot = cardTitle ? cardTitle.closest('.project-task-card') : null;
+                            if (cardRoot) {
+                                const newTitle = document.getElementById('edit_task_title')?.value || '';
+                                if (cardTitle && newTitle) cardTitle.textContent = newTitle;
+                                // Priority
+                                try {
+                                    const prioVal = document.getElementById('edit_task_priority')?.value || '';
+                                    if (prioVal) {
+                                        const pEl = cardRoot.querySelector('.project-task-priority-value');
+                                        if (pEl) pEl.textContent = prioVal;
+                                    }
+                                } catch(_){}
+                                // Dates
+                                try {
+                                    const sd = document.getElementById('edit_task_start_date')?.value || '';
+                                    const dd = document.getElementById('edit_task_due_date')?.value || '';
+                                    const dEl = cardRoot.querySelector('.project-task-dates');
+                                    function fmt(d){ if(!d) return ''; try{ const dt = new Date(d); const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()]; return dt.getDate() + ' ' + m + ' ' + String(dt.getFullYear()).slice(-2);} catch(_){ return d; } }
+                                    const line = sd && dd ? (fmt(sd) + ' - ' + fmt(dd)) : (sd ? fmt(sd) : (dd ? fmt(dd) : ''));
+                                    if (dEl) dEl.textContent = line;
+                                } catch(_){}
+
+                                // Small highlight to indicate update
+                                try { cardRoot.classList.add('updated-blink'); setTimeout(() => cardRoot.classList.remove('updated-blink'), 800); } catch(_){}
+                            }
+                        }
+                    } catch(_){}
+                    
+                    // Close modal first
                     const modalEl = document.getElementById('editTaskModal');
                     if (modalEl) {
                         const modal = bootstrap.Modal.getInstance(modalEl);
-                        if (modal) modal.hide();
+                        if (modal) {
+                            modal.hide();
+                        }
                     }
 
-                    // Refresh task list
-                    try {
-                        if (typeof renderProjectTasksToPane === 'function') {
-                            renderProjectTasksToPane();
+                    // Refresh the task list immediately after modal hide (parity with project refresh)
+                    // Prefer passing an explicit projectId hint if available, otherwise the refresher will infer it
+                    let projectIdHint = null;
+                    const projectIdInput = document.getElementById('edit_task_project_id');
+                    if (projectIdInput && projectIdInput.value) projectIdHint = projectIdInput.value;
+                    if (!projectIdHint && response && response.data && response.data.project_id) projectIdHint = response.data.project_id;
+
+                    setTimeout(function(){
+                        if (typeof refreshTaskListUI === 'function') {
+                            refreshTaskListUI(projectIdHint);
+                        } else if (typeof window.refreshTaskListUI === 'function') {
+                            window.refreshTaskListUI(projectIdHint);
+                        } else {
+                            // Fallback to direct pane render
+                            try {
+                                const projectNameEl = document.getElementById('project-table-name');
+                                const pid = projectIdHint || (projectNameEl && projectNameEl.dataset && projectNameEl.dataset.projectId) || null;
+                                if (pid && typeof renderProjectTasksToPane === 'function') renderProjectTasksToPane(pid);
+                            } catch(_) {}
                         }
-                    } catch(_) {}
+                    }, 300);
                 },
                 error: function(xhr) {
                     if (loader) loader.classList.add('d-none');
