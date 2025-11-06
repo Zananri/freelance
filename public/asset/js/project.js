@@ -2484,6 +2484,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (totalEl) {
                     totalEl.textContent = `${tasks.length} Total ${tasks.length === 1 ? 'task' : 'tasks'}`;
                     totalEl.classList.remove('d-none');
+                    try { totalEl.dataset.totalCount = String(tasks.length); } catch(_) {}
                 }
                 if (!tasks || tasks.length === 0) {
                     pane.innerHTML = '<div class="text-center text-muted">No tasks found for this project.</div>';
@@ -2520,8 +2521,20 @@ document.addEventListener("DOMContentLoaded", function () {
                         avatarHtml = `<div class="project-task-initials" style="background:${bg}">${init}</div>`;
                     }
                     
-                    // Status badge
-                    const status = (task.visual_status || task.status || 'not-started').toLowerCase().replace(/\s+/g, '-');
+                    // Status normalize for badge and filter keys
+                    const statusRaw = (task.status || task.visual_status || 'not_started');
+                    const statusKey = (function(s){
+                        if (!s) return 'not_started';
+                        let k = String(s).toLowerCase().replace(/\s+/g,'_').replace(/-/g,'_');
+                        if (k === 'ongoing' || k === 'not_started' || k === 'newrequest' || k === 'new__request') k = 'new_request';
+                        if (k.indexOf('progress') !== -1) k = 'in_progress';
+                        else if (k.indexOf('finish') !== -1) k = 'finished';
+                        else if (k.indexOf('reject') !== -1) k = 'rejected';
+                        else if (k.indexOf('complete') !== -1) k = 'completed';
+                        else if (k.indexOf('late') !== -1) k = 'late';
+                        return k;
+                    })(statusRaw);
+                    const status = statusKey.replace(/_/g,'-');
                     const statusLabel = (() => {
                         const s = String(status);
                         if (s.includes('complete')) return 'Complete';
@@ -2535,6 +2548,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     
                     // Priority
                     const priority = task.priority || 'Normal';
+                    const priorityKey = String(priority).toLowerCase();
                     const priorityHtml = `<div class="project-task-priority"><span class="project-task-priority-label">Priority :</span> <span class="project-task-priority-value">${escapeHtml(priority)}</span></div>`;
                     
                     // Dates
@@ -2623,7 +2637,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     
                     // Build card
                     html += `
-                    <div class="project-task-card d-flex">
+                    <div class="project-task-card d-flex" data-task-id="${task.id}" data-task-status="${statusKey}" data-task-priority="${priorityKey}">
                         <div class="flex-shrink-0">
                             ${avatarHtml}
                         </div>
@@ -2679,6 +2693,13 @@ document.addEventListener("DOMContentLoaded", function () {
                         window.filterProjectTasks();
                     }
                 } catch (_) {}
+
+                // Apply status/priority filters if any
+                try {
+                    if (typeof window.applyTaskFilters === 'function') {
+                        window.applyTaskFilters();
+                    }
+                } catch(_) {}
             }).fail(function(){
                 if (totalEl) totalEl.classList.add('d-none');
                 pane.innerHTML = '<div class="text-center text-danger">Failed to load tasks. Try again.</div>';
@@ -21136,7 +21157,8 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
-        const TASK_SEARCH_HIDDEN_CLASS = 'task-search-hidden';
+    const TASK_SEARCH_HIDDEN_CLASS = 'task-search-hidden';
+    const TASK_FILTER_HIDDEN_CLASS = 'task-filter-hidden';
 
         // Function to filter/search tasks
         function filterTasks(searchTerm) {
@@ -21174,7 +21196,59 @@ document.addEventListener("DOMContentLoaded", function () {
                 message.textContent = 'No tasks found matching your search.';
                 container.appendChild(message);
             }
+
+            // Recompute final visibility (combine search + status/priority filters)
+            try { if (typeof window.applyTaskFilters === 'function') window.applyTaskFilters(); } catch(_) {}
         }
+
+        // Apply status/priority filters for the task list
+        function applyTaskFilters() {
+            const container = document.getElementById('projectTasksPane');
+            if (!container) return;
+            const items = container.querySelectorAll('.project-task-card');
+            if (!items.length) return;
+
+            // Read current filter selections
+            const statusSel = document.getElementById('filterStatusTaskList');
+            const prioritySel = document.getElementById('filterPriorityTaskList');
+            let statusFilter = (statusSel && statusSel.value) ? String(statusSel.value).toLowerCase() : '';
+            let priorityFilter = (prioritySel && prioritySel.value) ? String(prioritySel.value).toLowerCase() : '';
+
+            // Normalize status option mapping (UI uses 'ongoing' for New Request)
+            if (statusFilter === 'ongoing') statusFilter = 'new_request';
+
+            let visibleCount = 0;
+            items.forEach(function(item){
+                try {
+                    const itemStatus = (item.getAttribute('data-task-status') || '').toLowerCase();
+                    const itemPriority = (item.getAttribute('data-task-priority') || '').toLowerCase();
+
+                    const statusMatches = !statusFilter || statusFilter === '' || itemStatus === statusFilter;
+                    const priorityMatches = !priorityFilter || priorityFilter === '' || itemPriority === priorityFilter;
+
+                    const passesFilter = statusMatches && priorityMatches;
+                    if (passesFilter) item.classList.remove(TASK_FILTER_HIDDEN_CLASS);
+                    else item.classList.add(TASK_FILTER_HIDDEN_CLASS);
+
+                    // Final visibility combines search hidden + filter hidden
+                    const hidden = item.classList.contains(TASK_SEARCH_HIDDEN_CLASS) || item.classList.contains(TASK_FILTER_HIDDEN_CLASS);
+                    // Use Bootstrap d-none (with !important) and hidden attribute to override any display:flex !important rules
+                    item.classList.toggle('d-none', hidden);
+                    try { item.toggleAttribute('hidden', hidden); } catch(_) {}
+                    if (!hidden) visibleCount++;
+                } catch(_) {}
+            });
+
+            // Update header count to reflect visible items
+            try {
+                const totalEl = document.getElementById('projects-total-tasks');
+                if (totalEl) {
+                    const totalCount = parseInt(totalEl.dataset.totalCount || '0', 10);
+                    totalEl.textContent = `${visibleCount} Total ${visibleCount === 1 ? 'task' : 'tasks'}`;
+                }
+            } catch(_) {}
+        }
+        window.applyTaskFilters = applyTaskFilters;
 
         function getTasksSearchInput() {
             const th = document.getElementById('projects-total-tasks')?.closest('th');
@@ -21237,6 +21311,14 @@ document.addEventListener("DOMContentLoaded", function () {
                 } else if (context === 'tasks') {
                     filterTasks('');
                 }
+            }
+        });
+
+        // Bind filter dropdown changes for the task list (status/priority)
+        document.addEventListener('change', function(e){
+            const id = e.target && e.target.id;
+            if (id === 'filterStatusTaskList' || id === 'filterPriorityTaskList') {
+                try { applyTaskFilters(); } catch(_) {}
             }
         });
 
