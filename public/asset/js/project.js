@@ -1719,6 +1719,23 @@ document.addEventListener("DOMContentLoaded", function () {
                             currentParentTitle: projectTitle,
                             currentParentParentId: projectParentId
                         };
+                        // Set the visible status text using the parent card's status badge (if available)
+                        try {
+                            const parentItem = this.closest('.project-list-item');
+                            const statusEl = document.getElementById('project-table-status');
+                            const badge = parentItem && parentItem.querySelector('.project-status-badge');
+                            if (statusEl) {
+                                if (badge && badge.textContent && badge.textContent.trim() !== '') {
+                                    statusEl.textContent = badge.textContent.trim();
+                                    statusEl.style.display = 'flex';
+                                } else {
+                                    // fallback: show default if not found
+                                    statusEl.textContent = 'No Status';
+                                    statusEl.style.display = 'flex';
+                                }
+                            }
+                        } catch (e) { /* ignore */ }
+
                         updateProjectNavigationUI();
                         loadProjectTableList(projectId, projectTitle, projectParentId);
                     }
@@ -1756,6 +1773,22 @@ document.addEventListener("DOMContentLoaded", function () {
                         window.projectNavigationState = window.projectNavigationState || {};
                         projectNavigationState.currentParentId = projectId;
                         projectNavigationState.currentParentTitle = projectName;
+
+                        // Update status display from card if available
+                        try {
+                            const parentItem = link.closest('.project-list-item');
+                            const badge = parentItem && parentItem.querySelector('.project-status-badge');
+                            const statusEl = document.getElementById('project-table-status');
+                            if (statusEl) {
+                                if (badge && badge.textContent && badge.textContent.trim() !== '') {
+                                    statusEl.textContent = badge.textContent.trim();
+                                    statusEl.style.display = 'flex';
+                                } else {
+                                    statusEl.textContent = 'No Status';
+                                    statusEl.style.display = 'flex';
+                                }
+                            }
+                        } catch (_) {}
 
                         document.querySelectorAll('.project-list-item').forEach(item => {
                             item.classList.remove('active');
