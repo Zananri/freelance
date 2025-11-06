@@ -1522,16 +1522,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                             <button class="btn btn-sm border-0 p-0 project-menu-btn">
                                                 <span class="material-symbols-outlined project-table-menu">more_vert</span>
                                             </button>
-                                            <div class="project-menu filter-menu shadow-sm rounded-2 d-none">
-                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1">
-                                                    <span class="material-symbols-outlined align-middle me-1">edit</span> Edit
-                                                </button>
-                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1">
-                                                    <span class="material-symbols-outlined align-middle me-1">info</span> Detail
-                                                </button>
-                                                <button class="dropdown-item btn btn-sm w-100 text-start py-1 text-danger">
-                                                    <span class="material-symbols-outlined align-middle me-1">delete</span> Delete
-                                                </button>
+                                            <div class="dropdown-menu dropdown-action d-none">
+                                                <div class="dropdown-item">Detail</div>
+                                                <div class="dropdown-item">Task</div>
+                                                <div class="dropdown-item">Feedback</div>
+                                                <div class="dropdown-item">Edit</div>
+                                                <div class="dropdown-item text-danger delete-project">Delete</div>
                                             </div>
                                         </div>
                                     </div>
@@ -1618,24 +1614,103 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     }
 
-    // Button Project Menu
-    document.addEventListener('DOMContentLoaded', function() {
-        const btn = document.querySelector('.project-menu-btn');
-        const menu = document.querySelector('.project-menu');
+    // Delegated Project Menu handling - works for dynamic list items
+    (function bindProjectMenuDelegation() {
+        // Toggle menu when clicking the menu button, or via keyboard (Enter/Space)
+        document.addEventListener('click', function (e) {
+            try {
+                const btn = e.target.closest('.project-menu-btn');
+                if (btn) {
+                    e.preventDefault();
+                    e.stopPropagation();
 
-        if (!btn || !menu) return;
+                    // Close other open menus first (support both legacy .project-menu and dropdown-menu dropdown-action)
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action').forEach(function(m){
+                        if (!m.classList.contains('d-none')) m.classList.add('d-none');
+                    });
 
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            menu.classList.toggle('d-none');
-        });
+                    // Find the menu associated with this button (same position-relative wrapper)
+                    const wrapper = btn.closest('.position-relative') || btn.parentElement;
+                    const menu = wrapper && (wrapper.querySelector('.project-menu') || wrapper.querySelector('.dropdown-menu.dropdown-action'));
+                    if (menu) {
+                        // Create a portal copy appended to body so dropdown doesn't enlarge/scroll the table container
+                        try {
+                            // If a portal for this button already exists, remove it (toggle off)
+                            const existing = document.querySelector('.dropdown-portal[data-source-id="' + (wrapper.getAttribute('data-project-id') || '') + '"]');
+                            if (existing) {
+                                existing.remove();
+                                return;
+                            }
 
-        document.addEventListener('click', function(e) {
-            if (!menu.contains(e.target) && !btn.contains(e.target)) {
-                menu.classList.add('d-none');
-            }
-        });
-    });
+                            // Clone menu into portal
+                            const portal = menu.cloneNode(true);
+                            portal.classList.add('dropdown-portal');
+                            // mark source so we can remove specific portals later
+                            try { portal.setAttribute('data-source-id', String(wrapper.getAttribute('data-project-id') || '')); } catch(_) {}
+                            // reset any display classes and show
+                            portal.classList.remove('d-none');
+                            portal.style.position = 'fixed';
+                            portal.style.zIndex = 9999;
+                            portal.style.minWidth = menu.offsetWidth ? (menu.offsetWidth + 'px') : '';
+
+                            document.body.appendChild(portal);
+
+                            // position the portal under the button, adjust to viewport edges
+                            const rect = btn.getBoundingClientRect();
+                            const pad = 8;
+                            let top = rect.bottom + pad;
+                            let left = rect.left;
+                            // if portal would overflow right edge, shift left
+                            const portalRectApproxWidth = portal.offsetWidth || 200;
+                            if (left + portalRectApproxWidth > window.innerWidth - 8) {
+                                left = Math.max(8, window.innerWidth - portalRectApproxWidth - 8);
+                            }
+                            // if overflow bottom, try place above button
+                            const portalHeight = portal.offsetHeight || 180;
+                            if (top + portalHeight > window.innerHeight - 8) {
+                                top = rect.top - portalHeight - pad;
+                                if (top < 8) top = Math.max(8, rect.bottom + pad); // fallback
+                            }
+
+                            portal.style.top = Math.round(top) + 'px';
+                            portal.style.left = Math.round(left) + 'px';
+
+                            // focus the portal for keyboard users
+                            try { portal.setAttribute('tabindex', '-1'); portal.focus(); } catch(_){}
+                        } catch (e) {
+                            // fallback to in-place toggle if portal creation fails
+                            try { menu.classList.toggle('d-none'); } catch(_) {}
+                        }
+                    }
+                    return;
+                }
+
+                // If click is outside any project-menu / dropdown-action, close all open ones
+                if (!e.target.closest('.project-menu') && !e.target.closest('.dropdown-menu.dropdown-action')) {
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action').forEach(function(m){ m.classList.add('d-none'); });
+                }
+            } catch (err) { /* ignore */ }
+        }, true);
+
+        // Keyboard support: toggle menu when focused button receives Enter or Space
+        document.addEventListener('keydown', function (e) {
+            try {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const btn = document.activeElement && document.activeElement.closest && document.activeElement.closest('.project-menu-btn');
+                    if (btn) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // reuse click handler logic by dispatching a click event
+                        btn.click();
+                    }
+                }
+                // Close menus on Escape
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.project-menu, .dropdown-menu.dropdown-action').forEach(function(m){ m.classList.add('d-none'); });
+                }
+            } catch(_){}
+        }, true);
+    })();
 
     function updateProjectNavigationUI() {
         try {

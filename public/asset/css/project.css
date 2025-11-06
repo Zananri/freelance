@@ -967,6 +967,28 @@
     color: #333;
 }
 
+/* Portal dropdown appended to body to avoid influencing scrollable containers */
+.dropdown-portal {
+    position: fixed !important;
+    background-color: rgb(240, 241, 248);
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    min-width: 160px;
+    padding: 8px 0;
+    display: block !important;
+    flex-direction: column;
+    font-size: 14px;
+    color: #333;
+    z-index: 9999;
+    width: 20px;
+}
+
+/* small visual tweak so portal contents match dropdown-item styles */
+.dropdown-portal .dropdown-item {
+    background: transparent;
+}
+
 .dropdown-action-custom {
     position: absolute;
     top: 75px;
