@@ -1002,6 +1002,21 @@
         </div>
     </div>
 
+    {{-- Task Detail Modal --}}
+    <div class="modal fade" id="taskDetailModal" tabindex="-1" aria-labelledby="taskDetailModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-body modal-body-custom">
+                    <div id="taskDetailContent"></div>
+                </div>
+                <div class="modal-footer modal-footer-custom mt-3">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <x-slot name="script_slot">
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
