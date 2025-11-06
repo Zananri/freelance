@@ -1510,15 +1510,9 @@
     background: #444444;
 }
 
-.btn-submit-custom {
-    width: auto;
-    min-width: auto;
-    height: 36px;
-    padding: 6px 16px;
-    font-size: 14px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+.modal-footer-custom .btn-submit-custom {
+    background-color: #444444;
+    color: #ebecf2;
 }
 
 /* Loading overlay for modal */
@@ -3099,3 +3093,38 @@ input[type="file"]::file-selector-button {
     z-index: 10;
     padding: 8px 0;
 }
+.custom-input.position-relative {
+    padding-right: 0;
+}
+.custom-input.position-relative .form-text {
+    margin-right: 0;
+}
+.custom-input .position-absolute.input-select {
+    top: 2px;
+    right: 0;
+    z-index: 20;
+    width: 160px;
+    padding: 6px 8px;
+    font-size: 13px;
+}
+
+#task_division_id.position-absolute.input-select,
+.custom-input .position-absolute.input-select#task_division_id,
+#edit_task_division_id.position-absolute.input-select,
+.custom-input .position--absolute.input-select#edit_task_division_id {
+    height: 25px !important;
+    min-height: 25px !important;
+    line-height: 21px !important;
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    box-sizing: border-box !important;
+    font-size: 10px !important;
+}
+
+.custom-input select,
+.custom-input input,
+.custom-input textarea {
+    border: none;
+}   
