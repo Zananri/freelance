@@ -1631,12 +1631,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     // Find the menu associated with this button (same position-relative wrapper)
                     const wrapper = btn.closest('.position-relative') || btn.parentElement;
+                    // Also resolve the actual project id from nearest ancestor carrying data-project-id
+                    const projectSourceEl = btn.closest('[data-project-id]');
+                    const resolvedProjectId = projectSourceEl && projectSourceEl.getAttribute('data-project-id') ? String(projectSourceEl.getAttribute('data-project-id')) : String((wrapper && wrapper.getAttribute('data-project-id')) || '');
                     const menu = wrapper && (wrapper.querySelector('.project-menu') || wrapper.querySelector('.dropdown-menu.dropdown-action'));
                     if (menu) {
                         // Create a portal copy appended to body so dropdown doesn't enlarge/scroll the table container
                         try {
                             // If a portal for this button already exists, remove it (toggle off)
-                            const existing = document.querySelector('.dropdown-portal[data-source-id="' + (wrapper.getAttribute('data-project-id') || '') + '"]');
+                            const existing = document.querySelector('.dropdown-portal[data-source-id="' + resolvedProjectId + '"]');
                             if (existing) {
                                 existing.remove();
                                 return;
@@ -1646,7 +1649,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             const portal = menu.cloneNode(true);
                             portal.classList.add('dropdown-portal');
                             // mark source so we can remove specific portals later
-                            try { portal.setAttribute('data-source-id', String(wrapper.getAttribute('data-project-id') || '')); } catch(_) {}
+                            try { portal.setAttribute('data-source-id', resolvedProjectId); } catch(_) {}
                             // reset any display classes and show
                             portal.classList.remove('d-none');
                             portal.style.position = 'fixed';
@@ -1711,6 +1714,63 @@ document.addEventListener("DOMContentLoaded", function () {
             } catch(_){}
         }, true);
     })();
+
+    // Handle clicks inside portal dropdown actions (e.g., Detail)
+    document.addEventListener('click', function(e){
+        try {
+            const item = e.target.closest('.dropdown-portal .dropdown-item');
+            if (!item) return;
+            // stop propagation so other delegated handlers don't double-handle
+            e.stopPropagation();
+            const portal = item.closest('.dropdown-portal');
+            const sourceId = portal && (portal.getAttribute('data-source-id') || portal.dataset.sourceId);
+            if (!sourceId) return;
+            const text = (item.textContent || '').trim();
+            if (text === 'Detail') {
+                // try to obtain the project title from the original source element
+                const source = document.querySelector('[data-project-id="' + sourceId + '"]');
+                let projectTitle = 'Untitled Project';
+                try {
+                    if (source) {
+                        const titleEl = source.querySelector('.project-list-title');
+                        if (titleEl && titleEl.textContent) projectTitle = titleEl.textContent.trim();
+                    }
+                } catch(_) {}
+
+                const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g,'-').toLowerCase());
+                const base = (typeof appUrl !== 'undefined' ? appUrl : '');
+                const url = base + '/project/' + sourceId + '/' + urlTitle;
+                // Navigate to project detail in same tab
+                window.location.href = url;
+                try { portal.remove(); } catch(_) {}
+            }
+        } catch(_) {}
+    }, true);
+
+    // Fallback: handle clicks on non-portal inline dropdown (if portal creation fails)
+    document.addEventListener('click', function(e){
+        try {
+            const item = e.target.closest('.dropdown-menu.dropdown-action .dropdown-item');
+            if (!item) return;
+            const text = (item.textContent || '').trim();
+            if (text !== 'Detail') return;
+            e.stopPropagation();
+            const root = item.closest('[data-project-id]') || item.closest('.position-relative') || item.parentElement;
+            let sourceEl = root && (root.closest ? root.closest('[data-project-id]') : null);
+            if (!sourceEl && root && root.getAttribute && root.getAttribute('data-project-id')) sourceEl = root;
+            const sourceId = sourceEl && sourceEl.getAttribute ? sourceEl.getAttribute('data-project-id') : null;
+            if (!sourceId) return;
+            let projectTitle = 'Untitled Project';
+            try {
+                const titleEl = sourceEl.querySelector('.project-list-title');
+                if (titleEl && titleEl.textContent) projectTitle = titleEl.textContent.trim();
+            } catch(_) {}
+            const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g,'-').toLowerCase());
+            const base = (typeof appUrl !== 'undefined' ? appUrl : '');
+            const url = base + '/project/' + sourceId + '/' + urlTitle;
+            window.location.href = url;
+        } catch(_) {}
+    }, true);
 
     function updateProjectNavigationUI() {
         try {
