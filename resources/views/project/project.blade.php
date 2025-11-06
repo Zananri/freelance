@@ -187,12 +187,12 @@
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td class="align-top">
+                                    <td class="align-top p-0">
                                         <div id="projectList" class="project-list-wrapper">
                                             <!-- Project items will be rendered here by JS -->
                                         </div>
                                     </td>
-                                    <td class="align-top">
+                                    <td class="align-top p-0">
                                         <div id="projectTasksPane" class="table-tasks-placeholder text-muted small text-center">
                                             Select a project to view tasks here.
                                         </div>

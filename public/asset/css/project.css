@@ -309,7 +309,6 @@
     height: 30vh;
     overflow-y: auto;
     overflow-x: hidden;
-    padding-right: 6px;
 }
 
 .project-list-wrapper::-webkit-scrollbar {
