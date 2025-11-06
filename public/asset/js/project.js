@@ -1398,7 +1398,13 @@ document.addEventListener("DOMContentLoaded", function () {
             apiUrl = `${appUrl}/project/get-all-projects?task_scope=me&sort_by=date_desc&page=1&root_only=1`;
         }
 
-        fetch(apiUrl)
+        // Append cache-busting query param and disable HTTP cache to ensure latest data after edits
+        try {
+            const ts = Date.now();
+            apiUrl += (apiUrl.indexOf('?') === -1 ? '?' : '&') + 'ts=' + ts;
+        } catch(_) {}
+
+        fetch(apiUrl, { cache: 'no-store' })
             .then(res => res.json())
             .then(payload => {
                 const projects = Array.isArray(payload) ? payload : (payload.data || []);
@@ -2550,6 +2556,7 @@ document.addEventListener("DOMContentLoaded", function () {
             page: page,
             sort_by: sortBy,
             division_id: divisionId,
+            _ts: Date.now(), // cache-buster to ensure fresh data after edits
         };
         if (currentSearch && currentSearch.trim() !== "") {
             params.search = currentSearch.trim();
@@ -4233,6 +4240,27 @@ document.addEventListener("DOMContentLoaded", function () {
                                         1500
                                     );
 
+                                    // Optimistically update titles in currently rendered UI (table list and cards)
+                                    try {
+                                        const newTitle = (document.getElementById('edit_title') && document.getElementById('edit_title').value) || '';
+                                        if (newTitle) {
+                                            // Update left table list items
+                                            document.querySelectorAll('[data-project-id="' + projectId + '"]').forEach(function(node){
+                                                try {
+                                                    // update list title text if present
+                                                    const t1 = node.querySelector('.project-list-title');
+                                                    if (t1) t1.textContent = newTitle;
+                                                    // update bottom cards title if present
+                                                    const t2 = node.querySelector('h6.title-project');
+                                                    if (t2) t2.textContent = newTitle;
+                                                    // update data attribute often used elsewhere
+                                                    try { node.setAttribute('data-project-title', newTitle); } catch(_) {}
+                                                    try { if (node.classList && node.classList.contains('project-list-item')) node.dataset.projectName = newTitle; } catch(_) {}
+                                                } catch(_) {}
+                                            });
+                                        }
+                                    } catch(_) {}
+
                                     // Close modal after short delay
                                     setTimeout(() => {
                                         var editProjectModalEl =
@@ -4245,7 +4273,18 @@ document.addEventListener("DOMContentLoaded", function () {
                                             );
                                         if (editProjectModal)
                                             editProjectModal.hide();
-                                        loadProjectCardData(); // refresh project cards
+                                        try {
+                                            // Refresh whichever list is visible (table or cards)
+                                            if (typeof refreshProjectListUI === 'function') {
+                                                refreshProjectListUI();
+                                            } else if (typeof window.refreshProjectListUI === 'function') {
+                                                window.refreshProjectListUI();
+                                            } else {
+                                                loadProjectCardData(); // fallback
+                                            }
+                                        } catch(_) {
+                                            try { loadProjectCardData(); } catch(_) {}
+                                        }
                                         // Refresh project tree after update
                                         if (
                                             typeof window.refreshProjectTreePartial ===
@@ -18451,6 +18490,47 @@ function loadTimelineProjects(filter = null) {
         },
     });
 }
+
+// Expose table loader globally so other code can call it
+try { window.loadProjectTableList = loadProjectTableList; } catch(_) {}
+
+// Utility: refresh currently visible project list (cards or table)
+function refreshProjectListUI() {
+    try {
+        // If table list container is visible, refresh table
+        const tableContainer = document.getElementById('projectList');
+        if (tableContainer && tableContainer.offsetParent !== null) {
+            try {
+                // use current navigation parent if available
+                const parentId = (typeof projectNavigationState !== 'undefined' && projectNavigationState && projectNavigationState.currentParentId) ? projectNavigationState.currentParentId : null;
+                if (typeof loadProjectTableList === 'function') {
+                    loadProjectTableList(parentId, null, null);
+                    return;
+                } else if (typeof window.loadProjectTableList === 'function') {
+                    window.loadProjectTableList(parentId, null, null);
+                    return;
+                }
+            } catch(_) {}
+        }
+
+        // Fallback: refresh card view if visible
+        const cardsContainer = document.getElementById('all-cards-container') || document.getElementById('project-cards-container');
+        if (cardsContainer && cardsContainer.offsetParent !== null) {
+            if (typeof loadProjectCardData === 'function') {
+                loadProjectCardData();
+                return;
+            } else if (typeof window.loadProjectCardData === 'function') {
+                window.loadProjectCardData();
+                return;
+            }
+        }
+
+        // Last resort: try both
+        try { if (typeof loadProjectCardData === 'function') loadProjectCardData(); } catch(_) {}
+        try { if (typeof loadProjectTableList === 'function') loadProjectTableList(); } catch(_) {}
+    } catch (e) { console.warn('refreshProjectListUI error', e); }
+}
+try { window.refreshProjectListUI = refreshProjectListUI; } catch(_) {}
 
 function buildTimelineFromProjects(projects) {
     timelineData = [];
