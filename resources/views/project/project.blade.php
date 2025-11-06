@@ -91,7 +91,7 @@
                     <div class="d-flex justify-content-between">
                         <div class="d-flex justify-content-start align-items-center">
                             <h1 class="table-project-title mb-0">Project</h1>
-                            <span class="material-symbols-outlined arrow-toggle ms-3">arrow_forward_ios</span>
+                            {{-- <span class="material-symbols-outlined arrow-toggle ms-3">arrow_forward_ios</span> --}}
                         </div>
                         <div class="d-flex justify-content-end">
                             <button class="btn btn-sm border-0">
