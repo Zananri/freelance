@@ -1799,6 +1799,122 @@ document.addEventListener("DOMContentLoaded", function () {
                     } catch(_) {}
                 } catch(_) {}
                 try { portal.remove(); } catch(_) {}
+            } else if (text === 'Delete') {
+                // stop propagation so other delegated handlers don't double-handle
+                e.stopPropagation();
+                try {
+                    const deleteModalEl = document.getElementById('deleteProjectModal');
+                    if (!deleteModalEl) return;
+                    const deleteModal = new bootstrap.Modal(deleteModalEl);
+
+                    // store project id on modal
+                    try { deleteModalEl.dataset.projectId = sourceId; } catch(_) {}
+                    try { deleteModalEl.dataset.cardId = sourceId; } catch(_) {}
+
+                    // Attempt to fetch project details for richer preview; fallback to title from source element
+                    $.ajax({
+                        url: appUrl + '/project/' + sourceId,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            try {
+                                const project = response && response.data ? response.data : {};
+                                if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                    window.setDeleteProjectModalPreview(project);
+                                } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                    setDeleteProjectModalPreview(project);
+                                } else {
+                                    // fallback: render a minimal preview into modal if helper not available
+                                    try {
+                                        const deleteModalElFallback = document.getElementById('deleteProjectModal');
+                                        if (deleteModalElFallback) {
+                                            const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent');
+                                            if (contentElFallback) {
+                                                contentElFallback.innerHTML = '<div class="p-3"><h5>' + (project.title || 'Untitled Project') + '</h5></div>';
+                                            }
+                                        }
+                                    } catch(_) {}
+                                }
+                            } catch(_) {
+                                const sourceEl = document.querySelector('[data-project-id="' + sourceId + '"]');
+                                const titleEl = sourceEl ? sourceEl.querySelector('.title-project, .project-list-title') : null;
+                                const title = titleEl ? titleEl.textContent : '';
+                                if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                    window.setDeleteProjectModalPreview({ title: title });
+                                } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                    setDeleteProjectModalPreview({ title: title });
+                                } else {
+                                    try {
+                                        const deleteModalElFallback = document.getElementById('deleteProjectModal');
+                                        if (deleteModalElFallback) {
+                                            const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent');
+                                            if (contentElFallback) contentElFallback.innerHTML = '<div class="p-3"><h5>' + (title || 'Untitled Project') + '</h5></div>';
+                                        }
+                                    } catch(_) {}
+                                }
+                            }
+                            deleteModal.show();
+                            try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                        },
+                        error: function() {
+                            const sourceEl = document.querySelector('[data-project-id="' + sourceId + '"]');
+                            const titleEl = sourceEl ? sourceEl.querySelector('.title-project, .project-list-title') : null;
+                            const title = titleEl ? titleEl.textContent : '';
+                            if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                window.setDeleteProjectModalPreview({ title: title });
+                            } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                setDeleteProjectModalPreview({ title: title });
+                            } else {
+                                try {
+                                    const deleteModalElFallback = document.getElementById('deleteProjectModal');
+                                    if (deleteModalElFallback) {
+                                        const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent');
+                                        if (contentElFallback) contentElFallback.innerHTML = '<div class="p-3"><h5>' + (title || 'Untitled Project') + '</h5></div>';
+                                    }
+                                } catch(_) {}
+                            }
+                            deleteModal.show();
+                            try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                        }
+                    });
+
+                    const confirmDeleteBtn = document.getElementById('confirmDeleteProjectBtn');
+                    if (confirmDeleteBtn) {
+                        confirmDeleteBtn.onclick = function () {
+                            $.ajax({
+                                url: appUrl + '/project/' + sourceId,
+                                type: 'DELETE',
+                                headers: {
+                                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                                },
+                                success: function(response) {
+                                    // Remove card if present, otherwise refresh UI
+                                    try {
+                                        const cardEl = document.querySelector('[data-project-id="' + sourceId + '"]');
+                                        if (cardEl && cardEl.remove) cardEl.remove();
+                                    } catch(_) {}
+
+                                    try { deleteModal.hide(); } catch(_) {}
+
+                                    try { showFloatingAlert(response.message || 'Project deleted successfully', 'success', 2000); } catch(_) {}
+
+                                    try {
+                                        if (typeof refreshProjectListUI === 'function') {
+                                            refreshProjectListUI();
+                                        } else if (typeof window.refreshProjectListUI === 'function') {
+                                            window.refreshProjectListUI();
+                                        }
+                                    } catch(_) {}
+                                },
+                                error: function(xhr) {
+                                    console.error('Delete error:', xhr);
+                                    try { showFloatingAlert('Failed to delete project: ' + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000); } catch(_) {}
+                                }
+                            });
+                        };
+                    }
+                } catch(_) {}
+                try { portal.remove(); } catch(_) {}
             } else if (text === 'Edit') {
                 // Allow event to bubble to the global Edit handler which performs AJAX and opens modal.
                 // Do not stop propagation and do not remove portal here.
@@ -1842,6 +1958,76 @@ document.addEventListener("DOMContentLoaded", function () {
                         window.loadFeedbackData(sourceId);
                     }
                     try { const m = new bootstrap.Modal(projectFeedbackModalEl); m.show(); } catch(_) {}
+                } catch(_) {}
+                return;
+            } else if (text === 'Delete') {
+                e.stopPropagation();
+                if (!sourceId) return;
+                try {
+                    const deleteModalEl = document.getElementById('deleteProjectModal');
+                    if (!deleteModalEl) return;
+                    const deleteModal = new bootstrap.Modal(deleteModalEl);
+                    try { deleteModalEl.dataset.projectId = sourceId; } catch(_) {}
+                    try { deleteModalEl.dataset.cardId = sourceId; } catch(_) {}
+
+                    $.ajax({
+                        url: appUrl + '/project/' + sourceId,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            try {
+                                const project = response && response.data ? response.data : {};
+                                if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                    window.setDeleteProjectModalPreview(project);
+                                } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                    setDeleteProjectModalPreview(project);
+                                } else {
+                                    try {
+                                        const deleteModalElFallback = document.getElementById('deleteProjectModal');
+                                        if (deleteModalElFallback) {
+                                            const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent');
+                                            if (contentElFallback) contentElFallback.innerHTML = '<div class="p-3"><h5>' + (project.title || 'Untitled Project') + '</h5></div>';
+                                        }
+                                    } catch(_) {}
+                                }
+                            } catch(_) {}
+                            deleteModal.show();
+                            try { document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => { if (idx < arr.length - 1) el.remove(); }); } catch(_) {}
+                        },
+                        error: function() {
+                            try {
+                                const titleEl = sourceEl ? sourceEl.querySelector('.title-project, .project-list-title') : null;
+                                const title = titleEl ? titleEl.textContent : '';
+                                if (typeof window.setDeleteProjectModalPreview === 'function') {
+                                    window.setDeleteProjectModalPreview({ title: title });
+                                } else if (typeof setDeleteProjectModalPreview === 'function') {
+                                    setDeleteProjectModalPreview({ title: title });
+                                } else {
+                                    try { const deleteModalElFallback = document.getElementById('deleteProjectModal'); if (deleteModalElFallback) { const contentElFallback = deleteModalElFallback.querySelector('#deleteProjectContent'); if (contentElFallback) contentElFallback.innerHTML = '<div class="p-3"><h5>' + (title || 'Untitled Project') + '</h5></div>'; } } catch(_) {}
+                                }
+                            } catch(_) {}
+                            deleteModal.show();
+                        }
+                    });
+
+                    const confirmDeleteBtn = document.getElementById('confirmDeleteProjectBtn');
+                    if (confirmDeleteBtn) {
+                        confirmDeleteBtn.onclick = function () {
+                            $.ajax({
+                                url: appUrl + '/project/' + sourceId,
+                                type: 'DELETE',
+                                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
+                                success: function(response) {
+                                    try { const cardEl = document.querySelector('[data-project-id="' + sourceId + '"]'); if (cardEl && cardEl.remove) cardEl.remove(); } catch(_) {}
+                                    try { deleteModal.hide(); } catch(_) {}
+                                    try { showFloatingAlert(response.message || 'Project deleted successfully', 'success', 2000); } catch(_) {}
+                                    try { if (typeof refreshProjectListUI === 'function') { refreshProjectListUI(); } else if (typeof window.refreshProjectListUI === 'function') { window.refreshProjectListUI(); } } catch(_) {}
+                                },
+                                error: function(xhr) { console.error('Delete error:', xhr); try { showFloatingAlert('Failed to delete project: ' + (xhr.responseJSON?.message || 'Unknown error'), 'warning', 4000); } catch(_) {} }
+                            });
+                        };
+                    }
+
                 } catch(_) {}
                 return;
             }
