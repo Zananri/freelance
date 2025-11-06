@@ -94,7 +94,7 @@
                             {{-- <span class="material-symbols-outlined arrow-toggle ms-3">arrow_forward_ios</span> --}}
                         </div>
                         <div class="d-flex justify-content-end action-table-project">
-                            <button class="btn btn-sm border-0">
+                            <button class="btn btn-sm border-0 download-project">
                                 <span class="material-symbols-outlined download-toggle">download</span>
                             </button>
                             <button class="btn btn-sm border-0" id="fullscreenTableBtn">

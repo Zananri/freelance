@@ -3665,18 +3665,50 @@ class TaskController extends Controller
     /**
      * Get all tasks for a specific project
      */
-    public function getTasksByProject($projectId)
+    public function getTasksByProject(Request $request, $projectId)
     {
         try {
-            $tasks = Task::with([
+            $user = $request->user();
+            $canSeeAll = false;
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
+
+            $tasksQuery = Task::with([
                 'assignments.employee.user',
                 'project',
                 'parent'
             ])
-                ->where('project_id', $projectId)
-                ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
-                ->orderBy('created_at', 'desc')
-                ->get();
+            ->where('project_id', $projectId)
+            ->whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted'])
+            ->orderBy('created_at', 'desc');
+
+            if (!$canSeeAll) {
+                $employeeId = $user && $user->employee ? $user->employee->id : null;
+
+                if ($employeeId) {
+                    $tasksQuery->whereHas('assignments', function ($q) use ($employeeId) {
+                        $q->where('employee_id', $employeeId);
+                    });
+                } else {
+                    $tasksQuery->whereRaw('1 = 0');
+                }
+            }
+
+            $tasks = $tasksQuery->get();
 
             $formattedTasks = $tasks->map(function ($task) {
                 $pic = $task->assignments->firstWhere('role', 'PIC');
@@ -3720,6 +3752,7 @@ class TaskController extends Controller
                     'pic' => $picData,
                     'executors' => $executorsData,
                     'status' => $task->status,
+                    'priority' => $task->priority,
                     'start_date' => $task->start_date,
                     'due_date' => $task->due_date,
                     'due' => $task->due_date,
