@@ -1685,6 +1685,39 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Helper: set header status element text and status class (uses same classes as project-status-badge)
+    function setProjectHeaderStatusFromBadge(badgeEl) {
+        try {
+            const statusEl = document.getElementById('project-table-status');
+            if (!statusEl) return;
+
+            // Preserve base table class, ensure project-status-badge present
+            const base = 'table-project-status project-status-badge';
+
+            if (badgeEl && badgeEl.textContent && badgeEl.textContent.trim() !== '') {
+                const classes = Array.from(badgeEl.classList || []);
+                const statusClass = classes.find(c => /^status-/.test(c)) || '';
+                statusEl.className = base + (statusClass ? ' ' + statusClass : '');
+                statusEl.textContent = badgeEl.textContent.trim();
+                statusEl.style.display = 'flex';
+                return;
+            }
+
+            // fallback
+            statusEl.className = base + ' status-not_started';
+            statusEl.textContent = 'No Status';
+            statusEl.style.display = 'flex';
+        } catch (e) {
+            try {
+                const statusEl = document.getElementById('project-table-status');
+                if (statusEl) {
+                    statusEl.textContent = 'No Status';
+                    statusEl.style.display = 'flex';
+                }
+            } catch (_) {}
+        }
+    }
+
     document.addEventListener('click', function(e) {
         const backBtn = e.target.closest('.back-toggle');
         if (!backBtn) return;
@@ -1719,21 +1752,11 @@ document.addEventListener("DOMContentLoaded", function () {
                             currentParentTitle: projectTitle,
                             currentParentParentId: projectParentId
                         };
-                        // Set the visible status text using the parent card's status badge (if available)
+                        // Copy status (text + color class) from parent card badge if available
                         try {
                             const parentItem = this.closest('.project-list-item');
-                            const statusEl = document.getElementById('project-table-status');
                             const badge = parentItem && parentItem.querySelector('.project-status-badge');
-                            if (statusEl) {
-                                if (badge && badge.textContent && badge.textContent.trim() !== '') {
-                                    statusEl.textContent = badge.textContent.trim();
-                                    statusEl.style.display = 'flex';
-                                } else {
-                                    // fallback: show default if not found
-                                    statusEl.textContent = 'No Status';
-                                    statusEl.style.display = 'flex';
-                                }
-                            }
+                            setProjectHeaderStatusFromBadge(badge);
                         } catch (e) { /* ignore */ }
 
                         updateProjectNavigationUI();
@@ -1774,20 +1797,11 @@ document.addEventListener("DOMContentLoaded", function () {
                         projectNavigationState.currentParentId = projectId;
                         projectNavigationState.currentParentTitle = projectName;
 
-                        // Update status display from card if available
+                        // Copy status (text + color class) from parent card badge if available
                         try {
                             const parentItem = link.closest('.project-list-item');
                             const badge = parentItem && parentItem.querySelector('.project-status-badge');
-                            const statusEl = document.getElementById('project-table-status');
-                            if (statusEl) {
-                                if (badge && badge.textContent && badge.textContent.trim() !== '') {
-                                    statusEl.textContent = badge.textContent.trim();
-                                    statusEl.style.display = 'flex';
-                                } else {
-                                    statusEl.textContent = 'No Status';
-                                    statusEl.style.display = 'flex';
-                                }
-                            }
+                            setProjectHeaderStatusFromBadge(badge);
                         } catch (_) {}
 
                         document.querySelectorAll('.project-list-item').forEach(item => {
