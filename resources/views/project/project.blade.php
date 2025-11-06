@@ -1174,6 +1174,21 @@
         </div>
     </div>
     
+    <!-- Delete Task Confirmation Modal (parity with task page) -->
+    <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 500px;">
+            <div class="modal-content modal-content-custom">
+                <div class="modal-body modal-body-custom">
+                    <div id="deleteTaskContent"></div>
+                </div>
+                <div class="modal-footer modal-footer-custom">
+                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-submit-black" id="confirmDeleteTaskBtn">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <x-slot name="script_slot">
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
