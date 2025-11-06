@@ -3098,12 +3098,459 @@ document.addEventListener("DOMContentLoaded", function () {
     window.handleTaskAction = function(taskId, action) {
         const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
 
-        if (action === 'completed') {
+        if (action === 'edit') {
+            handleTaskEdit(taskId);
+        } else if (action === 'delete') {
+            handleTaskDelete(taskId);
+        } else if (action === 'completed') {
             showConfirmationToCompleteModal(taskId, taskCard);
         } else {
             updateTaskStatus(taskId, action, taskCard);
         }
     };
+
+    function handleTaskEdit(taskId) {
+        const modalEl = document.getElementById("editTaskModal");
+        if (!modalEl) {
+            showFloatingAlert('Edit task modal not found.', 'danger');
+            return;
+        }
+
+        const form = document.getElementById("editTaskForm");
+        if (form) form.reset();
+        
+        const idInput = document.getElementById("edit_task_id");
+        if (idInput) idInput.value = taskId;
+
+        const loader = document.getElementById("editTaskModalLoader");
+        if (loader) loader.classList.remove("d-none");
+
+        // Open modal immediately to show loader
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        // Remove duplicate backdrops
+        document.querySelectorAll('.modal-backdrop').forEach((el, idx, arr) => {
+            if (idx < arr.length - 1) el.remove();
+        });
+
+        // Fetch task data and populate form
+        $.ajax({
+            url: appUrl + "/task/" + taskId + "/edit",
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const t = (res && res.data) ? res.data : (res || {});
+
+                // Hide loader
+                if (loader) loader.classList.add("d-none");
+
+                // Populate basic fields
+                const titleEl = document.getElementById("edit_task_title");
+                const descEl = document.getElementById("edit_task_description");
+                if (titleEl) titleEl.value = t.title || "";
+                if (descEl) {
+                    descEl.value = t.description || "";
+                    try {
+                        if (window.__quillTaskEdit && window.__quillTaskEdit.root) {
+                            window.__quillTaskEdit.root.innerHTML = t.description || '';
+                        }
+                    } catch (e) { /* noop */ }
+                }
+
+                // Clear previous project/parent UI
+                try {
+                    const editProjSelected = document.getElementById('edit_task_selected_project');
+                    const editProjInput = document.getElementById('edit_task_project_input');
+                    const editParentInput = document.getElementById('edit_task_parent_input');
+                    const editParentSelected = document.getElementById('edit_task_selected_parent');
+                    if (editProjSelected) editProjSelected.innerHTML = '';
+                    if (editProjInput) editProjInput.value = '';
+                    if (editParentInput) editParentInput.value = '';
+                    if (editParentSelected) editParentSelected.innerHTML = '';
+                } catch(_) {}
+
+                const projectId = t.project_id || (t.project && t.project.id);
+                
+                // Load and preview project
+                if (projectId) {
+                    loadProjectsForEditTask(projectId, function() {
+                        // After project is loaded, load related tasks (parent task)
+                        loadRelatedTasksForEdit(projectId, t.parent_id, (t.parent && t.parent.title) ? t.parent.title : "");
+                    });
+                }
+
+                // Point
+                const pointEl = document.getElementById("edit_task_point");
+                if (pointEl) pointEl.value = t.point || 1;
+
+                // Priority
+                const prioEl = document.getElementById("edit_task_priority");
+                if (prioEl) prioEl.value = (t.priority || '').toUpperCase();
+
+                // Start Date
+                const startDateEl = document.getElementById("edit_task_start_date");
+                if (startDateEl && t.start_date) startDateEl.value = t.start_date.slice(0, 10);
+
+                // Due Date
+                const dueDateEl = document.getElementById("edit_task_due_date");
+                if (dueDateEl && t.due_date) dueDateEl.value = t.due_date.slice(0, 10);
+
+                // Division
+                const divisionIdEl = document.getElementById("edit_task_division_id");
+                if (divisionIdEl && t.division_id) divisionIdEl.value = t.division_id;
+
+                // PIC
+                const picIdEl = document.getElementById("edit_task_pic_id");
+                if (picIdEl && t.pic_id) picIdEl.value = t.pic_id;
+
+                // Image preview
+                const imgLabel = document.getElementById("editTaskImageLabel");
+                const clearBtn = document.getElementById("editTaskImageClearBtn");
+                if (imgLabel && t.image) {
+                    let imgUrl = t.image;
+                    if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
+                        if (!imgUrl.startsWith('/file/task/')) {
+                            imgUrl = appUrl + '/file/task/' + imgUrl;
+                        } else {
+                            imgUrl = appUrl + imgUrl;
+                        }
+                    }
+                    imgLabel.style.backgroundImage = `url('${imgUrl}')`;
+                    imgLabel.classList.add('has-image');
+                    imgLabel.style.backgroundSize = 'cover';
+                    imgLabel.style.opacity = '1';
+                    if (clearBtn) clearBtn.classList.remove('d-none');
+                } else if (imgLabel) {
+                    imgLabel.style.backgroundImage = `url('${appUrl}/asset/img/background/add-image.png')`;
+                    imgLabel.classList.remove('has-image');
+                    imgLabel.style.opacity = '0.5';
+                    if (clearBtn) clearBtn.classList.add('d-none');
+                }
+
+            },
+            error: function (xhr) {
+                if (loader) loader.classList.add("d-none");
+                let errorMsg = "Failed to load task data.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                showFloatingAlert(errorMsg, 'danger');
+                try {
+                    modal.hide();
+                } catch(_) {}
+            }
+        });
+    }
+
+    function handleTaskDelete(taskId) {
+        if (!confirm('Are you sure you want to delete this task?')) {
+            return;
+        }
+
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "DELETE",
+            headers: {
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content")
+            },
+            success: function (response) {
+                showFloatingAlert(response.message || 'Task deleted successfully', 'success');
+                
+                // Remove task card from UI
+                const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
+                if (taskCard) {
+                    try {
+                        const tooltipTriggerList = [].slice.call(taskCard.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                        tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                            const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+                            if (tooltipInstance) tooltipInstance.dispose();
+                        });
+                        taskCard.remove();
+                    } catch(_) {}
+                }
+                
+                // Refresh task list
+                try {
+                    if (typeof renderProjectTasksToPane === 'function') {
+                        renderProjectTasksToPane();
+                    }
+                } catch(_) {}
+            },
+            error: function (xhr) {
+                let errorMsg = "Failed to delete task.";
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    errorMsg = Object.values(xhr.responseJSON.errors).join(", ");
+                }
+                showFloatingAlert(errorMsg, 'danger');
+            }
+        });
+    }
+
+    function loadProjectsForEditTask(selectedProjectId = null, callback) {
+        const input = document.getElementById("edit_task_project_input");
+        const dropdown = document.getElementById("edit_task_project_dropdown");
+        const selectedContainer = document.getElementById("edit_task_selected_project");
+        const hiddenInput = document.getElementById("edit_task_project_id");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let projects = [];
+
+        function renderDropdown(filter = "", autoShow = false) {
+            dropdown.innerHTML = "";
+            const filtered = projects.filter((p) =>
+                p.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            filtered.forEach((p) => {
+                let avatarHtml = p.image
+                    ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>`
+                    : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                            style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">
+                            ${p.title.charAt(0).toUpperCase()}
+                    </div>`;
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-center gap-2";
+                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                item.addEventListener("click", () => {
+                    hiddenInput.value = p.id;
+                    input.value = p.title;
+                    dropdown.style.display = "none";
+                    showSelectedProject(p);
+                    // Load related tasks for the newly selected project
+                    loadRelatedTasksForEdit(p.id, null, "");
+                });
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = (filtered.length && autoShow) ? "block" : "none";
+        }
+
+        function showSelectedProject(p) {
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">
+                    ${
+                        p.image
+                            ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                            : `<div class="rounded-circle d-flex align-items-center justify-content-center"
+                                    style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">
+                                    ${p.title.charAt(0).toUpperCase()}
+                            </div>`
+                    }
+                    <span class="flex-grow-1">${p.title}</span>
+                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            selectedContainer.querySelector(".btn-remove-project").addEventListener("click", () => {
+                hiddenInput.value = "";
+                input.value = "";
+                selectedContainer.innerHTML = "";
+                // Clear parent task selection when project is removed
+                const parentInput = document.getElementById("edit_task_parent_input");
+                const parentHidden = document.getElementById("edit_task_parent_id");
+                const parentSelected = document.getElementById("edit_task_selected_parent");
+                if (parentInput) parentInput.value = "";
+                if (parentHidden) parentHidden.value = "";
+                if (parentSelected) parentSelected.innerHTML = "";
+            });
+        }
+
+        fetch(appUrl + "/project/index")
+            .then((res) => res.json())
+            .then((payload) => {
+                projects = (payload.data || []).map((p) => ({
+                    id: p.id,
+                    title: p.title,
+                    image: p.image || "",
+                    project_type: p.project_type || 'public'
+                }));
+
+                // If there's a selected project, show its preview
+                if (selectedProjectId) {
+                    const project = projects.find(p => String(p.id) === String(selectedProjectId));
+                    if (project) {
+                        hiddenInput.value = project.id;
+                        input.value = project.title;
+                        showSelectedProject(project);
+                    }
+                }
+
+                if (typeof callback === "function") callback();
+            })
+            .catch((err) => {
+                console.error("Error loading projects for edit:", err);
+                if (typeof callback === "function") callback();
+            });
+
+        input.addEventListener("input", () => renderDropdown(input.value, true));
+        input.addEventListener("focus", () => renderDropdown(input.value, true));
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
+    }
+
+    function loadRelatedTasksForEdit(projectId, selectedParentId = null, selectedParentTitle = "") {
+        const input = document.getElementById("edit_task_parent_input");
+        const dropdown = document.getElementById("edit_task_parent_dropdown");
+        const selectedContainer = document.getElementById("edit_task_selected_parent");
+        const hiddenInput = document.getElementById("edit_task_parent_id");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) return;
+
+        let tasks = [];
+
+        function getInitialAvatar(name) {
+            const colors = [
+                "#F44336", "#E91E63", "#9C27B0", "#673AB7",
+                "#3F51B5", "#2196F3", "#03A9F4", "#00BCD4",
+                "#009688", "#4CAF50", "#8BC34A", "#FFC107",
+                "#FF9800", "#FF5722", "#795548"
+            ];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const initial = (name || "?").charAt(0).toUpperCase();
+            return `<div style="
+                width:28px;height:28px;
+                border-radius:50%;
+                background:${color};
+                color:#fff;
+                font-size:13px;
+                font-weight:bold;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+            ">${initial}</div>`;
+        }
+
+        function formatDateShort(dateStr) {
+            if (!dateStr) return "-";
+            try {
+                const date = new Date(dateStr);
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${date.getDate()} ${months[date.getMonth()]}`;
+            } catch(e) {
+                return dateStr;
+            }
+        }
+
+        function showSelectedTask(task) {
+            let avatarHtml = task.image
+                ? `<img src="${appUrl}/file/task/${task.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">`
+                : getInitialAvatar(task.title);
+
+            const start = formatDateShort(task.start_date);
+            const end = formatDateShort(task.due_date);
+
+            selectedContainer.innerHTML = `
+                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-task">
+                    ${avatarHtml}
+                    <div class="d-flex flex-column flex-grow-1">
+                        <span class="fw-semibold">${task.title}</span>
+                        <small class="text-muted fs-8">${start} - ${end}</small>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-remove-task remove-task" style="line-height:1">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+            `;
+
+            selectedContainer.querySelector(".remove-task").addEventListener("click", () => {
+                hiddenInput.value = "";
+                input.value = "";
+                selectedContainer.innerHTML = "";
+            });
+        }
+
+        function renderDropdown(filter = "") {
+            dropdown.innerHTML = "";
+            let filtered = tasks.filter(t =>
+                t.title.toLowerCase().includes(filter.toLowerCase())
+            );
+
+            filtered.forEach(t => {
+                let avatarHtml = t.image
+                    ? `<img src="${appUrl}/file/task/${t.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;">`
+                    : getInitialAvatar(t.title);
+
+                const start = formatDateShort(t.start_date);
+                const end = formatDateShort(t.due_date);
+
+                const item = document.createElement("div");
+                item.className = "dropdown-item d-flex align-items-start gap-2 py-2";
+                item.innerHTML = `
+                    ${avatarHtml}
+                    <div class="d-flex flex-column">
+                        <span class="fw-semibold">${t.title}</span>
+                        <small class="text-muted fs-8">${start} - ${end}</small>
+                    </div>
+                `;
+
+                item.addEventListener("click", () => {
+                    hiddenInput.value = t.id;
+                    input.value = t.title;
+                    dropdown.style.display = "none";
+                    showSelectedTask(t);
+                });
+                dropdown.appendChild(item);
+            });
+
+            dropdown.style.display = filtered.length ? "block" : "none";
+        }
+
+        if (!projectId) return;
+
+        fetch(appUrl + "/projects/" + encodeURIComponent(projectId) + "/tasks")
+            .then(res => res.json())
+            .then(payload => {
+                tasks = (payload.data || []).map(t => ({
+                    id: t.id,
+                    title: t.title,
+                    image: t.image || "",
+                    start_date: t.start_date || "",
+                    due_date: t.due_date || ""
+                }));
+
+                // If there's a selected parent task, show its preview
+                if (selectedParentId) {
+                    const found = tasks.find(t => String(t.id) === String(selectedParentId));
+                    if (found) {
+                        hiddenInput.value = found.id;
+                        input.value = found.title;
+                        showSelectedTask(found);
+                    } else if (selectedParentTitle) {
+                        // Parent task might not be in the list, but still show it
+                        hiddenInput.value = selectedParentId;
+                        input.value = selectedParentTitle;
+                        showSelectedTask({
+                            id: selectedParentId,
+                            title: selectedParentTitle,
+                            image: "",
+                            start_date: "",
+                            due_date: ""
+                        });
+                    }
+                }
+            })
+            .catch(err => console.error("Failed to load related tasks", err));
+
+        input.addEventListener("input", () => renderDropdown(input.value));
+        input.addEventListener("focus", () => renderDropdown(input.value));
+
+        document.addEventListener("click", (e) => {
+            if (!dropdown.contains(e.target) && e.target !== input) {
+                dropdown.style.display = "none";
+            }
+        });
+    }
 
     document.addEventListener('click', function (e) {
         const titleEl = e.target.closest('.project-task-title');
@@ -20697,5 +21144,91 @@ document.addEventListener("DOMContentLoaded", function () {
             const tasksInput = getTasksSearchInput();
             if (tasksInput) filterTasks(tasksInput.value);
         };
+    });
+
+    // Handle Edit Task Form Submit
+    document.addEventListener('DOMContentLoaded', function() {
+        const editTaskForm = document.getElementById('editTaskForm');
+        if (!editTaskForm) return;
+
+        // Initialize Quill editor for edit task description if not already initialized
+        if (!window.__quillTaskEdit && document.getElementById('edit_task_description_editor')) {
+            try {
+                window.__quillTaskEdit = new Quill('#edit_task_description_editor', {
+                    theme: 'snow',
+                    modules: {
+                        toolbar: false
+                    },
+                    placeholder: 'Write description...'
+                });
+            } catch(e) {
+                console.warn('Failed to initialize Quill for edit task:', e);
+            }
+        }
+
+        editTaskForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const taskId = document.getElementById('edit_task_id')?.value;
+            if (!taskId) {
+                showFloatingAlert('Task ID not found.', 'danger');
+                return;
+            }
+
+            // Sync Quill content to textarea
+            const descTextarea = document.getElementById('edit_task_description');
+            if (descTextarea && window.__quillTaskEdit && window.__quillTaskEdit.root) {
+                descTextarea.value = window.__quillTaskEdit.root.innerHTML;
+            }
+
+            const formData = new FormData(editTaskForm);
+            formData.append('_method', 'PUT');
+
+            const loader = document.getElementById('editTaskModalLoader');
+            if (loader) loader.classList.remove('d-none');
+
+            $.ajax({
+                url: appUrl + '/task/' + taskId,
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                success: function(response) {
+                    if (loader) loader.classList.add('d-none');
+                    
+                    showFloatingAlert(response.message || 'Task updated successfully', 'success');
+                    
+                    // Close modal
+                    const modalEl = document.getElementById('editTaskModal');
+                    if (modalEl) {
+                        const modal = bootstrap.Modal.getInstance(modalEl);
+                        if (modal) modal.hide();
+                    }
+
+                    // Refresh task list
+                    try {
+                        if (typeof renderProjectTasksToPane === 'function') {
+                            renderProjectTasksToPane();
+                        }
+                    } catch(_) {}
+                },
+                error: function(xhr) {
+                    if (loader) loader.classList.add('d-none');
+                    
+                    let errorMsg = 'Failed to update task.';
+                    if (xhr.responseJSON) {
+                        if (xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        } else if (xhr.responseJSON.errors) {
+                            errorMsg = Object.values(xhr.responseJSON.errors).flat().join(', ');
+                        }
+                    }
+                    showFloatingAlert(errorMsg, 'danger');
+                }
+            });
+        });
     });
 })();
