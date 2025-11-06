@@ -1952,6 +1952,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 });
                 html += '</div>';
                 pane.innerHTML = html;
+
+                // Re-apply any active task search to freshly rendered items
+                try {
+                    if (typeof window.filterProjectTasks === 'function') {
+                        window.filterProjectTasks();
+                    }
+                } catch (_) {}
             }).fail(function(){
                 if (totalEl) totalEl.classList.add('d-none');
                 pane.innerHTML = '<div class="text-center text-danger">Failed to load tasks. Try again.</div>';
@@ -18838,11 +18845,19 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         }
 
+        const TASK_SEARCH_HIDDEN_CLASS = 'task-search-hidden';
+
         // Function to filter/search tasks
         function filterTasks(searchTerm) {
-            searchTerm = searchTerm.toLowerCase().trim();
+            const normalizedTerm = (searchTerm || '').toString().toLowerCase().trim();
+            const container = document.getElementById('projectTasksPane');
+            if (!container) return;
 
-            const taskItems = document.querySelectorAll('#projectTasksPane .project-task-card');
+            // Remove any stale empty-state message before recalculating results
+            const existingMessage = container.querySelector('.no-task-results-message');
+            if (existingMessage) existingMessage.remove();
+
+            const taskItems = container.querySelectorAll('.project-task-card');
             if (!taskItems.length) return;
 
             let visibleCount = 0;
@@ -18852,24 +18867,21 @@ document.addEventListener("DOMContentLoaded", function () {
                 const desc = item.querySelector('.project-task-description')?.textContent.toLowerCase() || '';
 
                 // SEARCH based only on text
-                const matches = searchTerm === '' || title.includes(searchTerm) || desc.includes(searchTerm);
+                const matches = normalizedTerm === '' || title.includes(normalizedTerm) || desc.includes(normalizedTerm);
 
-                item.style.display = matches ? '' : 'none';
-                if (matches) visibleCount++;
+                if (matches) {
+                    item.classList.remove(TASK_SEARCH_HIDDEN_CLASS);
+                    visibleCount++;
+                } else {
+                    item.classList.add(TASK_SEARCH_HIDDEN_CLASS);
+                }
             });
 
-            // handle "no results"
-            const container = document.getElementById('projectTasksPane');
-            if (!container) return;
-
-            let noResultsMsg = container.querySelector('.no-task-results-message');
-            if (noResultsMsg) noResultsMsg.remove();
-
-            if (visibleCount === 0 && searchTerm !== '') {
-                noResultsMsg = document.createElement('div');
-                noResultsMsg.className = 'no-task-results-message text-muted small text-center py-3';
-                noResultsMsg.textContent = 'No tasks found matching your search.';
-                container.appendChild(noResultsMsg);
+            if (visibleCount === 0 && normalizedTerm !== '') {
+                const message = document.createElement('div');
+                message.className = 'no-task-results-message text-muted small text-center py-3';
+                message.textContent = 'No tasks found matching your search.';
+                container.appendChild(message);
             }
         }
 
