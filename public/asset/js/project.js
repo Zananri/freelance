@@ -1766,6 +1766,15 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Navigate to project detail in same tab
                 window.location.href = url;
                 try { portal.remove(); } catch(_) {}
+            } else if (text === 'Task') {
+                try {
+                    if (typeof loadProjectTasks === 'function') {
+                        loadProjectTasks(sourceId);
+                    } else if (typeof window.loadProjectTasks === 'function') {
+                        window.loadProjectTasks(sourceId);
+                    }
+                } catch(_) {}
+                try { portal.remove(); } catch(_) {}
             }
         } catch(_) {}
     }, true);
@@ -1776,12 +1785,29 @@ document.addEventListener("DOMContentLoaded", function () {
             const item = e.target.closest('.dropdown-menu.dropdown-action .dropdown-item');
             if (!item) return;
             const text = (item.textContent || '').trim();
-            if (text !== 'Detail') return;
-            e.stopPropagation();
+
+            // Resolve project element/id first
             const root = item.closest('[data-project-id]') || item.closest('.position-relative') || item.parentElement;
             let sourceEl = root && (root.closest ? root.closest('[data-project-id]') : null);
             if (!sourceEl && root && root.getAttribute && root.getAttribute('data-project-id')) sourceEl = root;
             const sourceId = sourceEl && sourceEl.getAttribute ? sourceEl.getAttribute('data-project-id') : null;
+
+            if (text === 'Task') {
+                e.stopPropagation();
+                if (!sourceId) return;
+                try {
+                    if (typeof loadProjectTasks === 'function') {
+                        loadProjectTasks(sourceId);
+                    } else if (typeof window.loadProjectTasks === 'function') {
+                        window.loadProjectTasks(sourceId);
+                    }
+                } catch(_) {}
+                return;
+            }
+            if (text !== 'Detail') return;
+
+            // existing Detail handling below
+            e.stopPropagation();
             if (!sourceId) return;
             let projectTitle = 'Untitled Project';
             try {
@@ -12167,6 +12193,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             },
                         });
                     }
+
+                    // Expose to global so other delegated handlers (outside this scope) can invoke it
+                    try { window.loadProjectTasks = loadProjectTasks; } catch(_) {}
 
                     // Reset footer button text and remove submit handler when modal is closed
                     const feedbackModalEl = document.getElementById(
