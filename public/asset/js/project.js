@@ -1775,6 +1775,22 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 } catch(_) {}
                 try { portal.remove(); } catch(_) {}
+            } else if (text === 'Feedback') {
+                try {
+                    // mark feedbacks read and open modal similar to other handlers
+                    const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                    if (projectFeedbackModalEl) projectFeedbackModalEl.setAttribute('data-project-id', sourceId);
+                    if (typeof loadFeedbackData === 'function') {
+                        loadFeedbackData(sourceId);
+                    } else if (typeof window.loadFeedbackData === 'function') {
+                        window.loadFeedbackData(sourceId);
+                    }
+                    try {
+                        const m = new bootstrap.Modal(projectFeedbackModalEl);
+                        m.show();
+                    } catch(_) {}
+                } catch(_) {}
+                try { portal.remove(); } catch(_) {}
             }
         } catch(_) {}
     }, true);
@@ -1801,6 +1817,20 @@ document.addEventListener("DOMContentLoaded", function () {
                     } else if (typeof window.loadProjectTasks === 'function') {
                         window.loadProjectTasks(sourceId);
                     }
+                } catch(_) {}
+                return;
+            } else if (text === 'Feedback') {
+                e.stopPropagation();
+                if (!sourceId) return;
+                try {
+                    const projectFeedbackModalEl = document.getElementById('projectFeedbackModal');
+                    if (projectFeedbackModalEl) projectFeedbackModalEl.setAttribute('data-project-id', sourceId);
+                    if (typeof loadFeedbackData === 'function') {
+                        loadFeedbackData(sourceId);
+                    } else if (typeof window.loadFeedbackData === 'function') {
+                        window.loadFeedbackData(sourceId);
+                    }
+                    try { const m = new bootstrap.Modal(projectFeedbackModalEl); m.show(); } catch(_) {}
                 } catch(_) {}
                 return;
             }
@@ -7809,6 +7839,9 @@ document.addEventListener("DOMContentLoaded", function () {
                             window.__inlineFeedbackImageFile = null;
                         } catch (_) {}
                     }
+
+                    // Expose to global so menu handlers can invoke it
+                    try { window.loadFeedbackData = loadFeedbackData; } catch(_) {}
 
                     // Function to show add feedback form
                     function showAddFeedbackForm(projectId) {
