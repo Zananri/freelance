@@ -2927,21 +2927,12 @@ document.addEventListener("DOMContentLoaded", function () {
                             })()}
                         </div>
                         <div class="d-flex align-items-start">
-                            <div class="btn-attach-file-wrapper d-flex align-items-center me-3 position-relative project-task-feedback-btn">
-                                <span class="material-symbols-outlined task-icon mode_comment" data-task-id="${task.id}">mode_comment</span>
-
-                                ${task.feedback_comments_count > 0
-                                    ? `<span class="feedback-comments-count ms-1" style="color: #454545; font-size: 12px;">${task.feedback_comments_count}</span>`
-                                    : ""}
-                                <span class="unread-badge position-absolute top-0 start-100 translate-middle d-none" data-task-id="${task.id}"></span>
-                            </div>
-                            <div class="btn-attach-file-wrapper d-flex align-items-center">
-                                <span class="material-symbols-outlined task-icon">attach_file</span>
-
-                                ${task.reference_files_count > 0
-                                    ? `<span class="reference-files-count ms-1" style="color: #454545; font-size: 12px;">${task.reference_files_count}</span>`
-                                    : ""}
-                            </div>
+                            <button id="taskFeedbackBtn" class="project-task-action-btn project-task-feedback-btn" title="Comments" data-task-id="${task.id}">
+                                <span class="material-symbols-outlined">mode_comment</span>
+                            </button>
+                            <button class="project-task-action-btn project-task-attach-btn" title="Attachments" data-task-id="${task.id}">
+                                <span class="material-symbols-outlined">attach_file</span>
+                            </button>
                         </div>
                     </div>
                 </div>`;
@@ -14954,22 +14945,70 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
             const btn = e.target.closest && e.target.closest(".project-task-attach-btn");
             if (!btn) return;
+
             e.preventDefault();
             e.stopPropagation();
+
             const taskId = btn.getAttribute("data-task-id") || btn.dataset.taskId;
-            if (taskId && window.showTaskFiles) window.showTaskFiles(taskId);
+
+            const detailModal = document.getElementById("taskDetailModal");
+            if (detailModal && detailModal.classList.contains("show")) {
+                const modalInst = bootstrap.Modal.getInstance(detailModal) || new bootstrap.Modal(detailModal);
+                modalInst.hide();
+
+                detailModal.setAttribute("data-child-opened", "1");
+            }
+
+            if (taskId && window.showTaskFiles) {
+                window.showTaskFiles(taskId);
+            }
+
+            const attachModal = document.getElementById("taskAttachModal");
+            if (attachModal) {
+                attachModal.addEventListener(
+                    "hidden.bs.modal",
+                    function () {
+                        if (detailModal && detailModal.getAttribute("data-child-opened")) {
+                            const detailInst = bootstrap.Modal.getOrCreateInstance(detailModal);
+                            detailInst.show();
+                            detailModal.removeAttribute("data-child-opened");
+                        }
+                    },
+                    { once: true }
+                );
+            }
         } catch (_) {}
     });
 
     document.addEventListener("click", function (e) {
-        try {
-            const btn = e.target.closest && e.target.closest(".project-task-feedback-btn");
-            if (!btn) return;
-            e.preventDefault();
-            e.stopPropagation();
-            const taskId = btn.getAttribute("data-task-id") || btn.dataset.taskId;
-            if (taskId && window.handleTaskFeedback) window.handleTaskFeedback(taskId);
-        } catch (_) {}
+        const btn = e.target.closest(".project-task-feedback-btn");
+        if (!btn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const taskId = btn.dataset.taskId;
+        const detailModalEl = document.getElementById("taskDetailModal");
+        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+
+        if (!feedbackModalEl) return;
+
+        const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+        if (detailModal) detailModal.hide();
+
+        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+        feedbackModal.show();
+
+        feedbackModalEl.addEventListener(
+            "hidden.bs.modal",
+            function restoreDetailModal() {
+                feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDetailModal);
+                if (detailModal) detailModal.show();
+            },
+            { once: true }
+        );
+
+        if (taskId && window.handleTaskFeedback) window.handleTaskFeedback(taskId);
     });
 
     // Delegated handler for task checklist (completed) buttons
