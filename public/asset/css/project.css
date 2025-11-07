@@ -233,6 +233,17 @@
     font-weight: 400;
 }
 
+/* Make the root breadcrumb visually clickable like breadcrumb items */
+.table-project-title .breadcrumb-root {
+    cursor: pointer;
+    color: #3B3D42; /* match .table-project-name color (black-ish) */
+    text-decoration: none;
+}
+.table-project-title .breadcrumb-root:hover {
+    text-decoration: none; /* no underline on hover */
+    color: #3B3D42;
+}
+
 .table-project-title .breadcrumb-item {
     font-size: 12px;
 }

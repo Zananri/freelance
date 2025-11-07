@@ -2153,11 +2153,32 @@ document.addEventListener("DOMContentLoaded", function () {
                     totalEl.classList.add('d-none');
                 }
                 if (el.classList.contains('breadcrumb-root')) {
+                    // Reset navigation state to root
                     projectNavigationState = { currentParentId: null, currentParentTitle: null, currentParentParentId: null };
+
+                    // Clear any active selection in the left project list
+                    try {
+                        document.querySelectorAll('#projectList .project-list-item.active').forEach(function(it){
+                            try { it.classList.remove('active'); } catch(_){}
+                        });
+                    } catch(_){}
+
+                    // Load root-level projects and refresh breadcrumb UI
                     loadProjectTableList(null, 'All Project');
                     updateProjectNavigationUI();
+
+                    // Reset the right-hand pane to the initial placeholder
+                    try {
+                        const pane = document.getElementById('projectTasksPane');
+                        if (pane) pane.innerHTML = '<div class="table-tasks-placeholder text-muted small text-center">Select a project to view tasks here.</div>';
+                        const totalEl = document.getElementById('projects-total-tasks');
+                        if (totalEl) { totalEl.textContent = ''; totalEl.classList.add('d-none'); }
+                    } catch(_){}
+
+                    // Update header title to the default root label
                     const projectNameEl = document.getElementById('project-table-name');
                     if (projectNameEl) projectNameEl.textContent = 'All Project';
+
                     return;
                 }
                 const pid = el.dataset.projectId || '';
