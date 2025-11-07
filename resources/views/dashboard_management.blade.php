@@ -113,9 +113,11 @@
                                                         @endif
                                                         
                                                         <div>
-                                                            <h2 class="title-project fs-14 fw-normal text-body">
-                                                                {{ $itemProject->title }}
-                                                            </h2>
+                                                                <h2 class="fs-14 fw-normal">
+                                                                    <a href="{{ route('project.show', $itemProject->id) }}" class="title-project text-body text-decoration-none">
+                                                                        {{ $itemProject->title }}
+                                                                    </a>
+                                                                </h2>
                                                         </div>
                                                     </div>
                                                 </div>
