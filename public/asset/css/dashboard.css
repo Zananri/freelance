@@ -886,6 +886,7 @@
 
     .legend-new span,
     .legend-completed span,
+    .legend-finished span,
     .legend-progress span {
         display: none;
     }
@@ -906,6 +907,13 @@
 
     .legend-completed {
         background: #baeed340;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+    }
+
+    .legend-Finished {
+        background: #BACBEE40;
         border-radius: 50%;
         width: 24px;
         height: 24px;
@@ -1806,21 +1814,28 @@ input[type="file"]::file-selector-button {
 .legend-new {
     background: #a1a3a60d;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: 8px;
     padding: 5px 10px;
 }
 
 .legend-progress {
     background: #edebdf;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: 8px;
     padding: 5px 10px;
 }
 
 .legend-completed {
     background: #baeed340;
     border-radius: 10px;
-    font-size: 10px;
+    font-size: 8px;
+    padding: 5px 10px;
+}
+
+.legend-finished {
+    background: #BACBEE40;
+    border-radius: 10px;
+    font-size: 8px;
     padding: 5px 10px;
 }
 
