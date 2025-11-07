@@ -4658,25 +4658,33 @@ document.addEventListener("DOMContentLoaded", function () {
                         // Ensure we don't bind multiple times by removing any previous listener
                         if (container.__titleClickBound !== true) {
                             container.addEventListener("click", function (ev) {
-                                const titleEl =
-                                    ev.target.closest(".title-project");
-                                if (!titleEl) return;
-                                ev.preventDefault();
-                                ev.stopPropagation();
-                                const card = titleEl.closest(".col-md-4");
-                                const pid =
-                                    card &&
-                                    card.getAttribute("data-project-id");
-                                if (pid) {
-                                    try {
-                                        fetchAndShowProjectDetail(pid);
-                                    } catch (_) {
-                                        console.warn(
-                                            "fetchAndShowProjectDetail not available"
-                                        );
+                                    const titleEl = ev.target.closest(".title-project");
+                                    if (!titleEl) return;
+
+                                    // If the title element is (or is inside) an anchor with an href,
+                                    // allow the browser to navigate normally instead of opening the
+                                    // project detail modal. This lets template anchors (links)
+                                    // work as expected.
+                                    const anchorEl =
+                                        (titleEl.tagName === 'A' ? titleEl : titleEl.closest('a')) ||
+                                        titleEl.querySelector('a');
+                                    if (anchorEl && anchorEl.getAttribute('href')) {
+                                        // Do nothing here so the default navigation occurs.
+                                        return;
                                     }
-                                }
-                            });
+
+                                    ev.preventDefault();
+                                    ev.stopPropagation();
+                                    const card = titleEl.closest(".col-md-4");
+                                    const pid = card && card.getAttribute("data-project-id");
+                                    if (pid) {
+                                        try {
+                                            fetchAndShowProjectDetail(pid);
+                                        } catch (_) {
+                                            console.warn("fetchAndShowProjectDetail not available");
+                                        }
+                                    }
+                                });
                             container.__titleClickBound = true;
                         }
                     } catch (_) {
