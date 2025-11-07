@@ -361,6 +361,9 @@
                         <div class="legend-completed" data-bs-toggle="tooltip" title="Completed">
                             <span>Completed</span>
                         </div>
+                        <div class="legend-finished" data-bs-toggle="tooltip" title="Finished">
+                            <span>Finished</span>
+                        </div>
                     </div>
 
                     {{-- Filter --}}
