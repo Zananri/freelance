@@ -20692,6 +20692,12 @@ function stripTags(s) {
             }
         });
 
+        function applyFilters() {
+            if (typeof window.filterProjectTasks === 'function') {
+                window.filterProjectTasks();
+            }
+        }
+
         document.getElementById('filterStatusTaskList').addEventListener('change', applyFilters);
         document.getElementById('filterPriorityTaskList').addEventListener('change', applyFilters);
 
