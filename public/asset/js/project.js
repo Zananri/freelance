@@ -4638,7 +4638,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex justify-content-start align-items-center mt-1 mb-2">
                                             ${Number(project.children_count || 0) > 0 
-                                                ? `<span class="text-muted fs-8 me-4 project-card-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${Number(project.children_count || 0)} Project</span>`
+                                                ? `<span class="text-muted fs-8 me-4 project-card-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="text-decoration: none;">${Number(project.children_count || 0)} Project</span>`
                                                 : `<span class="text-muted fs-8 me-4">${Number(project.children_count || 0)} Project</span>`
                                             }
                                             <span class="text-muted fs-8">${
