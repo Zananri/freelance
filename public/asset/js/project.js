@@ -2128,6 +2128,27 @@ document.addEventListener("DOMContentLoaded", function () {
             }
             breadcrumbTitle.style.display = 'flex';
             breadcrumbTitle.style.alignItems = 'center';
+
+            try {
+                if (!window.__projectTableNameBound) {
+                    window.__projectTableNameBound = true;
+                    const projectNameEl = document.getElementById('project-table-name');
+                    if (projectNameEl) {
+                        projectNameEl.style.cursor = 'pointer';
+                        projectNameEl.addEventListener('click', function (ev) {
+                            try { ev.preventDefault(); ev.stopPropagation(); } catch(_) {}
+                            const el = document.getElementById('project-table-name');
+                            const pid = (el && el.dataset && el.dataset.projectId) ? String(el.dataset.projectId) : (projectNavigationState && projectNavigationState.currentParentId ? String(projectNavigationState.currentParentId) : '');
+                            const titleText = (el && el.textContent) ? el.textContent.trim() : '';
+                            if (!pid) return;
+                            const slug = encodeURIComponent((titleText || '').toLowerCase().replace(/\s+/g, '-'));
+                            const base = (typeof appUrl !== 'undefined' ? appUrl : '');
+                            const url = base + '/project/' + encodeURIComponent(pid) + '/' + slug;
+                            window.location.href = url;
+                        });
+                    }
+                }
+            } catch (_) {}
         } catch (e) {
             console.warn('updateProjectNavigationUI error:', e);
         }
