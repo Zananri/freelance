@@ -4148,6 +4148,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (backButton) {
                 backButton.closest('button').addEventListener('click', function(e) {
                     try { e.preventDefault(); } catch(_) {}
+                    try { e.stopPropagation(); } catch(_) {}
                     // Navigate one step back in breadcrumbStack if possible (previous item), otherwise fallback to root
                     try {
                         if (Array.isArray(breadcrumbStack) && breadcrumbStack.length > 1) {
