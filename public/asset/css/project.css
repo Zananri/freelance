@@ -577,11 +577,11 @@
 }
 
 .project-task-assignee-avatar {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #fff;
+    border: 1px solid #fff;
     margin-left: -6px;
 }
 
@@ -590,8 +590,8 @@
 }
 
 .project-task-assignee-initials {
-    width: 24px;
-    height: 24px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
@@ -3134,4 +3134,4 @@ input[type="file"]::file-selector-button {
 .custom-input input,
 .custom-input textarea {
     border: none;
-}   
+}

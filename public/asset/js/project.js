@@ -1174,7 +1174,7 @@ document.addEventListener("DOMContentLoaded", function () {
         // Remove role from tooltip - only show name
         const titleText = name;
 
-        return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" class="rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? "margin-left:" + marginLeft + "px;" : ""}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
+        return `<img src="${photoUrl}" alt="${name}" title="${titleText}" data-bs-toggle="tooltip" class="project-task-assignee-avatar rounded-circle" style="width:${size}px;height:${size}px;object-fit:cover;${marginLeft ? "margin-left:" + marginLeft + "px;" : ""}" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png';">`;
     }
 
     // Build collaborators HTML: author first, then co_authors, then contributors. Shows up to 3 images and +N overflow.
