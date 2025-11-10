@@ -2314,10 +2314,37 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!backBtn) return;
         e.preventDefault();
         e.stopPropagation();
+        // Prefer navigating to the top-most parent in the breadcrumb stack if available
+        try {
+            if (Array.isArray(breadcrumbStack) && breadcrumbStack.length > 0) {
+                const top = breadcrumbStack[0];
+                const pid = top && top.id ? String(top.id) : null;
+                const title = (top && top.title) ? top.title : 'Project';
+                const parentId = (top && top.parentId) ? top.parentId : null;
+
+                projectNavigationState = { currentParentId: pid, currentParentTitle: title, currentParentParentId: parentId };
+
+                // Clear any active selection in the left project list
+                try { document.querySelectorAll('#projectList .project-list-item.active').forEach(it => it.classList.remove('active')); } catch(_) {}
+
+                updateProjectNavigationUI();
+                loadProjectTableList(pid, title, parentId);
+                renderProjectTasksToPane(pid);
+
+                const projectNameEl = document.getElementById('project-table-name');
+                if (projectNameEl) {
+                    projectNameEl.style.opacity = 0;
+                    setTimeout(() => { projectNameEl.textContent = title; projectNameEl.style.opacity = 1; }, 150);
+                }
+                return;
+            }
+        } catch(_) {}
+
+        // Fallback: go to root (All Project)
         projectNavigationState = { currentParentId: null, currentParentTitle: null, currentParentParentId: null };
         loadProjectTableList(null, 'All Project');
         updateProjectNavigationUI();
-        renderProjectTasksToPane()
+        renderProjectTasksToPane();
         const projectNameEl = document.getElementById('project-table-name');
         if (projectNameEl) {
             projectNameEl.style.opacity = 0;
@@ -4122,8 +4149,31 @@ document.addEventListener("DOMContentLoaded", function () {
             
             // Wire up back button click handler
             if (backButton) {
-                backButton.closest('button').addEventListener('click', function() {
-                    // Return to root view
+                backButton.closest('button').addEventListener('click', function(e) {
+                    try { e.preventDefault(); } catch(_) {}
+                    // Mirror delegated behaviour: prefer top-most breadcrumb parent if available
+                    try {
+                        if (Array.isArray(breadcrumbStack) && breadcrumbStack.length > 0) {
+                            const top = breadcrumbStack[0];
+                            const pid = top && top.id ? String(top.id) : null;
+                            const title = (top && top.title) ? top.title : 'Project';
+                            const parentId = (top && top.parentId) ? top.parentId : null;
+
+                            projectNavigationState = { currentParentId: pid, currentParentTitle: title, currentParentParentId: parentId };
+                            try { document.querySelectorAll('#projectList .project-list-item.active').forEach(it => it.classList.remove('active')); } catch(_) {}
+                            updateProjectNavigationUI();
+                            loadProjectTableList(pid, title, parentId);
+                            renderProjectTasksToPane(pid);
+                            const projectNameEl = document.getElementById('project-table-name');
+                            if (projectNameEl) {
+                                projectNameEl.style.opacity = 0;
+                                setTimeout(() => { projectNameEl.textContent = title; projectNameEl.style.opacity = 1; }, 150);
+                            }
+                            return;
+                        }
+                    } catch(_) {}
+
+                    // Fallback: return to root view
                     loadProjectTableList(null, null);
                 });
             }
