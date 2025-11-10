@@ -2314,13 +2314,14 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!backBtn) return;
         e.preventDefault();
         e.stopPropagation();
-        // Prefer navigating to the top-most parent in the breadcrumb stack if available
+        // Prefer navigating one step back in the breadcrumb stack if possible
         try {
-            if (Array.isArray(breadcrumbStack) && breadcrumbStack.length > 0) {
-                const top = breadcrumbStack[0];
-                const pid = top && top.id ? String(top.id) : null;
-                const title = (top && top.title) ? top.title : 'Project';
-                const parentId = (top && top.parentId) ? top.parentId : null;
+            if (Array.isArray(breadcrumbStack) && breadcrumbStack.length > 1) {
+                // previous item is the one before the last
+                const prev = breadcrumbStack[breadcrumbStack.length - 2];
+                const pid = prev && prev.id ? String(prev.id) : null;
+                const title = (prev && prev.title) ? prev.title : 'Project';
+                const parentId = (prev && prev.parentId) ? prev.parentId : null;
 
                 projectNavigationState = { currentParentId: pid, currentParentTitle: title, currentParentParentId: parentId };
 
@@ -4151,13 +4152,13 @@ document.addEventListener("DOMContentLoaded", function () {
             if (backButton) {
                 backButton.closest('button').addEventListener('click', function(e) {
                     try { e.preventDefault(); } catch(_) {}
-                    // Mirror delegated behaviour: prefer top-most breadcrumb parent if available
+                    // Navigate one step back in breadcrumbStack if possible (previous item), otherwise fallback to root
                     try {
-                        if (Array.isArray(breadcrumbStack) && breadcrumbStack.length > 0) {
-                            const top = breadcrumbStack[0];
-                            const pid = top && top.id ? String(top.id) : null;
-                            const title = (top && top.title) ? top.title : 'Project';
-                            const parentId = (top && top.parentId) ? top.parentId : null;
+                        if (Array.isArray(breadcrumbStack) && breadcrumbStack.length > 1) {
+                            const prev = breadcrumbStack[breadcrumbStack.length - 2];
+                            const pid = prev && prev.id ? String(prev.id) : null;
+                            const title = (prev && prev.title) ? prev.title : 'Project';
+                            const parentId = (prev && prev.parentId) ? prev.parentId : null;
 
                             projectNavigationState = { currentParentId: pid, currentParentTitle: title, currentParentParentId: parentId };
                             try { document.querySelectorAll('#projectList .project-list-item.active').forEach(it => it.classList.remove('active')); } catch(_) {}
