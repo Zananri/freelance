@@ -1788,11 +1788,7 @@ document.addEventListener("DOMContentLoaded", function () {
             } else if (text === 'Task') {
                 e.stopPropagation();
                 try {
-                    if (typeof loadProjectTasks === 'function') {
-                        loadProjectTasks(sourceId);
-                    } else if (typeof window.loadProjectTasks === 'function') {
-                        window.loadProjectTasks(sourceId);
-                    }
+                    renderProjectTasksToPane(sourceId);
                 } catch(_) {}
                 try { portal.remove(); } catch(_) {}
             } else if (text === 'Feedback') {
