@@ -1767,22 +1767,26 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!sourceId) return;
             const text = (item.textContent || '').trim();
             if (text === 'Detail') {
-                // stop propagation so other delegated handlers don't double-handle
                 e.stopPropagation();
-                // try to obtain the project title from the original source element
+
                 const source = document.querySelector('[data-project-id="' + sourceId + '"]');
-                let projectTitle = 'Untitled Project';
+                let projectTitle = '';
                 try {
                     if (source) {
-                        const titleEl = source.querySelector('.project-list-title');
-                        if (titleEl && titleEl.textContent) projectTitle = titleEl.textContent.trim();
+                        const titleEl = source.querySelector('.project-list-title, .title-project, [data-title]');
+                        if (titleEl && titleEl.textContent) {
+                            projectTitle = titleEl.textContent.trim();
+                        } else if (source.dataset.title) {
+                            projectTitle = source.dataset.title.trim();
+                        }
                     }
                 } catch(_) {}
+                if (!projectTitle) projectTitle = 'Untitled Project';
 
-                const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g,'-').toLowerCase());
+                const urlTitle = encodeURIComponent(projectTitle.replace(/\s+/g, '-').toLowerCase());
                 const base = (typeof appUrl !== 'undefined' ? appUrl : '');
                 const url = base + '/project/' + sourceId + '/' + urlTitle;
-                // Navigate to project detail in same tab
+
                 window.location.href = url;
                 try { portal.remove(); } catch(_) {}
             } else if (text === 'Task') {
@@ -4638,7 +4642,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                     <div class="d-flex justify-content-between">
                                         <div class="d-flex justify-content-start align-items-center mt-1 mb-2">
                                             ${Number(project.children_count || 0) > 0 
-                                                ? `<span class="text-muted fs-8 me-4 project-card-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="cursor: pointer; text-decoration: underline;">${Number(project.children_count || 0)} Project</span>`
+                                                ? `<span class="text-muted fs-8 me-4 project-card-children-link" data-project-id="${project.id}" data-project-title="${escapeHtml(project.title || 'Untitled')}" style="text-decoration: none;">${Number(project.children_count || 0)} Project</span>`
                                                 : `<span class="text-muted fs-8 me-4">${Number(project.children_count || 0)} Project</span>`
                                             }
                                             <span class="text-muted fs-8">${
