@@ -3902,6 +3902,239 @@ document.addEventListener("DOMContentLoaded", function () {
             });
         }
 
+    if (editTaskForm) {
+        editTaskForm.addEventListener("submit", function (e) {
+            e.preventDefault();
+
+            const taskId = document.getElementById("edit_task_id").value;
+            if (!taskId) {
+                showFloatingAlert("Task ID is missing.", "warning", 3000);
+                return;
+            }
+
+            if (!editTaskForm.checkValidity()) {
+                e.stopPropagation();
+                editTaskForm.classList.add("was-validated");
+                return;
+            }
+            // Executor required validation (edit)
+            try {
+                const execHidden = document.getElementById('edit_executors');
+                let execVal = execHidden ? execHidden.value : '';
+                let execArr = [];
+                if (execVal) { try { execArr = JSON.parse(execVal); } catch(_) { execArr = []; } }
+                if (!Array.isArray(execArr) || execArr.length === 0) {
+                    showFloatingAlert('Please select at least one executor.', 'warning', 2500);
+                    return;
+                }
+            } catch(_) {}
+            editTaskForm.classList.remove("was-validated");
+
+            // Show loading overlay and disable submit button
+            const loader = document.getElementById("editTaskModalLoader");
+            if (loader) loader.classList.remove("d-none");
+            const submitBtn = editTaskForm.querySelector(
+                "button[type='submit']"
+            );
+            if (submitBtn) submitBtn.disabled = true;
+
+            // Validate sizes: include edit task image and editSelectedFiles
+            try {
+                const imageEl = document.getElementById('edit_task_image');
+                const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+                if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
+                    return;
+                }
+                const extraFiles = (window.editSelectedFiles && Array.isArray(window.editSelectedFiles)) ? window.editSelectedFiles : [];
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: extraFiles});
+                if (!totalCheck.ok) {
+                    try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                    return;
+                }
+            } catch(_) {}
+
+            const formData = new FormData(editTaskForm);
+            // Add _method to FormData for Laravel PUT request
+            formData.append("_method", "PUT");
+
+            // Append all selected reference files from global array to formData
+            if (
+                window.editSelectedFiles &&
+                window.editSelectedFiles.length > 0
+            ) {
+                window.editSelectedFiles.forEach((file) => {
+                    formData.append("reference_files[]", file);
+                });
+            }
+
+            $.ajax({
+                url: appUrl + "/task/" + taskId,
+                type: "POST", // Laravel expects POST with _method=PUT for PUT requests
+                headers: {
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute("content"),
+                },
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (data) {
+                    // Keep loading overlay visible for a moment to show success
+                    setTimeout(() => {
+                        // Hide loading overlay
+                        if (loader) loader.classList.add("d-none");
+                        if (submitBtn) submitBtn.disabled = false;
+
+                // Show success floating alert instead of modal alert
+                showFloatingAlert(data.message || "Task updated successfully!", "success");
+
+                        // Reset form and preview (same as Add Task)
+                        editTaskForm.reset();
+                        const editImageLabel =
+                            document.getElementById("editTaskImageLabel");
+                        const editImageClearBtn = document.getElementById(
+                            "editTaskImageClearBtn"
+                        );
+                        if (editImageLabel) {
+                            editImageLabel.style.backgroundImage = "";
+                            editImageLabel.classList.remove("has-image");
+                            editImageLabel.style.opacity = "0.5";
+                        }
+                        if (editImageClearBtn) {
+                            editImageClearBtn.classList.add("d-none");
+                        }
+
+                        // Clear selected executors
+                        if (window.clearSelectedExecutorsEdit) {
+                            window.clearSelectedExecutorsEdit();
+                        }
+
+                        // Clear selected files after successful update
+                        window.editSelectedFiles = [];
+                        displayEditSelectedFiles();
+
+                        // Close modal after short delay to show alert and insert updated task
+                        setTimeout(() => {
+                            var editTaskModalInstance =
+                                bootstrap.Modal.getInstance(editTaskModalEl);
+                            try {
+                                if (editTaskModalEl && editTaskModalEl.dataset) editTaskModalEl.dataset.allowProgrammaticClose = '1';
+                            } catch(_) {}
+                            if (editTaskModalInstance)
+                                editTaskModalInstance.hide();
+                            // Insert/refresh single updated task so client-archived tasks get restored immediately
+                            try { fetchAndInsertTask(taskId); } catch(_) { fetchAndRenderTasks(); }
+                        }, 1500);
+                    }, 800); // Show loading for 800ms before showing success alert
+                },
+                error: function (xhr) {
+                    // Hide loading overlay on error
+                    if (loader) loader.classList.add("d-none");
+                    if (submitBtn) submitBtn.disabled = false;
+
+                    let errorMessage = "Failed to update task.";
+                    if (xhr.responseJSON && xhr.responseJSON.errors) {
+                        errorMessage = Object.values(xhr.responseJSON.errors)
+                            .flat()
+                            .join("\n");
+                    } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    showFloatingAlert(errorMessage, "danger");
+                },
+                complete: function () {
+                    // Don't hide loader here, let success/error handle it
+                    // This prevents loader from disappearing too early
+                },
+            });
+        });
+    }
+
+        const editTaskImageInput = document.getElementById("edit_task_image");
+        const editTaskImageLabel = document.getElementById("editTaskImageLabel");
+        const editTaskImageClearBtn = document.getElementById(
+            "editTaskImageClearBtn"
+        );
+
+        if (editTaskImageInput && editTaskImageLabel && editTaskImageClearBtn) {
+            setupImageInput(
+                editTaskImageInput,
+                editTaskImageLabel,
+                editTaskImageClearBtn
+            );
+        }
+
+        var editTaskModalElement = document.getElementById("editTaskModal");
+        if (editTaskModalElement) {
+            editTaskModalElement.addEventListener("hidden.bs.modal", function () {
+                $("#editTaskForm")[0].reset();
+
+                $("#editTaskImageLabel").css(
+                    "background-image",
+                    "url('" + appUrl + "/asset/img/background/add-image.png')"
+                );
+                $("#editTaskImageLabel").removeClass("has-image");
+                $("#editTaskImageLabel").css("opacity", "0.5");
+                $("#editTaskImageClearBtn").addClass("d-none");
+
+                // Reload projects to reset select
+                loadProjects();
+
+                // Clear selected executors display and hidden inputs
+                window.clearSelectedExecutorsEdit &&
+                    window.clearSelectedExecutorsEdit();
+
+                $("#editTaskAlert").addClass("d-none").hide();
+
+                // Handle timeline modal restoration logic
+                const detailEl = document.getElementById('taskDetailModal');
+                if (detailEl) {
+                    // Clear the child opened flag
+                    detailEl.removeAttribute('data-child-opened');
+
+                    // Check if we should show the detail modal back
+                    if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                        // Show detail modal back first
+                        const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                        detailModal.show();
+
+                        // Restore the backed up timeline handler if it exists
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        } else {
+                            // Create fresh one-time listener to reopen timeline when detail is closed
+                            const onDetailHiddenAfterEdit = function() {
+                                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                    const timelineEl = document.getElementById('timelineModal');
+                                    if (timelineEl) {
+                                        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                        tlInstance.show();
+                                        detailEl.removeAttribute('data-reopen-timeline');
+                                    }
+                                }
+                                // Clear the reference
+                                detailEl._timelineHiddenHandler = null;
+                            };
+
+                            // Store and attach the handler
+                            detailEl._timelineHiddenHandler = onDetailHiddenAfterEdit;
+                            detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterEdit, { once: true });
+                        }
+                    } else {
+                        // If not showing detail modal back, restore the backed up handler anyway
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        }
+                    }
+                }
+            });
+        }
+
         function renderSelected() {
             selectedContainer.innerHTML = "";
             selectedEmployees.forEach((emp) => {
