@@ -2955,28 +2955,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 actions.push({ label: 'Edit', action: 'edit' });
                 actions.push({ label: 'Delete', action: 'delete', danger: true });
 
-                const statusClassMap = {
-                    'new_request': 'status-not_started',
-                    'in_progress': 'status-in_progress',
-                    'back_to_new_request': 'status-not_started',
-                    'completed': 'status-completed',
-                    'finished': 'status-finished',
-                    'rejected': 'status-late'
-                };
-
                 if (status === 'new_request') {
-                    actions.unshift({ label: 'In Progress', action: 'in_progress', badgeClass: statusClassMap['in_progress'] });
+                    actions.unshift({ label: 'In Progress', action: 'in_progress', });
                 } else if (status === 'in_progress') {
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
-                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request', badgeClass: statusClassMap['back_to_new_request'] });
+                    actions.unshift({ label: 'Completed', action: 'completed', });
+                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request'});
                 } else if (status === 'completed') {
-                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, badgeClass: statusClassMap['rejected'] });
-                    actions.unshift({ label: 'Finished', action: 'finished', badgeClass: statusClassMap['finished'] });
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, });
+                    actions.unshift({ label: 'Finished', action: 'finished', });
                 } else if (status === 'finished') {
-                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, badgeClass: statusClassMap['rejected'] });
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, });
+                    actions.unshift({ label: 'Completed', action: 'completed', });
                 } else if (status === 'rejected') {
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
+                    actions.unshift({ label: 'Completed', action: 'completed', });
                 }
 
                 const portal = document.createElement('div');
@@ -2984,7 +2975,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 portal.style.position = 'fixed';
                 portal.style.zIndex = 9999;
                 portal.innerHTML = actions.map(a => `
-                    <button class="btn btn-sm w-100 text-start py-2 px-2 ${a.danger ? 'text-danger' : ''} project-task-status-badge ${a.badgeClass || ''}" data-action="${a.action}" data-task-id="${taskId}">
+                    <button class="btn btn-sm w-100 text-start py-2 px-2 project-task-status-badge" data-action="${a.action}" data-task-id="${taskId}">
                         ${a.label}
                     </button>
                 `).join('');
