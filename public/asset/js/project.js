@@ -1920,219 +1920,211 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch(_) {}
     }, true);
 
-                        function setDeleteProjectModalPreview(project) {
+    function setDeleteProjectModalPreview(project) {
+        try {
+            const deleteModalEl =
+                document.getElementById("deleteProjectModal");
+                    if (!deleteModalEl) return;
+                    const contentEl = deleteModalEl.querySelector(
+                        "#deleteProjectContent"
+                    );
+                    if (!contentEl) return;
+
+                    const title = project?.title || "";
+                    let imgUrl = project?.image || "";
+                    let avatarHtml = "";
+
+                    if (imgUrl) {
+                        const isAbsolute = /^https?:\/\//i.test(imgUrl);
+                        const isFile = /^\/?(file|storage)\//i.test(
+                            imgUrl
+                        );
+                        if (!isAbsolute && !isFile) {
+                            imgUrl = appUrl + "/file/project/" + imgUrl;
+                        } else if (!isAbsolute && isFile) {
+                            imgUrl = imgUrl.startsWith("/")
+                                ? appUrl + imgUrl
+                                : appUrl + "/" + imgUrl;
+                        }
+                        
+                    avatarHtml = `<img src="${imgUrl}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
+                        
+                    } else {
+                        avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${getInitialsColor(
+                            title
+                        )};color:#fff;font-weight:600;font-size:11px;">${getInitials(
+                            title
+                        )}</div>`;
+                    }
+
+                    function _getDeptText(val) {
                         try {
-                            const deleteModalEl =
-                                document.getElementById("deleteProjectModal");
-                            if (!deleteModalEl) return;
-                            const contentEl = deleteModalEl.querySelector(
-                                "#deleteProjectContent"
-                            );
-                            if (!contentEl) return;
-
-                            const title = project?.title || "";
-                            let imgUrl = project?.image || "";
-                            let avatarHtml = "";
-
-                            if (imgUrl) {
-                                const isAbsolute = /^https?:\/\//i.test(imgUrl);
-                                const isFile = /^\/?(file|storage)\//i.test(
-                                    imgUrl
+                            if (!val) return "-";
+                            if (typeof val === "string") return val;
+                            if (typeof val === "object") {
+                                return (
+                                    val.name_department ||
+                                    val.name_division ||
+                                    val.name ||
+                                    val.title ||
+                                    "-"
                                 );
-                                if (!isAbsolute && !isFile) {
-                                    imgUrl = appUrl + "/file/project/" + imgUrl;
-                                } else if (!isAbsolute && isFile) {
-                                    imgUrl = imgUrl.startsWith("/")
-                                        ? appUrl + imgUrl
-                                        : appUrl + "/" + imgUrl;
-                                }
-                                avatarHtml = `<img src="${imgUrl}" alt="Project Image" class="rounded-circle me-3" style="width:34px;height:34px;object-fit:cover;" onerror="this.onerror=null;this.src='${appUrl}/asset/img/avatar.png'">`;
-                            } else {
-                                avatarHtml = `<div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width:34px;height:34px;background:${getInitialsColor(
-                                    title
-                                )};color:#fff;font-weight:600;font-size:11px;">${getInitials(
-                                    title
-                                )}</div>`;
                             }
-
-                            function _getDeptText(val) {
-                                try {
-                                    if (!val) return "-";
-                                    if (typeof val === "string") return val;
-                                    if (typeof val === "object") {
-                                        return (
-                                            val.name_department ||
-                                            val.name_division ||
-                                            val.name ||
-                                            val.title ||
-                                            "-"
-                                        );
-                                    }
-                                    return "-";
-                                } catch (_) {
-                                    return "-";
-                                }
-                            }
-
-                            const deptRaw =
-                                project.department ??
-                                project.department_name ??
-                                project.dept ??
-                                project.departmentTitle ??
-                                project.department_obj;
-                            const divRaw =
-                                project.division ??
-                                project.division_name ??
-                                project.div ??
-                                project.divisionTitle ??
-                                project.division_obj;
-                            const deptText = _getDeptText(deptRaw);
-                            const divText = _getDeptText(divRaw);
-
-                            function getTaskByDueDate(projectId, callback) {
-                                $.ajax({
-                                    url:
-                                        appUrl +
-                                        "/projects/" +
-                                        projectId +
-                                        "/tasks",
-                                    type: "GET",
-                                    dataType: "json",
-                                    success: function (response) {
-                                        if (
-                                            response.data &&
-                                            response.data.length > 0
-                                        ) {
-                                            const tasksWithDue =
-                                                response.data.filter(
-                                                    (t) => t.due_date
-                                                );
-                                            if (tasksWithDue.length === 0)
-                                                return callback(null);
-
-                                            const maxTask = tasksWithDue.reduce(
-                                                (latest, t) => {
-                                                    return new Date(
-                                                        t.due_date
-                                                    ) >
-                                                        new Date(
-                                                            latest.due_date
-                                                        )
-                                                        ? t
-                                                        : latest;
-                                                }
-                                            );
-
-                                            callback(maxTask);
-                                        } else {
-                                            callback(null);
-                                        }
-                                    },
-                                    error: function (xhr, status, err) {
-                                        console.error(
-                                            "Error fetch tasks:",
-                                            err
-                                        );
-                                        callback(null);
-                                    },
-                                });
-                            }
-
-                            function formatTaskDate(date) {
-                                if (!date) return "-";
-                                const d = new Date(date);
-
-                                const year = d.getFullYear();
-                                const month = String(d.getMonth() + 1).padStart(
-                                    2,
-                                    "0"
-                                );
-                                const day = String(d.getDate()).padStart(
-                                    2,
-                                    "0"
-                                );
-
-                                return `${year}-${month}-${day}`;
-                            }
-
-                            getTaskByDueDate(project.id, function (maxTask) {
-                                const deadlineEl = document.getElementById(
-                                    "deadline-" + project.id
-                                );
-                                if (!deadlineEl) return;
-
-                                const projectDue = project.due_date
-                                    ? new Date(project.due_date)
-                                    : null;
-
-                                if (maxTask && maxTask.due_date) {
-                                    const taskDue = new Date(maxTask.due_date);
-
-                                    if (!projectDue || taskDue > projectDue) {
-                                        deadlineEl.textContent =
-                                            formatTaskDate(taskDue);
-                                    } else {
-                                        deadlineEl.textContent =
-                                            formatTaskDate(projectDue);
-                                    }
-                                } else {
-                                    deadlineEl.textContent = projectDue
-                                        ? formatTaskDate(projectDue)
-                                        : "-";
-                                }
-                            });
-
-                            // Parent title not provided by API (use parent_ids + lookup if needed)
-                            const parentTitle = "";
-                            const desc = project?.description
-                                ? String(project.description)
-                                : "";
-
-                            const cardHtml = `
-                                <div class="custom-card-delete rounded-4 position-relative p-3 border-0">
-                                    <div class="d-flex align-items-center mb-2">
-                                        ${avatarHtml}
-                                        <div class="d-flex flex-column">
-                                            ${parentTitle}
-                                            <h5 class="mb-0 task-title" style="line-height:1.2;">${
-                                                title || "Untitled Project"
-                                            }</h5>
-                                        </div>
-                                    </div>
-                                    ${
-                                        desc
-                                            ? `<div class="task-description-container mb-2"><p class="task-description mb-0" style="font-size:14px;">${desc}</p></div>`
-                                            : ""
-                                    }
-                                    <hr class="task-separator rounded-4">
-                                    <div class="d-flex justify-content-between mb-2" id="project-${
-                                        project.id
-                                    }" style="font-size:12px;">
-                                        <span style="color:#797E91;">Deadline: </span>
-                                        <span id="deadline-${
-                                            project.id
-                                        }" style="color:#4B4F5E;">
-                                            ${project.due_date || "-"}
-                                        </span>
-                                    </div>
-                                    <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
-                                        <span class="text-muted">Department:</span>
-                                        <span>${deptText}</span>
-                                    </div>
-                                    <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
-                                        <span class="text-muted">Division:</span>
-                                        <span>${divText}</span>
-                                    </div>
-                                </div>`;
-
-                            contentEl.innerHTML = cardHtml;
-                        } catch (e) {
-                            console.error(
-                                "setDeleteProjectModalPreview error:",
-                                e
-                            );
+                            return "-";
+                        } catch (_) {
+                            return "-";
                         }
                     }
+
+                    const deptRaw =
+                        project.department ??
+                        project.department_name ??
+                        project.dept ??
+                        project.departmentTitle ??
+                        project.department_obj;
+                    const divRaw =
+                        project.division ??
+                        project.division_name ??
+                        project.div ??
+                        project.divisionTitle ??
+                        project.division_obj;
+                    const deptText = _getDeptText(deptRaw);
+                    const divText = _getDeptText(divRaw);
+
+                    function getTaskByDueDate(projectId, callback) {
+                        $.ajax({
+                            url: appUrl + "/projects/" + projectId + "/tasks",
+                            type: "GET",
+                            dataType: "json",
+                            success: function (response) {
+                                if (
+                                    response.data &&
+                                    response.data.length > 0
+                                ) {
+                                    const tasksWithDue =
+                                        response.data.filter(
+                                            (t) => t.due_date
+                                        );
+                                    if (tasksWithDue.length === 0)
+                                        return callback(null);
+
+                                    const maxTask = tasksWithDue.reduce(
+                                        (latest, t) => {
+                                            return new Date(
+                                                t.due_date
+                                            ) >
+                                                new Date(
+                                                    latest.due_date
+                                                )
+                                                ? t
+                                                : latest;
+                                        }
+                                    );
+                                    callback(maxTask);
+                                } else {
+                                    callback(null);
+                                }
+                            },
+                            error: function (xhr, status, err) {
+                                console.error(
+                                    "Error fetch tasks:",
+                                    err
+                                );
+                                callback(null);
+                            },
+                        });
+                    }
+
+                    function formatTaskDate(date) {
+                        if (!date) return "-";
+                        const d = new Date(date);
+
+                        const year = d.getFullYear();
+                        const month = String(d.getMonth() + 1).padStart(
+                            2,
+                            "0"
+                        );
+                        const day = String(d.getDate()).padStart(
+                            2,
+                            "0"
+                        );
+
+                        return `${year}-${month}-${day}`;
+                    }
+
+                    getTaskByDueDate(project.id, function (maxTask) {
+                        const deadlineEl = document.getElementById(
+                            "deadline-" + project.id
+                        );
+                        if (!deadlineEl) return;
+                        const projectDue = project.due_date
+                            ? new Date(project.due_date)
+                            : null;
+                        if (maxTask && maxTask.due_date) {
+                            const taskDue = new Date(maxTask.due_date);
+                            if (!projectDue || taskDue > projectDue) {
+                                deadlineEl.textContent =
+                                    formatTaskDate(taskDue);
+                            } else {
+                                deadlineEl.textContent = formatTaskDate(projectDue);
+                            }
+                        } else {
+                            deadlineEl.textContent = projectDue
+                                ? formatTaskDate(projectDue)
+                                : "-";
+                        }
+                    });
+
+                    // Parent title not provided by API (use parent_ids + lookup if needed)
+                    const parentTitle = "";
+                    const desc = project?.description
+                        ? String(project.description)
+                        : ""
+                    const cardHtml = `
+                        <div class="custom-card-delete rounded-4 position-relative p-3 border-0">
+                            <div class="d-flex align-items-center mb-2">
+                                ${avatarHtml}
+                                <div class="d-flex flex-column">
+                                    ${parentTitle}
+                                    <h5 class="mb-0 task-title" style="line-height:1.2;">${
+                                        title || "Untitled Project"
+                                    }</h5>
+                                </div>
+                            </div>
+                            ${
+                                desc ?
+                                    `<div class="task-description-container mb-2"><p class="task-description mb-0" style="font-size:14px;">${desc}</p></div>`
+                                : ""
+                            }
+                            <hr class="task-separator rounded-4">
+                            <div class="d-flex justify-content-between mb-2" id="project-${
+                                project.id
+                            }" style="font-size:12px;">
+                                <span style="color:#797E91;">Deadline: </span>
+                                <span id="deadline-${
+                                    project.id
+                                }" style="color:#4B4F5E;">
+                                    ${project.due_date || "-"}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1" style="font-size:12px;">
+                                <span class="text-muted">Department:</span>
+                                <span>${deptText}</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2" style="font-size:12px;">
+                                <span class="text-muted">Division:</span>
+                                <span>${divText}</span>
+                            </div>
+                        </div>`;
+
+                contentEl.innerHTML = cardHtml;
+        } catch (e) {
+            console.error(
+                "setDeleteProjectModalPreview error:",
+                e
+            );
+        }
+    }
 
     // Fallback: handle clicks on non-portal inline dropdown (if portal creation fails)
     document.addEventListener('click', function(e){
