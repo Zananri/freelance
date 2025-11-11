@@ -2953,21 +2953,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const actions = [];
                 actions.push({ label: 'Edit', action: 'edit' });
+                actions.push({ label: 'Feedback', action: 'feedback' });
                 actions.push({ label: 'Delete', action: 'delete', danger: true });
 
                 if (status === 'new_request') {
-                    actions.unshift({ label: 'In Progress', action: 'in_progress', });
+                    actions.unshift({ label: 'In Progress', action: 'in_progress' });
                 } else if (status === 'in_progress') {
-                    actions.unshift({ label: 'Completed', action: 'completed', });
-                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request'});
+                    actions.unshift({ label: 'Completed', action: 'completed' });
+                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request' });
                 } else if (status === 'completed') {
-                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, });
-                    actions.unshift({ label: 'Finished', action: 'finished', });
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
+                    actions.unshift({ label: 'Finished', action: 'finished' });
                 } else if (status === 'finished') {
-                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, });
-                    actions.unshift({ label: 'Completed', action: 'completed', });
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
                 } else if (status === 'rejected') {
-                    actions.unshift({ label: 'Completed', action: 'completed', });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
                 }
 
                 const portal = document.createElement('div');
@@ -2975,7 +2976,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 portal.style.position = 'fixed';
                 portal.style.zIndex = 9999;
                 portal.innerHTML = actions.map(a => `
-                    <button class="btn btn-sm w-100 text-start py-2 px-2 project-task-status-badge" data-action="${a.action}" data-task-id="${taskId}">
+                    <button class="btn btn-sm w-100 text-start py-2 px-2 project-task-status-badge" 
+                            data-action="${a.action}" 
+                            data-task-id="${taskId}">
                         ${a.label}
                     </button>
                 `).join('');
@@ -3001,10 +3004,38 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (!btnAction) return;
                     const act = btnAction.getAttribute('data-action');
                     const id = btnAction.getAttribute('data-task-id');
-                    if (window.handleTaskAction) window.handleTaskAction(id, act);
+
                     portal.remove();
+
+                    if (act === 'feedback') {
+                        const detailModalEl = document.getElementById("taskDetailModal");
+                        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                        if (!feedbackModalEl) return;
+
+                        const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                        if (detailModal) detailModal.hide();
+
+                        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+                        feedbackModal.show();
+
+                        feedbackModalEl.addEventListener(
+                            "hidden.bs.modal",
+                            function restoreDetailModal() {
+                                feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDetailModal);
+                                if (detailModal) detailModal.show();
+                            },
+                            { once: true }
+                        );
+
+                        if (id && window.handleTaskFeedback) window.handleTaskFeedback(id);
+                    } else {
+                        if (window.handleTaskAction) window.handleTaskAction(id, act);
+                    }
                 });
-            } catch (_) {}
+
+            } catch (err) {
+                console.error('Task menu error:', err);
+            }
         });
 
         document.addEventListener('click', function (e) {
