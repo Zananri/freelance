@@ -91,9 +91,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/project/index', [ProjectController::class, 'index'])->name('project.index');
     Route::get('/project/get-all-projects', [ProjectController::class, 'getAllProjects'])->name('project.getAllProjects');
     Route::get('/project/export-excel', [ProjectController::class, 'exportProjectsExcel'])->name('project.export-excel');
+    Route::get('/project/export-root-excel', [ProjectController::class, 'exportRootProjectsExcel'])->name('project.root-export-excel');
+    Route::get('/project/export-excel/{project}', [ProjectController::class, 'exportChildProjectsExcel'])->name('project.child-export-excel');
     // Export a single project's report to Excel
     Route::get('/project/{id}/export-excel', [ProjectController::class, 'exportProjectExcelSingle'])->name('project.export-excel.single');
-    Route::get('/project/create', [ProjectController::class, 'create'])->name('project.create');
+    Route::get('/project/create', [ProjectController::class, 'create'])->name('project.cre  ate');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
     // Get children of a specific project
     Route::get('/project/{id}/children', [ProjectController::class, 'getChildren'])->name('project.children');

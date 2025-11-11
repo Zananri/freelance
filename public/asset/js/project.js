@@ -3049,6 +3049,108 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     })();
 
+    (function () {
+        try {
+            function initProjectExport() {
+                const exportAllBtn = document.querySelector(".btn-export-custom");
+                const exportChildBtn = document.querySelector(".download-project");
+
+                function triggerExport(btn, url, successMessage) {
+                    if (!btn) return;
+                    const originalText = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML =
+                        '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
+
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = "";
+                    link.style.display = "none";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        if (typeof showFloatingAlert === "function") {
+                            showFloatingAlert(successMessage, "success", 3000);
+                        }
+                    }, 2000);
+                }
+
+                if (exportAllBtn) {
+                    const urlAll = appUrl + "/project/export-excel";
+                    exportAllBtn.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        triggerExport(exportAllBtn, urlAll, "All projects exported successfully!");
+                    });
+                }
+
+                if (exportChildBtn) {
+                    exportChildBtn.addEventListener("click", (e) => {
+                        e.preventDefault();
+
+                        const btn = e.currentTarget;
+                        const originalText = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML =
+                            '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
+
+                        try {
+                            const activeProject =
+                                breadcrumbStack && breadcrumbStack.length
+                                    ? breadcrumbStack[breadcrumbStack.length - 1]
+                                    : null;
+
+                            let exportUrl = "";
+
+                            if (activeProject && activeProject.id) {
+                                exportUrl = `${appUrl}/project/export-excel/${encodeURIComponent(activeProject.id)}`;
+                            } else {
+                                exportUrl = `${appUrl}/project/export-root-excel`;
+                            }
+
+                            const link = document.createElement("a");
+                            link.href = exportUrl;
+                            link.download = "";
+                            link.style.display = "none";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+
+                            setTimeout(() => {
+                                btn.disabled = false;
+                                btn.innerHTML = originalText;
+                                if (typeof showFloatingAlert === "function") {
+                                    const msg = activeProject
+                                        ? `Exported child projects for "${activeProject.title || "Selected Project"}" successfully!`
+                                        : "Exported root projects successfully!";
+                                    showFloatingAlert(msg, "success", 3000);
+                                }
+                            }, 2000);
+                        } catch (err) {
+                            console.error("Error exporting projects:", err);
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                            if (typeof showFloatingAlert === "function") {
+                                showFloatingAlert("Failed to export projects.", "danger", 3000);
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initProjectExport);
+            } else {
+                initProjectExport();
+            }
+        } catch (e) {
+            console.error("Error initializing project export:", e);
+        }
+    })();
+
     const sectionMap = {
         new_request: "new-request-tasks",
         in_progress: "in-progress-tasks",
@@ -21248,62 +21350,6 @@ function initAddProjectReferenceFilesModal() {
             initAddProjectReferenceFilesModal();
         }
     } catch (e) {}
-})();
-
-// Initialize export button handler
-(function () {
-    try {
-        function initProjectExport() {
-            const exportBtn = document.querySelector(".btn-export-custom, .download-project");
-            if (exportBtn) {
-                exportBtn.addEventListener("click", function (e) {
-                    e.preventDefault();
-
-                    // Show loading state
-                    const originalText = exportBtn.innerHTML;
-                    exportBtn.disabled = true;
-                    exportBtn.innerHTML =
-                        '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
-
-                    // Create a temporary anchor element to trigger download
-                    const link = document.createElement("a");
-                    link.href = appUrl + "/project/export-excel";
-                    link.download = "";
-                    link.style.display = "none";
-                    document.body.appendChild(link);
-
-                    // Trigger download
-                    link.click();
-
-                    // Clean up
-                    document.body.removeChild(link);
-
-                    // Restore button state after a short delay
-                    setTimeout(() => {
-                        exportBtn.disabled = false;
-                        exportBtn.innerHTML = originalText;
-
-                        // Show success message
-                        if (typeof showFloatingAlert === "function") {
-                            showFloatingAlert(
-                                "Project export started successfully!",
-                                "success",
-                                3000
-                            );
-                        }
-                    }, 2000);
-                });
-            }
-        }
-
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", initProjectExport);
-        } else {
-            initProjectExport();
-        }
-    } catch (e) {
-        console.error("Error initializing project export:", e);
-    }
 })();
 
 document.addEventListener("DOMContentLoaded", function () {
