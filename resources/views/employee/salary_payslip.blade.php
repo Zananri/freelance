@@ -1,18 +1,18 @@
 <x-office-layout>
     <x-slot name="menu_active">
-        {{ __('attendance_tracking') }}
+        {{ __('salary_payslip') }}
     </x-slot>
     <x-slot name="head_stitle_slot">
-        {{ __('Attendance Tracking') }}
+        {{ __('Salary Payslip') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/attendance_tracking.css?v'.time()) }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/salary_payslip.css')}}?v{{ time() }}" rel="stylesheet">
     </x-slot>
 
     <div class="title-content">
         <div class="row">
             <div class="col-12 col-md-9">
-                <h2 class="text-title-content mb-3" >Attendance Tracking</h2>
+                <h2 class="text-title-content mb-3" >Salary & Payslip</h2>
             </div>
             <div class="col-12 col-md-3">
                 <div class="d-flex gap-2 justify-content-end align-items-center">
@@ -78,13 +78,56 @@
                                 <thead>
                                     <tr>
                                         <th>Employee</th>
-                                        @for ($i = 1; $i <= 31 ; $i++)
-                                            <th class="col-day" data-day="{{ $i }}">
-                                                <div class="calendar-week-short"></div>
-                                                <div>{{ $i }}</div>
-                                                <div class="calendar-month-short">{{ date('M') }}</div>
-                                            </th>
-                                        @endfor
+                                        <th>
+                                            <div>Salary</div>
+                                            <div class="fs-10 fw-normal white-space-nowrap">
+                                                Take Home Pay
+                                            </div>
+
+                                        </th>
+                                        <th>
+                                            <div>Hari Bln</div>
+                                            <div class="">
+                                                <span class="calendar-month fs-10 fw-normal white-space-nowrap">{{ date('F') }}</span>
+                                            </div>
+                                        </th>
+
+                                        <th>
+                                            <div class="white-space-nowrap">Hari Kerja</div>
+                                        </th>
+
+                                        <th>
+                                            <div class="white-space-nowrap">Hari UM</div>
+                                        </th>
+
+                                        <th>
+                                            <div class="white-space-nowrap">Gaji Pokok</div>
+                                        </th>
+
+                                        <th>
+                                            <div class="white-space-nowrap">Uang Makan</div>
+                                        </th>
+
+                                        <th>
+                                            <div class="white-space-nowrap">Trasnportasi</div>
+                                        </th>
+
+                                        <th>
+                                            <div class="white-space-nowrap">Pulsa &amp; Internet</div>
+                                        </th>
+
+                                        <th>
+                                            <div>Bonus</div>
+                                        </th>
+
+                                        <th>
+                                            <div>Potongan</div>
+                                        </th>
+
+                                        <th>
+                                            <div>Lembur</div>
+                                        </th>
+
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -93,7 +136,7 @@
                                             
                                         
                                         <tr class="employee-row" data-employee-name="{{ $itemEmployee->name }}" data-employee-photo="{{ asset($itemEmployee->photo) }}"  data-employee-id="{{ $itemEmployee->id }}" data-weekday-off="{{ $itemEmployee->weekday_off }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
-                                            <td>
+                                            <td rowspan="2">
                                                 <div class="box-employee">
                                                     <div class="d-flex align-items-center">
                                                         <div class="col-photo">
@@ -110,28 +153,71 @@
                                                 </div>
                                             </td>
 
-                                             @for ($j = 1; $j <= 31 ; $j++)
-                                                
-                                                <td class="col-day" data-day="{{ $j }}">
-                                                    <div class="box-attendance">
-                                                        <div class="box-time d-flex h-100 w-100 align-items-center justify-content-center">
-                                                            <div>
-                                                                <div class="time-in"></div>
-                                                                <div class="time-out"></div>
-                                                            </div>
-                                                        </div>
-                                                        <div class="box-leave">
-                                                            <div class="d-flex h-100 w-100 align-items-center justify-content-center">
-                                                                <div class="description-leave"></div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            @endfor
+                                            <td rowspan="2">
+                                                Salary
+                                            </td>
+                                            <td>
+                                                Hari bln
+                                            </td>
+                                            <td>
+                                                Hari Kerja
+                                            </td>
+                                            <td>
+                                                Hari UM
+                                            </td>
+                                            <td>
+                                                Gaji Pokok
+                                            </td>
+                                            <td>
+                                                Uang Makan
+                                            </td>
+                                            <td>
+                                                Trasnportasi
+                                            </td>
+                                            <td>
+                                                Pulsa & Internet
+                                            </td>
+                                            <td>
+                                                Bonus
+                                            </td>
+                                            <td>
+                                                Potongan
+                                            </td>
+                                            <td>
+                                                Lembur
+                                            </td>
+                                        </tr>
+
+                                        <tr class="employee-row" data-employee-name="{{ $itemEmployee->name }}" data-employee-photo="{{ asset($itemEmployee->photo) }}"  data-employee-id="{{ $itemEmployee->id }}" data-weekday-off="{{ $itemEmployee->weekday_off }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
+                                            
+                                            <td colspan="3" class="text-center z-0">
+                                                Perhitungan Gaji
+                                            </td>
+                                            <td>
+                                                {{-- Gaji Pokok --}}
+                                            </td>
+                                            <td>
+                                                {{-- Uang Makan --}}
+                                            </td>
+                                            <td>
+                                                {{-- Trasnportasi --}}
+                                            </td>
+                                            <td>
+                                                {{-- Pulsa & Internet --}}
+                                            </td>
+                                            <td>
+                                                {{-- Bonus --}}
+                                            </td>
+                                            <td>
+                                                {{-- Potongan --}}
+                                            </td>
+                                            <td>
+                                                {{-- Lembur --}}
+                                            </td>
                                         </tr>
 
                                     @endforeach
-                                    <!-- Contoh data (lebih banyak data bisa ditambahkan untuk melihat efek sticky) -->
+                                    
                                     
                                 </tbody>
                             </table>
@@ -486,7 +572,7 @@
 
     <x-slot name="script_slot"> 
         <script src="{{ asset('asset/js/date_helper.js')}}?v={{ time() }}"></script>
-        <script src="{{ asset('asset/js/attendance_tracking.js')}}?v={{ time() }}"></script>
+        <script src="{{ asset('asset/js/salary_payslip.js')}}?v={{ time() }}"></script>
     </x-slot>
 
 </x-office-layout>

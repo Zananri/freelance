@@ -7,6 +7,8 @@ use App\Http\Controllers\JobController;
 use App\Http\Controllers\LeaveController;
 use App\Http\Controllers\OvertimeController;
 
+use App\Http\Controllers\SalaryPayslipController;
+
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeeOvertimeController;
 use App\Http\Controllers\EmployeeTimeOffController;
@@ -279,6 +281,7 @@ Route::middleware('auth', 'management')->group(function () {
         return view('master.master');
     })->name('master');
 
+    Route::get('/salary_payslip', [SalaryPayslipController::class, 'showSalaryPayslipPage'])->name('salary_payslip');
 
     Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword');
     Route::get('/user', [UserController::class, 'showUserPage'])->name('user');

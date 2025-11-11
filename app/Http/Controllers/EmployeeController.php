@@ -13,6 +13,7 @@ use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 
 use App\Models\Employee;
+use App\Models\EmployeeSalary;
 use App\Models\User;
 use App\Models\Department;
 use App\Models\Division;
@@ -324,6 +325,21 @@ class EmployeeController extends Controller
                 'deleted_by' => null,
             ]);
 
+            $salaryData['take_home_pay'] = $request->basic_salary + $request->positional_allowance + $request->transportation_allowance + $request->meal_allowance + $request->internet_phone_allowance;
+            $salaryData['basic_salary'] = $request->basic_salary;
+            $salaryData['positional_allowance'] = $request->positional_allowance;
+            $salaryData['transportation_allowance'] = $request->transportation_allowance;
+            $salaryData['meal_allowance'] = $request->meal_allowance;
+            $salaryData['internet_phone_allowance'] = $request->internet_phone_allowance;
+            $salaryData['updated_by'] = auth()->id();
+
+            EmployeeSalary::updateOrCreate(
+                [
+                    'employee_id' => $employee->id,
+                ],
+                $salaryData
+            );
+
             DB::commit();
 
             return response()->json([
@@ -527,6 +543,22 @@ class EmployeeController extends Controller
                 }
             }
 
+
+            $salaryData['take_home_pay'] = $request->basic_salary + $request->positional_allowance + $request->transportation_allowance + $request->meal_allowance + $request->internet_phone_allowance;
+            $salaryData['basic_salary'] = $request->basic_salary;
+            $salaryData['positional_allowance'] = $request->positional_allowance;
+            $salaryData['transportation_allowance'] = $request->transportation_allowance;
+            $salaryData['meal_allowance'] = $request->meal_allowance;
+            $salaryData['internet_phone_allowance'] = $request->internet_phone_allowance;
+            $salaryData['updated_by'] = auth()->id();
+
+            EmployeeSalary::updateOrCreate(
+                [
+                    'employee_id' => $employee->id,
+                ],
+                $salaryData
+            );
+
             // Update corresponding user record (only name/email, NOT photo for independence)
             $user = User::find($employee->user_id);
             if ($user) {
@@ -619,12 +651,14 @@ class EmployeeController extends Controller
             //show all
         }else{
             $employee = Employee::where('department_id',$currentEmployee->department_id)->find($id);
-        }
-        
+        }        
 
         if (!$employee) {
             abort(404, 'Employee not found');
         }
+
+        $employeeSalaries = EmployeeSalary::where('employee_id', $employee->id)->first();
+
         $departments = Department::all();
         $divisions = Division::all();
 
@@ -646,7 +680,7 @@ class EmployeeController extends Controller
             "FIELD(name, 'NSA Performance Petojo Barat 6 No. 4','Gudang SEHA')"
         )->orderBy('name')->get();
 
-        return view('employee.edit', compact('employee', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
+        return view('employee.edit', compact('employee','employeeSalaries', 'departments', 'divisions', 'jobs', 'grades', 'offices'));
     }
 
     /**
@@ -825,7 +859,27 @@ class EmployeeController extends Controller
 
         foreach ($allEmployeeActive as $employeeItem) {
 
-            $thp = $employeeItem->basic_salary + $employeeItem->positional_allowance + $employeeItem->transportation_allowance + $employeeItem->meal_allowance + $employeeItem->internet_phone_allowance;
+            $employeeSalary = EmployeeSalary::where('employee_id', $employeeItem->id)->first();
+
+            
+            $thp = 0;
+            $basicSalary = 0;
+            $positionalAllowance = 0;
+            $transportationAllowance = 0;
+            $mealAllowance = 0;
+            $internetPhoneAllowance = 0;
+
+            if($employeeSalary){
+
+                $basicSalary = $employeeSalary->basic_salary;
+                $positionalAllowance = $employeeSalary->positional_allowance;
+                $transportationAllowance = $employeeSalary->transportation_allowance;
+                $mealAllowance = $employeeSalary->meal_allowance;
+                $internetPhoneAllowance = $employeeSalary->internet_phone_allowance;
+
+            }
+            $thp = $basicSalary + $positionalAllowance + $transportationAllowance + $mealAllowance + $internetPhoneAllowance;
+            
 
             $activeWorksheet->setCellValue('A'.$row, $no);
             $activeWorksheet->setCellValue('B'.$row, $employeeItem->name);
@@ -840,11 +894,11 @@ class EmployeeController extends Controller
             $activeWorksheet->setCellValue('K'.$row, $employeeItem->status);//'Status'
             $activeWorksheet->setCellValue('L'.$row, $employeeItem->address);//'Alamat'
             $activeWorksheet->setCellValue('M'.$row, $thp);//'Take Home Pay'
-            $activeWorksheet->setCellValue('N'.$row, $employeeItem->basic_salary);//'Gaji Pokok'
-            $activeWorksheet->setCellValue('O'.$row, $employeeItem->positional_allowance);//'Tunjangan Jabatan'
-            $activeWorksheet->setCellValue('P'.$row, $employeeItem->transportation_allowance);//'Tunjangan Transportasi'
-            $activeWorksheet->setCellValue('Q'.$row, $employeeItem->meal_allowance);//'Tunjangan Makan'
-            $activeWorksheet->setCellValue('R'.$row, $employeeItem->internet_phone_allowance);//'Tunjangan Internet'
+            $activeWorksheet->setCellValue('N'.$row, $basicSalary);//'Gaji Pokok'
+            $activeWorksheet->setCellValue('O'.$row, $positionalAllowance);//'Tunjangan Jabatan'
+            $activeWorksheet->setCellValue('P'.$row, $transportationAllowance);//'Tunjangan Transportasi'
+            $activeWorksheet->setCellValue('Q'.$row, $mealAllowance);//'Tunjangan Makan'
+            $activeWorksheet->setCellValue('R'.$row, $internetPhoneAllowance);//'Tunjangan Internet'
             
             
             

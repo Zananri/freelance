@@ -360,6 +360,22 @@
                             <div class="pill-new-request d-none"></div>
                         </a>
                     </li>
+                    @endif
+                    
+
+                    @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
+                    
+                    <li>
+                        <a href="{{ route('salary_payslip') }}" class="{{ $menu_active == 'salary_payslip' ? 'active' : '' }}  menu-salary-payslip ">
+                            <span class="material-symbols-outlined">attach_money</span>
+                            <span class="text-menu">Salary & Payslip</span>
+                            <div class="pill-new-request d-none"></div>
+                        </a>
+                    </li>
+                    @endif
+                    
+                    @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))
+                    
                     <li>
                         <a href="{{ route('attendance_tracking') }}" class="{{ $menu_active == 'attendance_tracking' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">calendar_clock</span>
@@ -394,6 +410,7 @@
 
                     @if (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','HR_MANAGER']))
                     
+
                     <li>
                         <a href="{{ route('master') }}" class="{{ $menu_active == 'master' ? 'active' : '' }}">
                             <span class="material-symbols-outlined">database</span>
