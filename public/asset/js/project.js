@@ -16035,44 +16035,120 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {}
     };
 
-    // Delegated handler for task attach buttons rendered inside project tasks pane
-    document.addEventListener("click", function (e) {
-        try {
-            const btn = e.target.closest && e.target.closest(".project-task-attach-btn");
-            if (!btn) return;
+    document.addEventListener("click", function(event) {
+        const btn = event.target.closest(".project-task-attach-btn");
+        if (!btn) return;
 
-            e.preventDefault();
-            e.stopPropagation();
+        const taskId = btn.getAttribute("data-task-id");
+        if (!taskId) {
+            showFloatingAlert("Task ID not found.", "warning", 3000);
+            return;
+        }
 
-            const taskId = btn.getAttribute("data-task-id") || btn.dataset.taskId;
+        const detailModalEl = document.getElementById("taskDetailModal");
+        if (detailModalEl) {
+            const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+            if (detailModal) detailModal.hide();
+        }
 
-            const detailModal = document.getElementById("taskDetailModal");
-            if (detailModal && detailModal.classList.contains("show")) {
-                const modalInst = bootstrap.Modal.getInstance(detailModal) || new bootstrap.Modal(detailModal);
-                modalInst.hide();
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function(res) {
+                let referenceFiles = res?.data?.reference_files ?? res?.reference_files ?? [];
+                if (typeof referenceFiles === "string") {
+                    try { referenceFiles = JSON.parse(referenceFiles); } 
+                    catch { referenceFiles = referenceFiles.split(",").map(s => s.trim()).filter(Boolean); }
+                }
 
-                detailModal.setAttribute("data-child-opened", "1");
-            }
+                const referenceTaskFilesList = document.getElementById("referenceTaskFilesList");
+                if (!referenceTaskFilesList) return;
+                referenceTaskFilesList.innerHTML = "";
+                referenceTaskFilesList.dataset.taskId = taskId;
 
-            if (taskId && window.showTaskFiles) {
-                window.showTaskFiles(taskId);
-            }
+                if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
+                    referenceFiles.forEach(fileName => {
+                        if (!fileName) return;
 
-            const attachModal = document.getElementById("taskAttachModal");
-            if (attachModal) {
-                attachModal.addEventListener(
-                    "hidden.bs.modal",
-                    function () {
-                        if (detailModal && detailModal.getAttribute("data-child-opened")) {
-                            const detailInst = bootstrap.Modal.getOrCreateInstance(detailModal);
-                            detailInst.show();
-                            detailModal.removeAttribute("data-child-opened");
+                        let fileUrl = fileName.startsWith('http') ? fileName : appUrl + '/file/task_reference_files/' + fileName;
+
+                        const item = document.createElement("div");
+                        item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                        if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName)) {
+                            const img = document.createElement("img");
+                            img.src = fileUrl; img.width = 28; img.height = 28;
+                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                            item.appendChild(img);
                         }
-                    },
-                    { once: true }
-                );
-            }
-        } catch (_) {}
+
+                        const title = document.createElement("a");
+                        title.className = "flex-grow-1 text-decoration-none text-truncate";
+                        title.href = fileUrl; title.target = "_blank"; title.textContent = fileName;
+                        title.style.color = "#444444";
+                        item.appendChild(title);
+
+                        const dlBtn = document.createElement("button");
+                        dlBtn.type = "button"; dlBtn.className = "btn btn-sm btn-link p-0 ms-2";
+                        dlBtn.title = "Download"; dlBtn.style.color = "#444444";
+                        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                        dlBtn.addEventListener("click", ev => {
+                            ev.preventDefault(); ev.stopPropagation();
+                            const a = document.createElement("a");
+                            a.style.display = "none"; a.href = fileUrl; a.download = fileName.split("/").pop(); a.target = "_blank";
+                            document.body.appendChild(a); a.click(); setTimeout(() => document.body.removeChild(a), 100);
+                        });
+                        item.appendChild(dlBtn);
+
+                        const delBtn = document.createElement("button");
+                        delBtn.type = "button"; delBtn.className = "btn btn-sm btn-link p-0 ms-2";
+                        delBtn.title = "Delete"; delBtn.style.color = "#444444";
+                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                        delBtn.addEventListener("click", ev => {
+                            ev.preventDefault(); ev.stopPropagation();
+                            showDeleteConfirmModal({
+                                type: "reference_file",
+                                id: fileName,
+                                content: fileName,
+                                parentModalId: "referenceTaskFilesModal",
+                                onConfirm: done => {
+                                    const remaining = referenceFiles.filter(f => f !== fileName);
+                                    $.ajax({
+                                        url: appUrl + "/task/" + taskId + "/reference-file",
+                                        type: "DELETE",
+                                        data: { filename: fileName },
+                                        headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content") },
+                                        success: () => {
+                                            if (item.parentNode) item.parentNode.removeChild(item);
+                                            referenceFiles = remaining;
+                                            if (referenceFiles.length === 0) referenceTaskFilesList.textContent = "No reference files available.";
+                                            done(true);
+                                        },
+                                        error: xhr => {
+                                            let msg = xhr.responseJSON?.message ?? "Failed to delete reference file";
+                                            showFloatingAlert(msg, "danger");
+                                            done(false);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                        item.appendChild(delBtn);
+
+                        referenceTaskFilesList.appendChild(item);
+                    });
+                } else referenceTaskFilesList.textContent = "No reference files available.";
+
+                const modalEl = document.getElementById("referenceTaskFilesModal");
+                if (modalEl) {
+                    modalEl.dataset.taskId = taskId;
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                }
+            },
+            error: () => showFloatingAlert("Failed to load reference files.", "danger", 3000)
+        });
     });
 
     document.addEventListener("click", function (e) {
@@ -18933,163 +19009,244 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     // Show reference files for a TASK (reuses the projectFilesModal UI)
-    window.showTaskFiles = function (taskId) {
-        const modalEl = document.getElementById("projectFilesModal");
-        const listEl = document.getElementById("projectReferenceFilesList");
-        if (!modalEl || !listEl) return;
+    function initAddReferenceFilesModal() {
+        const openBtn = document.getElementById('openAddReferenceFilesBtn');
+        const refModalEl = document.getElementById('addReferenceTaskFilesModal');
+        const refModal = refModalEl ? new bootstrap.Modal(refModalEl) : null;
+        const refForm = document.getElementById('addReferenceTaskFilesForm');
+        const fileInput = document.getElementById('add_reference_task_files');
+        const preview = document.getElementById('add_reference_task_files_preview');
+        const submitBtn = document.getElementById('submitAddReferenceTaskFiles');
 
-        try {
-            modalEl.dataset.taskId = taskId;
-            listEl.dataset.taskId = taskId;
-            const lbl = document.getElementById('projectFilesModalLabel');
-            if (lbl) lbl.textContent = 'Task Reference Files';
-        } catch (_) {}
+        if (!openBtn || !refModalEl || !refForm || !fileInput || !preview || !submitBtn) return;
 
-        listEl.innerHTML = `<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>`;
+        // When clicking "Add Files" in Reference Files modal: close it and open add modal
+        openBtn.addEventListener('click', function (e) {
+            try {
+                const refFilesModalEl = document.getElementById('referenceTaskFilesModal');
+                if (refFilesModalEl) {
+                    const cm = bootstrap.Modal.getInstance(refFilesModalEl) || new bootstrap.Modal(refFilesModalEl);
+                    cm.hide();
+                }
+            } catch (_) {}
+            // populate hidden task id from data attribute on reference modal if available
+            const taskId = document.getElementById('referenceTaskFilesModal')?.dataset?.taskId
+                || document.getElementById('referenceTaskFilesList')?.dataset?.taskId
+                || this.dataset?.taskId
+                || document.getElementById('taskDetailModal')?.dataset?.taskId;
+            // If still not found, warn early and don't open add modal
+            if (!taskId) {
+                try { showFloatingAlert && showFloatingAlert('Task ID not found. Cannot add files.', 'danger'); } catch(_) {}
+                return;
+            }
+            const hidden = document.getElementById('addRefTaskId');
+            if (hidden) hidden.value = taskId || '';
+            // reset previous selection
+            fileInput.value = '';
+            fileInput.style.border = "none"
+            preview.innerHTML = '';
+            window.addRefSelectedFiles = [];
+            refModal.show();
+        });
 
-        $.ajax({
-            url: appUrl + "/task/" + taskId,
-            method: "GET",
-            dataType: "json",
-            success: function (resp) {
-                const data = resp.data || resp;
-                const files = Array.isArray(data.reference_files)
-                    ? data.reference_files
-                    : Array.isArray(data.reference_file)
-                    ? data.reference_file
-                    : data.reference_file
-                    ? [data.reference_file]
-                    : [];
+        // File input change: collect files and render preview
+        fileInput.addEventListener('change', function () {
+            const files = Array.from(this.files || []);
+            window.addRefSelectedFiles = window.addRefSelectedFiles || [];
+            window.addRefSelectedFiles = window.addRefSelectedFiles.concat(files);
+            renderAddRefSelectedFiles();
+            // clear input so same file can be selected again if needed
+            this.value = '';
+        });
 
-                listEl.innerHTML = "";
+        function renderAddRefSelectedFiles() {
+            preview.innerHTML = '';
+            const list = document.createElement('div');
+            list.className = 'selected-files-list mt-2';
+            (window.addRefSelectedFiles || []).forEach((file, idx) => {
+                const item = document.createElement('div');
+                item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
 
-                if (files && files.length > 0) {
-                    files.forEach(function (fileName, idx) {
-                        if (!fileName) return;
-
-                        let fileUrl = String(fileName || "");
-                        const isAbs = fileUrl.startsWith("http://") || fileUrl.startsWith("https://");
-                        const isRefPath = fileUrl.startsWith("/file/task/") || fileUrl.startsWith("file/task/") || fileUrl.startsWith("/file/") || fileUrl.startsWith("file/");
-                        if (!isAbs && !isRefPath) {
-                            fileUrl = (appUrl ? appUrl : "") + "/file/task/" + fileUrl;
-                        } else if (!isAbs && fileUrl.startsWith("/")) {
-                            fileUrl = (appUrl ? appUrl : "") + fileUrl;
-                        }
-
-                        const item = document.createElement("div");
-                        item.className = "reference-files-list d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
-
-                        const lower = String(fileName || "").toLowerCase();
-                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower) || fileUrl.match(/\.(jpg|jpeg|png|gif|webp|bmp|svg)(\?|$)/i);
-
-                        if (isImage) {
-                            const img = document.createElement("img");
-                            img.src = fileUrl;
-                            img.width = 28;
-                            img.height = 28;
-                            img.style.objectFit = "cover";
-                            img.style.borderRadius = "50%";
-                            img.alt = fileName;
-                            item.appendChild(img);
-                        }
-
-                        const title = document.createElement("a");
-                        title.className = "flex-grow-1 text-decoration-none text-truncate";
-                        title.href = fileUrl;
-                        title.target = "_blank";
-                        try {
-                            var ext = (String(fileName || "").split('.').pop() || '').toLowerCase();
-                            if (!ext || ext === fileName) ext = '';
-                            var displayIndex = (typeof idx !== 'undefined') ? (Number(idx) + 1) : 1;
-                            if (ext) title.textContent = 'TASK_REF_FILE_' + displayIndex + '.' + ext;
-                            else title.textContent = 'TASK_REF_FILE_' + displayIndex;
-                        } catch (e) {
-                            title.textContent = fileName;
-                        }
-                        item.appendChild(title);
-
-                        const dlBtn = document.createElement("button");
-                        dlBtn.type = "button";
-                        dlBtn.className = "btn btn-sm btn-link p-0 ms-2";
-                        dlBtn.title = "Download";
-                        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
-                        dlBtn.addEventListener("click", function (ev) {
-                            try {
-                                ev.preventDefault();
-                                ev.stopPropagation();
-                                const a = document.createElement("a");
-                                a.style.display = "none";
-                                a.href = fileUrl;
-                                try { a.download = String(fileName || "").split("/").pop(); } catch (_) {}
-                                a.target = "_blank";
-                                document.body.appendChild(a);
-                                a.click();
-                                setTimeout(() => { try { document.body.removeChild(a); } catch (_) {} }, 100);
-                            } catch (e) { window.open(fileUrl, "_blank"); }
-                        });
-                        item.appendChild(dlBtn);
-
-                        // Delete (if allowed) - uses task endpoint
-                        const delBtn = document.createElement("button");
-                        delBtn.type = "button";
-                        delBtn.className = "btn btn-sm btn-link p-0 ms-2";
-                        delBtn.title = "Delete";
-                        delBtn.style.color = "#444444";
-                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
-                        delBtn.addEventListener("click", function (ev) {
-                            ev.preventDefault();
-                            ev.stopPropagation();
-                            try {
-                                const _parentModalEl = document.getElementById("projectFilesModal");
-                                showDeleteConfirmModal({
-                                    type: "reference_file",
-                                    id: fileName,
-                                    authorName: "",
-                                    content: (function(){ try { var e=(String(fileName||'').split('.').pop()||'').toLowerCase(); return e?('TASK_REF_FILE_1.'+e):'TASK_REF_FILE_1'; }catch(_){return fileName;} })(),
-                                    avatarUrl: "",
-                                    parentModalEl: _parentModalEl,
-                                    onConfirm: function (done) {
-                                        $.ajax({
-                                            url: appUrl + "/task/" + taskId + "/reference-file",
-                                            type: "DELETE",
-                                            data: { filename: fileName },
-                                            headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content") },
-                                            success: function (res) {
-                                                try { if (typeof showFloatingAlert === "function") showFloatingAlert(res.message || "Reference file deleted", "success"); } catch (_) {}
-                                                if (item && item.parentNode) item.parentNode.removeChild(item);
-                                                try { const idx2 = files.indexOf(fileName); if (idx2 !== -1) files.splice(idx2, 1); } catch (_) {}
-                                                try { if (!(Array.isArray(files) && files.length > 0)) { listEl.innerHTML = ""; listEl.textContent = "No reference files available."; } } catch (_) {}
-                                                done(true);
-                                            },
-                                            error: function (xhr) {
-                                                let msg = "Failed to delete reference file";
-                                                if (xhr.responseJSON && xhr.responseJSON.message) msg = xhr.responseJSON.message;
-                                                try { if (typeof showFloatingAlert === "function") showFloatingAlert(msg, "danger"); } catch (_) { alert(msg); }
-                                                done(false);
-                                            }
-                                        });
-                                    }
-                                });
-                            } catch (e) {}
-                        });
-                        item.appendChild(delBtn);
-
-                        listEl.appendChild(item);
-                    });
+                if (file && file.type && file.type.indexOf('image') === 0) {
+                    const img = document.createElement('img');
+                    const url = URL.createObjectURL(file);
+                    img.src = url; img.width = 28; img.height = 28; img.style.objectFit = 'cover'; img.style.borderRadius = '50%'; img.alt = file.name;
+                    img.onload = function(){ try{ URL.revokeObjectURL(url); } catch(_){} };
+                    item.appendChild(img);
                 } else {
-                    listEl.textContent = "No reference files available.";
+                    const badge = document.createElement('div');
+                    item.appendChild(badge);
                 }
 
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
-            },
-            error: function () {
-                try { showFloatingAlert("Failed to load reference files.", "warning", 3000); } catch (_) {}
-                const modal = new bootstrap.Modal(modalEl);
-                modal.show();
+                const title = document.createElement('span'); title.className = 'flex-grow-1'; title.textContent = file.name; item.appendChild(title);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button'; removeBtn.className = 'btn btn-sm btn-remove-task remove-task'; removeBtn.style.lineHeight = '1'; removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener('click', function () {
+                    window.addRefSelectedFiles.splice(idx, 1);
+                    renderAddRefSelectedFiles();
+                });
+                item.appendChild(removeBtn);
+
+                list.appendChild(item);
+            });
+
+            preview.appendChild(list);
+        }
+
+        // Submit handler: upload selected files to server
+        submitBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const taskId = document.getElementById('addRefTaskId')?.value;
+            if (!taskId) {
+                showFloatingAlert && showFloatingAlert('Task ID not found.', 'danger');
+                return;
             }
+
+            const files = window.addRefSelectedFiles || [];
+            if (!files.length) {
+                showFloatingAlert && showFloatingAlert('Please select at least one file to upload.', 'warning');
+                return;
+            }
+
+            const fd = new FormData();
+            files.forEach(f => fd.append('reference_files[]', f));
+            fd.append('task_id', taskId);
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            fetch(appUrl + '/task/' + encodeURIComponent(taskId) + '/reference-file', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: fd
+            }).then(res => res.ok ? res.json() : res.json().then(Promise.reject))
+            .then(payload => {
+                // Determine new count from payload when available
+                const newCount = (function(p){
+                    try {
+                        if (!p) return undefined;
+                        if (Array.isArray(p.reference_files)) return p.reference_files.length;
+                        if (typeof p.reference_files_count === 'number') return p.reference_files_count;
+                        if (typeof p.reference_files === 'string') {
+                            try {
+                                const parsed = JSON.parse(p.reference_files);
+                                if (Array.isArray(parsed)) return parsed.length;
+                            } catch(_) {
+                                return p.reference_files.split(',').filter(Boolean).length;
+                            }
+                        }
+                        return undefined;
+                    } catch(_) { return undefined; }
+                })(payload);
+
+                showFloatingAlert && showFloatingAlert(payload.message || 'Files uploaded', 'success', 2000);
+                // hide add modal and reopen reference files modal (refresh contents)
+                refModal.hide();
+                // Reset selection
+                window.addRefSelectedFiles = [];
+                renderAddRefSelectedFiles();
+
+                // Update badge immediately if server returned new count
+                try {
+                    const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                    if (card && typeof newCount !== 'undefined') {
+                        let span = card.querySelector('.reference-files-count');
+                        if (newCount > 0) {
+                            if (span) span.textContent = String(newCount);
+                            else {
+                                const s = document.createElement('span');
+                                s.className = 'reference-files-count ms-1';
+                                s.style.color = '#454545'; s.style.fontSize = '12px';
+                                s.textContent = String(newCount);
+                                // prefer attaching to the wrapper that holds the attach_file icon
+                                const wrappers = Array.from(card.querySelectorAll('.btn-attach-file-wrapper')) || [];
+                                let attachWrapper = wrappers.find(w => {
+                                    try {
+                                        const icon = w.querySelector('.material-symbols-outlined');
+                                        return icon && icon.textContent && icon.textContent.trim() === 'attach_file';
+                                    } catch(_) { return false; }
+                                });
+                                if (!attachWrapper) attachWrapper = card.querySelector('.btn-attach-file-wrapper.d-flex.align-items-center');
+                                if (attachWrapper) attachWrapper.appendChild(s);
+                            }
+                        } else if (span) {
+                            try { span.remove(); } catch(_) { span.style.display = 'none'; }
+                        }
+                    }
+                } catch(_) {}
+
+                // Reopen reference files modal by triggering the task's attach_file icon click specifically
+                const cardForClick = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                let attachBtn = null;
+                if (cardForClick) {
+                    const icons = Array.from(cardForClick.querySelectorAll('.task-icon')) || [];
+                    attachBtn = icons.find(el => el && el.textContent && el.textContent.trim() === 'attach_file');
+                }
+
+                if (attachBtn && typeof attachBtn.click === 'function') {
+                    // small delay to allow modal hide animation to complete
+                    setTimeout(function () { try { attachBtn.click(); } catch(_) { /* fallback below */ } }, 200);
+                } else {
+                    // Fallback: fetch latest task data and update reference files badge manually
+                    try {
+                        $.ajax({
+                            url: appUrl + '/task/' + encodeURIComponent(taskId),
+                            type: 'GET',
+                            dataType: 'json',
+                            success: function(res) {
+                                const t = res && (res.data || res) ;
+                                // Update badge count on task card
+                                try {
+                                    const card = document.querySelector('.custom-card[data-task-id="' + taskId + '"]');
+                                    if (card) {
+                                        const span = card.querySelector('.reference-files-count');
+                                        const count = (Array.isArray(t.reference_files) ? t.reference_files.length : (t.reference_files_count || 0)) || 0;
+                                        if (count > 0) {
+                                            if (span) span.textContent = String(count);
+                                            else {
+                                                const s = document.createElement('span');
+                                                s.className = 'reference-files-count ms-1';
+                                                s.style.color = '#454545'; s.style.fontSize = '12px';
+                                                s.textContent = String(count);
+                                                const wrappers = Array.from(card.querySelectorAll('.btn-attach-file-wrapper')) || [];
+                                                let attachWrapper = wrappers.find(w => {
+                                                    try { const icon = w.querySelector('.material-symbols-outlined'); return icon && icon.textContent && icon.textContent.trim() === 'attach_file'; } catch(_) { return false; }
+                                                });
+                                                if (!attachWrapper) attachWrapper = card.querySelector('.btn-attach-file-wrapper.d-flex.align-items-center');
+                                                if (attachWrapper) attachWrapper.appendChild(s);
+                                            }
+                                        } else if (span) {
+                                            try { span.remove(); } catch(_) { span.style.display = 'none'; }
+                                        }
+                                    }
+                                } catch(_){ }
+                            },
+                            error: function() { /* ignore */ }
+                        });
+                    } catch(_) { /* ignore fallback */ }
+                }
+            }).catch(err => {
+                console.error('Upload failed', err);
+                try { const msg = (err && (err.message || (err.error || (err.errors && err.errors[0]) ) )) || 'Upload failed'; showFloatingAlert && showFloatingAlert(msg, 'danger'); } catch(_) {}
+            }).finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Upload';
+            });
         });
-    };
+    }
+
+    (function(){
+        try {
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initAddReferenceFilesModal);
+            } else {
+                initAddReferenceFilesModal();
+            }
+        } catch (e) {}
+    })();
 
     function bindCardInteractions(cardEl, pid) {
         try {
