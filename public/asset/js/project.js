@@ -2953,30 +2953,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const actions = [];
                 actions.push({ label: 'Edit', action: 'edit' });
+                actions.push({ label: 'Feedback', action: 'feedback' });
                 actions.push({ label: 'Delete', action: 'delete', danger: true });
 
-                const statusClassMap = {
-                    'new_request': 'status-not_started',
-                    'in_progress': 'status-in_progress',
-                    'back_to_new_request': 'status-not_started',
-                    'completed': 'status-completed',
-                    'finished': 'status-finished',
-                    'rejected': 'status-late'
-                };
-
                 if (status === 'new_request') {
-                    actions.unshift({ label: 'In Progress', action: 'in_progress', badgeClass: statusClassMap['in_progress'] });
+                    actions.unshift({ label: 'In Progress', action: 'in_progress' });
                 } else if (status === 'in_progress') {
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
-                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request', badgeClass: statusClassMap['back_to_new_request'] });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
+                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request' });
                 } else if (status === 'completed') {
-                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, badgeClass: statusClassMap['rejected'] });
-                    actions.unshift({ label: 'Finished', action: 'finished', badgeClass: statusClassMap['finished'] });
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
+                    actions.unshift({ label: 'Finished', action: 'finished' });
                 } else if (status === 'finished') {
-                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, badgeClass: statusClassMap['rejected'] });
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
                 } else if (status === 'rejected') {
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
                 }
 
                 const portal = document.createElement('div');
@@ -2984,7 +2976,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 portal.style.position = 'fixed';
                 portal.style.zIndex = 9999;
                 portal.innerHTML = actions.map(a => `
-                    <button class="btn btn-sm w-100 text-start py-2 px-2 ${a.danger ? 'text-danger' : ''} project-task-status-badge ${a.badgeClass || ''}" data-action="${a.action}" data-task-id="${taskId}">
+                    <button class="btn btn-sm w-100 text-start py-2 px-2 project-task-status-badge" 
+                            data-action="${a.action}" 
+                            data-task-id="${taskId}">
                         ${a.label}
                     </button>
                 `).join('');
@@ -3010,10 +3004,38 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (!btnAction) return;
                     const act = btnAction.getAttribute('data-action');
                     const id = btnAction.getAttribute('data-task-id');
-                    if (window.handleTaskAction) window.handleTaskAction(id, act);
+
                     portal.remove();
+
+                    if (act === 'feedback') {
+                        const detailModalEl = document.getElementById("taskDetailModal");
+                        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                        if (!feedbackModalEl) return;
+
+                        const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                        if (detailModal) detailModal.hide();
+
+                        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+                        feedbackModal.show();
+
+                        feedbackModalEl.addEventListener(
+                            "hidden.bs.modal",
+                            function restoreDetailModal() {
+                                feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDetailModal);
+                                if (detailModal) detailModal.show();
+                            },
+                            { once: true }
+                        );
+
+                        if (id && window.handleTaskFeedback) window.handleTaskFeedback(id);
+                    } else {
+                        if (window.handleTaskAction) window.handleTaskAction(id, act);
+                    }
                 });
-            } catch (_) {}
+
+            } catch (err) {
+                console.error('Task menu error:', err);
+            }
         });
 
         document.addEventListener('click', function (e) {
@@ -3025,6 +3047,108 @@ document.addEventListener("DOMContentLoaded", function () {
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') document.querySelectorAll('.dropdown-task-portal').forEach(m => m.remove());
         });
+    })();
+
+    (function () {
+        try {
+            function initProjectExport() {
+                const exportAllBtn = document.querySelector(".btn-export-custom");
+                const exportChildBtn = document.querySelector(".download-project");
+
+                function triggerExport(btn, url, successMessage) {
+                    if (!btn) return;
+                    const originalText = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML =
+                        '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
+
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = "";
+                    link.style.display = "none";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        if (typeof showFloatingAlert === "function") {
+                            showFloatingAlert(successMessage, "success", 3000);
+                        }
+                    }, 2000);
+                }
+
+                if (exportAllBtn) {
+                    const urlAll = appUrl + "/project/export-excel";
+                    exportAllBtn.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        triggerExport(exportAllBtn, urlAll, "All projects exported successfully!");
+                    });
+                }
+
+                if (exportChildBtn) {
+                    exportChildBtn.addEventListener("click", (e) => {
+                        e.preventDefault();
+
+                        const btn = e.currentTarget;
+                        const originalText = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML =
+                            '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
+
+                        try {
+                            const activeProject =
+                                breadcrumbStack && breadcrumbStack.length
+                                    ? breadcrumbStack[breadcrumbStack.length - 1]
+                                    : null;
+
+                            let exportUrl = "";
+
+                            if (activeProject && activeProject.id) {
+                                exportUrl = `${appUrl}/project/export-excel/${encodeURIComponent(activeProject.id)}`;
+                            } else {
+                                exportUrl = `${appUrl}/project/export-root-excel`;
+                            }
+
+                            const link = document.createElement("a");
+                            link.href = exportUrl;
+                            link.download = "";
+                            link.style.display = "none";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+
+                            setTimeout(() => {
+                                btn.disabled = false;
+                                btn.innerHTML = originalText;
+                                if (typeof showFloatingAlert === "function") {
+                                    const msg = activeProject
+                                        ? `Exported child projects for "${activeProject.title || "Selected Project"}" successfully!`
+                                        : "Exported root projects successfully!";
+                                    showFloatingAlert(msg, "success", 3000);
+                                }
+                            }, 2000);
+                        } catch (err) {
+                            console.error("Error exporting projects:", err);
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                            if (typeof showFloatingAlert === "function") {
+                                showFloatingAlert("Failed to export projects.", "danger", 3000);
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initProjectExport);
+            } else {
+                initProjectExport();
+            }
+        } catch (e) {
+            console.error("Error initializing project export:", e);
+        }
     })();
 
     const sectionMap = {
@@ -3516,6 +3640,642 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+    
+        try {
+        const editDivisionSel = document.getElementById('edit_task_division_id');
+        if (editDivisionSel) {
+            // Read logged-in employee's department id from DOM if present
+            let empDeptIdEdit = null;
+            try { empDeptIdEdit = document.getElementById('taskFeedbackModal')?.dataset?.employeeDepartmentId || null; } catch(_) { empDeptIdEdit = null; }
+            // Load divisions on page load (prefer department-scoped)
+            const populateEditDivisions = (d) => {
+                if (!d || !d.data) return;
+                let opts = '<option value="">Select Division</option>';
+                d.data.forEach(function (div) {
+                    opts += `
+                        <option value="${div.id}"
+                                data-name="${(div.name_division || div.name || '').trim()}">
+                            ${(div.name_division || div.name || '').trim()}
+                        </option>`;
+                });
+                editDivisionSel.innerHTML = opts;
+            };
+
+            if (empDeptIdEdit) {
+                fetch(appUrl + '/divisions-for-projects?department_id=' + encodeURIComponent(empDeptIdEdit))
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateEditDivisions)
+                    .catch(err => {
+                        fetch(appUrl + '/divisions-for-projects')
+                            .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                            .then(populateEditDivisions)
+                            .catch(() => {});
+                    });
+            } else {
+                fetch(appUrl + '/divisions-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateEditDivisions)
+                    .catch(err => console.warn('Failed to load divisions for edit', err));
+            }
+
+            // Division change → fetch employees
+            editDivisionSel.addEventListener('change', function () {
+                const val = this.value;
+                const selectedName = (this.selectedOptions[0]?.dataset?.name || '').trim();
+
+                if (!val) {
+                    try { window.clearSelectedExecutors?.(); } catch (_) {}
+                    return;
+                }
+
+                fetch(appUrl + '/employees-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                    .then(res => {
+                        const arr = res?.data || [];
+                        const valStr = String(val).toLowerCase();
+                        const nameStr = String(selectedName).toLowerCase();
+
+                        // Cari by ID dulu, kalau ga ada fallback ke nama
+                        let final = arr.filter(emp => String(emp.division_id || '').toLowerCase() === valStr);
+
+                        if (!final.length) {
+                            final = arr.filter(emp => String(emp.division || '').toLowerCase() === nameStr);
+                        }
+
+                        if (!final.length) {
+                            showFloatingAlert?.('No employees found for selected division.', 'warning', 2500);
+                            return;
+                        }
+                        window.setSelectedExecutorsEdit?.(final);
+                    })
+                    .catch(() => {
+                        showFloatingAlert?.('Failed to load employees for division.', 'warning', 2500);
+                    });
+            });
+
+            // Custom dropdown
+            const divisionDropdown = document.getElementById('edit_task_division_dropdown');
+            if (divisionDropdown) {
+                function renderDivisionDropup() {
+                    const opts = Array.from(editDivisionSel.options || []);
+                    if (!opts.length) {
+                        divisionDropdown.innerHTML = '<div class="division-item disabled">No divisions</div>';
+                        divisionDropdown.style.display = 'block';
+                        return;
+                    }
+
+                    const html = opts.map(o => `
+                        <div class="division-item" data-value="${o.value}">
+                            ${escapeHtml(o.textContent || '')}
+                        </div>
+                    `).join('');
+                    divisionDropdown.innerHTML = html;
+                    divisionDropdown.style.display = 'block';
+
+                    divisionDropdown.querySelectorAll('.division-item').forEach(el => {
+                        el.addEventListener('click', function () {
+                            const v = this.dataset.value;
+                            editDivisionSel.value = v;
+                            editDivisionSel.dispatchEvent(new Event('change', { bubbles: true }));
+                            divisionDropdown.style.display = 'none';
+                        });
+                    });
+                }
+
+                function escapeHtml(str) {
+                    return String(str || '').replace(/[&<>"']/g, m => ({
+                        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                    })[m]);
+                }
+
+                editDivisionSel.addEventListener('focus', renderDivisionDropup);
+
+                const activator = document.getElementById('edit_task_division_activator');
+                (activator || editDivisionSel).addEventListener('click', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    renderDivisionDropup();
+                    editDivisionSel.focus();
+                });
+
+                editDivisionSel.addEventListener('keydown', e => {
+                    if ([' ', 'Spacebar', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+                        e.preventDefault();
+                        renderDivisionDropup();
+                    }
+                });
+
+                document.addEventListener('click', e => {
+                    if (!editDivisionSel.contains(e.target) && !divisionDropdown.contains(e.target)) {
+                        divisionDropdown.style.display = 'none';
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to wire edit division->executors', e);
+    }
+
+    const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+    const __empCache = { map: new Map(), inFlight: new Map() };
+    function fetchEmployeesForExecutorCached(query = "") {
+        try {
+            const key = String(query || "").trim().toLowerCase();
+            const now = Date.now();
+            const cached = __empCache.map.get(key);
+            if (cached && (now - cached.t) < EMP_CACHE_TTL_MS) {
+                // Return a resolved Deferred with cached value
+                const d = $.Deferred();
+                d.resolve(cached.v);
+                return d.promise();
+            }
+            const inflight = __empCache.inFlight.get(key);
+            if (inflight) return inflight;
+            const jq = $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: key }, dataType: 'json' })
+                .then(res => {
+                    __empCache.map.set(key, { v: res, t: Date.now() });
+                    __empCache.inFlight.delete(key);
+                    return res;
+                })
+                .catch(err => { __empCache.inFlight.delete(key); throw err; });
+            __empCache.inFlight.set(key, jq);
+            return jq;
+        } catch (_) {
+            // Fallback: no cache
+            return $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: query }, dataType: 'json' });
+        }
+    }
+
+    function buildPhotoUrl(userPhoto, profilePicture, profilePictureUrl) {
+        try {
+            // Prioritise universal avatar (profile_pictureUrl > profilePicture) then fallback userPhoto
+            let candidate = profilePictureUrl || profilePicture || userPhoto;
+            if (!candidate) return appUrl + '/asset/img/avatar.png';
+            if (typeof candidate !== 'string') candidate = String(candidate || '');
+            const up = candidate.trim();
+            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+            if (up.startsWith('/')) return appUrl + up;
+            if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
+            return appUrl + '/file/profile_picture/' + up;
+        } catch (_) {
+            return appUrl + '/asset/img/avatar.png';
+        }
+    }
+
+    function setupEditExecutorInput() {
+        const input = document.getElementById("edit_executor_input");
+        const dropdown = document.getElementById("edit_executor_dropdown");
+        const selectedContainer = document.getElementById("edit_selected_executors");
+        const hiddenInput = document.getElementById("edit_executors");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) {
+            return; // Elements not found, skip setup
+        }
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        function fetchEmployees(query = "") {
+            return fetchEmployeesForExecutorCached(query)
+                .then(function(data) {
+                    employees = (data && (data.data || data)) || [];
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filteredEmployees = employees;
+                    renderDropdown();
+                })
+                .catch(function() {
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) {}
+                });
+        }
+
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML =
+                    '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = "block";
+                return;
+            }
+
+            const html = filteredEmployees
+                .map((emp) => {
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                    return `
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <div class="d-flex flex-column">
+                                    <span class="executor-name">${emp.name}</span>
+                                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                                </div>
+                            </div>
+                            <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                        </label>
+                    `;
+                })
+                .join("");
+            dropdown.innerHTML = html;
+            dropdown.style.display = "block";
+
+            dropdown.querySelectorAll(".executor-checkbox").forEach((checkbox) => {
+                checkbox.addEventListener("change", function () {
+                    const id = parseInt(this.getAttribute("data-id"));
+                    const name = this.getAttribute("data-name");
+                    const employeeObj = employees.find(emp => emp.id === id);
+
+                    if (this.checked) {
+                        if (!selectedEmployees.some((e) => e.id === id)) {
+                            selectedEmployees.push({
+                                id,
+                                name,
+                                user_photo: employeeObj ? employeeObj.user_photo : null,
+                                division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
+                            });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                });
+            });
+        }
+
+        function renderSelected() {
+            selectedContainer.innerHTML = "";
+            selectedEmployees.forEach((emp) => {
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+
+                const badge = document.createElement("span");
+                badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
+
+                const img = document.createElement("img");
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = "rounded-circle me-2";
+                img.style.width = "24px";
+                img.style.height = "24px";
+                img.style.objectFit = "cover";
+
+                const nameCol = document.createElement('div');
+                nameCol.className = 'd-flex flex-column';
+                const nameText = document.createElement('span');
+                nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+                nameText.style.color = "#444"
+
+                const divSmall = document.createElement('small');
+                divSmall.className = 'text-muted executor-division';
+                divSmall.textContent = emp.division || '';
+
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn-close btn-sm ms-2";
+                removeBtn.setAttribute("aria-label", "Remove");
+                removeBtn.addEventListener("click", () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameCol);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
+        }
+
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            filteredEmployees = val === ""
+                ? employees
+                : employees.filter(emp => emp.name.toLowerCase().includes(val));
+            renderDropdown();
+        }
+
+        input.addEventListener("input", function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener("focus", function () {
+            filterEmployees(this.value);
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = "none";
+            }
+        });
+
+        fetchEmployees();
+
+        window.clearSelectedExecutorsEdit = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = "none";
+            input.value = "";
+        };
+
+        window.setSelectedExecutorsEdit = async function (executors) {
+            try {
+                // Fetch all employees to get divisions
+                const data = await fetchEmployeesForExecutorCached("");
+                employees = (data && (data.data || data)) || [];
+                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+            } catch (e) {
+                console.warn("Gagal ambil data employee:", e);
+            }
+
+            selectedEmployees = executors.map((ex) => {
+                let photoUrl = "";
+                let userPhoto = ex.user_photo;
+                if (userPhoto) {
+                    if (userPhoto.startsWith("http")) {
+                        photoUrl = userPhoto;
+                    } else if (
+                        userPhoto.startsWith("/file/photo") ||
+                        userPhoto.startsWith("/file/profile_picture")
+                    ) {
+                        photoUrl = appUrl + userPhoto;
+                    } else if (
+                        userPhoto.startsWith("file/photo") ||
+                        userPhoto.startsWith("file/profile_picture")
+                    ) {
+                        photoUrl = appUrl + "/" + userPhoto;
+                    } else {
+                        photoUrl = appUrl + "/file/profile_picture/" + userPhoto;
+                    }
+                } else {
+                    photoUrl = appUrl + "/asset/img/avatar.png";
+                }
+
+                // Cari division dari list employees
+                let divisionName = "";
+                const empData = employees.find(e => e.id === ex.id);
+                if (empData) {
+                    divisionName = empData.division || empData.division_name || "";
+                }
+
+                return {
+                    id: ex.id,
+                    name: ex.name,
+                    user_photo: photoUrl,
+                    division: divisionName
+                };
+            });
+
+            renderSelected();
+            updateHiddenInput();
+        };
+    }
+
+    setupEditExecutorInput();
+
+        const editTaskModalEl = document.getElementById("editTaskModal");
+        const editTaskForm = document.getElementById("editTaskForm");
+
+        if (editTaskForm) {
+            editTaskForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                const taskId = document.getElementById("edit_task_id").value;
+                if (!taskId) {
+                    showFloatingAlert("Task ID is missing.", "warning", 3000);
+                    return;
+                }
+
+                if (!editTaskForm.checkValidity()) {
+                    e.stopPropagation();
+                    editTaskForm.classList.add("was-validated");
+                    return;
+                }
+                // Executor required validation (edit)
+                try {
+                    const execHidden = document.getElementById('edit_executors');
+                    let execVal = execHidden ? execHidden.value : '';
+                    let execArr = [];
+                    if (execVal) { try { execArr = JSON.parse(execVal); } catch(_) { execArr = []; } }
+                    if (!Array.isArray(execArr) || execArr.length === 0) {
+                        showFloatingAlert('Please select at least one executor.', 'warning', 2500);
+                        return;
+                    }
+                } catch(_) {}
+                editTaskForm.classList.remove("was-validated");
+
+                // Show loading overlay and disable submit button
+                const loader = document.getElementById("editTaskModalLoader");
+                if (loader) loader.classList.remove("d-none");
+                const submitBtn = editTaskForm.querySelector(
+                    "button[type='submit']"
+                );
+                if (submitBtn) submitBtn.disabled = true;
+
+                // Validate sizes: include edit task image and editSelectedFiles
+                try {
+                    const imageEl = document.getElementById('edit_task_image');
+                    const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+                    if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
+                        return;
+                    }
+                    const extraFiles = (window.editSelectedFiles && Array.isArray(window.editSelectedFiles)) ? window.editSelectedFiles : [];
+                    const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: extraFiles});
+                    if (!totalCheck.ok) {
+                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                        return;
+                    }
+                } catch(_) {}
+
+                const formData = new FormData(editTaskForm);
+                // Add _method to FormData for Laravel PUT request
+                formData.append("_method", "PUT");
+
+                // Append all selected reference files from global array to formData
+                if (
+                    window.editSelectedFiles &&
+                    window.editSelectedFiles.length > 0
+                ) {
+                    window.editSelectedFiles.forEach((file) => {
+                        formData.append("reference_files[]", file);
+                    });
+                }
+
+                $.ajax({
+                    url: appUrl + "/task/" + taskId,
+                    type: "POST", // Laravel expects POST with _method=PUT for PUT requests
+                    headers: {
+                        "X-CSRF-TOKEN": document
+                            .querySelector('meta[name="csrf-token"]')
+                            .getAttribute("content"),
+                    },
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (data) {
+                        // Keep loading overlay visible for a moment to show success
+                        setTimeout(() => {
+                            // Hide loading overlay
+                            if (loader) loader.classList.add("d-none");
+                            if (submitBtn) submitBtn.disabled = false;
+
+                    // Show success floating alert instead of modal alert
+                    showFloatingAlert(data.message || "Task updated successfully!", "success");
+
+                            // Reset form and preview (same as Add Task)
+                            editTaskForm.reset();
+                            const editImageLabel =
+                                document.getElementById("editTaskImageLabel");
+                            const editImageClearBtn = document.getElementById(
+                                "editTaskImageClearBtn"
+                            );
+                            if (editImageLabel) {
+                                editImageLabel.style.backgroundImage = "";
+                                editImageLabel.classList.remove("has-image");
+                                editImageLabel.style.opacity = "0.5";
+                            }
+                            if (editImageClearBtn) {
+                                editImageClearBtn.classList.add("d-none");
+                            }
+
+                            // Clear selected executors
+                            if (window.clearSelectedExecutorsEdit) {
+                                window.clearSelectedExecutorsEdit();
+                            }
+
+                            // Clear selected files after successful update
+                            window.editSelectedFiles = [];
+                            displayEditSelectedFiles();
+
+                            // Close modal after short delay to show alert and insert updated task
+                            setTimeout(() => {
+                                var editTaskModalInstance =
+                                    bootstrap.Modal.getInstance(editTaskModalEl);
+                                try {
+                                    if (editTaskModalEl && editTaskModalEl.dataset) editTaskModalEl.dataset.allowProgrammaticClose = '1';
+                                } catch(_) {}
+                                if (editTaskModalInstance)
+                                    editTaskModalInstance.hide();
+                                // Insert/refresh single updated task so client-archived tasks get restored immediately
+                                try { fetchAndInsertTask(taskId); } catch(_) { fetchAndRenderTasks(); }
+                            }, 1500);
+                        }, 800); // Show loading for 800ms before showing success alert
+                    },
+                    error: function (xhr) {
+                        // Hide loading overlay on error
+                        if (loader) loader.classList.add("d-none");
+                        if (submitBtn) submitBtn.disabled = false;
+
+                        let errorMessage = "Failed to update task.";
+                        if (xhr.responseJSON && xhr.responseJSON.errors) {
+                            errorMessage = Object.values(xhr.responseJSON.errors)
+                                .flat()
+                                .join("\n");
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        showFloatingAlert(errorMessage, "danger");
+                    },
+                    complete: function () {
+                        // Don't hide loader here, let success/error handle it
+                        // This prevents loader from disappearing too early
+                    },
+                });
+            });
+        }
+
+        const editTaskImageInput = document.getElementById("edit_task_image");
+        const editTaskImageLabel = document.getElementById("editTaskImageLabel");
+        const editTaskImageClearBtn = document.getElementById(
+            "editTaskImageClearBtn"
+        );
+
+        if (editTaskImageInput && editTaskImageLabel && editTaskImageClearBtn) {
+            setupImageInput(
+                editTaskImageInput,
+                editTaskImageLabel,
+                editTaskImageClearBtn
+            );
+        }
+
+        var editTaskModalElement = document.getElementById("editTaskModal");
+        if (editTaskModalElement) {
+            editTaskModalElement.addEventListener("hidden.bs.modal", function () {
+                $("#editTaskForm")[0].reset();
+
+                $("#editTaskImageLabel").css(
+                    "background-image",
+                    "url('" + appUrl + "/asset/img/background/add-image.png')"
+                );
+                $("#editTaskImageLabel").removeClass("has-image");
+                $("#editTaskImageLabel").css("opacity", "0.5");
+                $("#editTaskImageClearBtn").addClass("d-none");
+
+                // Reload projects to reset select
+                loadProjects();
+
+                // Clear selected executors display and hidden inputs
+                window.clearSelectedExecutorsEdit &&
+                    window.clearSelectedExecutorsEdit();
+
+                $("#editTaskAlert").addClass("d-none").hide();
+
+                // Handle timeline modal restoration logic
+                const detailEl = document.getElementById('taskDetailModal');
+                if (detailEl) {
+                    // Clear the child opened flag
+                    detailEl.removeAttribute('data-child-opened');
+
+                    // Check if we should show the detail modal back
+                    if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                        // Show detail modal back first
+                        const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                        detailModal.show();
+
+                        // Restore the backed up timeline handler if it exists
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        } else {
+                            // Create fresh one-time listener to reopen timeline when detail is closed
+                            const onDetailHiddenAfterEdit = function() {
+                                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                    const timelineEl = document.getElementById('timelineModal');
+                                    if (timelineEl) {
+                                        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                        tlInstance.show();
+                                        detailEl.removeAttribute('data-reopen-timeline');
+                                    }
+                                }
+                                // Clear the reference
+                                detailEl._timelineHiddenHandler = null;
+                            };
+
+                            // Store and attach the handler
+                            detailEl._timelineHiddenHandler = onDetailHiddenAfterEdit;
+                            detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterEdit, { once: true });
+                        }
+                    } else {
+                        // If not showing detail modal back, restore the backed up handler anyway
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        }
+                    }
+                }
+            });
+        }
 
     function handleTaskDelete(taskId) {
         // Use the same Delete Task modal pattern as on the Task page
@@ -21226,62 +21986,6 @@ function initAddProjectReferenceFilesModal() {
             initAddProjectReferenceFilesModal();
         }
     } catch (e) {}
-})();
-
-// Initialize export button handler
-(function () {
-    try {
-        function initProjectExport() {
-            const exportBtn = document.querySelector(".btn-export-custom, .download-project");
-            if (exportBtn) {
-                exportBtn.addEventListener("click", function (e) {
-                    e.preventDefault();
-
-                    // Show loading state
-                    const originalText = exportBtn.innerHTML;
-                    exportBtn.disabled = true;
-                    exportBtn.innerHTML =
-                        '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
-
-                    // Create a temporary anchor element to trigger download
-                    const link = document.createElement("a");
-                    link.href = appUrl + "/project/export-excel";
-                    link.download = "";
-                    link.style.display = "none";
-                    document.body.appendChild(link);
-
-                    // Trigger download
-                    link.click();
-
-                    // Clean up
-                    document.body.removeChild(link);
-
-                    // Restore button state after a short delay
-                    setTimeout(() => {
-                        exportBtn.disabled = false;
-                        exportBtn.innerHTML = originalText;
-
-                        // Show success message
-                        if (typeof showFloatingAlert === "function") {
-                            showFloatingAlert(
-                                "Project export started successfully!",
-                                "success",
-                                3000
-                            );
-                        }
-                    }, 2000);
-                });
-            }
-        }
-
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", initProjectExport);
-        } else {
-            initProjectExport();
-        }
-    } catch (e) {
-        console.error("Error initializing project export:", e);
-    }
 })();
 
 document.addEventListener("DOMContentLoaded", function () {

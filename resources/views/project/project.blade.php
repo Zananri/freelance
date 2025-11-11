@@ -854,6 +854,7 @@
             <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
                     <div id="deleteProjectContent"></div>
+                    <p class="confirmation-delete-text">Are you sure want to delete this project?</p>
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
