@@ -3640,6 +3640,406 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+    
+        try {
+        const editDivisionSel = document.getElementById('edit_task_division_id');
+        if (editDivisionSel) {
+            // Read logged-in employee's department id from DOM if present
+            let empDeptIdEdit = null;
+            try { empDeptIdEdit = document.getElementById('taskFeedbackModal')?.dataset?.employeeDepartmentId || null; } catch(_) { empDeptIdEdit = null; }
+            // Load divisions on page load (prefer department-scoped)
+            const populateEditDivisions = (d) => {
+                if (!d || !d.data) return;
+                let opts = '<option value="">Select Division</option>';
+                d.data.forEach(function (div) {
+                    opts += `
+                        <option value="${div.id}"
+                                data-name="${(div.name_division || div.name || '').trim()}">
+                            ${(div.name_division || div.name || '').trim()}
+                        </option>`;
+                });
+                editDivisionSel.innerHTML = opts;
+            };
+
+            if (empDeptIdEdit) {
+                fetch(appUrl + '/divisions-for-projects?department_id=' + encodeURIComponent(empDeptIdEdit))
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateEditDivisions)
+                    .catch(err => {
+                        fetch(appUrl + '/divisions-for-projects')
+                            .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                            .then(populateEditDivisions)
+                            .catch(() => {});
+                    });
+            } else {
+                fetch(appUrl + '/divisions-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateEditDivisions)
+                    .catch(err => console.warn('Failed to load divisions for edit', err));
+            }
+
+            // Division change → fetch employees
+            editDivisionSel.addEventListener('change', function () {
+                const val = this.value;
+                const selectedName = (this.selectedOptions[0]?.dataset?.name || '').trim();
+
+                if (!val) {
+                    try { window.clearSelectedExecutors?.(); } catch (_) {}
+                    return;
+                }
+
+                fetch(appUrl + '/employees-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                    .then(res => {
+                        const arr = res?.data || [];
+                        const valStr = String(val).toLowerCase();
+                        const nameStr = String(selectedName).toLowerCase();
+
+                        // Cari by ID dulu, kalau ga ada fallback ke nama
+                        let final = arr.filter(emp => String(emp.division_id || '').toLowerCase() === valStr);
+
+                        if (!final.length) {
+                            final = arr.filter(emp => String(emp.division || '').toLowerCase() === nameStr);
+                        }
+
+                        if (!final.length) {
+                            showFloatingAlert?.('No employees found for selected division.', 'warning', 2500);
+                            return;
+                        }
+                        window.setSelectedExecutorsEdit?.(final);
+                    })
+                    .catch(() => {
+                        showFloatingAlert?.('Failed to load employees for division.', 'warning', 2500);
+                    });
+            });
+
+            // Custom dropdown
+            const divisionDropdown = document.getElementById('edit_task_division_dropdown');
+            if (divisionDropdown) {
+                function renderDivisionDropup() {
+                    const opts = Array.from(editDivisionSel.options || []);
+                    if (!opts.length) {
+                        divisionDropdown.innerHTML = '<div class="division-item disabled">No divisions</div>';
+                        divisionDropdown.style.display = 'block';
+                        return;
+                    }
+
+                    const html = opts.map(o => `
+                        <div class="division-item" data-value="${o.value}">
+                            ${escapeHtml(o.textContent || '')}
+                        </div>
+                    `).join('');
+                    divisionDropdown.innerHTML = html;
+                    divisionDropdown.style.display = 'block';
+
+                    divisionDropdown.querySelectorAll('.division-item').forEach(el => {
+                        el.addEventListener('click', function () {
+                            const v = this.dataset.value;
+                            editDivisionSel.value = v;
+                            editDivisionSel.dispatchEvent(new Event('change', { bubbles: true }));
+                            divisionDropdown.style.display = 'none';
+                        });
+                    });
+                }
+
+                function escapeHtml(str) {
+                    return String(str || '').replace(/[&<>"']/g, m => ({
+                        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                    })[m]);
+                }
+
+                editDivisionSel.addEventListener('focus', renderDivisionDropup);
+
+                const activator = document.getElementById('edit_task_division_activator');
+                (activator || editDivisionSel).addEventListener('click', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    renderDivisionDropup();
+                    editDivisionSel.focus();
+                });
+
+                editDivisionSel.addEventListener('keydown', e => {
+                    if ([' ', 'Spacebar', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+                        e.preventDefault();
+                        renderDivisionDropup();
+                    }
+                });
+
+                document.addEventListener('click', e => {
+                    if (!editDivisionSel.contains(e.target) && !divisionDropdown.contains(e.target)) {
+                        divisionDropdown.style.display = 'none';
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to wire edit division->executors', e);
+    }
+
+    const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+    const __empCache = { map: new Map(), inFlight: new Map() };
+    function fetchEmployeesForExecutorCached(query = "") {
+        try {
+            const key = String(query || "").trim().toLowerCase();
+            const now = Date.now();
+            const cached = __empCache.map.get(key);
+            if (cached && (now - cached.t) < EMP_CACHE_TTL_MS) {
+                // Return a resolved Deferred with cached value
+                const d = $.Deferred();
+                d.resolve(cached.v);
+                return d.promise();
+            }
+            const inflight = __empCache.inFlight.get(key);
+            if (inflight) return inflight;
+            const jq = $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: key }, dataType: 'json' })
+                .then(res => {
+                    __empCache.map.set(key, { v: res, t: Date.now() });
+                    __empCache.inFlight.delete(key);
+                    return res;
+                })
+                .catch(err => { __empCache.inFlight.delete(key); throw err; });
+            __empCache.inFlight.set(key, jq);
+            return jq;
+        } catch (_) {
+            // Fallback: no cache
+            return $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: query }, dataType: 'json' });
+        }
+    }
+
+    function buildPhotoUrl(userPhoto, profilePicture, profilePictureUrl) {
+        try {
+            // Prioritise universal avatar (profile_pictureUrl > profilePicture) then fallback userPhoto
+            let candidate = profilePictureUrl || profilePicture || userPhoto;
+            if (!candidate) return appUrl + '/asset/img/avatar.png';
+            if (typeof candidate !== 'string') candidate = String(candidate || '');
+            const up = candidate.trim();
+            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+            if (up.startsWith('/')) return appUrl + up;
+            if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
+            return appUrl + '/file/profile_picture/' + up;
+        } catch (_) {
+            return appUrl + '/asset/img/avatar.png';
+        }
+    }
+
+    function setupEditExecutorInput() {
+        const input = document.getElementById("edit_executor_input");
+        const dropdown = document.getElementById("edit_executor_dropdown");
+        const selectedContainer = document.getElementById("edit_selected_executors");
+        const hiddenInput = document.getElementById("edit_executors");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) {
+            return; // Elements not found, skip setup
+        }
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        function fetchEmployees(query = "") {
+            return fetchEmployeesForExecutorCached(query)
+                .then(function(data) {
+                    employees = (data && (data.data || data)) || [];
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filteredEmployees = employees;
+                    renderDropdown();
+                })
+                .catch(function() {
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) {}
+                });
+        }
+
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML =
+                    '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = "block";
+                return;
+            }
+
+            const html = filteredEmployees
+                .map((emp) => {
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                    return `
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <div class="d-flex flex-column">
+                                    <span class="executor-name">${emp.name}</span>
+                                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                                </div>
+                            </div>
+                            <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                        </label>
+                    `;
+                })
+                .join("");
+            dropdown.innerHTML = html;
+            dropdown.style.display = "block";
+
+            dropdown.querySelectorAll(".executor-checkbox").forEach((checkbox) => {
+                checkbox.addEventListener("change", function () {
+                    const id = parseInt(this.getAttribute("data-id"));
+                    const name = this.getAttribute("data-name");
+                    const employeeObj = employees.find(emp => emp.id === id);
+
+                    if (this.checked) {
+                        if (!selectedEmployees.some((e) => e.id === id)) {
+                            selectedEmployees.push({
+                                id,
+                                name,
+                                user_photo: employeeObj ? employeeObj.user_photo : null,
+                                division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
+                            });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                });
+            });
+        }
+
+        function renderSelected() {
+            selectedContainer.innerHTML = "";
+            selectedEmployees.forEach((emp) => {
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+
+                const badge = document.createElement("span");
+                badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
+
+                const img = document.createElement("img");
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = "rounded-circle me-2";
+                img.style.width = "24px";
+                img.style.height = "24px";
+                img.style.objectFit = "cover";
+
+                const nameCol = document.createElement('div');
+                nameCol.className = 'd-flex flex-column';
+                const nameText = document.createElement('span');
+                nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+                nameText.style.color = "#444"
+
+                const divSmall = document.createElement('small');
+                divSmall.className = 'text-muted executor-division';
+                divSmall.textContent = emp.division || '';
+
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn-close btn-sm ms-2";
+                removeBtn.setAttribute("aria-label", "Remove");
+                removeBtn.addEventListener("click", () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameCol);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
+        }
+
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            filteredEmployees = val === ""
+                ? employees
+                : employees.filter(emp => emp.name.toLowerCase().includes(val));
+            renderDropdown();
+        }
+
+        input.addEventListener("input", function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener("focus", function () {
+            filterEmployees(this.value);
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = "none";
+            }
+        });
+
+        fetchEmployees();
+
+        window.clearSelectedExecutorsEdit = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = "none";
+            input.value = "";
+        };
+
+        window.setSelectedExecutorsEdit = async function (executors) {
+            try {
+                // Fetch all employees to get divisions
+                const data = await fetchEmployeesForExecutorCached("");
+                employees = (data && (data.data || data)) || [];
+                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+            } catch (e) {
+                console.warn("Gagal ambil data employee:", e);
+            }
+
+            selectedEmployees = executors.map((ex) => {
+                let photoUrl = "";
+                let userPhoto = ex.user_photo;
+                if (userPhoto) {
+                    if (userPhoto.startsWith("http")) {
+                        photoUrl = userPhoto;
+                    } else if (
+                        userPhoto.startsWith("/file/photo") ||
+                        userPhoto.startsWith("/file/profile_picture")
+                    ) {
+                        photoUrl = appUrl + userPhoto;
+                    } else if (
+                        userPhoto.startsWith("file/photo") ||
+                        userPhoto.startsWith("file/profile_picture")
+                    ) {
+                        photoUrl = appUrl + "/" + userPhoto;
+                    } else {
+                        photoUrl = appUrl + "/file/profile_picture/" + userPhoto;
+                    }
+                } else {
+                    photoUrl = appUrl + "/asset/img/avatar.png";
+                }
+
+                // Cari division dari list employees
+                let divisionName = "";
+                const empData = employees.find(e => e.id === ex.id);
+                if (empData) {
+                    divisionName = empData.division || empData.division_name || "";
+                }
+
+                return {
+                    id: ex.id,
+                    name: ex.name,
+                    user_photo: photoUrl,
+                    division: divisionName
+                };
+            });
+
+            renderSelected();
+            updateHiddenInput();
+        };
+    }
+
+    setupEditExecutorInput();
 
     function handleTaskDelete(taskId) {
         // Use the same Delete Task modal pattern as on the Task page
