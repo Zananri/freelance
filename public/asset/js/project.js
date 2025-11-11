@@ -2072,7 +2072,7 @@ document.addEventListener("DOMContentLoaded", function () {
             breadcrumbTitle.innerHTML = '';
             const rootSpan = document.createElement('span');
             rootSpan.textContent = 'Project';
-            rootSpan.className = 'breadcrumb-root';
+            rootSpan.className = 'breadcrumb-root me-2';
             breadcrumbTitle.appendChild(rootSpan);
             const { currentParentId, currentParentTitle, currentParentParentId } = projectNavigationState || {};
             const last = breadcrumbStack[breadcrumbStack.length - 1];
@@ -2095,9 +2095,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 breadcrumbStack.forEach(item => {
                     const icon = document.createElement('span');
-                    icon.className = 'material-symbols-outlined';
+                    icon.className = 'material-symbols-outlined text-secondary';
                     icon.textContent = 'arrow_forward_ios';
-                    icon.style.fontSize = '14px';
+                    icon.style.fontSize = '12px';
                     breadcrumbTitle.appendChild(icon);
                         const span = document.createElement('span');
                         span.textContent = item.title;
