@@ -16035,172 +16035,120 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (e) {}
     };
 
-    let attachFileIconListenerBound = false;
+    document.addEventListener("click", function(event) {
+        const btn = event.target.closest(".project-task-attach-btn");
+        if (!btn) return;
 
-    function addAttachFileIconListeners() {
-        if (attachFileIconListenerBound) return;
-
-        document.addEventListener("click", function (event) {
-            const target = event.target.closest(".project-task-attach-btn");
-            if (!target) return;
-
-            const taskId = target.getAttribute("data-task-id");
-            if (!taskId) {
-                showFloatingAlert("Task ID not found.", "warning", 3000);
-                return;
-            }
-
-            $.ajax({
-                url: appUrl + "/task/" + taskId,
-                type: "GET",
-                dataType: "json",
-                success: function (res) {
-                    let referenceFiles = res?.data?.reference_files ?? res?.reference_files ?? [];
-                    if (typeof referenceFiles === "string") {
-                        try {
-                            referenceFiles = JSON.parse(referenceFiles);
-                        } catch {
-                            referenceFiles = referenceFiles.includes("[")
-                                ? []
-                                : referenceFiles
-                                    .split(",")
-                                    .map((s) => s.trim())
-                                    .filter(Boolean);
-                        }
-                    }
-
-                    const referenceTaskFilesList = document.getElementById("referenceTaskFilesList");
-                    if (!referenceTaskFilesList) return;
-                    referenceTaskFilesList.innerHTML = "";
-                    referenceTaskFilesList.dataset.taskId = taskId;
-
-                    if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
-                        referenceFiles.forEach((fileName) => {
-                            if (!fileName) return;
-
-                            let fileUrl = String(fileName);
-                            const isAbs = fileUrl.startsWith('http://') || fileUrl.startsWith('https://');
-                            const isRefPath = fileUrl.startsWith('/file/task_reference_files/') || fileUrl.startsWith('file/task_reference_files/') || fileUrl.startsWith('/file/') || fileUrl.startsWith('file/');
-                            if (!isAbs && !isRefPath) fileUrl = appUrl + '/file/task_reference_files/' + fileUrl;
-                            else if (!isAbs && fileUrl.startsWith('/')) fileUrl = appUrl + fileUrl;
-
-                            const item = document.createElement('div');
-                            item.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
-
-                            const lower = fileName.toLowerCase();
-                            const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
-                            if (isImage) {
-                                const img = document.createElement('img');
-                                img.src = fileUrl;
-                                img.width = 28; img.height = 28;
-                                img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
-                                img.alt = fileName;
-                                item.appendChild(img);
-                            }
-
-                            const title = document.createElement('a');
-                            title.className = 'flex-grow-1 text-decoration-none text-truncate';
-                            title.href = fileUrl;
-                            title.target = '_blank';
-                            title.textContent = fileName;
-                            title.style.color = "#444444";
-                            item.appendChild(title);
-
-                            const dlBtn = document.createElement('button');
-                            dlBtn.type = 'button';
-                            dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
-                            dlBtn.title = 'Download';
-                            dlBtn.style.color = "#444444";
-                            dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
-                            dlBtn.addEventListener('click', function (ev) {
-                                ev.preventDefault(); ev.stopPropagation();
-                                const a = document.createElement('a');
-                                a.style.display = 'none';
-                                a.href = fileUrl;
-                                a.download = fileName.split('/').pop();
-                                a.target = '_blank';
-                                document.body.appendChild(a);
-                                a.click();
-                                setTimeout(() => { document.body.removeChild(a); }, 100);
-                            });
-                            item.appendChild(dlBtn);
-
-                            const delBtn = document.createElement('button');
-                            delBtn.type = 'button';
-                            delBtn.className = 'btn btn-sm btn-link p-0 ms-2';
-                            delBtn.title = 'Delete';
-                            delBtn.style.color = '#444444';
-                            delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
-                            delBtn.addEventListener('click', function (ev) {
-                                ev.preventDefault(); ev.stopPropagation();
-                                showDeleteConfirmModal({
-                                    type: 'reference_file',
-                                    id: fileName,
-                                    content: fileName,
-                                    parentModalId: 'referenceTaskFilesModal',
-                                    onConfirm: function (done) {
-                                        const remaining = referenceFiles.filter(f => f !== fileName);
-                                        $.ajax({
-                                            url: appUrl + '/task/' + taskId + '/reference-file',
-                                            type: 'DELETE',
-                                            data: { filename: fileName },
-                                            headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content') },
-                                            success: function (res) {
-                                                if (item.parentNode) item.parentNode.removeChild(item);
-                                                referenceFiles = remaining;
-                                                const rList = document.getElementById('referenceTaskFilesList');
-                                                if (rList && referenceFiles.length === 0) rList.textContent = 'No reference files available.';
-                                                done(true);
-                                            },
-                                            error: function (xhr) {
-                                                let msg = xhr.responseJSON?.message ?? 'Failed to delete reference file';
-                                                showFloatingAlert(msg, 'danger');
-                                                done(false);
-                                            }
-                                        });
-                                    }
-                                });
-                            });
-                            item.appendChild(delBtn);
-                            referenceTaskFilesList.appendChild(item);
-                        });
-                    } else {
-                        referenceTaskFilesList.textContent = "No reference files available.";
-                    }
-
-                    const modalEl = document.getElementById("referenceTaskFilesModal");
-                    if (modalEl) {
-                        modalEl.dataset.taskId = taskId;
-                        const referenceTaskFilesModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-                        referenceTaskFilesModal.show();
-                    }
-                },
-                error: function () {
-                    showFloatingAlert("Failed to load reference files.", "danger", 3000);
-                },
-            });
-        });
-
-        attachFileIconListenerBound = true;
-    }
-
-    document.addEventListener("click", function(e) {
-        const referenceFileBtn = e.target.closest(".project-task-attach-btn");
-        if (referenceFileBtn) {
-            const card = referenceFileBtn.closest("[data-task-id]");
-            const taskId = card?.getAttribute("data-task-id");
-            if (!taskId) return;
-
-            const detailModalEl = document.getElementById("taskDetailModal");
-            if (detailModalEl) {
-                const detailModal = bootstrap.Modal.getInstance(detailModalEl);
-                if (detailModal) {
-                    detailModal.hide();
-                }
-            }
-
-            addAttachFileIconListeners(taskId);
+        const taskId = btn.getAttribute("data-task-id");
+        if (!taskId) {
+            showFloatingAlert("Task ID not found.", "warning", 3000);
+            return;
         }
+
+        const detailModalEl = document.getElementById("taskDetailModal");
+        if (detailModalEl) {
+            const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+            if (detailModal) detailModal.hide();
+        }
+
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function(res) {
+                let referenceFiles = res?.data?.reference_files ?? res?.reference_files ?? [];
+                if (typeof referenceFiles === "string") {
+                    try { referenceFiles = JSON.parse(referenceFiles); } 
+                    catch { referenceFiles = referenceFiles.split(",").map(s => s.trim()).filter(Boolean); }
+                }
+
+                const referenceTaskFilesList = document.getElementById("referenceTaskFilesList");
+                if (!referenceTaskFilesList) return;
+                referenceTaskFilesList.innerHTML = "";
+                referenceTaskFilesList.dataset.taskId = taskId;
+
+                if (Array.isArray(referenceFiles) && referenceFiles.length > 0) {
+                    referenceFiles.forEach(fileName => {
+                        if (!fileName) return;
+
+                        let fileUrl = fileName.startsWith('http') ? fileName : appUrl + '/file/task_reference_files/' + fileName;
+
+                        const item = document.createElement("div");
+                        item.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                        if (/\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(fileName)) {
+                            const img = document.createElement("img");
+                            img.src = fileUrl; img.width = 28; img.height = 28;
+                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                            item.appendChild(img);
+                        }
+
+                        const title = document.createElement("a");
+                        title.className = "flex-grow-1 text-decoration-none text-truncate";
+                        title.href = fileUrl; title.target = "_blank"; title.textContent = fileName;
+                        title.style.color = "#444444";
+                        item.appendChild(title);
+
+                        const dlBtn = document.createElement("button");
+                        dlBtn.type = "button"; dlBtn.className = "btn btn-sm btn-link p-0 ms-2";
+                        dlBtn.title = "Download"; dlBtn.style.color = "#444444";
+                        dlBtn.innerHTML = '<span class="material-symbols-outlined">download</span>';
+                        dlBtn.addEventListener("click", ev => {
+                            ev.preventDefault(); ev.stopPropagation();
+                            const a = document.createElement("a");
+                            a.style.display = "none"; a.href = fileUrl; a.download = fileName.split("/").pop(); a.target = "_blank";
+                            document.body.appendChild(a); a.click(); setTimeout(() => document.body.removeChild(a), 100);
+                        });
+                        item.appendChild(dlBtn);
+
+                        const delBtn = document.createElement("button");
+                        delBtn.type = "button"; delBtn.className = "btn btn-sm btn-link p-0 ms-2";
+                        delBtn.title = "Delete"; delBtn.style.color = "#444444";
+                        delBtn.innerHTML = '<span class="material-symbols-outlined icon-fill">delete</span>';
+                        delBtn.addEventListener("click", ev => {
+                            ev.preventDefault(); ev.stopPropagation();
+                            showDeleteConfirmModal({
+                                type: "reference_file",
+                                id: fileName,
+                                content: fileName,
+                                parentModalId: "referenceTaskFilesModal",
+                                onConfirm: done => {
+                                    const remaining = referenceFiles.filter(f => f !== fileName);
+                                    $.ajax({
+                                        url: appUrl + "/task/" + taskId + "/reference-file",
+                                        type: "DELETE",
+                                        data: { filename: fileName },
+                                        headers: { "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content") },
+                                        success: () => {
+                                            if (item.parentNode) item.parentNode.removeChild(item);
+                                            referenceFiles = remaining;
+                                            if (referenceFiles.length === 0) referenceTaskFilesList.textContent = "No reference files available.";
+                                            done(true);
+                                        },
+                                        error: xhr => {
+                                            let msg = xhr.responseJSON?.message ?? "Failed to delete reference file";
+                                            showFloatingAlert(msg, "danger");
+                                            done(false);
+                                        }
+                                    });
+                                }
+                            });
+                        });
+                        item.appendChild(delBtn);
+
+                        referenceTaskFilesList.appendChild(item);
+                    });
+                } else referenceTaskFilesList.textContent = "No reference files available.";
+
+                const modalEl = document.getElementById("referenceTaskFilesModal");
+                if (modalEl) {
+                    modalEl.dataset.taskId = taskId;
+                    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modal.show();
+                }
+            },
+            error: () => showFloatingAlert("Failed to load reference files.", "danger", 3000)
+        });
     });
 
     document.addEventListener("click", function (e) {
