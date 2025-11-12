@@ -2246,28 +2246,7 @@ class TaskController extends Controller
             }
 
             // Handle reference files
-            // Accept either 'existing_reference_files' (backend-expected) or the
-            // legacy 'task_existing_reference_files' name sent by older clients.
-            $existingInput = $request->input('existing_reference_files');
-            if ($existingInput === null || $existingInput === '') {
-                $existingInput = $request->input('task_existing_reference_files');
-            }
-            $existingFilesToKeep = json_decode((string) $existingInput, true);
-            // If hidden input is completely missing or invalid JSON, default to keeping current existing files
-            if (!is_array($existingFilesToKeep)) {
-                $existingFilesToKeep = is_array($task->reference_files) ? $task->reference_files : [];
-            }
-
-            // DEBUG logging for incoming reference files
-            try {
-                \Log::info('[Task Update] Incoming reference files payload', [
-                    'task_id' => $task->id,
-                    'existing_input_raw' => $existingInput,
-                    'existing_keep' => $existingFilesToKeep,
-                    'has_reference_files' => $request->hasFile('reference_files'),
-                    'has_reference_file' => $request->hasFile('reference_file'),
-                ]);
-            } catch (\Throwable $_) {}
+            $existingFilesToKeep = json_decode($request->input('task_existing_reference_files'), true) ?? [];
 
             // Delete removed files
             if ($task->reference_files && is_array($task->reference_files)) {
@@ -2282,28 +2261,17 @@ class TaskController extends Controller
 
             $referenceFiles = $existingFilesToKeep;
 
-            // Add new files (support multiple possible field names for robustness)
-            if ($request->hasFile('reference_files') || $request->hasFile('reference_file')) {
-                $taskRefDir = public_path('file/task_reference_files');
-                if (!is_dir($taskRefDir)) {
-                    @mkdir($taskRefDir, 0775, true);
-                }
-                $uploaded = $request->file('reference_files') ?: $request->file('reference_file');
-                if ($uploaded instanceof \Illuminate\Http\UploadedFile) {
-                    $uploaded = [$uploaded];
-                }
-                foreach ((array) $uploaded as $index => $file) {
-                    if (!$file) continue;
+            // Add new files
+            if ($request->hasFile('reference_files')) {
+                foreach ($request->file('reference_files') as $index => $file) {
                     $referenceExtension = $file->getClientOriginalExtension();
                     $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
-                    $file->move($taskRefDir, $referenceName);
+                    $file->move(public_path('file/task_reference_files'), $referenceName);
                     $referenceFiles[] = $referenceName;
                 }
-                try { \Log::info('[Task Update] Stored reference files', ['task_id' => $task->id, 'stored' => $referenceFiles]); } catch (\Throwable $_) {}
             }
 
             $data['reference_files'] = $referenceFiles;
-            try { \Log::info('[Task Update] Final reference_files to save', ['task_id' => $task->id, 'reference_files' => $data['reference_files']]); } catch (\Throwable $_) {}
 
             // Update task (including parent_id if set)
             $task->update($data);
@@ -3256,7 +3224,7 @@ class TaskController extends Controller
             // Handle existing file removals and new uploads
             $currentExisting = is_array($feedback->reference_files) ? $feedback->reference_files : [];
             // existing_reference_files may come as absolute URLs from the client; normalize to filenames
-            $keptInput = $request->input('existing_reference_files');
+            $keptInput = $request->input('task_existing_reference_files');
             if (!empty($keptInput)) {
                 $keptArr = json_decode($keptInput, true);
                 if (!is_array($keptArr)) {
@@ -3296,7 +3264,7 @@ class TaskController extends Controller
                     $currentExisting[] = $name;
                 }
             }
-            if (!empty($currentExisting) || $request->has('existing_reference_files')) {
+            if (!empty($currentExisting) || $request->has('task_existing_reference_files')) {
                 // If client sent existing_reference_files (even empty), persist currentExisting (possibly empty) to reflect removals
                 $data['reference_files'] = $currentExisting;
             }
