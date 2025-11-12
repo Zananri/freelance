@@ -119,7 +119,10 @@
                                                 </div>
                                             </div>
                                             <div class="d-flex justify-content-end align-items-center">
-                                                <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
+                                                <div class="search-input-container-header">
+                                                    <span class="material-symbols-outlined search-icon">search</span>
+                                                    <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
+                                                </div>
                                                 <div class="position-relative d-inline-block">
                                                     <button id="filterMenuBtnProjectList" class="btn btn-sm border-0 p-2">
                                                         <span class="material-symbols-outlined project-table-filter">more_vert</span>
@@ -152,7 +155,10 @@
                                                 <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
                                             </div>
                                             <div class="d-flex justify-content-end align-items-center">
-                                                <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
+                                                <div class="search-input-container-header">
+                                                    <span class="material-symbols-outlined search-icon">search</span>
+                                                    <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
+                                                </div>
                                                 <div class="position-relative d-inline-block">
                                                     <button id="filterMenuBtnTaskList" class="btn btn-sm border-0 p-2">
                                                         <span class="material-symbols-outlined menu-toggle">more_vert</span>
@@ -854,6 +860,7 @@
             <div class="modal-content modal-content-custom">
                 <div class="modal-body modal-body-custom">
                     <div id="deleteProjectContent"></div>
+                    <p class="confirmation-delete-text">Are you sure want to delete this project?</p>
                 </div>
                 <div class="modal-footer modal-footer-custom">
                     <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
@@ -1094,6 +1101,7 @@
                 </div>
                 <form id="editTaskForm" enctype="multipart/form-data">
                     <input type="hidden" id="edit_task_id" name="task_id" value="">
+                    <input type="hidden" id="edit_task_remove_image" name="remove_image" value="0">
                     <div class="modal-body modal-body-custom">
                         <div id="editTaskAlert" class="alert alert-success d-none" role="alert"
                             style="display:none;">
@@ -1184,8 +1192,8 @@
                                 name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                                 multiple>
                             <div class="form-text">Multiple files supported.</div>
-                            <div id="existing_reference_files" class="mt-2"></div>
-                            <div id="edit_reference_files_preview" class="mt-2"></div>
+                            <div id="task_existing_reference_files" class="mt-2"></div>
+                            <div id="edit_reference_task_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 custom-input d-flex justify-content-between">
                             <div class="date-form">

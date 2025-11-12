@@ -299,6 +299,7 @@
     border: none;
     box-shadow: none;
     font-size: 12px;
+    padding-left: 25px;
 }
 
 .table-transparent,
@@ -581,7 +582,7 @@
     height: 18px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1px solid #fff;
+    border: 1px solid rgb(240, 241, 248);
     margin-left: -6px;
 }
 
@@ -3100,6 +3101,11 @@ input[type="file"]::file-selector-button {
     z-index: 10;
     padding: 8px 0;
 }
+
+.custom-input {
+    position: relative;
+}
+
 .custom-input.position-relative {
     padding-right: 0;
 }
@@ -3134,4 +3140,61 @@ input[type="file"]::file-selector-button {
 .custom-input input,
 .custom-input textarea {
     border: none;
+}
+
+.confirmation-delete-text {
+    font-size: 12px;
+    font-weight: 500;
+    text-align: center;
+}
+
+#executor_dropdown,
+#edit_executor_dropdown,
+#task_division_dropdown,
+#edit_task_division_dropdown,
+#task_project_dropdown,
+#task_parent_dropdown,
+#edit_task_project_dropdown,
+#edit_task_parent_dropdown {
+    border: none;
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    background: white;
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    bottom: 100%;
+    top: auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    margin-bottom: -1.2rem;
+}
+
+.division-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    font-size: 14px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.division-item:hover {
+    background: #f0f0f0;
+}
+
+.search-input-container-header {
+    position: relative;
+    width: 100px;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-container-header .search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 12px;
+    color: #a9adb7;
+    pointer-events: none;
 }

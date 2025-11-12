@@ -7679,7 +7679,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                     <label class="form-label">Reference Files (Optional)</label>
                     <div id="task_edit_feedback_files_preview" class="mt-2"></div>
                     <div id="existing_feedback_reference_files" class="mt-2"></div>
-                    <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                    <input type="hidden" id="existing_feedback_reference_files_input" name="task_existing_reference_files" value="[]">
                 </div>
             </form>
         `;
@@ -9427,7 +9427,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
     function setupEditReferenceFilesInput() {
         const input = document.getElementById("edit_task_reference_files");
         const preview = document.getElementById("edit_reference_files_preview");
-        const existing = document.getElementById("existing_reference_files");
+        const existing = document.getElementById("task_existing_reference_files");
 
         if (!input || !preview) return;
 
@@ -9568,7 +9568,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 existingFilesInput = document.createElement("input");
                 existingFilesInput.type = "hidden";
                 existingFilesInput.id = "existing_reference_files_input";
-                existingFilesInput.name = "existing_reference_files";
+                existingFilesInput.name = "task_existing_reference_files";
                 document
                     .getElementById("editTaskForm")
                     .appendChild(existingFilesInput);
@@ -9579,7 +9579,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
         // Function to update existing files array
         function updateExistingFiles() {
             const existingItems = document.querySelectorAll(
-                    "#existing_reference_files .existing-file-item, #existing_reference_files .selected-task"
+                    "#task_existing_reference_files .existing-file-item, #task_existing_reference_files .selected-task"
                 );
             const existingFiles = [];
 
@@ -9598,7 +9598,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 existingFilesInput = document.createElement("input");
                 existingFilesInput.type = "hidden";
                 existingFilesInput.id = "existing_reference_files_input";
-                existingFilesInput.name = "existing_reference_files";
+                existingFilesInput.name = "task_existing_reference_files";
                 document
                     .getElementById("editTaskForm")
                     .appendChild(existingFilesInput);
@@ -9611,7 +9611,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
         // Ensure updateExistingFiles is called when removing existing files
         document
-            .getElementById("existing_reference_files")
+            .getElementById("task_existing_reference_files")
             ?.addEventListener("click", function (e) {
                 // Support new remove button classes and legacy btn-outline-danger
                 if (e.target && (e.target.matches("button.btn-remove-task") || e.target.matches("button.remove-task") || e.target.matches("button.btn-outline-danger") || e.target.closest('button.btn-remove-task') || e.target.closest('button.remove-task'))) {
@@ -13021,7 +13021,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
             if (isEdit) {
                 try {
                     const keepList = window.inlineTaskExistingFilesKeep || [];
-                    fd.set('existing_reference_files', JSON.stringify(keepList));
+                    fd.set('task_existing_reference_files', JSON.stringify(keepList));
                 } catch(_) {}
                 try {
                     if (typeof window.__inlineTaskRemoveImage !== 'undefined') {

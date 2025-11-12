@@ -2680,7 +2680,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 projectNameEl.dataset.projectId = projectId;
             }
             
-            if (!pane) return;
+            if (!pane) {
+                console.warn('[renderProjectTasksToPane] Project pane not found');
+                return;
+            }
             pane.innerHTML = `
                 <div class="text-center">
                     <div class="spinner-border" role="status">
@@ -2933,6 +2936,9 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn('renderProjectTasksToPane error', e);
         }
     }
+    
+    // Expose to window for use by other modules
+    try { window.renderProjectTasksToPane = renderProjectTasksToPane; } catch(_) {}
 
     (function bindTaskMenuDelegation() {
         document.addEventListener('click', function (e) {
@@ -2953,30 +2959,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const actions = [];
                 actions.push({ label: 'Edit', action: 'edit' });
+                actions.push({ label: 'Feedback', action: 'feedback' });
                 actions.push({ label: 'Delete', action: 'delete', danger: true });
 
-                const statusClassMap = {
-                    'new_request': 'status-not_started',
-                    'in_progress': 'status-in_progress',
-                    'back_to_new_request': 'status-not_started',
-                    'completed': 'status-completed',
-                    'finished': 'status-finished',
-                    'rejected': 'status-late'
-                };
-
                 if (status === 'new_request') {
-                    actions.unshift({ label: 'In Progress', action: 'in_progress', badgeClass: statusClassMap['in_progress'] });
+                    actions.unshift({ label: 'In Progress', action: 'in_progress' });
                 } else if (status === 'in_progress') {
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
-                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request', badgeClass: statusClassMap['back_to_new_request'] });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
+                    actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request' });
                 } else if (status === 'completed') {
-                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, badgeClass: statusClassMap['rejected'] });
-                    actions.unshift({ label: 'Finished', action: 'finished', badgeClass: statusClassMap['finished'] });
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
+                    actions.unshift({ label: 'Finished', action: 'finished' });
                 } else if (status === 'finished') {
-                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true, badgeClass: statusClassMap['rejected'] });
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
+                    actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
                 } else if (status === 'rejected') {
-                    actions.unshift({ label: 'Completed', action: 'completed', badgeClass: statusClassMap['completed'] });
+                    actions.unshift({ label: 'Completed', action: 'completed' });
                 }
 
                 const portal = document.createElement('div');
@@ -2984,7 +2982,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 portal.style.position = 'fixed';
                 portal.style.zIndex = 9999;
                 portal.innerHTML = actions.map(a => `
-                    <button class="btn btn-sm w-100 text-start py-2 px-2 ${a.danger ? 'text-danger' : ''} project-task-status-badge ${a.badgeClass || ''}" data-action="${a.action}" data-task-id="${taskId}">
+                    <button class="btn btn-sm w-100 text-start py-2 px-2 project-task-status-badge" 
+                            data-action="${a.action}" 
+                            data-task-id="${taskId}">
                         ${a.label}
                     </button>
                 `).join('');
@@ -3010,10 +3010,38 @@ document.addEventListener("DOMContentLoaded", function () {
                     if (!btnAction) return;
                     const act = btnAction.getAttribute('data-action');
                     const id = btnAction.getAttribute('data-task-id');
-                    if (window.handleTaskAction) window.handleTaskAction(id, act);
+
                     portal.remove();
+
+                    if (act === 'feedback') {
+                        const detailModalEl = document.getElementById("taskDetailModal");
+                        const feedbackModalEl = document.getElementById("taskFeedbackModal");
+                        if (!feedbackModalEl) return;
+
+                        const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                        if (detailModal) detailModal.hide();
+
+                        const feedbackModal = new bootstrap.Modal(feedbackModalEl);
+                        feedbackModal.show();
+
+                        feedbackModalEl.addEventListener(
+                            "hidden.bs.modal",
+                            function restoreDetailModal() {
+                                feedbackModalEl.removeEventListener("hidden.bs.modal", restoreDetailModal);
+                                if (detailModal) detailModal.show();
+                            },
+                            { once: true }
+                        );
+
+                        if (id && window.handleTaskFeedback) window.handleTaskFeedback(id);
+                    } else {
+                        if (window.handleTaskAction) window.handleTaskAction(id, act);
+                    }
                 });
-            } catch (_) {}
+
+            } catch (err) {
+                console.error('Task menu error:', err);
+            }
         });
 
         document.addEventListener('click', function (e) {
@@ -3025,6 +3053,108 @@ document.addEventListener("DOMContentLoaded", function () {
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape') document.querySelectorAll('.dropdown-task-portal').forEach(m => m.remove());
         });
+    })();
+
+    (function () {
+        try {
+            function initProjectExport() {
+                const exportAllBtn = document.querySelector(".btn-export-custom");
+                const exportChildBtn = document.querySelector(".download-project");
+
+                function triggerExport(btn, url, successMessage) {
+                    if (!btn) return;
+                    const originalText = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.innerHTML =
+                        '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
+
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download = "";
+                    link.style.display = "none";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                        if (typeof showFloatingAlert === "function") {
+                            showFloatingAlert(successMessage, "success", 3000);
+                        }
+                    }, 2000);
+                }
+
+                if (exportAllBtn) {
+                    const urlAll = appUrl + "/project/export-excel";
+                    exportAllBtn.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        triggerExport(exportAllBtn, urlAll, "All projects exported successfully!");
+                    });
+                }
+
+                if (exportChildBtn) {
+                    exportChildBtn.addEventListener("click", (e) => {
+                        e.preventDefault();
+
+                        const btn = e.currentTarget;
+                        const originalText = btn.innerHTML;
+                        btn.disabled = true;
+                        btn.innerHTML =
+                            '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
+
+                        try {
+                            const activeProject =
+                                breadcrumbStack && breadcrumbStack.length
+                                    ? breadcrumbStack[breadcrumbStack.length - 1]
+                                    : null;
+
+                            let exportUrl = "";
+
+                            if (activeProject && activeProject.id) {
+                                exportUrl = `${appUrl}/project/export-excel/${encodeURIComponent(activeProject.id)}`;
+                            } else {
+                                exportUrl = `${appUrl}/project/export-root-excel`;
+                            }
+
+                            const link = document.createElement("a");
+                            link.href = exportUrl;
+                            link.download = "";
+                            link.style.display = "none";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+
+                            setTimeout(() => {
+                                btn.disabled = false;
+                                btn.innerHTML = originalText;
+                                if (typeof showFloatingAlert === "function") {
+                                    const msg = activeProject
+                                        ? `Exported child projects for "${activeProject.title || "Selected Project"}" successfully!`
+                                        : "Exported root projects successfully!";
+                                    showFloatingAlert(msg, "success", 3000);
+                                }
+                            }, 2000);
+                        } catch (err) {
+                            console.error("Error exporting projects:", err);
+                            btn.disabled = false;
+                            btn.innerHTML = originalText;
+                            if (typeof showFloatingAlert === "function") {
+                                showFloatingAlert("Failed to export projects.", "danger", 3000);
+                            }
+                        }
+                    });
+                }
+            }
+
+            if (document.readyState === "loading") {
+                document.addEventListener("DOMContentLoaded", initProjectExport);
+            } else {
+                initProjectExport();
+            }
+        } catch (e) {
+            console.error("Error initializing project export:", e);
+        }
     })();
 
     const sectionMap = {
@@ -3383,6 +3513,203 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
+    function setupEditReferenceFilesInput() {
+        const input = document.getElementById("edit_task_reference_files");
+        const preview = document.getElementById("edit_reference_task_files_preview");
+        const existing = document.getElementById("task_existing_reference_files");
+
+        if (!input || !preview) return;
+
+        // Use a global variable to track selected files for edit modal
+        window.editSelectedFiles = [];
+
+        input.addEventListener("change", function () {
+            const files = Array.from(this.files);
+            // Add debug log to check files selected
+            window.editSelectedFiles = [...window.editSelectedFiles, ...files];
+            displayEditSelectedFiles();
+
+            // Clear input for next selection AFTER adding files to array
+            // (already done here, but keep for clarity)
+            this.value = "";
+        });
+
+        window.displayEditSelectedFiles = function () {
+            preview.innerHTML = "";
+
+            if (window.editSelectedFiles.length > 0) {
+                    const fileList = document.createElement("div");
+                    fileList.className = "selected-files-list mt-2";
+
+                    window.editSelectedFiles.forEach((file, index) => {
+                        const fileItem = document.createElement("div");
+                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        if (file && file.type && file.type.indexOf('image') === 0) {
+                            const img = document.createElement('img');
+                            const url = URL.createObjectURL(file);
+                            img.src = url;
+                            img.width = 28;
+                            img.height = 28;
+                            img.style.objectFit = 'cover';
+                            img.style.borderRadius = '50%';
+                            img.alt = file.name;
+                            img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
+                            fileItem.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            fileItem.appendChild(badge);
+                        }
+
+                        const title = document.createElement('span');
+                        title.className = 'flex-grow-1';
+                        title.textContent = file.name;
+                        fileItem.appendChild(title);
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                        removeBtn.style.lineHeight = '1';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                        removeBtn.addEventListener('click', function () {
+                            window.editSelectedFiles.splice(index, 1);
+                            window.displayEditSelectedFiles();
+                        });
+
+                        fileItem.appendChild(removeBtn);
+                        fileList.appendChild(fileItem);
+                    });
+
+                    preview.appendChild(fileList);
+            }
+        };
+
+        // Function to display existing files
+        window.displayExistingReferenceFiles = function (files) {
+            if (!existing || !files || !Array.isArray(files)) return;
+
+            existing.innerHTML = "";
+
+            if (files.length > 0) {
+                    const title = document.createElement("div");
+                    // title.className = "fw-normal mb-2";
+                    // title.textContent = "Current Files:";
+                    // title.style.fontSize = "12px"
+                    existing.appendChild(title);
+
+                    const fileList = document.createElement("div");
+                    fileList.className = "existing-files-list";
+
+                    files.forEach((fileName, idx) => {
+                        const fileItem = document.createElement("div");
+                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        // determine if file is an image by extension
+                        const lower = String(fileName || '').toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+                        if (isImage) {
+                            const img = document.createElement('img');
+                            img.src = appUrl + '/file/task_reference_files/' + encodeURIComponent(fileName);
+                            img.width = 28; img.height = 28;
+                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                            img.alt = fileName;
+                            fileItem.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            fileItem.appendChild(badge);
+                        }
+
+                        const titleSpan = document.createElement('span');
+                        titleSpan.className = 'flex-grow-1';
+                        // store original filename and show formatted display name
+                        titleSpan.setAttribute('data-filename', fileName);
+                        try {
+                            var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
+                            var num = Number(idx) + 1;
+                            titleSpan.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
+                        } catch (e) {
+                            titleSpan.textContent = fileName;
+                        }
+                        fileItem.appendChild(titleSpan);
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                        removeBtn.style.lineHeight = '1';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                        removeBtn.addEventListener('click', function () {
+                            fileItem.remove();
+                            updateExistingFiles();
+                        });
+
+                        fileItem.appendChild(removeBtn);
+                        fileList.appendChild(fileItem);
+                    });
+
+                    existing.appendChild(fileList);
+                }
+            // Initialize or update hidden input with all existing files on display
+            let existingFilesInput = document.getElementById(
+                "task_existing_reference_files_input"
+            );
+            if (!existingFilesInput) {
+                existingFilesInput = document.createElement("input");
+                existingFilesInput.type = "hidden";
+                existingFilesInput.id = "task_existing_reference_files_input";
+                existingFilesInput.name = "task_existing_reference_files";
+                document
+                    .getElementById("editTaskForm")
+                    .appendChild(existingFilesInput);
+            }
+            existingFilesInput.value = JSON.stringify(files);
+        };
+
+        // Function to update existing files array
+        function updateExistingFiles() {
+            const existingItems = document.querySelectorAll(
+                    "#task_existing_reference_files .existing-file-item, #task_existing_reference_files .selected-task"
+                );
+            const existingFiles = [];
+
+            existingItems.forEach((item) => {
+                let fileName = '';
+                const sp = item.querySelector('span.flex-grow-1');
+                if (sp && sp.getAttribute) fileName = sp.getAttribute('data-filename') || sp.textContent.trim();
+                if (fileName) existingFiles.push(fileName);
+            });
+
+            // Update hidden input
+            let existingFilesInput = document.getElementById(
+                "task_existing_reference_files_input"
+            );
+            if (!existingFilesInput) {
+                existingFilesInput = document.createElement("input");
+                existingFilesInput.type = "hidden";
+                existingFilesInput.id = "task_existing_reference_files_input";
+                existingFilesInput.name = "task_existing_reference_files";
+                document
+                    .getElementById("editTaskForm")
+                    .appendChild(existingFilesInput);
+            }
+            existingFilesInput.value = JSON.stringify(existingFiles);
+        }
+
+        // Initialize
+        updateExistingFiles();
+
+        // Ensure updateExistingFiles is called when removing existing files
+        document
+            .getElementById("task_existing_reference_files")
+            ?.addEventListener("click", function (e) {
+                // Support new remove button classes and legacy btn-outline-danger
+                if (e.target && (e.target.matches("button.btn-remove-task") || e.target.matches("button.remove-task") || e.target.matches("button.btn-outline-danger") || e.target.closest('button.btn-remove-task') || e.target.closest('button.remove-task'))) {
+                    setTimeout(() => {
+                        updateExistingFiles();
+                    }, 10);
+                }
+            });
+    }
+
     function handleTaskEdit(taskId) {
         const modalEl = document.getElementById("editTaskModal");
         if (!modalEl) {
@@ -3478,9 +3805,37 @@ document.addEventListener("DOMContentLoaded", function () {
                 const picIdEl = document.getElementById("edit_task_pic_id");
                 if (picIdEl && t.pic_id) picIdEl.value = t.pic_id;
 
+                (function() {
+                    const container = document.getElementById('edit_task_reference_urls_container');
+                    if (!container) return;
+                    container.innerHTML = '';
+                    let urls = [];
+                    let ru = t.reference_urls;
+                    if (!Array.isArray(ru) && typeof ru === 'string') {
+                        try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
+                    }
+                    if (Array.isArray(ru) && ru.length > 0) {
+                        urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
+                    } else if (t.reference_url) {
+                        urls = [t.reference_url];
+                    }
+                    if (urls.length === 0) urls = [''];
+                    urls.forEach((u, idx) => {
+                        const row = document.createElement('div');
+                        row.className = 'input-group';
+                        const controls = (idx === 0)
+                            ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                            : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                        row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
+                        container.appendChild(row);
+                    });
+                })();
+
                 // Image preview
                 const imgLabel = document.getElementById("editTaskImageLabel");
                 const clearBtn = document.getElementById("editTaskImageClearBtn");
+                const removeImageInput = document.getElementById("edit_task_remove_image");
+                if (removeImageInput) removeImageInput.value = "0";
                 if (imgLabel && t.image) {
                     let imgUrl = t.image;
                     if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
@@ -3500,6 +3855,25 @@ document.addEventListener("DOMContentLoaded", function () {
                     imgLabel.classList.remove('has-image');
                     imgLabel.style.opacity = '0.5';
                     if (clearBtn) clearBtn.classList.add('d-none');
+                    if (removeImageInput) removeImageInput.value = "0";
+                }
+
+                if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
+                    window.setSelectedExecutorsEdit(t.executors.map(e => ({
+                        id: e.id,
+                        name: e.name,
+                        user_photo: e.user_photo || e.photo || e.image || '',
+                        division: e.division || e.division_name || ''
+                    })));
+                }
+
+                let refFiles = t.reference_files;
+                if (typeof refFiles === 'string') {
+                    try { refFiles = JSON.parse(refFiles); }
+                    catch (e) { refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean); }
+                }
+                if (typeof window.displayExistingReferenceFiles === 'function') {
+                    window.displayExistingReferenceFiles(Array.isArray(refFiles) ? refFiles : []);
                 }
 
             },
@@ -3516,6 +3890,790 @@ document.addEventListener("DOMContentLoaded", function () {
             }
         });
     }
+    
+        try {
+        const editDivisionSel = document.getElementById('edit_task_division_id');
+        if (editDivisionSel) {
+            // Read logged-in employee's department id from DOM if present
+            let empDeptIdEdit = null;
+            try { empDeptIdEdit = document.getElementById('taskFeedbackModal')?.dataset?.employeeDepartmentId || null; } catch(_) { empDeptIdEdit = null; }
+            // Load divisions on page load (prefer department-scoped)
+            const populateEditDivisions = (d) => {
+                if (!d || !d.data) return;
+                let opts = '<option value="">Select Division</option>';
+                d.data.forEach(function (div) {
+                    opts += `
+                        <option value="${div.id}"
+                                data-name="${(div.name_division || div.name || '').trim()}">
+                            ${(div.name_division || div.name || '').trim()}
+                        </option>`;
+                });
+                editDivisionSel.innerHTML = opts;
+            };
+
+            if (empDeptIdEdit) {
+                fetch(appUrl + '/divisions-for-projects?department_id=' + encodeURIComponent(empDeptIdEdit))
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateEditDivisions)
+                    .catch(err => {
+                        fetch(appUrl + '/divisions-for-projects')
+                            .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                            .then(populateEditDivisions)
+                            .catch(() => {});
+                    });
+            } else {
+                fetch(appUrl + '/divisions-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed to load divisions'))
+                    .then(populateEditDivisions)
+                    .catch(err => console.warn('Failed to load divisions for edit', err));
+            }
+
+            // Division change → fetch employees
+            editDivisionSel.addEventListener('change', function () {
+                const val = this.value;
+                const selectedName = (this.selectedOptions[0]?.dataset?.name || '').trim();
+
+                if (!val) {
+                    try { window.clearSelectedExecutors?.(); } catch (_) {}
+                    return;
+                }
+
+                fetch(appUrl + '/employees-for-projects')
+                    .then(r => r.ok ? r.json() : Promise.reject('Failed'))
+                    .then(res => {
+                        const arr = res?.data || [];
+                        const valStr = String(val).toLowerCase();
+                        const nameStr = String(selectedName).toLowerCase();
+
+                        // Cari by ID dulu, kalau ga ada fallback ke nama
+                        let final = arr.filter(emp => String(emp.division_id || '').toLowerCase() === valStr);
+
+                        if (!final.length) {
+                            final = arr.filter(emp => String(emp.division || '').toLowerCase() === nameStr);
+                        }
+
+                        if (!final.length) {
+                            showFloatingAlert?.('No employees found for selected division.', 'warning', 2500);
+                            return;
+                        }
+                        window.setSelectedExecutorsEdit?.(final);
+                    })
+                    .catch(() => {
+                        showFloatingAlert?.('Failed to load employees for division.', 'warning', 2500);
+                    });
+            });
+
+            // Custom dropdown
+            const divisionDropdown = document.getElementById('edit_task_division_dropdown');
+            if (divisionDropdown) {
+                function renderDivisionDropup() {
+                    const opts = Array.from(editDivisionSel.options || []);
+                    if (!opts.length) {
+                        divisionDropdown.innerHTML = '<div class="division-item disabled">No divisions</div>';
+                        divisionDropdown.style.display = 'block';
+                        return;
+                    }
+
+                    const html = opts.map(o => `
+                        <div class="division-item" data-value="${o.value}">
+                            ${escapeHtml(o.textContent || '')}
+                        </div>
+                    `).join('');
+                    divisionDropdown.innerHTML = html;
+                    divisionDropdown.style.display = 'block';
+
+                    divisionDropdown.querySelectorAll('.division-item').forEach(el => {
+                        el.addEventListener('click', function () {
+                            const v = this.dataset.value;
+                            editDivisionSel.value = v;
+                            editDivisionSel.dispatchEvent(new Event('change', { bubbles: true }));
+                            divisionDropdown.style.display = 'none';
+                        });
+                    });
+                }
+
+                function escapeHtml(str) {
+                    return String(str || '').replace(/[&<>"']/g, m => ({
+                        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                    })[m]);
+                }
+
+                editDivisionSel.addEventListener('focus', renderDivisionDropup);
+
+                const activator = document.getElementById('edit_task_division_activator');
+                (activator || editDivisionSel).addEventListener('click', e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    renderDivisionDropup();
+                    editDivisionSel.focus();
+                });
+
+                editDivisionSel.addEventListener('keydown', e => {
+                    if ([' ', 'Spacebar', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+                        e.preventDefault();
+                        renderDivisionDropup();
+                    }
+                });
+
+                document.addEventListener('click', e => {
+                    if (!editDivisionSel.contains(e.target) && !divisionDropdown.contains(e.target)) {
+                        divisionDropdown.style.display = 'none';
+                    }
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to wire edit division->executors', e);
+    }
+
+    const EMP_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+    const __empCache = { map: new Map(), inFlight: new Map() };
+    function fetchEmployeesForExecutorCached(query = "") {
+        try {
+            const key = String(query || "").trim().toLowerCase();
+            const now = Date.now();
+            const cached = __empCache.map.get(key);
+            if (cached && (now - cached.t) < EMP_CACHE_TTL_MS) {
+                // Return a resolved Deferred with cached value
+                const d = $.Deferred();
+                d.resolve(cached.v);
+                return d.promise();
+            }
+            const inflight = __empCache.inFlight.get(key);
+            if (inflight) return inflight;
+            const jq = $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: key }, dataType: 'json' })
+                .then(res => {
+                    __empCache.map.set(key, { v: res, t: Date.now() });
+                    __empCache.inFlight.delete(key);
+                    return res;
+                })
+                .catch(err => { __empCache.inFlight.delete(key); throw err; });
+            __empCache.inFlight.set(key, jq);
+            return jq;
+        } catch (_) {
+            // Fallback: no cache
+            return $.ajax({ url: appUrl + '/task/employees-for-executor', type: 'GET', data: { q: query }, dataType: 'json' });
+        }
+    }
+
+    function buildPhotoUrl(userPhoto, profilePicture, profilePictureUrl) {
+        try {
+            // Prioritise universal avatar (profile_pictureUrl > profilePicture) then fallback userPhoto
+            let candidate = profilePictureUrl || profilePicture || userPhoto;
+            if (!candidate) return appUrl + '/asset/img/avatar.png';
+            if (typeof candidate !== 'string') candidate = String(candidate || '');
+            const up = candidate.trim();
+            if (up.startsWith('http://') || up.startsWith('https://')) return up;
+            if (up.startsWith('/')) return appUrl + up;
+            if (up.startsWith('file/') || up.startsWith('asset/')) return appUrl + '/' + up;
+            return appUrl + '/file/profile_picture/' + up;
+        } catch (_) {
+            return appUrl + '/asset/img/avatar.png';
+        }
+    }
+
+    function loadProjects() {
+        // Support multiple Add Task modal variants that may exist on the page
+        // by binding per-instance handlers while fetching project list once.
+        const inputs = Array.from(document.querySelectorAll('#task_project_input'));
+        if (!inputs.length) return;
+
+        let projects = [];
+        let fetched = false;
+
+        function fetchProjectsOnce() {
+            if (fetched) return;
+            fetched = true;
+            fetch(appUrl + '/project/index')
+                .then(res => res.json())
+                .then(payload => {
+                    projects = payload && (payload.data || payload.projects || payload) ? (payload.data || payload.projects || payload) : [];
+                    if (!Array.isArray(projects)) projects = [];
+                })
+                .catch(err => {
+                    console.error('Error loading projects:', err);
+                    projects = [];
+                });
+        }
+
+        // render dropdown for a specific scope (modal/form)
+        function renderDropdownFor(scope, dropdown, filter) {
+            dropdown.innerHTML = '';
+            const q = String(filter || '').toLowerCase();
+            const filtered = projects.filter(p => (p.title || '').toLowerCase().includes(q));
+            if (!filtered.length) {
+                const note = document.createElement('div');
+                note.className = 'dropdown-item disabled text-muted';
+                note.textContent = 'No projects found';
+                dropdown.appendChild(note);
+                dropdown.style.display = 'block';
+                return;
+            }
+            filtered.forEach(p => {
+                const avatarHtml = p.image ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>` : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">${(p.title||'').charAt(0).toUpperCase()}</div>`;
+                const item = document.createElement('div');
+                item.className = 'dropdown-item d-flex align-items-center gap-2';
+                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                item.addEventListener('click', () => {
+                    try {
+                        const hiddenInput = scope.querySelector('#task_project_id');
+                        const input = scope.querySelector('#task_project_input');
+                        const selectedContainer = scope.querySelector('#task_selected_project');
+                        if (hiddenInput) hiddenInput.value = p.id;
+                        if (input) input.value = p.title;
+                        dropdown.style.display = 'none';
+                        if (selectedContainer) {
+                            selectedContainer.innerHTML = `\n                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">\n                                    ${p.image ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">${(p.title||'').charAt(0).toUpperCase()}</div>`}\n                                    <span class="flex-grow-1">${p.title}</span>\n                                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">\n                                        <span class="material-symbols-outlined">close</span>\n                                    </button>\n                                </div>`;
+                            const btn = selectedContainer.querySelector('.btn-remove-project');
+                            if (btn) btn.addEventListener('click', () => { if (hiddenInput) hiddenInput.value = ''; if (input) input.value = ''; selectedContainer.innerHTML = ''; const parentSel = document.getElementById('task_parent_id'); if (parentSel) parentSel.innerHTML = "<option value=''>No Parent</option>"; });
+                        }
+                        // Trigger loadRelatedTasks for this project
+                        try { loadRelatedTasks(p.id, 'task', null); } catch(_){}
+                    } catch (e) { console.warn('project select click err', e); }
+                });
+                dropdown.appendChild(item);
+            });
+            dropdown.style.display = 'block';
+        }
+
+        // kick off initial fetch
+        fetchProjectsOnce();
+
+        inputs.forEach(input => {
+            const scope = input.closest('.modal') || input.closest('form') || document;
+            const dropdown = scope.querySelector('#task_project_dropdown');
+            if (!dropdown) return;
+            input.addEventListener('input', function(){ renderDropdownFor(scope, dropdown, this.value); });
+            input.addEventListener('focus', function(){ renderDropdownFor(scope, dropdown, this.value); });
+            // hide dropdown when click outside
+            document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
+        });
+    }
+
+    function setupEditExecutorInput() {
+        const input = document.getElementById("edit_executor_input");
+        const dropdown = document.getElementById("edit_executor_dropdown");
+        const selectedContainer = document.getElementById("edit_selected_executors");
+        const hiddenInput = document.getElementById("edit_executors");
+
+        if (!input || !dropdown || !selectedContainer || !hiddenInput) {
+            return; // Elements not found, skip setup
+        }
+
+        let employees = [];
+        let filteredEmployees = [];
+        let selectedEmployees = [];
+
+        function fetchEmployees(query = "") {
+            return fetchEmployeesForExecutorCached(query)
+                .then(function(data) {
+                    employees = (data && (data.data || data)) || [];
+                    employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+                    filteredEmployees = employees;
+                    renderDropdown();
+                })
+                .catch(function() {
+                    try { showFloatingAlert("Failed to load employees.", "warning", 3000); } catch (_) {}
+                });
+        }
+
+        function renderDropdown() {
+            if (filteredEmployees.length === 0) {
+                dropdown.innerHTML =
+                    '<div class="dropdown-item disabled">No employees found</div>';
+                dropdown.style.display = "block";
+                return;
+            }
+
+            const html = filteredEmployees
+                .map((emp) => {
+                    const isChecked = selectedEmployees.some(e => e.id === emp.id);
+                    const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+                    return `
+                        <label class="dropdown-item d-flex align-items-center justify-content-between" style="cursor: pointer;">
+                            <div class="d-flex align-items-center">
+                                <img src="${photoUrl}" alt="${emp.name}" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                <div class="d-flex flex-column">
+                                    <span class="executor-name">${emp.name}</span>
+                                    <small class="text-muted executor-division">${emp.division || emp.division_name || ''}</small>
+                                </div>
+                            </div>
+                            <input type="checkbox" class="executor-checkbox" data-id="${emp.id}" data-name="${emp.name}" ${isChecked ? "checked" : ""}>
+                        </label>
+                    `;
+                })
+                .join("");
+            dropdown.innerHTML = html;
+            dropdown.style.display = "block";
+
+            dropdown.querySelectorAll(".executor-checkbox").forEach((checkbox) => {
+                checkbox.addEventListener("change", function () {
+                    const id = parseInt(this.getAttribute("data-id"));
+                    const name = this.getAttribute("data-name");
+                    const employeeObj = employees.find(emp => emp.id === id);
+
+                    if (this.checked) {
+                        if (!selectedEmployees.some((e) => e.id === id)) {
+                            selectedEmployees.push({
+                                id,
+                                name,
+                                user_photo: employeeObj ? employeeObj.user_photo : null,
+                                division: employeeObj ? (employeeObj.division || employeeObj.division_name || '') : ''
+                            });
+                        }
+                    } else {
+                        selectedEmployees = selectedEmployees.filter(e => e.id !== id);
+                    }
+                    renderSelected();
+                    updateHiddenInput();
+                });
+            });
+        }
+
+        function renderSelected() {
+            selectedContainer.innerHTML = "";
+            selectedEmployees.forEach((emp) => {
+                const photoUrl = buildPhotoUrl(emp.user_photo, emp.profile_picture, emp.profile_picture_url);
+
+                const badge = document.createElement("span");
+                badge.className = "badge fw-normal bg-light d-inline-flex align-items-center me-2 mb-2";
+
+                const img = document.createElement("img");
+                img.src = photoUrl;
+                img.alt = emp.name;
+                img.className = "rounded-circle me-2";
+                img.style.width = "24px";
+                img.style.height = "24px";
+                img.style.objectFit = "cover";
+
+                const nameCol = document.createElement('div');
+                nameCol.className = 'd-flex flex-column';
+                const nameText = document.createElement('span');
+                nameText.textContent = emp.name || '';
+                nameText.style.marginBottom = "5px";
+                nameText.style.color = "#444"
+
+                const divSmall = document.createElement('small');
+                divSmall.className = 'text-muted executor-division';
+                divSmall.textContent = emp.division || '';
+
+                nameCol.appendChild(nameText);
+                nameCol.appendChild(divSmall);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn-close btn-sm ms-2";
+                removeBtn.setAttribute("aria-label", "Remove");
+                removeBtn.addEventListener("click", () => {
+                    selectedEmployees = selectedEmployees.filter(e => e.id !== emp.id);
+                    renderSelected();
+                    updateHiddenInput();
+                    renderDropdown();
+                });
+
+                badge.appendChild(img);
+                badge.appendChild(nameCol);
+                badge.appendChild(removeBtn);
+                selectedContainer.appendChild(badge);
+            });
+        }
+
+        function updateHiddenInput() {
+            hiddenInput.value = JSON.stringify(selectedEmployees.map(e => e.id));
+        }
+
+        function filterEmployees(value) {
+            const val = value.trim().toLowerCase();
+            filteredEmployees = val === ""
+                ? employees
+                : employees.filter(emp => emp.name.toLowerCase().includes(val));
+            renderDropdown();
+        }
+
+        input.addEventListener("input", function () {
+            filterEmployees(this.value);
+        });
+
+        input.addEventListener("focus", function () {
+            filterEmployees(this.value);
+        });
+
+        document.addEventListener("click", function (e) {
+            if (!input.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.style.display = "none";
+            }
+        });
+
+        fetchEmployees();
+
+        window.clearSelectedExecutorsEdit = function () {
+            selectedEmployees = [];
+            renderSelected();
+            updateHiddenInput();
+            dropdown.style.display = "none";
+            input.value = "";
+        };
+
+        window.setSelectedExecutorsEdit = async function (executors) {
+            try {
+                // Fetch all employees to get divisions
+                const data = await fetchEmployeesForExecutorCached("");
+                employees = (data && (data.data || data)) || [];
+                employees = employees.filter(emp => String(emp.user_type || '').toUpperCase() !== 'ADMINISTRATOR');
+            } catch (e) {
+                console.warn("Gagal ambil data employee:", e);
+            }
+
+            selectedEmployees = executors.map((ex) => {
+                let photoUrl = "";
+                let userPhoto = ex.user_photo;
+                if (userPhoto) {
+                    if (userPhoto.startsWith("http")) {
+                        photoUrl = userPhoto;
+                    } else if (
+                        userPhoto.startsWith("/file/photo") ||
+                        userPhoto.startsWith("/file/profile_picture")
+                    ) {
+                        photoUrl = appUrl + userPhoto;
+                    } else if (
+                        userPhoto.startsWith("file/photo") ||
+                        userPhoto.startsWith("file/profile_picture")
+                    ) {
+                        photoUrl = appUrl + "/" + userPhoto;
+                    } else {
+                        photoUrl = appUrl + "/file/profile_picture/" + userPhoto;
+                    }
+                } else {
+                    photoUrl = appUrl + "/asset/img/avatar.png";
+                }
+
+                // Cari division dari list employees
+                let divisionName = "";
+                const empData = employees.find(e => e.id === ex.id);
+                if (empData) {
+                    divisionName = empData.division || empData.division_name || "";
+                }
+
+                return {
+                    id: ex.id,
+                    name: ex.name,
+                    user_photo: photoUrl,
+                    division: divisionName
+                };
+            });
+
+            renderSelected();
+            updateHiddenInput();
+        };
+    }
+
+    setupEditExecutorInput();
+    setupEditReferenceFilesInput();
+    loadProjects();
+
+        const editTaskModalEl = document.getElementById("editTaskModal");
+        const editTaskForm = document.getElementById("editTaskForm");
+
+        if (editTaskForm) {
+            editTaskForm.addEventListener("submit", function (e) {
+                e.preventDefault();
+
+                const taskId = document.getElementById("edit_task_id").value;
+                if (!taskId) {
+                    showFloatingAlert("Task ID is missing.", "warning", 3000);
+                    return;
+                }
+
+                if (!editTaskForm.checkValidity()) {
+                    e.stopPropagation();
+                    editTaskForm.classList.add("was-validated");
+                    return;
+                }
+                // Executor required validation (edit)
+                try {
+                    const execHidden = document.getElementById('edit_executors');
+                    let execVal = execHidden ? execHidden.value : '';
+                    let execArr = [];
+                    if (execVal) { try { execArr = JSON.parse(execVal); } catch(_) { execArr = []; } }
+                    if (!Array.isArray(execArr) || execArr.length === 0) {
+                        showFloatingAlert('Please select at least one executor.', 'warning', 2500);
+                        return;
+                    }
+                } catch(_) {}
+                editTaskForm.classList.remove("was-validated");
+
+                // Show loading overlay and disable submit button
+                const loader = document.getElementById("editTaskModalLoader");
+                if (loader) loader.classList.remove("d-none");
+                const submitBtn = editTaskForm.querySelector(
+                    "button[type='submit']"
+                );
+                if (submitBtn) submitBtn.disabled = true;
+
+                // Validate sizes: include edit task image and editSelectedFiles
+                try {
+                    const imageEl = document.getElementById('edit_task_image');
+                    const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
+                    if (imageFile && imageFile.size > MAX_IMAGE_BYTES) {
+                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
+                        return;
+                    }
+                    const extraFiles = (window.editSelectedFiles && Array.isArray(window.editSelectedFiles)) ? window.editSelectedFiles : [];
+                    const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: extraFiles});
+                    if (!totalCheck.ok) {
+                        try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
+                        return;
+                    }
+                } catch(_) {}
+
+                const formData = new FormData(editTaskForm);
+                // Add _method to FormData for Laravel PUT request
+                formData.append("_method", "PUT");
+
+                // Append all selected reference files from global array to formData
+                if (
+                    window.editSelectedFiles &&
+                    window.editSelectedFiles.length > 0
+                ) {
+                    window.editSelectedFiles.forEach((file) => {
+                        formData.append("reference_files[]", file);
+                    });
+                }
+
+                $.ajax({
+                    url: appUrl + "/task/" + taskId,
+                    type: "POST", // Laravel expects POST with _method=PUT for PUT requests
+                    headers: {
+                        "X-CSRF-TOKEN": document
+                            .querySelector('meta[name="csrf-token"]')
+                            .getAttribute("content"),
+                    },
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (data) {
+                        const projectPaneEl = document.getElementById("projectTasksPane");
+                        const projectIdForRefresh = (function () {
+                            const hidden = document.getElementById("edit_task_project_id");
+                            if (hidden && hidden.value) return hidden.value;
+                            if (data && data.data && data.data.project_id) return String(data.data.project_id);
+                            const header = document.getElementById("project-table-name");
+                            if (header && header.dataset && header.dataset.projectId) {
+                                return header.dataset.projectId;
+                            }
+                            return "";
+                        })();
+                        // Keep loading overlay visible for a moment to show success
+                        setTimeout(() => {
+                            // Hide loading overlay
+                            if (loader) loader.classList.add("d-none");
+                            if (submitBtn) submitBtn.disabled = false;
+
+                            // Show success floating alert instead of modal alert
+                            showFloatingAlert(
+                                data.message || "Task updated successfully!",
+                                "success"
+                            );
+
+                            var headerProjectId = "";
+                            var headerEl = document.getElementById("project-table-name");
+                            if (headerEl && headerEl.dataset && headerEl.dataset.projectId) {
+                                headerProjectId = headerEl.dataset.projectId;
+                            }
+
+                            // Reset form and preview (same as Add Task)
+                            editTaskForm.reset();
+                            const editImageLabel =
+                                document.getElementById("editTaskImageLabel");
+                            const editImageClearBtn = document.getElementById(
+                                "editTaskImageClearBtn"
+                            );
+                            if (editImageLabel) {
+                                editImageLabel.style.backgroundImage = "";
+                                editImageLabel.classList.remove("has-image");
+                                editImageLabel.style.opacity = "0.5";
+                            }
+                            if (editImageClearBtn) {
+                                editImageClearBtn.classList.add("d-none");
+                            }
+                            const removeFlagInput = document.getElementById("edit_task_remove_image");
+                            if (removeFlagInput) removeFlagInput.value = "0";
+
+                            // Clear selected executors
+                            if (window.clearSelectedExecutorsEdit) {
+                                window.clearSelectedExecutorsEdit();
+                            }
+
+                            // Clear selected files after successful update
+                            window.editSelectedFiles = [];
+                            displayEditSelectedFiles();
+
+                            // Close modal after short delay to show alert and insert updated task
+                            setTimeout(() => {
+                                var editTaskModalInstance =
+                                    bootstrap.Modal.getInstance(editTaskModalEl);
+                                try {
+                                    if (editTaskModalEl && editTaskModalEl.dataset) editTaskModalEl.dataset.allowProgrammaticClose = '1';
+                                } catch(_) {}
+                                if (editTaskModalInstance)
+                                    editTaskModalInstance.hide();
+                                
+                                // Insert/refresh single updated task so client-archived tasks get restored immediately
+                                try { fetchAndInsertTask(taskId); } catch(_) {  }
+
+                                // Refresh project task list immediately after modal closes
+                                setTimeout(() => {
+                                    try {
+                                        const inferredProjectId = projectIdForRefresh || headerProjectId;
+                                        
+                                        // Try refreshTaskListUI first (it has auto-detect logic)
+                                        if (typeof window.refreshTaskListUI === 'function') {
+                                            window.refreshTaskListUI(inferredProjectId);
+                                        } else if (typeof refreshTaskListUI === 'function') {
+                                            refreshTaskListUI(inferredProjectId);
+                                        } else if (inferredProjectId) {
+                                            // Fallback to direct render if projectId is known
+                                            if (typeof window.renderProjectTasksToPane === 'function') {
+                                                window.renderProjectTasksToPane(inferredProjectId);
+                                            } else if (typeof renderProjectTasksToPane === 'function') {
+                                                renderProjectTasksToPane(inferredProjectId);
+                                            }
+                                        }
+                                    } catch (refreshErr) {
+                                        console.error('[Task Edit] Refresh failed:', refreshErr);
+                                    }
+                                }, 200);
+                            }, 1500);
+                        }, 800); // Show loading for 800ms before showing success alert
+                    },
+                    error: function (xhr) {
+                        // Hide loading overlay on error
+                        if (loader) loader.classList.add("d-none");
+                        if (submitBtn) submitBtn.disabled = false;
+
+                        let errorMessage = "Failed to update task.";
+                        if (xhr.responseJSON && xhr.responseJSON.errors) {
+                            errorMessage = Object.values(xhr.responseJSON.errors)
+                                .flat()
+                                .join("\n");
+                        } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        showFloatingAlert(errorMessage, "danger");
+                    },
+                    complete: function () {
+                        // Don't hide loader here, let success/error handle it
+                        // This prevents loader from disappearing too early
+                    },
+                });
+            });
+        }
+
+        const editTaskImageInput = document.getElementById("edit_task_image");
+        const editTaskImageLabel = document.getElementById("editTaskImageLabel");
+        const editTaskImageClearBtn = document.getElementById(
+            "editTaskImageClearBtn"
+        );
+
+        if (editTaskImageInput && editTaskImageLabel && editTaskImageClearBtn) {
+            setupImageInput(
+                editTaskImageInput,
+                editTaskImageLabel,
+                editTaskImageClearBtn
+            );
+
+            editTaskImageInput.addEventListener("change", function () {
+                const removeInput = document.getElementById(
+                    "edit_task_remove_image"
+                );
+                if (!removeInput) return;
+                if (this.files && this.files.length > 0) {
+                    removeInput.value = "0";
+                } else if (removeInput.value !== "1") {
+                    removeInput.value = "0";
+                }
+            });
+
+            editTaskImageClearBtn.addEventListener("click", function () {
+                const removeInput = document.getElementById(
+                    "edit_task_remove_image"
+                );
+                if (removeInput) removeInput.value = "1";
+            });
+        }
+
+        var editTaskModalElement = document.getElementById("editTaskModal");
+        if (editTaskModalElement) {
+            editTaskModalElement.addEventListener("hidden.bs.modal", function () {
+                $("#editTaskForm")[0].reset();
+
+                $("#editTaskImageLabel").css(
+                    "background-image",
+                    "url('" + appUrl + "/asset/img/background/add-image.png')"
+                );
+                $("#editTaskImageLabel").removeClass("has-image");
+                $("#editTaskImageLabel").css("opacity", "0.5");
+                $("#editTaskImageClearBtn").addClass("d-none");
+
+                const removeFlagInput = document.getElementById("edit_task_remove_image");
+                if (removeFlagInput) removeFlagInput.value = "0";
+
+                // Reload projects to reset select
+                loadProjects();
+
+                // Clear selected executors display and hidden inputs
+                window.clearSelectedExecutorsEdit &&
+                    window.clearSelectedExecutorsEdit();
+
+                $("#editTaskAlert").addClass("d-none").hide();
+
+                // Handle timeline modal restoration logic
+                const detailEl = document.getElementById('taskDetailModal');
+                if (detailEl) {
+                    // Clear the child opened flag
+                    detailEl.removeAttribute('data-child-opened');
+
+                    // Check if we should show the detail modal back
+                    if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                        // Show detail modal back first
+                        const detailModal = bootstrap.Modal.getInstance(detailEl) || new bootstrap.Modal(detailEl);
+                        detailModal.show();
+
+                        // Restore the backed up timeline handler if it exists
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        } else {
+                            // Create fresh one-time listener to reopen timeline when detail is closed
+                            const onDetailHiddenAfterEdit = function() {
+                                if (detailEl.getAttribute('data-reopen-timeline') === '1') {
+                                    const timelineEl = document.getElementById('timelineModal');
+                                    if (timelineEl) {
+                                        const tlInstance = bootstrap.Modal.getInstance(timelineEl) || new bootstrap.Modal(timelineEl);
+                                        tlInstance.show();
+                                        detailEl.removeAttribute('data-reopen-timeline');
+                                    }
+                                }
+                                // Clear the reference
+                                detailEl._timelineHiddenHandler = null;
+                            };
+
+                            // Store and attach the handler
+                            detailEl._timelineHiddenHandler = onDetailHiddenAfterEdit;
+                            detailEl.addEventListener('hidden.bs.modal', onDetailHiddenAfterEdit, { once: true });
+                        }
+                    } else {
+                        // If not showing detail modal back, restore the backed up handler anyway
+                        if (detailEl._timelineHiddenHandlerBackup) {
+                            detailEl._timelineHiddenHandler = detailEl._timelineHiddenHandlerBackup;
+                            detailEl.addEventListener('hidden.bs.modal', detailEl._timelineHiddenHandler);
+                            detailEl._timelineHiddenHandlerBackup = null;
+                        }
+                    }
+                }
+            });
+        }
 
     function handleTaskDelete(taskId) {
         // Use the same Delete Task modal pattern as on the Task page
@@ -18243,7 +19401,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <label class="form-label">Reference Files (Optional)</label>
                     <div id="task_edit_feedback_files_preview" class="mt-2"></div>
                     <div id="existing_feedback_reference_files" class="mt-2"></div>
-                    <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                    <input type="hidden" id="existing_feedback_reference_files_input" name="task_existing_reference_files" value="[]">
                 </div>
             </form>
         `;
@@ -18602,7 +19760,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Refresh snippets/badges best-effort
                 try { scheduleRefreshLatestFeedbackSnippets(10); } catch(_) {}
                 // Refresh task cards to update counts immediately
-                try { fetchAndRenderTasks(); } catch(_) {}
+                try { renderProjectTasksToPane(); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = 'Failed to update feedback. Please try again.';
@@ -18847,7 +20005,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (isEdit) {
                 try {
                     const keepList = window.inlineTaskExistingFilesKeep || [];
-                    fd.set('existing_reference_files', JSON.stringify(keepList));
+                    fd.set('task_existing_reference_files', JSON.stringify(keepList));
                 } catch(_) {}
                 try {
                     if (typeof window.__inlineTaskRemoveImage !== 'undefined') {
@@ -21226,62 +22384,6 @@ function initAddProjectReferenceFilesModal() {
             initAddProjectReferenceFilesModal();
         }
     } catch (e) {}
-})();
-
-// Initialize export button handler
-(function () {
-    try {
-        function initProjectExport() {
-            const exportBtn = document.querySelector(".btn-export-custom, .download-project");
-            if (exportBtn) {
-                exportBtn.addEventListener("click", function (e) {
-                    e.preventDefault();
-
-                    // Show loading state
-                    const originalText = exportBtn.innerHTML;
-                    exportBtn.disabled = true;
-                    exportBtn.innerHTML =
-                        '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
-
-                    // Create a temporary anchor element to trigger download
-                    const link = document.createElement("a");
-                    link.href = appUrl + "/project/export-excel";
-                    link.download = "";
-                    link.style.display = "none";
-                    document.body.appendChild(link);
-
-                    // Trigger download
-                    link.click();
-
-                    // Clean up
-                    document.body.removeChild(link);
-
-                    // Restore button state after a short delay
-                    setTimeout(() => {
-                        exportBtn.disabled = false;
-                        exportBtn.innerHTML = originalText;
-
-                        // Show success message
-                        if (typeof showFloatingAlert === "function") {
-                            showFloatingAlert(
-                                "Project export started successfully!",
-                                "success",
-                                3000
-                            );
-                        }
-                    }, 2000);
-                });
-            }
-        }
-
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", initProjectExport);
-        } else {
-            initProjectExport();
-        }
-    } catch (e) {
-        console.error("Error initializing project export:", e);
-    }
 })();
 
 document.addEventListener("DOMContentLoaded", function () {
