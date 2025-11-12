@@ -3544,12 +3544,14 @@ document.addEventListener("DOMContentLoaded", function () {
         input.addEventListener("change", function () {
             const files = Array.from(this.files);
             // Add debug log to check files selected
+            try { console.debug('[EditTask] File input changed, selected:', files.map(f => ({ name: f.name, size: f.size, type: f.type }))); } catch(_) {}
             window.editSelectedFiles = [...window.editSelectedFiles, ...files];
             displayEditSelectedFiles();
 
             // Clear input for next selection AFTER adding files to array
-            // (already done here, but keep for clarity)
-            this.value = "";
+            // IMPORTANT: Do not clear the input on Project page to keep a fallback source
+            // in case the global array gets reset by other code. Keeping the input value
+            // ensures FormData fallback can still read files.
         });
 
         window.displayEditSelectedFiles = function () {
@@ -4480,19 +4482,50 @@ document.addEventListener("DOMContentLoaded", function () {
                     }
                 } catch(_) {}
 
+                // Ensure we sync existing files list from the DOM just before submit
+                try { if (typeof updateExistingFiles === 'function') updateExistingFiles(); } catch (_) {}
+
                 const formData = new FormData(editTaskForm);
                 // Add _method to FormData for Laravel PUT request
                 formData.append("_method", "PUT");
 
                 // Append all selected reference files from global array to formData
-                if (
-                    window.editSelectedFiles &&
-                    window.editSelectedFiles.length > 0
-                ) {
-                    window.editSelectedFiles.forEach((file) => {
-                        formData.append("reference_files[]", file);
-                    });
-                }
+                const fileInputEl = document.getElementById('edit_task_reference_files')
+                    || (modal ? modal.querySelector('#edit_task_reference_files') : null)
+                    || document.getElementById('edit_reference_file');
+
+                const bufferFiles = (window.editSelectedFiles && Array.isArray(window.editSelectedFiles)) ? window.editSelectedFiles.filter(f => f instanceof File) : [];
+                const inputFiles = (fileInputEl && fileInputEl.files) ? Array.from(fileInputEl.files).filter(f => f instanceof File) : [];
+
+                // Gabungkan unik (berdasarkan nama+size+type) agar tidak duplikat jika keduanya terisi
+                const combined = [];
+                const seen = new Set();
+                [...bufferFiles, ...inputFiles].forEach(f => {
+                    const sig = f.name + '|' + f.size + '|' + f.type;
+                    if (!seen.has(sig)) { seen.add(sig); combined.push(f); }
+                });
+                combined.forEach(f => formData.append('reference_files[]', f));
+                try { console.debug('[EditTask] Files appended count:', combined.length, combined.map(f => f.name)); } catch(_) {}
+
+                // DEBUG: log outgoing form data (names only + small file info) to ensure files and hidden inputs are present
+                try {
+                    if (window.console && console.debug) {
+                        const debugEntries = [];
+                        formData.forEach((val, key) => {
+                            try {
+                                if (val instanceof File) {
+                                    debugEntries.push({ key, type: 'file', name: val.name, size: val.size, mime: val.type });
+                                } else {
+                                    const short = (typeof val === 'string' && val.length > 200) ? (val.slice(0, 200) + '…') : val;
+                                    debugEntries.push({ key, value: short });
+                                }
+                            } catch(_) {
+                                debugEntries.push({ key, value: '[uninspectable]' });
+                            }
+                        });
+                        console.debug('[EditTask] Submitting FormData', debugEntries);
+                    }
+                } catch(_) {}
 
                 $.ajax({
                     url: appUrl + "/task/" + taskId,
