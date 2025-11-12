@@ -3605,6 +3605,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Image preview
                 const imgLabel = document.getElementById("editTaskImageLabel");
                 const clearBtn = document.getElementById("editTaskImageClearBtn");
+                const removeImageInput = document.getElementById("edit_task_remove_image");
+                if (removeImageInput) removeImageInput.value = "0";
                 if (imgLabel && t.image) {
                     let imgUrl = t.image;
                     if (!imgUrl.startsWith('http://') && !imgUrl.startsWith('https://')) {
@@ -3624,6 +3626,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     imgLabel.classList.remove('has-image');
                     imgLabel.style.opacity = '0.5';
                     if (clearBtn) clearBtn.classList.add('d-none');
+                    if (removeImageInput) removeImageInput.value = "0";
                 }
 
             },
@@ -4146,6 +4149,8 @@ document.addEventListener("DOMContentLoaded", function () {
                             if (editImageClearBtn) {
                                 editImageClearBtn.classList.add("d-none");
                             }
+                            const removeFlagInput = document.getElementById("edit_task_remove_image");
+                            if (removeFlagInput) removeFlagInput.value = "0";
 
                             // Clear selected executors
                             if (window.clearSelectedExecutorsEdit) {
@@ -4205,6 +4210,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 editTaskImageLabel,
                 editTaskImageClearBtn
             );
+
+            editTaskImageInput.addEventListener("change", function () {
+                const removeInput = document.getElementById(
+                    "edit_task_remove_image"
+                );
+                if (!removeInput) return;
+                if (this.files && this.files.length > 0) {
+                    removeInput.value = "0";
+                } else if (removeInput.value !== "1") {
+                    removeInput.value = "0";
+                }
+            });
+
+            editTaskImageClearBtn.addEventListener("click", function () {
+                const removeInput = document.getElementById(
+                    "edit_task_remove_image"
+                );
+                if (removeInput) removeInput.value = "1";
+            });
         }
 
         var editTaskModalElement = document.getElementById("editTaskModal");
@@ -4219,6 +4243,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 $("#editTaskImageLabel").removeClass("has-image");
                 $("#editTaskImageLabel").css("opacity", "0.5");
                 $("#editTaskImageClearBtn").addClass("d-none");
+
+                const removeFlagInput = document.getElementById("edit_task_remove_image");
+                if (removeFlagInput) removeFlagInput.value = "0";
 
                 // Reload projects to reset select
                 loadProjects();
