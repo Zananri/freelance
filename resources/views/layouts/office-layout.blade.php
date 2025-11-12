@@ -372,6 +372,7 @@
                             <div class="pill-new-request d-none"></div>
                         </a>
                     </li>
+                    
                     @endif
                     
                     @if ($accessManagementTHD || (in_array(Auth::user()->user_type,['ADMINISTRATOR','MANAGEMENT']) && in_array(Auth::user()->user_role,['ADMINISTRATOR','GENERAL_MANAGER','HR_MANAGER'])))

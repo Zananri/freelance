@@ -404,3 +404,26 @@ function toInputDatetimeLocal(value) {
     return '';
   }
 }
+
+
+function totalActiveDay(startDate, endDate) {
+  
+  if (startDate > endDate) {
+    [startDate, endDate] = [endDate, startDate];
+  }
+
+  let currentDate = new Date(startDate.getTime());
+  let count = 0;
+
+  while (currentDate <= endDate) {
+    
+    const dayOfWeek = currentDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      count++;
+    }
+
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+
+  return count;
+}

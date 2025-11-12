@@ -282,6 +282,7 @@ Route::middleware('auth', 'management')->group(function () {
     })->name('master');
 
     Route::get('/salary_payslip', [SalaryPayslipController::class, 'showSalaryPayslipPage'])->name('salary_payslip');
+    Route::get('/salary_payslip/employee-salary-data', [SalaryPayslipController::class, 'getEmployeeSalaryData'])->name('salary_payslip.getEmployeeSalaryData');
 
     Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword');
     Route::get('/user', [UserController::class, 'showUserPage'])->name('user');
