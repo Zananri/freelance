@@ -2671,7 +2671,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function renderProjectTasksToPane(projectId) {
         try {
-            console.log('[renderProjectTasksToPane] Called with projectId:', projectId);
             const pane = document.getElementById('projectTasksPane');
             const totalEl = document.getElementById('projects-total-tasks');
             const projectNameEl = document.getElementById('project-table-name');
@@ -3514,6 +3513,203 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     };
 
+    function setupEditReferenceFilesInput() {
+        const input = document.getElementById("edit_task_reference_files");
+        const preview = document.getElementById("edit_reference_task_files_preview");
+        const existing = document.getElementById("task_existing_reference_files");
+
+        if (!input || !preview) return;
+
+        // Use a global variable to track selected files for edit modal
+        window.editSelectedFiles = [];
+
+        input.addEventListener("change", function () {
+            const files = Array.from(this.files);
+            // Add debug log to check files selected
+            window.editSelectedFiles = [...window.editSelectedFiles, ...files];
+            displayEditSelectedFiles();
+
+            // Clear input for next selection AFTER adding files to array
+            // (already done here, but keep for clarity)
+            this.value = "";
+        });
+
+        window.displayEditSelectedFiles = function () {
+            preview.innerHTML = "";
+
+            if (window.editSelectedFiles.length > 0) {
+                    const fileList = document.createElement("div");
+                    fileList.className = "selected-files-list mt-2";
+
+                    window.editSelectedFiles.forEach((file, index) => {
+                        const fileItem = document.createElement("div");
+                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        if (file && file.type && file.type.indexOf('image') === 0) {
+                            const img = document.createElement('img');
+                            const url = URL.createObjectURL(file);
+                            img.src = url;
+                            img.width = 28;
+                            img.height = 28;
+                            img.style.objectFit = 'cover';
+                            img.style.borderRadius = '50%';
+                            img.alt = file.name;
+                            img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
+                            fileItem.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            fileItem.appendChild(badge);
+                        }
+
+                        const title = document.createElement('span');
+                        title.className = 'flex-grow-1';
+                        title.textContent = file.name;
+                        fileItem.appendChild(title);
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                        removeBtn.style.lineHeight = '1';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                        removeBtn.addEventListener('click', function () {
+                            window.editSelectedFiles.splice(index, 1);
+                            window.displayEditSelectedFiles();
+                        });
+
+                        fileItem.appendChild(removeBtn);
+                        fileList.appendChild(fileItem);
+                    });
+
+                    preview.appendChild(fileList);
+            }
+        };
+
+        // Function to display existing files
+        window.displayExistingReferenceFiles = function (files) {
+            if (!existing || !files || !Array.isArray(files)) return;
+
+            existing.innerHTML = "";
+
+            if (files.length > 0) {
+                    const title = document.createElement("div");
+                    // title.className = "fw-normal mb-2";
+                    // title.textContent = "Current Files:";
+                    // title.style.fontSize = "12px"
+                    existing.appendChild(title);
+
+                    const fileList = document.createElement("div");
+                    fileList.className = "existing-files-list";
+
+                    files.forEach((fileName, idx) => {
+                        const fileItem = document.createElement("div");
+                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                        // determine if file is an image by extension
+                        const lower = String(fileName || '').toLowerCase();
+                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+                        if (isImage) {
+                            const img = document.createElement('img');
+                            img.src = appUrl + '/file/task_reference_files/' + encodeURIComponent(fileName);
+                            img.width = 28; img.height = 28;
+                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                            img.alt = fileName;
+                            fileItem.appendChild(img);
+                        } else {
+                            const badge = document.createElement('div');
+                            fileItem.appendChild(badge);
+                        }
+
+                        const titleSpan = document.createElement('span');
+                        titleSpan.className = 'flex-grow-1';
+                        // store original filename and show formatted display name
+                        titleSpan.setAttribute('data-filename', fileName);
+                        try {
+                            var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
+                            var num = Number(idx) + 1;
+                            titleSpan.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
+                        } catch (e) {
+                            titleSpan.textContent = fileName;
+                        }
+                        fileItem.appendChild(titleSpan);
+
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                        removeBtn.style.lineHeight = '1';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                        removeBtn.addEventListener('click', function () {
+                            fileItem.remove();
+                            updateExistingFiles();
+                        });
+
+                        fileItem.appendChild(removeBtn);
+                        fileList.appendChild(fileItem);
+                    });
+
+                    existing.appendChild(fileList);
+                }
+            // Initialize or update hidden input with all existing files on display
+            let existingFilesInput = document.getElementById(
+                "task_existing_reference_files_input"
+            );
+            if (!existingFilesInput) {
+                existingFilesInput = document.createElement("input");
+                existingFilesInput.type = "hidden";
+                existingFilesInput.id = "task_existing_reference_files_input";
+                existingFilesInput.name = "task_existing_reference_files";
+                document
+                    .getElementById("editTaskForm")
+                    .appendChild(existingFilesInput);
+            }
+            existingFilesInput.value = JSON.stringify(files);
+        };
+
+        // Function to update existing files array
+        function updateExistingFiles() {
+            const existingItems = document.querySelectorAll(
+                    "#task_existing_reference_files .existing-file-item, #task_existing_reference_files .selected-task"
+                );
+            const existingFiles = [];
+
+            existingItems.forEach((item) => {
+                let fileName = '';
+                const sp = item.querySelector('span.flex-grow-1');
+                if (sp && sp.getAttribute) fileName = sp.getAttribute('data-filename') || sp.textContent.trim();
+                if (fileName) existingFiles.push(fileName);
+            });
+
+            // Update hidden input
+            let existingFilesInput = document.getElementById(
+                "task_existing_reference_files_input"
+            );
+            if (!existingFilesInput) {
+                existingFilesInput = document.createElement("input");
+                existingFilesInput.type = "hidden";
+                existingFilesInput.id = "task_existing_reference_files_input";
+                existingFilesInput.name = "task_existing_reference_files";
+                document
+                    .getElementById("editTaskForm")
+                    .appendChild(existingFilesInput);
+            }
+            existingFilesInput.value = JSON.stringify(existingFiles);
+        }
+
+        // Initialize
+        updateExistingFiles();
+
+        // Ensure updateExistingFiles is called when removing existing files
+        document
+            .getElementById("task_existing_reference_files")
+            ?.addEventListener("click", function (e) {
+                // Support new remove button classes and legacy btn-outline-danger
+                if (e.target && (e.target.matches("button.btn-remove-task") || e.target.matches("button.remove-task") || e.target.matches("button.btn-outline-danger") || e.target.closest('button.btn-remove-task') || e.target.closest('button.remove-task'))) {
+                    setTimeout(() => {
+                        updateExistingFiles();
+                    }, 10);
+                }
+            });
+    }
+
     function handleTaskEdit(taskId) {
         const modalEl = document.getElementById("editTaskModal");
         if (!modalEl) {
@@ -3609,6 +3805,32 @@ document.addEventListener("DOMContentLoaded", function () {
                 const picIdEl = document.getElementById("edit_task_pic_id");
                 if (picIdEl && t.pic_id) picIdEl.value = t.pic_id;
 
+                (function() {
+                    const container = document.getElementById('edit_task_reference_urls_container');
+                    if (!container) return;
+                    container.innerHTML = '';
+                    let urls = [];
+                    let ru = t.reference_urls;
+                    if (!Array.isArray(ru) && typeof ru === 'string') {
+                        try { const parsed = JSON.parse(ru); if (Array.isArray(parsed)) ru = parsed; } catch(_) { /* noop */ }
+                    }
+                    if (Array.isArray(ru) && ru.length > 0) {
+                        urls = ru.filter((u) => typeof u === 'string' && u.trim() !== '');
+                    } else if (t.reference_url) {
+                        urls = [t.reference_url];
+                    }
+                    if (urls.length === 0) urls = [''];
+                    urls.forEach((u, idx) => {
+                        const row = document.createElement('div');
+                        row.className = 'input-group';
+                        const controls = (idx === 0)
+                            ? `<button type="button" class="btn btn-submit-black add-ref-url" aria-label="Add URL"><span class="material-symbols-outlined">add</span></button>`
+                            : `<button type="button" class="btn btn-remove-url remove-ref-url" aria-label="Remove URL"><span class="material-symbols-outlined">close</span></button>`;
+                        row.innerHTML = `<input type="url" class="form-control input-text" name="reference_urls[]" placeholder="https://example.com" value="${u}">` + controls;
+                        container.appendChild(row);
+                    });
+                })();
+
                 // Image preview
                 const imgLabel = document.getElementById("editTaskImageLabel");
                 const clearBtn = document.getElementById("editTaskImageClearBtn");
@@ -3634,6 +3856,24 @@ document.addEventListener("DOMContentLoaded", function () {
                     imgLabel.style.opacity = '0.5';
                     if (clearBtn) clearBtn.classList.add('d-none');
                     if (removeImageInput) removeImageInput.value = "0";
+                }
+
+                if (Array.isArray(t.executors) && typeof window.setSelectedExecutorsEdit === 'function') {
+                    window.setSelectedExecutorsEdit(t.executors.map(e => ({
+                        id: e.id,
+                        name: e.name,
+                        user_photo: e.user_photo || e.photo || e.image || '',
+                        division: e.division || e.division_name || ''
+                    })));
+                }
+
+                let refFiles = t.reference_files;
+                if (typeof refFiles === 'string') {
+                    try { refFiles = JSON.parse(refFiles); }
+                    catch (e) { refFiles = refFiles.split(',').map(s => s.trim()).filter(Boolean); }
+                }
+                if (typeof window.displayExistingReferenceFiles === 'function') {
+                    window.displayExistingReferenceFiles(Array.isArray(refFiles) ? refFiles : []);
                 }
 
             },
@@ -3830,6 +4070,84 @@ document.addEventListener("DOMContentLoaded", function () {
         } catch (_) {
             return appUrl + '/asset/img/avatar.png';
         }
+    }
+
+    function loadProjects() {
+        // Support multiple Add Task modal variants that may exist on the page
+        // by binding per-instance handlers while fetching project list once.
+        const inputs = Array.from(document.querySelectorAll('#task_project_input'));
+        if (!inputs.length) return;
+
+        let projects = [];
+        let fetched = false;
+
+        function fetchProjectsOnce() {
+            if (fetched) return;
+            fetched = true;
+            fetch(appUrl + '/project/index')
+                .then(res => res.json())
+                .then(payload => {
+                    projects = payload && (payload.data || payload.projects || payload) ? (payload.data || payload.projects || payload) : [];
+                    if (!Array.isArray(projects)) projects = [];
+                })
+                .catch(err => {
+                    console.error('Error loading projects:', err);
+                    projects = [];
+                });
+        }
+
+        // render dropdown for a specific scope (modal/form)
+        function renderDropdownFor(scope, dropdown, filter) {
+            dropdown.innerHTML = '';
+            const q = String(filter || '').toLowerCase();
+            const filtered = projects.filter(p => (p.title || '').toLowerCase().includes(q));
+            if (!filtered.length) {
+                const note = document.createElement('div');
+                note.className = 'dropdown-item disabled text-muted';
+                note.textContent = 'No projects found';
+                dropdown.appendChild(note);
+                dropdown.style.display = 'block';
+                return;
+            }
+            filtered.forEach(p => {
+                const avatarHtml = p.image ? `<img src="${appUrl}/file/project/${p.image}" width="24" height="24" style="object-fit:cover;border-radius:50%;"/>` : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:24px;height:24px;background:#6A5AE0;color:#fff;font-size:12px;">${(p.title||'').charAt(0).toUpperCase()}</div>`;
+                const item = document.createElement('div');
+                item.className = 'dropdown-item d-flex align-items-center gap-2';
+                item.innerHTML = `${avatarHtml}<span>${p.title}</span>`;
+                item.addEventListener('click', () => {
+                    try {
+                        const hiddenInput = scope.querySelector('#task_project_id');
+                        const input = scope.querySelector('#task_project_input');
+                        const selectedContainer = scope.querySelector('#task_selected_project');
+                        if (hiddenInput) hiddenInput.value = p.id;
+                        if (input) input.value = p.title;
+                        dropdown.style.display = 'none';
+                        if (selectedContainer) {
+                            selectedContainer.innerHTML = `\n                                <div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project">\n                                    ${p.image ? `<img src="${appUrl}/file/project/${p.image}" width="28" height="28" style="object-fit:cover;border-radius:50%;">` : `<div class="rounded-circle d-flex align-items-center justify-content-center" style="width:28px;height:28px;background:#6A5AE0;color:#fff;font-size:14px;">${(p.title||'').charAt(0).toUpperCase()}</div>`}\n                                    <span class="flex-grow-1">${p.title}</span>\n                                    <button type="button" class="btn btn-sm btn-remove-project" style="line-height:1">\n                                        <span class="material-symbols-outlined">close</span>\n                                    </button>\n                                </div>`;
+                            const btn = selectedContainer.querySelector('.btn-remove-project');
+                            if (btn) btn.addEventListener('click', () => { if (hiddenInput) hiddenInput.value = ''; if (input) input.value = ''; selectedContainer.innerHTML = ''; const parentSel = document.getElementById('task_parent_id'); if (parentSel) parentSel.innerHTML = "<option value=''>No Parent</option>"; });
+                        }
+                        // Trigger loadRelatedTasks for this project
+                        try { loadRelatedTasks(p.id, 'task', null); } catch(_){}
+                    } catch (e) { console.warn('project select click err', e); }
+                });
+                dropdown.appendChild(item);
+            });
+            dropdown.style.display = 'block';
+        }
+
+        // kick off initial fetch
+        fetchProjectsOnce();
+
+        inputs.forEach(input => {
+            const scope = input.closest('.modal') || input.closest('form') || document;
+            const dropdown = scope.querySelector('#task_project_dropdown');
+            if (!dropdown) return;
+            input.addEventListener('input', function(){ renderDropdownFor(scope, dropdown, this.value); });
+            input.addEventListener('focus', function(){ renderDropdownFor(scope, dropdown, this.value); });
+            // hide dropdown when click outside
+            document.addEventListener('click', function(e){ if (!dropdown.contains(e.target) && e.target !== input) dropdown.style.display = 'none'; });
+        });
     }
 
     function setupEditExecutorInput() {
@@ -4050,6 +4368,8 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     setupEditExecutorInput();
+    setupEditReferenceFilesInput();
+    loadProjects();
 
         const editTaskModalEl = document.getElementById("editTaskModal");
         const editTaskForm = document.getElementById("editTaskForm");
@@ -4199,13 +4519,12 @@ document.addEventListener("DOMContentLoaded", function () {
                                     editTaskModalInstance.hide();
                                 
                                 // Insert/refresh single updated task so client-archived tasks get restored immediately
-                                try { fetchAndInsertTask(taskId); } catch(_) { fetchAndRenderTasks(); }
+                                try { fetchAndInsertTask(taskId); } catch(_) {  }
 
                                 // Refresh project task list immediately after modal closes
                                 setTimeout(() => {
                                     try {
                                         const inferredProjectId = projectIdForRefresh || headerProjectId;
-                                        console.log('[Task Edit] Refreshing task list. ProjectId:', inferredProjectId);
                                         
                                         // Try refreshTaskListUI first (it has auto-detect logic)
                                         if (typeof window.refreshTaskListUI === 'function') {
@@ -19441,7 +19760,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 // Refresh snippets/badges best-effort
                 try { scheduleRefreshLatestFeedbackSnippets(10); } catch(_) {}
                 // Refresh task cards to update counts immediately
-                try { fetchAndRenderTasks(); } catch(_) {}
+                try { renderProjectTasksToPane(); } catch(_) {}
             },
             error: function (xhr) {
                 let errorMessage = 'Failed to update feedback. Please try again.';
