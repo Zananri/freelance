@@ -119,7 +119,10 @@
                                                 </div>
                                             </div>
                                             <div class="d-flex justify-content-end align-items-center">
-                                                <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
+                                                <div class="search-input-container-header">
+                                                    <span class="material-symbols-outlined search-icon">search</span>
+                                                    <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
+                                                </div>
                                                 <div class="position-relative d-inline-block">
                                                     <button id="filterMenuBtnProjectList" class="btn btn-sm border-0 p-2">
                                                         <span class="material-symbols-outlined project-table-filter">more_vert</span>
@@ -152,7 +155,10 @@
                                                 <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
                                             </div>
                                             <div class="d-flex justify-content-end align-items-center">
-                                                <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
+                                                <div class="search-input-container-header">
+                                                    <span class="material-symbols-outlined search-icon">search</span>
+                                                    <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
+                                                </div>
                                                 <div class="position-relative d-inline-block">
                                                     <button id="filterMenuBtnTaskList" class="btn btn-sm border-0 p-2">
                                                         <span class="material-symbols-outlined menu-toggle">more_vert</span>
