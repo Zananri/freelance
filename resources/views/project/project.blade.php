@@ -119,7 +119,10 @@
                                                 </div>
                                             </div>
                                             <div class="d-flex justify-content-end align-items-center">
-                                                <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
+                                                <div class="search-input-container-header">
+                                                    <span class="material-symbols-outlined search-icon">search</span>
+                                                    <input type="text" class="form-control table-search-input mb-0" id="searchProjectList">
+                                                </div>
                                                 <div class="position-relative d-inline-block">
                                                     <button id="filterMenuBtnProjectList" class="btn btn-sm border-0 p-2">
                                                         <span class="material-symbols-outlined project-table-filter">more_vert</span>
@@ -152,7 +155,10 @@
                                                 <p id="projects-total-tasks" class="table-total-task mb-0 d-none">0 Total tasks</p>
                                             </div>
                                             <div class="d-flex justify-content-end align-items-center">
-                                                <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
+                                                <div class="search-input-container-header">
+                                                    <span class="material-symbols-outlined search-icon">search</span>
+                                                    <input type="text" class="form-control table-search-input mb-0" id="searchTasksList">
+                                                </div>
                                                 <div class="position-relative d-inline-block">
                                                     <button id="filterMenuBtnTaskList" class="btn btn-sm border-0 p-2">
                                                         <span class="material-symbols-outlined menu-toggle">more_vert</span>
@@ -1186,9 +1192,8 @@
                                 name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                                 multiple>
                             <div class="form-text">Multiple files supported.</div>
-                            <div id="existing_reference_files" class="mt-2"></div>
-                            <div id="edit_reference_files_preview" class="mt-2"></div>
-                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files" value="[]">
+                            <div id="task_existing_reference_files" class="mt-2"></div>
+                            <div id="edit_reference_task_files_preview" class="mt-2"></div>
                         </div>
                         <div class="mb-3 custom-input d-flex justify-content-between">
                             <div class="date-form">
