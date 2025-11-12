@@ -2671,6 +2671,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function renderProjectTasksToPane(projectId) {
         try {
+            console.log('[renderProjectTasksToPane] Called with projectId:', projectId);
             const pane = document.getElementById('projectTasksPane');
             const totalEl = document.getElementById('projects-total-tasks');
             const projectNameEl = document.getElementById('project-table-name');
@@ -2680,7 +2681,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 projectNameEl.dataset.projectId = projectId;
             }
             
-            if (!pane) return;
+            if (!pane) {
+                console.warn('[renderProjectTasksToPane] Project pane not found');
+                return;
+            }
             pane.innerHTML = `
                 <div class="text-center">
                     <div class="spinner-border" role="status">
@@ -2933,6 +2937,9 @@ document.addEventListener("DOMContentLoaded", function () {
             console.warn('renderProjectTasksToPane error', e);
         }
     }
+    
+    // Expose to window for use by other modules
+    try { window.renderProjectTasksToPane = renderProjectTasksToPane; } catch(_) {}
 
     (function bindTaskMenuDelegation() {
         document.addEventListener('click', function (e) {
@@ -4125,14 +4132,34 @@ document.addEventListener("DOMContentLoaded", function () {
                     processData: false,
                     contentType: false,
                     success: function (data) {
+                        const projectPaneEl = document.getElementById("projectTasksPane");
+                        const projectIdForRefresh = (function () {
+                            const hidden = document.getElementById("edit_task_project_id");
+                            if (hidden && hidden.value) return hidden.value;
+                            if (data && data.data && data.data.project_id) return String(data.data.project_id);
+                            const header = document.getElementById("project-table-name");
+                            if (header && header.dataset && header.dataset.projectId) {
+                                return header.dataset.projectId;
+                            }
+                            return "";
+                        })();
                         // Keep loading overlay visible for a moment to show success
                         setTimeout(() => {
                             // Hide loading overlay
                             if (loader) loader.classList.add("d-none");
                             if (submitBtn) submitBtn.disabled = false;
 
-                    // Show success floating alert instead of modal alert
-                    showFloatingAlert(data.message || "Task updated successfully!", "success");
+                            // Show success floating alert instead of modal alert
+                            showFloatingAlert(
+                                data.message || "Task updated successfully!",
+                                "success"
+                            );
+
+                            var headerProjectId = "";
+                            var headerEl = document.getElementById("project-table-name");
+                            if (headerEl && headerEl.dataset && headerEl.dataset.projectId) {
+                                headerProjectId = headerEl.dataset.projectId;
+                            }
 
                             // Reset form and preview (same as Add Task)
                             editTaskForm.reset();
@@ -4170,8 +4197,33 @@ document.addEventListener("DOMContentLoaded", function () {
                                 } catch(_) {}
                                 if (editTaskModalInstance)
                                     editTaskModalInstance.hide();
+                                
                                 // Insert/refresh single updated task so client-archived tasks get restored immediately
                                 try { fetchAndInsertTask(taskId); } catch(_) { fetchAndRenderTasks(); }
+
+                                // Refresh project task list immediately after modal closes
+                                setTimeout(() => {
+                                    try {
+                                        const inferredProjectId = projectIdForRefresh || headerProjectId;
+                                        console.log('[Task Edit] Refreshing task list. ProjectId:', inferredProjectId);
+                                        
+                                        // Try refreshTaskListUI first (it has auto-detect logic)
+                                        if (typeof window.refreshTaskListUI === 'function') {
+                                            window.refreshTaskListUI(inferredProjectId);
+                                        } else if (typeof refreshTaskListUI === 'function') {
+                                            refreshTaskListUI(inferredProjectId);
+                                        } else if (inferredProjectId) {
+                                            // Fallback to direct render if projectId is known
+                                            if (typeof window.renderProjectTasksToPane === 'function') {
+                                                window.renderProjectTasksToPane(inferredProjectId);
+                                            } else if (typeof renderProjectTasksToPane === 'function') {
+                                                renderProjectTasksToPane(inferredProjectId);
+                                            }
+                                        }
+                                    } catch (refreshErr) {
+                                        console.error('[Task Edit] Refresh failed:', refreshErr);
+                                    }
+                                }, 200);
                             }, 1500);
                         }, 800); // Show loading for 800ms before showing success alert
                     },
