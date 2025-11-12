@@ -1095,6 +1095,7 @@
                 </div>
                 <form id="editTaskForm" enctype="multipart/form-data">
                     <input type="hidden" id="edit_task_id" name="task_id" value="">
+                    <input type="hidden" id="edit_task_remove_image" name="remove_image" value="0">
                     <div class="modal-body modal-body-custom">
                         <div id="editTaskAlert" class="alert alert-success d-none" role="alert"
                             style="display:none;">

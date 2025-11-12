@@ -2184,6 +2184,7 @@ class TaskController extends Controller
                         }
                     }
                 ],
+                'remove_image' => 'nullable|boolean',
                 'start_date' => 'required|date',
                 'due_date' => 'required|date|after_or_equal:start_date',
             ]);
@@ -2198,6 +2199,8 @@ class TaskController extends Controller
             }
 
             $data = $validator->validated();
+            $removeImageFlag = (bool) ($data['remove_image'] ?? false);
+            unset($data['remove_image']);
 
             // Validate parent belongs to same project if provided
             if (array_key_exists('parent_id', $data) && !empty($data['parent_id'])) {
@@ -2233,6 +2236,13 @@ class TaskController extends Controller
                 $imageName = 'TASK_' . time() . '.' . $imageExtension;
                 $imageFile->move(public_path('file/task'), $imageName);
                 $data['image'] = $imageName;
+            }
+
+            if ($removeImageFlag && !$request->hasFile('image')) {
+                if ($task->image && file_exists(public_path('file/task/' . $task->image))) {
+                    unlink(public_path('file/task/' . $task->image));
+                }
+                $data['image'] = null;
             }
 
             // Handle reference files
