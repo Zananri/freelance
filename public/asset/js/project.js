@@ -3514,11 +3514,29 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     function setupEditReferenceFilesInput() {
-        const input = document.getElementById("edit_task_reference_files");
-        const preview = document.getElementById("edit_reference_task_files_preview");
-        const existing = document.getElementById("task_existing_reference_files");
+        // Scope all lookups to the Edit Task modal to avoid ID collisions across pages
+        const modal = document.getElementById("editTaskModal");
+        // Primary selectors used on Task page and the updated Project page modal
+        let input = document.getElementById("edit_task_reference_files")
+            || (modal ? modal.querySelector('input#edit_task_reference_files') : null)
+            // Legacy/fallback selector (older markup)
+            || (modal ? modal.querySelector('input[type="file"][name="reference_files[]"]') : null)
+            // Very old variant used in some project pages
+            || document.getElementById('edit_reference_file');
 
-        if (!input || !preview) return;
+        // Preview/current containers: prefer new IDs, then fall back to legacy ones
+        let preview = (modal ? modal.querySelector('#edit_reference_files_preview') : null)
+            || document.getElementById("edit_reference_files_preview")
+            || (modal ? modal.querySelector('#edit_reference_task_files_preview') : null)
+            || document.getElementById("edit_reference_task_files_preview");
+
+        let existing = (modal ? modal.querySelector('#existing_reference_files') : null)
+            || document.getElementById("existing_reference_files")
+            || (modal ? modal.querySelector('#task_existing_reference_files') : null)
+            || document.getElementById("task_existing_reference_files");
+
+        // If we cannot find the input or any render target, bail out silently
+        if (!input || (!preview && !existing)) return;
 
         // Use a global variable to track selected files for edit modal
         window.editSelectedFiles = [];
@@ -3586,11 +3604,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Function to display existing files
         window.displayExistingReferenceFiles = function (files) {
-            if (!existing || !files || !Array.isArray(files)) return;
+            if (!Array.isArray(files)) files = [];
 
-            existing.innerHTML = "";
+            if (existing) {
+                existing.innerHTML = "";
 
-            if (files.length > 0) {
+                if (files.length > 0) {
                     const title = document.createElement("div");
                     // title.className = "fw-normal mb-2";
                     // title.textContent = "Current Files:";
@@ -3648,7 +3667,16 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     existing.appendChild(fileList);
                 }
-            // Initialize or update hidden input with all existing files on display
+            }
+            // Initialize or update hidden input with all existing files on display.
+            // Maintain legacy task-specific hidden input but ALSO set the
+            // backend-expected input name `existing_reference_files` so the
+            // controller receives the list. Keep both for backward-compatibility.
+            const formEl = (modal ? (modal.querySelector('#editTaskForm') || modal.querySelector('form')) : null)
+                || document.getElementById('editTaskForm')
+                || document.querySelector('#editTaskModal form')
+                || document.querySelector('form');
+
             let existingFilesInput = document.getElementById(
                 "task_existing_reference_files_input"
             );
@@ -3657,17 +3685,27 @@ document.addEventListener("DOMContentLoaded", function () {
                 existingFilesInput.type = "hidden";
                 existingFilesInput.id = "task_existing_reference_files_input";
                 existingFilesInput.name = "task_existing_reference_files";
-                document
-                    .getElementById("editTaskForm")
-                    .appendChild(existingFilesInput);
+                formEl && formEl.appendChild(existingFilesInput);
             }
             existingFilesInput.value = JSON.stringify(files);
+
+            // Also ensure controller-friendly hidden input exists and mirrors same value
+            let backendExisting = document.getElementById("existing_reference_files_input");
+            if (!backendExisting) {
+                backendExisting = document.createElement("input");
+                backendExisting.type = "hidden";
+                backendExisting.id = "existing_reference_files_input";
+                backendExisting.name = "existing_reference_files";
+                formEl && formEl.appendChild(backendExisting);
+            }
+            backendExisting.value = JSON.stringify(files);
         };
 
         // Function to update existing files array
         function updateExistingFiles() {
-            const existingItems = document.querySelectorAll(
-                    "#task_existing_reference_files .existing-file-item, #task_existing_reference_files .selected-task"
+            const scope = modal || document;
+            const existingItems = scope.querySelectorAll(
+                    "#existing_reference_files .existing-file-item, #existing_reference_files .selected-task, #task_existing_reference_files .existing-file-item, #task_existing_reference_files .selected-task"
                 );
             const existingFiles = [];
 
@@ -3687,19 +3725,35 @@ document.addEventListener("DOMContentLoaded", function () {
                 existingFilesInput.type = "hidden";
                 existingFilesInput.id = "task_existing_reference_files_input";
                 existingFilesInput.name = "task_existing_reference_files";
-                document
-                    .getElementById("editTaskForm")
-                    .appendChild(existingFilesInput);
+                const formEl2 = (modal ? (modal.querySelector('#editTaskForm') || modal.querySelector('form')) : null)
+                    || document.getElementById('editTaskForm')
+                    || document.querySelector('#editTaskModal form')
+                    || document.querySelector('form');
+                formEl2 && formEl2.appendChild(existingFilesInput);
             }
             existingFilesInput.value = JSON.stringify(existingFiles);
+
+            // Mirror to backend expected hidden input as well
+            let backendExisting = document.getElementById("existing_reference_files_input");
+            if (!backendExisting) {
+                backendExisting = document.createElement("input");
+                backendExisting.type = "hidden";
+                backendExisting.id = "existing_reference_files_input";
+                backendExisting.name = "existing_reference_files";
+                const formEl3 = (modal ? (modal.querySelector('#editTaskForm') || modal.querySelector('form')) : null)
+                    || document.getElementById('editTaskForm')
+                    || document.querySelector('#editTaskModal form')
+                    || document.querySelector('form');
+                formEl3 && formEl3.appendChild(backendExisting);
+            }
+            backendExisting.value = JSON.stringify(existingFiles);
         }
 
         // Initialize
         updateExistingFiles();
 
         // Ensure updateExistingFiles is called when removing existing files
-        document
-            .getElementById("task_existing_reference_files")
+        (existing || document.getElementById("existing_reference_files") || (modal && modal.querySelector('#existing_reference_files')))
             ?.addEventListener("click", function (e) {
                 // Support new remove button classes and legacy btn-outline-danger
                 if (e.target && (e.target.matches("button.btn-remove-task") || e.target.matches("button.remove-task") || e.target.matches("button.btn-outline-danger") || e.target.closest('button.btn-remove-task') || e.target.closest('button.remove-task'))) {

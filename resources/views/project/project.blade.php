@@ -1186,8 +1186,9 @@
                                 name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
                                 multiple>
                             <div class="form-text">Multiple files supported.</div>
-                            <div id="task_existing_reference_files" class="mt-2"></div>
-                            <div id="edit_reference_task_files_preview" class="mt-2"></div>
+                            <div id="existing_reference_files" class="mt-2"></div>
+                            <div id="edit_reference_files_preview" class="mt-2"></div>
+                            <input type="hidden" id="existing_reference_files_input" name="existing_reference_files" value="[]">
                         </div>
                         <div class="mb-3 custom-input d-flex justify-content-between">
                             <div class="date-form">

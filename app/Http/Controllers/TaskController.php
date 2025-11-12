@@ -2246,7 +2246,13 @@ class TaskController extends Controller
             }
 
             // Handle reference files
-            $existingFilesToKeep = json_decode($request->input('existing_reference_files'), true) ?? [];
+            // Accept either 'existing_reference_files' (backend-expected) or the
+            // legacy 'task_existing_reference_files' name sent by older clients.
+            $existingInput = $request->input('existing_reference_files');
+            if (empty($existingInput)) {
+                $existingInput = $request->input('task_existing_reference_files');
+            }
+            $existingFilesToKeep = json_decode($existingInput, true) ?? [];
 
             // Delete removed files
             if ($task->reference_files && is_array($task->reference_files)) {
@@ -2263,10 +2269,15 @@ class TaskController extends Controller
 
             // Add new files
             if ($request->hasFile('reference_files')) {
+                $taskRefDir = public_path('file/task_reference_files');
+                if (!is_dir($taskRefDir)) {
+                    @mkdir($taskRefDir, 0775, true);
+                }
                 foreach ($request->file('reference_files') as $index => $file) {
+                    if (!$file) continue;
                     $referenceExtension = $file->getClientOriginalExtension();
                     $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
-                    $file->move(public_path('file/task_reference_files'), $referenceName);
+                    $file->move($taskRefDir, $referenceName);
                     $referenceFiles[] = $referenceName;
                 }
             }
