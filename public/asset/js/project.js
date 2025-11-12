@@ -19401,7 +19401,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     <label class="form-label">Reference Files (Optional)</label>
                     <div id="task_edit_feedback_files_preview" class="mt-2"></div>
                     <div id="existing_feedback_reference_files" class="mt-2"></div>
-                    <input type="hidden" id="existing_feedback_reference_files_input" name="existing_reference_files" value="[]">
+                    <input type="hidden" id="existing_feedback_reference_files_input" name="task_existing_reference_files" value="[]">
                 </div>
             </form>
         `;
@@ -20005,7 +20005,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (isEdit) {
                 try {
                     const keepList = window.inlineTaskExistingFilesKeep || [];
-                    fd.set('existing_reference_files', JSON.stringify(keepList));
+                    fd.set('task_existing_reference_files', JSON.stringify(keepList));
                 } catch(_) {}
                 try {
                     if (typeof window.__inlineTaskRemoveImage !== 'undefined') {

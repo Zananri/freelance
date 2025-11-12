@@ -2246,7 +2246,7 @@ class TaskController extends Controller
             }
 
             // Handle reference files
-            $existingFilesToKeep = json_decode($request->input('existing_reference_files'), true) ?? [];
+            $existingFilesToKeep = json_decode($request->input('task_existing_reference_files'), true) ?? [];
 
             // Delete removed files
             if ($task->reference_files && is_array($task->reference_files)) {
@@ -3224,7 +3224,7 @@ class TaskController extends Controller
             // Handle existing file removals and new uploads
             $currentExisting = is_array($feedback->reference_files) ? $feedback->reference_files : [];
             // existing_reference_files may come as absolute URLs from the client; normalize to filenames
-            $keptInput = $request->input('existing_reference_files');
+            $keptInput = $request->input('task_existing_reference_files');
             if (!empty($keptInput)) {
                 $keptArr = json_decode($keptInput, true);
                 if (!is_array($keptArr)) {
@@ -3264,7 +3264,7 @@ class TaskController extends Controller
                     $currentExisting[] = $name;
                 }
             }
-            if (!empty($currentExisting) || $request->has('existing_reference_files')) {
+            if (!empty($currentExisting) || $request->has('task_existing_reference_files')) {
                 // If client sent existing_reference_files (even empty), persist currentExisting (possibly empty) to reflect removals
                 $data['reference_files'] = $currentExisting;
             }

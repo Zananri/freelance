@@ -299,6 +299,7 @@
     border: none;
     box-shadow: none;
     font-size: 12px;
+    padding-left: 25px;
 }
 
 .table-transparent,
@@ -3181,4 +3182,19 @@ input[type="file"]::file-selector-button {
 }
 .division-item:hover {
     background: #f0f0f0;
+}
+
+.search-input-container-header {
+    position: relative;
+    width: 100px;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-container-header .search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 12px;
+    color: #a9adb7;
+    pointer-events: none;
 }
