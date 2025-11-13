@@ -3546,7 +3546,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             <div class="modal-body modal-body-custom">
                                 <div class="d-flex mb-3">
                                     <div class="me-3">${avatarHtml}</div>
-                                    <div class="custom-card p-0 m-0 border-0">
+                                    <div class="p-0 m-0 border-0">
                                         <small class="text-muted" style="font-size: 10px">${taskProject}</small>
                                         <h5 class="fw-bold" style="font-size: 16px">${taskTitle}</h5>
                                         <div class="task-description-container flex-grow-1">
