@@ -2966,6 +2966,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     actions.unshift({ label: 'Completed', action: 'completed' });
                     actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request' });
                 } else if (status === 'completed') {
+                    actions.unshift({ label: 'Back to Progress', action: 'back_to_progress' });
                     actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
                     actions.unshift({ label: 'Finished', action: 'finished' });
                 } else if (status === 'finished') {
@@ -3496,6 +3497,101 @@ document.addEventListener("DOMContentLoaded", function () {
             showFloatingAlert('Failed to load task details.', 'danger');
         });
     }
+
+    // Show status confirmation modal for task status changes (similar to task.js pattern)
+    function showStatusModalProject(taskId, taskCard, newStatus, actionTitle, statusLabel, confirmMessage) {
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const task = res.data || {};
+                const taskTitle = task.title || "Untitled Task";
+                const taskDescription = task.description || "No description available";
+                const taskProject = (task.project && task.project.title) || "No Project";
+                const taskImage = task.image ? `${appUrl}/file/task/${task.image}` : null;
+
+                function getTaskInitials(title) {
+                    if (!title) return "NA";
+                    const words = String(title).trim().split(/\s+/);
+                    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+                    return String(title).substring(0, 2).toUpperCase();
+                }
+
+                function getRandomColorFromText(text) {
+                    const colors = ["#6A5AE0", "#FF6B6B", "#4ECDC4", "#FFD93D", "#6BCF7F", "#FF8C42"];
+                    if (!text) return colors[0];
+                    let hash = 0;
+                    for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+                    return colors[hash % colors.length];
+                }
+
+                const initials = !taskImage ? getTaskInitials(task.title) : "";
+                const initialsColor = !taskImage ? getRandomColorFromText(task.title) : "#6A5AE0";
+
+                const avatarHtml = taskImage
+                    ? `<img src="${taskImage}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
+                    : `<div class="d-flex align-items-center justify-content-center rounded-circle"
+                            style="width:48px;height:48px;font-size:14px;font-weight:600;color:#fff;background:${initialsColor};">
+                            ${initials}
+                    </div>`;
+
+                const modalId = 'statusConfirmModalProject';
+                try { const existing = document.getElementById(modalId); if (existing) existing.remove(); } catch(_){}
+
+                const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-body modal-body-custom">
+                                <div class="d-flex mb-3">
+                                    <div class="me-3">${avatarHtml}</div>
+                                    <div class="custom-card p-0 m-0 border-0">
+                                        <small class="text-muted" style="font-size: 10px">${taskProject}</small>
+                                        <h5 class="fw-bold" style="font-size: 16px">${taskTitle}</h5>
+                                        <div class="task-description-container flex-grow-1">
+                                            <p class="task-description">${taskDescription || ''}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="my-3">
+                                <p class="fw-normal fs-6 text-center mb-4">${confirmMessage || 'Are you sure want to move this task?'}</p>
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="statusModalProjectConfirmBtn">Confirm</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const mEl = document.getElementById(modalId);
+                const modal = new bootstrap.Modal(mEl);
+                modal.show();
+
+                mEl.addEventListener('hidden.bs.modal', function onHide(){ 
+                    mEl.removeEventListener('hidden.bs.modal', onHide); 
+                    try { mEl.remove(); } catch(_){} 
+                });
+
+                const confirmBtn = document.getElementById('statusModalProjectConfirmBtn');
+                confirmBtn.onclick = function () {
+                    try {
+                        updateTaskStatus(taskId, newStatus, taskCard).finally(function(){ 
+                            try { modal.hide(); } catch(_) {} 
+                        });
+                    } catch (e) {
+                        try { updateTaskStatus(taskId, newStatus, taskCard); } catch(_) {}
+                        try { modal.hide(); } catch(_) {}
+                    }
+                };
+            },
+            error: function () {
+                showFloatingAlert("Failed to load task details.", "danger");
+            }
+        });
+    }
     
     window.handleTaskAction = function(taskId, action) {
         const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
@@ -3506,6 +3602,9 @@ document.addEventListener("DOMContentLoaded", function () {
             handleTaskDelete(taskId);
         } else if (action === 'completed') {
             showConfirmationToCompleteModal(taskId, taskCard);
+        } else if (action === 'back_to_progress') {
+            // Show confirmation modal before moving completed task back to In Progress
+            showStatusModalProject(taskId, taskCard, 'in_progress', 'Back to Progress', 'In Progress', 'Move this task back to In Progress?');
         } else {
             updateTaskStatus(taskId, action, taskCard);
         }
