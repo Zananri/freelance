@@ -2730,14 +2730,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const title = task.title ? escapeHtml(task.title) : 'Untitled Task';
                     
                     // Description (strip HTML, max 3 lines)
-                    const description = (() => {
-                        try {
-                            const div = document.createElement('div');
-                            div.innerHTML = String(task.description || '');
-                            const text = (div.textContent || div.innerText || '').trim();
-                            return text || '';
-                        } catch(_) { return ''; }
-                    })();
+                    const description = task.description ? task.description : '';
                     
                     // Avatar or initials for task image
                     let avatarHtml = '';
@@ -2851,7 +2844,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                         executorsHtml += '</div>';
                     }
-                    
+
                     // Action buttons (icons only). Show checklist icon only for completed/finished tasks.
                     const showCheckIcon = /complete|finish/.test(String(status || '').toLowerCase());
                     const actionsHtml = `
@@ -2894,7 +2887,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </div>
                             </div>
 
-                            ${description ? `<div class="project-task-description mb-3">${escapeHtml(description)}</div>` : ''}
+                            ${description ? `<div class="project-task-description mb-3">${description}</div>` : ''}
 
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
