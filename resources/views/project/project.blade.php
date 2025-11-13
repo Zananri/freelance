@@ -939,7 +939,7 @@
                         <h5 class="modal-title modal-title-custom" id="projectTreeModal">Project Tree</h5>
                     </div>
                     <div class="d-flex justify-content-end align-items-center gap-2">
-                        <button type="button" class="btn btn-sm add-project-tree me-2" data-bs-toggle="modal" data-bs-target="#addProjectModal">
+                        <button type="button" class="btn btn-sm add-project-action me-2">
                             <span class="material-symbols-outlined text-secondary">add</span>
                         </button>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
