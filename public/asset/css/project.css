@@ -252,11 +252,15 @@
     font-size: 18px;
 }
 
+.table-project.fullscreen .table-project-name {
+    max-width: 500px;
+}
+
 .table-project-name {
     font-size: 12px;
     font-weight: 500;
     color: #3B3D42;
-    max-width: 100px;
+    max-width: 175px;
     line-height: 1;
     text-align: start;
 }
@@ -518,6 +522,10 @@
     background-color: transparent;
 }
 
+.table-project.fullscreen .project-task-description {
+    max-width: 750px;
+}
+
 .project-task-description {
     font-size: 10px;
     font-weight: 400;
@@ -525,7 +533,7 @@
     line-height: 1.4;
     margin-bottom: 10px;
     max-height: calc(1.4em * 3);
-    max-width: 250px;
+    max-width: 350px;
     overflow-y: auto;
     overflow-x: hidden;
     word-wrap: break-word;
