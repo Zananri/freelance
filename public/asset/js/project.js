@@ -22929,3 +22929,131 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 })();
+
+// Handler untuk button Add Project di Project Tree Modal
+(function() {
+    'use strict';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Delegated event handler untuk button add-project-tree
+        document.addEventListener('click', function(e) {
+            const addBtn = e.target.closest('.add-project-tree');
+            if (!addBtn) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            try {
+                // Tutup Project Tree Modal jika terbuka
+                const projectTreeModal = document.getElementById('projectTreeModal');
+                if (projectTreeModal) {
+                    const bsModal = bootstrap.Modal.getInstance(projectTreeModal);
+                    if (bsModal) {
+                        bsModal.hide();
+                    }
+                }
+                
+                setTimeout(function() {
+                    try {
+                        const addProjectModal = document.getElementById('addProjectModal');
+                        if (addProjectModal) {
+                            const addModal = new bootstrap.Modal(addProjectModal);
+                            addModal.show();
+                            
+                            // Reset form jika diperlukan
+                            const form = document.getElementById('addProjectForm');
+                            if (form) {
+                                form.reset();
+                                
+                                // Reset Quill editor jika ada
+                                if (window.__quillAdd && window.__quillAdd.root) {
+                                    try {
+                                        window.__quillAdd.root.innerHTML = '';
+                                    } catch(_) {}
+                                }
+                                
+                                const descTextarea = document.getElementById('description');
+                                if (descTextarea) {
+                                    descTextarea.value = '';
+                                }
+                                
+                                try {
+                                    if (typeof projectSelectedFiles !== 'undefined') {
+                                        projectSelectedFiles = [];
+                                    }
+                                    if (typeof displayProjectSelectedFiles === 'function') {
+                                        displayProjectSelectedFiles();
+                                    }
+                                } catch(_) {}
+                                
+                                // Reset image preview
+                                const imageLabel = document.getElementById('imageLabel');
+                                const imageClearBtn = document.getElementById('imageClearBtn');
+                                if (imageLabel) {
+                                    imageLabel.style.backgroundImage = "url('" + (appUrl || '') + "/asset/img/background/add-image.png')";
+                                    imageLabel.style.backgroundSize = '50%';
+                                }
+                                if (imageClearBtn) {
+                                    imageClearBtn.classList.add('d-none');
+                                }
+                                
+                                // Reset selected collaborators
+                                const coAuthorContainer = document.getElementById('selected_co_authors');
+                                const contributorContainer = document.getElementById('selected_contributors');
+                                if (coAuthorContainer) coAuthorContainer.innerHTML = '';
+                                if (contributorContainer) contributorContainer.innerHTML = '';
+                                
+                                const coAuthorHidden = document.getElementById('co_author');
+                                const contributorHidden = document.getElementById('contributors');
+                                if (coAuthorHidden) coAuthorHidden.value = '';
+                                if (contributorHidden) contributorHidden.value = '';
+                                
+                                // Reset part of project
+                                const selectedProject = document.getElementById('add_selected_project');
+                                const parentInputs = document.getElementById('add_parent_inputs');
+                                if (selectedProject) selectedProject.innerHTML = '';
+                                if (parentInputs) parentInputs.innerHTML = '';
+                                
+                                // Set default dates
+                                try {
+                                    const startDate = document.getElementById('start_date');
+                                    const dueDate = document.getElementById('due_date');
+                                    const now = new Date();
+                                    const offset = now.getTimezoneOffset();
+                                    const localDate = new Date(now.getTime() - offset * 60000);
+                                    const dateStr = localDate.toISOString().slice(0, 16);
+                                    
+                                    if (startDate && !startDate.value) startDate.value = dateStr;
+                                    if (dueDate && !dueDate.value) dueDate.value = dateStr;
+                                } catch(_) {}
+                                
+                                // Reset due_forever checkbox
+                                const dueForever = document.getElementById('due_forever');
+                                const dueDateInput = document.getElementById('due_date');
+                                if (dueForever) dueForever.checked = false;
+                                if (dueDateInput) dueDateInput.disabled = false;
+                                
+                                // Clear any alerts
+                                const alert = document.getElementById('addProjectAlert');
+                                if (alert) {
+                                    alert.classList.add('d-none');
+                                    alert.style.display = 'none';
+                                }
+                            }
+                        }
+                    } catch(err) {
+                        console.error('Error opening Add Project Modal:', err);
+                        // Fallback: coba langsung trigger click pada button add project yang asli
+                        try {
+                            const mainAddBtn = document.querySelector('.btn-add-project');
+                            if (mainAddBtn) mainAddBtn.click();
+                        } catch(_) {}
+                    }
+                }, 350); // Delay untuk memastikan animasi modal tree selesai
+                
+            } catch(err) {
+                console.error('Error handling add-project-tree button:', err);
+            }
+        });
+    });
+})();
