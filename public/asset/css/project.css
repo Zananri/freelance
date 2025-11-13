@@ -1097,6 +1097,11 @@
     border: none;
 }
 
+.add-project-tree {
+    width: 32px;
+    height: 32px;
+}
+
 .custom-card {
     background-color: rgb(240, 241, 248);
     margin-right: 15px;
