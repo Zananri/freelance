@@ -1422,6 +1422,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     wrapper.className = 'project-list-item';
                     wrapper.dataset.projectId = project.id;
                     wrapper.dataset.projectName = project.title || 'Untitled Project';
+                  
+                    try {
+                        const divId = project.division_id || (project.division && project.division.id) || '';
+                        if (divId !== undefined && divId !== null) wrapper.dataset.division = String(divId);
+                    } catch (_) { /* ignore if shape unexpected */ }
 
                     let avatarHtml = '';
                     if (project.image) {
