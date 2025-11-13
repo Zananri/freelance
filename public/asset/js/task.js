@@ -8711,8 +8711,10 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 if (Array.isArray(referenceUrls) && referenceUrls.length) {
                     refUrlsHtml = '<div class="mb-2">';
                     referenceUrls.forEach((u, idx) => {
+                        // Display the actual URL instead of a label
+                        const displayUrl = u || '';
                         refUrlsHtml += `<div class="d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
-                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1" style="color: #444;">REF_URL_TASK_${idx+1}</a>
+                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1 text-truncate" style="color: #444;" title="${displayUrl}">${displayUrl}</a>
                                         </div>`;
                     });
                     refUrlsHtml += '</div>';
