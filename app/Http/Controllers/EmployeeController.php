@@ -11,6 +11,7 @@ use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 
 use App\Models\Employee;
 use App\Models\EmployeeSalary;
@@ -804,33 +805,34 @@ class EmployeeController extends Controller
         $spreadsheet = new Spreadsheet();
         $activeWorksheet = $spreadsheet->getActiveSheet();
     
-        $activeWorksheet->mergeCells('A1:R1');
+        $activeWorksheet->mergeCells('A1:S1');
         
         $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(34);
         $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $activeWorksheet->setCellValue('A1', 'Data Karyawan');
 
-        //No	NAMA KARYAWAN	NSAID	Department	Division	Job Position	Grade/Rank	Join Date	Periode Kerja	Penempatan	Time Lateness 1 Hour	Time Lateness 1 > Hour	Overtime off work day	Overtime on Work day	Sick	Permit	Absen	Leave	Shift 2	Total Work half Day This Month	Amount Work half Day This Month	Total Work Day This Month (23 Days)	Total Day Off This Month
+        //No	PHOTO	NAMA KARYAWAN	EMAIL	NSAID	Department	Division	Job Position	Grade/Rank	Join Date	Selesai Kontrak	Status	Alamat	THP Take Home Pay	Gaji Pokok	Tunjangan Jabatan	Tunjangan Transportasi	Tunjangan Makan	Tunjangan Internet
         
         $activeWorksheet->setCellValue('A2', 'No');
-        $activeWorksheet->setCellValue('B2', 'NAMA KARYAWAN');
-        $activeWorksheet->setCellValue('C2', 'EMAIL');
-        $activeWorksheet->setCellValue('D2', 'NSAID');
-        $activeWorksheet->setCellValue('E2', 'Department');
-        $activeWorksheet->setCellValue('F2', 'Division');
-        $activeWorksheet->setCellValue('G2', 'Job Position');
-        $activeWorksheet->setCellValue('H2', 'Grade/Rank');
-        $activeWorksheet->setCellValue('I2', 'Join Date');
-        $activeWorksheet->setCellValue('J2', 'Selesai Kontrak');
-        $activeWorksheet->setCellValue('K2', 'Status');
-        $activeWorksheet->setCellValue('L2', 'Alamat');
-        $activeWorksheet->setCellValue('M2', 'THP Take Home Pay');
-        $activeWorksheet->setCellValue('N2', 'Gaji Pokok');
-        $activeWorksheet->setCellValue('O2', 'Tunjangan Jabatan');
-        $activeWorksheet->setCellValue('P2', 'Tunjangan Transportasi');
-        $activeWorksheet->setCellValue('Q2', 'Tunjangan Makan');
-        $activeWorksheet->setCellValue('R2', 'Tunjangan Internet');
+        $activeWorksheet->setCellValue('B2', 'PHOTO');
+        $activeWorksheet->setCellValue('C2', 'NAMA KARYAWAN');
+        $activeWorksheet->setCellValue('D2', 'EMAIL');
+        $activeWorksheet->setCellValue('E2', 'NSAID');
+        $activeWorksheet->setCellValue('F2', 'Department');
+        $activeWorksheet->setCellValue('G2', 'Division');
+        $activeWorksheet->setCellValue('H2', 'Job Position');
+        $activeWorksheet->setCellValue('I2', 'Grade/Rank');
+        $activeWorksheet->setCellValue('J2', 'Join Date');
+        $activeWorksheet->setCellValue('K2', 'Selesai Kontrak');
+        $activeWorksheet->setCellValue('L2', 'Status');
+        $activeWorksheet->setCellValue('M2', 'Alamat');
+        $activeWorksheet->setCellValue('N2', 'THP Take Home Pay');
+        $activeWorksheet->setCellValue('O2', 'Gaji Pokok');
+        $activeWorksheet->setCellValue('P2', 'Tunjangan Jabatan');
+        $activeWorksheet->setCellValue('Q2', 'Tunjangan Transportasi');
+        $activeWorksheet->setCellValue('R2', 'Tunjangan Makan');
+        $activeWorksheet->setCellValue('S2', 'Tunjangan Internet');
         
 
         // add border 
@@ -843,18 +845,21 @@ class EmployeeController extends Controller
         ];
         
 
-        $activeWorksheet->getStyle('A2:R2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+        $activeWorksheet->getStyle('A2:S2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
 
-        $activeWorksheet->getStyle('A2:R2')
+        $activeWorksheet->getStyle('A2:S2')
             ->getAlignment()
             ->setWrapText(true)
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
         ->setVertical(Alignment::VERTICAL_CENTER);
         
+        // Set column width for photo column
+        $activeWorksheet->getColumnDimension('B')->setWidth(20);
+        
         
 
         // Menulis data dari database ke sheet
-        $row = 3; // Mulai dari baris kedua
+        $row = 3; // Mulai dari baris ketiga
         $no = 1;
 
         foreach ($allEmployeeActive as $employeeItem) {
@@ -880,25 +885,52 @@ class EmployeeController extends Controller
             }
             $thp = $basicSalary + $positionalAllowance + $transportationAllowance + $mealAllowance + $internetPhoneAllowance;
             
+            // Set row height for photo (200px ≈ 150 points in Excel)
+            $activeWorksheet->getRowDimension($row)->setRowHeight(150);
 
             $activeWorksheet->setCellValue('A'.$row, $no);
-            $activeWorksheet->setCellValue('B'.$row, $employeeItem->name);
-            $activeWorksheet->setCellValue('C'.$row, $employeeItem->email_work);
-            $activeWorksheet->setCellValue('D'.$row, $employeeItem->employee_niks);
-            $activeWorksheet->setCellValue('E'.$row, $employeeItem->department->name_department);//'Department'
-            $activeWorksheet->setCellValue('F'.$row, $employeeItem->division->name_division);//'Division'
-            $activeWorksheet->setCellValue('G'.$row, $employeeItem->job->job_name);//'Job Position'
-            $activeWorksheet->setCellValue('H'.$row, $employeeItem->grade->title);//'Grade/Rank'
-            $activeWorksheet->setCellValue('I'.$row, $employeeItem->hire_date);//'Join Date'
-            $activeWorksheet->setCellValue('J'.$row, $employeeItem->contract_end_date);//'Kontrak'
-            $activeWorksheet->setCellValue('K'.$row, $employeeItem->status);//'Status'
-            $activeWorksheet->setCellValue('L'.$row, $employeeItem->address);//'Alamat'
-            $activeWorksheet->setCellValue('M'.$row, $thp);//'Take Home Pay'
-            $activeWorksheet->setCellValue('N'.$row, $basicSalary);//'Gaji Pokok'
-            $activeWorksheet->setCellValue('O'.$row, $positionalAllowance);//'Tunjangan Jabatan'
-            $activeWorksheet->setCellValue('P'.$row, $transportationAllowance);//'Tunjangan Transportasi'
-            $activeWorksheet->setCellValue('Q'.$row, $mealAllowance);//'Tunjangan Makan'
-            $activeWorksheet->setCellValue('R'.$row, $internetPhoneAllowance);//'Tunjangan Internet'
+            
+            // Insert photo in column B
+            if ($employeeItem->photo) {
+                $photoPath = public_path($employeeItem->photo);
+                
+                // Check if photo file exists
+                if (file_exists($photoPath)) {
+                    $drawing = new Drawing();
+                    $drawing->setName('Employee Photo');
+                    $drawing->setDescription('Photo of ' . $employeeItem->name);
+                    $drawing->setPath($photoPath);
+                    $drawing->setCoordinates('B'.$row);
+                    
+                    // Set image size: width 150px (≈ 113 points), height 200px (≈ 150 points)
+                    $drawing->setWidth(113);
+                    $drawing->setHeight(150);
+                    
+                    // Offset to center the image in the cell
+                    $drawing->setOffsetX(10);
+                    $drawing->setOffsetY(5);
+                    
+                    $drawing->setWorksheet($activeWorksheet);
+                }
+            }
+            
+            $activeWorksheet->setCellValue('C'.$row, $employeeItem->name);
+            $activeWorksheet->setCellValue('D'.$row, $employeeItem->email_work);
+            $activeWorksheet->setCellValue('E'.$row, $employeeItem->employee_niks);
+            $activeWorksheet->setCellValue('F'.$row, $employeeItem->department->name_department);//'Department'
+            $activeWorksheet->setCellValue('G'.$row, $employeeItem->division->name_division);//'Division'
+            $activeWorksheet->setCellValue('H'.$row, $employeeItem->job->job_name);//'Job Position'
+            $activeWorksheet->setCellValue('I'.$row, $employeeItem->grade->title);//'Grade/Rank'
+            $activeWorksheet->setCellValue('J'.$row, $employeeItem->hire_date);//'Join Date'
+            $activeWorksheet->setCellValue('K'.$row, $employeeItem->contract_end_date);//'Kontrak'
+            $activeWorksheet->setCellValue('L'.$row, $employeeItem->status);//'Status'
+            $activeWorksheet->setCellValue('M'.$row, $employeeItem->address);//'Alamat'
+            $activeWorksheet->setCellValue('N'.$row, $thp);//'Take Home Pay'
+            $activeWorksheet->setCellValue('O'.$row, $basicSalary);//'Gaji Pokok'
+            $activeWorksheet->setCellValue('P'.$row, $positionalAllowance);//'Tunjangan Jabatan'
+            $activeWorksheet->setCellValue('Q'.$row, $transportationAllowance);//'Tunjangan Transportasi'
+            $activeWorksheet->setCellValue('R'.$row, $mealAllowance);//'Tunjangan Makan'
+            $activeWorksheet->setCellValue('S'.$row, $internetPhoneAllowance);//'Tunjangan Internet'
             
             
             
@@ -914,14 +946,14 @@ class EmployeeController extends Controller
             ],
         ];
 
-        $activeWorksheet->getStyle('A2:R'.($row-1))->applyFromArray($dataStyle);
+        $activeWorksheet->getStyle('A2:S'.($row-1))->applyFromArray($dataStyle);
 
-        $activeWorksheet->getStyle('A2:R'.($row-1))
+        $activeWorksheet->getStyle('A2:S'.($row-1))
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_CENTER)
         ->setVertical(Alignment::VERTICAL_CENTER);
 
-        $activeWorksheet->getStyle('B3:C'.($row-1))
+        $activeWorksheet->getStyle('C3:D'.($row-1))
             ->getAlignment()
             ->setHorizontal(Alignment::HORIZONTAL_LEFT)
         ->setVertical(Alignment::VERTICAL_CENTER);
@@ -933,12 +965,16 @@ class EmployeeController extends Controller
         //     ->setHorizontal(Alignment::HORIZONTAL_CENTER)
         // ->setVertical(Alignment::VERTICAL_CENTER);
 
-        // Mengatur lebar kolom agar otomatis
-        foreach (range('A', 'K') as $column) {
+        // Mengatur lebar kolom agar otomatis (skip column B because it's for photo)
+        foreach (range('A', 'A') as $column) {
+            $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
+        }
+        
+        foreach (range('C', 'L') as $column) {
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
 
-        foreach (range('M', 'R') as $column) {
+        foreach (range('N', 'S') as $column) {
             $activeWorksheet->getColumnDimension($column)->setAutoSize(true);
         }
  
