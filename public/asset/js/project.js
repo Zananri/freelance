@@ -1422,6 +1422,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     wrapper.className = 'project-list-item';
                     wrapper.dataset.projectId = project.id;
                     wrapper.dataset.projectName = project.title || 'Untitled Project';
+                  
+                    try {
+                        const divId = project.division_id || (project.division && project.division.id) || '';
+                        if (divId !== undefined && divId !== null) wrapper.dataset.division = String(divId);
+                    } catch (_) { /* ignore if shape unexpected */ }
 
                     let avatarHtml = '';
                     if (project.image) {
@@ -5259,8 +5264,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (Array.isArray(referenceUrls) && referenceUrls.length) {
                     refUrlsHtml = '<div class="mb-2">';
                     referenceUrls.forEach((u, idx) => {
+                        // Display the actual URL instead of a label
+                        const displayUrl = u || '';
                         refUrlsHtml += `<div class="d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
-                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1" style="color: #444;">REF_URL_TASK_${idx+1}</a>
+                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1 text-truncate" style="color: #444;" title="${displayUrl}">${displayUrl}</a>
                                         </div>`;
                     });
                     refUrlsHtml += '</div>';

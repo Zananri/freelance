@@ -70,8 +70,10 @@ function showReferenceUrlsForTask(taskId) {
                         a.href = safeUrl;
                         a.target = '_blank';
                         a.className = 'text-decoration-none text-truncate flex-grow-1';
-                        a.textContent = "REF_URL_TASK_" + (idx + 1);
+                        // Display the actual URL instead of label
+                        a.textContent = safeUrl;
                         a.style.color = '#444';
+                        a.title = safeUrl; // Show full URL on hover
                         left.appendChild(a);
 
                         const btnGroup = document.createElement('div');
