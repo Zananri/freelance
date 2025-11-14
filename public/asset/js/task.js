@@ -37,7 +37,7 @@
     let globalDropdownDocListenersBound = false;
     let attachFileIconListenerBound = false;
     // Shared buffer for multi-file preview across modals (Add Task, Add/Reply Feedback)
-    let selectedFiles = [];
+    // --- Reference file handling removed: now using button + pattern for individual files ---
 
     // File size limits (bytes)
     const MAX_TOTAL_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB
@@ -171,6 +171,36 @@
 
     window.addEventListener('resize', handleResponsiveTooltipUpdate, { passive: true });
     window.addEventListener('orientationchange', handleResponsiveTooltipUpdate, { passive: true });
+
+    // Delegated handler: add/remove reference FILE rows (same concept as URL for tasks)
+    document.addEventListener("click", function (e) {
+        const addFileBtn = e.target.closest(".add-ref-file");
+        if (addFileBtn) {
+            e.preventDefault();
+            const container = addFileBtn.closest(
+                "#task_reference_files_container, #edit_task_reference_files_container"
+            );
+            if (!container) return;
+            const row = document.createElement("div");
+            row.className = "input-group";
+            row.innerHTML =
+                '<input type="file" class="form-control input-text" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">' +
+                ' <button type="button" class="btn btn-remove-file remove-ref-file" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="file"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeFileBtn = e.target.closest(".remove-ref-file");
+        if (removeFileBtn) {
+            e.preventDefault();
+            const row = removeFileBtn.closest(".input-group");
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
 
     // Listen for global avatar update: refresh visible task cards (minimal: update any img[data-avatar-universal])
     window.addEventListener('profilePictureUpdated', function(e){
@@ -1560,7 +1590,7 @@
             );
             if (submitBtn) submitBtn.disabled = true;
 
-            // Validate sizes: include task image (if any) and selectedFiles
+            // Validate sizes: include task image (if any) - reference files now collected directly from inputs
             try {
                 const imageEl = document.getElementById('task_image');
                 const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
@@ -1568,7 +1598,10 @@
                     try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
                     return;
                 }
-                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+                // Collect reference files from input-group pattern for validation
+                const refContainer = document.getElementById('task_reference_files_container');
+                const refFiles = refContainer ? Array.from(refContainer.querySelectorAll('input[type="file"]')).flatMap(inp => Array.from(inp.files || [])) : [];
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: refFiles});
                 if (!totalCheck.ok) {
                     try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
                     return;
@@ -1590,10 +1623,7 @@
                     }
                 }
             } catch(_) {}
-            // Append all selected reference files to formData
-            selectedFiles.forEach((file) => {
-                formData.append("reference_files[]", file);
-            });
+            // Reference files are now collected directly from file inputs via FormData serialization (button + pattern)
 
             $.ajax({
                 url: appUrl + "/task/store",
@@ -1624,9 +1654,21 @@
                         imageLabel.style.opacity = "0.5";
                         imageClearBtn.classList.add("d-none");
 
-                        // Reset selected files array
-                        selectedFiles = [];
-                        displaySelectedFiles();
+                        // Clear reference file input rows (button + pattern)
+                        try {
+                            const container = document.getElementById("task_reference_files_container");
+                            if (container) {
+                                const rows = container.querySelectorAll(".input-group");
+                                rows.forEach((row, idx) => {
+                                    if (idx === 0) {
+                                        const inp = row.querySelector('input[type="file"]');
+                                        if (inp) inp.value = "";
+                                    } else {
+                                        row.remove();
+                                    }
+                                });
+                            }
+                        } catch(_) {}
 
                         // Close modal after short delay to show alert
                         setTimeout(() => {
@@ -1880,8 +1922,8 @@
 
     setupExecutorInput();
     setupEditExecutorInput();
-    setupReferenceFilesInput();
-    setupEditReferenceFilesInput();
+    // setupReferenceFilesInput(); // removed - now using button + pattern
+    // setupEditReferenceFilesInput(); // removed - now using button + pattern
 
     loadProjects();
     // Wire project selects to load related tasks for parent selection
@@ -2334,18 +2376,9 @@
         if (input && label && clearBtn) setupImageInput(input, label, clearBtn);
     })();
 
-    // Schedule reference files reuse of preview util (same look & feel as Task)
+    // Schedule reference files - removed (now using button + pattern if needed)
     (function initScheduleRefFiles(){
-        const input = document.getElementById('schedule_reference_files');
-        const preview = document.getElementById('schedule_reference_files_preview');
-        if (!input || !preview) return;
-        input.addEventListener('change', function(e){
-            const files = Array.from(e.target.files || []);
-            selectedFiles = [...selectedFiles, ...files];
-            displaySelectedFiles();
-            // Clear input so the same file can be chosen again if needed
-            input.value = '';
-        });
+        /* no-op - using button + pattern now */
     })();
 
     // Schedule recurrence UI toggles
@@ -2547,7 +2580,7 @@
             );
             if (submitBtn) submitBtn.disabled = true;
 
-            // Validate sizes: include edit task image and editSelectedFiles
+            // Validate sizes: include edit task image - reference files now collected directly from inputs
             try {
                 const imageEl = document.getElementById('edit_task_image');
                 const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
@@ -2555,8 +2588,10 @@
                     try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
                     return;
                 }
-                const extraFiles = (window.editSelectedFiles && Array.isArray(window.editSelectedFiles)) ? window.editSelectedFiles : [];
-                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: extraFiles});
+                // Collect reference files from input-group pattern for validation
+                const refContainer = document.getElementById('edit_task_reference_files_container');
+                const refFiles = refContainer ? Array.from(refContainer.querySelectorAll('input[type="file"]')).flatMap(inp => Array.from(inp.files || [])) : [];
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: refFiles});
                 if (!totalCheck.ok) {
                     try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
                     return;
@@ -2567,15 +2602,7 @@
             // Add _method to FormData for Laravel PUT request
             formData.append("_method", "PUT");
 
-            // Append all selected reference files from global array to formData
-            if (
-                window.editSelectedFiles &&
-                window.editSelectedFiles.length > 0
-            ) {
-                window.editSelectedFiles.forEach((file) => {
-                    formData.append("reference_files[]", file);
-                });
-            }
+            // Reference files are now collected directly from file inputs via FormData serialization (button + pattern)
 
             $.ajax({
                 url: appUrl + "/task/" + taskId,
@@ -2619,9 +2646,27 @@
                             window.clearSelectedExecutorsEdit();
                         }
 
-                        // Clear selected files after successful update
-                        window.editSelectedFiles = [];
-                        displayEditSelectedFiles();
+                        // Clear reference file input rows and existing files (button + pattern)
+                        try {
+                            const existingContainer = document.getElementById("task_existing_reference_files");
+                            if (existingContainer) existingContainer.innerHTML = "";
+                            
+                            const hiddenExisting = document.getElementById("task_existing_reference_files_input");
+                            if (hiddenExisting) hiddenExisting.value = "[]";
+                            
+                            const container = document.getElementById("edit_task_reference_files_container");
+                            if (container) {
+                                const rows = container.querySelectorAll(".input-group");
+                                rows.forEach((row, idx) => {
+                                    if (idx === 0) {
+                                        const inp = row.querySelector('input[type="file"]');
+                                        if (inp) inp.value = "";
+                                    } else {
+                                        row.remove();
+                                    }
+                                });
+                            }
+                        } catch(_) {}
 
                         // Close modal after short delay to show alert and insert updated task
                         setTimeout(() => {
@@ -9547,6 +9592,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
         // Function to display existing files
         window.displayExistingReferenceFiles = function (files) {
+            const existing = document.getElementById("task_existing_reference_files");
             if (!existing || !files || !Array.isArray(files)) return;
 
             existing.innerHTML = "";
