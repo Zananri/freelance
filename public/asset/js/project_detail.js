@@ -9667,82 +9667,8 @@ function formatTaskImage(image, title = "") {
             }
         }
 
-        // Handler for reference files in edit project task modal
-        document.addEventListener('shown.bs.modal', function (event) {
-            const modal = event.target;
-            if (modal.id !== 'editProjectTaskModal') return;
-
-            const filesInput = document.getElementById('edit_project_task_reference_files');
-            const filesPreview = document.getElementById('edit_project_task_reference_files_preview');
-
-            window.editProjectTaskSelectedFiles = window.editProjectTaskSelectedFiles || [];
-
-            function displayEditProjectTaskSelectedFiles() {
-                if (!filesPreview) return;
-                filesPreview.innerHTML = '';
-                if (!window.editProjectTaskSelectedFiles.length) return;
-
-                window.editProjectTaskSelectedFiles.forEach((file, idx) => {
-                    const item = document.createElement('div');
-                    item.className = 'preview-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
-                    
-                    const info = document.createElement('div');
-                    info.className = 'd-flex align-items-center flex-grow-1';
-
-                    if ((file.type || '').startsWith('image/')) {
-                        const img = document.createElement('img');
-                        img.className = 'me-2 rounded border-0';
-                        img.style.width = '32px';
-                        img.style.height = '32px';
-                        img.style.objectFit = 'cover';
-
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            img.src = e.target.result;
-                        };
-                        reader.readAsDataURL(file);
-
-                        info.appendChild(img);
-                    }
-
-                    const name = document.createElement('span');
-                    name.textContent = file.name;
-                    info.appendChild(name);
-
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'border-0 bg-transparent';
-                    removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444;">close</span>';
-                    removeBtn.addEventListener('click', function () {
-                        window.editProjectTaskSelectedFiles.splice(idx, 1);
-                        displayEditProjectTaskSelectedFiles();
-                    });
-
-                    item.appendChild(info);
-                    item.appendChild(removeBtn);
-                    filesPreview.appendChild(item);
-                });
-            }
-
-            if (filesInput) {
-                // Remove previous listener if exists
-                if (filesInput._changeHandler) {
-                    filesInput.removeEventListener('change', filesInput._changeHandler);
-                }
-                
-                filesInput._changeHandler = function () {
-                    const chosen = Array.from(this.files || []);
-                    console.log('Files chosen for edit project task:', chosen);
-                    window.editProjectTaskSelectedFiles.push(...chosen);
-                    displayEditProjectTaskSelectedFiles();
-                    this.value = '';
-                };
-                
-                filesInput.addEventListener('change', filesInput._changeHandler);
-            }
-
-            displayEditProjectTaskSelectedFiles();
-        });
+        // Handler for reference files in edit project task modal - removed
+        // Now using standard add/remove input pattern like main task page
 
 
         // Provide minimal existing files renderer if not present
@@ -9868,17 +9794,6 @@ function formatTaskImage(image, title = "") {
                 const fd = new FormData(editForm);
                 fd.append('_method', 'PUT');
 
-                // Append reference files selected in preview
-                try {
-                    const files = Array.isArray(window.editProjectTaskSelectedFiles) ? window.editProjectTaskSelectedFiles : [];
-                    // Clear any existing so we avoid duplicates
-                    try { fd.delete('reference_files[]'); } catch(_) {}
-                    files.forEach(f => fd.append('reference_files[]', f));
-                    console.log('Submitting', files.length, 'new reference files');
-                } catch(e) {
-                    console.error('Error appending reference files:', e);
-                }
-
                 $.ajax({
                     url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
                     type: 'POST',
@@ -9928,25 +9843,32 @@ function formatTaskImage(image, title = "") {
             editForm._boundSubmitHandler = true;
         }
 
-        // Reset file array when modal is closed
-        const editModal = document.getElementById('editProjectTaskModal');
-        if (editModal && !editModal._boundHiddenHandler) {
-            editModal.addEventListener('hidden.bs.modal', function() {
-                window.editProjectTaskSelectedFiles = [];
-                const preview = document.getElementById('edit_project_task_reference_files_preview');
-                if (preview) preview.innerHTML = '';
-                console.log('Reset edit project task files on modal close');
-            });
-            editModal._boundHiddenHandler = true;
-        }
-
-        // Handler for add file button in project task edit modal
+        // Handler for add/remove reference file buttons in project task edit modal
         document.addEventListener('click', function(e) {
-            if (e.target.closest('.add-ref-file-project-task')) {
+            const addFileBtn = e.target.closest('.add-ref-file-project-task');
+            if (addFileBtn) {
                 e.preventDefault();
-                const fileInput = document.getElementById('edit_project_task_reference_files');
-                if (fileInput) {
-                    fileInput.click();
+                const container = document.getElementById('edit_project_task_reference_files_container');
+                if (!container) return;
+                
+                const row = document.createElement('div');
+                row.className = 'input-group';
+                row.innerHTML = 
+                    '<input type="file" class="form-control input-text" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">' +
+                    '<button type="button" class="btn btn-remove-file remove-ref-file-project-task" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
+                container.appendChild(row);
+                
+                const input = row.querySelector('input[type="file"]');
+                if (input) input.focus();
+                return;
+            }
+
+            const removeFileBtn = e.target.closest('.remove-ref-file-project-task');
+            if (removeFileBtn) {
+                e.preventDefault();
+                const row = removeFileBtn.closest('.input-group');
+                if (row && row.parentNode) {
+                    row.parentNode.removeChild(row);
                 }
             }
         });
