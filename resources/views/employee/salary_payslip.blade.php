@@ -168,7 +168,7 @@
                                         </th>
 
                                         <th>
-                                            <div class="white-space-nowrap">Trasnportasi</div>
+                                            <div class="white-space-nowrap">Transportasi</div>
                                         </th>
 
                                         
@@ -217,7 +217,24 @@
                                                 </div>
                                             </td>
 
-                                            <td rowspan="2" class="gaji p-1 text-center fw-medium"></td>
+                                            <td rowspan="2" class="">
+                                                <div class="gaji p-1 text-center fw-bold">
+                                                </div>
+                                                <div class="mb-1">
+                                                    <div class="d-flex align-items-center justify-content-between ">
+                                                        <div>
+                                                            <div class="btn-icon payslip" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Payslip">
+                                                                <span class="material-symbols-outlined icon-action">docs</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="">
+                                                            <div class="btn-icon edit-data" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Edit">
+                                                                <span class="material-symbols-outlined icon-action">edit</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
                                             <td class="hari-bln p-1"></td>
                                             <td class="hari-kerja p-1"></td>
                                             <td class="hari-um p-1"></td>
@@ -226,9 +243,9 @@
                                             <td class="transportasi p-1"></td>
                                             <td class="pulsa-internet p-1"></td>
                                             <td class="jabatan p-1"></td>
-                                            <td class="bonus p-1"></td>
-                                            <td class="potongan p-1"></td>
-                                            <td class="lembur p-1"></td>
+                                            <td class="bonus p-1">0</td>
+                                            <td class="potongan p-1">0</td>
+                                            <td class="lembur p-1">0</td>
                                         </tr>
 
                                         <tr class="employee-row set-row" data-employee-name="{{ $itemEmployee->name }}" data-employee-photo="{{ asset($itemEmployee->photo) }}"  data-employee-id="{{ $itemEmployee->id }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
@@ -243,9 +260,9 @@
                                             <td class="transportasi p-1"></td>
                                             <td class="pulsa-internet p-1"></td>
                                             <td class="jabatan p-1"></td>
-                                            <td class="bonus p-1"></td>
-                                            <td class="potongan p-1"></td>
-                                            <td class="lembur p-1"></td>
+                                            <td class="bonus p-1">0</td>
+                                            <td class="potongan p-1">0</td>
+                                            <td class="lembur p-1">0</td>
                                         </tr>
 
                                     @endforeach
@@ -268,8 +285,202 @@
 
     <x-slot name="body_end_slot"> 
         
-        <!-- Modal -->
-        
+        <!-- Modal Edit -->
+        <div class="modal fade" id="modalSalaryEdit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalAttendanceEditLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+
+                    <div class="modal-body p-4 position-relative">
+                        <form id="form-edit-attendance" action="" novalidate="" method="POST">
+                            @csrf
+                            <input type="hidden" name="employee_id" value="">
+                            <input type="hidden" name="salary_date" value="">
+                            
+
+                            <div class="text-center">
+                                    <div class="fw-light fs-24">Salary</div>
+                                    <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
+                                    <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
+                            </div>
+                            <div class="mb-4 text-center">
+                                <span class="fw-normal fs-14 text-secondary attendance-date"></span>
+                            </div>
+
+                            <div class="mb-3 pb-2 border-bottom border-3">
+
+                                <div class="d-flex mb-2 justify-content-between align-items-center w-100">
+                                    <div>
+                                        <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                    </div>
+                                    <div>
+                                        <div class="employee-name fw-medium fs-14"></div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Division</div>
+                                        </div>
+                                        <div>
+                                            <div class="employee-shift fs-14 fw-normal"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <div class="d-flex justify-content-between align-items-start w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Salary</div>
+                                            <div class="fs-8 text-secondary fw-normal">(Take Home Pay)</div>
+                                        </div>
+                                        <div>
+                                            <div class="employee-shift fs-14 fw-normal"></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+
+                            <div class="form-block-present">
+
+                                <div class="mb-3">
+
+                                    <div class="row">
+                                        <div class="col-4">
+                                            <label for="active_day" class="fs-14 text-secondary fw-normal">
+                                                Hari Aktif
+                                            </label>
+                                            <input type="number" class="form-control  border-0 fs-14" name="active_day" id="active_day">
+                                        </div>
+                                        <div class="col-4">
+                                            <label for="working_day" class="fs-14 text-secondary fw-normal">
+                                                Hari Kerja
+                                            </label>
+                                            <input type="number" class="form-control  border-0 fs-14" name="working_day" id="working_day">
+                                        </div>
+                                        <div class="col-4">
+                                            <label for="meal_day" class="fs-14 text-secondary fw-normal">
+                                                Hari UM
+                                            </label>
+                                            <input type="number" class="form-control  border-0 fs-14" name="meal_day" id="meal_day">
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="mb-3">
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="attendance_time_out" class="fs-14 text-secondary fw-normal">
+                                                Gaji Pokok
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="basic_salary" id="attendance_time_out">
+                                        </div>
+                                        
+                                        
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="mb-3">
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="positional_allowance" class="fs-14 text-secondary fw-normal">
+                                                Tunjangan Jabatan
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="positional_allowance" id="positional_allowance">
+                                        </div>
+
+                                        <div class="col-6">
+                                            <label for="meal_allowance" class="fs-14 text-secondary fw-normal">
+                                                Uang Makan
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="meal_allowance" id="meal_allowance">
+                                        </div>
+                                        
+                                    </div>
+                                    
+                                </div>
+
+                                <div class="mb-3">
+
+                                    <div class="row">
+                                        
+                                        <div class="col-6">
+                                            <label for="transportation_allowance" class="fs-14 text-secondary fw-normal">
+                                                Transportasi
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="transportation_allowance" id="transportation_allowance">
+                                        </div>
+
+                                        <div class="col-6">
+                                            <label for="meal_allowance" class="fs-14 text-secondary fw-normal">
+                                                Pulsa dan Internet
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="internet_phone_allowance" id="internet_phone_allowance">
+                                        </div>
+                                        
+                                    </div>
+                                    
+                                </div>
+                                
+                                <div class="mb-3">
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="bonus" class="fs-14 text-secondary fw-normal">
+                                                Bonus
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="bonus" id="internet_phone_allowance">
+                                        </div>
+                                        
+                                        <div class="col-6">
+                                            <label for="overtime" class="fs-14 text-secondary fw-normal">
+                                                Lembur
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="overtime" id="overtime">
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+
+                            </div>
+                            
+                            <div class="mt-5">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-submit-attendance">Save</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            
+                        </form>
+
+                        <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                            <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                                <div>
+                                    <div class="spinner-border" style="width: 3rem; height: 3rem;" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="fs-14">Loading...</div>
+                                </div>
+                                
+                            </div>
+                            
+                        </div> 
+                    </div>
+
+                </div>
+            </div>
+        </div>
         
     </x-slot>
 

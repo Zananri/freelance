@@ -6,7 +6,7 @@
         {{ __('Attendance Tracking') }}
     </x-slot>
     <x-slot name="head_slot">
-        <link href="{{ asset('asset/css/attendance_tracking.css?v'.time()) }}" rel="stylesheet">
+        <link href="{{ asset('asset/css/attendance_tracking.css')}}?v{{ time()}}" rel="stylesheet">
     </x-slot>
 
     <div class="title-content">

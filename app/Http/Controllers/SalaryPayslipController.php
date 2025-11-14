@@ -10,6 +10,7 @@ use Illuminate\Validation\Rule;
 
 use App\Helpers\EmployeeHelper;
 
+use App\Models\Attendance;
 use App\Models\Department;
 use App\Models\Division;
 use App\Models\Employee;
@@ -38,7 +39,7 @@ class SalaryPayslipController extends Controller
 
         $department = Department::where('status','ACTIVE')->get();
         $division = Division::where('status','ACTIVE')->get();
-
+        
         return view('employee.salary_payslip',[
             'employee' => $employee,
             'department'    => $department,
@@ -74,15 +75,58 @@ class SalaryPayslipController extends Controller
             ->where('status','ACTIVE')
         ->whereIn('employee_id',$employeeActiveIds)->get();
 
+        $employeeAttendance = Attendance::select('employee_id', DB::raw('count(*) as total_attendance'))
+            ->where('date_attendance', '<=', $lastDayOfMonth)
+            ->where('date_attendance', '>=', $firstDayOfMonth)
+            ->groupBy('employee_id')
+        ->get();
+
+        $totalActiveDay = $this->getActiveDay($firstDayOfMonth,$lastDayOfMonth);
+
         return response()->json([
                 'code' => 200,
                 'status' => 'success',
                 'data' => [
-                    'employeeSalary' => $employeeSalary,
-                    'EmployeePayslip' => $employeePayslip
+                    'totalActiveDay'    => $totalActiveDay,
+                    'employeeSalary'    => $employeeSalary,
+                    'employeePayslip'   => $employeePayslip,
+                    'employeeAttendance'=> $employeeAttendance
                 ],
                 'message' => 'Get employee salary data successfully'
         ]);
 
+    }
+
+    public function getActiveDay(string $startDateString, string $endDateString): int {
+        // 1. Inisialisasi objek Carbon
+        $startDate = Carbon::parse($startDateString);
+        $endDate = Carbon::parse($endDateString);
+
+        // Pastikan tanggal awal sebelum tanggal akhir, tukar jika terbalik
+        if ($startDate->greaterThan($endDate)) {
+            [$startDate, $endDate] = [$endDate, $startDate];
+        }
+
+        $count = 0;
+
+        // 2. Kloning tanggal awal untuk iterasi (agar tanggal asli tidak berubah)
+        $currentDate = $startDate->copy();
+
+        // 3. Loop dari tanggal awal hingga tanggal akhir (inklusif)
+        // Metode isSameDay() membuat loop inklusif terhadap tanggal akhir
+        while ($currentDate->lessThanOrEqualTo($endDate)) {
+            
+            // Carbon memiliki metode yang sangat spesifik untuk mengecek hari kerja
+            // isWeekday() akan mengembalikan TRUE jika hari Senin-Jumat
+            if ($currentDate->isWeekday()) {
+                $count++;
+            }
+
+            // 4. Maju ke hari berikutnya
+            $currentDate->addDay();
+        }
+
+        return $count;
+        
     }
 }
