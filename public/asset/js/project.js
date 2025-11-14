@@ -2887,7 +2887,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </div>
                             </div>
 
-                            ${description ? `<div class="project-task-description mb-3">${description}</div>` : ''}
+                            ${description ? `<div class="project-task-description">${description}</div>` : ''}
 
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
@@ -2981,7 +2981,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 portal.style.position = 'fixed';
                 portal.style.zIndex = 9999;
                 portal.innerHTML = actions.map(a => `
-                    <button class="btn btn-sm w-100 text-start py-2 px-2 project-task-status-badge" 
+                    <button class="btn btn-sm w-100 text-start py-2 px-2" 
                             data-action="${a.action}" 
                             data-task-id="${taskId}">
                         ${a.label}
