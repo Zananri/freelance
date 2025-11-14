@@ -297,7 +297,7 @@
                                 </div>
                             </div>
                             <div id="task_existing_reference_files" class="mt-2"></div>
-                            <input type="hidden" id="task_existing_reference_files_input" name="existing_reference_files"
+                            <input type="hidden" id="task_existing_reference_files_input" name="task_existing_reference_files"
                                 value="[]">
                         </div>
                         <div class="mb-3 custom-input d-flex justify-content-between">
