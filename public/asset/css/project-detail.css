@@ -403,12 +403,16 @@
     display: block;
 }
 
-.reference-files-list,
-.reference-files-list a,
-.reference-files-list .material-symbols-outlined,
-.reference-files-list .btn-link,
-.reference-files-list .rounded-circle {
-    color: #444444 !important;
+#ref-files-container {
+    max-width: 40%;
+}
+
+.reference-files-list {
+    max-width: 100%;
+    color: #444;
+}
+
+.reference-files-list .ref-files-item {
     max-width: 100%;
 }
 

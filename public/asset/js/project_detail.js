@@ -6090,7 +6090,7 @@
                         item.style.fontSize = "10px";
 
                         const left = document.createElement("div");
-                        left.className = "d-flex justify-content-start align-items-center gap-2 me-2";
+                        left.className = "d-flex justify-content-start align-items-center gap-2 me-2 ref-files-item";
 
                         if (showImage) {
                             const img = document.createElement("img");
@@ -6112,7 +6112,7 @@
                         left.appendChild(title);
 
                         const right = document.createElement("div");
-                        right.className = "d-flex justify-content-end align-items-center";
+                        right.className = "d-flex justify-content-end align-items-center ref-files-item";
 
                         if (isFile) {
                             const dlBtn = document.createElement("button");
@@ -6152,8 +6152,20 @@
 
                     urls.forEach((u, idx) => {
                         if (!u) return;
-                        const label = "REFERENCE_URL_" + (idx + 1);
-                        const item = createRefItem(label, u, false, false);
+
+                        const rawInput = u.trim();
+
+                        let hrefUrl = rawInput;
+
+                        try {
+                            if (!/^https?:\/\//i.test(rawInput)) {
+                                hrefUrl = "https://" + rawInput;
+                            }
+                        } catch (e) {
+                            hrefUrl = rawInput;
+                        }
+
+                        const item = createRefItem(rawInput, hrefUrl, false, false);
                         container.appendChild(item);
                     });
 
