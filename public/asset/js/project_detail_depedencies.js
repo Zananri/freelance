@@ -1777,6 +1777,35 @@ function renderProjectTaskDetail(res) {
     showReferenceFilesForTask(task.id);
 }
 
+    document.addEventListener("click", function (e) {
+        const addFileBtn = e.target.closest(".add-ref-file");
+        if (addFileBtn) {
+            e.preventDefault();
+            const container = addFileBtn.closest(
+                "#edit_project_reference_files_container"
+            );
+            if (!container) return;
+            const row = document.createElement("div");
+            row.className = "input-group";
+            row.innerHTML =
+                '<input type="file" class="form-control input-text" name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">' +
+                ' <button type="button" class="btn btn-remove-file remove-ref-file" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="file"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeFileBtn = e.target.closest(".remove-ref-file");
+        if (removeFileBtn) {
+            e.preventDefault();
+            const row = removeFileBtn.closest(".input-group");
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
+
 // Helper: fetch reference files for a given task id, populate #referenceFilesList and show the modal
 function showReferenceFilesForTask(taskId) {
     if (!taskId) return;

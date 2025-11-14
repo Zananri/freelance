@@ -1001,7 +1001,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (addFileBtn) {
             e.preventDefault();
             const container = addFileBtn.closest(
-                "#project_reference_files_container, #edit_project_reference_files_container"
+                "#project_reference_files_container, #edit_project_reference_files_container, #edit_task_reference_files_container"
             );
             if (!container) return;
             const row = document.createElement("div");
@@ -3585,200 +3585,140 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     function setupEditReferenceFilesInput() {
-        const input = document.getElementById("edit_task_reference_files");
-        const preview = document.getElementById("edit_reference_task_files_preview");
+        const container = document.getElementById("edit_task_reference_files_container");
+        if (!container) return;
+
+        const input = container.querySelector('input[type="file"]');
         const existing = document.getElementById("task_existing_reference_files");
+        const hidden = document.getElementById("task_existing_reference_files_input");
 
-        if (!input || !preview) return;
+        if (!existing || !hidden) return;
 
-        // Use a global variable to track selected files for edit modal
         window.editSelectedFiles = [];
 
         input.addEventListener("change", function () {
             const files = Array.from(this.files);
-            // Add debug log to check files selected
-            window.editSelectedFiles = [...window.editSelectedFiles, ...files];
-            displayEditSelectedFiles();
-
-            // Clear input for next selection AFTER adding files to array
-            // (already done here, but keep for clarity)
+            window.editSelectedFiles.push(...files);
+            displaySelectedFiles();
             this.value = "";
         });
 
-        window.displayEditSelectedFiles = function () {
+        function displaySelectedFiles() {
+            const preview = document.getElementById("edit_reference_files_preview");
+            if (!preview) return;
+
             preview.innerHTML = "";
 
-            if (window.editSelectedFiles.length > 0) {
-                    const fileList = document.createElement("div");
-                    fileList.className = "selected-files-list mt-2";
+            if (window.editSelectedFiles.length === 0) return;
 
-                    window.editSelectedFiles.forEach((file, index) => {
-                        const fileItem = document.createElement("div");
-                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+            const fileList = document.createElement("div");
+            fileList.className = "selected-files-list mt-2";
 
-                        if (file && file.type && file.type.indexOf('image') === 0) {
-                            const img = document.createElement('img');
-                            const url = URL.createObjectURL(file);
-                            img.src = url;
-                            img.width = 28;
-                            img.height = 28;
-                            img.style.objectFit = 'cover';
-                            img.style.borderRadius = '50%';
-                            img.alt = file.name;
-                            img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
-                            fileItem.appendChild(img);
-                        } else {
-                            const badge = document.createElement('div');
-                            fileItem.appendChild(badge);
-                        }
+            window.editSelectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement("div");
+                fileItem.className =
+                    "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
 
-                        const title = document.createElement('span');
-                        title.className = 'flex-grow-1';
-                        title.textContent = file.name;
-                        fileItem.appendChild(title);
+                const isImage = file.type && file.type.indexOf("image") === 0;
 
-                        const removeBtn = document.createElement('button');
-                        removeBtn.type = 'button';
-                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
-                        removeBtn.style.lineHeight = '1';
-                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                        removeBtn.addEventListener('click', function () {
-                            window.editSelectedFiles.splice(index, 1);
-                            window.displayEditSelectedFiles();
-                        });
-
-                        fileItem.appendChild(removeBtn);
-                        fileList.appendChild(fileItem);
-                    });
-
-                    preview.appendChild(fileList);
-            }
-        };
-
-        // Function to display existing files
-        window.displayExistingReferenceFiles = function (files) {
-            if (!existing || !files || !Array.isArray(files)) return;
-
-            existing.innerHTML = "";
-
-            if (files.length > 0) {
-                    const title = document.createElement("div");
-                    // title.className = "fw-normal mb-2";
-                    // title.textContent = "Current Files:";
-                    // title.style.fontSize = "12px"
-                    existing.appendChild(title);
-
-                    const fileList = document.createElement("div");
-                    fileList.className = "existing-files-list";
-
-                    files.forEach((fileName, idx) => {
-                        const fileItem = document.createElement("div");
-                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
-
-                        // determine if file is an image by extension
-                        const lower = String(fileName || '').toLowerCase();
-                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
-                        if (isImage) {
-                            const img = document.createElement('img');
-                            img.src = appUrl + '/file/task_reference_files/' + encodeURIComponent(fileName);
-                            img.width = 28; img.height = 28;
-                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
-                            img.alt = fileName;
-                            fileItem.appendChild(img);
-                        } else {
-                            const badge = document.createElement('div');
-                            fileItem.appendChild(badge);
-                        }
-
-                        const titleSpan = document.createElement('span');
-                        titleSpan.className = 'flex-grow-1';
-                        // store original filename and show formatted display name
-                        titleSpan.setAttribute('data-filename', fileName);
-                        try {
-                            var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
-                            var num = Number(idx) + 1;
-                            titleSpan.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
-                        } catch (e) {
-                            titleSpan.textContent = fileName;
-                        }
-                        fileItem.appendChild(titleSpan);
-
-                        const removeBtn = document.createElement('button');
-                        removeBtn.type = 'button';
-                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
-                        removeBtn.style.lineHeight = '1';
-                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                        removeBtn.addEventListener('click', function () {
-                            fileItem.remove();
-                            updateExistingFiles();
-                        });
-
-                        fileItem.appendChild(removeBtn);
-                        fileList.appendChild(fileItem);
-                    });
-
-                    existing.appendChild(fileList);
+                if (isImage) {
+                    const img = document.createElement("img");
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                    img.width = 28;
+                    img.height = 28;
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "50%";
+                    img.onload = () => URL.revokeObjectURL(url);
+                    fileItem.appendChild(img);
+                } else {
+                    const badge = document.createElement("div");
+                    badge.className = "file-badge";
+                    fileItem.appendChild(badge);
                 }
-            // Initialize or update hidden input with all existing files on display
-            let existingFilesInput = document.getElementById(
-                "task_existing_reference_files_input"
-            );
-            if (!existingFilesInput) {
-                existingFilesInput = document.createElement("input");
-                existingFilesInput.type = "hidden";
-                existingFilesInput.id = "task_existing_reference_files_input";
-                existingFilesInput.name = "task_existing_reference_files";
-                document
-                    .getElementById("editTaskForm")
-                    .appendChild(existingFilesInput);
-            }
-            existingFilesInput.value = JSON.stringify(files);
-        };
 
-        // Function to update existing files array
-        function updateExistingFiles() {
-            const existingItems = document.querySelectorAll(
-                    "#task_existing_reference_files .existing-file-item, #task_existing_reference_files .selected-task"
-                );
-            const existingFiles = [];
+                const title = document.createElement("span");
+                title.className = "flex-grow-1";
+                title.textContent = file.name;
+                fileItem.appendChild(title);
 
-            existingItems.forEach((item) => {
-                let fileName = '';
-                const sp = item.querySelector('span.flex-grow-1');
-                if (sp && sp.getAttribute) fileName = sp.getAttribute('data-filename') || sp.textContent.trim();
-                if (fileName) existingFiles.push(fileName);
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn btn-sm btn-remove-task remove-task";
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener("click", function () {
+                    window.editSelectedFiles.splice(index, 1);
+                    displaySelectedFiles();
+                });
+
+                fileItem.appendChild(removeBtn);
+                fileList.appendChild(fileItem);
             });
 
-            // Update hidden input
-            let existingFilesInput = document.getElementById(
-                "task_existing_reference_files_input"
-            );
-            if (!existingFilesInput) {
-                existingFilesInput = document.createElement("input");
-                existingFilesInput.type = "hidden";
-                existingFilesInput.id = "task_existing_reference_files_input";
-                existingFilesInput.name = "task_existing_reference_files";
-                document
-                    .getElementById("editTaskForm")
-                    .appendChild(existingFilesInput);
-            }
-            existingFilesInput.value = JSON.stringify(existingFiles);
+            preview.appendChild(fileList);
         }
 
-        // Initialize
-        updateExistingFiles();
+        window.displayExistingReferenceFiles = function (files) {
+            existing.innerHTML = "";
 
-        // Ensure updateExistingFiles is called when removing existing files
-        document
-            .getElementById("task_existing_reference_files")
-            ?.addEventListener("click", function (e) {
-                // Support new remove button classes and legacy btn-outline-danger
-                if (e.target && (e.target.matches("button.btn-remove-task") || e.target.matches("button.remove-task") || e.target.matches("button.btn-outline-danger") || e.target.closest('button.btn-remove-task') || e.target.closest('button.remove-task'))) {
-                    setTimeout(() => {
-                        updateExistingFiles();
-                    }, 10);
+            files.forEach((fileName, idx) => {
+                const row = document.createElement("div");
+                row.className =
+                    "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                const lower = (fileName || "").toLowerCase();
+                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+
+                if (isImage) {
+                    const img = document.createElement("img");
+                    img.src = appUrl + "/file/task_reference_files/" + encodeURIComponent(fileName);
+                    img.width = 28;
+                    img.height = 28;
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "50%";
+                    row.appendChild(img);
+                } else {
+                    const badge = document.createElement("div");
+                    badge.className = "file-badge";
+                    row.appendChild(badge);
                 }
+
+                const title = document.createElement("span");
+                title.className = "flex-grow-1";
+                title.dataset.filename = fileName;
+
+                const ext = (fileName.split(".").pop() || "").toLowerCase();
+                const num = idx + 1;
+
+                title.textContent = ext
+                    ? `PROJECT_REF_FILE_${num}.${ext}`
+                    : `PROJECT_REF_FILE_${num}`;
+
+                row.appendChild(title);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn btn-sm btn-remove-task remove-task";
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+
+                removeBtn.addEventListener("click", () => {
+                    row.remove();
+                    updateHidden();
+                });
+
+                row.appendChild(removeBtn);
+                existing.appendChild(row);
             });
+
+            updateHidden();
+        };
+
+        function updateHidden() {
+            const items = existing.querySelectorAll("span[data-filename]");
+            const arr = [...items].map(el => el.dataset.filename);
+            hidden.value = JSON.stringify(arr);
+            console.log('Updated existing reference files:', arr);
+        }
     }
 
     function handleTaskEdit(taskId) {

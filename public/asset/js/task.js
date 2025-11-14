@@ -9541,9 +9541,6 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
             this.value = "";
         });
 
-        /** ---------------------------
-         *  DISPLAY SELECTED NEW FILES
-         * --------------------------- */
         function displaySelectedFiles() {
             const preview = document.getElementById("edit_reference_files_preview");
             if (!preview) return;
@@ -9599,9 +9596,6 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
             preview.appendChild(fileList);
         }
 
-        /** ---------------------------
-         *  DISPLAY EXISTING FILES
-         * --------------------------- */
         window.displayExistingReferenceFiles = function (files) {
             existing.innerHTML = "";
 
