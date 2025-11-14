@@ -2602,6 +2602,10 @@
             // Add _method to FormData for Laravel PUT request
             formData.append("_method", "PUT");
 
+            // Debug: Log existing reference files being sent
+            const existingFilesValue = formData.get('task_existing_reference_files');
+            console.log('Submitting edit task with existing reference files:', existingFilesValue);
+
             // Reference files are now collected directly from file inputs via FormData serialization (button + pattern)
 
             $.ajax({
@@ -9657,6 +9661,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
             const items = existing.querySelectorAll("span[data-filename]");
             const arr = [...items].map(el => el.dataset.filename);
             hidden.value = JSON.stringify(arr);
+            console.log('Updated existing reference files:', arr);
         }
     }
 
