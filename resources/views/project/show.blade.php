@@ -719,7 +719,7 @@
                                     <div class="input-group">
                                         <input type="file" class="form-control input-text" name="reference_files[]"
                                             accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                                        <button type="button" class="btn btn-submit-black add-ref-file-project-task"
+                                        <button type="button" class="btn btn-submit-black add-ref-file"
                                             aria-label="Add File"><span class="material-symbols-outlined">add</span>
                                         </button>
                                     </div>
