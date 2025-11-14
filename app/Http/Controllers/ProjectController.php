@@ -3758,7 +3758,9 @@ class ProjectController extends Controller
                 'D2' => 'Task',
                 'E2' => 'Status Task',
                 'F2' => 'Durasi',
-                'G2' => 'Jumlah Task'
+                'G2' => 'Reference URLs',
+                'H2' => 'Reference Files',
+                'I2' => 'Jumlah Task'
             ];
 
             foreach ($headers as $cell => $value) {
@@ -3780,14 +3782,14 @@ class ProjectController extends Controller
                 ],
             ];
 
-            $activeWorksheet->getStyle('A2:G2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
-            $activeWorksheet->getStyle('A2:G2')
+            $activeWorksheet->getStyle('A2:I2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $activeWorksheet->getStyle('A2:I2')
                 ->getAlignment()
                 ->setWrapText(true)
                 ->setHorizontal(Alignment::HORIZONTAL_CENTER)
                 ->setVertical(Alignment::VERTICAL_CENTER);
 
-            // Set column widths (Part of Project removed)
+            // Set column widths (Part of Project removed, Reference URLs and Reference Files added)
             $columnWidths = [
                 'A' => 5,   // No
                 'B' => 30,  // Nama Project
@@ -3795,7 +3797,9 @@ class ProjectController extends Controller
                 'D' => 35,  // Task
                 'E' => 15,  // Status Task
                 'F' => 20,  // Durasi
-                'G' => 12   // Jumlah Task
+                'G' => 30,  // Reference URLs
+                'H' => 30,  // Reference Files
+                'I' => 12   // Jumlah Task
             ];
 
             foreach ($columnWidths as $column => $width) {
@@ -3859,7 +3863,13 @@ class ProjectController extends Controller
                 $baseProjectValues = [
                     'B' => $project->title,
                     'C' => ucfirst($project->project_type ?? 'public'),
-                    'G' => $project->total_tasks ?? 0, // total tasks will be placed in column G
+                    'G' => is_array($project->reference_urls) && count($project->reference_urls) > 0 
+                        ? implode("\n", array_filter($project->reference_urls)) 
+                        : ($project->reference_url ?? '-'),
+                    'H' => is_array($project->reference_files) && count($project->reference_files) > 0 
+                        ? implode("\n", array_filter($project->reference_files)) 
+                        : ($project->reference_file ?? '-'),
+                    'I' => $project->total_tasks ?? 0,
                 ];
 
                 // Determine the project's maximal (latest) deadline among its tasks.
@@ -3911,6 +3921,8 @@ class ProjectController extends Controller
                         $activeWorksheet->setCellValue('F' . $row, $formatDuration($startRaw, $endRaw));
 
                         $activeWorksheet->setCellValue('G' . $row, $baseProjectValues['G']);
+                        $activeWorksheet->setCellValue('H' . $row, $baseProjectValues['H']);
+                        $activeWorksheet->setCellValue('I' . $row, $baseProjectValues['I']);
 
                         // Set a reasonable row height per single-line task
                         $activeWorksheet->getRowDimension($row)->setRowHeight(18);
@@ -3924,8 +3936,8 @@ class ProjectController extends Controller
                     // Write project number in column A at projectStartRow and merge A if multiple rows
                     $activeWorksheet->setCellValue('A' . $projectStartRow, $projectNo);
                     if ($projectEndRow > $projectStartRow) {
-                        // Merge project-related columns vertically across the task rows: A (No), B (Nama Project), C (Project Type), G (Jumlah Task)
-                        $colsToMerge = ['A', 'B', 'C', 'G'];
+                        // Merge project-related columns vertically across the task rows: A (No), B (Nama Project), C (Project Type), G (Reference URLs), H (Reference Files), I (Jumlah Task)
+                        $colsToMerge = ['A', 'B', 'C', 'G', 'H', 'I'];
                         foreach ($colsToMerge as $col) {
                             $activeWorksheet->mergeCells($col . $projectStartRow . ':' . $col . $projectEndRow);
                             // Align center both horizontally and vertically for merged cells
@@ -3954,6 +3966,11 @@ class ProjectController extends Controller
                     $activeWorksheet->setCellValue('F' . $row, $durationSingle);
                     $activeWorksheet->getStyle('F' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->setCellValue('G' . $row, $baseProjectValues['G']);
+                    $activeWorksheet->getStyle('G' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+                    $activeWorksheet->setCellValue('H' . $row, $baseProjectValues['H']);
+                    $activeWorksheet->getStyle('H' . $row)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+                    $activeWorksheet->setCellValue('I' . $row, $baseProjectValues['I']);
+                    $activeWorksheet->getStyle('I' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
                     $activeWorksheet->getRowDimension($row)->setRowHeight(18);
 
                     $row++;
@@ -3971,7 +3988,7 @@ class ProjectController extends Controller
             ];
 
             if ($row > 3) {
-                $activeWorksheet->getStyle('A3:G' . ($row - 1))->applyFromArray($dataStyle);
+                $activeWorksheet->getStyle('A3:I' . ($row - 1))->applyFromArray($dataStyle);
 
                 // Center align specific columns
                 $activeWorksheet->getStyle('A3:A' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -3979,12 +3996,12 @@ class ProjectController extends Controller
                 $activeWorksheet->getStyle('C3:C' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                 // Durasi center at column F
                 $activeWorksheet->getStyle('F3:F' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-                // Jumlah Task at column G center
-                $activeWorksheet->getStyle('G3:G' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                // Jumlah Task at column I center
+                $activeWorksheet->getStyle('I3:I' . ($row - 1))->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
-                // Enable text wrapping for Task and Status Task columns (D and E)
-                $activeWorksheet->getStyle('D3:E' . ($row - 1))->getAlignment()->setWrapText(true);
-                $activeWorksheet->getStyle('D3:E' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
+                // Enable text wrapping for Task, Status Task, Reference URLs, and Reference Files columns (D, E, G, H)
+                $activeWorksheet->getStyle('D3:H' . ($row - 1))->getAlignment()->setWrapText(true);
+                $activeWorksheet->getStyle('D3:H' . ($row - 1))->getAlignment()->setVertical(Alignment::VERTICAL_TOP);
             }
 
             // Set sheet name
@@ -4031,7 +4048,7 @@ class ProjectController extends Controller
             $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
 
-            $sheet->mergeCells('A1:E1');
+            $sheet->mergeCells('A1:I1');
             $sheet->setCellValue('A1', 'Project Report - All Projects');
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
             $sheet->getStyle('A1')->getAlignment()->setHorizontal(
@@ -4042,20 +4059,24 @@ class ProjectController extends Controller
             $headers = [
                 'A2' => 'No',
                 'B2' => 'Project Name',
-                'C2' => 'Task',
-                'D2' => 'Status Task',
-                'E2' => 'Duration',
+                'C2' => 'Project Type',
+                'D2' => 'Task',
+                'E2' => 'Status Task',
+                'F2' => 'Duration',
+                'G2' => 'Reference URLs',
+                'H2' => 'Reference Files',
+                'I2' => 'Total Tasks',
             ];
 
             foreach ($headers as $cell => $value) {
                 $sheet->setCellValue($cell, $value);
             }
 
-            $sheet->getStyle('A2:E2')->getFont()->setBold(true);
-            $sheet->getStyle('A2:E2')->getAlignment()
+            $sheet->getStyle('A2:I2')->getFont()->setBold(true);
+            $sheet->getStyle('A2:I2')->getAlignment()
                 ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
                 ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-            $sheet->getStyle('A2:E2')->getFill()
+            $sheet->getStyle('A2:I2')->getFill()
                 ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
                 ->getStartColor()->setARGB('FFD9D9D9');
 
@@ -4064,58 +4085,75 @@ class ProjectController extends Controller
 
             foreach ($rootProjects as $project) {
                 $taskCount = $project->tasks->count();
+                
+                // Prepare project-level data
+                $projectType = ucfirst($project->project_type ?? 'public');
+                $referenceUrls = is_array($project->reference_urls) && count($project->reference_urls) > 0 
+                    ? implode("\n", array_filter($project->reference_urls)) 
+                    : ($project->reference_url ?? '-');
+                $referenceFiles = is_array($project->reference_files) && count($project->reference_files) > 0 
+                    ? implode("\n", array_filter($project->reference_files)) 
+                    : ($project->reference_file ?? '-');
+                $totalTasks = $taskCount;
 
                 if ($taskCount > 0) {
                     $startRow = $row;
                     foreach ($project->tasks as $task) {
                         $sheet->setCellValue("A{$row}", $no);
-                        $sheet->setCellValue("C{$row}", $task->title ?? '-');
-                        $sheet->setCellValue("D{$row}", $task->status ?? '-');
+                        $sheet->setCellValue("B{$row}", $project->title ?? '-');
+                        $sheet->setCellValue("C{$row}", $projectType);
+                        $sheet->setCellValue("D{$row}", $task->title ?? '-');
+                        $sheet->setCellValue("E{$row}", $task->status ?? '-');
                         $sheet->setCellValue(
-                            "E{$row}",
+                            "F{$row}",
                             ($task->start_date && $task->due_date)
                                 ? date('j F Y', strtotime($task->start_date)) . ' - ' . date('j F Y', strtotime($task->due_date))
                                 : ($task->start_date ? date('j F Y', strtotime($task->start_date)) : '-')
                         );
+                        $sheet->setCellValue("G{$row}", $referenceUrls);
+                        $sheet->setCellValue("H{$row}", $referenceFiles);
+                        $sheet->setCellValue("I{$row}", $totalTasks);
                         $row++;
                     }
                     $endRow = $row - 1;
 
                     if ($taskCount > 1) {
-                        $sheet->mergeCells("B{$startRow}:B{$endRow}");
-                        $sheet->getStyle("B{$startRow}:B{$endRow}")
-                            ->getAlignment()
-                            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
-                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
-
-                        $sheet->mergeCells("A{$startRow}:A{$endRow}");
-                        $sheet->getStyle("A{$startRow}:A{$endRow}")
-                            ->getAlignment()
-                            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
-                            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        // Merge project-level columns
+                        $colsToMerge = ['A', 'B', 'C', 'G', 'H', 'I'];
+                        foreach ($colsToMerge as $col) {
+                            $sheet->mergeCells("{$col}{$startRow}:{$col}{$endRow}");
+                            $sheet->getStyle("{$col}{$startRow}:{$col}{$endRow}")
+                                ->getAlignment()
+                                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                                ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                        }
                     }
-
-                    $sheet->setCellValue("B{$startRow}", $project->title ?? '-');
 
                     $no++;
                 } else {
                     $sheet->setCellValue("A{$row}", $no++);
                     $sheet->setCellValue("B{$row}", $project->title ?? '-');
-                    $sheet->setCellValue("C{$row}", '-');
-                    $sheet->setCellValue("D{$row}", '-');
+                    $sheet->setCellValue("C{$row}", $projectType);
+                    $sheet->setCellValue("D{$row}", 'No Tasks');
                     $sheet->setCellValue("E{$row}", '-');
+                    $sheet->setCellValue("F{$row}", '-');
+                    $sheet->setCellValue("G{$row}", $referenceUrls);
+                    $sheet->setCellValue("H{$row}", $referenceFiles);
+                    $sheet->setCellValue("I{$row}", $totalTasks);
                     $row++;
                 }
             }
 
-            foreach (range('A', 'E') as $col) {
-                $sheet->getColumnDimension($col)->setAutoSize(true);
+            // Set specific column widths instead of autosize
+            $columnWidths = ['A' => 5, 'B' => 30, 'C' => 12, 'D' => 35, 'E' => 15, 'F' => 20, 'G' => 30, 'H' => 30, 'I' => 12];
+            foreach ($columnWidths as $col => $width) {
+                $sheet->getColumnDimension($col)->setWidth($width);
             }
 
-            $sheet->getStyle("A2:E" . ($row - 1))->getBorders()->getAllBorders()
+            $sheet->getStyle("A2:I" . ($row - 1))->getBorders()->getAllBorders()
                 ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
 
-            $sheet->getStyle("A3:E" . ($row - 1))->getAlignment()
+            $sheet->getStyle("A3:I" . ($row - 1))->getAlignment()
                 ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
                 ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER)
                 ->setWrapText(true);
@@ -4168,7 +4206,7 @@ class ProjectController extends Controller
                 'borders' => ['allBorders' => ['borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,],],
                 'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['argb' => 'FFE0E0E0'],],
             ];
-            $sheet->getStyle('A2:G2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+            $sheet->getStyle('A2:I2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
             $sheet->getStyle('A2:G2')->getAlignment()->setWrapText(true)->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
 
             $columnWidths = ['A' => 5, 'B' => 30, 'C' => 25, 'D' => 30, 'E' => 20, 'F' => 35, 'G' => 15,];
@@ -4665,9 +4703,9 @@ class ProjectController extends Controller
 
         // Title
         if ($includePartOf) {
-            $sheet->mergeCells('A1:G1');
+            $sheet->mergeCells('A1:J1');
         } else {
-            $sheet->mergeCells('A1:F1');
+            $sheet->mergeCells('A1:I1');
         }
         $sheet->setCellValue('A1', 'Project Report - ' . $titlePrefix);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
@@ -4676,16 +4714,16 @@ class ProjectController extends Controller
         // Headers
         if ($includePartOf) {
             $headers = [
-                'A2' => 'No', 'B2' => 'Project Name', 'C2' => 'Part of Project',
-                'D2' => 'Task', 'E2' => 'Status', 'F2' => 'Duration', 'G2' => 'Total Tasks',
+                'A2' => 'No', 'B2' => 'Project Name', 'C2' => 'Part of Project', 'D2' => 'Project Type',
+                'E2' => 'Task', 'F2' => 'Status', 'G2' => 'Duration', 'H2' => 'Reference URLs', 'I2' => 'Reference Files', 'J2' => 'Total Tasks',
             ];
-            $lastHeaderCol = 'G';
+            $lastHeaderCol = 'J';
         } else {
             $headers = [
-                'A2' => 'No', 'B2' => 'Project Name',
-                'C2' => 'Task', 'D2' => 'Status', 'E2' => 'Duration', 'F2' => 'Total Tasks',
+                'A2' => 'No', 'B2' => 'Project Name', 'C2' => 'Project Type',
+                'D2' => 'Task', 'E2' => 'Status', 'F2' => 'Duration', 'G2' => 'Reference URLs', 'H2' => 'Reference Files', 'I2' => 'Total Tasks',
             ];
-            $lastHeaderCol = 'F';
+            $lastHeaderCol = 'I';
         }
 
         foreach ($headers as $cell => $value) {
@@ -4701,9 +4739,9 @@ class ProjectController extends Controller
 
         // Column widths
         if ($includePartOf) {
-            $columnWidths = ['A' => 5, 'B' => 30, 'C' => 25, 'D' => 30, 'E' => 20, 'F' => 35, 'G' => 15];
+            $columnWidths = ['A' => 5, 'B' => 30, 'C' => 25, 'D' => 12, 'E' => 30, 'F' => 20, 'G' => 35, 'H' => 30, 'I' => 30, 'J' => 15];
         } else {
-            $columnWidths = ['A' => 5, 'B' => 30, 'C' => 30, 'D' => 20, 'E' => 35, 'F' => 15];
+            $columnWidths = ['A' => 5, 'B' => 30, 'C' => 12, 'D' => 30, 'E' => 20, 'F' => 35, 'G' => 30, 'H' => 30, 'I' => 15];
         }
         foreach ($columnWidths as $col => $width) {
             $sheet->getColumnDimension($col)->setWidth($width);
@@ -4736,6 +4774,15 @@ class ProjectController extends Controller
 
             $rowCount = $tasksExist ? $taskCount : 1;
             $projectEndRow = $row + $rowCount - 1;
+            
+            // Prepare project-level data
+            $projectType = ucfirst($project->project_type ?? 'public');
+            $referenceUrls = is_array($project->reference_urls) && count($project->reference_urls) > 0 
+                ? implode("\n", array_filter($project->reference_urls)) 
+                : ($project->reference_url ?? '-');
+            $referenceFiles = is_array($project->reference_files) && count($project->reference_files) > 0 
+                ? implode("\n", array_filter($project->reference_files)) 
+                : ($project->reference_file ?? '-');
 
             // No column
             $sheet->mergeCells('A' . $row . ':A' . $projectEndRow);
@@ -4746,16 +4793,46 @@ class ProjectController extends Controller
             $sheet->mergeCells('B' . $row . ':B' . $projectEndRow);
             $sheet->setCellValue('B' . $row, $project->title ?? '-');
             $sheet->getStyle('B' . $row . ':B' . $projectEndRow)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            
+            // Project Type column
+            if ($includePartOf) {
+                $sheet->mergeCells('D' . $row . ':D' . $projectEndRow);
+                $sheet->setCellValue('D' . $row, $projectType);
+                $sheet->getStyle('D' . $row . ':D' . $projectEndRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            } else {
+                $sheet->mergeCells('C' . $row . ':C' . $projectEndRow);
+                $sheet->setCellValue('C' . $row, $projectType);
+                $sheet->getStyle('C' . $row . ':C' . $projectEndRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+            }
+            
+            // Reference URLs and Reference Files columns
+            if ($includePartOf) {
+                $sheet->mergeCells('H' . $row . ':H' . $projectEndRow);
+                $sheet->setCellValue('H' . $row, $referenceUrls);
+                $sheet->getStyle('H' . $row . ':H' . $projectEndRow)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP)->setWrapText(true);
+                
+                $sheet->mergeCells('I' . $row . ':I' . $projectEndRow);
+                $sheet->setCellValue('I' . $row, $referenceFiles);
+                $sheet->getStyle('I' . $row . ':I' . $projectEndRow)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP)->setWrapText(true);
+            } else {
+                $sheet->mergeCells('G' . $row . ':G' . $projectEndRow);
+                $sheet->setCellValue('G' . $row, $referenceUrls);
+                $sheet->getStyle('G' . $row . ':G' . $projectEndRow)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP)->setWrapText(true);
+                
+                $sheet->mergeCells('H' . $row . ':H' . $projectEndRow);
+                $sheet->setCellValue('H' . $row, $referenceFiles);
+                $sheet->getStyle('H' . $row . ':H' . $projectEndRow)->getAlignment()->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_TOP)->setWrapText(true);
+            }
 
             // Total tasks column merge depending on layout
             if ($includePartOf) {
-                $sheet->mergeCells('G' . $row . ':G' . $projectEndRow);
-                $sheet->setCellValue('G' . $row, $taskCount);
-                $sheet->getStyle('G' . $row . ':G' . $projectEndRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->mergeCells('J' . $row . ':J' . $projectEndRow);
+                $sheet->setCellValue('J' . $row, $taskCount);
+                $sheet->getStyle('J' . $row . ':J' . $projectEndRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
             } else {
-                $sheet->mergeCells('F' . $row . ':F' . $projectEndRow);
-                $sheet->setCellValue('F' . $row, $taskCount);
-                $sheet->getStyle('F' . $row . ':F' . $projectEndRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+                $sheet->mergeCells('I' . $row . ':I' . $projectEndRow);
+                $sheet->setCellValue('I' . $row, $taskCount);
+                $sheet->getStyle('I' . $row . ':I' . $projectEndRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
             }
 
             // Task rows
@@ -4763,35 +4840,35 @@ class ProjectController extends Controller
                 $taskRow = $row;
                 foreach ($tasks as $task) {
                     if ($includePartOf) {
+                        $sheet->setCellValue('E' . $taskRow, $task->title ?? '-');
+                        $sheet->setCellValue('F' . $taskRow, $task->status ?? '-');
+                        $duration = ($task->start_date && $task->due_date) ? date('j F Y', strtotime($task->start_date)) . ' - ' . date('j F Y', strtotime($task->due_date)) : ($task->start_date ? date('j F Y', strtotime($task->start_date)) : '-');
+                        $sheet->setCellValue('G' . $taskRow, $duration);
+                    } else {
+                        // shifted columns: D=Task, E=Status, F=Duration
                         $sheet->setCellValue('D' . $taskRow, $task->title ?? '-');
                         $sheet->setCellValue('E' . $taskRow, $task->status ?? '-');
                         $duration = ($task->start_date && $task->due_date) ? date('j F Y', strtotime($task->start_date)) . ' - ' . date('j F Y', strtotime($task->due_date)) : ($task->start_date ? date('j F Y', strtotime($task->start_date)) : '-');
                         $sheet->setCellValue('F' . $taskRow, $duration);
-                    } else {
-                        // shifted columns: C=Task, D=Status, E=Duration
-                        $sheet->setCellValue('C' . $taskRow, $task->title ?? '-');
-                        $sheet->setCellValue('D' . $taskRow, $task->status ?? '-');
-                        $duration = ($task->start_date && $task->due_date) ? date('j F Y', strtotime($task->start_date)) . ' - ' . date('j F Y', strtotime($task->due_date)) : ($task->start_date ? date('j F Y', strtotime($task->start_date)) : '-');
-                        $sheet->setCellValue('E' . $taskRow, $duration);
                     }
                     $sheet->getRowDimension($taskRow)->setRowHeight(25);
                     $taskRow++;
                 }
             } else {
                 if ($includePartOf) {
+                    $sheet->setCellValue('E' . $row, '-');
+                    $sheet->setCellValue('F' . $row, '-');
+                    $sheet->setCellValue('G' . $row, '-');
+                } else {
                     $sheet->setCellValue('D' . $row, '-');
                     $sheet->setCellValue('E' . $row, '-');
                     $sheet->setCellValue('F' . $row, '-');
-                } else {
-                    $sheet->setCellValue('C' . $row, '-');
-                    $sheet->setCellValue('D' . $row, '-');
-                    $sheet->setCellValue('E' . $row, '-');
                 }
                 $sheet->getRowDimension($row)->setRowHeight(25);
             }
 
             // Apply styles for this project block
-            $rangeEndCol = $includePartOf ? 'G' : 'F';
+            $rangeEndCol = $includePartOf ? 'J' : 'I';
             $sheet->getStyle('A' . $row . ':' . $rangeEndCol . $projectEndRow)->applyFromArray($dataStyle);
 
             $row = $projectEndRow + 1;
