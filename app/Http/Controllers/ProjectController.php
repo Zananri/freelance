@@ -3744,9 +3744,9 @@ class ProjectController extends Controller
             $spreadsheet = new Spreadsheet();
             $activeWorksheet = $spreadsheet->getActiveSheet();
 
-            // Set title
+            // Set title (default to All Projects for this export)
             $activeWorksheet->mergeCells('A1:K1');
-            $activeWorksheet->setCellValue('A1', 'Project Report - NSA Office Management System');
+            $activeWorksheet->setCellValue('A1', 'Project Report - All Projects');
             $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
             $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
@@ -3995,8 +3995,9 @@ class ProjectController extends Controller
             // Set sheet name
             $activeWorksheet->setTitle('Project Report');
 
-            // Generate filename
-            $filename = 'project_report_' . date('Y_m_d_H_i_s') . '.xlsx';
+            // Generate filename (include tab/context in filename)
+            $fileContext = 'All_Projects';
+            $filename = 'project_report_' . $fileContext . '_' . date('Y_m_d_H_i_s') . '.xlsx';
 
             // Create writer and download
             $writer = new Xlsx($spreadsheet);
@@ -4036,7 +4037,7 @@ class ProjectController extends Controller
             $sheet = $spreadsheet->getActiveSheet();
 
             $sheet->mergeCells('A1:E1');
-            $sheet->setCellValue('A1', 'Root Project Report');
+            $sheet->setCellValue('A1', 'Project Report - All Projects');
             $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
             $sheet->getStyle('A1')->getAlignment()->setHorizontal(
                 \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
@@ -4124,7 +4125,8 @@ class ProjectController extends Controller
                 ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER)
                 ->setWrapText(true);
 
-            $filename = 'root_projects_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
+            $fileContext = 'All_Projects';
+            $filename = 'project_report_' . $fileContext . '_' . now()->format('Y_m_d_H_i_s') . '.xlsx';
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
             $tempFile = tempnam(sys_get_temp_dir(), 'root_projects_');
             $writer->save($tempFile);
@@ -4352,7 +4354,8 @@ class ProjectController extends Controller
             $activeWorksheet = $spreadsheet->getActiveSheet();
 
             $activeWorksheet->mergeCells('A1:H1');
-            $activeWorksheet->setCellValue('A1', 'Project Report - NSA Office Management System');
+            $titleHeader = 'Project Report - ' . ($project->title ?? 'Project');
+            $activeWorksheet->setCellValue('A1', $titleHeader);
             $activeWorksheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
             $activeWorksheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
@@ -4526,7 +4529,9 @@ class ProjectController extends Controller
             }
 
             $activeWorksheet->setTitle('Project Report');
-            $filename = 'project_' . $id . '_report_' . date('Y_m_d_H_i_s') . '.xlsx';
+            // sanitize project title for filename
+            $cleanTitle = preg_replace('/[^A-Za-z0-9_-]/', '_', str_replace(' ', '_', ($project->title ?? 'project_' . $id)));
+            $filename = 'project_report_' . $cleanTitle . '_' . date('Y_m_d_H_i_s') . '.xlsx';
 
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
             $tempFile = tempnam(sys_get_temp_dir(), 'project_export_single');
@@ -4661,9 +4666,9 @@ class ProjectController extends Controller
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
-        // Set title - match the format from the image
+        // Set title - use unified "Project Report - {TabName}" format
         $sheet->mergeCells('A1:G1');
-        $sheet->setCellValue('A1', 'Child Project Report - ' . $titlePrefix);
+        $sheet->setCellValue('A1', 'Project Report - ' . $titlePrefix);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
 
@@ -4822,8 +4827,9 @@ class ProjectController extends Controller
             $row = $projectEndRow + 1;
         }
 
-        // Generate and return file
-        $filename = 'child_projects_' . ($parentProject ? str_replace(' ', '_', $parentProject->title) : 'all') . '_' . date('Y-m-d_H-i-s') . '.xlsx';
+        // Generate and return file (sanitize title for filename)
+        $cleanTitle = preg_replace('/[^A-Za-z0-9_-]/', '_', str_replace(' ', '_', (string) $titlePrefix));
+        $filename = 'project_report_' . $cleanTitle . '_' . date('Y-m-d_H-i-s') . '.xlsx';
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $tempFile = tempnam(sys_get_temp_dir(), 'project_hierarchical_export');
         $writer->save($tempFile);
