@@ -6112,7 +6112,35 @@
                         left.appendChild(title);
 
                         const right = document.createElement("div");
-                        right.className = "d-flex justify-content-end align-items-center ref-files-item";
+                        right.className = "d-flex justify-content-end align-items-center gap-1 ref-hover-icons";
+
+                        const makeBtn = (icon, title, onClick) => {
+                            const btn = document.createElement("button");
+                            btn.type = "button";
+                            btn.className = "btn btn-sm btn-link p-0";
+                            btn.title = title;
+                            btn.style.color = "#444";
+                            btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">${icon}</span>`;
+                            btn.addEventListener("click", onClick);
+                            return btn;
+                        };
+
+                        if (!isFile) {
+                            const copyBtn = makeBtn("content_copy", "Copy URL", function (ev) {
+                                ev.preventDefault(); ev.stopPropagation();
+                                navigator.clipboard?.writeText(url)
+                                    .then(() => showFloatingAlert?.("URL copied", "success"))
+                                    .catch(() => showFloatingAlert?.("Failed to copy", "warning"));
+                            });
+
+                            const openBtn = makeBtn("open_in_new", "Open URL", function (ev) {
+                                ev.preventDefault(); ev.stopPropagation();
+                                window.open(url, "_blank");
+                            });
+
+                            right.appendChild(copyBtn);
+                            right.appendChild(openBtn);
+                        }
 
                         if (isFile) {
                             const dlBtn = document.createElement("button");
@@ -6135,9 +6163,7 @@
                                 document.body.appendChild(a);
                                 a.click();
                                 setTimeout(() => {
-                                    try {
-                                        document.body.removeChild(a);
-                                    } catch (_) {}
+                                    try { document.body.removeChild(a); } catch (_) {}
                                 }, 100);
                             });
 
