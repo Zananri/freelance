@@ -2887,7 +2887,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </div>
                             </div>
 
-                            ${description ? `<div class="project-task-description mb-3">${description}</div>` : ''}
+                            ${description ? `<div class="project-task-description">${description}</div>` : ''}
 
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
