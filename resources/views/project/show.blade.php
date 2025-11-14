@@ -522,19 +522,19 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3 custom-input">
+                            <div class="mb-3 input-custom">
                                 <label class="form-label label-custom">Reference Files</label>
-                                <div id="edit_task_reference_files_container" class="d-flex flex-column gap-2">
+                                <div id="edit_project_reference_files_container" class="d-flex flex-column gap-2">
                                     <div class="input-group">
-                                        <input type="file" class="form-control input-text" name="reference_files[]"
-                                            accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                        <input type="file" class="form-control input-text" name="reference_file[]"
+                                            accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">
                                         <button type="button" class="btn btn-submit-black add-ref-file"
                                             aria-label="Add File"><span class="material-symbols-outlined">add</span>
                                         </button>
                                     </div>
                                 </div>
-                                <div id="task_existing_reference_files" class="mt-2"></div>
-                                <input type="hidden" id="task_existing_reference_files_input" name="task_existing_reference_files"
+                                <div id="existing_reference_files" class="mt-2"></div>
+                                <input type="hidden" id="existing_reference_files_input" name="existing_reference_files"
                                     value="[]">
                             </div>
                             <div class="mb-3 input-custom d-flex justify-content-between">
