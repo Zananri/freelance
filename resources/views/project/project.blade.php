@@ -934,9 +934,16 @@
         aria-hidden="true">
         <div class="modal-dialog modal-fullscreen">
             <div class="modal-content modal-content-custom">
-                <div class="modal-header border-bottom">
-                    <h5 class="modal-title modal-title-custom" id="projectTreeModal">Project Tree</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <div class="modal-header border-bottom d-flex justify-content-between">
+                    <div class="d-flex justify-content-start">
+                        <h5 class="modal-title modal-title-custom" id="projectTreeModal">Project Tree</h5>
+                    </div>
+                    <div class="d-flex justify-content-end align-items-center gap-2">
+                        <button type="button" class="btn btn-sm add-project-action me-2">
+                            <span class="material-symbols-outlined text-secondary">add</span>
+                        </button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
                 </div>
                 <div class="modal-body mt-2">
                     <div class="task-tree-wrapper">

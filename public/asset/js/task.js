@@ -3320,7 +3320,8 @@ function formatBytes(bytes){ if (!bytes) return '0 B'; const sizes=['B','KB','MB
         } else if (task.status === 'in_progress' || task.status === 'in progress') {
             statusMenuItem = '<div class="dropdown-item complete-task">Set to Complete</div><div class="dropdown-item back-to-request">Back to Request</div>';
         } else if (task.status === 'completed') {
-            statusMenuItem = '<div class="dropdown-item reject-task">Reject</div>';
+            // Allow PIC/project-author to move completed tasks back to in_progress
+            statusMenuItem = '<div class="dropdown-item back-to-progress">Back to Progress</div><div class="dropdown-item reject-task">Reject</div>';
         } else if (task.status === 'finished') {
             // For finished tasks, allow PIC to send back to completed or reject from dropdown
             statusMenuItem = '<div class="dropdown-item">Back to Completed</div><div class="dropdown-item">Reject</div>';
@@ -5069,6 +5070,15 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                             break;
                         case "Set to Complete":
                             handleTaskComplete(taskId, taskCard);
+                            break;
+                        case "Back to Progress":
+                            // Show confirmation modal before moving completed task back to In Progress
+                            try {
+                                showStatusModal(taskId, taskCard, 'in_progress', 'Back to Progress', 'In Progress', 'Move this task back to In Progress?');
+                            } catch (e) {
+                                // Fallback to direct update if modal fails
+                                try { updateTaskStatus(taskId, 'in_progress', taskCard); } catch(_) { try { showFloatingAlert && showFloatingAlert('Failed to update task status', 'danger'); } catch(_) {} }
+                            }
                             break;
                         case "Reject":
                             handleTaskReject(taskId, taskCard);
@@ -8711,8 +8721,10 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                 if (Array.isArray(referenceUrls) && referenceUrls.length) {
                     refUrlsHtml = '<div class="mb-2">';
                     referenceUrls.forEach((u, idx) => {
+                        // Display the actual URL instead of a label
+                        const displayUrl = u || '';
                         refUrlsHtml += `<div class="d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
-                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1" style="color: #444;">REF_URL_TASK_${idx+1}</a>
+                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1 text-truncate" style="color: #444;" title="${displayUrl}">${displayUrl}</a>
                                         </div>`;
                     });
                     refUrlsHtml += '</div>';

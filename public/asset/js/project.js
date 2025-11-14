@@ -1422,6 +1422,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     wrapper.className = 'project-list-item';
                     wrapper.dataset.projectId = project.id;
                     wrapper.dataset.projectName = project.title || 'Untitled Project';
+                  
+                    try {
+                        const divId = project.division_id || (project.division && project.division.id) || '';
+                        if (divId !== undefined && divId !== null) wrapper.dataset.division = String(divId);
+                    } catch (_) { /* ignore if shape unexpected */ }
 
                     let avatarHtml = '';
                     if (project.image) {
@@ -2725,14 +2730,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     const title = task.title ? escapeHtml(task.title) : 'Untitled Task';
                     
                     // Description (strip HTML, max 3 lines)
-                    const description = (() => {
-                        try {
-                            const div = document.createElement('div');
-                            div.innerHTML = String(task.description || '');
-                            const text = (div.textContent || div.innerText || '').trim();
-                            return text || '';
-                        } catch(_) { return ''; }
-                    })();
+                    const description = task.description ? task.description : '';
                     
                     // Avatar or initials for task image
                     let avatarHtml = '';
@@ -2846,7 +2844,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         }
                         executorsHtml += '</div>';
                     }
-                    
+
                     // Action buttons (icons only). Show checklist icon only for completed/finished tasks.
                     const showCheckIcon = /complete|finish/.test(String(status || '').toLowerCase());
                     const actionsHtml = `
@@ -2889,7 +2887,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 </div>
                             </div>
 
-                            ${description ? `<div class="project-task-description mb-3">${escapeHtml(description)}</div>` : ''}
+                            ${description ? `<div class="project-task-description mb-3">${description}</div>` : ''}
 
                             <div class="d-flex justify-content-between align-items-center">
                                 <div class="d-flex align-items-center">
@@ -2968,6 +2966,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     actions.unshift({ label: 'Completed', action: 'completed' });
                     actions.unshift({ label: 'Back to New Request', action: 'back_to_new_request' });
                 } else if (status === 'completed') {
+                    actions.unshift({ label: 'Back to Progress', action: 'back_to_progress' });
                     actions.unshift({ label: 'Rejected', action: 'rejected', danger: true });
                     actions.unshift({ label: 'Finished', action: 'finished' });
                 } else if (status === 'finished') {
@@ -3498,6 +3497,101 @@ document.addEventListener("DOMContentLoaded", function () {
             showFloatingAlert('Failed to load task details.', 'danger');
         });
     }
+
+    // Show status confirmation modal for task status changes (similar to task.js pattern)
+    function showStatusModalProject(taskId, taskCard, newStatus, actionTitle, statusLabel, confirmMessage) {
+        $.ajax({
+            url: appUrl + "/task/" + taskId,
+            type: "GET",
+            dataType: "json",
+            success: function (res) {
+                const task = res.data || {};
+                const taskTitle = task.title || "Untitled Task";
+                const taskDescription = task.description || "No description available";
+                const taskProject = (task.project && task.project.title) || "No Project";
+                const taskImage = task.image ? `${appUrl}/file/task/${task.image}` : null;
+
+                function getTaskInitials(title) {
+                    if (!title) return "NA";
+                    const words = String(title).trim().split(/\s+/);
+                    if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+                    return String(title).substring(0, 2).toUpperCase();
+                }
+
+                function getRandomColorFromText(text) {
+                    const colors = ["#6A5AE0", "#FF6B6B", "#4ECDC4", "#FFD93D", "#6BCF7F", "#FF8C42"];
+                    if (!text) return colors[0];
+                    let hash = 0;
+                    for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) >>> 0;
+                    return colors[hash % colors.length];
+                }
+
+                const initials = !taskImage ? getTaskInitials(task.title) : "";
+                const initialsColor = !taskImage ? getRandomColorFromText(task.title) : "#6A5AE0";
+
+                const avatarHtml = taskImage
+                    ? `<img src="${taskImage}" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;" onerror="this.onerror=null; this.src='${appUrl}/asset/img/avatar.png'">`
+                    : `<div class="d-flex align-items-center justify-content-center rounded-circle"
+                            style="width:48px;height:48px;font-size:14px;font-weight:600;color:#fff;background:${initialsColor};">
+                            ${initials}
+                    </div>`;
+
+                const modalId = 'statusConfirmModalProject';
+                try { const existing = document.getElementById(modalId); if (existing) existing.remove(); } catch(_){}
+
+                const modalHtml = `
+                <div class="modal fade" id="${modalId}" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content modal-content-custom">
+                            <div class="modal-body modal-body-custom">
+                                <div class="d-flex mb-3">
+                                    <div class="me-3">${avatarHtml}</div>
+                                    <div class="p-0 m-0 border-0">
+                                        <small class="text-muted" style="font-size: 10px">${taskProject}</small>
+                                        <h5 class="fw-bold" style="font-size: 16px">${taskTitle}</h5>
+                                        <div class="task-description-container flex-grow-1">
+                                            <p class="task-description">${taskDescription || ''}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="my-3">
+                                <p class="fw-normal fs-6 text-center mb-4">${confirmMessage || 'Are you sure want to move this task?'}</p>
+                                <div class="modal-footer modal-footer-custom">
+                                    <button type="button" class="btn btn-custom-close" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" class="btn btn-submit-black" id="statusModalProjectConfirmBtn">Confirm</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                const mEl = document.getElementById(modalId);
+                const modal = new bootstrap.Modal(mEl);
+                modal.show();
+
+                mEl.addEventListener('hidden.bs.modal', function onHide(){ 
+                    mEl.removeEventListener('hidden.bs.modal', onHide); 
+                    try { mEl.remove(); } catch(_){} 
+                });
+
+                const confirmBtn = document.getElementById('statusModalProjectConfirmBtn');
+                confirmBtn.onclick = function () {
+                    try {
+                        updateTaskStatus(taskId, newStatus, taskCard).finally(function(){ 
+                            try { modal.hide(); } catch(_) {} 
+                        });
+                    } catch (e) {
+                        try { updateTaskStatus(taskId, newStatus, taskCard); } catch(_) {}
+                        try { modal.hide(); } catch(_) {}
+                    }
+                };
+            },
+            error: function () {
+                showFloatingAlert("Failed to load task details.", "danger");
+            }
+        });
+    }
     
     window.handleTaskAction = function(taskId, action) {
         const taskCard = document.querySelector(`.custom-card[data-task-id="${taskId}"]`);
@@ -3508,6 +3602,9 @@ document.addEventListener("DOMContentLoaded", function () {
             handleTaskDelete(taskId);
         } else if (action === 'completed') {
             showConfirmationToCompleteModal(taskId, taskCard);
+        } else if (action === 'back_to_progress') {
+            // Show confirmation modal before moving completed task back to In Progress
+            showStatusModalProject(taskId, taskCard, 'in_progress', 'Back to Progress', 'In Progress', 'Move this task back to In Progress?');
         } else {
             updateTaskStatus(taskId, action, taskCard);
         }
@@ -5259,8 +5356,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 if (Array.isArray(referenceUrls) && referenceUrls.length) {
                     refUrlsHtml = '<div class="mb-2">';
                     referenceUrls.forEach((u, idx) => {
+                        // Display the actual URL instead of a label
+                        const displayUrl = u || '';
                         refUrlsHtml += `<div class="d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
-                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1" style="color: #444;">REF_URL_TASK_${idx+1}</a>
+                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1 text-truncate" style="color: #444;" title="${displayUrl}">${displayUrl}</a>
                                         </div>`;
                     });
                     refUrlsHtml += '</div>';
@@ -22827,6 +22926,364 @@ document.addEventListener("DOMContentLoaded", function () {
                     showFloatingAlert(errorMsg, 'danger');
                 }
             });
+        });
+    });
+})();
+
+// Handler untuk button Add Project di Project Tree Modal
+(function() {
+    'use strict';
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Delegated event handler untuk button add-project-tree
+        document.addEventListener('click', function(e) {
+            const addBtn = e.target.closest('.add-project-tree');
+            if (!addBtn) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            try {
+                // Tutup Project Tree Modal jika terbuka
+                const projectTreeModal = document.getElementById('projectTreeModal');
+                if (projectTreeModal) {
+                    const bsModal = bootstrap.Modal.getInstance(projectTreeModal);
+                    if (bsModal) {
+                        bsModal.hide();
+                    }
+                }
+                
+                setTimeout(function() {
+                    try {
+                        const addProjectModal = document.getElementById('addProjectModal');
+                        if (addProjectModal) {
+                            const addModal = new bootstrap.Modal(addProjectModal);
+                            addModal.show();
+                            
+                            // Reset form jika diperlukan
+                            const form = document.getElementById('addProjectForm');
+                            if (form) {
+                                form.reset();
+                                
+                                // Reset Quill editor jika ada
+                                if (window.__quillAdd && window.__quillAdd.root) {
+                                    try {
+                                        window.__quillAdd.root.innerHTML = '';
+                                    } catch(_) {}
+                                }
+                                
+                                const descTextarea = document.getElementById('description');
+                                if (descTextarea) {
+                                    descTextarea.value = '';
+                                }
+                                
+                                try {
+                                    if (typeof projectSelectedFiles !== 'undefined') {
+                                        projectSelectedFiles = [];
+                                    }
+                                    if (typeof displayProjectSelectedFiles === 'function') {
+                                        displayProjectSelectedFiles();
+                                    }
+                                } catch(_) {}
+                                
+                                // Reset image preview
+                                const imageLabel = document.getElementById('imageLabel');
+                                const imageClearBtn = document.getElementById('imageClearBtn');
+                                if (imageLabel) {
+                                    imageLabel.style.backgroundImage = "url('" + (appUrl || '') + "/asset/img/background/add-image.png')";
+                                    imageLabel.style.backgroundSize = '50%';
+                                }
+                                if (imageClearBtn) {
+                                    imageClearBtn.classList.add('d-none');
+                                }
+                                
+                                // Reset selected collaborators
+                                const coAuthorContainer = document.getElementById('selected_co_authors');
+                                const contributorContainer = document.getElementById('selected_contributors');
+                                if (coAuthorContainer) coAuthorContainer.innerHTML = '';
+                                if (contributorContainer) contributorContainer.innerHTML = '';
+                                
+                                const coAuthorHidden = document.getElementById('co_author');
+                                const contributorHidden = document.getElementById('contributors');
+                                if (coAuthorHidden) coAuthorHidden.value = '';
+                                if (contributorHidden) contributorHidden.value = '';
+                                
+                                // Reset part of project
+                                const selectedProject = document.getElementById('add_selected_project');
+                                const parentInputs = document.getElementById('add_parent_inputs');
+                                if (selectedProject) selectedProject.innerHTML = '';
+                                if (parentInputs) parentInputs.innerHTML = '';
+                                
+                                // Set default dates
+                                try {
+                                    const startDate = document.getElementById('start_date');
+                                    const dueDate = document.getElementById('due_date');
+                                    const now = new Date();
+                                    const offset = now.getTimezoneOffset();
+                                    const localDate = new Date(now.getTime() - offset * 60000);
+                                    const dateStr = localDate.toISOString().slice(0, 16);
+                                    
+                                    if (startDate && !startDate.value) startDate.value = dateStr;
+                                    if (dueDate && !dueDate.value) dueDate.value = dateStr;
+                                } catch(_) {}
+                                
+                                // Reset due_forever checkbox
+                                const dueForever = document.getElementById('due_forever');
+                                const dueDateInput = document.getElementById('due_date');
+                                if (dueForever) dueForever.checked = false;
+                                if (dueDateInput) dueDateInput.disabled = false;
+                                
+                                // Clear any alerts
+                                const alert = document.getElementById('addProjectAlert');
+                                if (alert) {
+                                    alert.classList.add('d-none');
+                                    alert.style.display = 'none';
+                                }
+                            }
+                        }
+                    } catch(err) {
+                        console.error('Error opening Add Project Modal:', err);
+                        try {
+                            const mainAddBtn = document.querySelector('.btn-add-project');
+                            if (mainAddBtn) mainAddBtn.click();
+                        } catch(_) {}
+                    }
+                }, 350); 
+                
+            } catch(err) {
+                console.error('Error handling add-project-tree button:', err);
+            }
+        });
+    });
+})();
+
+(function () {
+    'use strict';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('click', function (e) {
+            const addProjectBtn = e.target.closest('.add-project-action');
+            if (!addProjectBtn) return;
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            try {
+                let parentProjectId = null;
+                let parentProjectTitle = '';
+
+                if (typeof window.currentProjectId !== 'undefined' && window.currentProjectId) {
+                    parentProjectId = window.currentProjectId;
+                }
+
+                if (!parentProjectId) {
+                    const card = addProjectBtn.closest('[data-project-id]');
+                    if (card && card.dataset.projectId) {
+                        parentProjectId = card.dataset.projectId;
+                    }
+                }
+
+                try {
+                    if (parentProjectId) {
+                        const card = document.querySelector('[data-project-id="' + parentProjectId + '"]');
+                        if (card) {
+                            const titleEl = card.querySelector('.project-box-title, .task-box .task-name, [data-project-title]');
+                            if (titleEl) {
+                                parentProjectTitle = titleEl.textContent.trim() || titleEl.dataset.projectTitle || '';
+                            }
+                        }
+                    }
+                } catch (_) { }
+
+                try {
+                    document.querySelectorAll('.project-menu, .dropdown-action').forEach(function (menu) {
+                        if (menu && menu.style) {
+                            menu.style.display = 'none';
+                        }
+                    });
+                } catch (_) { }
+
+                setTimeout(function () {
+                    try {
+                        const addProjectModal = document.getElementById('addProjectModal');
+                        const treeModal = document.getElementById('projectTreeModal');
+
+                        if (addProjectModal) {
+                            const addModal = new bootstrap.Modal(addProjectModal, { backdrop: false });
+                            addModal.show();
+
+                            addProjectModal.style.zIndex = '2000';
+                            const existingBackdrop = document.querySelector('.modal-backdrop');
+                            if (existingBackdrop) {
+                                existingBackdrop.style.zIndex = '1999';
+                            }
+
+                            setTimeout(() => {
+                                const backdrops = document.querySelectorAll('.modal-backdrop');
+                                if (backdrops.length > 1) {
+                                    for (let i = 1; i < backdrops.length; i++) {
+                                        backdrops[i].remove();
+                                    }
+                                }
+                            }, 300);
+
+                            addProjectModal.addEventListener('hidden.bs.modal', function () {
+                                const backdrops = document.querySelectorAll('.modal-backdrop');
+                                if (backdrops.length > 1) {
+                                    for (let i = 1; i < backdrops.length; i++) {
+                                        backdrops[i].remove();
+                                    }
+                                }
+
+                                if (treeModal) {
+                                    treeModal.style.zIndex = '1055';
+                                }
+                                const backdrop = document.querySelector('.modal-backdrop');
+                                if (backdrop) {
+                                    backdrop.style.zIndex = '1050';
+                                    backdrop.classList.add('show');
+                                }
+                            });
+
+                            const form = document.getElementById('addProjectForm');
+                            if (form) {
+                                form.reset();
+
+                                if (window.__quillAdd && window.__quillAdd.root) {
+                                    try {
+                                        window.__quillAdd.root.innerHTML = '';
+                                    } catch (_) { }
+                                }
+
+                                const descTextarea = document.getElementById('description');
+                                if (descTextarea) {
+                                    descTextarea.value = '';
+                                }
+
+                                // Reset selected files
+                                try {
+                                    if (typeof projectSelectedFiles !== 'undefined') {
+                                        projectSelectedFiles = [];
+                                    }
+                                    if (typeof displayProjectSelectedFiles === 'function') {
+                                        displayProjectSelectedFiles();
+                                    }
+                                } catch (_) { }
+
+                                // Reset image preview
+                                const imageLabel = document.getElementById('imageLabel');
+                                const imageClearBtn = document.getElementById('imageClearBtn');
+                                if (imageLabel) {
+                                    imageLabel.style.backgroundImage = "url('" + (appUrl || '') + "/asset/img/background/add-image.png')";
+                                    imageLabel.style.backgroundSize = '50%';
+                                }
+                                if (imageClearBtn) {
+                                    imageClearBtn.classList.add('d-none');
+                                }
+
+                                // Reset selected collaborators
+                                const coAuthorContainer = document.getElementById('selected_co_authors');
+                                const contributorContainer = document.getElementById('selected_contributors');
+                                if (coAuthorContainer) coAuthorContainer.innerHTML = '';
+                                if (contributorContainer) contributorContainer.innerHTML = '';
+
+                                const coAuthorHidden = document.getElementById('co_author');
+                                const contributorHidden = document.getElementById('contributors');
+                                if (coAuthorHidden) coAuthorHidden.value = '';
+                                if (contributorHidden) contributorHidden.value = '';
+
+                                // Reset project parent
+                                const selectedProject = document.getElementById('add_selected_project');
+                                const parentInputs = document.getElementById('add_parent_inputs');
+                                if (selectedProject) selectedProject.innerHTML = '';
+                                if (parentInputs) parentInputs.innerHTML = '';
+
+                                if (parentProjectId && selectedProject && parentInputs) {
+                                    try {
+                                        fetch(appUrl + '/project/' + parentProjectId)
+                                            .then((res) => res.json())
+                                            .then((response) => {
+                                                const project = response && response.data ? response.data : response;
+                                                const pTitle = project.title || project.name || parentProjectTitle || 'Project ' + parentProjectId;
+                                                const pImage = project.image || '';
+
+                                                let avatarHtml = '';
+                                                if (pImage) {
+                                                    avatarHtml = '<img src="' + appUrl + '/file/project/' + pImage + '" width="28" height="28" style="object-fit:cover;border-radius:50%;">';
+                                                } else {
+                                                    const colors = ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#FF5722', '#795548'];
+                                                    const color = colors[Math.floor(Math.random() * colors.length)];
+                                                    const initial = (pTitle || '?').charAt(0).toUpperCase();
+                                                    avatarHtml = '<div style="width:28px;height:28px;border-radius:50%;background:' + color + ';color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;">' + initial + '</div>';
+                                                }
+
+                                                const wrapper = document.createElement('div');
+                                                wrapper.className = 'd-inline-block me-2 mb-2';
+                                                wrapper.innerHTML =
+                                                    '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project" data-parent-id="' + parentProjectId + '">' +
+                                                    avatarHtml +
+                                                    '<span class="flex-grow-1 text-truncate" style="max-width:160px;">' + pTitle + '</span>' +
+                                                    '<button type="button" class="btn btn-sm btn-remove-parent" style="line-height:1"><span class="material-symbols-outlined">close</span></button>' +
+                                                    '</div>';
+
+                                                selectedProject.appendChild(wrapper);
+
+                                                const hiddenInput = document.createElement('input');
+                                                hiddenInput.type = 'hidden';
+                                                hiddenInput.name = 'parent_project_ids[]';
+                                                hiddenInput.value = String(parentProjectId);
+                                                parentInputs.appendChild(hiddenInput);
+
+                                                const removeBtn = wrapper.querySelector('.btn-remove-parent');
+                                                if (removeBtn) {
+                                                    removeBtn.addEventListener('click', function () {
+                                                        wrapper.remove();
+                                                        if (parentInputs) parentInputs.innerHTML = '';
+                                                    });
+                                                }
+                                            });
+                                    } catch (err) {
+                                        console.warn('Error handling parent project:', err);
+                                    }
+                                }
+
+                                // Set default date
+                                try {
+                                    const startDate = document.getElementById('start_date');
+                                    const dueDate = document.getElementById('due_date');
+                                    const now = new Date();
+                                    const offset = now.getTimezoneOffset();
+                                    const localDate = new Date(now.getTime() - offset * 60000);
+                                    const dateStr = localDate.toISOString().slice(0, 16);
+
+                                    if (startDate) startDate.value = dateStr;
+                                    if (dueDate) dueDate.value = dateStr;
+                                } catch (_) { }
+
+                                const dueForever = document.getElementById('due_forever');
+                                const dueDateInput = document.getElementById('due_date');
+                                if (dueForever) dueForever.checked = false;
+                                if (dueDateInput) dueDateInput.disabled = false;
+
+                                const alert = document.getElementById('addProjectAlert');
+                                if (alert) {
+                                    alert.classList.add('d-none');
+                                    alert.style.display = 'none';
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error opening Add Project Modal from tree action:', err);
+                        try {
+                            const mainAddBtn = document.querySelector('.btn-add-project');
+                            if (mainAddBtn) mainAddBtn.click();
+                        } catch (_) { }
+                    }
+                }, 350);
+
+            } catch (err) {
+                console.error('Error handling add-project-action button:', err);
+            }
         });
     });
 })();
