@@ -715,7 +715,7 @@
                             </div>
                             <div class="mb-3 custom-input">
                                 <label class="form-label label-custom">Reference Files</label>
-                                <div id="edit_task_reference_files_container" class="d-flex flex-column gap-2">
+                                <div id="edit_project_task_reference_files_container" class="d-flex flex-column gap-2">
                                     <div class="input-group">
                                         <input type="file" class="form-control input-text" name="reference_files[]"
                                             accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
@@ -724,7 +724,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div id="task_existing_reference_files" class="mt-2"></div>
+                                <div id="project_task_existing_reference_files" class="mt-2"></div>
                                 <input type="hidden" id="task_existing_reference_files_input" name="existing_reference_files"
                                     value="[]">
                             </div>
