@@ -5327,15 +5327,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 let refUrlsHtml = '';
                 const referenceUrls = task.reference_urls || (task.reference_url ? [task.reference_url] : []);
+
                 if (Array.isArray(referenceUrls) && referenceUrls.length) {
                     refUrlsHtml = '<div class="mb-2">';
+
                     referenceUrls.forEach((u, idx) => {
-                        // Display the actual URL instead of a label
                         const displayUrl = u || '';
-                        refUrlsHtml += `<div class="d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
-                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1 text-truncate" style="color: #444;" title="${displayUrl}">${displayUrl}</a>
-                                        </div>`;
+
+                        refUrlsHtml += `
+                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px; position:relative;">
+                                
+                                <a href="${u}" target="_blank"
+                                    class="text-decoration-none flex-grow-1 text-truncate"
+                                    style="color: #444;" title="${displayUrl}">
+                                    ${displayUrl}
+                                </a>
+
+                                <span class="material-symbols-outlined ms-2 open-url-btn action-icon"
+                                    data-url="${u}">
+                                    open_in_new
+                                </span>
+
+                                <span class="material-symbols-outlined ms-2 copy-url-btn action-icon"
+                                    data-url="${u}">
+                                    content_copy
+                                </span>
+
+                            </div>
+                        `;
                     });
+
                     refUrlsHtml += '</div>';
                 }
 
