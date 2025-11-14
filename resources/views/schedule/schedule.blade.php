@@ -271,11 +271,15 @@
                             <div class="mb-3 custom-form-employee">
                                 <label for="schedule_reference_files" class="form-label label-custom">Reference
                                     Files</label>
-                                <input type="file" id="schedule_reference_files" name="reference_files[]"
-                                    class="form-control input-text" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-                                    multiple>
-                                <div class="form-text">Multiple files supported.</div>
-                                <div id="schedule_reference_files_preview" class="mt-2"></div>
+                                <div id="schedule_reference_files_container">
+                                    <div class="input-group mb-2">
+                                        <input type="file" name="reference_file[]" class="form-control input-text" 
+                                            accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                        <button type="button" class="btn btn-primary add-ref-file">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="mb-1 custom-form-employee position-relative">
                                 <label for="schedule_executor_input" class="form-label label-custom">Executor <span class="text-danger">*</span></label>
@@ -580,11 +584,16 @@
                             <div class="mb-3 custom-form-employee">
                                 <label for="edit_schedule_reference_files" class="form-label label-custom">Reference
                                     Files</label>
-                                <input type="file" id="edit_schedule_reference_files" name="reference_files[]"
-                                    class="form-control input-text" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-                                    multiple>
-                                <div class="form-text">Multiple files supported.</div>
-                                <div id="edit_schedule_reference_files_preview" class="mt-2"></div>
+                                <div id="edit_schedule_reference_files_container">
+                                    <div class="input-group mb-2">
+                                        <input type="file" name="reference_file[]" class="form-control input-text" 
+                                            accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                        <button type="button" class="btn btn-primary add-ref-file">
+                                            <span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="schedule_existing_reference_files" class="mt-2"></div>
                             </div>
 
                             <!-- Executors -->
