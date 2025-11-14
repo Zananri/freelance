@@ -595,11 +595,18 @@ class ScheduleController extends Controller
                 $data['image'] = $name;
             }
 
-            // Handle reference files
+            // Handle reference files (support both reference_files[] and reference_file[] for compatibility)
             $refFiles = [];
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $idx => $file) {
                     $name = 'SCHEDULE_' . time() . '_' . $idx . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/schedule_reference_files'), $name);
+                    $refFiles[] = $name;
+                }
+            }
+            if ($request->hasFile('reference_file')) {
+                foreach ($request->file('reference_file') as $idx => $file) {
+                    $name = 'SCHEDULE_' . time() . '_' . (count($refFiles) + $idx) . '.' . $file->getClientOriginalExtension();
                     $file->move(public_path('file/schedule_reference_files'), $name);
                     $refFiles[] = $name;
                 }
@@ -959,11 +966,18 @@ class ScheduleController extends Controller
                 }
             }
 
-            // Handle new uploads
+            // Handle new uploads (support both reference_files[] and reference_file[] for compatibility)
             $newFiles = [];
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $idx => $file) {
                     $name = 'SCHEDULE_' . time() . '_' . $idx . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('file/schedule_reference_files'), $name);
+                    $newFiles[] = $name;
+                }
+            }
+            if ($request->hasFile('reference_file')) {
+                foreach ($request->file('reference_file') as $idx => $file) {
+                    $name = 'SCHEDULE_' . time() . '_' . (count($newFiles) + $idx) . '.' . $file->getClientOriginalExtension();
                     $file->move(public_path('file/schedule_reference_files'), $name);
                     $newFiles[] = $name;
                 }

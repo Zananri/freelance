@@ -1514,11 +1514,19 @@ class TaskController extends Controller
             // Initialize reference files array
             $referenceFiles = [];
 
-            // Handle reference files upload
+            // Handle reference files upload (support both reference_files[] and reference_file[])
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $index => $file) {
                     $referenceExtension = $file->getClientOriginalExtension();
                     $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
+                    $file->move(public_path('file/task_reference_files'), $referenceName);
+                    $referenceFiles[] = $referenceName;
+                }
+            }
+            if ($request->hasFile('reference_file')) {
+                foreach ($request->file('reference_file') as $index => $file) {
+                    $referenceExtension = $file->getClientOriginalExtension();
+                    $referenceName = 'TASK_' . time() . '_' . (count($referenceFiles) + $index) . '.' . $referenceExtension;
                     $file->move(public_path('file/task_reference_files'), $referenceName);
                     $referenceFiles[] = $referenceName;
                 }
@@ -2261,11 +2269,19 @@ class TaskController extends Controller
 
             $referenceFiles = $existingFilesToKeep;
 
-            // Add new files
+            // Add new files (support both reference_files[] and reference_file[])
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $index => $file) {
                     $referenceExtension = $file->getClientOriginalExtension();
                     $referenceName = 'TASK_' . time() . '_' . $index . '.' . $referenceExtension;
+                    $file->move(public_path('file/task_reference_files'), $referenceName);
+                    $referenceFiles[] = $referenceName;
+                }
+            }
+            if ($request->hasFile('reference_file')) {
+                foreach ($request->file('reference_file') as $index => $file) {
+                    $referenceExtension = $file->getClientOriginalExtension();
+                    $referenceName = 'TASK_' . time() . '_' . (count($referenceFiles) + $index) . '.' . $referenceExtension;
                     $file->move(public_path('file/task_reference_files'), $referenceName);
                     $referenceFiles[] = $referenceName;
                 }
@@ -3055,7 +3071,7 @@ class TaskController extends Controller
                 }
             }
 
-            // Handle reference files upload (multiple)
+            // Handle reference files upload (multiple) - support both reference_files[] and reference_file[]
             $uploadedRefFiles = [];
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $idx => $file) {
@@ -3064,6 +3080,25 @@ class TaskController extends Controller
                     }
                     $ext = $file->getClientOriginalExtension();
                     $name = 'TASK_FEEDBACK_' . time() . '_' . $idx . '.' . $ext;
+                    try {
+                        $file->move($taskRefDir, $name);
+                        $uploadedRefFiles[] = $name;
+                    } catch (\Exception $e) {
+                        return response()->json([
+                            'code' => 500,
+                            'status' => 'error',
+                            'message' => 'Failed to store one of the reference files: ' . $e->getMessage(),
+                        ], 500);
+                    }
+                }
+            }
+            if ($request->hasFile('reference_file')) {
+                foreach ($request->file('reference_file') as $idx => $file) {
+                    if (!$file) {
+                        continue;
+                    }
+                    $ext = $file->getClientOriginalExtension();
+                    $name = 'TASK_FEEDBACK_' . time() . '_' . (count($uploadedRefFiles) + $idx) . '.' . $ext;
                     try {
                         $file->move($taskRefDir, $name);
                         $uploadedRefFiles[] = $name;
@@ -3255,11 +3290,19 @@ class TaskController extends Controller
                 $currentExisting = $keptNames;
             }
 
-            // Append new reference files if provided
+            // Append new reference files if provided (support both reference_files[] and reference_file[])
             if ($request->hasFile('reference_files')) {
                 foreach ($request->file('reference_files') as $idx => $file) {
                     $ext = $file->getClientOriginalExtension();
                     $name = 'TASK_FEEDBACK_' . time() . '_' . $idx . '.' . $ext;
+                    $file->move(public_path('file/task_reference_files'), $name);
+                    $currentExisting[] = $name;
+                }
+            }
+            if ($request->hasFile('reference_file')) {
+                foreach ($request->file('reference_file') as $idx => $file) {
+                    $ext = $file->getClientOriginalExtension();
+                    $name = 'TASK_FEEDBACK_' . time() . '_' . (count($currentExisting) + $idx) . '.' . $ext;
                     $file->move(public_path('file/task_reference_files'), $name);
                     $currentExisting[] = $name;
                 }
