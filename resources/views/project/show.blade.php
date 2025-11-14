@@ -717,15 +717,16 @@
                                 <label class="form-label label-custom">Reference Files</label>
                                 <div id="edit_project_task_reference_files_container" class="d-flex flex-column gap-2">
                                     <div class="input-group">
-                                        <input type="file" class="form-control input-text" name="reference_files[]"
-                                            accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                                        <button type="button" class="btn btn-submit-black add-ref-file"
+                                        <input type="file" class="form-control input-text" id="edit_project_task_reference_files" name="reference_files[]"
+                                            accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip" multiple>
+                                        <button type="button" class="btn btn-submit-black add-ref-file-project-task"
                                             aria-label="Add File"><span class="material-symbols-outlined">add</span>
                                         </button>
                                     </div>
                                 </div>
+                                <div id="edit_project_task_reference_files_preview" class="mt-2"></div>
                                 <div id="project_task_existing_reference_files" class="mt-2"></div>
-                                <input type="hidden" id="task_existing_reference_files_input" name="existing_reference_files"
+                                <input type="hidden" id="task_existing_reference_files_input" name="task_existing_reference_files"
                                     value="[]">
                             </div>
                             <div class="mb-3 input-custom d-flex justify-content-between">

@@ -9667,21 +9667,22 @@ function formatTaskImage(image, title = "") {
             }
         }
 
+        // Handler for reference files in edit project task modal
         document.addEventListener('shown.bs.modal', function (event) {
             const modal = event.target;
-            if (!modal.id.includes('edit')) return;
+            if (modal.id !== 'editProjectTaskModal') return;
 
-            const filesInput = modal.querySelector('#edit_task_reference_files');
-            const filesPreview = modal.querySelector('#edit_reference_files_preview');
+            const filesInput = document.getElementById('edit_project_task_reference_files');
+            const filesPreview = document.getElementById('edit_project_task_reference_files_preview');
 
-            window.editSelectedFiles = window.editSelectedFiles || [];
+            window.editProjectTaskSelectedFiles = window.editProjectTaskSelectedFiles || [];
 
-            function displayEditSelectedFiles() {
+            function displayEditProjectTaskSelectedFiles() {
                 if (!filesPreview) return;
                 filesPreview.innerHTML = '';
-                if (!window.editSelectedFiles.length) return;
+                if (!window.editProjectTaskSelectedFiles.length) return;
 
-                window.editSelectedFiles.forEach((file, idx) => {
+                window.editProjectTaskSelectedFiles.forEach((file, idx) => {
                     const item = document.createElement('div');
                     item.className = 'preview-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
                     
@@ -9713,8 +9714,8 @@ function formatTaskImage(image, title = "") {
                     removeBtn.className = 'border-0 bg-transparent';
                     removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444;">close</span>';
                     removeBtn.addEventListener('click', function () {
-                        window.editSelectedFiles.splice(idx, 1);
-                        displayEditSelectedFiles();
+                        window.editProjectTaskSelectedFiles.splice(idx, 1);
+                        displayEditProjectTaskSelectedFiles();
                     });
 
                     item.appendChild(info);
@@ -9724,17 +9725,23 @@ function formatTaskImage(image, title = "") {
             }
 
             if (filesInput) {
-                filesInput.addEventListener('change', function () {
+                // Remove previous listener if exists
+                if (filesInput._changeHandler) {
+                    filesInput.removeEventListener('change', filesInput._changeHandler);
+                }
+                
+                filesInput._changeHandler = function () {
                     const chosen = Array.from(this.files || []);
-                    console.log('Files chosen:', chosen);
-                    window.editSelectedFiles.push(...chosen);
-                    displayEditSelectedFiles();
-
+                    console.log('Files chosen for edit project task:', chosen);
+                    window.editProjectTaskSelectedFiles.push(...chosen);
+                    displayEditProjectTaskSelectedFiles();
                     this.value = '';
-                });
+                };
+                
+                filesInput.addEventListener('change', filesInput._changeHandler);
             }
 
-            displayEditSelectedFiles();
+            displayEditProjectTaskSelectedFiles();
         });
 
 
@@ -9742,18 +9749,74 @@ function formatTaskImage(image, title = "") {
         if (typeof window.displayExistingReferenceFiles !== 'function') {
             window.displayExistingReferenceFiles = function(files){
                 try {
-                    const container = document.getElementById('existing_reference_files');
+                    // Try project task container first, then fallback to general container
+                    let container = document.getElementById('project_task_existing_reference_files');
+                    if (!container) container = document.getElementById('existing_reference_files');
                     if (!container) return;
+                    
                     container.innerHTML = '';
+                    
+                    // Get hidden input for tracking existing files
+                    let hiddenInput = document.getElementById('task_existing_reference_files_input');
+                    let existingFiles = [];
+                    
                     (files || []).forEach((f) => {
+                        const fileName = (typeof f === 'string') ? f : (f.name || f.file_name || '');
+                        existingFiles.push(fileName);
+                        
                         const div = document.createElement('div');
-                        div.className = 'd-flex align-items-center gap-2 mb-1';
-                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined'; icon.textContent = 'insert_drive_file';
-                        const a = document.createElement('a'); a.href = (typeof f === 'string') ? (f.startsWith('http') ? f : (appUrl + '/' + f.replace(/^\//,''))) : '#'; a.textContent = (f.name || f.file_name || f) || 'file'; a.target = '_blank';
-                        div.appendChild(icon); div.appendChild(a);
+                        div.className = 'd-flex align-items-center justify-content-between gap-2 mb-2 p-2 bg-light rounded';
+                        div.dataset.fileName = fileName;
+                        
+                        const leftPart = document.createElement('div');
+                        leftPart.className = 'd-flex align-items-center gap-2';
+                        
+                        const icon = document.createElement('span');
+                        icon.className = 'material-symbols-outlined';
+                        icon.textContent = 'insert_drive_file';
+                        
+                        const a = document.createElement('a');
+                        a.href = (typeof f === 'string') ? (f.startsWith('http') ? f : (appUrl + '/' + f.replace(/^\//,''))) : '#';
+                        a.textContent = fileName || 'file';
+                        a.target = '_blank';
+                        a.style.textDecoration = 'none';
+                        a.style.color = '#333';
+                        
+                        leftPart.appendChild(icon);
+                        leftPart.appendChild(a);
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm border-0 bg-transparent';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444;">close</span>';
+                        removeBtn.addEventListener('click', function() {
+                            div.remove();
+                            // Update hidden input
+                            if (hiddenInput) {
+                                try {
+                                    let currentFiles = JSON.parse(hiddenInput.value || '[]');
+                                    currentFiles = currentFiles.filter(fn => fn !== fileName);
+                                    hiddenInput.value = JSON.stringify(currentFiles);
+                                    console.log('Updated existing files:', hiddenInput.value);
+                                } catch(e) {
+                                    console.error('Error updating existing files:', e);
+                                }
+                            }
+                        });
+                        
+                        div.appendChild(leftPart);
+                        div.appendChild(removeBtn);
                         container.appendChild(div);
                     });
-                } catch(_) {}
+                    
+                    // Update hidden input with current files
+                    if (hiddenInput) {
+                        hiddenInput.value = JSON.stringify(existingFiles);
+                        console.log('Initial existing files:', hiddenInput.value);
+                    }
+                } catch(e) {
+                    console.error('Error in displayExistingReferenceFiles:', e);
+                }
             };
         }
 
@@ -9807,11 +9870,14 @@ function formatTaskImage(image, title = "") {
 
                 // Append reference files selected in preview
                 try {
-                    const files = Array.isArray(window.editSelectedFiles) ? window.editSelectedFiles : [];
+                    const files = Array.isArray(window.editProjectTaskSelectedFiles) ? window.editProjectTaskSelectedFiles : [];
                     // Clear any existing so we avoid duplicates
                     try { fd.delete('reference_files[]'); } catch(_) {}
                     files.forEach(f => fd.append('reference_files[]', f));
-                } catch(_) {}
+                    console.log('Submitting', files.length, 'new reference files');
+                } catch(e) {
+                    console.error('Error appending reference files:', e);
+                }
 
                 $.ajax({
                     url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
@@ -9861,6 +9927,30 @@ function formatTaskImage(image, title = "") {
             // guard against double-binding
             editForm._boundSubmitHandler = true;
         }
+
+        // Reset file array when modal is closed
+        const editModal = document.getElementById('editProjectTaskModal');
+        if (editModal && !editModal._boundHiddenHandler) {
+            editModal.addEventListener('hidden.bs.modal', function() {
+                window.editProjectTaskSelectedFiles = [];
+                const preview = document.getElementById('edit_project_task_reference_files_preview');
+                if (preview) preview.innerHTML = '';
+                console.log('Reset edit project task files on modal close');
+            });
+            editModal._boundHiddenHandler = true;
+        }
+
+        // Handler for add file button in project task edit modal
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.add-ref-file-project-task')) {
+                e.preventDefault();
+                const fileInput = document.getElementById('edit_project_task_reference_files');
+                if (fileInput) {
+                    fileInput.click();
+                }
+            }
+        });
+
     } catch(_) {}
 })();
 
