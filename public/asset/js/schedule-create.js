@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 newGroup.innerHTML = `
                     <input type="file" name="reference_file[]" class="form-control input-text" 
                         accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                    <button type="button" class="btn btn-danger remove-ref-file">
+                    <button type="button" class="btn btn-submit-black btn-remove-file remove-ref-file">
                         <span class="material-symbols-outlined">close</span>
                     </button>
                 `;

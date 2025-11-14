@@ -275,7 +275,7 @@
                                     <div class="input-group mb-2">
                                         <input type="file" name="reference_file[]" class="form-control input-text" 
                                             accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                                        <button type="button" class="btn btn-primary add-ref-file">
+                                        <button type="button" class="btn btn-submit-black add-ref-file">
                                             <span class="material-symbols-outlined">add</span>
                                         </button>
                                     </div>
@@ -588,7 +588,7 @@
                                     <div class="input-group mb-2">
                                         <input type="file" name="reference_file[]" class="form-control input-text" 
                                             accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
-                                        <button type="button" class="btn btn-primary add-ref-file">
+                                        <button type="button" class="btn btn-submit-black add-ref-file">
                                             <span class="material-symbols-outlined">add</span>
                                         </button>
                                     </div>
