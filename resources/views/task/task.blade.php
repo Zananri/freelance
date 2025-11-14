@@ -102,8 +102,10 @@
             </div>
 
             <a href="{{ route('schedules') }}" class="btn btn-schedule-custom">Schedule</a>
-            <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add <span
-                    class="btn-text-add">Task</span></button>
+            <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <span class="btn-text-add d-none d-md-inline">Add Task</span>
+                <span class="material-symbols-outlined btn-mobile-add d-inline d-md-none">add</span>
+            </button>
         </div>
     </div>
 
