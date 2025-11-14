@@ -77,7 +77,7 @@ function showReferenceUrlsForTask(taskId) {
                         left.appendChild(a);
 
                         const btnGroup = document.createElement('div');
-                        btnGroup.className = 'd-flex align-items-center gap-1 ms-auto';
+                        btnGroup.className = 'd-flex align-items-center gap-1 ms-auto btn-hover-only';
 
                         const makeBtn = (icon, title, onClick) => {
                             const btn = document.createElement('button');
@@ -1843,7 +1843,7 @@ function showReferenceFilesForTask(taskId) {
 
                         const dlBtn = document.createElement('button');
                         dlBtn.type = 'button';
-                        dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        dlBtn.className = 'btn btn-sm btn-link p-0 ms-2 btn-hover-only';
                         dlBtn.title = 'Download';
                         dlBtn.style.color = "#444444";
                         dlBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">download</span>';
