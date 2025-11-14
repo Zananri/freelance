@@ -3011,7 +3011,7 @@ class ProjectController extends Controller
                     'image' => $fb->image ? asset('file/project/' . $fb->image) : null,
                     'reference_url' => $fb->reference_url,
                     'reference_urls' => $fb->reference_urls ?: ($fb->reference_url ? [$fb->reference_url] : []),
-                    'reference_file' => $fb->reference_file ? asset('file/project/' . $fb->reference_file) : null,
+                    'reference_file' => $fb->reference_file ? asset('file/project_reference_files/' . $fb->reference_file) : null,
                     'reference_files' => (function () use ($fb) {
                         $arr = $fb->reference_files;
                         if (is_string($arr) && $arr !== '') {
@@ -3024,7 +3024,7 @@ class ProjectController extends Controller
                         if (!is_array($arr))
                             $arr = [];
                         return array_map(function ($f) {
-                            return $f ? asset('file/project/' . ltrim($f, '/')) : null;
+                            return $f ? asset('file/project_reference_files/' . ltrim($f, '/')) : null;
                         }, $arr);
                     })(),
                     'created_at' => $fb->created_at,
@@ -3052,7 +3052,7 @@ class ProjectController extends Controller
                         'image' => $reply->image ? asset('file/project/' . $reply->image) : null,
                         'reference_url' => $reply->reference_url,
                         'reference_urls' => $reply->reference_urls ?: ($reply->reference_url ? [$reply->reference_url] : []),
-                        'reference_file' => $reply->reference_file ? asset('file/project/' . $reply->reference_file) : null,
+                        'reference_file' => $reply->reference_file ? asset('file/project_reference_files/' . $reply->reference_file) : null,
                         'reference_files' => (function () use ($reply) {
                             $arr = $reply->reference_files;
                             if (is_string($arr) && $arr !== '') {
@@ -3065,7 +3065,7 @@ class ProjectController extends Controller
                             if (!is_array($arr))
                                 $arr = [];
                             return array_map(function ($f) {
-                                return $f ? asset('file/project/' . ltrim($f, '/')) : null;
+                                return $f ? asset('file/project_reference_files/' . ltrim($f, '/')) : null;
                             }, $arr);
                         })(),
                         'created_at' => $reply->created_at,

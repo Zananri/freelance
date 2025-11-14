@@ -514,7 +514,7 @@
                         af.href = f;
                         af.download = "";
                         af.className = "feedback-reference-file ms-2";
-                        af.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx + 1);
+                        af.innerHTML = '<span class="material-symbols-outlined">download</span> FILE ' + (idx + 1);
                         refWrap.appendChild(af);
                     });
                 }
@@ -1176,7 +1176,7 @@
                                             af.style.color = "#444444";
                                             const fileName = f.split('/').pop();
                                             af.innerHTML =
-                                                '<span class="material-symbols-outlined" style="color: #444444;">draft</span> ' + fileName;
+                                                '<span class="material-symbols-outlined" style="color: #444444;">download</span> ' + fileName;
                                             refWrap.appendChild(af);
                                         } catch (_) {}
                                     });
@@ -1691,7 +1691,7 @@
                                                                 af.href = f;
                                                                 af.download = '';
                                                                 af.className = 'feedback-reference-file ms-2';
-                                                                af.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx + 1);
+                                                                af.innerHTML = '<span class="material-symbols-outlined">download</span> FILE ' + (idx + 1);
                                                                 repRefWrap.appendChild(af);
                                                             } catch (_) {}
                                                         });
@@ -1760,7 +1760,7 @@
                                                         editRep2.appendChild(editIcon2); editRep2.appendChild(editText2);
                                                         editRep2.addEventListener('click', function () {
                                                             try {
-                                                                var payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ var v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ var p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ var p2 = JSON.parse(rf); if (Array.isArray(p2)) rf = p2; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ var img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + img; return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + img; })() };
+                                                                var payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ var v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ var p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ var p2 = JSON.parse(rf); if (Array.isArray(p2)) rf = p2; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ var img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + img; return getMeta('app-url').replace(/\/$/, '') + '/file/project_reference_files/' + img; })() };
                                                                 // Prefer inline edit on the page if available
                                                                 var inlineEditor = document.getElementById('inline_feedback_editor');
                                                                 if (inlineEditor && typeof window.startInlineEditFeedback === 'function') {
@@ -2129,7 +2129,7 @@
                                     return appUrl.replace(/\/$/, "") + s;
                                 return (
                                     appUrl.replace(/\/$/, "") +
-                                    "/file/project/" +
+                                    "/file/project_reference_files/" +
                                     s.replace(/^\//, "")
                                 );
                             }
@@ -2332,7 +2332,7 @@
                                     return appUrl.replace(/\/$/, "") + s;
                                 return (
                                     appUrl.replace(/\/$/, "") +
-                                    "/file/project/" +
+                                    "/file/project_reference_files/" +
                                     s
                                 );
                             }
@@ -3206,7 +3206,7 @@
                                 var s = String(v);
                                 if (s.indexOf("http://")===0 || s.indexOf("https://")===0) return s;
                                 if (s.indexOf("/")===0) return appUrl.replace(/\/$/, "") + s;
-                                return appUrl.replace(/\/$/, "") + "/file/project/" + s;
+                                return appUrl.replace(/\/$/, "") + "/file/project_reference_files/" + s;
                             }
                             function toName(u){
                                 var s = String(u||"");
@@ -3332,7 +3332,7 @@
                             } catch(_) {}
                             if (window.__quillProjectFeedbackInline && window.__quillProjectFeedbackInline.root)
                                 window.__quillProjectFeedbackInline.root.innerHTML = data.feedback_comment || "";
-                            try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
+                            try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project_reference_files/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
                             try { var files = []; if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls; else if (Array.isArray(data.reference_files)) files = data.reference_files; else if (data.reference_file_url) files = [data.reference_file_url]; else if (data.reference_file) files = [data.reference_file]; window.renderInlineExistingFiles(files); } catch(_){ }
                             var sendBtn = document.getElementById(" ");
                             if (sendBtn){
