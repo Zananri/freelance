@@ -1530,6 +1530,8 @@
 }
 
 .add-ref-url,
+.add-ref-file,
+.add-ref-file:hover,
 .add-ref-url:hover {
     background: #444444;
 }
@@ -2839,6 +2841,8 @@
 }
 
 .btn-submit-black.add-ref-url,
+.btn-submit-black.add-ref-file,
+.btn-remove-file.remove-ref-file,
 .btn-remove-url.remove-ref-url {
     color: #444444;
     background: #ffffff;
