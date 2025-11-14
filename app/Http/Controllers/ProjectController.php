@@ -4542,4 +4542,373 @@ class ProjectController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Export project hierarchically with all children (recursive)
+     */
+    public function exportProjectHierarchical(Project $project)
+    {
+        try {
+            // Load only the tasks relationship (children and parents are methods, not relationships)
+            $project->load(['tasks']);
+            
+            // Get all children recursively
+            $allChildren = $this->getAllProjectChildren($project);
+            
+            // Debug: Log how many children we found
+            \Log::info("Export Hierarchical Debug", [
+                'parent_project' => $project->title,
+                'parent_id' => $project->id,
+                'direct_children_count' => $project->children()->count(),
+                'total_descendants_count' => count($allChildren),
+                'descendants_ids' => collect($allChildren)->pluck('id')->toArray(),
+                'descendants_titles' => collect($allChildren)->pluck('title')->toArray()
+            ]);
+            
+            // Export only children (parent project is already in the title, no need to duplicate)
+            return $this->generateHierarchicalExcel($allChildren, $project->title ?? 'Project', $project);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => 'Failed to export project hierarchically: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Export all root projects hierarchically with all their children
+     */
+    public function exportAllProjectsHierarchical()
+    {
+        try {
+            // Get all root projects (projects that are not children of other projects)
+            $rootProjects = Project::whereNotIn('id', function ($query) {
+                $query->select('project_id')->from('project_parents');
+            })->get();
+
+            $allProjects = [];
+            
+            // For each root project, get all its children recursively
+            foreach ($rootProjects as $rootProject) {
+                // Load tasks for the root project
+                $rootProject->load(['tasks']);
+                
+                // Include the root project itself first
+                $allProjects[] = $rootProject;
+                
+                // Get ALL descendants (children, grandchildren, etc.) recursively
+                $allDescendants = $this->getAllProjectChildren($rootProject);
+                
+                // Add each descendant individually to maintain proper order
+                foreach ($allDescendants as $descendant) {
+                    $allProjects[] = $descendant;
+                }
+            }
+            
+            return $this->generateHierarchicalExcel($allProjects, 'All Projects', null);
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 500,
+                'status' => 'error',
+                'message' => 'Failed to export all projects hierarchically: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Recursively get all children of a project
+     */
+    private function getAllProjectChildren(Project $project, $level = 0, $visited = [])
+    {
+        $allChildren = [];
+        
+        // Prevent infinite recursion
+        if ($level > 15 || in_array($project->id, $visited)) {
+            return $allChildren;
+        }
+        
+        $visited[] = $project->id;
+        
+        // Get direct children - since children() returns Collection, not relationship, 
+        // we need to load tasks separately
+        $directChildren = $project->children();
+        
+        // Load tasks for each child
+        foreach ($directChildren as $child) {
+            $child->load(['tasks']);
+            
+            // Add this child to the list first
+            $allChildren[] = $child;
+            
+            // Then recursively get all descendants of this child
+            $descendants = $this->getAllProjectChildren($child, $level + 1, $visited);
+            
+            // Add all descendants to our list
+            foreach ($descendants as $descendant) {
+                $allChildren[] = $descendant;
+            }
+        }
+        
+        return $allChildren;
+    }
+
+    /**
+     * Generate Excel file for hierarchical export
+     */
+    private function generateHierarchicalExcel($projects, $titlePrefix = 'Projects', $parentProject = null)
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set title - match the format from the image
+        $sheet->mergeCells('A1:G1');
+        $sheet->setCellValue('A1', 'Child Project Report - ' . $titlePrefix);
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // Set headers - match the format from the image (no Level column)
+        $headers = [
+            'A2' => 'No',
+            'B2' => 'Project Name',
+            'C2' => 'Part of Project',
+            'D2' => 'Task',
+            'E2' => 'Status',
+            'F2' => 'Duration',
+            'G2' => 'Total Tasks',
+        ];
+        
+        foreach ($headers as $cell => $value) {
+            $sheet->setCellValue($cell, $value);
+        }
+
+        // Style headers
+        $headerStyle = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['argb' => 'FFE0E0E0'],
+            ],
+        ];
+        
+        $sheet->getStyle('A2:G2')->applyFromArray($headerStyle)->getFont()->setBold(true)->setSize(10);
+        $sheet->getStyle('A2:G2')->getAlignment()
+            ->setWrapText(true)
+            ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+            ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+        // Set column widths
+        $columnWidths = [
+            'A' => 5,
+            'B' => 30,
+            'C' => 25,
+            'D' => 30,
+            'E' => 20,
+            'F' => 35,
+            'G' => 15,
+        ];
+        
+        foreach ($columnWidths as $col => $width) {
+            $sheet->getColumnDimension($col)->setWidth($width);
+        }
+
+        $row = 3;
+        $no = 1;
+        $dataStyle = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                ],
+            ],
+        ];
+
+        // If we have a parent project, determine "Part of Project" value once for all children
+        $partOfProjectTitle = '-';
+        if ($parentProject) {
+            $partOfProjectTitle = $parentProject->title ?? 'Parent Project';
+        }
+        
+        // Calculate total rows needed for "Part of Project" merge
+        $totalRows = 0;
+        foreach ($projects as $project) {
+            $tasks = $project->tasks ?? collect();
+            $taskCount = $tasks->count();
+            $totalRows += ($taskCount > 0) ? $taskCount : 1;
+        }
+        
+        // Merge "Part of Project" column for all children if we have a parent project
+        if ($parentProject && $totalRows > 0) {
+            $endRow = $row + $totalRows - 1;
+            $sheet->mergeCells('C' . $row . ':C' . $endRow);
+            $sheet->setCellValue('C' . $row, $partOfProjectTitle);
+            $sheet->getStyle('C' . $row . ':C' . $endRow)
+                ->getAlignment()
+                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER)
+                ->setWrapText(true);
+        }
+
+        foreach ($projects as $project) {
+            $tasks = $project->tasks ?? collect();
+            $taskCount = $tasks->count();
+            $tasksExist = $taskCount > 0;
+
+            $rowCount = $tasksExist ? $taskCount : 1;
+            $projectEndRow = $row + $rowCount - 1;
+
+            // Project info columns (merge for multiple tasks)
+            $sheet->mergeCells('A' . $row . ':A' . $projectEndRow);
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->getStyle('A' . $row . ':A' . $projectEndRow)
+                ->getAlignment()
+                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+            $sheet->mergeCells('B' . $row . ':B' . $projectEndRow);
+            $sheet->setCellValue('B' . $row, $project->title ?? '-');
+            $sheet->getStyle('B' . $row . ':B' . $projectEndRow)
+                ->getAlignment()
+                ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+            // Skip "Part of Project" cell setup here since we already merged it above
+            // But we still need to handle the case where there's no parent project
+            if (!$parentProject) {
+                $sheet->mergeCells('C' . $row . ':C' . $projectEndRow);
+                $parents = $project->parents();
+                $partOfProjectValue = $parents->isNotEmpty() ? $parents->pluck('title')->join(', ') : '-';
+                $sheet->setCellValue('C' . $row, $partOfProjectValue);
+                $sheet->getStyle('C' . $row . ':C' . $projectEndRow)
+                    ->getAlignment()
+                    ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER)
+                    ->setWrapText(true);
+            }
+
+            $sheet->mergeCells('G' . $row . ':G' . $projectEndRow);
+            $sheet->setCellValue('G' . $row, $taskCount);
+            $sheet->getStyle('G' . $row . ':G' . $projectEndRow)
+                ->getAlignment()
+                ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER)
+                ->setVertical(\PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER);
+
+            // Task details
+            if ($tasksExist) {
+                $taskRow = $row;
+                foreach ($tasks as $task) {
+                    $sheet->setCellValue('D' . $taskRow, $task->title ?? '-');
+                    $sheet->setCellValue('E' . $taskRow, $task->status ?? '-');
+                    
+                    $duration = ($task->start_date && $task->due_date)
+                        ? date('j F Y', strtotime($task->start_date)) . ' - ' . date('j F Y', strtotime($task->due_date))
+                        : ($task->start_date ? date('j F Y', strtotime($task->start_date)) : '-');
+                    $sheet->setCellValue('F' . $taskRow, $duration);
+
+                    $sheet->getRowDimension($taskRow)->setRowHeight(25);
+                    $taskRow++;
+                }
+            } else {
+                $sheet->setCellValue('D' . $row, '-');
+                $sheet->setCellValue('E' . $row, '-');
+                $sheet->setCellValue('F' . $row, '-');
+                $sheet->getRowDimension($row)->setRowHeight(25);
+            }
+
+            // Apply styles
+            $range = 'A' . $row . ':G' . $projectEndRow;
+            $sheet->getStyle($range)->applyFromArray($dataStyle);
+            $row = $projectEndRow + 1;
+        }
+
+        // Generate and return file
+        $filename = 'child_projects_' . ($parentProject ? str_replace(' ', '_', $parentProject->title) : 'all') . '_' . date('Y-m-d_H-i-s') . '.xlsx';
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $tempFile = tempnam(sys_get_temp_dir(), 'project_hierarchical_export');
+        $writer->save($tempFile);
+        
+        return response()->download($tempFile, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Calculate project level based on parent relationships
+     */
+    private function calculateProjectLevel(Project $project)
+    {
+        $level = 0;
+        $current = $project;
+        $visited = []; // Prevent infinite loops
+        
+        while (true) {
+            // Prevent infinite recursion
+            if (in_array($current->id, $visited)) {
+                break;
+            }
+            $visited[] = $current->id;
+            
+            // Get parents
+            $parents = $current->parents();
+            if ($parents->isEmpty()) {
+                break;
+            }
+            
+            $level++;
+            $current = $parents->first();
+            
+            // Prevent too deep recursion
+            if ($level > 10) {
+                break;
+            }
+        }
+        
+        return $level;
+    }
+
+    /**
+     * Calculate project level relative to a specific root project
+     */
+    private function calculateProjectLevelFromRoot(Project $project, $rootProjectId)
+    {
+        if ($project->id == $rootProjectId) {
+            return 0; // Root project is level 0
+        }
+        
+        $level = 1; // Start at level 1 for direct children
+        $current = $project;
+        $visited = []; // Prevent infinite loops
+        
+        while (true) {
+            // Prevent infinite recursion
+            if (in_array($current->id, $visited)) {
+                break;
+            }
+            $visited[] = $current->id;
+            
+            // Get parents
+            $parents = $current->parents();
+            if ($parents->isEmpty()) {
+                break;
+            }
+            
+            $parent = $parents->first();
+            
+            // If we found the root project, return current level
+            if ($parent->id == $rootProjectId) {
+                return $level;
+            }
+            
+            $level++;
+            $current = $parent;
+            
+            // Prevent too deep recursion
+            if ($level > 10) {
+                break;
+            }
+        }
+        
+        return $level;
+    }
 }
