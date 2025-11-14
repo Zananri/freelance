@@ -963,79 +963,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Multi-file preview for Add Project modal (match task behavior) ---
     // Array to store selected files for add project
-    let projectSelectedFiles = [];
-
-    function displayProjectSelectedFiles() {
-        const preview = document.getElementById("reference_files_preview");
-        if (!preview) return;
-        preview.innerHTML = "";
-
-        if (projectSelectedFiles.length > 0) {
-            const fileList = document.createElement("div");
-            fileList.className = "selected-files-list mt-2";
-
-            projectSelectedFiles.forEach((file, index) => {
-                const fileItem = document.createElement("div");
-                // Use exact classes requested: matches Task styling
-                fileItem.className =
-                    "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
-
-                // Determine if file is image for thumbnail
-                const lower = String(file.name || "").toLowerCase();
-                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                    lower
-                );
-
-                if (isImage) {
-                    const img = document.createElement("img");
-                    img.src = URL.createObjectURL(file);
-                    img.width = 28;
-                    img.height = 28;
-                    img.style.objectFit = "cover";
-                    img.style.borderRadius = "50%";
-                    img.alt = file.name || "img";
-                    fileItem.appendChild(img);
-                }
-
-                const title = document.createElement("span");
-                title.className = "flex-grow-1 text-truncate";
-                title.textContent = file.name;
-                fileItem.appendChild(title);
-
-                const removeBtn = document.createElement("button");
-                removeBtn.type = "button";
-                removeBtn.className = "btn btn-sm btn-remove-task remove-task";
-                removeBtn.style.lineHeight = "1";
-                removeBtn.innerHTML =
-                    '<span class="material-symbols-outlined">close</span>';
-                removeBtn.addEventListener("click", function () {
-                    projectSelectedFiles.splice(index, 1);
-                    displayProjectSelectedFiles();
-                });
-
-                fileItem.appendChild(removeBtn);
-                fileList.appendChild(fileItem);
-            });
-
-            preview.appendChild(fileList);
-        }
-    }
-
-    function setupProjectReferenceFilesInput() {
-        const input = document.getElementById("reference_file");
-        const preview = document.getElementById("reference_files_preview");
-        if (!input || !preview) return;
-
-        input.addEventListener("change", function () {
-            const files = Array.from(this.files || []);
-            projectSelectedFiles = [...projectSelectedFiles, ...files];
-            displayProjectSelectedFiles();
-            // clear native input so same file can be reselected later
-            this.value = "";
-        });
-    }
-
-    setupProjectReferenceFilesInput();
+    // --- Reference file handling removed: now using button + pattern for individual files (matching URL pattern) ---
 
     // Delegated handler: add/remove reference URL rows (match Task behavior)
     document.addEventListener("click", function (e) {
@@ -1061,6 +989,36 @@ document.addEventListener("DOMContentLoaded", function () {
         if (removeBtn) {
             e.preventDefault();
             const row = removeBtn.closest(".input-group");
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
+
+    // Delegated handler: add/remove reference FILE rows (same concept as URL)
+    document.addEventListener("click", function (e) {
+        const addFileBtn = e.target.closest(".add-ref-file");
+        if (addFileBtn) {
+            e.preventDefault();
+            const container = addFileBtn.closest(
+                "#project_reference_files_container, #edit_project_reference_files_container"
+            );
+            if (!container) return;
+            const row = document.createElement("div");
+            row.className = "input-group";
+            row.innerHTML =
+                '<input type="file" class="form-control input-text" name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">' +
+                ' <button type="button" class="btn btn-remove-file remove-ref-file" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="file"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeFileBtn = e.target.closest(".remove-ref-file");
+        if (removeFileBtn) {
+            e.preventDefault();
+            const row = removeFileBtn.closest(".input-group");
             if (row && row.parentNode) {
                 row.parentNode.removeChild(row);
             }
@@ -6739,307 +6697,83 @@ document.addEventListener("DOMContentLoaded", function () {
                                                     "";
 
                                             // Local state for newly selected files
-                                            window.editProjectSelectedFiles =
-                                                [];
+                                            // --- Reference file handling: using button + pattern with original preview below ---
 
-                                            // Render existing files list (Task-style)
+                                            // Render existing files as simple preview below input (original style)
                                             function renderExistingProjectFiles() {
                                                 if (!existingContainer) return;
-                                                existingContainer.innerHTML =
-                                                    "";
+                                                existingContainer.innerHTML = "";
+                                                
                                                 if (existingFiles.length > 0) {
-                                                    // var title =
-                                                    //     document.createElement(
-                                                    //         "div"
-                                                    //     );
-                                                    // title.className =
-                                                    //     "fw-bold mb-2";
-                                                    // title.textContent =
-                                                    //     "Current Files:";
-                                                    // existingContainer.appendChild(
-                                                    //     title
-                                                    // );
+                                                    var fileList = document.createElement("div");
+                                                    fileList.className = "selected-files-list mt-2";
 
-                                                    var fileList =
-                                                        document.createElement(
-                                                            "div"
-                                                        );
-                                                    fileList.className =
-                                                        "selected-files-list mt-2 existing-files-list w-100";
+                                                    existingFiles.forEach(function (fileName, idx) {
+                                                        var fileItem = document.createElement("div");
+                                                        fileItem.className = "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
 
-                                                    existingFiles.forEach(
-                                                        function (
-                                                            fileName,
-                                                            idx
-                                                        ) {
-                                                            var fileItem =
-                                                                document.createElement(
-                                                                    "div"
-                                                                );
-                                                            fileItem.className =
-                                                                "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
-
-                                                            // determine if server file is an image
-                                                            var lower = String(
-                                                                fileName || ""
-                                                            ).toLowerCase();
-                                                            var isImage =
-                                                                /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                                                                    lower
-                                                                );
-                                                            if (isImage) {
-                                                                var img =
-                                                                    document.createElement(
-                                                                        "img"
-                                                                    );
-                                                                img.src =
-                                                                    appUrl +
-                                                                    "/file/project/" +
-                                                                    fileName;
-                                                                img.width = 28;
-                                                                img.height = 28;
-                                                                img.style.objectFit =
-                                                                    "cover";
-                                                                img.style.borderRadius =
-                                                                    "50%";
-                                                                img.alt =
-                                                                    fileName;
-                                                                fileItem.appendChild(
-                                                                    img
-                                                                );
-                                                            }
-
-                                                            var fileLink =
-                                                                document.createElement(
-                                                                    "a"
-                                                                );
-                                                            fileLink.href =
-                                                                appUrl +
-                                                                "/file/project/" +
-                                                                fileName;
-                                                            fileLink.target =
-                                                                "_blank";
-                                                            fileLink.className =
-                                                                "flex-grow-1 text-decoration-none text-truncate";
-                                                            fileLink.textContent =
-                                                                fileName;
-
-                                                            var removeBtn =
-                                                                document.createElement(
-                                                                    "button"
-                                                                );
-                                                            removeBtn.type =
-                                                                "button";
-                                                            removeBtn.className =
-                                                                "btn btn-sm btn-remove-task remove-task";
-                                                            removeBtn.style.lineHeight =
-                                                                "1";
-                                                            removeBtn.innerHTML =
-                                                                '<span class="material-symbols-outlined">close</span>';
-                                                            removeBtn.onclick =
-                                                                function () {
-                                                                    // remove from list and re-render
-                                                                    existingFiles =
-                                                                        existingFiles.filter(
-                                                                            function (
-                                                                                f
-                                                                            ) {
-                                                                                return (
-                                                                                    f !==
-                                                                                    fileName
-                                                                                );
-                                                                            }
-                                                                        );
-                                                                    existingInput.value =
-                                                                        JSON.stringify(
-                                                                            existingFiles
-                                                                        );
-                                                                    renderExistingProjectFiles();
-
-                                                                    // update badge count on project card immediately (decrement)
-                                                                    try {
-                                                                        var pid =
-                                                                            data.id;
-                                                                        var card =
-                                                                            document.querySelector(
-                                                                                '[data-project-id="' +
-                                                                                    pid +
-                                                                                    '"]'
-                                                                            );
-                                                                        if (
-                                                                            card
-                                                                        ) {
-                                                                            var fileBadge =
-                                                                                card.querySelector(
-                                                                                    ".project-file-count"
-                                                                                );
-                                                                            if (
-                                                                                fileBadge
-                                                                            ) {
-                                                                                var cur =
-                                                                                    parseInt(
-                                                                                        fileBadge.textContent ||
-                                                                                            "0",
-                                                                                        10
-                                                                                    ) ||
-                                                                                    0;
-                                                                                fileBadge.textContent =
-                                                                                    Math.max(
-                                                                                        0,
-                                                                                        cur -
-                                                                                            1
-                                                                                    );
-                                                                            }
-                                                                        }
-                                                                    } catch (e) {}
-                                                                };
-
-                                                            // Append link and remove button into item and add to list
-                                                            fileItem.appendChild(
-                                                                fileLink
-                                                            );
-                                                            fileItem.appendChild(
-                                                                removeBtn
-                                                            );
-                                                            fileList.appendChild(
-                                                                fileItem
-                                                            );
+                                                        // determine if server file is an image
+                                                        var lower = String(fileName || "").toLowerCase();
+                                                        var isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+                                                        if (isImage) {
+                                                            var img = document.createElement("img");
+                                                            img.src = appUrl + "/file/project/" + fileName;
+                                                            img.width = 28;
+                                                            img.height = 28;
+                                                            img.style.objectFit = "cover";
+                                                            img.style.borderRadius = "50%";
+                                                            img.alt = fileName;
+                                                            fileItem.appendChild(img);
                                                         }
-                                                    );
 
-                                                    existingContainer.appendChild(
-                                                        fileList
-                                                    );
-                                                }
-                                            }
+                                                        var fileLink = document.createElement("a");
+                                                        fileLink.href = appUrl + "/file/project/" + fileName;
+                                                        fileLink.target = "_blank";
+                                                        fileLink.className = "flex-grow-1 text-decoration-none text-truncate";
+                                                        fileLink.textContent = fileName;
 
-                                            // Render newly selected files (Task-style)
-                                            function renderEditProjectSelectedFiles() {
-                                                if (!previewEdit) return;
-                                                previewEdit.innerHTML = "";
+                                                        var removeBtn = document.createElement("button");
+                                                        removeBtn.type = "button";
+                                                        removeBtn.className = "btn btn-sm btn-remove-task remove-task";
+                                                        removeBtn.style.lineHeight = "1";
+                                                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                                                        removeBtn.onclick = function () {
+                                                            // remove from list and re-render
+                                                            existingFiles = existingFiles.filter(function (f) {
+                                                                return f !== fileName;
+                                                            });
+                                                            existingInput.value = JSON.stringify(existingFiles);
+                                                            renderExistingProjectFiles();
 
-                                                if (
-                                                    window
-                                                        .editProjectSelectedFiles
-                                                        .length > 0
-                                                ) {
-                                                    var fileList =
-                                                        document.createElement(
-                                                            "div"
-                                                        );
-                                                    fileList.className =
-                                                        "selected-files-list mt-2";
-
-                                                    window.editProjectSelectedFiles.forEach(
-                                                        function (file, index) {
-                                                            var fileItem =
-                                                                document.createElement(
-                                                                    "div"
-                                                                );
-                                                            fileItem.className =
-                                                                "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
-
-                                                            // image preview for images
-                                                            var lower = String(
-                                                                file.name || ""
-                                                            ).toLowerCase();
-                                                            var isImage =
-                                                                /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                                                                    lower
-                                                                );
-                                                            if (isImage) {
-                                                                var img =
-                                                                    document.createElement(
-                                                                        "img"
-                                                                    );
-                                                                img.src =
-                                                                    URL.createObjectURL(
-                                                                        file
-                                                                    );
-                                                                img.width = 28;
-                                                                img.height = 28;
-                                                                img.style.objectFit =
-                                                                    "cover";
-                                                                img.style.borderRadius =
-                                                                    "50%";
-                                                                img.alt =
-                                                                    file.name ||
-                                                                    "img";
-                                                                fileItem.appendChild(
-                                                                    img
-                                                                );
-                                                            }
-
-                                                            var title =
-                                                                document.createElement(
-                                                                    "span"
-                                                                );
-                                                            title.className =
-                                                                "flex-grow-1 text-truncate";
-                                                            title.textContent =
-                                                                file.name;
-                                                            fileItem.appendChild(
-                                                                title
-                                                            );
-
-                                                            var removeBtn =
-                                                                document.createElement(
-                                                                    "button"
-                                                                );
-                                                            removeBtn.type =
-                                                                "button";
-                                                            removeBtn.className =
-                                                                "btn btn-sm btn-remove-task remove-task";
-                                                            removeBtn.style.lineHeight =
-                                                                "1";
-                                                            removeBtn.innerHTML =
-                                                                '<span class="material-symbols-outlined">close</span>';
-                                                            removeBtn.addEventListener(
-                                                                "click",
-                                                                function () {
-                                                                    window.editProjectSelectedFiles.splice(
-                                                                        index,
-                                                                        1
-                                                                    );
-                                                                    renderEditProjectSelectedFiles();
+                                                            // update badge count on project card immediately (decrement)
+                                                            try {
+                                                                var pid = data.id;
+                                                                var card = document.querySelector('[data-project-id="' + pid + '"]');
+                                                                if (card) {
+                                                                    var fileBadge = card.querySelector(".project-file-count");
+                                                                    if (fileBadge) {
+                                                                        var cur = parseInt(fileBadge.textContent || "0", 10) || 0;
+                                                                        fileBadge.textContent = Math.max(0, cur - 1);
+                                                                    }
                                                                 }
-                                                            );
+                                                            } catch (e) {}
+                                                        };
 
-                                                            fileItem.appendChild(
-                                                                removeBtn
-                                                            );
-                                                            fileList.appendChild(
-                                                                fileItem
-                                                            );
-                                                        }
-                                                    );
+                                                        fileItem.appendChild(fileLink);
+                                                        fileItem.appendChild(removeBtn);
+                                                        fileList.appendChild(fileItem);
+                                                    });
 
-                                                    previewEdit.appendChild(
-                                                        fileList
-                                                    );
+                                                    existingContainer.appendChild(fileList);
                                                 }
                                             }
 
-                                            // Bind change handler for selecting new files (Task-style behavior)
-                                            $("#edit_reference_file")
-                                                .off("change")
-                                                .on("change", function () {
-                                                    var files = Array.from(
-                                                        this.files || []
-                                                    );
-                                                    if (files.length > 0) {
-                                                        window.editProjectSelectedFiles =
-                                                            window.editProjectSelectedFiles.concat(
-                                                                files
-                                                            );
-                                                        renderEditProjectSelectedFiles();
-                                                        this.value = "";
-                                                    }
-                                                });
+                                            // --- Reference file handling for Edit modal: now using button + pattern (no multiple files preview needed) ---
+                                            // Existing files are still rendered from server data; new files are added via input-group + button pattern
 
                                             // Initial renders
                                             renderExistingProjectFiles();
-                                            renderEditProjectSelectedFiles();
+                                            // renderEditProjectSelectedFiles(); // removed - no longer using multi-file preview array
 
                                             // Populate co-author and contributor inputs
                                             // Clear previous selections
@@ -7270,27 +7004,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 JSON.stringify(contributors)
                             );
 
-                            // Append newly selected reference files (if any) to FormData as reference_file[]
-                            if (
-                                window.editProjectSelectedFiles &&
-                                window.editProjectSelectedFiles.length
-                            ) {
-                                window.editProjectSelectedFiles.forEach(
-                                    function (f) {
-                                        try {
-                                            formData.append(
-                                                "reference_file[]",
-                                                f
-                                            );
-                                        } catch (e) {
-                                            console.warn(
-                                                "Failed to append new reference file to FormData",
-                                                e
-                                            );
-                                        }
-                                    }
-                                );
-                            }
+                            // --- Reference files are now collected directly from file inputs via FormData serialization (no multi-file array needed) ---
 
                             // Show loading overlay and disable submit button
                             $("#editModalLoader").removeClass("d-none");
@@ -7547,24 +7261,27 @@ document.addEventListener("DOMContentLoaded", function () {
                             window.clearSelectedContributorsEdit &&
                                 window.clearSelectedContributorsEdit();
 
-                            // Clear temporary reference files arrays and preview list (Task-style containers)
+                            // Clear reference file containers
                             try {
-                                window.editProjectSelectedFiles = [];
-                                const previewEdit = document.getElementById(
-                                    "edit_reference_files_preview"
-                                );
-                                if (previewEdit) previewEdit.innerHTML = "";
-                                const existingContainer =
-                                    document.getElementById(
-                                        "existing_reference_files"
-                                    );
-                                if (existingContainer)
-                                    existingContainer.innerHTML = "";
-                                const hiddenExisting = document.getElementById(
-                                    "existing_reference_files_input"
-                                );
+                                const existingContainer = document.getElementById("existing_reference_files");
+                                if (existingContainer) existingContainer.innerHTML = "";
+                                
+                                const hiddenExisting = document.getElementById("existing_reference_files_input");
                                 if (hiddenExisting) hiddenExisting.value = "[]";
-                                $("#edit_reference_file").off("change");
+                                
+                                // Clear all file input rows except first
+                                const container = document.getElementById("edit_project_reference_files_container");
+                                if (container) {
+                                    const rows = container.querySelectorAll(".input-group");
+                                    rows.forEach((row, idx) => {
+                                        if (idx === 0) {
+                                            const inp = row.querySelector('input[type="file"]');
+                                            if (inp) inp.value = "";
+                                        } else {
+                                            row.remove();
+                                        }
+                                    });
+                                }
                             } catch (_) {}
                         }
                     );
@@ -16169,12 +15886,8 @@ document.addEventListener("DOMContentLoaded", function () {
             if (urls.length) formData.set("reference_url", urls[0]);
         } catch (_) {}
 
-        // Append project selected reference files (if any)
-        if (projectSelectedFiles && projectSelectedFiles.length) {
-            projectSelectedFiles.forEach(function (f) {
-                formData.append("reference_file[]", f);
-            });
-        }
+        // Reference files are now collected directly from file inputs via FormData serialization (button + pattern)
+        // No need to manually append - FormData automatically includes all file inputs with name="reference_file[]"
 
         $.ajax({
             url: appUrl + "/project/store",
@@ -21216,13 +20929,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
         loadDepartments();
 
+        // Clear reference file input rows (using button + pattern, reset to single empty row)
         try {
-            if (typeof projectSelectedFiles !== "undefined")
-                projectSelectedFiles = [];
-            const preview = document.getElementById("reference_files_preview");
-            if (preview) preview.innerHTML = "";
-            const input = document.getElementById("reference_file");
-            if (input) input.value = "";
+            const container = document.getElementById("project_reference_files_container");
+            if (container) {
+                const rows = container.querySelectorAll(".input-group");
+                rows.forEach((row, idx) => {
+                    if (idx === 0) {
+                        // reset first row's file input
+                        const inp = row.querySelector('input[type="file"]');
+                        if (inp) inp.value = "";
+                    } else {
+                        // remove additional rows
+                        row.remove();
+                    }
+                });
+            }
         } catch (e) {}
 
         if (window.clearSelectedCoAuthors) {
@@ -22993,12 +22715,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                     descTextarea.value = '';
                                 }
                                 
+                                // Clear reference file input rows (using button + pattern)
                                 try {
-                                    if (typeof projectSelectedFiles !== 'undefined') {
-                                        projectSelectedFiles = [];
-                                    }
-                                    if (typeof displayProjectSelectedFiles === 'function') {
-                                        displayProjectSelectedFiles();
+                                    const container = document.getElementById("project_reference_files_container");
+                                    if (container) {
+                                        const rows = container.querySelectorAll(".input-group");
+                                        rows.forEach((row, idx) => {
+                                            if (idx === 0) {
+                                                const inp = row.querySelector('input[type="file"]');
+                                                if (inp) inp.value = "";
+                                            } else {
+                                                row.remove();
+                                            }
+                                        });
                                     }
                                 } catch(_) {}
                                 
@@ -23176,13 +22905,19 @@ document.addEventListener("DOMContentLoaded", function () {
                                     descTextarea.value = '';
                                 }
 
-                                // Reset selected files
+                                // Clear reference file input rows (using button + pattern)
                                 try {
-                                    if (typeof projectSelectedFiles !== 'undefined') {
-                                        projectSelectedFiles = [];
-                                    }
-                                    if (typeof displayProjectSelectedFiles === 'function') {
-                                        displayProjectSelectedFiles();
+                                    const container = document.getElementById("project_reference_files_container");
+                                    if (container) {
+                                        const rows = container.querySelectorAll(".input-group");
+                                        rows.forEach((row, idx) => {
+                                            if (idx === 0) {
+                                                const inp = row.querySelector('input[type="file"]');
+                                                if (inp) inp.value = "";
+                                            } else {
+                                                row.remove();
+                                            }
+                                        });
                                     }
                                 } catch (_) { }
 
