@@ -2416,3 +2416,24 @@ input[type="file"]::file-selector-button {
 .complete-note-container:hover::-webkit-scrollbar-thumb {
     background: #888;
 }
+
+.ref-url-item .action-icon {
+    opacity: 0;
+    transition: opacity .15s ease-in-out;
+    cursor: pointer;
+    font-size: 18px;
+    color: #444;
+}
+
+.ref-url-item:hover .action-icon {
+    opacity: 1;
+}
+
+.ref-url-item:hover {
+    background: #f0f0f0;
+}
+
+.ref-url-item .action-icon:hover {
+    color: #000;
+    transform: scale(1.15);
+}

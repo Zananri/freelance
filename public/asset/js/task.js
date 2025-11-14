@@ -8718,17 +8718,54 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
                 let refUrlsHtml = '';
                 const referenceUrls = task.reference_urls || (task.reference_url ? [task.reference_url] : []);
+
                 if (Array.isArray(referenceUrls) && referenceUrls.length) {
                     refUrlsHtml = '<div class="mb-2">';
+
                     referenceUrls.forEach((u, idx) => {
-                        // Display the actual URL instead of a label
                         const displayUrl = u || '';
-                        refUrlsHtml += `<div class="d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
-                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1 text-truncate" style="color: #444;" title="${displayUrl}">${displayUrl}</a>
-                                        </div>`;
+
+                        refUrlsHtml += `
+                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px; position:relative;">
+                                
+                                <a href="${u}" target="_blank"
+                                    class="text-decoration-none flex-grow-1 text-truncate"
+                                    style="color: #444;" title="${displayUrl}">
+                                    ${displayUrl}
+                                </a>
+
+                                <span class="material-symbols-outlined ms-2 open-url-btn action-icon"
+                                    data-url="${u}">
+                                    open_in_new
+                                </span>
+
+                                <span class="material-symbols-outlined ms-2 copy-url-btn action-icon"
+                                    data-url="${u}">
+                                    content_copy
+                                </span>
+
+                            </div>
+                        `;
                     });
+
                     refUrlsHtml += '</div>';
                 }
+
+                document.addEventListener("click", function (e) {
+                    if (e.target.classList.contains("open-url-btn")) {
+                        const url = e.target.getAttribute("data-url");
+                        if (url) window.open(url, "_blank");
+                    }
+
+                    if (e.target.classList.contains("copy-url-btn")) {
+                        const url = e.target.getAttribute("data-url");
+                        if (url) {
+                            navigator.clipboard.writeText(url)
+                                .then(() => showFloatingAlert("URL copied!", "success", 2000))
+                                .catch(() => showFloatingAlert("Failed to copy.", "danger", 2000));
+                        }
+                    }
+                });
 
                 const showDelete = (function(){
                     try {
