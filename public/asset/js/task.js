@@ -178,7 +178,7 @@
         if (addFileBtn) {
             e.preventDefault();
             const container = addFileBtn.closest(
-                "#task_reference_files_container, #edit_task_reference_files_container"
+                "#task_reference_files_container, #edit_task_reference_files_container, #edit_project_task_reference_files_container"
             );
             if (!container) return;
             const row = document.createElement("div");
@@ -2589,7 +2589,7 @@
                     return;
                 }
                 // Collect reference files from input-group pattern for validation
-                const refContainer = document.getElementById('edit_task_reference_files_container');
+                const refContainer = document.getElementById('edit_task_reference_files_container, edit_project_task_reference_files_container');
                 const refFiles = refContainer ? Array.from(refContainer.querySelectorAll('input[type="file"]')).flatMap(inp => Array.from(inp.files || [])) : [];
                 const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: refFiles});
                 if (!totalCheck.ok) {
@@ -2603,7 +2603,7 @@
             formData.append("_method", "PUT");
 
             // Debug: Log existing reference files being sent
-            const existingFilesValue = formData.get('task_existing_reference_files');
+            const existingFilesValue = formData.get('task_existing_reference_files, project_task_existing_reference_files');
             console.log('Submitting edit task with existing reference files:', existingFilesValue);
 
             // Reference files are now collected directly from file inputs via FormData serialization (button + pattern)
@@ -2652,13 +2652,13 @@
 
                         // Clear reference file input rows and existing files (button + pattern)
                         try {
-                            const existingContainer = document.getElementById("task_existing_reference_files");
+                            const existingContainer = document.getElementById("task_existing_reference_files, project_task_existing_reference_files");
                             if (existingContainer) existingContainer.innerHTML = "";
                             
                             const hiddenExisting = document.getElementById("task_existing_reference_files_input");
                             if (hiddenExisting) hiddenExisting.value = "[]";
                             
-                            const container = document.getElementById("edit_task_reference_files_container");
+                            const container = document.getElementById("edit_task_reference_files_container, edit_project_task_reference_files_container");
                             if (container) {
                                 const rows = container.querySelectorAll(".input-group");
                                 rows.forEach((row, idx) => {
@@ -9523,11 +9523,11 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
     // Function to setup reference files input for edit modal
     function setupEditReferenceFilesInput() {
-        const container = document.getElementById("edit_task_reference_files_container");
+        const container = document.getElementById("edit_task_reference_files_container, edit_project_task_reference_files_container");
         if (!container) return;
 
         const input = container.querySelector('input[type="file"]');
-        const existing = document.getElementById("task_existing_reference_files");
+        const existing = document.getElementById("task_existing_reference_files, project_task_existing_reference_files");
         const hidden = document.getElementById("task_existing_reference_files_input");
 
         if (!existing || !hidden) return;
@@ -13058,7 +13058,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
             if (isEdit) {
                 try {
                     const keepList = window.inlineTaskExistingFilesKeep || [];
-                    fd.set('task_existing_reference_files', JSON.stringify(keepList));
+                    fd.set('task_existing_reference_files, project_task_existing_reference_files', JSON.stringify(keepList));
                 } catch(_) {}
                 try {
                     if (typeof window.__inlineTaskRemoveImage !== 'undefined') {
