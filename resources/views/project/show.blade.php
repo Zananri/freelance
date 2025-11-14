@@ -710,15 +710,20 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3 input-custom">
-                                <label for="edit_task_reference_files" class="form-label label-custom">Reference
-                                    Files</label>
-                                <input type="file" class="form-control input-text" id="edit_task_reference_files"
-                                    name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-                                    multiple>
-                                <div class="form-text">Multiple files supported.</div>
-                                <div id="existing_reference_files" class="mt-2"></div>
-                                <div id="edit_reference_files_preview" class="mt-2"></div>
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Reference Files</label>
+                                <div id="edit_task_reference_files_container" class="d-flex flex-column gap-2">
+                                    <div class="input-group">
+                                        <input type="file" class="form-control input-text" name="reference_files[]"
+                                            accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                        <button type="button" class="btn btn-submit-black add-ref-file"
+                                            aria-label="Add File"><span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="task_existing_reference_files" class="mt-2"></div>
+                                <input type="hidden" id="task_existing_reference_files_input" name="existing_reference_files"
+                                    value="[]">
                             </div>
                             <div class="mb-3 input-custom d-flex justify-content-between">
                                 <div class="date-form">
@@ -861,14 +866,17 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="mb-3 input-custom">
-                                <label for="task_reference_files" class="form-label label-custom">Reference
-                                    Files</label>
-                                <input type="file" class="form-control input-text" id="task_reference_files"
-                                    name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-                                    multiple>
-                                <div class="form-text">Multiple files supported.</div>
-                                <div id="reference_files_preview" class="mt-2"></div>
+                            <div class="mb-3 custom-input">
+                                <label class="form-label label-custom">Reference Files</label>
+                                <div id="task_reference_files_container" class="d-flex flex-column gap-2">
+                                    <div class="input-group">
+                                        <input type="file" class="form-control input-text" name="reference_files[]"
+                                            accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                        <button type="button" class="btn btn-submit-black add-ref-file"
+                                            aria-label="Add File"><span class="material-symbols-outlined">add</span>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="mb-3 input-custom d-flex justify-content-between">
                                 <div class="date-form">
