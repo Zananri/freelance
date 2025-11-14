@@ -3084,11 +3084,28 @@ document.addEventListener("DOMContentLoaded", function () {
                     }, 2000);
                 }
 
+                // Export All Button - export semua project jika di tab utama, 
+                // atau export project+children jika sedang di dalam tab project
                 if (exportAllBtn) {
-                    const urlAll = appUrl + "/project/export-excel";
                     exportAllBtn.addEventListener("click", (e) => {
                         e.preventDefault();
-                        triggerExport(exportAllBtn, urlAll, "All projects exported successfully!");
+
+                        // Cek konteks navigasi saat ini
+                        const currentNavigationState = projectNavigationState;
+                        let exportUrl = "";
+                        let successMessage = "";
+
+                        if (currentNavigationState && currentNavigationState.currentParentId) {
+                            // Sedang di dalam tab project - export project ini beserta semua children
+                            exportUrl = `${appUrl}/project/export-hierarchical/${encodeURIComponent(currentNavigationState.currentParentId)}`;
+                            successMessage = `Successfully exported "${currentNavigationState.currentParentTitle || 'Selected Project'}" with all children!`;
+                        } else {
+                            // Di tab utama - export semua root projects beserta children mereka
+                            exportUrl = `${appUrl}/project/export-hierarchical-all`;
+                            successMessage = "Successfully exported all projects with their children!";
+                        }
+
+                        triggerExport(exportAllBtn, exportUrl, successMessage);
                     });
                 }
 
@@ -3103,17 +3120,19 @@ document.addEventListener("DOMContentLoaded", function () {
                             '<span class="spinner-border spinner-border-sm"></span> <span class="btn-text-filter">Exporting...</span>';
 
                         try {
-                            const activeProject =
-                                breadcrumbStack && breadcrumbStack.length
-                                    ? breadcrumbStack[breadcrumbStack.length - 1]
-                                    : null;
-
+                            // Cek konteks navigasi saat ini - gunakan projectNavigationState yang sama
+                            const currentNavigationState = projectNavigationState;
                             let exportUrl = "";
+                            let successMessage = "";
 
-                            if (activeProject && activeProject.id) {
-                                exportUrl = `${appUrl}/project/export-excel/${encodeURIComponent(activeProject.id)}`;
+                            if (currentNavigationState && currentNavigationState.currentParentId) {
+                                // Sedang di dalam tab project - export project ini beserta semua children hierarchical
+                                exportUrl = `${appUrl}/project/export-hierarchical/${encodeURIComponent(currentNavigationState.currentParentId)}`;
+                                successMessage = `Successfully exported "${currentNavigationState.currentParentTitle || 'Selected Project'}" with all children!`;
                             } else {
-                                exportUrl = `${appUrl}/project/export-root-excel`;
+                                // Di tab utama - export semua root projects beserta children mereka
+                                exportUrl = `${appUrl}/project/export-hierarchical-all`;
+                                successMessage = "Successfully exported all projects with their children!";
                             }
 
                             const link = document.createElement("a");
@@ -3128,10 +3147,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                 btn.disabled = false;
                                 btn.innerHTML = originalText;
                                 if (typeof showFloatingAlert === "function") {
-                                    const msg = activeProject
-                                        ? `Exported child projects for "${activeProject.title || "Selected Project"}" successfully!`
-                                        : "Exported root projects successfully!";
-                                    showFloatingAlert(msg, "success", 3000);
+                                    showFloatingAlert(successMessage, "success", 3000);
                                 }
                             }, 2000);
                         } catch (err) {
