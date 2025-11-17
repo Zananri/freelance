@@ -113,7 +113,10 @@
         <div class="row">
             <div class="col-md-3 new-request-container">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4 class="task-section-title mb-0">New</h4>
+                    <div class="d-flex justify-content-start">
+                        <h4 class="task-section-title mb-0">New</h4>
+                        <span class="new-total-task-label">{{ $new ?? 0 }}</span>
+                    </div>
                     <div class="d-flex align-items-center gap-2">
                         <button type="button" id="taskNewBulkAction" class="task-bulk-icon"
                             aria-label="Confirm accept selected tasks">
@@ -137,7 +140,10 @@
                 <div id="new-request-tasks" class="task-list"></div>
             </div>
             <div class="col-md-3 in-progress-container">
-                <h4 class="task-section-title">In Progress</h4>
+                <div class="d-flex justify-content-start">
+                    <h4 class="task-section-title">In Progress</h4>
+                    <span class="progress-total-task-label">{{ $progress_total ?? 0 }}</span>
+                </div>
                 <div id="progressTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -146,7 +152,10 @@
                 <div id="in-progress-tasks" class="task-list"></div>
             </div>
             <div class="col-md-3 completed-container">
-                <h4 class="task-section-title">Completed</h4>
+                <div class="d-flex justify-content-start">
+                    <h4 class="task-section-title">Completed</h4>
+                    <span class="complete-total-task-label">{{ $completed ?? 0 }}</span>
+                </div>
                 <div id="completedTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -155,7 +164,10 @@
                 <div id="completed-tasks" class="task-list"></div>
             </div>
             <div class="col-md-3 finished-container">
-                <h4 class="task-section-title">Finish</h4>
+                <div class="d-flex justify-content-start">
+                    <h4 class="task-section-title">Finish</h4>
+                    <span class="finish-total-task-label">{{ $finished ?? 0 }}</span>
+                </div>
                 <div id="finishedTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>

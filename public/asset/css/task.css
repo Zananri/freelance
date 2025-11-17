@@ -587,13 +587,46 @@
 /* Added styles for task sections and cards */
 
 .task-section-title {
-    font-size: 18px;
-    font-weight: 300;
-    color: #222;
+    font-size: 20px;
+    font-weight: 400;
+    color: #2A3542;
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.new-total-task-label,
+.progress-total-task-label,
+.complete-total-task-label,
+.finish-total-task-label {
+    border-radius: 4px;
+    margin-left: 5px;
+    width: 25px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 500;
+    color: #fff;
+    margin-top: 3px;
+}
+
+.new-total-task-label {
+    background: #B6BCC9;
+}
+
+.progress-total-task-label {
+    background: #D4D1C1;
+}
+
+.complete-total-task-label {
+    background: #B3D4CE;
+}
+
+.finish-total-task-label {
+    background: #B7C4D6;
 }
 
 /* Accept-all circular checkbox beside section header */
