@@ -65,7 +65,7 @@
                     <td style="vertical-align: top; width: 90px;">
                         @php
                             if($downloadPayslip ==  1){
-                                $logoNSA = public_path('asset\img\logo.png');
+                                $logoNSA = public_path('asset/img/logo.png');
                             }else{
                                 $logoNSA = asset('asset/img/logo.png');
                             }
@@ -103,29 +103,29 @@
                     <tr>
                         <td style="width: 24%">ID Karyawan</td>
                         <td style="width: 24%">: {{$employee->employee_niks}}</td>
-                        <td style="width: 24%">Department</td>
+                        <td style="width: 24%">Divisi</td>
                         <td style="width: 24%">: {{$employee->division->name_division}}</td>
                     </tr>
 
                     <tr>
                         <td>Nama Karyawan</td>
                         <td>: {{$employee->name}}</td>
-                        <td>Divisi</td>
+                        <td>Job Position</td>
                         <td>: {{$employee->job->job_name}}</td>
                     </tr>
 
                     <tr>
                         <td>Status Karyawan</td>
                         <td>: Aktif Bekerja</td>
-                        <td>Job Position</td>
-                        <td>: {{$employee->job->job_name}}</td>
+                        <td>Grade</td>
+                        <td>: {{$employee->grade->title}}</td>
                     </tr>
 
                     <tr>
                         <td>Periode Kerja</td>
-                        <td>: 0 Tahun 9</td>
-                        <td>Grade</td>
-                        <td>: {{$employee->grade->title}}</td>
+                        <td>: </td>
+                        <td></td>
+                        <td></td>
                     </tr>
 
                     <tr>
@@ -388,7 +388,7 @@
 
                         <td style="text-align: center; width: 100px;">
                             <div>Menyetujui,</div>
-                            <div style="height: 20px; ">
+                            <div style="height: 30px; ">
 
                             </div>
                             <div style="margin-top: 10px; font-weight: bolder; ">

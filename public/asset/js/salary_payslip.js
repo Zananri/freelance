@@ -486,16 +486,15 @@ function countSalary(){
 
     }
 
-    thp = basicSalary + positionalAllowance + mealAllowance + transportationAllowance + internetPhoneAllowance + bonus + overtime + thr;
+    thp = parseInt(basicSalary) + parseInt(positionalAllowance) + parseInt(mealAllowance) + parseInt(transportationAllowance) + parseInt(internetPhoneAllowance) + parseInt(bonus) + parseInt(overtime) + parseInt(thr);
 
     
-    debugger;
 
-    $('#modalSalaryEdit [name="basic_salary"').val(basicSalary);
-    $('#modalSalaryEdit [name="positional_allowance"').val(positionalAllowance);
-    $('#modalSalaryEdit [name="meal_allowance"]').val(mealAllowance);
-    $('#modalSalaryEdit [name="transportation_allowance"]').val(transportationAllowance);
-    $('#modalSalaryEdit [name="internet_phone_allowance"]').val(internetPhoneAllowance);
+    $('#modalSalaryEdit [name="basic_salary"').val(parseInt(basicSalary));
+    $('#modalSalaryEdit [name="positional_allowance"').val(parseInt(positionalAllowance));
+    $('#modalSalaryEdit [name="meal_allowance"]').val(parseInt(mealAllowance));
+    $('#modalSalaryEdit [name="transportation_allowance"]').val(parseInt(transportationAllowance));
+    $('#modalSalaryEdit [name="internet_phone_allowance"]').val(parseInt(internetPhoneAllowance));
 
 
     $('#modalSalaryEdit .employee-salary-thp').text('Rp '+parseInt(thp).toLocaleString('id-ID'));
