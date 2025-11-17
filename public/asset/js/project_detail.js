@@ -514,7 +514,7 @@
                         af.href = f;
                         af.download = "";
                         af.className = "feedback-reference-file ms-2";
-                        af.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx + 1);
+                        af.innerHTML = '<span class="material-symbols-outlined">download</span> FILE ' + (idx + 1);
                         refWrap.appendChild(af);
                     });
                 }
@@ -1176,7 +1176,7 @@
                                             af.style.color = "#444444";
                                             const fileName = f.split('/').pop();
                                             af.innerHTML =
-                                                '<span class="material-symbols-outlined" style="color: #444444;">draft</span> ' + fileName;
+                                                '<span class="material-symbols-outlined" style="color: #444444;">download</span> ' + fileName;
                                             refWrap.appendChild(af);
                                         } catch (_) {}
                                     });
@@ -1691,7 +1691,7 @@
                                                                 af.href = f;
                                                                 af.download = '';
                                                                 af.className = 'feedback-reference-file ms-2';
-                                                                af.innerHTML = '<span class="material-symbols-outlined">draft</span> FILE ' + (idx + 1);
+                                                                af.innerHTML = '<span class="material-symbols-outlined">download</span> FILE ' + (idx + 1);
                                                                 repRefWrap.appendChild(af);
                                                             } catch (_) {}
                                                         });
@@ -1760,7 +1760,7 @@
                                                         editRep2.appendChild(editIcon2); editRep2.appendChild(editText2);
                                                         editRep2.addEventListener('click', function () {
                                                             try {
-                                                                var payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ var v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ var p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ var p2 = JSON.parse(rf); if (Array.isArray(p2)) rf = p2; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ var img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + img; return getMeta('app-url').replace(/\/$/, '') + '/file/project/' + img; })() };
+                                                                var payload = { id: rep.id, parent_id: feedback.id, feedback_comment: rep.feedback_comment || '', reference_url: rep.reference_url || '', reference_urls: (function(){ try{ var v = rep.reference_urls; if (!Array.isArray(v) && typeof v === 'string'){ try{ var p = JSON.parse(v); if (Array.isArray(p)) return p; }catch(_){} } return Array.isArray(v)?v:[] }catch(e){ return []; } })(), reference_file_url: rep.reference_file || '', reference_files_urls: (function(){ try{ var rf = rep.reference_files; if (!Array.isArray(rf) && typeof rf === 'string'){ try{ var p2 = JSON.parse(rf); if (Array.isArray(p2)) rf = p2; }catch(_){} } return Array.isArray(rf)?rf:[] }catch(e){ return []; } })(), image_url: (function(){ var img = rep.image || ''; if (!img) return ''; if (String(img).startsWith('http')) return img; if (String(img).startsWith('/')) return getMeta('app-url').replace(/\/$/, '') + img; return getMeta('app-url').replace(/\/$/, '') + '/file/project_reference_files/' + img; })() };
                                                                 // Prefer inline edit on the page if available
                                                                 var inlineEditor = document.getElementById('inline_feedback_editor');
                                                                 if (inlineEditor && typeof window.startInlineEditFeedback === 'function') {
@@ -2129,7 +2129,7 @@
                                     return appUrl.replace(/\/$/, "") + s;
                                 return (
                                     appUrl.replace(/\/$/, "") +
-                                    "/file/project/" +
+                                    "/file/project_reference_files/" +
                                     s.replace(/^\//, "")
                                 );
                             }
@@ -2332,7 +2332,7 @@
                                     return appUrl.replace(/\/$/, "") + s;
                                 return (
                                     appUrl.replace(/\/$/, "") +
-                                    "/file/project/" +
+                                    "/file/project_reference_files/" +
                                     s
                                 );
                             }
@@ -3206,7 +3206,7 @@
                                 var s = String(v);
                                 if (s.indexOf("http://")===0 || s.indexOf("https://")===0) return s;
                                 if (s.indexOf("/")===0) return appUrl.replace(/\/$/, "") + s;
-                                return appUrl.replace(/\/$/, "") + "/file/project/" + s;
+                                return appUrl.replace(/\/$/, "") + "/file/project_reference_files/" + s;
                             }
                             function toName(u){
                                 var s = String(u||"");
@@ -3332,7 +3332,7 @@
                             } catch(_) {}
                             if (window.__quillProjectFeedbackInline && window.__quillProjectFeedbackInline.root)
                                 window.__quillProjectFeedbackInline.root.innerHTML = data.feedback_comment || "";
-                            try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
+                            try { var raw = data.image_url || data.image || ""; if (raw){ var url = raw; if (url.indexOf('http')!==0){ url = (url.indexOf('/')===0? appUrl.replace(/\/$/,"") + url : appUrl.replace(/\/$/,"") + "/file/project_reference_files/" + url); } window.showInlineImagePreviewFromUrl(url); } } catch(_){ }
                             try { var files = []; if (Array.isArray(data.reference_files_urls)) files = data.reference_files_urls; else if (Array.isArray(data.reference_files)) files = data.reference_files; else if (data.reference_file_url) files = [data.reference_file_url]; else if (data.reference_file) files = [data.reference_file]; window.renderInlineExistingFiles(files); } catch(_){ }
                             var sendBtn = document.getElementById(" ");
                             if (sendBtn){
@@ -6090,7 +6090,7 @@
                         item.style.fontSize = "10px";
 
                         const left = document.createElement("div");
-                        left.className = "d-flex justify-content-start align-items-center gap-2 me-2";
+                        left.className = "d-flex justify-content-start align-items-center gap-2 me-2 ref-files-item";
 
                         if (showImage) {
                             const img = document.createElement("img");
@@ -6112,7 +6112,35 @@
                         left.appendChild(title);
 
                         const right = document.createElement("div");
-                        right.className = "d-flex justify-content-end align-items-center";
+                        right.className = "d-flex justify-content-end align-items-center gap-1 ref-hover-icons";
+
+                        const makeBtn = (icon, title, onClick) => {
+                            const btn = document.createElement("button");
+                            btn.type = "button";
+                            btn.className = "btn btn-sm btn-link p-0";
+                            btn.title = title;
+                            btn.style.color = "#444";
+                            btn.innerHTML = `<span class="material-symbols-outlined" style="font-size:16px;">${icon}</span>`;
+                            btn.addEventListener("click", onClick);
+                            return btn;
+                        };
+
+                        if (!isFile) {
+                            const copyBtn = makeBtn("content_copy", "Copy URL", function (ev) {
+                                ev.preventDefault(); ev.stopPropagation();
+                                navigator.clipboard?.writeText(url)
+                                    .then(() => showFloatingAlert?.("URL copied", "success"))
+                                    .catch(() => showFloatingAlert?.("Failed to copy", "warning"));
+                            });
+
+                            const openBtn = makeBtn("open_in_new", "Open URL", function (ev) {
+                                ev.preventDefault(); ev.stopPropagation();
+                                window.open(url, "_blank");
+                            });
+
+                            right.appendChild(copyBtn);
+                            right.appendChild(openBtn);
+                        }
 
                         if (isFile) {
                             const dlBtn = document.createElement("button");
@@ -6135,9 +6163,7 @@
                                 document.body.appendChild(a);
                                 a.click();
                                 setTimeout(() => {
-                                    try {
-                                        document.body.removeChild(a);
-                                    } catch (_) {}
+                                    try { document.body.removeChild(a); } catch (_) {}
                                 }, 100);
                             });
 
@@ -6152,8 +6178,20 @@
 
                     urls.forEach((u, idx) => {
                         if (!u) return;
-                        const label = "REFERENCE_URL_" + (idx + 1);
-                        const item = createRefItem(label, u, false, false);
+
+                        const rawInput = u.trim();
+
+                        let hrefUrl = rawInput;
+
+                        try {
+                            if (!/^https?:\/\//i.test(rawInput)) {
+                                hrefUrl = "https://" + rawInput;
+                            }
+                        } catch (e) {
+                            hrefUrl = rawInput;
+                        }
+
+                        const item = createRefItem(rawInput, hrefUrl, false, false);
                         container.appendChild(item);
                     });
 
@@ -9629,93 +9667,82 @@ function formatTaskImage(image, title = "") {
             }
         }
 
-        document.addEventListener('shown.bs.modal', function (event) {
-            const modal = event.target;
-            if (!modal.id.includes('edit')) return;
-
-            const filesInput = modal.querySelector('#edit_task_reference_files');
-            const filesPreview = modal.querySelector('#edit_reference_files_preview');
-
-            window.editSelectedFiles = window.editSelectedFiles || [];
-
-            function displayEditSelectedFiles() {
-                if (!filesPreview) return;
-                filesPreview.innerHTML = '';
-                if (!window.editSelectedFiles.length) return;
-
-                window.editSelectedFiles.forEach((file, idx) => {
-                    const item = document.createElement('div');
-                    item.className = 'preview-file-item d-flex align-items-center justify-content-between mb-2 p-2 bg-light border-0 rounded';
-                    
-                    const info = document.createElement('div');
-                    info.className = 'd-flex align-items-center flex-grow-1';
-
-                    if ((file.type || '').startsWith('image/')) {
-                        const img = document.createElement('img');
-                        img.className = 'me-2 rounded border-0';
-                        img.style.width = '32px';
-                        img.style.height = '32px';
-                        img.style.objectFit = 'cover';
-
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            img.src = e.target.result;
-                        };
-                        reader.readAsDataURL(file);
-
-                        info.appendChild(img);
-                    }
-
-                    const name = document.createElement('span');
-                    name.textContent = file.name;
-                    info.appendChild(name);
-
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'border-0 bg-transparent';
-                    removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444;">close</span>';
-                    removeBtn.addEventListener('click', function () {
-                        window.editSelectedFiles.splice(idx, 1);
-                        displayEditSelectedFiles();
-                    });
-
-                    item.appendChild(info);
-                    item.appendChild(removeBtn);
-                    filesPreview.appendChild(item);
-                });
-            }
-
-            if (filesInput) {
-                filesInput.addEventListener('change', function () {
-                    const chosen = Array.from(this.files || []);
-                    console.log('Files chosen:', chosen);
-                    window.editSelectedFiles.push(...chosen);
-                    displayEditSelectedFiles();
-
-                    this.value = '';
-                });
-            }
-
-            displayEditSelectedFiles();
-        });
+        // Handler for reference files in edit project task modal - removed
+        // Now using standard add/remove input pattern like main task page
 
 
         // Provide minimal existing files renderer if not present
         if (typeof window.displayExistingReferenceFiles !== 'function') {
             window.displayExistingReferenceFiles = function(files){
                 try {
-                    const container = document.getElementById('existing_reference_files');
+                    // Try project task container first, then fallback to general container
+                    let container = document.getElementById('project_task_existing_reference_files');
+                    if (!container) container = document.getElementById('existing_reference_files');
                     if (!container) return;
+                    
                     container.innerHTML = '';
+                    
+                    // Get hidden input for tracking existing files
+                    let hiddenInput = document.getElementById('task_existing_reference_files_input');
+                    let existingFiles = [];
+                    
                     (files || []).forEach((f) => {
+                        const fileName = (typeof f === 'string') ? f : (f.name || f.file_name || '');
+                        existingFiles.push(fileName);
+                        
                         const div = document.createElement('div');
-                        div.className = 'd-flex align-items-center gap-2 mb-1';
-                        const icon = document.createElement('span'); icon.className = 'material-symbols-outlined'; icon.textContent = 'insert_drive_file';
-                        const a = document.createElement('a'); a.href = (typeof f === 'string') ? (f.startsWith('http') ? f : (appUrl + '/' + f.replace(/^\//,''))) : '#'; a.textContent = (f.name || f.file_name || f) || 'file'; a.target = '_blank';
-                        div.appendChild(icon); div.appendChild(a);
+                        div.className = 'd-flex align-items-center justify-content-between gap-2 mb-2 p-2 bg-light rounded';
+                        div.dataset.fileName = fileName;
+                        
+                        const leftPart = document.createElement('div');
+                        leftPart.className = 'd-flex align-items-center gap-2';
+                        
+                        const icon = document.createElement('span');
+                        icon.className = 'material-symbols-outlined';
+                        icon.textContent = 'insert_drive_file';
+                        
+                        const a = document.createElement('a');
+                        a.href = (typeof f === 'string') ? (f.startsWith('http') ? f : (appUrl + '/' + f.replace(/^\//,''))) : '#';
+                        a.textContent = fileName || 'file';
+                        a.target = '_blank';
+                        a.style.textDecoration = 'none';
+                        a.style.color = '#333';
+                        
+                        leftPart.appendChild(icon);
+                        leftPart.appendChild(a);
+                        
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-sm border-0 bg-transparent';
+                        removeBtn.innerHTML = '<span class="material-symbols-outlined" style="color:#444;">close</span>';
+                        removeBtn.addEventListener('click', function() {
+                            div.remove();
+                            // Update hidden input
+                            if (hiddenInput) {
+                                try {
+                                    let currentFiles = JSON.parse(hiddenInput.value || '[]');
+                                    currentFiles = currentFiles.filter(fn => fn !== fileName);
+                                    hiddenInput.value = JSON.stringify(currentFiles);
+                                    console.log('Updated existing files:', hiddenInput.value);
+                                } catch(e) {
+                                    console.error('Error updating existing files:', e);
+                                }
+                            }
+                        });
+                        
+                        div.appendChild(leftPart);
+                        div.appendChild(removeBtn);
                         container.appendChild(div);
                     });
-                } catch(_) {}
+                    
+                    // Update hidden input with current files
+                    if (hiddenInput) {
+                        hiddenInput.value = JSON.stringify(existingFiles);
+                        console.log('Initial existing files:', hiddenInput.value);
+                    }
+                } catch(e) {
+                    console.error('Error in displayExistingReferenceFiles:', e);
+                }
             };
         }
 
@@ -9767,14 +9794,6 @@ function formatTaskImage(image, title = "") {
                 const fd = new FormData(editForm);
                 fd.append('_method', 'PUT');
 
-                // Append reference files selected in preview
-                try {
-                    const files = Array.isArray(window.editSelectedFiles) ? window.editSelectedFiles : [];
-                    // Clear any existing so we avoid duplicates
-                    try { fd.delete('reference_files[]'); } catch(_) {}
-                    files.forEach(f => fd.append('reference_files[]', f));
-                } catch(_) {}
-
                 $.ajax({
                     url: appUrl + '/task/' + encodeURIComponent(String(taskId)),
                     type: 'POST',
@@ -9823,6 +9842,37 @@ function formatTaskImage(image, title = "") {
             // guard against double-binding
             editForm._boundSubmitHandler = true;
         }
+
+        // Handler for add/remove reference file buttons in project task edit modal
+        document.addEventListener('click', function(e) {
+            const addFileBtn = e.target.closest('.add-ref-file-project-task');
+            if (addFileBtn) {
+                e.preventDefault();
+                const container = document.getElementById('edit_project_task_reference_files_container');
+                if (!container) return;
+                
+                const row = document.createElement('div');
+                row.className = 'input-group';
+                row.innerHTML = 
+                    '<input type="file" class="form-control input-text" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">' +
+                    '<button type="button" class="btn btn-remove-file remove-ref-file-project-task" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
+                container.appendChild(row);
+                
+                const input = row.querySelector('input[type="file"]');
+                if (input) input.focus();
+                return;
+            }
+
+            const removeFileBtn = e.target.closest('.remove-ref-file-project-task');
+            if (removeFileBtn) {
+                e.preventDefault();
+                const row = removeFileBtn.closest('.input-group');
+                if (row && row.parentNode) {
+                    row.parentNode.removeChild(row);
+                }
+            }
+        });
+
     } catch(_) {}
 })();
 

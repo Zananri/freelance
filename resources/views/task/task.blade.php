@@ -102,8 +102,10 @@
             </div>
 
             <a href="{{ route('schedules') }}" class="btn btn-schedule-custom">Schedule</a>
-            <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">Add <span
-                    class="btn-text-add">Task</span></button>
+            <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+                <span class="btn-text-add d-none d-md-inline">Add Task</span>
+                <span class="material-symbols-outlined btn-mobile-add d-inline d-md-none">add</span>
+            </button>
         </div>
     </div>
 
@@ -111,7 +113,10 @@
         <div class="row">
             <div class="col-md-3 new-request-container">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h4 class="task-section-title mb-0">New</h4>
+                    <div class="d-flex justify-content-start">
+                        <h4 class="task-section-title mb-0">New</h4>
+                        <span class="new-total-task-label">{{ $new ?? 0 }}</span>
+                    </div>
                     <div class="d-flex align-items-center gap-2">
                         <button type="button" id="taskNewBulkAction" class="task-bulk-icon"
                             aria-label="Confirm accept selected tasks">
@@ -135,7 +140,10 @@
                 <div id="new-request-tasks" class="task-list"></div>
             </div>
             <div class="col-md-3 in-progress-container">
-                <h4 class="task-section-title">In Progress</h4>
+                <div class="d-flex justify-content-start">
+                    <h4 class="task-section-title">In Progress</h4>
+                    <span class="progress-total-task-label">{{ $progress_total ?? 0 }}</span>
+                </div>
                 <div id="progressTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -144,7 +152,10 @@
                 <div id="in-progress-tasks" class="task-list"></div>
             </div>
             <div class="col-md-3 completed-container">
-                <h4 class="task-section-title">Completed</h4>
+                <div class="d-flex justify-content-start">
+                    <h4 class="task-section-title">Completed</h4>
+                    <span class="complete-total-task-label">{{ $completed ?? 0 }}</span>
+                </div>
                 <div id="completedTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -153,7 +164,10 @@
                 <div id="completed-tasks" class="task-list"></div>
             </div>
             <div class="col-md-3 finished-container">
-                <h4 class="task-section-title">Finish</h4>
+                <div class="d-flex justify-content-start">
+                    <h4 class="task-section-title">Finish</h4>
+                    <span class="finish-total-task-label">{{ $finished ?? 0 }}</span>
+                </div>
                 <div id="finishedTaskLoading" class="d-flex justify-content-center mt-3 d-none">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">Loading...</span>
@@ -284,14 +298,19 @@
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="edit_task_reference_files" class="form-label label-custom">Reference
-                                Files</label>
-                            <input type="file" class="form-control input-text" id="edit_task_reference_files"
-                                name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-                                multiple>
-                            <div class="form-text">Multiple files supported.</div>
+                            <label class="form-label label-custom">Reference Files</label>
+                            <div id="edit_task_reference_files_container" class="d-flex flex-column gap-2">
+                                <div class="input-group">
+                                    <input type="file" class="form-control input-text" name="reference_files[]"
+                                        accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                    <button type="button" class="btn btn-submit-black add-ref-file"
+                                        aria-label="Add File"><span class="material-symbols-outlined">add</span>
+                                    </button>
+                                </div>
+                            </div>
                             <div id="task_existing_reference_files" class="mt-2"></div>
-                            <div id="edit_reference_files_preview" class="mt-2"></div>
+                            <input type="hidden" id="task_existing_reference_files_input" name="task_existing_reference_files"
+                                value="[]">
                         </div>
                         <div class="mb-3 custom-input d-flex justify-content-between">
                             <div class="date-form">
@@ -490,12 +509,16 @@
                             </div>
                         </div>
                         <div class="mb-3 custom-input">
-                            <label for="task_reference_files" class="form-label label-custom">Reference Files</label>
-                            <input type="file" class="form-control input-text" id="task_reference_files"
-                                name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip"
-                                multiple>
-                            <div class="form-text">Multiple files supported.</div>
-                            <div id="reference_files_preview" class="mt-2"></div>
+                            <label class="form-label label-custom">Reference Files</label>
+                            <div id="task_reference_files_container" class="d-flex flex-column gap-2">
+                                <div class="input-group">
+                                    <input type="file" class="form-control input-text" name="reference_files[]"
+                                        accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                                    <button type="button" class="btn btn-submit-black add-ref-file"
+                                        aria-label="Add File"><span class="material-symbols-outlined">add</span>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                         <div class="mb-3 custom-input d-flex justify-content-between">
                             <div class="date-form">

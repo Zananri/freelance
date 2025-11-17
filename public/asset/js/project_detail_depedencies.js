@@ -77,7 +77,7 @@ function showReferenceUrlsForTask(taskId) {
                         left.appendChild(a);
 
                         const btnGroup = document.createElement('div');
-                        btnGroup.className = 'd-flex align-items-center gap-1 ms-auto';
+                        btnGroup.className = 'd-flex align-items-center gap-1 ms-auto btn-hover-only';
 
                         const makeBtn = (icon, title, onClick) => {
                             const btn = document.createElement('button');
@@ -1777,6 +1777,46 @@ function renderProjectTaskDetail(res) {
     showReferenceFilesForTask(task.id);
 }
 
+    document.addEventListener("click", function (e) {
+        const addFileBtn = e.target.closest(".add-ref-file");
+        if (addFileBtn) {
+            e.preventDefault();
+            const container = addFileBtn.closest(
+                "#edit_project_reference_files_container, #task_reference_files_container, #edit_project_task_reference_files_container"
+            );
+            if (!container) return;
+            const row = document.createElement("div");
+            row.className = "input-group";
+            
+            // Determine the correct name and accept attributes based on container
+            let inputName = "reference_file[]";
+            let acceptAttr = "image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel";
+            
+            // For task containers, use reference_files[] instead
+            if (container.id === "task_reference_files_container" || container.id === "edit_project_task_reference_files_container") {
+                inputName = "reference_files[]";
+                acceptAttr = "image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+            }
+            
+            row.innerHTML =
+                '<input type="file" class="form-control input-text" name="' + inputName + '" accept="' + acceptAttr + '">' +
+                ' <button type="button" class="btn btn-remove-file remove-ref-file" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="file"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeFileBtn = e.target.closest(".remove-ref-file");
+        if (removeFileBtn) {
+            e.preventDefault();
+            const row = removeFileBtn.closest(".input-group");
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
+
 // Helper: fetch reference files for a given task id, populate #referenceFilesList and show the modal
 function showReferenceFilesForTask(taskId) {
     if (!taskId) return;
@@ -1843,7 +1883,7 @@ function showReferenceFilesForTask(taskId) {
 
                         const dlBtn = document.createElement('button');
                         dlBtn.type = 'button';
-                        dlBtn.className = 'btn btn-sm btn-link p-0 ms-2';
+                        dlBtn.className = 'btn btn-sm btn-link p-0 ms-2 btn-hover-only';
                         dlBtn.title = 'Download';
                         dlBtn.style.color = "#444444";
                         dlBtn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">download</span>';

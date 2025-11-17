@@ -379,17 +379,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
             const formData = new FormData(form);
 
-            try {
-                const newFiles = Array.isArray(window.editScheduleSelectedFiles)
-                    ? window.editScheduleSelectedFiles
-                    : [];
-                newFiles.forEach((f) =>
-                    formData.append("reference_files[]", f)
-                );
-            } catch (e) {
-                console.warn("append edit files failed", e);
-            }
-
             formData.append("_method", "PUT");
 
             formData.append(
@@ -476,177 +465,143 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Edit modal: manage selected files preview and existing files list
-    (function initEditScheduleReferenceFiles() {
-        window.editScheduleSelectedFiles =
-            window.editScheduleSelectedFiles || [];
-        const input = document.getElementById("edit_schedule_reference_files");
-        const preview = document.getElementById(
-            "edit_schedule_reference_files_preview"
-        );
+    // Function to display existing reference files in edit modal
+    window.displayEditExistingReferenceFiles = function (files) {
+        const existing = document.getElementById("schedule_existing_reference_files");
+        if (!existing || !files || !Array.isArray(files)) return;
 
-        function renderEditSelectedFiles() {
-            if (!preview) return;
-            preview
-                .querySelectorAll(".selected-files-list")
-                .forEach((el) => el.remove());
-            if (
-                window.editScheduleSelectedFiles &&
-                window.editScheduleSelectedFiles.length
-            ) {
-                const list = document.createElement("div");
-                list.className = "selected-files-list mt-2";
-                window.editScheduleSelectedFiles.forEach((file, idx) => {
-                    const item = document.createElement("div");
-                    item.className =
-                        "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
-                    if (file && file.type && file.type.indexOf("image") === 0) {
-                        const img = document.createElement("img");
-                        const url = URL.createObjectURL(file);
-                        img.src = url;
-                        img.width = 28;
-                        img.height = 28;
-                        img.style.objectFit = "cover";
-                        img.style.borderRadius = "50%";
-                        img.alt = file.name;
-                        img.onload = function () {
-                            try {
-                                URL.revokeObjectURL(url);
-                            } catch (_) {}
-                        };
-                        item.appendChild(img);
-                    } else {
-                        const badge = document.createElement("div");
-                        item.appendChild(badge);
-                    }
-                    const title = document.createElement("span");
-                    title.className = "flex-grow-1";
-                    title.textContent = file.name;
-                    item.appendChild(title);
-                    const removeBtn = document.createElement("button");
-                    removeBtn.type = "button";
-                    removeBtn.className =
-                        "btn btn-sm btn-remove-task remove-task";
-                    removeBtn.style.lineHeight = "1";
-                    removeBtn.innerHTML =
-                        '<span class="material-symbols-outlined">close</span>';
-                    removeBtn.addEventListener("click", () => {
-                        window.editScheduleSelectedFiles.splice(idx, 1);
-                        renderEditSelectedFiles();
-                    });
-                    item.appendChild(removeBtn);
-                    list.appendChild(item);
-                });
-                preview.appendChild(list);
-            }
-        }
+        existing.innerHTML = "";
 
-        window.displayEditExistingReferenceFiles = function (files) {
-            try {
-                const existingListId =
-                    "edit_schedule_existing_reference_files_list";
-                const prev = document.getElementById(existingListId);
-                if (prev) prev.remove();
-                if (!files || !files.length) return;
-                const wrapper = document.createElement("div");
-                wrapper.id = existingListId;
-                wrapper.className = "existing-files-list mt-2";
-                files.forEach((fname) => {
-                    const item = document.createElement("div");
-                    item.className =
-                        "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2 existing-file-item";
-                    const lower = String(fname || "").toLowerCase();
-                    const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(
-                        lower
-                    );
-                    if (isImage) {
-                        const img = document.createElement("img");
-                        img.src =
-                            appUrl +
-                            "/file/schedule_reference_files/" +
-                            encodeURIComponent(fname);
-                        img.width = 28;
-                        img.height = 28;
-                        img.style.objectFit = "cover";
-                        img.style.borderRadius = "50%";
-                        img.alt = fname;
-                        item.appendChild(img);
-                    } else {
-                        const badge = document.createElement("div");
-                        item.appendChild(badge);
-                    }
-                    const title = document.createElement("span");
-                    title.className = "flex-grow-1";
-                    title.textContent = fname;
-                    item.appendChild(title);
-                    const removeBtn = document.createElement("button");
-                    removeBtn.type = "button";
-                    removeBtn.className =
-                        "btn btn-sm btn-remove-task remove-task";
-                    removeBtn.style.lineHeight = "1";
-                    removeBtn.innerHTML =
-                        '<span class="material-symbols-outlined">close</span>';
-                    removeBtn.addEventListener("click", function () {
-                        item.remove();
-                        updateExistingFilesHidden();
-                    });
-                    item.appendChild(removeBtn);
-                    wrapper.appendChild(item);
-                });
-                if (preview)
-                    preview.insertAdjacentElement("afterbegin", wrapper);
-                updateExistingFilesHidden();
-            } catch (e) {}
-        };
+        if (files.length > 0) {
+            const title = document.createElement("div");
+            existing.appendChild(title);
 
-        function updateExistingFilesHidden() {
-            try {
-                const existingItems = document.querySelectorAll(
-                    "#edit_schedule_reference_files_preview .existing-file-item"
-                );
-                const arr = [];
-                existingItems.forEach((it) => {
-                    const sp = it.querySelector("span.flex-grow-1");
-                    if (sp && sp.textContent) arr.push(sp.textContent.trim());
+            const fileList = document.createElement("div");
+            fileList.className = "existing-files-list";
+
+            files.forEach((fileName, idx) => {
+                const fileItem = document.createElement("div");
+                fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+
+                const lower = String(fileName || '').toLowerCase();
+                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+                if (isImage) {
+                    const img = document.createElement('img');
+                    img.src = appUrl + '/file/schedule_reference_files/' + encodeURIComponent(fileName);
+                    img.width = 28; img.height = 28;
+                    img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
+                    img.alt = fileName;
+                    fileItem.appendChild(img);
+                } else {
+                    const badge = document.createElement('div');
+                    fileItem.appendChild(badge);
+                }
+
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'flex-grow-1';
+                titleSpan.setAttribute('data-filename', fileName);
+                try {
+                    var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
+                    var num = Number(idx) + 1;
+                    titleSpan.textContent = ext ? ('SCHEDULE_REF_FILE_' + num + '.' + ext) : ('SCHEDULE_REF_FILE_' + num);
+                } catch (e) {
+                    titleSpan.textContent = fileName;
+                }
+                fileItem.appendChild(titleSpan);
+
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
+                removeBtn.style.lineHeight = '1';
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener('click', function () {
+                    fileItem.remove();
+                    updateExistingFiles();
                 });
 
-                // bersihin hidden lama
-                document
-                    .querySelectorAll('input[name="existing_reference_files"]')
-                    .forEach((el) => el.remove());
-
-                const form = document.getElementById("scheduleEditForm");
-                // Always create a hidden input with JSON array
-                const hidden = document.createElement("input");
-                hidden.type = "hidden";
-                hidden.name = "existing_reference_files";
-                hidden.value = JSON.stringify(arr);
-                form.appendChild(hidden);
-            } catch (e) {}
-        }
-
-        if (input) {
-            input.addEventListener("change", function () {
-                const files = Array.from(this.files || []);
-                window.editScheduleSelectedFiles = [
-                    ...window.editScheduleSelectedFiles,
-                    ...files,
-                ];
-                renderEditSelectedFiles();
-                this.value = "";
+                fileItem.appendChild(removeBtn);
+                fileList.appendChild(fileItem);
             });
+
+            existing.appendChild(fileList);
         }
+        
+        // Initialize or update hidden input with all existing files on display
+        let existingFilesInput = document.getElementById(
+            "existing_reference_files_input"
+        );
+        if (!existingFilesInput) {
+            existingFilesInput = document.createElement("input");
+            existingFilesInput.type = "hidden";
+            existingFilesInput.id = "existing_reference_files_input";
+            existingFilesInput.name = "schedule_existing_reference_files";
+            document
+                .getElementById("scheduleEditForm")
+                .appendChild(existingFilesInput);
+        }
+        existingFilesInput.value = JSON.stringify(files);
+    };
 
-        window.displayEditSelectedFiles = renderEditSelectedFiles;
+    // Function to update existing files array
+    function updateExistingFiles() {
+        const existingItems = document.querySelectorAll(
+                "#schedule_existing_reference_files .existing-file-item, #schedule_existing_reference_files .selected-task"
+            );
+        const existingFiles = [];
 
-        window.populateEditModal = function (schedule) {
-            document.getElementById("edit_schedule_title").value =
-                schedule.title || "";
-            if (schedule.reference_files) {
-                displayEditExistingReferenceFiles(schedule.reference_files);
+        existingItems.forEach((item) => {
+            let fileName = '';
+            const sp = item.querySelector('span.flex-grow-1');
+            if (sp && sp.getAttribute) fileName = sp.getAttribute('data-filename') || sp.textContent.trim();
+            if (fileName) existingFiles.push(fileName);
+        });
+
+        // Update hidden input
+        let existingFilesInput = document.getElementById(
+            "existing_reference_files_input"
+        );
+        if (!existingFilesInput) {
+            existingFilesInput = document.createElement("input");
+            existingFilesInput.type = "hidden";
+            existingFilesInput.id = "existing_reference_files_input";
+            existingFilesInput.name = "schedule_existing_reference_files";
+            document
+                .getElementById("scheduleEditForm")
+                .appendChild(existingFilesInput);
+        }
+        existingFilesInput.value = JSON.stringify(existingFiles);
+    }
+
+    // Delegated event handler for add/remove reference file buttons in edit schedule modal
+    document.addEventListener('click', function(e) {
+        // Handle add reference file button in edit modal
+        if (e.target.closest('.add-ref-file')) {
+            const btn = e.target.closest('.add-ref-file');
+            const container = document.getElementById('edit_schedule_reference_files_container');
+            if (container) {
+                const newGroup = document.createElement('div');
+                newGroup.className = 'input-group mb-2';
+                newGroup.innerHTML = `
+                    <input type="file" name="reference_file[]" class="form-control input-text" 
+                        accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">
+                    <button type="button" class="btn btn-submit-black btn-remove-file remove-ref-file">
+                        <span class="material-symbols-outlined">close</span>
+                    </button>
+                `;
+                container.appendChild(newGroup);
             }
-            displayEditSelectedFiles();
-        };
-    })();
+        }
+        
+        // Handle remove reference file button in edit modal
+        if (e.target.closest('.remove-ref-file')) {
+            const btn = e.target.closest('.remove-ref-file');
+            const inputGroup = btn.closest('.input-group');
+            const container = document.getElementById('edit_schedule_reference_files_container');
+            if (inputGroup && container && container.querySelectorAll('.input-group').length > 1) {
+                inputGroup.remove();
+            }
+        }
+    });
 
     function fetchScheduleDataForEdit(scheduleId) {
         $.ajax({
@@ -1029,10 +984,6 @@ document.addEventListener("DOMContentLoaded", function () {
             ) {
                 window.displayEditExistingReferenceFiles(refFiles);
             }
-            // reset any previously selected new files for edit modal
-            window.editScheduleSelectedFiles = [];
-            if (typeof window.displayEditSelectedFiles === "function")
-                window.displayEditSelectedFiles();
         } catch (e) {
             console.warn(
                 "populateEditModal: failed render existing reference files",

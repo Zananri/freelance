@@ -587,13 +587,46 @@
 /* Added styles for task sections and cards */
 
 .task-section-title {
-    font-size: 18px;
-    font-weight: 300;
-    color: #222;
+    font-size: 20px;
+    font-weight: 400;
+    color: #2A3542;
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+.new-total-task-label,
+.progress-total-task-label,
+.complete-total-task-label,
+.finish-total-task-label {
+    border-radius: 4px;
+    margin-left: 5px;
+    width: 25px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 500;
+    color: #fff;
+    margin-top: 3px;
+}
+
+.new-total-task-label {
+    background: #B6BCC9;
+}
+
+.progress-total-task-label {
+    background: #D4D1C1;
+}
+
+.complete-total-task-label {
+    background: #B3D4CE;
+}
+
+.finish-total-task-label {
+    background: #B7C4D6;
 }
 
 /* Accept-all circular checkbox beside section header */
@@ -1193,15 +1226,6 @@ p {
         position: sticky;
         top: 0;
         z-index: 10;
-        flex-direction: column;
-        align-items: stretch;
-        gap: 12px;
-    }
-
-    .header-task-container .left-header-content {
-        width: 100%;
-        flex-direction: row;
-        justify-content: space-between;
     }
 
     .header-task-container .title-content {
@@ -1209,30 +1233,8 @@ p {
         text-align: start;
     }
 
-    .header-task-container .task-tabs {
-        width: 50%;
-        display: flex;
-        justify-content: flex-end;
-        margin-bottom: 0;
-        margin-right: 0;
-    }
-
-    .header-task-container > .d-flex.align-items-center.gap-2 {
-        width: 100%;
-        justify-content: space-between;
-        gap: 0;
-    }
-
-    .btn-schedule-custom,
-    .btn-add-custom {
-        flex: 1;
-        width: 50%;
-        padding: 10px;
-        font-size: 14px;
-    }
-
-    .btn-text-add {
-        display: inline;
+    .btn-add-custom .btn-text-add {
+        display: none;
     }
 
     /* Mobile bulk controls bar di bawah action buttons */
@@ -1357,16 +1359,6 @@ p {
         color: #858ca0;
         border: none;
         background: #ecedf5;
-    }
-
-    .btn-schedule-custom,
-    .btn-add-custom {
-        width: 100px;
-        padding: 0;
-    }
-
-    .btn-text-add {
-        display: none;
     }
 
     .timeline-table {
@@ -1974,11 +1966,13 @@ p {
 }
 
 .btn-add-custom {
+    display: flex;
+    align-items: center;
     background: #444444;
     color: #ebecf2;
     border-radius: 10px;
-    padding: 10px;
-    width: 100px;
+    padding: 10px 12px;
+    height: 40px;
     font-size: 14px;
     border: none;
 }
@@ -2294,6 +2288,8 @@ p {
 }
 
 .btn-submit-black.add-ref-url,
+.btn-submit-black.add-ref-file,
+.btn-remove-file.remove-ref-file,
 .btn-remove-url.remove-ref-url {
     color: #444444;
     background: #ffffff;
@@ -2454,4 +2450,25 @@ input[type="file"]::file-selector-button {
 }
 .complete-note-container:hover::-webkit-scrollbar-thumb {
     background: #888;
+}
+
+.ref-url-item .action-icon {
+    opacity: 0;
+    transition: opacity .15s ease-in-out;
+    cursor: pointer;
+    font-size: 18px;
+    color: #444;
+}
+
+.ref-url-item:hover .action-icon {
+    opacity: 1;
+}
+
+.ref-url-item:hover {
+    background: #f0f0f0;
+}
+
+.ref-url-item .action-icon:hover {
+    color: #000;
+    transform: scale(1.15);
 }

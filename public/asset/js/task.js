@@ -1,3 +1,23 @@
+// Helper function to update task count labels
+function updateTaskCountLabels() {
+    try {
+        const newCount = document.querySelectorAll('#new-request-tasks .custom-card').length;
+        const progressCount = document.querySelectorAll('#in-progress-tasks .custom-card').length;
+        const completedCount = document.querySelectorAll('#completed-tasks .custom-card').length;
+        const finishedCount = document.querySelectorAll('#finished-tasks .custom-card').length;
+
+        const newLabel = document.querySelector('.new-total-task-label');
+        const progressLabel = document.querySelector('.progress-total-task-label');
+        const completedLabel = document.querySelector('.complete-total-task-label');
+        const finishedLabel = document.querySelector('.finish-total-task-label');
+
+        if (newLabel) newLabel.textContent = newCount;
+        if (progressLabel) progressLabel.textContent = progressCount;
+        if (completedLabel) completedLabel.textContent = completedCount;
+        if (finishedLabel) finishedLabel.textContent = finishedCount;
+    } catch (_) { /* noop */ }
+}
+
  document.addEventListener("DOMContentLoaded", function () {
     // Mark pure touch-only devices (coarse pointer & no hover) to adjust hover behavior.
     // Avoid disabling hover on hybrid laptops (touchscreen + mouse) which report touch capabilities.
@@ -37,7 +57,7 @@
     let globalDropdownDocListenersBound = false;
     let attachFileIconListenerBound = false;
     // Shared buffer for multi-file preview across modals (Add Task, Add/Reply Feedback)
-    let selectedFiles = [];
+    // --- Reference file handling removed: now using button + pattern for individual files ---
 
     // File size limits (bytes)
     const MAX_TOTAL_UPLOAD_BYTES = 100 * 1024 * 1024; // 100 MB
@@ -171,6 +191,36 @@
 
     window.addEventListener('resize', handleResponsiveTooltipUpdate, { passive: true });
     window.addEventListener('orientationchange', handleResponsiveTooltipUpdate, { passive: true });
+
+    // Delegated handler: add/remove reference FILE rows (same concept as URL for tasks)
+    document.addEventListener("click", function (e) {
+        const addFileBtn = e.target.closest(".add-ref-file");
+        if (addFileBtn) {
+            e.preventDefault();
+            const container = addFileBtn.closest(
+                "#task_reference_files_container, #edit_task_reference_files_container, #edit_project_task_reference_files_container"
+            );
+            if (!container) return;
+            const row = document.createElement("div");
+            row.className = "input-group";
+            row.innerHTML =
+                '<input type="file" class="form-control input-text" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">' +
+                ' <button type="button" class="btn btn-remove-file remove-ref-file" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="file"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeFileBtn = e.target.closest(".remove-ref-file");
+        if (removeFileBtn) {
+            e.preventDefault();
+            const row = removeFileBtn.closest(".input-group");
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
 
     // Listen for global avatar update: refresh visible task cards (minimal: update any img[data-avatar-universal])
     window.addEventListener('profilePictureUpdated', function(e){
@@ -1560,7 +1610,7 @@
             );
             if (submitBtn) submitBtn.disabled = true;
 
-            // Validate sizes: include task image (if any) and selectedFiles
+            // Validate sizes: include task image (if any) - reference files now collected directly from inputs
             try {
                 const imageEl = document.getElementById('task_image');
                 const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
@@ -1568,7 +1618,10 @@
                     try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
                     return;
                 }
-                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: selectedFiles});
+                // Collect reference files from input-group pattern for validation
+                const refContainer = document.getElementById('task_reference_files_container');
+                const refFiles = refContainer ? Array.from(refContainer.querySelectorAll('input[type="file"]')).flatMap(inp => Array.from(inp.files || [])) : [];
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: refFiles});
                 if (!totalCheck.ok) {
                     try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
                     return;
@@ -1590,10 +1643,7 @@
                     }
                 }
             } catch(_) {}
-            // Append all selected reference files to formData
-            selectedFiles.forEach((file) => {
-                formData.append("reference_files[]", file);
-            });
+            // Reference files are now collected directly from file inputs via FormData serialization (button + pattern)
 
             $.ajax({
                 url: appUrl + "/task/store",
@@ -1624,9 +1674,21 @@
                         imageLabel.style.opacity = "0.5";
                         imageClearBtn.classList.add("d-none");
 
-                        // Reset selected files array
-                        selectedFiles = [];
-                        displaySelectedFiles();
+                        // Clear reference file input rows (button + pattern)
+                        try {
+                            const container = document.getElementById("task_reference_files_container");
+                            if (container) {
+                                const rows = container.querySelectorAll(".input-group");
+                                rows.forEach((row, idx) => {
+                                    if (idx === 0) {
+                                        const inp = row.querySelector('input[type="file"]');
+                                        if (inp) inp.value = "";
+                                    } else {
+                                        row.remove();
+                                    }
+                                });
+                            }
+                        } catch(_) {}
 
                         // Close modal after short delay to show alert
                         setTimeout(() => {
@@ -1880,8 +1942,8 @@
 
     setupExecutorInput();
     setupEditExecutorInput();
-    setupReferenceFilesInput();
-    setupEditReferenceFilesInput();
+    setupReferenceFilesInput(); // removed - now using button + pattern
+    setupEditReferenceFilesInput(); // removed - now using button + pattern
 
     loadProjects();
     // Wire project selects to load related tasks for parent selection
@@ -2334,18 +2396,9 @@
         if (input && label && clearBtn) setupImageInput(input, label, clearBtn);
     })();
 
-    // Schedule reference files reuse of preview util (same look & feel as Task)
+    // Schedule reference files - removed (now using button + pattern if needed)
     (function initScheduleRefFiles(){
-        const input = document.getElementById('schedule_reference_files');
-        const preview = document.getElementById('schedule_reference_files_preview');
-        if (!input || !preview) return;
-        input.addEventListener('change', function(e){
-            const files = Array.from(e.target.files || []);
-            selectedFiles = [...selectedFiles, ...files];
-            displaySelectedFiles();
-            // Clear input so the same file can be chosen again if needed
-            input.value = '';
-        });
+        /* no-op - using button + pattern now */
     })();
 
     // Schedule recurrence UI toggles
@@ -2547,7 +2600,7 @@
             );
             if (submitBtn) submitBtn.disabled = true;
 
-            // Validate sizes: include edit task image and editSelectedFiles
+            // Validate sizes: include edit task image - reference files now collected directly from inputs
             try {
                 const imageEl = document.getElementById('edit_task_image');
                 const imageFile = (imageEl && imageEl.files && imageEl.files[0]) ? imageEl.files[0] : null;
@@ -2555,8 +2608,10 @@
                     try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Task image must be smaller than 10 MB.', 'warning'); } catch(_) { alert('Task image must be smaller than 10 MB.'); }
                     return;
                 }
-                const extraFiles = (window.editSelectedFiles && Array.isArray(window.editSelectedFiles)) ? window.editSelectedFiles : [];
-                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: extraFiles});
+                // Collect reference files from input-group pattern for validation
+                const refContainer = document.getElementById('edit_task_reference_files_container, edit_project_task_reference_files_container');
+                const refFiles = refContainer ? Array.from(refContainer.querySelectorAll('input[type="file"]')).flatMap(inp => Array.from(inp.files || [])) : [];
+                const totalCheck = validateTotalUploadSize({imageFile: imageFile, extraFiles: refFiles});
                 if (!totalCheck.ok) {
                     try { if (typeof showFloatingAlert === 'function') showFloatingAlert('Total upload size must be 100 MB or less.', 'warning'); } catch(_) { alert('Total upload size must be 100 MB or less.'); }
                     return;
@@ -2567,15 +2622,11 @@
             // Add _method to FormData for Laravel PUT request
             formData.append("_method", "PUT");
 
-            // Append all selected reference files from global array to formData
-            if (
-                window.editSelectedFiles &&
-                window.editSelectedFiles.length > 0
-            ) {
-                window.editSelectedFiles.forEach((file) => {
-                    formData.append("reference_files[]", file);
-                });
-            }
+            // Debug: Log existing reference files being sent
+            const existingFilesValue = formData.get('task_existing_reference_files, project_task_existing_reference_files');
+            console.log('Submitting edit task with existing reference files:', existingFilesValue);
+
+            // Reference files are now collected directly from file inputs via FormData serialization (button + pattern)
 
             $.ajax({
                 url: appUrl + "/task/" + taskId,
@@ -2619,9 +2670,27 @@
                             window.clearSelectedExecutorsEdit();
                         }
 
-                        // Clear selected files after successful update
-                        window.editSelectedFiles = [];
-                        displayEditSelectedFiles();
+                        // Clear reference file input rows and existing files (button + pattern)
+                        try {
+                            const existingContainer = document.getElementById("task_existing_reference_files, project_task_existing_reference_files");
+                            if (existingContainer) existingContainer.innerHTML = "";
+                            
+                            const hiddenExisting = document.getElementById("task_existing_reference_files_input");
+                            if (hiddenExisting) hiddenExisting.value = "[]";
+                            
+                            const container = document.getElementById("edit_task_reference_files_container, edit_project_task_reference_files_container");
+                            if (container) {
+                                const rows = container.querySelectorAll(".input-group");
+                                rows.forEach((row, idx) => {
+                                    if (idx === 0) {
+                                        const inp = row.querySelector('input[type="file"]');
+                                        if (inp) inp.value = "";
+                                    } else {
+                                        row.remove();
+                                    }
+                                });
+                            }
+                        } catch(_) {}
 
                         // Close modal after short delay to show alert and insert updated task
                         setTimeout(() => {
@@ -8718,17 +8787,54 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
                 let refUrlsHtml = '';
                 const referenceUrls = task.reference_urls || (task.reference_url ? [task.reference_url] : []);
+
                 if (Array.isArray(referenceUrls) && referenceUrls.length) {
                     refUrlsHtml = '<div class="mb-2">';
+
                     referenceUrls.forEach((u, idx) => {
-                        // Display the actual URL instead of a label
                         const displayUrl = u || '';
-                        refUrlsHtml += `<div class="d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px;">
-                                            <a href="${u}" target="_blank" class="text-decoration-none flex-grow-1 text-truncate" style="color: #444;" title="${displayUrl}">${displayUrl}</a>
-                                        </div>`;
+
+                        refUrlsHtml += `
+                            <div class="ref-url-item d-flex align-items-center p-2 rounded bg-light mb-1" style="font-size:12px; position:relative;">
+                                
+                                <a href="${u}" target="_blank"
+                                    class="text-decoration-none flex-grow-1 text-truncate"
+                                    style="color: #444;" title="${displayUrl}">
+                                    ${displayUrl}
+                                </a>
+
+                                <span class="material-symbols-outlined ms-2 open-url-btn action-icon"
+                                    data-url="${u}">
+                                    open_in_new
+                                </span>
+
+                                <span class="material-symbols-outlined ms-2 copy-url-btn action-icon"
+                                    data-url="${u}">
+                                    content_copy
+                                </span>
+
+                            </div>
+                        `;
                     });
+
                     refUrlsHtml += '</div>';
                 }
+
+                document.addEventListener("click", function (e) {
+                    if (e.target.classList.contains("open-url-btn")) {
+                        const url = e.target.getAttribute("data-url");
+                        if (url) window.open(url, "_blank");
+                    }
+
+                    if (e.target.classList.contains("copy-url-btn")) {
+                        const url = e.target.getAttribute("data-url");
+                        if (url) {
+                            navigator.clipboard.writeText(url)
+                                .then(() => showFloatingAlert("URL copied!", "success", 2000))
+                                .catch(() => showFloatingAlert("Failed to copy.", "danger", 2000));
+                        }
+                    }
+                });
 
                 const showDelete = (function(){
                     try {
@@ -9437,201 +9543,140 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
     // Function to setup reference files input for edit modal
     function setupEditReferenceFilesInput() {
-        const input = document.getElementById("edit_task_reference_files");
-        const preview = document.getElementById("edit_reference_files_preview");
-        const existing = document.getElementById("task_existing_reference_files");
+        const container = document.getElementById("edit_task_reference_files_container, edit_project_task_reference_files_container");
+        if (!container) return;
 
-        if (!input || !preview) return;
+        const input = container.querySelector('input[type="file"]');
+        const existing = document.getElementById("task_existing_reference_files, project_task_existing_reference_files");
+        const hidden = document.getElementById("task_existing_reference_files_input");
 
-        // Use a global variable to track selected files for edit modal
+        if (!existing || !hidden) return;
+
         window.editSelectedFiles = [];
 
         input.addEventListener("change", function () {
             const files = Array.from(this.files);
-            // Add debug log to check files selected
-            window.editSelectedFiles = [...window.editSelectedFiles, ...files];
-            displayEditSelectedFiles();
-
-            // Clear input for next selection AFTER adding files to array
-            // (already done here, but keep for clarity)
+            window.editSelectedFiles.push(...files);
+            displaySelectedFiles();
             this.value = "";
         });
 
-        window.displayEditSelectedFiles = function () {
+        function displaySelectedFiles() {
+            const preview = document.getElementById("edit_reference_files_preview");
+            if (!preview) return;
+
             preview.innerHTML = "";
 
-            if (window.editSelectedFiles.length > 0) {
-                    const fileList = document.createElement("div");
-                    fileList.className = "selected-files-list mt-2";
+            if (window.editSelectedFiles.length === 0) return;
 
-                    window.editSelectedFiles.forEach((file, index) => {
-                        const fileItem = document.createElement("div");
-                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
+            const fileList = document.createElement("div");
+            fileList.className = "selected-files-list mt-2";
 
-                        if (file && file.type && file.type.indexOf('image') === 0) {
-                            const img = document.createElement('img');
-                            const url = URL.createObjectURL(file);
-                            img.src = url;
-                            img.width = 28;
-                            img.height = 28;
-                            img.style.objectFit = 'cover';
-                            img.style.borderRadius = '50%';
-                            img.alt = file.name;
-                            img.onload = function() { try { URL.revokeObjectURL(url); } catch(_) {} };
-                            fileItem.appendChild(img);
-                        } else {
-                            const badge = document.createElement('div');
-                            fileItem.appendChild(badge);
-                        }
+            window.editSelectedFiles.forEach((file, index) => {
+                const fileItem = document.createElement("div");
+                fileItem.className =
+                    "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
 
-                        const title = document.createElement('span');
-                        title.className = 'flex-grow-1';
-                        title.textContent = file.name;
-                        fileItem.appendChild(title);
+                const isImage = file.type && file.type.indexOf("image") === 0;
 
-                        const removeBtn = document.createElement('button');
-                        removeBtn.type = 'button';
-                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
-                        removeBtn.style.lineHeight = '1';
-                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                        removeBtn.addEventListener('click', function () {
-                            window.editSelectedFiles.splice(index, 1);
-                            window.displayEditSelectedFiles();
-                        });
-
-                        fileItem.appendChild(removeBtn);
-                        fileList.appendChild(fileItem);
-                    });
-
-                    preview.appendChild(fileList);
-            }
-        };
-
-
-        // Function to display existing files
-        window.displayExistingReferenceFiles = function (files) {
-            if (!existing || !files || !Array.isArray(files)) return;
-
-            existing.innerHTML = "";
-
-            if (files.length > 0) {
-                    const title = document.createElement("div");
-                    // title.className = "fw-normal mb-2";
-                    // title.textContent = "Current Files:";
-                    // title.style.fontSize = "12px"
-                    existing.appendChild(title);
-
-                    const fileList = document.createElement("div");
-                    fileList.className = "existing-files-list";
-
-                    files.forEach((fileName, idx) => {
-                        const fileItem = document.createElement("div");
-                        fileItem.className = 'd-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2';
-
-                        // determine if file is an image by extension
-                        const lower = String(fileName || '').toLowerCase();
-                        const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
-                        if (isImage) {
-                            const img = document.createElement('img');
-                            img.src = appUrl + '/file/task_reference_files/' + encodeURIComponent(fileName);
-                            img.width = 28; img.height = 28;
-                            img.style.objectFit = 'cover'; img.style.borderRadius = '50%';
-                            img.alt = fileName;
-                            fileItem.appendChild(img);
-                        } else {
-                            const badge = document.createElement('div');
-                            fileItem.appendChild(badge);
-                        }
-
-                        const titleSpan = document.createElement('span');
-                        titleSpan.className = 'flex-grow-1';
-                        // store original filename and show formatted display name
-                        titleSpan.setAttribute('data-filename', fileName);
-                        try {
-                            var ext = (String(fileName || '').split('.').pop()||'').toLowerCase();
-                            var num = Number(idx) + 1;
-                            titleSpan.textContent = ext ? ('PROJECT_REF_FILE_' + num + '.' + ext) : ('PROJECT_REF_FILE_' + num);
-                        } catch (e) {
-                            titleSpan.textContent = fileName;
-                        }
-                        fileItem.appendChild(titleSpan);
-
-                        const removeBtn = document.createElement('button');
-                        removeBtn.type = 'button';
-                        removeBtn.className = 'btn btn-sm btn-remove-task remove-task';
-                        removeBtn.style.lineHeight = '1';
-                        removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
-                        removeBtn.addEventListener('click', function () {
-                            fileItem.remove();
-                            updateExistingFiles();
-                        });
-
-                        fileItem.appendChild(removeBtn);
-                        fileList.appendChild(fileItem);
-                    });
-
-                    existing.appendChild(fileList);
+                if (isImage) {
+                    const img = document.createElement("img");
+                    const url = URL.createObjectURL(file);
+                    img.src = url;
+                    img.width = 28;
+                    img.height = 28;
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "50%";
+                    img.onload = () => URL.revokeObjectURL(url);
+                    fileItem.appendChild(img);
+                } else {
+                    const badge = document.createElement("div");
+                    badge.className = "file-badge";
+                    fileItem.appendChild(badge);
                 }
-            // Initialize or update hidden input with all existing files on display
-            let existingFilesInput = document.getElementById(
-                "existing_reference_files_input"
-            );
-            if (!existingFilesInput) {
-                existingFilesInput = document.createElement("input");
-                existingFilesInput.type = "hidden";
-                existingFilesInput.id = "existing_reference_files_input";
-                existingFilesInput.name = "task_existing_reference_files";
-                document
-                    .getElementById("editTaskForm")
-                    .appendChild(existingFilesInput);
-            }
-            existingFilesInput.value = JSON.stringify(files);
-        };
 
-        // Function to update existing files array
-        function updateExistingFiles() {
-            const existingItems = document.querySelectorAll(
-                    "#task_existing_reference_files .existing-file-item, #task_existing_reference_files .selected-task"
-                );
-            const existingFiles = [];
+                const title = document.createElement("span");
+                title.className = "flex-grow-1";
+                title.textContent = file.name;
+                fileItem.appendChild(title);
 
-            existingItems.forEach((item) => {
-                let fileName = '';
-                const sp = item.querySelector('span.flex-grow-1');
-                if (sp && sp.getAttribute) fileName = sp.getAttribute('data-filename') || sp.textContent.trim();
-                if (fileName) existingFiles.push(fileName);
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn btn-sm btn-remove-task remove-task";
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+                removeBtn.addEventListener("click", function () {
+                    window.editSelectedFiles.splice(index, 1);
+                    displaySelectedFiles();
+                });
+
+                fileItem.appendChild(removeBtn);
+                fileList.appendChild(fileItem);
             });
 
-            // Update hidden input
-            let existingFilesInput = document.getElementById(
-                "existing_reference_files_input"
-            );
-            if (!existingFilesInput) {
-                existingFilesInput = document.createElement("input");
-                existingFilesInput.type = "hidden";
-                existingFilesInput.id = "existing_reference_files_input";
-                existingFilesInput.name = "task_existing_reference_files";
-                document
-                    .getElementById("editTaskForm")
-                    .appendChild(existingFilesInput);
-            }
-            existingFilesInput.value = JSON.stringify(existingFiles);
+            preview.appendChild(fileList);
         }
 
-        // Initialize
-        updateExistingFiles();
+        window.displayExistingReferenceFiles = function (files) {
+            existing.innerHTML = "";
 
-        // Ensure updateExistingFiles is called when removing existing files
-        document
-            .getElementById("task_existing_reference_files")
-            ?.addEventListener("click", function (e) {
-                // Support new remove button classes and legacy btn-outline-danger
-                if (e.target && (e.target.matches("button.btn-remove-task") || e.target.matches("button.remove-task") || e.target.matches("button.btn-outline-danger") || e.target.closest('button.btn-remove-task') || e.target.closest('button.remove-task'))) {
-                    setTimeout(() => {
-                        updateExistingFiles();
-                    }, 10);
+            files.forEach((fileName, idx) => {
+                const row = document.createElement("div");
+                row.className =
+                    "d-flex align-items-center gap-2 p-2 rounded bg-light selected-task mb-2";
+
+                const lower = (fileName || "").toLowerCase();
+                const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(lower);
+
+                if (isImage) {
+                    const img = document.createElement("img");
+                    img.src = appUrl + "/file/task_reference_files/" + encodeURIComponent(fileName);
+                    img.width = 28;
+                    img.height = 28;
+                    img.style.objectFit = "cover";
+                    img.style.borderRadius = "50%";
+                    row.appendChild(img);
+                } else {
+                    const badge = document.createElement("div");
+                    badge.className = "file-badge";
+                    row.appendChild(badge);
                 }
+
+                const title = document.createElement("span");
+                title.className = "flex-grow-1";
+                title.dataset.filename = fileName;
+
+                const ext = (fileName.split(".").pop() || "").toLowerCase();
+                const num = idx + 1;
+
+                title.textContent = ext
+                    ? `PROJECT_REF_FILE_${num}.${ext}`
+                    : `PROJECT_REF_FILE_${num}`;
+
+                row.appendChild(title);
+
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.className = "btn btn-sm btn-remove-task remove-task";
+                removeBtn.innerHTML = '<span class="material-symbols-outlined">close</span>';
+
+                removeBtn.addEventListener("click", () => {
+                    row.remove();
+                    updateHidden();
+                });
+
+                row.appendChild(removeBtn);
+                existing.appendChild(row);
             });
+
+            updateHidden();
+        };
+
+        function updateHidden() {
+            const items = existing.querySelectorAll("span[data-filename]");
+            const arr = [...items].map(el => el.dataset.filename);
+            hidden.value = JSON.stringify(arr);
+            console.log('Updated existing reference files:', arr);
+        }
     }
 
     // --- Handlers for new Add Reference Files modal ---
@@ -13033,7 +13078,7 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
             if (isEdit) {
                 try {
                     const keepList = window.inlineTaskExistingFilesKeep || [];
-                    fd.set('task_existing_reference_files', JSON.stringify(keepList));
+                    fd.set('task_existing_reference_files, project_task_existing_reference_files', JSON.stringify(keepList));
                 } catch(_) {}
                 try {
                     if (typeof window.__inlineTaskRemoveImage !== 'undefined') {

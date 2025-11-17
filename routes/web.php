@@ -97,6 +97,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/project/export-excel/{project}', [ProjectController::class, 'exportChildProjectsExcel'])->name('project.child-export-excel');
     // Export a single project's report to Excel
     Route::get('/project/{id}/export-excel', [ProjectController::class, 'exportProjectExcelSingle'])->name('project.export-excel.single');
+    // Export project hierarchically with all children (recursive)
+    Route::get('/project/export-hierarchical/{project}', [ProjectController::class, 'exportProjectHierarchical'])->name('project.export-hierarchical.single');
+    Route::get('/project/export-hierarchical-all', [ProjectController::class, 'exportAllProjectsHierarchical'])->name('project.export-hierarchical.all');
     Route::get('/project/create', [ProjectController::class, 'create'])->name('project.cre  ate');
     Route::get('/project/{id}/edit', [ProjectController::class, 'edit'])->name('project.edit');
     // Get children of a specific project
@@ -369,9 +372,3 @@ Route::middleware('auth', 'management')->group(function () {
 
     Route::get('/hr-info/count-employee-request', [HRInfoController::class, 'countEmployeeRequest'])->name('hr_info.countEmployeeRequest');
 });
-
-
-
-
-
-

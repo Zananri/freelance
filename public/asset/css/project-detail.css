@@ -403,13 +403,17 @@
     display: block;
 }
 
-.reference-files-list,
-.reference-files-list a,
-.reference-files-list .material-symbols-outlined,
-.reference-files-list .btn-link,
-.reference-files-list .rounded-circle {
-    color: #444444 !important;
+#ref-files-container {
+    max-width: 40%;
+}
+
+.reference-files-list {
     max-width: 100%;
+    color: #444;
+}
+
+.reference-files-list .ref-files-item {
+    max-width: 60%;
 }
 
 .feedback-reference-container {
@@ -2272,4 +2276,26 @@ input[type="file"]::file-selector-button {
 .toggle-grid:hover {
     background: #e9eef4;
     color: #3C404B;
+}
+
+.btn-hover-only {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.selected-task:hover .btn-hover-only {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.ref-hover-icons {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease-in-out;
+}
+
+.reference-files-list:hover .ref-hover-icons {
+    opacity: 1;
+    pointer-events: auto;
 }

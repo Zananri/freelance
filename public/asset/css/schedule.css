@@ -522,3 +522,11 @@ input[type="file"]::-webkit-file-upload-button {
 input[type="file"]::file-selector-button {
   display: none;
 }
+
+.btn-submit-black.add-ref-url,
+.btn-submit-black.add-ref-file,
+.btn-remove-file.remove-ref-file,
+.btn-remove-url.remove-ref-url {
+    color: #444444;
+    background: #ffffff;
+}
