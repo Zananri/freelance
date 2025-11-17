@@ -196,9 +196,23 @@ class TaskController extends Controller
                 'activity' => 'VIEW_PAGE',
                 'description' => ($user?->employee?->name ?? 'Unknown') . ' View page task',
             ]);
-        } catch (\Throwable $_) {}
 
-        return view('task/task');
+            $new = Task::where('status', 'new_request')->count();
+            $progress = Task::where('status', 'in_progress')->count();
+            $rejected = Task::where('status', 'rejected')->count();
+            $completed = Task::where('status', 'completed')->count();
+            $finished = Task::where('status', 'finished')->count();
+
+            $progress_total = $progress + $rejected;
+
+        } catch (\Throwable $_) {
+            $new = 0;
+            $progress = 0;
+            $completed = 0;
+            $finished = 0;
+        }
+
+        return view('task/task', compact('new', 'progress_total', 'completed', 'finished'));
     }
 
     public function index(Request $request)

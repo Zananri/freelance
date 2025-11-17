@@ -312,7 +312,7 @@
 .table-transparent tr,
 .table-transparent th,
 .table-transparent td {
-    background-color: transparent !important;
+    background-color: #f0f1f8 !important;
     border: 1px solid #dae3ed;
     vertical-align: middle !important;
 }

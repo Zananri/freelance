@@ -1,3 +1,23 @@
+// Helper function to update task count labels
+function updateTaskCountLabels() {
+    try {
+        const newCount = document.querySelectorAll('#new-request-tasks .custom-card').length;
+        const progressCount = document.querySelectorAll('#in-progress-tasks .custom-card').length;
+        const completedCount = document.querySelectorAll('#completed-tasks .custom-card').length;
+        const finishedCount = document.querySelectorAll('#finished-tasks .custom-card').length;
+
+        const newLabel = document.querySelector('.new-total-task-label');
+        const progressLabel = document.querySelector('.progress-total-task-label');
+        const completedLabel = document.querySelector('.complete-total-task-label');
+        const finishedLabel = document.querySelector('.finish-total-task-label');
+
+        if (newLabel) newLabel.textContent = newCount;
+        if (progressLabel) progressLabel.textContent = progressCount;
+        if (completedLabel) completedLabel.textContent = completedCount;
+        if (finishedLabel) finishedLabel.textContent = finishedCount;
+    } catch (_) { /* noop */ }
+}
+
  document.addEventListener("DOMContentLoaded", function () {
     // Mark pure touch-only devices (coarse pointer & no hover) to adjust hover behavior.
     // Avoid disabling hover on hybrid laptops (touchscreen + mouse) which report touch capabilities.
