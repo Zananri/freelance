@@ -1782,13 +1782,24 @@ function renderProjectTaskDetail(res) {
         if (addFileBtn) {
             e.preventDefault();
             const container = addFileBtn.closest(
-                "#edit_project_reference_files_container"
+                "#edit_project_reference_files_container, #task_reference_files_container, #edit_project_task_reference_files_container"
             );
             if (!container) return;
             const row = document.createElement("div");
             row.className = "input-group";
+            
+            // Determine the correct name and accept attributes based on container
+            let inputName = "reference_file[]";
+            let acceptAttr = "image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel";
+            
+            // For task containers, use reference_files[] instead
+            if (container.id === "task_reference_files_container" || container.id === "edit_project_task_reference_files_container") {
+                inputName = "reference_files[]";
+                acceptAttr = "image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+            }
+            
             row.innerHTML =
-                '<input type="file" class="form-control input-text" name="reference_file[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel">' +
+                '<input type="file" class="form-control input-text" name="' + inputName + '" accept="' + acceptAttr + '">' +
                 ' <button type="button" class="btn btn-remove-file remove-ref-file" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
             container.appendChild(row);
             const input = row.querySelector('input[type="file"]');

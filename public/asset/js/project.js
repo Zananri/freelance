@@ -1067,6 +1067,47 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // Delegated handler: add/remove reference FILE rows (match Task behavior)
+    document.addEventListener("click", function (e) {
+        const addFileBtn = e.target.closest(".add-ref-file");
+        if (addFileBtn) {
+            e.preventDefault();
+            const container = addFileBtn.closest(
+                "#project_reference_files_container, #edit_project_reference_files_container, #task_reference_files_container, #edit_project_task_reference_files_container"
+            );
+            if (!container) return;
+            const row = document.createElement("div");
+            row.className = "input-group";
+            
+            // Determine the correct name and accept attributes based on container
+            let inputName = "reference_file[]";
+            let acceptAttr = "image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel";
+            
+            // For task containers, use reference_files[] instead
+            if (container.id === "task_reference_files_container" || container.id === "edit_project_task_reference_files_container") {
+                inputName = "reference_files[]";
+                acceptAttr = "image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip";
+            }
+            
+            row.innerHTML =
+                '<input type="file" class="form-control input-text" name="' + inputName + '" accept="' + acceptAttr + '">' +
+                ' <button type="button" class="btn btn-remove-file remove-ref-file" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
+            container.appendChild(row);
+            const input = row.querySelector('input[type="file"]');
+            if (input) input.focus();
+            return;
+        }
+
+        const removeFileBtn = e.target.closest(".remove-ref-file");
+        if (removeFileBtn) {
+            e.preventDefault();
+            const row = removeFileBtn.closest(".input-group");
+            if (row && row.parentNode) {
+                row.parentNode.removeChild(row);
+            }
+        }
+    });
+
     // Global avatar update listener: refresh collaborator images (simple approach: re-trigger any lightweight rerender if project list cached globally)
     window.addEventListener("profilePictureUpdated", function () {
         try {
