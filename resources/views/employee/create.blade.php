@@ -85,7 +85,35 @@
                                     Please enter the birth date.
                                 </div>
                             </div>
-                            
+                            <div class="mb-3">
+                                <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
+                                    <span>Upload Photo</span>
+                                </div>
+                                <label for="photo"
+                                    class="custom-image-upload-photo position-relative photo-upload">
+                                    <input type="file" id="photo" name="photo" accept="image/*"
+                                        class="photo-input" hidden required />
+                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
+                                        Please upload a photo.
+                                    </div>
+                                    <span class="image-clear-btn d-none" id="photoClearBtn"
+                                        title="Remove image">&times;</span>
+                                </label>
+                            </div>
+                            <div>
+                                <div class="title-label-image-ktp" style="font-size: 14px; color: #555;">
+                                    <span>Upload KTP</span>
+                                </div>
+                                <label for="ktp" class="custom-image-upload-ktp position-relative ktp-upload">
+                                    <input type="file" id="ktp" name="ktp" accept="image/*"
+                                        class="ktp-input" hidden required />
+                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
+                                        Please upload a KTP.
+                                    </div>
+                                    <span class="image-clear-btn d-none" id="ktpClearBtn"
+                                        title="Remove image">&times;</span>
+                                </label>
+                            </div>
 
                         </div>
 
@@ -222,7 +250,7 @@
                                 </div>
                             </div>
 
-                            <div class="custom-form-employee mb-5">
+                            <div class="custom-form-employee mb-3">
                                 <label for="internet_phone_allowance" class="form-label">Internet phone allowance</label>
                                 <input type="text" id="internet_phone_allowance" class="form-control input-text" value="0" required />
                                 <input type="number" name="internet_phone_allowance" class="d-none" value="0" required />
@@ -231,36 +259,29 @@
                                 </div>
                             </div>
 
+                            <div class="custom-form-employee mb-3">
+                                <label for="bank_name" class="form-label">Bank Name</label>
+                                <select name="bank_name" id="bank_name" class="form-select input-text">
+                                    <option value="BCA">BCA</option>
+                                    <option value="BNI">BNI</option>
+                                    <option value="BRI">BRI</option>
+                                    <option value="Mandiri">Mandiri</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please enter the Bank Name
+                                </div>
+                            </div>
 
-                            <div class="mb-3">
-                                <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
-                                    <span>Upload Photo</span>
+                            <div class="custom-form-employee mb-5">
+                                <label for="bank_account_number" class="form-label">Bank Account Number</label>
+                                <input type="text" id="bank_account_number" name="bank_account_number" class="form-control input-text" required />
+                                <div class="invalid-feedback">
+                                    Please enter the Bank Name
                                 </div>
-                                <label for="photo"
-                                    class="custom-image-upload-photo position-relative photo-upload">
-                                    <input type="file" id="photo" name="photo" accept="image/*"
-                                        class="photo-input" hidden required />
-                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                        Please upload a photo.
-                                    </div>
-                                    <span class="image-clear-btn d-none" id="photoClearBtn"
-                                        title="Remove image">&times;</span>
-                                </label>
                             </div>
-                            <div>
-                                <div class="title-label-image-ktp" style="font-size: 14px; color: #555;">
-                                    <span>Upload KTP</span>
-                                </div>
-                                <label for="ktp" class="custom-image-upload-ktp position-relative ktp-upload">
-                                    <input type="file" id="ktp" name="ktp" accept="image/*"
-                                        class="ktp-input" hidden required />
-                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                        Please upload a KTP.
-                                    </div>
-                                    <span class="image-clear-btn d-none" id="ktpClearBtn"
-                                        title="Remove image">&times;</span>
-                                </label>
-                            </div>
+
+
+                            
 
                         </div>
                     </div>

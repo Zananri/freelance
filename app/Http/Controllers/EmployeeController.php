@@ -334,6 +334,9 @@ class EmployeeController extends Controller
             $salaryData['internet_phone_allowance'] = $request->internet_phone_allowance;
             $salaryData['updated_by'] = auth()->id();
 
+            $salaryData['bank_name'] = $request->bank_name;
+            $salaryData['bank_account_number'] = $request->bank_account_number;
+
             EmployeeSalary::updateOrCreate(
                 [
                     'employee_id' => $employee->id,
@@ -478,12 +481,6 @@ class EmployeeController extends Controller
                 $updateData['ktp'] = 'file/ktp/' . $filename;
             }
             
-            $updateData['basic_salary'] = $request->basic_salary;
-            $updateData['positional_allowance'] = $request->positional_allowance;
-            $updateData['transportation_allowance'] = $request->transportation_allowance;
-            $updateData['meal_allowance'] = $request->meal_allowance;
-            $updateData['internet_phone_allowance'] = $request->internet_phone_allowance;
-
             $updateData['updated_by'] = auth()->id();
 
             // Track old shift_id to detect changes
@@ -551,6 +548,10 @@ class EmployeeController extends Controller
             $salaryData['transportation_allowance'] = $request->transportation_allowance;
             $salaryData['meal_allowance'] = $request->meal_allowance;
             $salaryData['internet_phone_allowance'] = $request->internet_phone_allowance;
+            
+            $salaryData['bank_name'] = $request->bank_name;
+            $salaryData['bank_account_number'] = $request->bank_account_number;
+
             $salaryData['updated_by'] = auth()->id();
 
             EmployeeSalary::updateOrCreate(

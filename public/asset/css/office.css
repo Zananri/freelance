@@ -254,6 +254,12 @@ header .img-avatar span.material-symbols-outlined {
     padding-left: 20px;
 }
 
+
+.dropdown-menu{
+    max-height: 220px !important;
+    overflow: auto;
+
+}
 @media (max-width: 768px) {
     .left-nav {
         left: -790px;

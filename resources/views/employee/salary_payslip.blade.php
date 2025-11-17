@@ -10,6 +10,7 @@
     </x-slot>
 
     <div class="title-content">
+
         <div class="row">
             <div class="col-12 col-md-9">
                 <h2 class="text-title-content mb-3" >Salary & Payslip</h2>
@@ -32,14 +33,16 @@
         
     </div>
 
-    <div class="calendar-container">
+    <div class="data-container">
         <div class="row">
 
-            <di class="col-12 col-md-12 col-calendar"> 
+            <di class="col-12 col-md-12"> 
 
-                <div class="card-content">
+                <div class="card-content scrollbar-transparent overflow-auto position-relative">
                     <div class="header-calendar">
+                        <div class="">
 
+                        
                         <div class="d-flex align-items-center">
                             <div class="department-division w-100">
                                 <div class="d-flex"> 
@@ -127,6 +130,8 @@
                                 <span class="material-symbols-outlined data-fullscreen d-none">fullscreen_exit</span>
                             </div>
                         </div>
+
+                        </div>
                     </div>
 
                     <div class="box-data">
@@ -183,20 +188,41 @@
 
                                         <th>
                                             <div>Bonus</div>
+                                        </th>                                       
+
+                                        <th>
+                                            <div>Lembur</div>
+                                        </th>
+
+                                        <th>
+                                            <div>THR</div>
                                         </th>
 
                                         <th>
                                             <div>Potongan</div>
                                         </th>
 
-                                        <th>
-                                            <div>Lembur</div>
-                                        </th>
-
                                     </tr>
                                 </thead>
                                 <tbody>
 
+                                    <style>
+                                        
+
+                                        /* Show the checkmark when checked */
+                                        .employee-photo input:checked ~ .checkmark {
+                                            display: block;
+                                        }
+
+                                        .employee-photo .checkmark{
+                                            position: absolute;
+                                            top: 0;
+                                            left: 0;
+                                            width: 100%;
+                                            height: 100%;
+                                        }
+
+                                    </style>
                                     @foreach ($employee as $itemEmployee)
                                         
                                         <tr class="employee-row basic-row" data-employee-name="{{ $itemEmployee->name }}" data-employee-photo="{{ asset($itemEmployee->photo) }}"  data-employee-id="{{ $itemEmployee->id }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
@@ -204,9 +230,11 @@
                                                 <div class="box-employee">
                                                     <div class="d-flex align-items-center">
                                                         <div class="col-photo">
-                                                            <div class="employee-photo">
+                                                            <label class="employee-photo">
                                                                 <img src="{{ asset($itemEmployee->photo) }}" class="rounded-circle w-100 h-100 object-fit-cover" alt="">
-                                                            </div>
+                                                                <div class="checkmark"></div>
+                                                                <input type="checkbox" class="d-none employee-item" id="employee-{{ asset($itemEmployee->id) }}" data-employee-id="{{ $itemEmployee->id }}">
+                                                            </label>
                                                         </div>
                                                         <div class="col-name w-100">
                                                             <div class="employee-name">
@@ -218,21 +246,10 @@
                                             </td>
 
                                             <td rowspan="2" class="">
-                                                <div class="gaji p-1 text-center fw-bold">
+                                                <div class="gaji pt-2 pb-1 text-center fw-bold">
                                                 </div>
-                                                <div class="mb-1">
-                                                    <div class="d-flex align-items-center justify-content-between ">
-                                                        <div>
-                                                            <div class="btn-icon payslip" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Payslip">
-                                                                <span class="material-symbols-outlined icon-action">docs</span>
-                                                            </div>
-                                                        </div>
-                                                        <div class="">
-                                                            <div class="btn-icon edit-data" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Edit">
-                                                                <span class="material-symbols-outlined icon-action">edit</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                <div class="fs-8 text-center d-none">
+                                                    Payslip terkirim
                                                 </div>
                                             </td>
                                             <td class="hari-bln p-1"></td>
@@ -244,15 +261,39 @@
                                             <td class="pulsa-internet p-1"></td>
                                             <td class="jabatan p-1"></td>
                                             <td class="bonus p-1">0</td>
-                                            <td class="potongan p-1">0</td>
                                             <td class="lembur p-1">0</td>
+                                            <td class="thr p-1">0</td>
+                                            <td class="potongan p-1">0</td>
                                         </tr>
 
                                         <tr class="employee-row set-row" data-employee-name="{{ $itemEmployee->name }}" data-employee-photo="{{ asset($itemEmployee->photo) }}"  data-employee-id="{{ $itemEmployee->id }}" data-division="{{ $itemEmployee->division_id }}" data-department="{{ $itemEmployee->department_id }}"  >
                                             
                                             <td colspan="3" class="text-center z-0">
-                                                <div class="text-center">
-                                                    Perhitungan Gaji
+
+                                                <div class="">
+                                                    <div class="d-flex align-items-center justify-content-between ">
+                                                        <div class=" w-100">
+                                                            Perhitungan
+                                                        </div>
+                                                        <div>
+                                                            <div class="d-flex">
+                                                                <div>
+                                                                    <div class="btn-icon payslip" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Payslip">
+                                                                        <span class="material-symbols-outlined icon-action">docs</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div>   
+                                                                    <div class="btn-icon edit-data" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Edit">
+                                                                        <span class="material-symbols-outlined icon-action">edit</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            
+                                                            
+                                                        </div>
+
+
+                                                    </div>
                                                 </div>
                                             </td>
                                             <td class="gaji-pokok p-1"></td>
@@ -261,8 +302,9 @@
                                             <td class="pulsa-internet p-1"></td>
                                             <td class="jabatan p-1"></td>
                                             <td class="bonus p-1">0</td>
-                                            <td class="potongan p-1">0</td>
                                             <td class="lembur p-1">0</td>
+                                            <td class="thr p-1">0</td>
+                                            <td class="potongan p-1">0</td>
                                         </tr>
 
                                     @endforeach
@@ -273,6 +315,19 @@
                         </div>
                     </div>
 
+                    <div class="box-loader z-3 rounded-4 bg-body bg-opacity-25 position-absolute top-0 start-0 w-100 h-100">
+
+                        <div class="w-100 h-100 d-flex justify-content-center align-items-center">
+                            <div>
+                                <div class="spinner-border opacity-50" style="width: 2.5rem; height: 2.5rem;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <div class="fs-10">Loading...</div>
+                            </div>
+                            
+                        </div>
+                        
+                    </div>
                 </div>
 
             </di>
@@ -286,63 +341,67 @@
     <x-slot name="body_end_slot"> 
         
         <!-- Modal Edit -->
-        <div class="modal fade" id="modalSalaryEdit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalAttendanceEditLabel" aria-hidden="true">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
+        <div class="modal fade scrollbar-transparent" id="modalSalaryEdit" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalAttendanceEditLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered scrollbar-transparent">
+                <div class="modal-content scrollbar-transparent">
 
-                    <div class="modal-body p-4 position-relative">
-                        <form id="form-edit-attendance" action="" novalidate="" method="POST">
+                    <div class="modal-body p-0 position-relative">
+                        <form id="form-edit-salary" action="" novalidate="" method="POST">
                             @csrf
+                            
                             <input type="hidden" name="employee_id" value="">
-                            <input type="hidden" name="salary_date" value="">
+                            <input type="hidden" name="year" value="">
+                            <input type="hidden" name="month" value="">
                             
 
-                            <div class="text-center">
-                                    <div class="fw-light fs-24">Salary</div>
-                                    <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
-                                    <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
-                            </div>
-                            <div class="mb-4 text-center">
-                                <span class="fw-normal fs-14 text-secondary attendance-date"></span>
-                            </div>
-
-                            <div class="mb-3 pb-2 border-bottom border-3">
-
-                                <div class="d-flex mb-2 justify-content-between align-items-center w-100">
-                                    <div>
-                                        <div class="fs-14 text-secondary fw-normal">Employee</div>
-                                    </div>
-                                    <div>
-                                        <div class="employee-name fw-medium fs-14"></div>
-                                    </div>
+                            <div class="p-4 pb-0">
+                                <div class="text-center">
+                                        <div class="fw-light fs-24">Salary</div>
+                                        <span class="fw-normal fs-14 calendar-month">{{ date('F') }}</span>
+                                        <span class="fw-normal fs-14 calendar-year">{{ date('Y') }}</span>
                                 </div>
-                                
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between align-items-center w-100">
-                                        <div>
-                                            <div class="fs-14 text-secondary fw-normal">Division</div>
-                                        </div>
-                                        <div>
-                                            <div class="employee-shift fs-14 fw-normal"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between align-items-start w-100">
-                                        <div>
-                                            <div class="fs-14 text-secondary fw-normal">Salary</div>
-                                            <div class="fs-8 text-secondary fw-normal">(Take Home Pay)</div>
-                                        </div>
-                                        <div>
-                                            <div class="employee-shift fs-14 fw-normal"></div>
-                                        </div>
-                                    </div>
+                                <div class="mb-4 text-center">
+                                    <span class="fw-normal fs-14 text-secondary attendance-date"></span>
                                 </div>
 
+                                <div class="mb-3 pb-2 border-bottom border-3">
+
+                                    <div class="d-flex mb-2 justify-content-between align-items-center w-100">
+                                        <div>
+                                            <div class="fs-14 text-secondary fw-normal">Employee</div>
+                                        </div>
+                                        <div>
+                                            <div class="employee-name fw-medium fs-14"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-center w-100">
+                                            <div>
+                                                <div class="fs-14 text-secondary fw-normal">Division</div>
+                                            </div>
+                                            <div>
+                                                <div class="employee-division fs-14 fw-normal"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-start w-100">
+                                            <div>
+                                                <div class="fs-14 text-secondary fw-normal">Salary</div>
+                                                <div class="fs-8 text-secondary fw-normal">(Take Home Pay)</div>
+                                            </div>
+                                            <div>
+                                                <div class="employee-salary-thp fs-14 fw-normal"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
                             </div>
 
 
-                            <div class="form-block-present">
+                            <div class="form-block-salary scrollbar-transparent pt-1 p-4">
 
                                 <div class="mb-3">
 
@@ -373,10 +432,15 @@
 
                                     <div class="row">
                                         <div class="col-6">
-                                            <label for="attendance_time_out" class="fs-14 text-secondary fw-normal">
+                                            <label for="basic_salary" class="fs-14 text-secondary fw-normal">
                                                 Gaji Pokok
                                             </label>
-                                            <input type="number" class="form-control border-0 fs-14" name="basic_salary" id="attendance_time_out">
+
+                                            <span class="fs-12 ms-2 info_basic_salary" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                                <i class="bi bi-info-circle"></i>
+                                            </span>
+                                            
+                                            <input type="number" class="form-control border-0 fs-14" name="basic_salary" id="basic_salary">
                                         </div>
                                         
                                         
@@ -391,6 +455,11 @@
                                             <label for="positional_allowance" class="fs-14 text-secondary fw-normal">
                                                 Tunjangan Jabatan
                                             </label>
+
+                                            <span class="fs-12 ms-2 info_positional_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                                <i class="bi bi-info-circle"></i>
+                                            </span>
+
                                             <input type="number" class="form-control border-0 fs-14" name="positional_allowance" id="positional_allowance">
                                         </div>
 
@@ -398,6 +467,11 @@
                                             <label for="meal_allowance" class="fs-14 text-secondary fw-normal">
                                                 Uang Makan
                                             </label>
+
+                                            <span class="fs-12 ms-2 info_meal_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                                <i class="bi bi-info-circle"></i>
+                                            </span>
+
                                             <input type="number" class="form-control border-0 fs-14" name="meal_allowance" id="meal_allowance">
                                         </div>
                                         
@@ -413,13 +487,19 @@
                                             <label for="transportation_allowance" class="fs-14 text-secondary fw-normal">
                                                 Transportasi
                                             </label>
+                                            <span class="fs-12 ms-2 info_transportation_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                                <i class="bi bi-info-circle"></i>
+                                            </span>
                                             <input type="number" class="form-control border-0 fs-14" name="transportation_allowance" id="transportation_allowance">
                                         </div>
 
                                         <div class="col-6">
-                                            <label for="meal_allowance" class="fs-14 text-secondary fw-normal">
+                                            <label for="internet_phone_allowance" class="fs-14 text-secondary fw-normal">
                                                 Pulsa dan Internet
                                             </label>
+                                            <span class="fs-12 ms-2 info_internet_phone_allowance" data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="0">
+                                                <i class="bi bi-info-circle"></i>
+                                            </span>
                                             <input type="number" class="form-control border-0 fs-14" name="internet_phone_allowance" id="internet_phone_allowance">
                                         </div>
                                         
@@ -429,12 +509,12 @@
                                 
                                 <div class="mb-3">
 
-                                    <div class="row">
+                                    <div class="row mb-3">
                                         <div class="col-6">
                                             <label for="bonus" class="fs-14 text-secondary fw-normal">
                                                 Bonus
                                             </label>
-                                            <input type="number" class="form-control border-0 fs-14" name="bonus" id="internet_phone_allowance">
+                                            <input type="number" class="form-control border-0 fs-14" name="bonus" id="bonus">
                                         </div>
                                         
                                         <div class="col-6">
@@ -444,18 +524,28 @@
                                             <input type="number" class="form-control border-0 fs-14" name="overtime" id="overtime">
                                         </div>
                                     </div>
+
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <label for="thr" class="fs-14 text-secondary fw-normal">
+                                                THR
+                                            </label>
+                                            <input type="number" class="form-control border-0 fs-14" name="thr" id="thr" value="0">
+                                        </div>
+                                        
+                                    </div>
                                     
                                 </div>
 
                             </div>
                             
-                            <div class="mt-5">
+                            <div class="p-4 pt-2">
                                 <div class="row">
                                     <div class="col-6">
                                         <div class="btn btn-default-modal border-0 w-100 p-2 btn-close-modal-edit">Cancel</div>
                                     </div>
                                     <div class="col-6">
-                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-submit-attendance">Save</div>
+                                        <div class="btn btn-default-dark-modal border-0 w-100 p-2 btn-save-salary">Save</div>
                                     </div>
                                 </div>
                             </div>

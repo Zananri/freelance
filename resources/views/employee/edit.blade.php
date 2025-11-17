@@ -105,6 +105,39 @@
                                 </div>
                             </div>
                             
+                            <div class="mb-3">
+                                <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
+                                    <span>Upload Photo</span>
+                                </div>
+                                <label for="photo"
+                                    class="custom-image-upload-photo position-relative photo-upload {{ $employee->photo ? 'has-image' : '' }}"
+                                    style="background-image: url('{{ $employee->photo ? asset($employee->photo) : '' }}'); opacity: {{ $employee->photo ? '1' : '0.5' }}; background-size: cover;">
+                                    <input type="file" id="photo" name="photo" accept="image/*"
+                                        class="photo-input" hidden />
+                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
+                                        Please upload a photo.
+                                    </div>
+                                    <span class="image-clear-btn {{ $employee->photo ? '' : 'd-none' }}"
+                                        id="photoClearBtn" title="Remove image">&times;</span>
+                                </label>
+                            </div>
+                            <div>
+                                <div class="title-label-image-ktp" style="font-size: 14px; color: #555;">
+                                    <span>Upload KTP</span>
+                                </div>
+                                <label for="ktp"
+                                    class="custom-image-upload-ktp position-relative ktp-upload {{ $employee->ktp ? 'has-image' : '' }}"
+                                    style="background-image: url('{{ $employee->ktp ? asset($employee->ktp) : '' }}'); opacity: {{ $employee->ktp ? '1' : '0.5' }};">
+                                    <input type="file" id="ktp" name="ktp" accept="image/*"
+                                        class="ktp-input" hidden />
+                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
+                                        Please upload a photo.
+                                    </div>
+                                    <span class="image-clear-btn {{ $employee->ktp ? '' : 'd-none' }}"
+                                        id="ktpClearBtn" title="Remove image">&times;</span>
+                                </label>
+                            </div>
+
                         </div>
 
                         <!-- Middle Section -->
@@ -293,38 +326,28 @@
                                 </div>
                             </div>
 
-                            <div class="mb-3">
-                                <div class="title-label-image-photo" style="font-size: 14px; color: #555;">
-                                    <span>Upload Photo</span>
+                            <div class="custom-form-employee mb-3">
+                                <label for="bank_name" class="form-label">Bank Name</label>
+                                <select name="bank_name" id="bank_name" class="form-select input-text">
+                                    <option value="BCA" {{ $employeeSalaries->bank_name === 'BCA' ? 'selected' : ''}} >BCA</option>
+                                    <option value="BNI" {{ $employeeSalaries->bank_name === 'BNI' ? 'selected' : ''}} >BNI</option>
+                                    <option value="BRI" {{ $employeeSalaries->bank_name === 'BRI' ? 'selected' : ''}} >BRI</option>
+                                    <option value="Mandiri" {{ $employeeSalaries->bank_name === 'Mandiri' ? 'selected' : ''}} >Mandiri</option>
+                                </select>
+                                <div class="invalid-feedback">
+                                    Please select the Bank Name
                                 </div>
-                                <label for="photo"
-                                    class="custom-image-upload-photo position-relative photo-upload {{ $employee->photo ? 'has-image' : '' }}"
-                                    style="background-image: url('{{ $employee->photo ? asset($employee->photo) : '' }}'); opacity: {{ $employee->photo ? '1' : '0.5' }}; background-size: cover;">
-                                    <input type="file" id="photo" name="photo" accept="image/*"
-                                        class="photo-input" hidden />
-                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                        Please upload a photo.
-                                    </div>
-                                    <span class="image-clear-btn {{ $employee->photo ? '' : 'd-none' }}"
-                                        id="photoClearBtn" title="Remove image">&times;</span>
-                                </label>
                             </div>
-                            <div>
-                                <div class="title-label-image-ktp" style="font-size: 14px; color: #555;">
-                                    <span>Upload KTP</span>
+
+                            <div class="custom-form-employee mb-5">
+                                <label for="bank_account_number" class="form-label">Bank Account Number</label>
+                                <input type="text" id="bank_account_number" name="bank_account_number" value="{{ $employeeSalaries->bank_account_number }}" class="form-control input-text" required />
+                                <div class="invalid-feedback">
+                                    Please enter the Bank Account Number
                                 </div>
-                                <label for="ktp"
-                                    class="custom-image-upload-ktp position-relative ktp-upload {{ $employee->ktp ? 'has-image' : '' }}"
-                                    style="background-image: url('{{ $employee->ktp ? asset($employee->ktp) : '' }}'); opacity: {{ $employee->ktp ? '1' : '0.5' }};">
-                                    <input type="file" id="ktp" name="ktp" accept="image/*"
-                                        class="ktp-input" hidden />
-                                    <div class="invalid-feedback" style="position: absolute; bottom: -20px; left: 0;">
-                                        Please upload a photo.
-                                    </div>
-                                    <span class="image-clear-btn {{ $employee->ktp ? '' : 'd-none' }}"
-                                        id="ktpClearBtn" title="Remove image">&times;</span>
-                                </label>
                             </div>
+
+                            
                         </div>
                     </div>
                 </div>

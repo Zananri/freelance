@@ -285,6 +285,11 @@ Route::middleware('auth', 'management')->group(function () {
 
     Route::get('/salary_payslip', [SalaryPayslipController::class, 'showSalaryPayslipPage'])->name('salary_payslip');
     Route::get('/salary_payslip/employee-salary-data', [SalaryPayslipController::class, 'getEmployeeSalaryData'])->name('salary_payslip.getEmployeeSalaryData');
+    Route::get('/salary_payslip/employee-salary-detail', [SalaryPayslipController::class, 'getEmployeeSalaryDetail'])->name('salary_payslip.getEmployeeSalaryDetail');
+    Route::get('/salary_payslip/view_payslip/{employeeId}/{year}/{month}', [SalaryPayslipController::class, 'viewPDFPayslip'])->name('salary_payslip.viewPayslip');
+    Route::get('/salary_payslip/download_pdf_payslip/{employeeId}/{year}/{month}', [SalaryPayslipController::class, 'downloadPDFPayslip'])->name('salary_payslip.downloadPDFPayslip');
+    
+    Route::post('/salary_payslip/save-employee-salary-by-year-month', [SalaryPayslipController::class, 'saveEmployeeSalaryByYearMonth'])->name('salary_payslip.saveEmployeeSalaryByYearMonth');
 
     Route::post('/user/{id}/reset-password', [UserController::class, 'resetPassword'])->name('user.resetPassword');
     Route::get('/user', [UserController::class, 'showUserPage'])->name('user');

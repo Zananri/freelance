@@ -42,6 +42,8 @@ return new class extends Migration
             $table->double('bonus')->default(0);
             $table->double('overtime')->default(0);
 
+            $table->double('deduction')->default(0);
+
             $table->double('deduction_absent')->default(0);
             $table->double('deduction_leave')->default(0);
             $table->double('deduction_sick')->default(0);
@@ -52,10 +54,12 @@ return new class extends Migration
             $table->double('deduction_asuransi_kesehatan')->default(0);
             $table->double('deduction_late')->default(0);
 
+            
             $table->string('bank_name')->nullable();
             $table->string('bank_account_number')->nullable();
             $table->string('bank_account_name')->nullable();
             
+            $table->string('note')->nullable();
 
             $table->string('status')->default('ACTIVE');
             $table->bigInteger('created_by')->default(0);
