@@ -16241,6 +16241,36 @@ document.addEventListener("DOMContentLoaded", function () {
                 imageLabel.style.opacity = "0.5";
                 imageClearBtn.classList.add("d-none");
                 loadDepartments();
+                
+                // Reset selected project and parent inputs
+                try {
+                    var selectedProject = document.getElementById('add_selected_project');
+                    var parentInputs = document.getElementById('add_parent_inputs');
+                    if (selectedProject) selectedProject.innerHTML = '';
+                    if (parentInputs) parentInputs.innerHTML = '';
+                } catch(e) {}
+                
+                // Reset co-authors and contributors
+                try {
+                    var coAuthorContainer = document.getElementById('selected_co_authors');
+                    var contributorContainer = document.getElementById('selected_contributors');
+                    if (coAuthorContainer) coAuthorContainer.innerHTML = '';
+                    if (contributorContainer) contributorContainer.innerHTML = '';
+                    var coAuthorHidden = document.getElementById('co_author');
+                    var contributorHidden = document.getElementById('contributors');
+                    if (coAuthorHidden) coAuthorHidden.value = '';
+                    if (contributorHidden) contributorHidden.value = '';
+                } catch(e) {}
+                
+                // Reset selected files
+                try {
+                    if (typeof projectSelectedFiles !== 'undefined') {
+                        projectSelectedFiles = [];
+                    }
+                    if (typeof displayProjectSelectedFiles === 'function') {
+                        displayProjectSelectedFiles();
+                    }
+                } catch(e) {}
 
                 // Close modal after short delay to show alert
                 setTimeout(() => {
@@ -16252,6 +16282,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     // Refresh project data without page reload
                     loadProjectCardData();
+                    
+                    // Refresh Project Tree if it's currently open
+                    try {
+                        var projectTreeModalEl = document.getElementById("projectTreeModal");
+                        if (projectTreeModalEl && projectTreeModalEl.classList.contains('show')) {
+                            // Project Tree modal is open, refresh it
+                            if (typeof window.fetchProjectTree === 'function') {
+                                window.fetchProjectTree();
+                            }
+                        }
+                    } catch(e) {
+                        // Silent fail if tree not available
+                    }
                 }, 1500);
             },
             error: function (xhr, status, error) {
