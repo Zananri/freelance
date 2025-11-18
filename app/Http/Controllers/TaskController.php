@@ -190,6 +190,7 @@ class TaskController extends Controller
         try {
             $user = auth()->user();
             $employeeId = $user && $user->employee ? $user->employee->id : null;
+
             ActivityHelper::record([
                 'employee_id' => $employeeId,
                 'menu' => 'TASK',
@@ -197,11 +198,45 @@ class TaskController extends Controller
                 'description' => ($user?->employee?->name ?? 'Unknown') . ' View page task',
             ]);
 
-            $new = Task::where('status', 'new_request')->count();
-            $progress = Task::where('status', 'in_progress')->count();
-            $rejected = Task::where('status', 'rejected')->count();
-            $completed = Task::where('status', 'completed')->count();
-            $finished = Task::where('status', 'finished')->count();
+            $canSeeAll = false;
+
+            try {
+                $userType = strtoupper((string) ($user->user_type ?? ''));
+                $userRole = strtoupper((string) ($user->user_role ?? ''));
+
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
+
+            $baseQuery = Task::whereNotIn(DB::raw('LOWER(status)'), ['canceled', 'deleted']);
+
+            if (!$canSeeAll) {
+                if ($employeeId) {
+                    $baseQuery->whereHas('assignments', function ($q) use ($employeeId) {
+                        $q->where('employee_id', $employeeId)
+                          ->where(function ($r) {
+                              $r->where('role', 'PIC')->orWhere('role', 'EXECUTOR');
+                          });
+                    });
+                } else {
+                    $baseQuery->whereRaw('1 = 0');
+                }
+            }
+
+            $new = (clone $baseQuery)->where('status', 'new_request')->count();
+            $progress = (clone $baseQuery)->where('status', 'in_progress')->count();
+            $rejected = (clone $baseQuery)->where('status', 'rejected')->count();
+            $completed = (clone $baseQuery)->where('status', 'completed')->count();
+            $finished = (clone $baseQuery)->where('status', 'finished')->count();
 
             $progress_total = $progress + $rejected;
 
@@ -210,6 +245,7 @@ class TaskController extends Controller
             $progress = 0;
             $completed = 0;
             $finished = 0;
+            $progress_total = 0;
         }
 
         return view('task/task', compact('new', 'progress_total', 'completed', 'finished'));
