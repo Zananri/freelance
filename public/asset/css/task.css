@@ -104,10 +104,6 @@
     border-radius: 4px;
 }
 
-.task-table-section {
-    padding: 0px 15px 15px 15px;
-}
-
 .table-container {
     max-height: calc(100vh - 270px);
     overflow: auto;
