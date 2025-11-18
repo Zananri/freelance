@@ -9843,36 +9843,6 @@ function formatTaskImage(image, title = "") {
             editForm._boundSubmitHandler = true;
         }
 
-        // Handler for add/remove reference file buttons in project task edit modal
-        document.addEventListener('click', function(e) {
-            const addFileBtn = e.target.closest('.add-ref-file-project-task');
-            if (addFileBtn) {
-                e.preventDefault();
-                const container = document.getElementById('edit_project_task_reference_files_container');
-                if (!container) return;
-                
-                const row = document.createElement('div');
-                row.className = 'input-group';
-                row.innerHTML = 
-                    '<input type="file" class="form-control input-text" name="reference_files[]" accept="image/*,.csv,.pdf,.doc,.docx,.xls,.xlsx,.zip">' +
-                    '<button type="button" class="btn btn-remove-file remove-ref-file-project-task" aria-label="Remove File"><span class="material-symbols-outlined">close</span></button>';
-                container.appendChild(row);
-                
-                const input = row.querySelector('input[type="file"]');
-                if (input) input.focus();
-                return;
-            }
-
-            const removeFileBtn = e.target.closest('.remove-ref-file-project-task');
-            if (removeFileBtn) {
-                e.preventDefault();
-                const row = removeFileBtn.closest('.input-group');
-                if (row && row.parentNode) {
-                    row.parentNode.removeChild(row);
-                }
-            }
-        });
-
     } catch(_) {}
 })();
 
