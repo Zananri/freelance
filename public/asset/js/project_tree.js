@@ -160,12 +160,13 @@
 
 	function showMenu(e, projectId) {
 		try {
-			hideMenu();
-			currentProjectId = projectId;
+		hideMenu();
+		currentProjectId = projectId;
+		window.currentProjectId = projectId; // Expose to global scope for add-project-action handler
 
-			if (!$globalMenu || !$globalMenu.length) {
+		if (!$globalMenu || !$globalMenu.length) {
 				$globalMenu = $('<div id="project-global-more-menu" class="d-none" style="position:fixed;min-width:160px;background:#fff;border:1px solid #e5e7eb;box-shadow:0 8px 20px rgba(0,0,0,0.12);border-radius:8px;z-index:99999;overflow:hidden;pointer-events:auto;">' +
-					'<button type="button" class="add-project-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Add Project</button>' +
+					'<button type="button" class="add-project-action" data-context-project-id="" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Add Project</button>' +
 					'<button type="button" class="clear-parent-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Clear Parent</button>' +
 					'<button type="button" class="edit-project-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#333;cursor:pointer;">Edit</button>' +
 					'<button type="button" class="delete-project-action" style="display:block;width:100%;padding:8px 12px;background:#fff;border:0;text-align:left;font-size:13px;color:#d33;cursor:pointer;">Delete</button>' +
@@ -173,7 +174,8 @@
 				$('body').append($globalMenu);
 			}
 
-			var x = e.clientX || (e.originalEvent && e.originalEvent.clientX) || 0;
+		// Store projectId in the button's data attribute for reliable access
+		$globalMenu.find('.add-project-action').attr('data-context-project-id', String(projectId));			var x = e.clientX || (e.originalEvent && e.originalEvent.clientX) || 0;
 			var y = e.clientY || (e.originalEvent && e.originalEvent.clientY) || 0;
 
 			$globalMenu.css({ left: x + 'px', top: y + 'px' }).removeClass('d-none');
@@ -190,6 +192,7 @@
 				$globalMenu.addClass('d-none');
 			}
 			currentProjectId = null;
+			window.currentProjectId = null; // Clear global scope too
 		} catch(_) {}
 	}
 

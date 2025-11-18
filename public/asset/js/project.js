@@ -16241,6 +16241,36 @@ document.addEventListener("DOMContentLoaded", function () {
                 imageLabel.style.opacity = "0.5";
                 imageClearBtn.classList.add("d-none");
                 loadDepartments();
+                
+                // Reset selected project and parent inputs
+                try {
+                    var selectedProject = document.getElementById('add_selected_project');
+                    var parentInputs = document.getElementById('add_parent_inputs');
+                    if (selectedProject) selectedProject.innerHTML = '';
+                    if (parentInputs) parentInputs.innerHTML = '';
+                } catch(e) {}
+                
+                // Reset co-authors and contributors
+                try {
+                    var coAuthorContainer = document.getElementById('selected_co_authors');
+                    var contributorContainer = document.getElementById('selected_contributors');
+                    if (coAuthorContainer) coAuthorContainer.innerHTML = '';
+                    if (contributorContainer) contributorContainer.innerHTML = '';
+                    var coAuthorHidden = document.getElementById('co_author');
+                    var contributorHidden = document.getElementById('contributors');
+                    if (coAuthorHidden) coAuthorHidden.value = '';
+                    if (contributorHidden) contributorHidden.value = '';
+                } catch(e) {}
+                
+                // Reset selected files
+                try {
+                    if (typeof projectSelectedFiles !== 'undefined') {
+                        projectSelectedFiles = [];
+                    }
+                    if (typeof displayProjectSelectedFiles === 'function') {
+                        displayProjectSelectedFiles();
+                    }
+                } catch(e) {}
 
                 // Close modal after short delay to show alert
                 setTimeout(() => {
@@ -16252,6 +16282,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
                     // Refresh project data without page reload
                     loadProjectCardData();
+                    
+                    // Refresh Project Tree if it's currently open
+                    try {
+                        var projectTreeModalEl = document.getElementById("projectTreeModal");
+                        if (projectTreeModalEl && projectTreeModalEl.classList.contains('show')) {
+                            // Project Tree modal is open, refresh it
+                            if (typeof window.fetchProjectTree === 'function') {
+                                window.fetchProjectTree();
+                            }
+                        }
+                    } catch(e) {
+                        // Silent fail if tree not available
+                    }
                 }, 1500);
             },
             error: function (xhr, status, error) {
@@ -23129,7 +23172,17 @@ document.addEventListener("DOMContentLoaded", function () {
                 let parentProjectId = null;
                 let parentProjectTitle = '';
 
-                if (typeof window.currentProjectId !== 'undefined' && window.currentProjectId) {
+                // Capture currentProjectId BEFORE any menu hiding/cleanup that might null it
+                // Try multiple sources in order of reliability:
+                // 1. data attribute on the button itself (most reliable)
+                // 2. window.currentProjectId (might be null if menu was hidden)
+                // 3. closest card with data-project-id
+                
+                if (addProjectBtn.dataset && addProjectBtn.dataset.contextProjectId) {
+                    parentProjectId = addProjectBtn.dataset.contextProjectId;
+                }
+                
+                if (!parentProjectId && typeof window.currentProjectId !== 'undefined' && window.currentProjectId) {
                     parentProjectId = window.currentProjectId;
                 }
 
@@ -23153,7 +23206,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 } catch (_) { }
 
                 try {
-                    document.querySelectorAll('.project-menu, .dropdown-action').forEach(function (menu) {
+                    document.querySelectorAll('.project-menu, .dropdown-action, #project-global-more-menu').forEach(function (menu) {
                         if (menu && menu.style) {
                             menu.style.display = 'none';
                         }
@@ -23257,50 +23310,127 @@ document.addEventListener("DOMContentLoaded", function () {
 
                                 if (parentProjectId && selectedProject && parentInputs) {
                                     try {
-                                        fetch(appUrl + '/project/' + parentProjectId)
-                                            .then((res) => res.json())
+                                        // Fetch the clicked project to get its parent_ids
+                                        fetch(appUrl + '/project/' + parentProjectId, {
+                                            headers: {
+                                                'Accept': 'application/json',
+                                                'X-Requested-With': 'XMLHttpRequest'
+                                            }
+                                        })
+                                            .then((res) => {
+                                                if (!res.ok) {
+                                                    throw new Error('HTTP error! status: ' + res.status);
+                                                }
+                                                return res.text().then(text => {
+                                                    try {
+                                                        return JSON.parse(text);
+                                                    } catch (e) {
+                                                        throw new Error('Invalid JSON response');
+                                                    }
+                                                });
+                                            })
                                             .then((response) => {
-                                                const project = response && response.data ? response.data : response;
-                                                const pTitle = project.title || project.name || parentProjectTitle || 'Project ' + parentProjectId;
-                                                const pImage = project.image || '';
-
-                                                let avatarHtml = '';
-                                                if (pImage) {
-                                                    avatarHtml = '<img src="' + appUrl + '/file/project/' + pImage + '" width="28" height="28" style="object-fit:cover;border-radius:50%;">';
-                                                } else {
-                                                    const colors = ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#FF5722', '#795548'];
-                                                    const color = colors[Math.floor(Math.random() * colors.length)];
-                                                    const initial = (pTitle || '?').charAt(0).toUpperCase();
-                                                    avatarHtml = '<div style="width:28px;height:28px;border-radius:50%;background:' + color + ';color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;">' + initial + '</div>';
+                                                const clickedProject = response && response.data ? response.data : response;
+                                                
+                                                // Get parent_ids from the clicked project
+                                                // These will become the parents of the NEW project
+                                                let parentIds = [];
+                                                if (Array.isArray(clickedProject.parent_project_ids) && clickedProject.parent_project_ids.length > 0) {
+                                                    parentIds = clickedProject.parent_project_ids.slice();
+                                                } else if (Array.isArray(clickedProject.parent_ids) && clickedProject.parent_ids.length > 0) {
+                                                    parentIds = clickedProject.parent_ids.slice();
+                                                } else if (clickedProject.part_of_project) {
+                                                    parentIds = [clickedProject.part_of_project];
+                                                } else if (clickedProject.legacy_parent_id) {
+                                                    parentIds = [clickedProject.legacy_parent_id];
                                                 }
 
-                                                const wrapper = document.createElement('div');
-                                                wrapper.className = 'd-inline-block me-2 mb-2';
-                                                wrapper.innerHTML =
-                                                    '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project" data-parent-id="' + parentProjectId + '">' +
-                                                    avatarHtml +
-                                                    '<span class="flex-grow-1 text-truncate" style="max-width:160px;">' + pTitle + '</span>' +
-                                                    '<button type="button" class="btn btn-sm btn-remove-parent" style="line-height:1"><span class="material-symbols-outlined">close</span></button>' +
-                                                    '</div>';
-
-                                                selectedProject.appendChild(wrapper);
-
-                                                const hiddenInput = document.createElement('input');
-                                                hiddenInput.type = 'hidden';
-                                                hiddenInput.name = 'parent_project_ids[]';
-                                                hiddenInput.value = String(parentProjectId);
-                                                parentInputs.appendChild(hiddenInput);
-
-                                                const removeBtn = wrapper.querySelector('.btn-remove-parent');
-                                                if (removeBtn) {
-                                                    removeBtn.addEventListener('click', function () {
-                                                        wrapper.remove();
-                                                        if (parentInputs) parentInputs.innerHTML = '';
-                                                    });
+                                                // If no parents found, don't show anything
+                                                if (!parentIds || parentIds.length === 0) {
+                                                    return Promise.resolve([]);
                                                 }
+
+                                                // Fetch all parent projects data
+                                                const fetchPromises = parentIds.map(pId => 
+                                                    fetch(appUrl + '/project/' + pId, {
+                                                        headers: {
+                                                            'Accept': 'application/json',
+                                                            'X-Requested-With': 'XMLHttpRequest'
+                                                        }
+                                                    })
+                                                        .then(res => {
+                                                            if (!res.ok) throw new Error('HTTP ' + res.status);
+                                                            return res.text().then(text => {
+                                                                try {
+                                                                    return JSON.parse(text);
+                                                                } catch (e) {
+                                                                    throw e;
+                                                                }
+                                                            });
+                                                        })
+                                                        .then(resp => ({ id: pId, data: resp && resp.data ? resp.data : resp }))
+                                                        .catch(err => {
+                                                            return { id: pId, data: null };
+                                                        })
+                                                );
+
+                                                return Promise.all(fetchPromises);
+                                            })
+                                            .then((parentProjects) => {
+                                                if (!parentProjects || parentProjects.length === 0) return;
+
+                                                // Display all parent projects
+                                                parentProjects.forEach(({ id, data }) => {
+                                                    if (!data) {
+                                                        return;
+                                                    }
+
+                                                    const pTitle = data.title || data.name || 'Project ' + id;
+                                                    const pImage = data.image || '';
+
+                                                    let avatarHtml = '';
+                                                    if (pImage) {
+                                                        avatarHtml = '<img src="' + appUrl + '/file/project/' + pImage + '" width="28" height="28" style="object-fit:cover;border-radius:50%;">';
+                                                    } else {
+                                                        const colors = ['#F44336', '#E91E63', '#9C27B0', '#673AB7', '#3F51B5', '#2196F3', '#03A9F4', '#00BCD4', '#009688', '#4CAF50', '#8BC34A', '#FFC107', '#FF9800', '#FF5722', '#795548'];
+                                                        const color = colors[Math.floor(Math.random() * colors.length)];
+                                                        const initial = (pTitle || '?').charAt(0).toUpperCase();
+                                                        avatarHtml = '<div style="width:28px;height:28px;border-radius:50%;background:' + color + ';color:#fff;font-size:13px;font-weight:bold;display:flex;align-items:center;justify-content:center;">' + initial + '</div>';
+                                                    }
+
+                                                    const wrapper = document.createElement('div');
+                                                    wrapper.className = 'd-inline-block me-2 mb-2';
+                                                    wrapper.innerHTML =
+                                                        '<div class="d-flex align-items-center gap-2 p-2 rounded bg-light selected-project" data-parent-id="' + id + '">' +
+                                                        avatarHtml +
+                                                        '<span class="flex-grow-1 text-truncate" style="max-width:160px;">' + pTitle + '</span>' +
+                                                        '<button type="button" class="btn btn-sm btn-remove-parent" style="line-height:1"><span class="material-symbols-outlined">close</span></button>' +
+                                                        '</div>';
+
+                                                    selectedProject.appendChild(wrapper);
+
+                                                    const hiddenInput = document.createElement('input');
+                                                    hiddenInput.type = 'hidden';
+                                                    hiddenInput.name = 'parent_project_ids[]';
+                                                    hiddenInput.value = String(id);
+                                                    parentInputs.appendChild(hiddenInput);
+
+                                                    const removeBtn = wrapper.querySelector('.btn-remove-parent');
+                                                    if (removeBtn) {
+                                                        removeBtn.addEventListener('click', function () {
+                                                            wrapper.remove();
+                                                            // Remove corresponding hidden input
+                                                            const inputs = parentInputs.querySelectorAll('input[value="' + id + '"]');
+                                                            inputs.forEach(inp => inp.remove());
+                                                        });
+                                                    }
+                                                });
+                                            })
+                                            .catch(err => {
+                                                // Silent catch - error already handled
                                             });
                                     } catch (err) {
-                                        console.warn('Error handling parent project:', err);
+                                        // Silent catch - error already handled
                                     }
                                 }
 
