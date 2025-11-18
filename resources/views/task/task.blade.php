@@ -67,7 +67,7 @@
                                 <option value="">All Projects</option>
                             </select>
                         </div>
-                        <div class="w-50">
+                        <div class="w-50 status-filter-dropdown">
                             <label for="filterTaskStatus" class="form-label label-custom">Status</label>
                             <select id="filterTaskStatus" class="form-select">
                                 <option value="">All Status</option>

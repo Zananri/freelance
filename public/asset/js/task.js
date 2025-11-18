@@ -10134,13 +10134,25 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
 
     // Desktop: Apply filter handler (missing previously)
     if (applyTaskFilterBtn && !applyTaskFilterBtn._bound) {
-        applyTaskFilterBtn._bound = true;
+        applyTaskFilterBtn._bound = true; 
         applyTaskFilterBtn.addEventListener("click", function () {
-            if (filterTaskProjectSelect) currentTaskFilters.project = filterTaskProjectSelect.value;
-            if (filterTaskStatusSelect) currentTaskFilters.status = filterTaskStatusSelect.value;
-            if (filterTaskPrioritySelect) currentTaskFilters.priority = filterTaskPrioritySelect.value;
-            if (filterTaskPrioritySelect) currentTaskFilters.date = filterByDate.value;
+            try {
+                if (filterTaskProjectSelect) currentTaskFilters.project = filterTaskProjectSelect.value || '';
+                if (filterTaskStatusSelect) currentTaskFilters.status = filterTaskStatusSelect.value || '';
+                if (filterTaskPrioritySelect) currentTaskFilters.priority = filterTaskPrioritySelect.value || '';
+                if (filterByDate) currentTaskFilters.date = filterByDate.value || '';
+            } catch (_) { /* noop */ }
+
             fetchAndRenderFilteredTasks(currentTaskFilters);
+
+            try {
+                const activeTab = document.querySelector('#taskStatusTabs .tab-item.active');
+                const activeStatus = (activeTab && activeTab.dataset && activeTab.dataset.status) ? activeTab.dataset.status : 'new_request';
+                mobileState.page = 1;
+                mobileState.last = 1;
+                fetchMobileTasks(activeStatus, 1, false, { loadAll: false });
+            } catch (_) {}
+
             const dd = document.getElementById("taskFilterDropdown");
             if (dd) dd.style.display = "none";
         });
