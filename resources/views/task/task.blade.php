@@ -29,7 +29,7 @@
             </div>
         </div>
 
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 position-relative">
             <div class="dropdown-filter-container">
                 <div class="search-input-container">
                     <span class="material-symbols-outlined search-icon">search</span>
@@ -42,65 +42,66 @@
                 <button class="btn btn-sm toggle-list" id="listViewTask" data-bs-toggle="tooltip" title="List View">
                     <span class="material-symbols-outlined">list</span>
                 </button>
-                <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal"
-                    data-bs-target="#timelineModal">
-                    <span class="material-symbols-outlined">calendar_month</span>
-                </button>
 
                 <button class="btn btn-sm toggle-archieve" data-bs-toggle="modal" data-bs-target="#archieveModal">
                     <span class="material-symbols-outlined">box</span>
                 </button>
-
-                <button class="btn btn-icon-toggle toggle-filter align-items-center" type="button" id="openTaskFilterBtn">
-                    <span class="material-symbols-outlined icon">filter_list</span> <span
-                        class="btn-text-filter">Filter</span>
-                </button>
-
-                <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
-                    <div class="dropdown-filter-body">
-                        <div class="d-flex mb-3 w-100">
-                            <div class="me-2 w-50">
-                                <label for="filterTaskProject" class="form-label label-custom">Project</label>
-                                <select id="filterTaskProject" class="form-select">
-                                    <option value="">All Projects</option>
-                                </select>
-                            </div>
-                            <div class="w-50">
-                                <label for="filterTaskStatus" class="form-label label-custom">Status</label>
-                                <select id="filterTaskStatus" class="form-select">
-                                    <option value="">All Status</option>
-                                    <option value="new_request">New Request</option>
-                                    <option value="in_progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="finished">Finished</option>
-                                    <option value="rejected">Rejected</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="d-flex mb-3 w-100">
-                            <div class="me-2 w-50">
-                                <label for="filterTaskPriority" class="form-label label-custom">Priority</label>
-                                <select id="filterTaskPriority" class="form-select">
-                                    <option value="">All Priority</option>
-                                    <option value="LOW">Low</option>
-                                    <option value="MEDIUM">Medium</option>
-                                    <option value="HIGH">High</option>
-                                </select>
-                            </div>
-                            <div class="w-50">
-                                <label for="filterByDate" class="form-label label-custom">By Date</label>
-                                <input class="form-select border-0" type="date" name="filter_by_date"
-                                    id="filterByDate">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="dropdown-filter-footer">
-                        <button type="button" class="btn btn-submit-black" id="resetTaskFilterBtn">Reset</button>
-                        <button type="button" class="btn btn-submit-black" id="applyTaskFilterBtn">Apply</button>
-                    </div>
-                </div>
             </div>
 
+            <button class="btn btn-sm toggle-timeline timeline-toggle-btn" data-bs-toggle="modal"
+                data-bs-target="#timelineModal">
+                <span class="material-symbols-outlined">calendar_month</span>
+            </button>
+
+            <button class="btn btn-icon-toggle toggle-filter align-items-center" type="button" id="openTaskFilterBtn">
+                <span class="material-symbols-outlined icon">filter_list</span> <span
+                    class="btn-text-filter">Filter</span>
+            </button>
+
+            <div class="dropdown-filter-menu" id="taskFilterDropdown" style="display: none;">
+                <div class="dropdown-filter-body">
+                    <div class="d-flex mb-3 w-100">
+                        <div class="me-2 w-50">
+                            <label for="filterTaskProject" class="form-label label-custom">Project</label>
+                            <select id="filterTaskProject" class="form-select">
+                                <option value="">All Projects</option>
+                            </select>
+                        </div>
+                        <div class="w-50">
+                            <label for="filterTaskStatus" class="form-label label-custom">Status</label>
+                            <select id="filterTaskStatus" class="form-select">
+                                <option value="">All Status</option>
+                                <option value="new_request">New Request</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="finished">Finished</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex mb-3 w-100">
+                        <div class="me-2 w-50">
+                            <label for="filterTaskPriority" class="form-label label-custom">Priority</label>
+                            <select id="filterTaskPriority" class="form-select">
+                                <option value="">All Priority</option>
+                                <option value="LOW">Low</option>
+                                <option value="MEDIUM">Medium</option>
+                                <option value="HIGH">High</option>
+                            </select>
+                        </div>
+                        <div class="w-50">
+                            <label for="filterByDate" class="form-label label-custom">By Date</label>
+                            <input class="form-select border-0" type="date" name="filter_by_date"
+                                id="filterByDate">
+                        </div>
+                    </div>
+                </div>
+                <div class="dropdown-filter-footer">
+                    <button type="button" class="btn btn-submit-black" id="resetTaskFilterBtn">Reset</button>
+                    <button type="button" class="btn btn-submit-black" id="applyTaskFilterBtn">Apply</button>
+                </div>
+            </div>
+            
             <a href="{{ route('schedules') }}" class="btn btn-schedule-custom">Schedule</a>
             <button class="btn btn-add-custom" data-bs-toggle="modal" data-bs-target="#addTaskModal">
                 <span class="btn-text-add d-none d-md-inline">Add Task</span>

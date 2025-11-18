@@ -10132,35 +10132,6 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
     const openTaskFilterBtn = document.getElementById("openTaskFilterBtn");
     const resetTaskFilterBtn = document.getElementById("resetTaskFilterBtn");
 
-    function loadProjectsForFilterMobile() {
-        const selectIds = ["filterTaskProjectMobileCard", "filterTaskProjectMobileTable"];
-
-        $.ajax({
-            url: appUrl + "/project/index?task_scope=all",
-            type: "GET",
-            dataType: "json",
-            success: function (response) {
-                const projects = Array.isArray(response.data) ? response.data : [];
-
-                let options = '<option value="">All Projects</option>';
-                projects.forEach(function (project) {
-                    options += `<option value="${project.id}">${project.title || project.name}</option>`;
-                });
-
-                selectIds.forEach(id => {
-                    const selectEl = document.getElementById(id);
-                    if (selectEl) {
-                        selectEl.innerHTML = options;
-                    }
-                });
-            },
-            error: function (xhr, status, error) {
-                console.error("Error loading projects:", error);
-            }
-        });
-    }
-
-
     // Desktop: Apply filter handler (missing previously)
     if (applyTaskFilterBtn && !applyTaskFilterBtn._bound) {
         applyTaskFilterBtn._bound = true;
@@ -10668,19 +10639,19 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
         fetchMobileTasks(st, 1, false, { loadAll: st === "in_progress" });
     });
 
-    $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
-        e.stopPropagation();
-        const isCard = $(this).closest(".mobile-task-container").length > 0;
-        const dropdownId = isCard ? "#taskFilterDropdownMobileCard" : "#taskFilterDropdownMobileTable";
-        const $dropdown = $(dropdownId);
+    // $(document).on("click", "#openTaskFilterBtnMobile", function (e) {
+    //     e.stopPropagation();
+    //     const isCard = $(this).closest(".mobile-task-container").length > 0;
+    //     const dropdownId = isCard ? "#taskFilterDropdownMobileCard" : "#taskFilterDropdownMobileTable";
+    //     const $dropdown = $(dropdownId);
 
-        loadProjectsForFilterMobile();
-        if ($dropdown.css("display") === "none") {
-            $dropdown.css("display", "block");
-        } else {
-            $dropdown.css("display", "none");
-        }
-    });
+    //     loadProjectsForFilterMobile();
+    //     if ($dropdown.css("display") === "none") {
+    //         $dropdown.css("display", "block");
+    //     } else {
+    //         $dropdown.css("display", "none");
+    //     }
+    // });
 
     $(document).on("click", "#applyTaskFilterBtnMobile", function () {
         const isCard = $(this).closest(".mobile-task-container").length > 0;
@@ -10752,14 +10723,8 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                     <button class="btn btn-sm toggle-list me-2" id="listViewMobileTask" data-bs-toggle="tooltip" title="List View">
                         <span class="material-symbols-outlined">list</span>
                     </button>
-                    <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
-                        <span class="material-symbols-outlined">calendar_month</span>
-                    </button>
                     <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
                         <span class="material-symbols-outlined">box</span>
-                    </button>
-                    <button class="btn btn-sm toggle-filter align-items-center" type="button" id="openTaskFilterBtnMobile">
-                        <span class="material-symbols-outlined">filter_list</span>
                     </button>
                 </div>
                 <div id="mobileBulkControls" class="d-flex align-items-center justify-content-end gap-2 mt-2 mb-2" style="display:none;">
@@ -10772,33 +10737,6 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                     <label for="taskNewAcceptAllMobile" class="task-selectall-toggle">
                         <input class="task-selectall-input" type="checkbox" id="taskNewAcceptAllMobile" aria-label="Select all pending new tasks" />
                     </label>
-                </div>
-                <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobileCard" style="display: none;">
-                    <div class="dropdown-filter-body">
-                        <div class="mb-3">
-                            <label for="filterTaskProjectMobileCard" class="form-label">Project</label>
-                            <select id="filterTaskProjectMobileCard" class="form-select">
-                                <option value="">All Projects</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="filterTaskPriorityMobile" class="form-label label-custom">Priority</label>
-                            <select id="filterTaskPriorityMobile" class="form-select">
-                                <option value="">All Priority</option>
-                                <option value="LOW">Low</option>
-                                <option value="MEDIUM">Medium</option>
-                                <option value="HIGH">High</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="filterByDateMobile" class="form-label label-custom">By Date</label>
-                            <input class="form-select border-0" type="date" name="filter_by_date" id="filterByDateMobile">
-                        </div>
-                    </div>
-                    <div class="dropdown-filter-footer">
-                        <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Apply</button>
-                        <button type="button" class="btn btn-submit-filter" id="resetTaskFilterBtnMobile">Reset</button>
-                    </div>
                 </div>
                 <div id="mobile-task-list" style="max-height: calc(100vh - 120px); overflow-y: auto;"></div>
             </div>`;
@@ -10819,42 +10757,9 @@ function safeText(v) { try { return (v == null ? '' : String(v)); } catch(_) { r
                         <button class="btn btn-sm toggle-list d-none me-2" id="listViewMobileTask" data-bs-toggle="tooltip" title="List View">
                             <span class="material-symbols-outlined">list</span>
                         </button>
-                        <button class="btn btn-sm toggle-timeline timeline-toggle-btn me-2" data-bs-toggle="modal" data-bs-target="#timelineModal">
-                            <span class="material-symbols-outlined">calendar_month</span>
-                        </button>
                         <button class="btn btn-sm toggle-archieve me-2" data-bs-toggle="modal" data-bs-target="#archieveModal">
                             <span class="material-symbols-outlined">box</span>
                         </button>
-                        <button class="btn btn-sm toggle-filter align-items-center" type="button" id="openTaskFilterBtnMobile">
-                            <span class="material-symbols-outlined">filter_list</span>
-                        </button>
-                    </div>
-                    <div class="dropdown-filter-menu shadow-sm" id="taskFilterDropdownMobileTable" style="display: none;">
-                        <div class="dropdown-filter-body">
-                            <div class="mb-3">
-                                <label for="filterTaskProjectMobileTable" class="form-label">Project</label>
-                                <select id="filterTaskProjectMobileTable" class="form-select">
-                                    <option value="">All Projects</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="filterTaskPriorityMobile" class="form-label label-custom">Priority</label>
-                                <select id="filterTaskPriorityMobile" class="form-select">
-                                    <option value="">All Priority</option>
-                                    <option value="LOW">Low</option>
-                                    <option value="MEDIUM">Medium</option>
-                                    <option value="HIGH">High</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label for="filterByDateMobile" class="form-label label-custom">By Date</label>
-                                <input class="form-select border-0" type="date" name="filter_by_date" id="filterByDateMobile">
-                            </div>
-                        </div>
-                        <div class="dropdown-filter-footer">
-                            <button type="button" class="btn btn-submit-filter" id="applyTaskFilterBtnMobile">Apply</button>
-                            <button type="button" class="btn btn-submit-filter" id="resetTaskFilterBtnMobile">Reset</button>
-                        </div>
                     </div>
                     <div class="table-wrapper-mobile">
                         <table class="table table-borderless align-middle table-transparent">
