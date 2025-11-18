@@ -3668,31 +3668,57 @@ class ProjectController extends Controller
             $user = auth()->user();
             $employeeId = $user?->employee?->id;
 
+            // Jika tidak ada employeeId, tidak boleh export apapun (kecuali special users)
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'User tidak memiliki employee assignment'
+                ], 403);
+            }
+
             $canSeeAll = false;
+            $userType = '';
+            $userRole = '';
             try {
-                $userType = strtoupper((string) ($user->user_type ?? ''));
-                $userRole = strtoupper((string) ($user->user_role ?? ''));
-                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
-                    $canSeeAll = true;
-                }
+                $userType = strtoupper(trim((string) ($user->user_type ?? '')));
+                $userRole = strtoupper(trim((string) ($user->user_role ?? '')));
+                
+                // Log untuk debugging
+                \Log::info('Export Projects Debug', [
+                    'user_id' => $user->id ?? null,
+                    'employee_id' => $employeeId,
+                    'user_type' => $userType,
+                    'user_role' => $userRole,
+                ]);
+                
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
                     $canSeeAll = true;
                 }
-                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
                     $canSeeAll = true;
                 }
             } catch (\Throwable $_) {
                 $canSeeAll = false;
             }
 
-            // Get active projects with relationships, filtered by employee assignment when available
-            $projects = Project::where('status', '!=', 'DELETED')
+            \Log::info('Export Projects - canSeeAll status', [
+                'canSeeAll' => $canSeeAll,
+                'will_filter' => !$canSeeAll
+            ]);
 
-                ->when(!$canSeeAll && $employeeId, function ($q) use ($employeeId) {
-                    $q->whereHas('projectAssignments', function ($qa) use ($employeeId) {
-                        $qa->where('employee_id', $employeeId);
-                    });
-                })
+            // Get active projects with relationships, filtered by employee assignment when available
+            $projects = Project::where('status', '!=', 'DELETED');
+            
+            // Non-special users: WAJIB filter hanya project dimana mereka adalah author, co_author, atau contributor
+            if (!$canSeeAll) {
+                $projects = $projects->whereHas('projectAssignments', function ($qa) use ($employeeId) {
+                    $qa->where('employee_id', $employeeId)
+                       ->whereIn('role', ['author', 'co_author', 'contributor']);
+                });
+            }
+            
+            $projects = $projects
                 ->with([
                     'department',
                     'division',
@@ -3739,6 +3765,13 @@ class ProjectController extends Controller
                 ])
                 ->orderBy('created_at', 'desc')
                 ->get();
+
+            // Log jumlah project yang akan di-export
+            \Log::info('Export Projects - Query Result', [
+                'total_projects' => $projects->count(),
+                'project_ids' => $projects->pluck('id')->toArray(),
+                'project_titles' => $projects->pluck('title')->toArray()
+            ]);
 
             // Create spreadsheet
             $spreadsheet = new Spreadsheet();
@@ -4304,17 +4337,34 @@ class ProjectController extends Controller
             $user = auth()->user();
             $employeeId = $user?->employee?->id;
 
+            // Jika tidak ada employeeId, tidak boleh export apapun (kecuali special users)
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'User tidak memiliki employee assignment'
+                ], 403);
+            }
+
             $canSeeAll = false;
+            $userType = '';
+            $userRole = '';
             try {
-                $userType = strtoupper((string) ($user->user_type ?? ''));
-                $userRole = strtoupper((string) ($user->user_role ?? ''));
-                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
-                    $canSeeAll = true;
-                }
+                $userType = strtoupper(trim((string) ($user->user_type ?? '')));
+                $userRole = strtoupper(trim((string) ($user->user_role ?? '')));
+                
+                \Log::info('Export Single Project Debug', [
+                    'project_id' => $id,
+                    'user_id' => $user->id ?? null,
+                    'employee_id' => $employeeId,
+                    'user_type' => $userType,
+                    'user_role' => $userRole,
+                ]);
+                
                 if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
                     $canSeeAll = true;
                 }
-                if ($userType === 'REGULAR' && $userRole === 'PERSONAL_ASSISTANT') {
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
                     $canSeeAll = true;
                 }
             } catch (\Throwable $_) {
@@ -4323,13 +4373,17 @@ class ProjectController extends Controller
 
             // Load the single project with relationships; filter tasks to active and to this employee when present
             $project = Project::where('status', '!=', 'DELETED')
-                ->where('id', $id)
-                // Only restrict by assignment when the user is NOT a privileged role
-                ->when(!$canSeeAll && $employeeId, function ($q) use ($employeeId) {
-                    $q->whereHas('projectAssignments', function ($qa) use ($employeeId) {
-                        $qa->where('employee_id', $employeeId);
-                    });
-                })
+                ->where('id', $id);
+            
+            // Non-special users: WAJIB filter hanya bisa export project dimana mereka adalah author, co_author, atau contributor
+            if (!$canSeeAll) {
+                $project = $project->whereHas('projectAssignments', function ($qa) use ($employeeId) {
+                    $qa->where('employee_id', $employeeId)
+                       ->whereIn('role', ['author', 'co_author', 'contributor']);
+                });
+            }
+            
+            $project = $project
                 ->with([
                     'department',
                     'division',
@@ -4562,9 +4616,10 @@ class ProjectController extends Controller
             }
 
             $activeWorksheet->setTitle('Project Report');
-            // sanitize project title for filename
-            $cleanTitle = preg_replace('/[^A-Za-z0-9_-]/', '_', str_replace(' ', '_', ($project->title ?? 'project_' . $id)));
-            $filename = 'project_report_' . $cleanTitle . '_' . date('Y_m_d_H_i_s') . '.xlsx';
+            // sanitize project title for filename (ganti spasi jadi underscore, hapus karakter yang tidak aman)
+            $cleanTitle = preg_replace('/[^A-Za-z0-9_-]/', '_', str_replace(' ', '_', ($project->title ?? 'project')));
+            // Format filename: project_report_TitleProject_ID_datetime
+            $filename = 'project_report_' . $cleanTitle . '_' . $id . '_' . date('Y-m-d_H-i-s') . '.xlsx';
 
             $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
             $tempFile = tempnam(sys_get_temp_dir(), 'project_export_single');
@@ -4587,16 +4642,64 @@ class ProjectController extends Controller
     public function exportProjectHierarchical(Project $project)
     {
         try {
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+
+            // Jika tidak ada employeeId, tidak boleh export apapun
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'User tidak memiliki employee assignment'
+                ], 403);
+            }
+
+            $canSeeAll = false;
+            $userType = '';
+            $userRole = '';
+            try {
+                $userType = strtoupper(trim((string) ($user->user_type ?? '')));
+                $userRole = strtoupper(trim((string) ($user->user_role ?? '')));
+                
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
+
+            // Cek apakah user punya akses ke project ini
+            if (!$canSeeAll) {
+                $hasAccess = \DB::table('project_assignments')
+                    ->where('project_id', $project->id)
+                    ->where('employee_id', $employeeId)
+                    ->whereIn('role', ['author', 'co_author', 'contributor'])
+                    ->exists();
+                
+                if (!$hasAccess) {
+                    return response()->json([
+                        'code' => 403,
+                        'status' => 'error',
+                        'message' => 'You do not have access to this project'
+                    ], 403);
+                }
+            }
+            
             // Load only the tasks relationship (children and parents are methods, not relationships)
             $project->load(['tasks']);
             
-            // Get all children recursively
-            $allChildren = $this->getAllProjectChildren($project);
+            // Get all children recursively with employee filter
+            $allChildren = $this->getAllProjectChildren($project, 0, [], $employeeId, $canSeeAll);
             
             // Debug: Log how many children we found
             \Log::info("Export Hierarchical Debug", [
                 'parent_project' => $project->title,
                 'parent_id' => $project->id,
+                'employee_id' => $employeeId,
+                'canSeeAll' => $canSeeAll,
                 'direct_children_count' => $project->children()->count(),
                 'total_descendants_count' => count($allChildren),
                 'descendants_ids' => collect($allChildren)->pluck('id')->toArray(),
@@ -4606,6 +4709,7 @@ class ProjectController extends Controller
             // Export only children (parent project is already in the title, no need to duplicate)
             return $this->generateHierarchicalExcel($allChildren, $project->title ?? 'Project', $project);
         } catch (\Exception $e) {
+            \Log::error('Export Hierarchical Error', ['error' => $e->getMessage()]);
             return response()->json([
                 'code' => 500,
                 'status' => 'error',
@@ -4620,10 +4724,64 @@ class ProjectController extends Controller
     public function exportAllProjectsHierarchical()
     {
         try {
-            // Get all root projects (projects that are not children of other projects)
-            $rootProjects = Project::whereNotIn('id', function ($query) {
-                $query->select('project_id')->from('project_parents');
-            })->get();
+            $user = auth()->user();
+            $employeeId = $user?->employee?->id;
+
+            // Jika tidak ada employeeId, tidak boleh export apapun
+            if (!$employeeId) {
+                return response()->json([
+                    'code' => 403,
+                    'status' => 'error',
+                    'message' => 'User tidak memiliki employee assignment'
+                ], 403);
+            }
+
+            $canSeeAll = false;
+            $userType = '';
+            $userRole = '';
+            try {
+                $userType = strtoupper(trim((string) ($user->user_type ?? '')));
+                $userRole = strtoupper(trim((string) ($user->user_role ?? '')));
+                
+                \Log::info('Export All Hierarchical Debug', [
+                    'user_id' => $user->id ?? null,
+                    'employee_id' => $employeeId,
+                    'user_type' => $userType,
+                    'user_role' => $userRole,
+                ]);
+                
+                if ($userType === 'ADMINISTRATOR' && $userRole === 'ADMINISTRATOR') {
+                    $canSeeAll = true;
+                }
+                if ($userType === 'MANAGEMENT' && in_array($userRole, ['GENERAL_MANAGER', 'CEO'])) {
+                    $canSeeAll = true;
+                }
+            } catch (\Throwable $_) {
+                $canSeeAll = false;
+            }
+
+            \Log::info('Export All Hierarchical - canSeeAll', ['canSeeAll' => $canSeeAll]);
+
+            // Get root projects dengan filter employee assignment jika bukan special user
+            $rootProjectsQuery = Project::where('status', '!=', 'DELETED')
+                ->whereNotIn('id', function ($query) {
+                    $query->select('project_id')->from('project_parents');
+                });
+            
+            // Filter hanya project yang employee terlibat sebagai author/co_author/contributor
+            if (!$canSeeAll) {
+                $rootProjectsQuery = $rootProjectsQuery->whereHas('projectAssignments', function ($qa) use ($employeeId) {
+                    $qa->where('employee_id', $employeeId)
+                       ->whereIn('role', ['author', 'co_author', 'contributor']);
+                });
+            }
+            
+            $rootProjects = $rootProjectsQuery->get();
+
+            \Log::info('Export All Hierarchical - Root Projects', [
+                'count' => $rootProjects->count(),
+                'ids' => $rootProjects->pluck('id')->toArray()
+            ]);
 
             $allProjects = [];
             
@@ -4636,7 +4794,8 @@ class ProjectController extends Controller
                 $allProjects[] = $rootProject;
                 
                 // Get ALL descendants (children, grandchildren, etc.) recursively
-                $allDescendants = $this->getAllProjectChildren($rootProject);
+                // Pass employeeId and canSeeAll for filtering children
+                $allDescendants = $this->getAllProjectChildren($rootProject, 0, [], $employeeId, $canSeeAll);
                 
                 // Add each descendant individually to maintain proper order
                 foreach ($allDescendants as $descendant) {
@@ -4644,8 +4803,11 @@ class ProjectController extends Controller
                 }
             }
             
+            \Log::info('Export All Hierarchical - Total Projects', ['count' => count($allProjects)]);
+            
             return $this->generateHierarchicalExcel($allProjects, 'All Projects', null);
         } catch (\Exception $e) {
+            \Log::error('Export All Hierarchical Error', ['error' => $e->getMessage()]);
             return response()->json([
                 'code' => 500,
                 'status' => 'error',
@@ -4655,9 +4817,9 @@ class ProjectController extends Controller
     }
 
     /**
-     * Recursively get all children of a project
+     * Recursively get all children of a project with employee filtering
      */
-    private function getAllProjectChildren(Project $project, $level = 0, $visited = [])
+    private function getAllProjectChildren(Project $project, $level = 0, $visited = [], $employeeId = null, $canSeeAll = false)
     {
         $allChildren = [];
         
@@ -4672,6 +4834,17 @@ class ProjectController extends Controller
         // we need to load tasks separately
         $directChildren = $project->children();
         
+        // Filter children based on employee assignment if not special user
+        if (!$canSeeAll && $employeeId) {
+            $directChildren = $directChildren->filter(function($child) use ($employeeId) {
+                return \DB::table('project_assignments')
+                    ->where('project_id', $child->id)
+                    ->where('employee_id', $employeeId)
+                    ->whereIn('role', ['author', 'co_author', 'contributor'])
+                    ->exists();
+            });
+        }
+        
         // Load tasks for each child
         foreach ($directChildren as $child) {
             $child->load(['tasks']);
@@ -4679,8 +4852,8 @@ class ProjectController extends Controller
             // Add this child to the list first
             $allChildren[] = $child;
             
-            // Then recursively get all descendants of this child
-            $descendants = $this->getAllProjectChildren($child, $level + 1, $visited);
+            // Then recursively get all descendants of this child with the same filters
+            $descendants = $this->getAllProjectChildren($child, $level + 1, $visited, $employeeId, $canSeeAll);
             
             // Add all descendants to our list
             foreach ($descendants as $descendant) {
