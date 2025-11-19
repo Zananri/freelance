@@ -218,7 +218,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     contractDisplay = formatted;
                 } else {
                     if (dayDiff <= 30) {
-                        contractDisplay = `<span class="bg-danger text-white rounded px-2 py-1">${formatted}</span>`;
+                        contractDisplay = `<span class="text-danger rounded px-2 py-1">${formatted}</span>`;
                     } else {
                         contractDisplay = formatted;
                     }
