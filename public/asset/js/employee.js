@@ -46,11 +46,13 @@ document.addEventListener("DOMContentLoaded", function () {
         department: "",
         division: "",
         job: "",
+        sort: "",
     };
 
     const filterDepartmentSelect = document.getElementById("filterDepartment");
     const filterDivisionSelect = document.getElementById("filterDivision");
     const filterJobSelect = document.getElementById("filterJob");
+    const sortBySelect = document.getElementById("sortBy");
     const searchInput = document.getElementById("searchInput");
 
     // Load departments for filter select
@@ -161,13 +163,20 @@ document.addEventListener("DOMContentLoaded", function () {
                 Accept: "application/json",
             },
             success: function (data) {
-                renderEmployees(data.data);
-                console.log(data.data);
+                let employees = data.data;
+                
+                // Apply client-side sorting if sort parameter exists
+                if (filters.sort) {
+                    employees = applySorting(employees, filters.sort);
+                }
+                
+                renderEmployees(employees);
+                console.log(employees);
 
             },
             error: function () {
                 tableBody.innerHTML =
-                    '<tr><td colspan="6">Failed to load employee data.</td></tr>';
+                    '<tr><td colspan="8">Failed to load employee data.</td></tr>';
                 showFloatingAlert('Failed to load employees.', 'warning', 3500);
             },
         });
@@ -177,7 +186,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function renderEmployees(employees) {
         if (!employees.length) {
             tableBody.innerHTML =
-                '<tr class="no-data-row"><td colspan="6" class="text-center">No employees found.</td></tr>';
+                '<tr class="no-data-row"><td colspan="8" class="text-center">No employees found.</td></tr>';
             return;
         }
 
@@ -257,6 +266,88 @@ document.addEventListener("DOMContentLoaded", function () {
             `;
         });
         tableBody.innerHTML = rows;
+    }
+
+    // Apply sorting to employees array
+    function applySorting(employees, sortType) {
+        if (!sortType) return employees;
+        
+        let sortedEmployees = [...employees];
+        
+        switch (sortType) {
+            case 'name_asc':
+                sortedEmployees.sort((a, b) => {
+                    const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+                    const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+                    return nameA.localeCompare(nameB);
+                });
+                break;
+            case 'name_desc':
+                sortedEmployees.sort((a, b) => {
+                    const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+                    const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+                    return nameB.localeCompare(nameA);
+                });
+                break;
+            case 'hire_date_newest':
+                sortedEmployees.sort((a, b) => {
+                    const dateA = a.hire_date ? new Date(a.hire_date) : new Date(0);
+                    const dateB = b.hire_date ? new Date(b.hire_date) : new Date(0);
+                    return dateB - dateA;
+                });
+                break;
+            case 'hire_date_oldest':
+                sortedEmployees.sort((a, b) => {
+                    const dateA = a.hire_date ? new Date(a.hire_date) : new Date(0);
+                    const dateB = b.hire_date ? new Date(b.hire_date) : new Date(0);
+                    return dateA - dateB;
+                });
+                break;
+            case 'contract_date_newest':
+                sortedEmployees.sort((a, b) => {
+                    const dateA = a.contract_end_date ? new Date(a.contract_end_date) : new Date(0);
+                    const dateB = b.contract_end_date ? new Date(b.contract_end_date) : new Date(0);
+                    return dateB - dateA;
+                });
+                break;
+            case 'contract_date_oldest':
+                sortedEmployees.sort((a, b) => {
+                    const dateA = a.contract_end_date ? new Date(a.contract_end_date) : new Date(0);
+                    const dateB = b.contract_end_date ? new Date(b.contract_end_date) : new Date(0);
+                    return dateA - dateB;
+                });
+                break;
+            case 'department_asc':
+                sortedEmployees.sort((a, b) => {
+                    const deptA = (a.department?.name_department || '').toLowerCase();
+                    const deptB = (b.department?.name_department || '').toLowerCase();
+                    return deptA.localeCompare(deptB);
+                });
+                break;
+            case 'department_desc':
+                sortedEmployees.sort((a, b) => {
+                    const deptA = (a.department?.name_department || '').toLowerCase();
+                    const deptB = (b.department?.name_department || '').toLowerCase();
+                    return deptB.localeCompare(deptA);
+                });
+                break;
+            case 'division_asc':
+                sortedEmployees.sort((a, b) => {
+                    const divA = (a.division?.name_division || '').toLowerCase();
+                    const divB = (b.division?.name_division || '').toLowerCase();
+                    return divA.localeCompare(divB);
+                });
+                break;
+            case 'division_desc':
+                sortedEmployees.sort((a, b) => {
+                    const divA = (a.division?.name_division || '').toLowerCase();
+                    const divB = (b.division?.name_division || '').toLowerCase();
+                    return divB.localeCompare(divA);
+                });
+                break;
+        }
+        
+        return sortedEmployees;
     }
 
     // Delete modal and logic
@@ -464,6 +555,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Apply filter button
     const applyFilterBtn = document.getElementById("applyFilterBtn");
     applyFilterBtn.addEventListener("click", () => {
+        currentFilters.sort = sortBySelect.value;
         currentFilters.department = filterDepartmentSelect.value ? [filterDepartmentSelect.value] : [];
         currentFilters.division = filterDivisionSelect.value ? [filterDivisionSelect.value] : [];
         currentFilters.job = filterJobSelect.value ? [filterJobSelect.value] : [];
@@ -476,11 +568,13 @@ document.addEventListener("DOMContentLoaded", function () {
     // Clear filter button
     const clearFilterBtn = document.getElementById("clearFilterBtn");
     clearFilterBtn.addEventListener("click", () => {
+        sortBySelect.value = "";
         filterDepartmentSelect.value = "";
         filterDivisionSelect.value = "";
         filterJobSelect.value = "";
         filterDivisionSelect.disabled = true;
         filterJobSelect.disabled = true;
+        currentFilters.sort = "";
         currentFilters.department = [];
         currentFilters.division = [];
         currentFilters.job = [];

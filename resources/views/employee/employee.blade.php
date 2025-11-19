@@ -44,6 +44,23 @@
                         <form id="filterForm">
                             
                             <div class="mb-3 custom-input">
+                                <label for="sortBy" class="form-label small">Sort By</label>
+                                <select id="sortBy" class="form-select form-select-sm">
+                                    <option value="">Select Sort</option>
+                                    <option value="name_asc">Name (A-Z)</option>
+                                    <option value="name_desc">Name (Z-A)</option>
+                                    <option value="hire_date_newest">Hire Date (Newest)</option>
+                                    <option value="hire_date_oldest">Hire Date (Oldest)</option>
+                                    <option value="contract_date_newest">Contract Date (Newest)</option>
+                                    <option value="contract_date_oldest">Contract Date (Oldest)</option>
+                                    <option value="department_asc">Department (A-Z)</option>
+                                    <option value="department_desc">Department (Z-A)</option>
+                                    <option value="division_asc">Division (A-Z)</option>
+                                    <option value="division_desc">Division (Z-A)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3 custom-input">
                                 <label for="filterDepartment" class="form-label small">Department</label>
                                 <select id="filterDepartment" class="form-select form-select-sm">
                                     <option value="">Select Department</option>
