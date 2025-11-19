@@ -44,6 +44,23 @@
                         <form id="filterForm">
                             
                             <div class="mb-3 custom-input">
+                                <label for="sortBy" class="form-label small">Sort By</label>
+                                <select id="sortBy" class="form-select form-select-sm">
+                                    <option value="">Select Sort</option>
+                                    <option value="name_asc">Name (A-Z)</option>
+                                    <option value="name_desc">Name (Z-A)</option>
+                                    <option value="hire_date_newest">Hire Date (Newest)</option>
+                                    <option value="hire_date_oldest">Hire Date (Oldest)</option>
+                                    <option value="contract_date_newest">Contract Date (Newest)</option>
+                                    <option value="contract_date_oldest">Contract Date (Oldest)</option>
+                                    <option value="department_asc">Department (A-Z)</option>
+                                    <option value="department_desc">Department (Z-A)</option>
+                                    <option value="division_asc">Division (A-Z)</option>
+                                    <option value="division_desc">Division (Z-A)</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3 custom-input">
                                 <label for="filterDepartment" class="form-label small">Department</label>
                                 <select id="filterDepartment" class="form-select form-select-sm">
                                     <option value="">Select Department</option>
@@ -84,14 +101,14 @@
                 <table class="table table-borderless align-middle table-transparent">
                     <thead>
                         <tr>
-                            <th scope="col">Employee</th>
-                            <th scope="col">Hire Date</th>
-                            <th scope="col">Contratc Date</th>
-                            <th scope="col">Department Name</th>
-                            <th scope="col">Division Name</th>
-                            <th scope="col">Office</th>
-                            <th scope="col">Status</th>
-                            <th scope="col"></th>
+                            <th scope="col" style="text-align: left;">Employee</th>
+                            <th scope="col" style="text-align: left;">Hire Date</th>
+                            <th scope="col" style="text-align: left;">Contract Date</th>
+                            <th scope="col" style="text-align: left;">Department Name</th>
+                            <th scope="col" style="text-align: left;">Division Name</th>
+                            <th scope="col" style="text-align: left;">Office</th>
+                            <th scope="col" style="text-align: center;">Status</th>
+                            <th scope="col" style="text-align: right;"></th>
                         </tr>
                     </thead>
                     <tbody id="employeeTableBody">
