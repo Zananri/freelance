@@ -86,8 +86,7 @@
                         <tr>
                             <th scope="col">Employee</th>
                             <th scope="col">Hire Date</th>
-                            <th scope="col">Contract Date</th>
-                            <th scope="col">Employee</th>
+                            <th scope="col">Contratc Date</th>
                             <th scope="col">Department Name</th>
                             <th scope="col">Division Name</th>
                             <th scope="col">Office</th>
@@ -180,7 +179,6 @@
     <x-slot name="script_slot">
 
         <script src="{{ asset('asset/js/employee.js') }}"></script>
-        <script src="{{ asset('asset/js/date_helper.js') }}"></script>
 
         <script></script>
     </x-slot>
